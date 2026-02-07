@@ -87,6 +87,200 @@ resource "github_team_repository" "example" {
 }
 ```
 
+## Example Usage - Status Check with job_name and/or job_id
+
+Given the following workflow:
+
+```yaml
+...
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    steps:
+      ...
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      ...
+```
+
+The value to use in `contexts` would be `Build and Test` (the job name) for the first job, and `test` (the job_id) for the second job.
+
+~> **Note:** When a job has a `name` attribute, GitHub uses the **name** as the status check context. When a job doesn't have a `name`, GitHub uses the `job_id`. You must use whichever one GitHub reports as the status check context.
+
+```hcl
+resource "github_branch_protection" "example" {
+  repository_id = github_repository.example.node_id
+  pattern       = "main"
+
+  required_status_checks {
+    contexts = [
+      "Build and Test",  # Uses job name because name is specified
+      "test",            # Uses job_id because no name is specified
+    ]
+  }
+}
+```
+## Example Usage - Status Check with Matrix Jobs
+For example, given the following workflow:
+```yaml
+...
+jobs:
+  example_matrix:
+    name: Example Matrix
+    strategy:
+      matrix:
+        version: [10, 12, 14]
+        os: [ubuntu-latest, windows-latest]
+        ...
+```
+Since the job has a `name` attribute, you must use the job name (not the job id). The values to use in `contexts` would be:
+- Example Matrix (10, ubuntu-latest)
+- Example Matrix (10, windows-latest)
+- Example Matrix (12, ubuntu-latest)
+- Example Matrix (12, windows-latest)
+- Example Matrix (14, ubuntu-latest)
+- Example Matrix (14, windows-latest)
+
+```hcl
+resource "github_branch_protection" "example" {
+  repository_id = github_repository.example.node_id
+  pattern       = "main"
+  required_status_checks {
+    contexts = [
+      "Example Matrix (10, ubuntu-latest)",
+      "Example Matrix (10, windows-latest)",
+      "Example Matrix (12, ubuntu-latest)",
+      "Example Matrix (12, windows-latest)",
+      "Example Matrix (14, ubuntu-latest)",
+      "Example Matrix (14, windows-latest)",
+    ]
+  }
+}
+```
+
+## Example Usage - Status Check with Matrix Jobs (No Job Name)
+
+If the workflow does **not** have a `name` attribute:
+```yaml
+...
+jobs:
+  example_matrix:
+    strategy:
+      matrix:
+        version: [10, 12, 14]
+        os: [ubuntu-latest, windows-latest]
+        ...
+```
+Since there's no `name` attribute, you must use the `job_id`. The values to use in `contexts` would be:
+- example_matrix (10, ubuntu-latest)
+- example_matrix (10, windows-latest)
+- example_matrix (12, ubuntu-latest)
+- example_matrix (12, windows-latest)
+- example_matrix (14, ubuntu-latest)
+- example_matrix (14, windows-latest)
+
+```hcl
+resource "github_branch_protection" "example" {
+  repository_id = github_repository.example.node_id
+  pattern       = "main"
+  required_status_checks {
+    contexts = [
+      "example_matrix (10, ubuntu-latest)",
+      "example_matrix (10, windows-latest)",
+      "example_matrix (12, ubuntu-latest)",
+      "example_matrix (12, windows-latest)",
+      "example_matrix (14, ubuntu-latest)",
+      "example_matrix (14, windows-latest)",
+    ]
+  }
+}
+```
+
+## Example Usage - Status Check with Reusable Workflows
+
+When using reusable workflows, the status check context follows the pattern: `<calling_workflow_job> / <called_workflow_job>`.
+If the caller or called workflow job has a `name` attribute, use the job name. If it doesn't have a `name` attribute, use the `job_id`.
+
+Given the following caller workflow (`.github/workflows/caller.yml`):
+```yaml
+jobs:
+  call-workflow:
+    name: Call Reusable Workflow
+    uses: ./.github/workflows/reusable.yml
+```
+
+And the reusable workflow (`.github/workflows/reusable.yml`):
+```yaml
+jobs:
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    steps:
+      ...
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      ...
+```
+
+Since both the caller job and the first reusable job have `name` attributes, use both names. The second job in the reusable workflow has no name, so use its `job_id`:
+
+```hcl
+resource "github_branch_protection" "example" {
+  repository_id = github_repository.example.node_id
+  pattern       = "main"
+  required_status_checks {
+    contexts = [
+      "Call Reusable Workflow / Build Application",  # caller name / reusable job name
+      "Call Reusable Workflow / test",               # caller name / reusable job_id
+    ]
+  }
+}
+```
+
+## Example Usage - Status Check with Reusable Workflows (No Job Names)
+
+If the workflows do **not** have `name` attributes:
+
+Caller workflow (`.github/workflows/caller.yml`):
+```yaml
+jobs:
+  call-workflow:
+    uses: ./.github/workflows/reusable.yml
+```
+
+Reusable workflow (`.github/workflows/reusable.yml`):
+```yaml
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      ...
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      ...
+```
+
+Use the `job_id` for both the caller and the reusable workflow jobs:
+
+```hcl
+resource "github_branch_protection" "example" {
+  repository_id = github_repository.example.node_id
+  pattern       = "main"
+  required_status_checks {
+    contexts = [
+      "call-workflow / build",  # caller job_id / reusable job_id
+      "call-workflow / test",   # caller job_id / reusable job_id
+    ]
+  }
+}
+```
+
+~> **Note:** For multi-level reusable workflows, the pattern extends: `<workflow1_job> / <workflow2_job> / <workflow3_job>`.
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -112,42 +306,11 @@ The following arguments are supported:
 * `strict`: (Optional) Require branches to be up to date before merging. Defaults to `false`.
 * `contexts`: (Optional) The list of status checks to require in order to merge into this branch. No status checks are required by default.
 
-~> **Note:** This attribute can contain multiple string patterns.
-If specified, usual value is the [job name](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idname). Otherwise, the [job id](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_id) is defaulted to.
-For example, given the following workflow:
-```yaml
-...
-jobs:
-  build:
-    name: Build and Test
-    runs-on: ubuntu-latest
-    steps:
-      ...
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      ...
-```
-The value to use in `contexts` would be either `Build and Test` or `build` for the first job, and `test` for the second job.
-For workflows that use matrixes, append the matrix name to the value using the following pattern `(<matrix_value>[, <matrix_value>])`. Matrixes should be specified based on the order of matrix properties in the workflow file. See [GitHub Documentation](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/run-job-variations?versionId=free-pro-team%40latest&productId=actions&restPage=how-tos%2Cwrite-workflows#adding-a-matrix-strategy-to-your-workflow-job) for more information.
-For example, given the following workflow:
-```yaml
-jobs:
-  example_matrix:
-    strategy:
-      matrix:
-        version: [10, 12, 14]
-        os: [ubuntu-latest, windows-latest]
-```
-The values to use in `contexts` would be any of the following six options:
-- `example_matrix (10, ubuntu-latest)`
-- `example_matrix (10, windows-latest)`
-- `example_matrix (12, ubuntu-latest)`
-- `example_matrix (12, windows-latest)`
-- `example_matrix (14, ubuntu-latest)`
-- `example_matrix (14, windows-latest)`
-or combinations thereof.
-For workflows that use reusable workflows, the pattern is `<initial_workflow.jobs.job.[name/id]> / <reused-workflow.jobs.job.[name/id]>`. This can extend multiple levels.
+~> **Note:** This attribute can contain multiple string patterns representing GitHub Actions workflow job status checks.
+If a job has a [`name`](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idname) attribute, use the job name as the context value.
+If a job does **not** have a `name` attribute, use the [`job_id`](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_id) as the context value.
+Append the matrix values to the job name or job_id using the pattern: `<job_name_or_id> (<matrix_value>, <matrix_value>)`. For example: `Example Matrix (10, ubuntu-latest)`. See the examples above and [GitHub Documentation](https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs) for more information.
+Use the pattern: `<caller_job_name_or_id> / <called_job_name_or_id>`. Apply the `name` vs `job_id` rule to both the caller and called workflow jobs. For multi-level reusable workflows, extend the pattern with additional levels separated by ` / `. See the examples above for more information.
 
 ### Required Pull Request Reviews
 
