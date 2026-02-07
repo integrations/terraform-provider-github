@@ -75,8 +75,8 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessHasPaidOrgs(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -128,8 +128,8 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessHasPaidOrgs(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -211,8 +211,8 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessHasPaidOrgs(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: configBefore,
@@ -288,8 +288,8 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessHasPaidOrgs(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: configBefore,
@@ -334,8 +334,8 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessHasPaidOrgs(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -372,8 +372,8 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 		`, randomID, randomID)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessHasPaidOrgs(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,

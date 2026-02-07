@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v81/github"
+	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -49,6 +49,9 @@ type testAccConfig struct {
 	testPublicRepository              string
 	testPublicRepositoryOwner         string
 	testPublicReleaseId               int
+	testPublicRelaseAssetId           string
+	testPublicRelaseAssetName         string
+	testPublicReleaseAssetContent     string
 	testPublicTemplateRepository      string
 	testPublicTemplateRepositoryOwner string
 	testGHActionsAppInstallationId    int
@@ -67,6 +70,9 @@ type testAccConfig struct {
 	testExternalUser      string
 	testExternalUserToken string
 	testExternalUser2     string
+
+	// Enterprise test configuration
+	testEnterpriseEMUGroupId int
 
 	// Test options
 	testAdvancedSecurity bool
@@ -102,11 +108,16 @@ func TestMain(m *testing.M) {
 	}
 
 	config := testAccConfig{
-		baseURL:                           baseURL,
-		authMode:                          authMode,
-		testPublicRepository:              "terraform-provider-github",
-		testPublicRepositoryOwner:         "integrations",
-		testPublicReleaseId:               186531906,
+		baseURL:                   baseURL,
+		authMode:                  authMode,
+		testPublicRepository:      "terraform-provider-github",
+		testPublicRepositoryOwner: "integrations",
+		testPublicReleaseId:       186531906,
+		// The terraform-provider-github_6.4.0_manifest.json asset ID from
+		// https://github.com/integrations/terraform-provider-github/releases/tag/v6.4.0
+		testPublicRelaseAssetId:           "207956097",
+		testPublicRelaseAssetName:         "terraform-provider-github_6.4.0_manifest.json",
+		testPublicReleaseAssetContent:     "{\n  \"version\": 1,\n  \"metadata\": {\n    \"protocol_versions\": [\n      \"5.0\"\n    ]\n  }\n}",
 		testPublicTemplateRepository:      "template-repository",
 		testPublicTemplateRepositoryOwner: "template-repository",
 		testGHActionsAppInstallationId:    15368,
@@ -148,6 +159,11 @@ func TestMain(m *testing.M) {
 		if len(config.enterpriseSlug) == 0 {
 			fmt.Println("GITHUB_ENTERPRISE_SLUG environment variable not set")
 			os.Exit(1)
+		}
+
+		i, err := strconv.Atoi(os.Getenv("GH_TEST_ENTERPRISE_EMU_GROUP_ID"))
+		if err == nil {
+			config.testEnterpriseEMUGroupId = i
 		}
 	}
 

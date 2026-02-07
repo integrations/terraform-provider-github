@@ -4,16 +4,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 
-	"github.com/google/go-github/v81/github"
+	"github.com/google/go-github/v82/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
+
+var supportedRulesetTargetTypes = []string{string(github.RulesetTargetBranch), string(github.RulesetTargetPush), string(github.RulesetTargetTag)}
 
 func resourceGithubRepositoryRuleset() *schema.Resource {
 	return &schema.Resource{
@@ -27,30 +30,32 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 
 		SchemaVersion: 1,
 
+		CustomizeDiff: resourceGithubRepositoryRulesetDiff,
+
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringLenBetween(1, 100),
-				Description:  "The name of the ruleset.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 100)),
+				Description:      "The name of the ruleset.",
 			},
 			"target": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{"branch", "push", "tag"}, false),
-				Description:  "Possible values are `branch`, `push` and `tag`.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice(supportedRulesetTargetTypes, false)),
+				Description:      "Possible values are " + strings.Join(supportedRulesetTargetTypes[:len(supportedRulesetTargetTypes)-1], ", ") + " and " + supportedRulesetTargetTypes[len(supportedRulesetTargetTypes)-1],
 			},
 			"repository": {
 				Type:             schema.TypeString,
 				Required:         true,
-				ValidateDiagFunc: toDiagFunc(validation.StringMatch(regexp.MustCompile(`^[-a-zA-Z0-9_.]{1,100}$`), "must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less"), "name"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringMatch(regexp.MustCompile(`^[-a-zA-Z0-9_.]{1,100}$`), "must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less")),
 				Description:      "Name of the repository to apply ruleset to.",
 			},
 			"enforcement": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{"disabled", "active", "evaluate"}, false),
-				Description:  "Possible values for Enforcement are `disabled`, `active`, `evaluate`. Note: `evaluate` is currently only supported for owners of type `organization`.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"disabled", "active", "evaluate"}, false)),
+				Description:      "Possible values for Enforcement are `disabled`, `active`, `evaluate`. Note: `evaluate` is currently only supported for owners of type `organization`.",
 			},
 			"bypass_actors": {
 				Type:             schema.TypeList,
@@ -66,16 +71,16 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Description: "The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `1`. Some resources such as DeployKey do not have an ID and this should be omitted.",
 						},
 						"actor_type": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validation.StringInSlice([]string{"RepositoryRole", "Team", "Integration", "OrganizationAdmin", "DeployKey"}, false),
-							Description:  "The type of actor that can bypass a ruleset. See https://docs.github.com/en/rest/repos/rules for more information.",
+							Type:             schema.TypeString,
+							Required:         true,
+							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"RepositoryRole", "Team", "Integration", "OrganizationAdmin", "DeployKey"}, false)),
+							Description:      "The type of actor that can bypass a ruleset. See https://docs.github.com/en/rest/repos/rules for more information.",
 						},
 						"bypass_mode": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validation.StringInSlice([]string{"always", "pull_request", "exempt"}, false),
-							Description:  "When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`, `exempt`.",
+							Type:             schema.TypeString,
+							Required:         true,
+							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"always", "pull_request", "exempt"}, false)),
+							Description:      "When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`, `exempt`.",
 						},
 					},
 				},
@@ -191,12 +196,13 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 								Schema: map[string]*schema.Schema{
 									"allowed_merge_methods": {
 										Type:        schema.TypeList,
-										Required:    true,
+										Optional:    true,
+										Computed:    true,
 										MinItems:    1,
 										Description: "Array of allowed merge methods. Allowed values include `merge`, `squash`, and `rebase`. At least one option must be enabled.",
 										Elem: &schema.Schema{
 											Type:             schema.TypeString,
-											ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"merge", "squash", "rebase"}, false), "allowed_merge_methods"),
+											ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"merge", "squash", "rebase"}, false)),
 										},
 									},
 									"dismiss_stale_reviews_on_push": {
@@ -218,16 +224,59 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Description: "Whether the most recent reviewable push must be approved by someone other than the person who pushed it. Defaults to `false`.",
 									},
 									"required_approving_review_count": {
-										Type:        schema.TypeInt,
-										Optional:    true,
-										Default:     0,
-										Description: "The number of approving reviews that are required before a pull request can be merged. Defaults to `0`.",
+										Type:             schema.TypeInt,
+										Optional:         true,
+										Default:          0,
+										ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 10)),
+										Description:      "The number of approving reviews that are required before a pull request can be merged. Defaults to `0`.",
 									},
 									"required_review_thread_resolution": {
 										Type:        schema.TypeBool,
 										Optional:    true,
 										Default:     false,
 										Description: "All conversations on code must be resolved before a pull request can be merged. Defaults to `false`.",
+									},
+									"required_reviewers": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										Description: "Require specific reviewers to approve pull requests targeting matching branches. Note: This feature is in beta and subject to change.",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"reviewer": {
+													Type:        schema.TypeList,
+													Required:    true,
+													MaxItems:    1,
+													Description: "The reviewer that must review matching files.",
+													Elem: &schema.Resource{
+														Schema: map[string]*schema.Schema{
+															"id": {
+																Type:        schema.TypeInt,
+																Required:    true,
+																Description: "The ID of the reviewer that must review.",
+															},
+															"type": {
+																Type:             schema.TypeString,
+																Required:         true,
+																ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"Team"}, false), "type"),
+																Description:      "The type of reviewer. Currently only `Team` is supported.",
+															},
+														},
+													},
+												},
+												"file_patterns": {
+													Type:        schema.TypeList,
+													Required:    true,
+													MinItems:    1,
+													Description: "File patterns (fnmatch syntax) that this reviewer must approve.",
+													Elem:        &schema.Schema{Type: schema.TypeString},
+												},
+												"minimum_approvals": {
+													Type:        schema.TypeInt,
+													Required:    true,
+													Description: "Minimum number of approvals required from this reviewer. Set to 0 to make approval optional.",
+												},
+											},
+										},
 									},
 								},
 							},
@@ -285,49 +334,49 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Type:             schema.TypeInt,
 										Optional:         true,
 										Default:          60,
-										ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 360), "check_response_timeout_minutes"),
+										ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 360)),
 										Description:      "Maximum time for a required status check to report a conclusion. After this much time has elapsed, checks that have not reported a conclusion will be assumed to have failed. Defaults to `60`.",
 									},
 									"grouping_strategy": {
 										Type:             schema.TypeString,
 										Optional:         true,
 										Default:          "ALLGREEN",
-										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"ALLGREEN", "HEADGREEN"}, false), "grouping_strategy"),
+										ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"ALLGREEN", "HEADGREEN"}, false)),
 										Description:      "When set to ALLGREEN, the merge commit created by merge queue for each PR in the group must pass all required checks to merge. When set to HEADGREEN, only the commit at the head of the merge group, i.e. the commit containing changes from all of the PRs in the group, must pass its required checks to merge. Can be one of: ALLGREEN, HEADGREEN. Defaults to `ALLGREEN`.",
 									},
 									"max_entries_to_build": {
 										Type:             schema.TypeInt,
 										Optional:         true,
 										Default:          5,
-										ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 100), "max_entries_to_merge"),
+										ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 100)),
 										Description:      "Limit the number of queued pull requests requesting checks and workflow runs at the same time. Defaults to `5`.",
 									},
 									"max_entries_to_merge": {
 										Type:             schema.TypeInt,
 										Optional:         true,
 										Default:          5,
-										ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 100), "max_entries_to_merge"),
+										ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 100)),
 										Description:      "The maximum number of PRs that will be merged together in a group. Defaults to `5`.",
 									},
 									"merge_method": {
 										Type:             schema.TypeString,
 										Optional:         true,
 										Default:          "MERGE",
-										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"MERGE", "SQUASH", "REBASE"}, false), "merge_method"),
+										ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"MERGE", "SQUASH", "REBASE"}, false)),
 										Description:      "Method to use when merging changes from queued pull requests. Can be one of: MERGE, SQUASH, REBASE. Defaults to `MERGE`.",
 									},
 									"min_entries_to_merge": {
 										Type:             schema.TypeInt,
 										Optional:         true,
 										Default:          1,
-										ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 100), "min_entries_to_merge"),
+										ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 100)),
 										Description:      "The minimum number of PRs that will be merged together in a group. Defaults to `1`.",
 									},
 									"min_entries_to_merge_wait_minutes": {
 										Type:             schema.TypeInt,
 										Optional:         true,
 										Default:          5,
-										ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 360), "min_entries_to_merge_wait_minutes"),
+										ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 360)),
 										Description:      "The time merge queue should wait after the first PR is added to the queue for the minimum group size to be met. After this time has elapsed, the minimum group size will be ignored and a smaller group will be merged. Defaults to `5`.",
 									},
 								},
@@ -356,9 +405,10 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Description: "If true, the rule will fail if the pattern matches.",
 									},
 									"operator": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
+										Type:             schema.TypeString,
+										ValidateDiagFunc: operatorValidation,
+										Required:         true,
+										Description:      "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
 									},
 									"pattern": {
 										Type:        schema.TypeString,
@@ -386,9 +436,10 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Description: "If true, the rule will fail if the pattern matches.",
 									},
 									"operator": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
+										Type:             schema.TypeString,
+										ValidateDiagFunc: operatorValidation,
+										Required:         true,
+										Description:      "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
 									},
 									"pattern": {
 										Type:        schema.TypeString,
@@ -416,9 +467,10 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Description: "If true, the rule will fail if the pattern matches.",
 									},
 									"operator": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
+										Type:             schema.TypeString,
+										ValidateDiagFunc: operatorValidation,
+										Required:         true,
+										Description:      "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
 									},
 									"pattern": {
 										Type:        schema.TypeString,
@@ -447,9 +499,10 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Description: "If true, the rule will fail if the pattern matches.",
 									},
 									"operator": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
+										Type:             schema.TypeString,
+										ValidateDiagFunc: operatorValidation,
+										Required:         true,
+										Description:      "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
 									},
 									"pattern": {
 										Type:        schema.TypeString,
@@ -478,9 +531,10 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Description: "If true, the rule will fail if the pattern matches.",
 									},
 									"operator": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
+										Type:             schema.TypeString,
+										ValidateDiagFunc: operatorValidation,
+										Required:         true,
+										Description:      "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
 									},
 									"pattern": {
 										Type:        schema.TypeString,
@@ -505,14 +559,16 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
 												"alerts_threshold": {
-													Type:        schema.TypeString,
-													Required:    true,
-													Description: "The severity level at which code scanning results that raise alerts block a reference update. Can be one of: `none`, `errors`, `errors_and_warnings`, `all`.",
+													Description:      "The severity level at which code scanning results that raise alerts block a reference update. Can be one of: `none`, `errors`, `errors_and_warnings`, `all`.",
+													Required:         true,
+													Type:             schema.TypeString,
+													ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"none", "errors", "errors_and_warnings", "all"}, false)),
 												},
 												"security_alerts_threshold": {
-													Type:        schema.TypeString,
-													Required:    true,
-													Description: "The severity level at which code scanning results that raise security alerts block a reference update. Can be one of: `none`, `critical`, `high_or_higher`, `medium_or_higher`, `all`.",
+													Description:      "The severity level at which code scanning results that raise security alerts block a reference update. Can be one of: `none`, `critical`, `high_or_higher`, `medium_or_higher`, `all`.",
+													Required:         true,
+													Type:             schema.TypeString,
+													ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"none", "critical", "high_or_higher", "medium_or_higher", "all"}, false)),
 												},
 												"tool": {
 													Type:        schema.TypeString,
@@ -555,7 +611,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Type:             schema.TypeInt,
 										Required:         true,
 										Description:      "The maximum allowed size of a file in megabytes (MB). Valid range is 1-100 MB.",
-										ValidateDiagFunc: toDiagFunc(validation.IntBetween(1, 100), "max_file_size"),
+										ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(1, 100)),
 									},
 								},
 							},
@@ -568,9 +624,10 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"max_file_path_length": {
-										Type:        schema.TypeInt,
-										Required:    true,
-										Description: "The maximum allowed length of a file path.",
+										Type:             schema.TypeInt,
+										Required:         true,
+										Description:      "The maximum allowed length of a file path.",
+										ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(1, 32767)),
 									},
 								},
 							},
@@ -590,6 +647,28 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Elem: &schema.Schema{
 											Type: schema.TypeString,
 										},
+									},
+								},
+							},
+						},
+						"copilot_code_review": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Automatically request Copilot code review for new pull requests if the author has access to Copilot code review and their premium requests quota has not reached the limit.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"review_on_push": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Default:     false,
+										Description: "Copilot automatically reviews each new push to the pull request. Defaults to `false`.",
+									},
+									"review_draft_pull_requests": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Default:     false,
+										Description: "Copilot automatically reviews draft pull requests before they are marked as ready for review. Defaults to `false`.",
 									},
 								},
 							},
@@ -628,10 +707,19 @@ func resourceGithubRepositoryRulesetCreate(ctx context.Context, d *schema.Resour
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
-	_ = d.Set("ruleset_id", ruleset.ID)
-	_ = d.Set("node_id", ruleset.GetNodeID())
-	_ = d.Set("etag", resp.Header.Get("ETag"))
+	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
+	if err := d.Set("ruleset_id", ruleset.ID); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("rules", flattenRules(ctx, ruleset.Rules, false)); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
@@ -659,8 +747,7 @@ func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.Resource
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing ruleset %s/%s: %d from state because it no longer exists in GitHub",
-					owner, repoName, rulesetID)
+				tflog.Info(ctx, "Removing ruleset from state because it no longer exists in GitHub", map[string]any{"owner": owner, "repo_name": repoName, "ruleset_id": rulesetID})
 				d.SetId("")
 				return nil
 			}
@@ -669,21 +756,38 @@ func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.Resource
 	}
 
 	if ruleset == nil {
-		log.Printf("[INFO] Removing ruleset %s/%s: %d from state because it no longer exists in GitHub (empty response)",
-			owner, repoName, rulesetID)
+		tflog.Info(ctx, "Removing ruleset from state because it no longer exists in GitHub (empty response)", map[string]any{"owner": owner, "repo_name": repoName, "ruleset_id": rulesetID})
 		d.SetId("")
 		return nil
 	}
 
-	_ = d.Set("ruleset_id", ruleset.ID)
-	_ = d.Set("name", ruleset.Name)
-	_ = d.Set("target", ruleset.GetTarget())
-	_ = d.Set("enforcement", ruleset.Enforcement)
-	_ = d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors))
-	_ = d.Set("conditions", flattenConditions(ruleset.GetConditions(), false))
-	_ = d.Set("rules", flattenRules(ruleset.Rules, false))
-	_ = d.Set("node_id", ruleset.GetNodeID())
-	_ = d.Set("etag", resp.Header.Get("ETag"))
+	if err := d.Set("ruleset_id", ruleset.ID); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("name", ruleset.Name); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("target", ruleset.GetTarget()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("enforcement", ruleset.Enforcement); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("conditions", flattenConditions(ctx, ruleset.GetConditions(), false)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("rules", flattenRules(ctx, ruleset.GetRules(), false)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
@@ -707,7 +811,7 @@ func resourceGithubRepositoryRulesetUpdate(ctx context.Context, d *schema.Resour
 		return diag.FromErr(err)
 	}
 	if repo.GetArchived() {
-		log.Printf("[INFO] Repository %s/%s is archived, skipping ruleset update", owner, repoName)
+		tflog.Info(ctx, "Repository is archived, skipping ruleset update", map[string]any{"owner": owner, "repo_name": repoName})
 		return nil
 	}
 
@@ -715,10 +819,16 @@ func resourceGithubRepositoryRulesetUpdate(ctx context.Context, d *schema.Resour
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
-	_ = d.Set("ruleset_id", ruleset.ID)
-	_ = d.Set("node_id", ruleset.GetNodeID())
-	_ = d.Set("etag", resp.Header.Get("ETag"))
+	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
+	if err := d.Set("ruleset_id", ruleset.ID); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
@@ -733,9 +843,9 @@ func resourceGithubRepositoryRulesetDelete(ctx context.Context, d *schema.Resour
 		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
 
-	log.Printf("[DEBUG] Deleting repository ruleset: %s/%s: %d", owner, repoName, rulesetID)
+	tflog.Debug(ctx, "Deleting repository ruleset", map[string]any{"owner": owner, "repo_name": repoName, "ruleset_id": rulesetID})
 	_, err = client.Repositories.DeleteRuleset(ctx, owner, repoName, rulesetID)
-	return diag.FromErr(handleArchivedRepoDelete(err, "repository ruleset", fmt.Sprintf("%d", rulesetID), owner, repoName))
+	return diag.FromErr(handleArchivedRepoDelete(err, "repository ruleset", strconv.FormatInt(rulesetID, 10), owner, repoName))
 }
 
 func resourceGithubRepositoryRulesetImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
@@ -751,22 +861,38 @@ func resourceGithubRepositoryRulesetImport(ctx context.Context, d *schema.Resour
 	if rulesetID == 0 {
 		return []*schema.ResourceData{d}, fmt.Errorf("`ruleset_id` must be present")
 	}
-	log.Printf("[DEBUG] Importing repository ruleset with ID: %d, for repository: %s", rulesetID, repoName)
-
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
+
+	tflog.Debug(ctx, "Importing repository ruleset", map[string]any{"owner": owner, "repo_name": repoName, "ruleset_id": rulesetID})
 
 	repository, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if repository == nil || err != nil {
 		return []*schema.ResourceData{d}, err
 	}
-	_ = d.Set("repository", *repository.Name)
+	if err := d.Set("repository", repository.GetName()); err != nil {
+		return []*schema.ResourceData{d}, err
+	}
 
-	ruleset, _, err := client.Repositories.GetRuleset(ctx, owner, *repository.Name, rulesetID, false)
+	ruleset, _, err := client.Repositories.GetRuleset(ctx, owner, repository.GetName(), rulesetID, false)
 	if ruleset == nil || err != nil {
 		return []*schema.ResourceData{d}, err
 	}
 	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
 
 	return []*schema.ResourceData{d}, nil
+}
+
+func resourceGithubRepositoryRulesetDiff(ctx context.Context, d *schema.ResourceDiff, meta any) error {
+	err := validateRulesetConditions(ctx, d, false)
+	if err != nil {
+		return err
+	}
+
+	err = validateRulesetRules(ctx, d)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

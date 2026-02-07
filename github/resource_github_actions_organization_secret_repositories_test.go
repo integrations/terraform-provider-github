@@ -1,6 +1,7 @@
 package github
 
 import (
+	"encoding/base64"
 	"fmt"
 	"testing"
 
@@ -9,45 +10,38 @@ import (
 )
 
 func TestAccGithubActionsOrganizationSecretRepositories(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-	repoName1 := fmt.Sprintf("%srepo-act-org-secret-%s-1", testResourcePrefix, randomID)
-	repoName2 := fmt.Sprintf("%srepo-act-org-secret-%s-2", testResourcePrefix, randomID)
-
-	t.Run("set repository allowlist for a organization secret", func(t *testing.T) {
-		if len(testAccConf.testOrgSecretName) == 0 {
-			t.Skipf("'GH_TEST_ORG_SECRET_NAME' environment variable is missing")
-		}
+	t.Run("create", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		secretName := fmt.Sprintf("test_%s", randomID)
+		secretValue := base64.StdEncoding.EncodeToString([]byte("foo"))
+		repoName0 := fmt.Sprintf("%s%s-0", testResourcePrefix, randomID)
+		repoName1 := fmt.Sprintf("%s%s-1", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
-			resource "github_repository" "test_repo_1" {
-				name = "%s"
-				visibility = "internal"
-				vulnerability_alerts = "true"
-			}
+resource "github_actions_organization_secret" "test" {
+	secret_name     = "%s"
+	encrypted_value = "%s"
+	visibility      = "selected"
+}
 
-			resource "github_repository" "test_repo_2" {
-				name = "%s"
-				visibility = "internal"
-				vulnerability_alerts = "true"
-			}
+resource "github_repository" "test_0" {
+	name       = "%s"
+	visibility = "public"
+}
 
-			resource "github_actions_organization_secret_repositories" "org_secret_repos" {
-				secret_name = "%s"
-				selected_repository_ids = [
-					github_repository.test_repo_1.repo_id,
-					github_repository.test_repo_2.repo_id
-				]
-			}
-		`, repoName1, repoName2, testAccConf.testOrgSecretName)
+resource "github_repository" "test_1" {
+	name       = "%s"
+	visibility = "public"
+}
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet(
-				"github_actions_organization_secret_repositories.org_secret_repos", "secret_name",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_organization_secret_repositories.org_secret_repos", "selected_repository_ids.#", "2",
-			),
-		)
+resource "github_actions_organization_secret_repositories" "test" {
+	secret_name = github_actions_organization_secret.test.secret_name
+	selected_repository_ids = [
+		github_repository.test_0.repo_id,
+		github_repository.test_1.repo_id
+	]
+}
+`, secretName, secretValue, repoName0, repoName1)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -55,7 +49,10 @@ func TestAccGithubActionsOrganizationSecretRepositories(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrPair("github_actions_organization_secret_repositories.test", "secret_name", "github_actions_organization_secret.test", "secret_name"),
+						resource.TestCheckResourceAttr("github_actions_organization_secret_repositories.test", "selected_repository_ids.#", "2"),
+					),
 				},
 			},
 		})
