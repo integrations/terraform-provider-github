@@ -287,8 +287,7 @@ func resourceGithubRepository() *schema.Resource {
 			"web_commit_signoff_required": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Default:     false,
-				Description: "Require contributors to sign off on web-based commits. Defaults to 'false'.",
+				Description: "Require contributors to sign off on web-based commits.",
 			},
 			"auto_init": {
 				Type:        schema.TypeBool,
@@ -586,29 +585,28 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 	visibility := calculateVisibility(d)
 
 	repository := &github.Repository{
-		Name:                     github.Ptr(d.Get("name").(string)),
-		Description:              github.Ptr(d.Get("description").(string)),
-		Homepage:                 github.Ptr(d.Get("homepage_url").(string)),
-		Visibility:               github.Ptr(visibility),
-		HasDownloads:             github.Ptr(d.Get("has_downloads").(bool)),
-		HasIssues:                github.Ptr(d.Get("has_issues").(bool)),
-		HasDiscussions:           github.Ptr(d.Get("has_discussions").(bool)),
-		HasProjects:              github.Ptr(d.Get("has_projects").(bool)),
-		HasWiki:                  github.Ptr(d.Get("has_wiki").(bool)),
-		IsTemplate:               github.Ptr(d.Get("is_template").(bool)),
-		AllowMergeCommit:         github.Ptr(d.Get("allow_merge_commit").(bool)),
-		AllowSquashMerge:         github.Ptr(d.Get("allow_squash_merge").(bool)),
-		AllowRebaseMerge:         github.Ptr(d.Get("allow_rebase_merge").(bool)),
-		AllowAutoMerge:           github.Ptr(d.Get("allow_auto_merge").(bool)),
-		DeleteBranchOnMerge:      github.Ptr(d.Get("delete_branch_on_merge").(bool)),
-		WebCommitSignoffRequired: github.Ptr(d.Get("web_commit_signoff_required").(bool)),
-		AutoInit:                 github.Ptr(d.Get("auto_init").(bool)),
-		LicenseTemplate:          github.Ptr(d.Get("license_template").(string)),
-		GitignoreTemplate:        github.Ptr(d.Get("gitignore_template").(string)),
-		Archived:                 github.Ptr(d.Get("archived").(bool)),
-		Topics:                   expandStringList(d.Get("topics").(*schema.Set).List()),
-		AllowUpdateBranch:        github.Ptr(d.Get("allow_update_branch").(bool)),
-		SecurityAndAnalysis:      calculateSecurityAndAnalysis(d),
+		Name:                github.Ptr(d.Get("name").(string)),
+		Description:         github.Ptr(d.Get("description").(string)),
+		Homepage:            github.Ptr(d.Get("homepage_url").(string)),
+		Visibility:          github.Ptr(visibility),
+		HasDownloads:        github.Ptr(d.Get("has_downloads").(bool)),
+		HasIssues:           github.Ptr(d.Get("has_issues").(bool)),
+		HasDiscussions:      github.Ptr(d.Get("has_discussions").(bool)),
+		HasProjects:         github.Ptr(d.Get("has_projects").(bool)),
+		HasWiki:             github.Ptr(d.Get("has_wiki").(bool)),
+		IsTemplate:          github.Ptr(d.Get("is_template").(bool)),
+		AllowMergeCommit:    github.Ptr(d.Get("allow_merge_commit").(bool)),
+		AllowSquashMerge:    github.Ptr(d.Get("allow_squash_merge").(bool)),
+		AllowRebaseMerge:    github.Ptr(d.Get("allow_rebase_merge").(bool)),
+		AllowAutoMerge:      github.Ptr(d.Get("allow_auto_merge").(bool)),
+		DeleteBranchOnMerge: github.Ptr(d.Get("delete_branch_on_merge").(bool)),
+		AutoInit:            github.Ptr(d.Get("auto_init").(bool)),
+		LicenseTemplate:     github.Ptr(d.Get("license_template").(string)),
+		GitignoreTemplate:   github.Ptr(d.Get("gitignore_template").(string)),
+		Archived:            github.Ptr(d.Get("archived").(bool)),
+		Topics:              expandStringList(d.Get("topics").(*schema.Set).List()),
+		AllowUpdateBranch:   github.Ptr(d.Get("allow_update_branch").(bool)),
+		SecurityAndAnalysis: calculateSecurityAndAnalysis(d),
 	}
 
 	// only configure merge commit if we are in commit merge strategy
@@ -633,6 +631,13 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 	if allowForking, ok := d.GetOkExists("allow_forking"); ok && visibility != "public" { //nolint:staticcheck,SA1019 // We sometimes need to use GetOkExists for booleans
 		if val, ok := allowForking.(bool); ok {
 			repository.AllowForking = github.Ptr(val)
+		}
+	}
+
+	// only configure web commit signoff if explicitly set in the configuration
+	if webCommitSignoffRequired, ok := d.GetOkExists("web_commit_signoff_required"); ok { //nolint:staticcheck,SA1019 // We sometimes need to use GetOkExists for booleans
+		if val, ok := webCommitSignoffRequired.(bool); ok {
+			repository.WebCommitSignoffRequired = github.Ptr(val)
 		}
 	}
 
@@ -945,20 +950,6 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 	owner := meta.(*Owner).name
 	ctx = context.WithValue(ctx, ctxId, d.Id())
 
-	// When the organization has "Require sign off on web-based commits" enabled,
-	// the API doesn't allow you to send `web_commit_signoff_required` in order to
-	// update the repository with this field or it will throw a 422 error.
-	// As a workaround, we check if the organization requires it, and if so,
-	// we remove the field from the request.
-	if d.HasChange("web_commit_signoff_required") && meta.(*Owner).IsOrganization {
-		organization, _, err := client.Organizations.Get(ctx, owner)
-		if err == nil {
-			if organization != nil && organization.GetWebCommitSignoffRequired() {
-				repoReq.WebCommitSignoffRequired = nil
-			}
-		}
-	}
-
 	repo, _, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
 	if err != nil {
 		return diag.FromErr(err)
@@ -1041,8 +1032,6 @@ func resourceGithubRepositoryDelete(ctx context.Context, d *schema.ResourceData,
 				return diag.FromErr(err)
 			}
 			repoReq := resourceGithubRepositoryObject(d)
-			// Always remove `web_commit_signoff_required` when archiving, to avoid 422 error
-			repoReq.WebCommitSignoffRequired = nil
 			log.Printf("[DEBUG] Archiving repository on delete: %s/%s", owner, repoName)
 			_, _, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
 			return diag.FromErr(err)

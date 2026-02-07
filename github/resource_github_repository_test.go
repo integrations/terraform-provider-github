@@ -1327,6 +1327,37 @@ resource "github_repository" "test" {
 			},
 		})
 	})
+
+	t.Run("creates repos with explicit web commit signoff required", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%scommit-signoff-%s", testResourcePrefix, randomID)
+		config := `
+			resource "github_repository" "test" {
+				name                        = "%s"
+				auto_init                   = true
+				web_commit_signoff_required = %s
+			}
+		`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, testRepoName, "false"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "web_commit_signoff_required", "false"),
+					),
+				},
+				{
+					Config: fmt.Sprintf(config, testRepoName, "true"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "web_commit_signoff_required", "true"),
+					),
+				},
+			},
+		})
+	})
 }
 
 func Test_expandPages(t *testing.T) {

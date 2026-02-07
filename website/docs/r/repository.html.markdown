@@ -112,7 +112,7 @@ The following arguments are supported:
 
 * `delete_branch_on_merge` - (Optional) Automatically delete head branch after a pull request is merged. Defaults to `false`.
 
-* `web_commit_signoff_required` - (Optional) Require contributors to sign off on web-based commits. See more [here](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/managing-the-commit-signoff-policy-for-your-repository). Defaults to `false`.
+* `web_commit_signoff_required` - (Optional) Require contributors to sign off on web-based commits. See more [here](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/managing-the-commit-signoff-policy-for-your-repository).
 
 * `has_downloads` - (**DEPRECATED**) (Optional) Set to `true` to enable the (deprecated) downloads features on the repository. This attribute is no longer in use, but it hasn't been removed yet. It will be removed in a future version. See [this discussion](https://github.com/orgs/community/discussions/102145#discussioncomment-8351756).
 
