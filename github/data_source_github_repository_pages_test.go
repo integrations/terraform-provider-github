@@ -23,12 +23,6 @@ func TestAccGithubRepositoryPagesDataSource(t *testing.T) {
 				name       = "%s"
 				visibility = "%s"
 				auto_init  = true
-
-				lifecycle {
-					ignore_changes = [
-						pages,
-					]
-				}
 			}
 
 			resource "github_repository_pages" "test" {
