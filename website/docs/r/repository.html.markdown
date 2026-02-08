@@ -29,24 +29,6 @@ resource "github_repository" "example" {
 }
 ```
 
-## Example Usage with GitHub Pages Enabled
-
-```hcl
-resource "github_repository" "example" {
-  name        = "example"
-  description = "My awesome web page"
-
-  private = false
-
-  pages {
-    source {
-      branch = "master"
-      path   = "/docs"
-    }
-  }
-}
-```
-
 ## Example Usage with Repository Forking
 
 ```hcl
@@ -130,7 +112,7 @@ initial repository creation and create the target branch inside of the repositor
 
 * `archive_on_destroy` - (Optional) Set to `true` to archive the repository instead of deleting on destroy.
 
-* `pages` - (Optional) The repository's GitHub Pages configuration. See [GitHub Pages Configuration](#github-pages-configuration) below for details.
+* `pages` - (Optional) (**DEPRECATED**) The repository's GitHub Pages configuration. Use the `github_repository_pages` resource instead. This field will be removed in a future version. See [GitHub Pages Configuration](#github-pages-configuration) below for details.
 
 * `security_and_analysis` - (Optional) The repository's [security and analysis](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-security-and-analysis-settings-for-your-repository) configuration. See [Security and Analysis Configuration](#security-and-analysis-configuration) below for details.
 

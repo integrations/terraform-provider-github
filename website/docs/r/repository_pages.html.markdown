@@ -1,0 +1,135 @@
+---
+layout: "github"
+page_title: "GitHub: github_repository_pages"
+description: |-
+  Manages GitHub Pages for a repository
+---
+
+# github_repository_pages
+
+This resource allows you to manage GitHub Pages for a repository. See the
+[documentation](https://docs.github.com/en/pages/getting-started-with-github-pages/about-github-pages)
+for details on GitHub Pages.
+
+The authenticated user must be a repository administrator, maintainer, or have the 'manage GitHub Pages settings' permission. OAuth app tokens and personal access tokens (classic) need the repo scope to use this resource.
+
+## Example Usage
+
+### Legacy Build Type
+
+```hcl
+resource "github_repository" "example" {
+  name       = "my-repo"
+  visibility = "public"
+  auto_init  = true
+
+  lifecycle {
+    ignore_changes = [
+      pages,
+    ]
+  }
+}
+
+resource "github_repository_pages" "example" {
+  owner      = "my-org"
+  repository_name = github_repository.example.name
+  build_type = "legacy"
+
+  source {
+    branch = "main"
+    path   = "/"
+  }
+}
+```
+
+### Workflow Build Type (GitHub Actions)
+
+```hcl
+resource "github_repository" "example" {
+  name       = "my-repo"
+  visibility = "public"
+  auto_init  = true
+
+  lifecycle {
+    ignore_changes = [
+      pages,
+    ]
+  }
+}
+
+resource "github_repository_pages" "example" {
+  owner      = "my-org"
+  repository_name = github_repository.example.name
+  build_type = "workflow"
+}
+```
+
+### With Custom Domain
+
+```hcl
+resource "github_repository" "example" {
+  name       = "my-repo"
+  visibility = "public"
+  auto_init  = true
+
+  lifecycle {
+    ignore_changes = [
+      pages,
+    ]
+  }
+}
+
+resource "github_repository_pages" "example" {
+  owner      = "my-org"
+  repository_name = github_repository.example.name
+  build_type = "legacy"
+  cname      = "example.com"
+
+  source {
+    branch = "main"
+    path   = "/docs"
+  }
+}
+```
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `owner` - (Required) The owner of the repository to configure GitHub Pages for.
+
+- `repository_name` - (Required) The repository name to configure GitHub Pages for.
+
+- `build_type` - (Optional) The type of GitHub Pages site to build. Can be `legacy` or `workflow`. Defaults to `legacy`.
+
+- `source` - (Optional) The source branch and directory for the rendered Pages site. Required when `build_type` is `legacy`. See [Source](#source) below for details.
+
+- `cname` - (Optional) The custom domain for the repository.
+
+### Source
+
+The `source` block supports the following:
+
+- `branch` - (Required) The repository branch used to publish the site's source files (e.g., `main` or `gh-pages`).
+
+- `path` - (Optional) The repository directory from which the site publishes. Defaults to `/`. Can be `/` or `/docs`.
+
+## Attribute Reference
+
+In addition to the above arguments, the following attributes are exported:
+
+- `custom_404` - Whether the rendered GitHub Pages site has a custom 404 page.
+
+- `html_url` - The absolute URL (with scheme) to the rendered GitHub Pages site.
+
+- `build_status` - The GitHub Pages site's build status (e.g., `building` or `built`).
+
+- `api_url` - The API URL of the GitHub Pages resource.
+
+## Import
+
+GitHub repository pages can be imported using the `owner:repository` format:
+
+```sh
+terraform import github_repository_pages.example my-org:my-repo
+```
