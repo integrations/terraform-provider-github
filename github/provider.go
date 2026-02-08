@@ -198,6 +198,7 @@ func Provider() *schema.Provider {
 			"github_repository_environment_deployment_policy":                       resourceGithubRepositoryEnvironmentDeploymentPolicy(),
 			"github_repository_file":                                                resourceGithubRepositoryFile(),
 			"github_repository_milestone":                                           resourceGithubRepositoryMilestone(),
+			"github_repository_pages":                                               resourceGithubRepositoryPages(),
 			"github_repository_project":                                             resourceGithubRepositoryProject(),
 			"github_repository_pull_request":                                        resourceGithubRepositoryPullRequest(),
 			"github_repository_ruleset":                                             resourceGithubRepositoryRuleset(),
