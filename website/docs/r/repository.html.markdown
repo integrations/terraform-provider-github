@@ -140,9 +140,9 @@ initial repository creation and create the target branch inside of the repositor
 
 * `template` - (Optional) Use a template repository to create this resource. See [Template Repositories](#template-repositories) below for details.
 
-* `vulnerability_alerts` - (Optional) Configure [Dependabot security alerts](https://help.github.com/en/github/managing-security-vulnerabilities/about-security-alerts-for-vulnerable-dependencies) for vulnerable dependencies; set to `true` to enable, set to `false` to disable, and leave unset for the default behavior. Configuring this requires that alerts are not being explicitly configured at the organization level.
+* `vulnerability_alerts` - (Optional) (**DEPRECATED**) Configure [Dependabot security alerts](https://help.github.com/en/github/managing-security-vulnerabilities/about-security-alerts-for-vulnerable-dependencies) for vulnerable dependencies; set to `true` to enable, set to `false` to disable, and leave unset for the default behavior. Configuring this requires that alerts are not being explicitly configured at the organization level. This field will be removed in a future version. Use the `github_repository_vulnerability_alerts` resource instead.
 
-* `ignore_vulnerability_alerts_during_read` (**DEPRECATED**) (Optional) - This is ignored as the provider now handles lack of permissions automatically.
+* `ignore_vulnerability_alerts_during_read` (**DEPRECATED**) (Optional) - This is ignored as the provider now handles lack of permissions automatically. This field will be removed in a future version.
 
 * `allow_update_branch` (Optional) - Set to `true` to always suggest updating pull request branches.
 
