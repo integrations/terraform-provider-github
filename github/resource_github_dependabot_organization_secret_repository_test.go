@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccGithubActionsOrganizationSecretRepository(t *testing.T) {
+func TestAccGithubDependabotOrganizationSecretRepository(t *testing.T) {
 	t.Run("create", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		secretName := fmt.Sprintf("test_%s", randomID)
@@ -17,7 +17,7 @@ func TestAccGithubActionsOrganizationSecretRepository(t *testing.T) {
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
-resource "github_actions_organization_secret" "test" {
+resource "github_dependabot_organization_secret" "test" {
 	secret_name     = "%s"
 	encrypted_value = "%s"
 	visibility      = "selected"
@@ -28,8 +28,8 @@ resource "github_repository" "test" {
 	visibility = "public"
 }
 
-resource "github_actions_organization_secret_repository" "test" {
-	secret_name   = github_actions_organization_secret.test.secret_name
+resource "github_dependabot_organization_secret_repository" "test" {
+	secret_name   = github_dependabot_organization_secret.test.secret_name
 	repository_id = github_repository.test.repo_id
 }
 `, secretName, secretValue, repoName)
@@ -41,8 +41,8 @@ resource "github_actions_organization_secret_repository" "test" {
 				{
 					Config: config,
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrPair("github_actions_organization_secret_repository.test", "secret_name", "github_actions_organization_secret.test", "secret_name"),
-						resource.TestCheckResourceAttrPair("github_actions_organization_secret_repository.test", "repository_id", "github_repository.test", "repo_id"),
+						resource.TestCheckResourceAttrPair("github_dependabot_organization_secret_repository.test", "secret_name", "github_dependabot_organization_secret.test", "secret_name"),
+						resource.TestCheckResourceAttrPair("github_dependabot_organization_secret_repository.test", "repository_id", "github_repository.test", "repo_id"),
 					),
 				},
 			},

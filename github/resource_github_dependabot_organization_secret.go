@@ -60,6 +60,7 @@ func resourceGithubDependabotOrganizationSecret() *schema.Resource {
 				},
 				Optional:    true,
 				Description: "An array of repository ids that can access the organization secret.",
+				Deprecated:  "This field is deprecated and will be removed in a future release. Please use the `github_dependabot_organization_secret_repositories` or `github_dependabot_organization_secret_repository` resources to manage repository access to organization secrets.",
 			},
 			"created_at": {
 				Type:        schema.TypeString,
@@ -211,30 +212,32 @@ func resourceGithubDependabotOrganizationSecretRead(ctx context.Context, d *sche
 		return diag.FromErr(err)
 	}
 
-	repoIDs := []int64{}
 	if secret.Visibility == "selected" {
-		opt := &github.ListOptions{
-			PerPage: maxPerPage,
-		}
-		for {
-			results, resp, err := client.Dependabot.ListSelectedReposForOrgSecret(ctx, owner, secretName, opt)
-			if err != nil {
+		if _, ok := d.GetOk("selected_repository_ids"); ok {
+			repoIDs := []int64{}
+			opt := &github.ListOptions{
+				PerPage: maxPerPage,
+			}
+			for {
+				results, resp, err := client.Dependabot.ListSelectedReposForOrgSecret(ctx, owner, secretName, opt)
+				if err != nil {
+					return diag.FromErr(err)
+				}
+
+				for _, repo := range results.Repositories {
+					repoIDs = append(repoIDs, repo.GetID())
+				}
+
+				if resp.NextPage == 0 {
+					break
+				}
+				opt.Page = resp.NextPage
+			}
+
+			if err := d.Set("selected_repository_ids", repoIDs); err != nil {
 				return diag.FromErr(err)
 			}
-
-			for _, repo := range results.Repositories {
-				repoIDs = append(repoIDs, repo.GetID())
-			}
-
-			if resp.NextPage == 0 {
-				break
-			}
-			opt.Page = resp.NextPage
 		}
-	}
-
-	if err := d.Set("selected_repository_ids", repoIDs); err != nil {
-		return diag.FromErr(err)
 	}
 
 	return nil

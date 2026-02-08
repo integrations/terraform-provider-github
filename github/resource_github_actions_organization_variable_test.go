@@ -159,6 +159,50 @@ resource "github_actions_organization_variable" "test" {
 		})
 	})
 
+	t.Run("create_update_visibility_selected_no_repo_ids", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
+		varName := fmt.Sprintf("test_%s", randomID)
+		value := "foo"
+		valueUpdated := "bar"
+
+		config := `
+resource "github_actions_organization_variable" "test" {
+	variable_name = "%s"
+	value         = "%s"
+	visibility    = "selected"
+}
+`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, varName, value),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_actions_organization_variable.test", "variable_name", varName),
+						resource.TestCheckResourceAttr("github_actions_organization_variable.test", "value", value),
+						resource.TestCheckResourceAttr("github_actions_organization_variable.test", "visibility", "selected"),
+						resource.TestCheckResourceAttr("github_actions_organization_variable.test", "selected_repository_ids.#", "0"),
+						resource.TestCheckResourceAttrSet("github_actions_organization_variable.test", "created_at"),
+						resource.TestCheckResourceAttrSet("github_actions_organization_variable.test", "updated_at"),
+					),
+				},
+				{
+					Config: fmt.Sprintf(config, varName, valueUpdated),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_actions_organization_variable.test", "variable_name", varName),
+						resource.TestCheckResourceAttr("github_actions_organization_variable.test", "value", valueUpdated),
+						resource.TestCheckResourceAttr("github_actions_organization_variable.test", "visibility", "selected"),
+						resource.TestCheckResourceAttr("github_actions_organization_variable.test", "selected_repository_ids.#", "0"),
+						resource.TestCheckResourceAttrSet("github_actions_organization_variable.test", "created_at"),
+						resource.TestCheckResourceAttrSet("github_actions_organization_variable.test", "updated_at"),
+					),
+				},
+			},
+		})
+	})
+
 	t.Run("create_update_change_visibility", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 		varName := fmt.Sprintf("test_%s", randomID)

@@ -759,6 +759,159 @@ func TestAccGithubRepositoryRulesetValidation(t *testing.T) {
 	})
 }
 
+func TestAccGithubRepositoryRuleset_requiredReviewers(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	repoName := fmt.Sprintf("%srepo-ruleset-req-rev-%s", testResourcePrefix, randomID)
+	teamName := fmt.Sprintf("%steam-req-rev-%s", testResourcePrefix, randomID)
+	rulesetName := fmt.Sprintf("%s-ruleset-req-rev-%s", testResourcePrefix, randomID)
+	baseRepoVisibility := "public"
+
+	if testAccConf.authMode == enterprise {
+		// This enables repos to be created even in GHEC EMU
+		baseRepoVisibility = "private"
+	}
+
+	config := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name      = "%s"
+	auto_init = true
+	visibility = "%s"
+
+  ignore_vulnerability_alerts_during_read = true
+}
+
+resource "github_team" "test" {
+	name = "%s"
+}
+
+resource "github_team_repository" "test" {
+	team_id    = github_team.test.id
+	repository = github_repository.test.name
+	permission = "push"
+}
+
+resource "github_repository_ruleset" "test" {
+	name        = "%s"
+	repository  = github_repository.test.name
+	target      = "branch"
+	enforcement = "active"
+
+
+	conditions {
+		ref_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	rules {
+		pull_request {
+			allowed_merge_methods = ["merge", "squash"]
+			required_approving_review_count = 1
+
+			required_reviewers {
+				reviewer {
+					id   = github_team.test.id
+					type = "Team"
+				}
+				file_patterns     = ["*.go"]
+				minimum_approvals = 1
+			}
+		}
+	}
+
+	depends_on = [github_team_repository.test]
+}
+`, repoName, baseRepoVisibility, teamName, rulesetName)
+
+	// Updated config: change minimum_approvals from 1 to 2
+	configUpdated := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name      = "%s"
+	auto_init = true
+	visibility = "%s"
+
+  ignore_vulnerability_alerts_during_read = true
+}
+
+resource "github_team" "test" {
+	name = "%s"
+}
+
+resource "github_team_repository" "test" {
+	team_id    = github_team.test.id
+	repository = github_repository.test.name
+	permission = "push"
+}
+
+resource "github_repository_ruleset" "test" {
+	name        = "%s"
+	repository  = github_repository.test.name
+	target      = "branch"
+	enforcement = "active"
+
+
+	conditions {
+		ref_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	rules {
+		pull_request {
+			allowed_merge_methods = ["merge", "squash"]
+			required_approving_review_count = 1
+
+			required_reviewers {
+				reviewer {
+					id   = github_team.test.id
+					type = "Team"
+				}
+				file_patterns     = ["*.go"]
+				minimum_approvals = 2
+			}
+		}
+	}
+
+	depends_on = [github_team_repository.test]
+}
+`, repoName, baseRepoVisibility, teamName, rulesetName)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { skipUnlessHasOrgs(t) },
+		ProviderFactories: providerFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", rulesetName),
+					resource.TestCheckResourceAttr("github_repository_ruleset.test", "target", "branch"),
+					resource.TestCheckResourceAttr("github_repository_ruleset.test", "enforcement", "active"),
+					resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.#", "1"),
+					resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.minimum_approvals", "1"),
+					resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.#", "1"),
+					resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.0", "*.go"),
+					resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.reviewer.0.type", "Team"),
+				),
+			},
+			{
+				Config: configUpdated,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.minimum_approvals", "2"),
+				),
+			},
+			{
+				ResourceName:            "github_repository_ruleset.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateIdFunc:       importRepositoryRulesetByResourcePaths("github_repository.test", "github_repository_ruleset.test"),
+				ImportStateVerifyIgnore: []string{"etag"},
+			},
+		},
+	})
+}
+
 func importRepositoryRulesetByResourcePaths(repoLogicalName, rulesetLogicalName string) resource.ImportStateIdFunc {
 	// test importing using an ID of the form <repo-node-id>:<ruleset-id>
 	return func(s *terraform.State) (string, error) {

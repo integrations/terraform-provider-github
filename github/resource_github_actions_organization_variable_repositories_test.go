@@ -1,7 +1,6 @@
 package github
 
 import (
-	"encoding/base64"
 	"fmt"
 	"testing"
 
@@ -9,19 +8,19 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccGithubActionsOrganizationSecretRepositories(t *testing.T) {
+func TestAccGithubActionsOrganizationVariableRepositories(t *testing.T) {
 	t.Run("create", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		secretName := fmt.Sprintf("test_%s", randomID)
-		secretValue := base64.StdEncoding.EncodeToString([]byte("foo"))
+		variableName := fmt.Sprintf("test_%s", randomID)
+		variableValue := "foo"
 		repoName0 := fmt.Sprintf("%s%s-0", testResourcePrefix, randomID)
 		repoName1 := fmt.Sprintf("%s%s-1", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
-resource "github_actions_organization_secret" "test" {
-	secret_name     = "%s"
-	encrypted_value = "%s"
-	visibility      = "selected"
+resource "github_actions_organization_variable" "test" {
+	variable_name = "%s"
+	value         = "%s"
+	visibility    = "selected"
 }
 
 resource "github_repository" "test_0" {
@@ -34,14 +33,14 @@ resource "github_repository" "test_1" {
 	visibility = "public"
 }
 
-resource "github_actions_organization_secret_repositories" "test" {
-	secret_name = github_actions_organization_secret.test.secret_name
+resource "github_actions_organization_variable_repositories" "test" {
+	variable_name = github_actions_organization_variable.test.variable_name
 	selected_repository_ids = [
 		github_repository.test_0.repo_id,
 		github_repository.test_1.repo_id
 	]
 }
-`, secretName, secretValue, repoName0, repoName1)
+`, variableName, variableValue, repoName0, repoName1)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -50,8 +49,8 @@ resource "github_actions_organization_secret_repositories" "test" {
 				{
 					Config: config,
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrPair("github_actions_organization_secret_repositories.test", "secret_name", "github_actions_organization_secret.test", "secret_name"),
-						resource.TestCheckResourceAttr("github_actions_organization_secret_repositories.test", "selected_repository_ids.#", "2"),
+						resource.TestCheckResourceAttrPair("github_actions_organization_variable_repositories.test", "variable_name", "github_actions_organization_variable.test", "variable_name"),
+						resource.TestCheckResourceAttr("github_actions_organization_variable_repositories.test", "selected_repository_ids.#", "2"),
 					),
 				},
 			},

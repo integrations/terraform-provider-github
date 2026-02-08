@@ -85,15 +85,15 @@ resource "github_organization_ruleset" "example_push" {
     file_path_restriction {
       restricted_file_paths = [".github/workflows/*", "*.env"]
     }
-    
+
     max_file_size {
       max_file_size = 100  # 100 MB
     }
-    
+
     max_file_path_length {
       max_file_path_length = 255
     }
-    
+
     file_extension_restriction {
       restricted_file_extensions = ["*.exe", "*.dll", "*.so"]
     }
@@ -220,9 +220,27 @@ The `rules` block supports the following:
 
 - `review_draft_pull_requests` - (Optional) (Boolean) Copilot automatically reviews draft pull requests before they are marked as ready for review. Defaults to `false`.
 
+- `allowed_merge_methods` - (Required) (List of String, Min: 1) Array of merge methods to be allowed. Allowed values include `merge`, `squash`, and `rebase`. At least one must be enabled.
+
+- `required_reviewers` - (Optional) (Block List) Require specific reviewers to approve pull requests. Note: This feature is in beta. (see [below for nested schema](#rulespull_requestrequired_reviewers))
+
+#### rules.pull_request.required_reviewers ####
+
+- `reviewer` - (Required) (Block List, Max: 1) The reviewer that must review matching files. (see [below for nested schema](#rulespull_requestrequired_reviewersreviewer))
+
+- `file_patterns` - (Required) (List of String) File patterns (fnmatch syntax) that this reviewer must approve.
+
+- `minimum_approvals` - (Required) (Number) Minimum number of approvals required from this reviewer. Set to 0 to make approval optional.
+
+#### rules.pull_request.required_reviewers.reviewer ####
+
+- `id` - (Required) (Number) The ID of the reviewer (Team ID).
+
+- `type` - (Required) (String) The type of reviewer. Currently only `Team` is supported.
+
 #### rules.required_status_checks ####
 
-- `required_check` - (Required) (Block Set, Min: 1) Status checks that are required. Several can be defined. (see [below for nested schema](#rulesrequired_status_checks.required_check))
+- `required_check` - (Required) (Block Set, Min: 1) Status checks that are required. Several can be defined. (see [below for nested schema](#rulesrequired_status_checksrequired_check))
 
 - `strict_required_status_checks_policy` - (Optional) (Boolean) Whether pull requests targeting a matching branch must be tested with the latest code. This setting will not take effect unless at least one status check is enabled. Defaults to `false`.
 
@@ -290,7 +308,7 @@ The `rules` block supports the following:
 
 #### bypass_actors ####
 
-- `actor_id` - (Required) (Number) The ID of the actor that can bypass a ruleset.
+- `actor_id` - (Optional) (Number) The ID of the actor that can bypass a ruleset. Some actor types such as `DeployKey` do not have an ID.
 
 - `actor_type` (String) The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`.
 
@@ -323,8 +341,8 @@ One of `repository_id` and `repository_name` must be set for the rule to target 
 #### conditions.repository_name ####
 
 - `exclude` - (Required) (List of String) Array of repository names or patterns to exclude. The condition will not pass if any of these patterns match.
-
 - `include` - (Required) (List of String) Array of repository names or patterns to include. One of these patterns must match for the condition to pass. Also accepts `~ALL` to include all repositories.
+- `protected` - (Optional) (Boolean) Whether renaming of target repositories is prevented. Defaults to `false`.
 
 ## Attributes Reference
 

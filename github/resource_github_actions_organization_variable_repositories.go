@@ -8,15 +8,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceGithubDependabotOrganizationSecretRepositories() *schema.Resource {
+func resourceGithubActionsOrganizationVariableRepositories() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
-			"secret_name": {
+			"variable_name": {
 				Type:             schema.TypeString,
 				Required:         true,
 				ForceNew:         true,
 				ValidateDiagFunc: validateSecretNameFunc,
-				Description:      "Name of the existing secret.",
+				Description:      "Name of the existing variable.",
 			},
 			"selected_repository_ids": {
 				Type: schema.TypeSet,
@@ -25,21 +25,21 @@ func resourceGithubDependabotOrganizationSecretRepositories() *schema.Resource {
 					Type: schema.TypeInt,
 				},
 				Required:    true,
-				Description: "An array of repository ids that can access the organization secret.",
+				Description: "An array of repository ids that can access the organization variable.",
 			},
 		},
 
-		CreateContext: resourceGithubDependabotOrganizationSecretRepositoriesCreateOrUpdate,
-		ReadContext:   resourceGithubDependabotOrganizationSecretRepositoriesRead,
-		UpdateContext: resourceGithubDependabotOrganizationSecretRepositoriesCreateOrUpdate,
-		DeleteContext: resourceGithubDependabotOrganizationSecretRepositoriesDelete,
+		CreateContext: resourceGithubActionsOrganizationVariableRepositoriesCreateOrUpdate,
+		ReadContext:   resourceGithubActionsOrganizationVariableRepositoriesRead,
+		UpdateContext: resourceGithubActionsOrganizationVariableRepositoriesCreateOrUpdate,
+		DeleteContext: resourceGithubActionsOrganizationVariableRepositoriesDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: resourceGithubDependabotOrganizationSecretRepositoriesImport,
+			StateContext: resourceGithubActionsOrganizationVariableRepositoriesImport,
 		},
 	}
 }
 
-func resourceGithubDependabotOrganizationSecretRepositoriesCreateOrUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+func resourceGithubActionsOrganizationVariableRepositoriesCreateOrUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	if err := checkOrganization(m); err != nil {
 		return diag.FromErr(err)
 	}
@@ -48,7 +48,7 @@ func resourceGithubDependabotOrganizationSecretRepositoriesCreateOrUpdate(ctx co
 	client := meta.v3client
 	owner := meta.name
 
-	secretName := d.Get("secret_name").(string)
+	variableName := d.Get("variable_name").(string)
 	repoIDs := []int64{}
 
 	ids := d.Get("selected_repository_ids").(*schema.Set).List()
@@ -56,17 +56,17 @@ func resourceGithubDependabotOrganizationSecretRepositoriesCreateOrUpdate(ctx co
 		repoIDs = append(repoIDs, int64(id.(int)))
 	}
 
-	_, err := client.Dependabot.SetSelectedReposForOrgSecret(ctx, owner, secretName, repoIDs)
+	_, err := client.Actions.SetSelectedReposForOrgVariable(ctx, owner, variableName, repoIDs)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(secretName)
+	d.SetId(variableName)
 
 	return nil
 }
 
-func resourceGithubDependabotOrganizationSecretRepositoriesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+func resourceGithubActionsOrganizationVariableRepositoriesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	if err := checkOrganization(m); err != nil {
 		return diag.FromErr(err)
 	}
@@ -75,14 +75,14 @@ func resourceGithubDependabotOrganizationSecretRepositoriesRead(ctx context.Cont
 	client := meta.v3client
 	owner := meta.name
 
-	secretName := d.Get("secret_name").(string)
+	variableName := d.Get("variable_name").(string)
 
 	repoIDs := []int64{}
 	opt := &github.ListOptions{
 		PerPage: maxPerPage,
 	}
 	for {
-		results, resp, err := client.Dependabot.ListSelectedReposForOrgSecret(ctx, owner, secretName, opt)
+		results, resp, err := client.Actions.ListSelectedReposForOrgVariable(ctx, owner, variableName, opt)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -104,7 +104,7 @@ func resourceGithubDependabotOrganizationSecretRepositoriesRead(ctx context.Cont
 	return nil
 }
 
-func resourceGithubDependabotOrganizationSecretRepositoriesDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+func resourceGithubActionsOrganizationVariableRepositoriesDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	if err := checkOrganization(m); err != nil {
 		return diag.FromErr(err)
 	}
@@ -113,7 +113,7 @@ func resourceGithubDependabotOrganizationSecretRepositoriesDelete(ctx context.Co
 	client := meta.v3client
 	owner := meta.name
 
-	_, err := client.Dependabot.SetSelectedReposForOrgSecret(ctx, owner, d.Id(), []int64{})
+	_, err := client.Actions.SetSelectedReposForOrgVariable(ctx, owner, d.Id(), []int64{})
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -121,14 +121,14 @@ func resourceGithubDependabotOrganizationSecretRepositoriesDelete(ctx context.Co
 	return nil
 }
 
-func resourceGithubDependabotOrganizationSecretRepositoriesImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+func resourceGithubActionsOrganizationVariableRepositoriesImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
 	meta := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
-	secretName := d.Id()
+	variableName := d.Id()
 
-	if err := d.Set("secret_name", secretName); err != nil {
+	if err := d.Set("variable_name", variableName); err != nil {
 		return nil, err
 	}
 
@@ -137,7 +137,7 @@ func resourceGithubDependabotOrganizationSecretRepositoriesImport(ctx context.Co
 		PerPage: maxPerPage,
 	}
 	for {
-		results, resp, err := client.Dependabot.ListSelectedReposForOrgSecret(ctx, owner, secretName, opt)
+		results, resp, err := client.Actions.ListSelectedReposForOrgVariable(ctx, owner, variableName, opt)
 		if err != nil {
 			return nil, err
 		}

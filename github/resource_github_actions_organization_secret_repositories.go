@@ -4,91 +4,91 @@ import (
 	"context"
 
 	"github.com/google/go-github/v82/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubActionsOrganizationSecretRepositories() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsOrganizationSecretRepositoriesCreateOrUpdate,
-		Read:   resourceGithubActionsOrganizationSecretRepositoriesRead,
-		Update: resourceGithubActionsOrganizationSecretRepositoriesCreateOrUpdate,
-		Delete: resourceGithubActionsOrganizationSecretRepositoriesDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
-
 		Schema: map[string]*schema.Schema{
 			"secret_name": {
 				Type:             schema.TypeString,
 				Required:         true,
 				ForceNew:         true,
-				Description:      "Name of the existing secret.",
 				ValidateDiagFunc: validateSecretNameFunc,
+				Description:      "Name of the existing secret.",
 			},
 			"selected_repository_ids": {
 				Type: schema.TypeSet,
+				Set:  schema.HashInt,
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
 				},
-				Set:         schema.HashInt,
 				Required:    true,
 				Description: "An array of repository ids that can access the organization secret.",
 			},
 		},
+
+		CreateContext: resourceGithubActionsOrganizationSecretRepositoriesCreateOrUpdate,
+		ReadContext:   resourceGithubActionsOrganizationSecretRepositoriesRead,
+		UpdateContext: resourceGithubActionsOrganizationSecretRepositoriesCreateOrUpdate,
+		DeleteContext: resourceGithubActionsOrganizationSecretRepositoriesDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: resourceGithubActionsOrganizationSecretRepositoriesImport,
+		},
 	}
 }
 
-func resourceGithubActionsOrganizationSecretRepositoriesCreateOrUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	ctx := context.Background()
-
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
+func resourceGithubActionsOrganizationSecretRepositoriesCreateOrUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	if err := checkOrganization(m); err != nil {
+		return diag.FromErr(err)
 	}
+
+	meta := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
 	secretName := d.Get("secret_name").(string)
-	selectedRepositories := d.Get("selected_repository_ids")
+	repoIDs := []int64{}
 
-	selectedRepositoryIDs := []int64{}
-
-	ids := selectedRepositories.(*schema.Set).List()
+	ids := d.Get("selected_repository_ids").(*schema.Set).List()
 	for _, id := range ids {
-		selectedRepositoryIDs = append(selectedRepositoryIDs, int64(id.(int)))
+		repoIDs = append(repoIDs, int64(id.(int)))
 	}
 
-	_, err = client.Actions.SetSelectedReposForOrgSecret(ctx, owner, secretName, selectedRepositoryIDs)
+	_, err := client.Actions.SetSelectedReposForOrgSecret(ctx, owner, secretName, repoIDs)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(secretName)
-	return resourceGithubActionsOrganizationSecretRepositoriesRead(d, meta)
+
+	return nil
 }
 
-func resourceGithubActionsOrganizationSecretRepositoriesRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	ctx := context.Background()
-
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
+func resourceGithubActionsOrganizationSecretRepositoriesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	if err := checkOrganization(m); err != nil {
+		return diag.FromErr(err)
 	}
 
-	selectedRepositoryIDs := []int64{}
+	meta := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
+	secretName := d.Get("secret_name").(string)
+
+	repoIDs := []int64{}
 	opt := &github.ListOptions{
 		PerPage: maxPerPage,
 	}
 	for {
-		results, resp, err := client.Actions.ListSelectedReposForOrgSecret(ctx, owner, d.Id(), opt)
+		results, resp, err := client.Actions.ListSelectedReposForOrgSecret(ctx, owner, secretName, opt)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		for _, repo := range results.Repositories {
-			selectedRepositoryIDs = append(selectedRepositoryIDs, repo.GetID())
+			repoIDs = append(repoIDs, repo.GetID())
 		}
 
 		if resp.NextPage == 0 {
@@ -97,28 +97,64 @@ func resourceGithubActionsOrganizationSecretRepositoriesRead(d *schema.ResourceD
 		opt.Page = resp.NextPage
 	}
 
-	if err = d.Set("selected_repository_ids", selectedRepositoryIDs); err != nil {
-		return err
+	if err := d.Set("selected_repository_ids", repoIDs); err != nil {
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubActionsOrganizationSecretRepositoriesDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
+func resourceGithubActionsOrganizationSecretRepositoriesDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	if err := checkOrganization(m); err != nil {
+		return diag.FromErr(err)
 	}
 
-	selectedRepositoryIDs := []int64{}
-	_, err = client.Actions.SetSelectedReposForOrgSecret(ctx, owner, d.Id(), selectedRepositoryIDs)
+	meta := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
+	_, err := client.Actions.SetSelectedReposForOrgSecret(ctx, owner, d.Id(), []int64{})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
+}
+
+func resourceGithubActionsOrganizationSecretRepositoriesImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+	meta := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
+	secretName := d.Id()
+
+	if err := d.Set("secret_name", secretName); err != nil {
+		return nil, err
+	}
+
+	repoIDs := []int64{}
+	opt := &github.ListOptions{
+		PerPage: maxPerPage,
+	}
+	for {
+		results, resp, err := client.Actions.ListSelectedReposForOrgSecret(ctx, owner, secretName, opt)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, repo := range results.Repositories {
+			repoIDs = append(repoIDs, repo.GetID())
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
+	}
+
+	if err := d.Set("selected_repository_ids", repoIDs); err != nil {
+		return nil, err
+	}
+
+	return []*schema.ResourceData{d}, nil
 }
