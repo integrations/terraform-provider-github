@@ -1,0 +1,337 @@
+package github
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+
+	"github.com/google/go-github/v82/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+)
+
+func resourceGithubRepositoryPages() *schema.Resource {
+	return &schema.Resource{
+		Description:   "Manages GitHub Pages for a repository.",
+		CreateContext: resourceGithubRepositoryPagesCreate,
+		ReadContext:   resourceGithubRepositoryPagesRead,
+		UpdateContext: resourceGithubRepositoryPagesUpdate,
+		DeleteContext: resourceGithubRepositoryPagesDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: resourceGithubRepositoryPagesImport,
+		},
+
+		Schema: map[string]*schema.Schema{
+			"repository_name": {
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The repository name to configure GitHub Pages for.",
+			},
+			"owner": {
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The owner of the repository to configure GitHub Pages for.",
+			},
+			"source": {
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Description: "The source branch and directory for the rendered Pages site.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"branch": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The repository branch used to publish the site's source files. (i.e. 'main' or 'gh-pages')",
+						},
+						"path": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "/",
+							Description: "The repository directory from which the site publishes (Default: '/')",
+						},
+					},
+				},
+			},
+			"build_type": {
+				Type:             schema.TypeString,
+				Optional:         true,
+				Default:          "legacy",
+				Description:      "The type of GitHub Pages site to build. Can be 'legacy' or 'workflow'.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"legacy", "workflow"}, false)),
+			},
+			"cname": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The custom domain for the repository.",
+			},
+			"custom_404": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Whether the rendered GitHub Pages site has a custom 404 page.",
+			},
+			"html_url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The absolute URL (with scheme) to the rendered GitHub Pages site.",
+			},
+			"build_status": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The GitHub Pages site's build status e.g. 'building' or 'built'.",
+			},
+			"api_url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The API URL of the GitHub Pages resource.",
+			},
+		},
+		CustomizeDiff: resourceGithubRepositoryPagesDiff,
+	}
+}
+
+func resourceGithubRepositoryPagesCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
+
+	owner := d.Get("owner").(string)
+	repoName := d.Get("repository_name").(string)
+
+	pages := expandPagesForCreate(d)
+	pages, _, err := client.Repositories.EnablePages(ctx, owner, repoName, pages)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	id, err := buildID(owner, repoName)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	d.SetId(id)
+
+	if err := d.Set("build_type", pages.GetBuildType()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("cname", pages.GetCNAME()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("custom_404", pages.GetCustom404()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("html_url", pages.GetHTMLURL()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("build_status", pages.GetStatus()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("api_url", pages.GetURL()); err != nil {
+		return diag.FromErr(err)
+	}
+
+	// Handle CNAME update after creation if specified
+	if cname, ok := d.GetOk("cname"); ok && cname.(string) != "" {
+		update := &github.PagesUpdate{
+			CNAME: github.Ptr(cname.(string)),
+		}
+		_, err = client.Repositories.UpdatePages(ctx, owner, repoName, update)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	return nil
+}
+
+func resourceGithubRepositoryPagesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
+
+	owner := d.Get("owner").(string)
+	repoName := d.Get("repository_name").(string)
+
+	pages, resp, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)
+	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
+		return diag.Errorf("error reading repository pages: %s", err.Error())
+	}
+
+	if err := d.Set("build_type", pages.GetBuildType()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("cname", pages.GetCNAME()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("custom_404", pages.GetCustom404()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("html_url", pages.GetHTMLURL()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("build_status", pages.GetStatus()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("api_url", pages.GetURL()); err != nil {
+		return diag.FromErr(err)
+	}
+
+	// Set source only for legacy build type
+	if pages.GetBuildType() == "legacy" && pages.GetSource() != nil {
+		source := []map[string]any{
+			{
+				"branch": pages.GetSource().GetBranch(),
+				"path":   pages.GetSource().GetPath(),
+			},
+		}
+		if err := d.Set("source", source); err != nil {
+			return diag.FromErr(err)
+		}
+	} else {
+		if err := d.Set("source", nil); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	return nil
+}
+
+func resourceGithubRepositoryPagesUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
+
+	owner := d.Get("owner").(string)
+	repoName := d.Get("repository_name").(string)
+
+	update := &github.PagesUpdate{}
+
+	if d.HasChange("cname") {
+		cname := d.Get("cname").(string)
+		if cname != "" {
+			update.CNAME = github.Ptr(cname)
+		}
+	}
+
+	if d.HasChange("build_type") {
+		buildType := d.Get("build_type").(string)
+		update.BuildType = github.Ptr(buildType)
+	}
+
+	if d.HasChange("source") || d.HasChange("build_type") {
+		buildType := d.Get("build_type").(string)
+		if buildType == "legacy" {
+			if source, ok := d.GetOk("source"); ok {
+				sourceList := source.([]any)
+				if len(sourceList) > 0 {
+					sourceMap := sourceList[0].(map[string]any)
+					branch := sourceMap["branch"].(string)
+					path := sourceMap["path"].(string)
+					update.Source = &github.PagesSource{
+						Branch: &branch,
+						Path:   &path,
+					}
+				}
+			}
+		}
+	}
+
+	_, err := client.Repositories.UpdatePages(ctx, owner, repoName, update)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
+}
+
+func resourceGithubRepositoryPagesDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
+
+	owner := d.Get("owner").(string)
+	repoName := d.Get("repository_name").(string)
+
+	_, err := client.Repositories.DisablePages(ctx, owner, repoName)
+	if err != nil {
+		return diag.FromErr(handleArchivedRepoDelete(err, "repository pages", d.Id(), owner, repoName))
+	}
+
+	return nil
+}
+
+func resourceGithubRepositoryPagesImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+	owner, repoName, err := parseID2(d.Id())
+	if err != nil {
+		return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <owner>/<repository>. Original error: %w", err)
+	}
+	if err := d.Set("owner", owner); err != nil {
+		return nil, err
+	}
+	if err := d.Set("repository_name", repoName); err != nil {
+		return nil, err
+	}
+
+	id, err := buildID(owner, repoName)
+	if err != nil {
+		return nil, err
+	}
+	d.SetId(id)
+
+	return []*schema.ResourceData{d}, nil
+}
+
+func resourceGithubRepositoryPagesDiff(ctx context.Context, d *schema.ResourceDiff, _ any) error {
+	if d.Id() == "" {
+		return nil
+	}
+
+	buildType := d.Get("build_type").(string)
+	switch buildType {
+	case "workflow":
+		if _, ok := d.GetOk("source"); ok {
+			return fmt.Errorf("'source' is not supported for workflow build type")
+		}
+		return nil
+	case "legacy":
+		if _, ok := d.GetOk("source"); !ok {
+			return fmt.Errorf("'source' is required for legacy build type")
+		}
+	}
+
+	return nil
+}
+
+func expandPagesForCreate(d *schema.ResourceData) *github.Pages {
+	pages := &github.Pages{}
+
+	buildType := d.Get("build_type").(string)
+	pages.BuildType = github.Ptr(buildType)
+
+	if buildType == "legacy" {
+		if source, ok := d.GetOk("source"); ok {
+			sourceList := source.([]any)
+			if len(sourceList) > 0 {
+				sourceMap := sourceList[0].(map[string]any)
+				branch := sourceMap["branch"].(string)
+				pagesSource := &github.PagesSource{
+					Branch: github.Ptr(branch),
+				}
+				if path, ok := sourceMap["path"].(string); ok && path != "" && path != "/" {
+					pagesSource.Path = github.Ptr(path)
+				}
+				pages.Source = pagesSource
+			}
+		}
+		// Default to main branch if no source specified
+		if pages.Source == nil {
+			pages.Source = &github.PagesSource{
+				Branch: github.Ptr("main"),
+			}
+		}
+	}
+
+	return pages
+}
