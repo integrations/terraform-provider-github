@@ -24,11 +24,6 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 				visibility = "%s"
 				auto_init  = true
 
-				lifecycle {
-					ignore_changes = [
-						pages,
-					]
-				}
 			}
 
 			resource "github_repository_pages" "test" {
@@ -69,11 +64,6 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 				visibility = "%s"
 				auto_init  = true
 
-				lifecycle {
-					ignore_changes = [
-						pages,
-					]
-				}
 			}
 
 			resource "github_repository_pages" "test" {
@@ -113,11 +103,6 @@ source {
 				visibility = "%s"
 				auto_init  = true
 
-				lifecycle {
-					ignore_changes = [
-						pages,
-					]
-				}
 			}
 
 			resource "github_repository_pages" "test" {
@@ -158,11 +143,6 @@ source {
 				visibility = "%s"
 				auto_init  = true
 
-				lifecycle {
-					ignore_changes = [
-						pages,
-					]
-				}
 			}
 
 			resource "github_repository_pages" "test" {

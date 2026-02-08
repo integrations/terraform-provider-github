@@ -860,7 +860,8 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 		_ = d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle())
 	}
 
-	if repo.GetHasPages() {
+	_, isPagesConfigured := d.GetOk("pages")
+	if repo.GetHasPages() && isPagesConfigured {
 		pages, _, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)
 		if err != nil {
 			return diag.FromErr(err)
