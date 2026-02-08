@@ -283,6 +283,7 @@ func Provider() *schema.Provider {
 			"github_repository_deployment_branch_policies":                          dataSourceGithubRepositoryDeploymentBranchPolicies(),
 			"github_repository_file":                                                dataSourceGithubRepositoryFile(),
 			"github_repository_milestone":                                           dataSourceGithubRepositoryMilestone(),
+			"github_repository_pages":                                               dataSourceGithubRepositoryPages(),
 			"github_repository_pull_request":                                        dataSourceGithubRepositoryPullRequest(),
 			"github_repository_pull_requests":                                       dataSourceGithubRepositoryPullRequests(),
 			"github_repository_teams":                                               dataSourceGithubRepositoryTeams(),
