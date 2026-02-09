@@ -92,7 +92,7 @@ func resourceGithubEnterpriseCostCenterUsersUpdate(ctx context.Context, d *schem
 	// Extract current users
 	currentUsers := make(map[string]bool)
 	for _, r := range cc.Resources {
-		if r != nil && r.Type == "User" {
+		if r != nil && r.Type == CostCenterResourceTypeUser {
 			currentUsers[r.Name] = true
 		}
 	}
@@ -171,7 +171,7 @@ func resourceGithubEnterpriseCostCenterUsersRead(ctx context.Context, d *schema.
 	// Extract users from resources
 	var users []string
 	for _, r := range cc.Resources {
-		if r != nil && r.Type == "User" {
+		if r != nil && r.Type == CostCenterResourceTypeUser {
 			users = append(users, r.Name)
 		}
 	}
