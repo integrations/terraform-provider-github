@@ -56,7 +56,7 @@ func resourceGithubEMUGroupMappingStateUpgradeV0(ctx context.Context, rawState m
 	if err != nil {
 		return nil, err
 	}
-	rawState["team_id"] = teamID
+	rawState["team_id"] = int(teamID)
 	resourceID, err := buildID(strconv.FormatInt(teamID, 10), teamSlug, strconv.FormatInt(group.GetGroupID(), 10))
 	if err != nil {
 		return nil, err
