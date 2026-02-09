@@ -13,9 +13,9 @@ import (
 func resourceGithubEnterpriseCostCenterUsers() *schema.Resource {
 	return &schema.Resource{
 		Description:   "Manages user assignments for a GitHub enterprise cost center (authoritative).",
-		CreateContext: resourceGithubEnterpriseCostCenterUsersCreateOrUpdate,
+		CreateContext: resourceGithubEnterpriseCostCenterUsersCreate,
 		ReadContext:   resourceGithubEnterpriseCostCenterUsersRead,
-		UpdateContext: resourceGithubEnterpriseCostCenterUsersCreateOrUpdate,
+		UpdateContext: resourceGithubEnterpriseCostCenterUsersUpdate,
 		DeleteContext: resourceGithubEnterpriseCostCenterUsersDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceGithubEnterpriseCostCenterUsersImport,
@@ -45,19 +45,43 @@ func resourceGithubEnterpriseCostCenterUsers() *schema.Resource {
 	}
 }
 
-func resourceGithubEnterpriseCostCenterUsersCreateOrUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubEnterpriseCostCenterUsersCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 	costCenterID := d.Get("cost_center_id").(string)
 
-	// If this is Create, set the ID
-	if d.Id() == "" {
-		id, err := buildID(enterpriseSlug, costCenterID)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		d.SetId(id)
+	id, err := buildID(enterpriseSlug, costCenterID)
+	if err != nil {
+		return diag.FromErr(err)
 	}
+	d.SetId(id)
+
+	// Get desired users from config
+	desiredUsersSet := d.Get("usernames").(*schema.Set)
+	toAdd := expandStringList(desiredUsersSet.List())
+
+	// Add users
+	if len(toAdd) > 0 {
+		tflog.Info(ctx, "Adding users to cost center", map[string]any{
+			"enterprise_slug": enterpriseSlug,
+			"cost_center_id":  costCenterID,
+			"count":           len(toAdd),
+		})
+
+		for _, batch := range chunkStringSlice(toAdd, maxResourcesPerRequest) {
+			if diags := retryCostCenterAddResources(ctx, client, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Users: batch}); diags.HasError() {
+				return diags
+			}
+		}
+	}
+
+	return nil
+}
+
+func resourceGithubEnterpriseCostCenterUsersUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client := meta.(*Owner).v3client
+	enterpriseSlug := d.Get("enterprise_slug").(string)
+	costCenterID := d.Get("cost_center_id").(string)
 
 	// Get current assignments from API
 	cc, _, err := client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
@@ -123,7 +147,7 @@ func resourceGithubEnterpriseCostCenterUsersCreateOrUpdate(ctx context.Context, 
 		}
 	}
 
-	return resourceGithubEnterpriseCostCenterUsersRead(ctx, d, meta)
+	return nil
 }
 
 func resourceGithubEnterpriseCostCenterUsersRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
