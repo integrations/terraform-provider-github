@@ -293,15 +293,6 @@ func errIsRetryable(err error) bool {
 	return false
 }
 
-// expandStringSet converts a schema.Set to a string slice.
-func expandStringSet(set *schema.Set) []string {
-	if set == nil {
-		return nil
-	}
-	list := set.List()
-	return expandStringList(list)
-}
-
 // chunkStringSlice splits a slice into chunks of the specified max size.
 //
 func chunkStringSlice(items []string, maxSize int) [][]string {

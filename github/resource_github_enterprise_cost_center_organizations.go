@@ -157,7 +157,7 @@ func resourceGithubEnterpriseCostCenterOrganizationsDelete(ctx context.Context, 
 	costCenterID := d.Get("cost_center_id").(string)
 
 	organizationsSet := d.Get("organization_logins").(*schema.Set)
-	organizations := expandStringSet(organizationsSet)
+	organizations := expandStringList(organizationsSet.List())
 
 	if len(organizations) > 0 {
 		tflog.Info(ctx, "Removing all organizations from cost center", map[string]any{
