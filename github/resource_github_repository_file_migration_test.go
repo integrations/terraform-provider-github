@@ -2,8 +2,9 @@ package github
 
 import (
 	"context"
-	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func Test_resourceGithubRepositoryFileStateUpgradeV0(t *testing.T) {
@@ -28,7 +29,7 @@ func Test_resourceGithubRepositoryFileStateUpgradeV0(t *testing.T) {
 				"overwrite_on_create": false,
 			},
 			want: map[string]any{
-				"id":                  "test-repo/path/to/file.txt",
+				"id":                  "test-repo/path/to/file.txt:main",
 				"repository":          "test-repo",
 				"file":                "path/to/file.txt",
 				"content":             "file content",
@@ -49,7 +50,7 @@ func Test_resourceGithubRepositoryFileStateUpgradeV0(t *testing.T) {
 				"branch":     "develop",
 			},
 			want: map[string]any{
-				"id":         "test-repo/README.md",
+				"id":         "test-repo/README.md:develop",
 				"repository": "test-repo",
 				"file":       "README.md",
 				"content":    "# README",
@@ -67,7 +68,7 @@ func Test_resourceGithubRepositoryFileStateUpgradeV0(t *testing.T) {
 		// 				"content":    "file content",
 		// 			},
 		// 			want: map[string]any{
-		// 				"id":         "test-repo/path/to/file.txt",
+		// 				"id":         "test-repo/path/to/file.txt:main",
 		// 				"repository": "test-repo",
 		// 				"file":       "path/to/file.txt",
 		// 				"content":    "file content",
@@ -86,7 +87,7 @@ func Test_resourceGithubRepositoryFileStateUpgradeV0(t *testing.T) {
 		// 				"branch":     "",
 		// 			},
 		// 			want: map[string]any{
-		// 				"id":         "test-repo/path/to/file.txt",
+		// 				"id":         "test-repo/path/to/file.txt:main",
 		// 				"repository": "test-repo",
 		// 				"file":       "path/to/file.txt",
 		// 				"content":    "file content",
@@ -103,8 +104,8 @@ func Test_resourceGithubRepositoryFileStateUpgradeV0(t *testing.T) {
 				t.Fatalf("unexpected error state: got error %v, shouldError %v", err, d.shouldError)
 			}
 
-			if !d.shouldError && !reflect.DeepEqual(got, d.want) {
-				t.Fatalf("got %+v, want %+v", got, d.want)
+			if diff := cmp.Diff(got, d.want); diff != "" && !d.shouldError {
+				t.Fatalf("got %+v, want %+v, diff %s", got, d.want, diff)
 			}
 		})
 	}

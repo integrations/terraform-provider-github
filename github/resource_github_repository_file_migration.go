@@ -108,6 +108,8 @@ func resourceGithubRepositoryFileStateUpgradeV0(ctx context.Context, rawState ma
 		rawState["branch"] = repo.GetDefaultBranch()
 	}
 
+	rawState["id"] = fmt.Sprintf("%s/%s:%s", rawState["repository"], rawState["file"], rawState["branch"])
+
 	tflog.Debug(ctx, "GitHub Repository File State after migration", map[string]any{
 		"rawState": rawState,
 	})

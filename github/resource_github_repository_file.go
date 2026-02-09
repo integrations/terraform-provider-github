@@ -234,7 +234,9 @@ func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceD
 		return diag.FromErr(err)
 	}
 
-	d.SetId(fmt.Sprintf("%s/%s", repo, file))
+	branch := d.Get("branch").(string)
+
+	d.SetId(fmt.Sprintf("%s/%s:%s", repo, file, branch))
 	if err = d.Set("commit_sha", create.GetSHA()); err != nil {
 		return diag.FromErr(err)
 	}
@@ -484,7 +486,9 @@ func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceD
 		return nil, fmt.Errorf("file %s is not a file in repository %s/%s or repository is not readable", file, owner, repo)
 	}
 
-	d.SetId(fmt.Sprintf("%s/%s", repo, file))
+	branch := d.Get("branch").(string)
+
+	d.SetId(fmt.Sprintf("%s/%s:%s", repo, file, branch))
 	if err = d.Set("overwrite_on_create", false); err != nil {
 		return nil, err
 	}
