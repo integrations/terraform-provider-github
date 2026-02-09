@@ -87,7 +87,7 @@ func testAccCheckGithubEnterpriseCostCenterRepositoriesDestroy(s *terraform.Stat
 
 		// Check if repositories are still assigned
 		for _, resource := range cc.Resources {
-			if resource.Type == "repository" {
+			if resource.Type == "Repo" {
 				return fmt.Errorf("cost center %s still has repository assignments", costCenterID)
 			}
 		}
