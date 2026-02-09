@@ -248,7 +248,11 @@ func resourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceDat
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 
-	repo, file := splitRepoFilePath(d.Id())
+	repoFilePath, _, err := parseID2(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	repo, file := splitRepoFilePath(repoFilePath)
 	ctx = tflog.SetField(ctx, "repository", repo)
 	ctx = tflog.SetField(ctx, "file", file)
 	ctx = tflog.SetField(ctx, "owner", owner)
