@@ -87,7 +87,7 @@ func testAccCheckGithubEnterpriseCostCenterOrganizationsDestroy(s *terraform.Sta
 
 		// Check if organizations are still assigned
 		for _, resource := range cc.Resources {
-			if resource.Type == "organization" {
+			if resource.Type == "Org" {
 				return fmt.Errorf("cost center %s still has organization assignments", costCenterID)
 			}
 		}
