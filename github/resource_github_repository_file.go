@@ -24,6 +24,15 @@ func resourceGithubRepositoryFile() *schema.Resource {
 			StateContext: resourceGithubRepositoryFileImport,
 		},
 
+		SchemaVersion: 1,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceGithubRepositoryFileV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceGithubRepositoryFileStateUpgradeV0,
+				Version: 0,
+			},
+		},
+
 		Description: "This resource allows you to create and manage files within a GitHub repository.",
 
 		Schema: map[string]*schema.Schema{
