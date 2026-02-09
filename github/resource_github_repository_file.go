@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -47,6 +48,7 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    true,
+				Computed:    true,
 				Description: "The branch name, defaults to the repository's default branch",
 			},
 			"ref": {
@@ -175,6 +177,14 @@ func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceD
 			}
 		}
 		checkOpt.Ref = branch.(string)
+	} else {
+		repoInfo, _, err := client.Repositories.Get(ctx, owner, repo)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		if err := d.Set("branch", repoInfo.GetDefaultBranch()); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	opts := resourceGithubRepositoryFileOptions(d)
@@ -427,25 +437,32 @@ func autoBranchDiffSuppressFunc(k, _, _ string, d *schema.ResourceData) bool {
 }
 
 func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	repoFilePath, branch, err := parseID2(d.Id())
-	if err != nil {
-		return nil, fmt.Errorf("invalid ID specified. Supplied ID must be written as <repository>/<file path>:<branch>. %w", err)
+	importIDParts := strings.Split(d.Id(), idSeparator)
+
+	if len(importIDParts) > 2 {
+		return nil, fmt.Errorf("invalid ID specified. Supplied ID must be written as <repository>/<file path> (when branch is \"main\") or <repository>/<file path>:<branch>")
 	}
+	repoFilePath := importIDParts[0]
 
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repo, file := splitRepoFilePath(repoFilePath)
 
-	repoInfo, _, err := client.Repositories.Get(ctx, owner, repo)
-	if err != nil {
-		return nil, err
-	}
-	defaultBranch := repoInfo.GetDefaultBranch()
 	opts := &github.RepositoryContentGetOptions{}
 
-	if branch != defaultBranch {
+	if len(importIDParts) == 2 {
+		branch := importIDParts[1]
 		opts.Ref = branch
 		if err := d.Set("branch", branch); err != nil {
+			return nil, err
+		}
+	} else {
+		repoInfo, _, err := client.Repositories.Get(ctx, owner, repo)
+		if err != nil {
+			return nil, err
+		}
+		defaultBranch := repoInfo.GetDefaultBranch()
+		if err := d.Set("branch", defaultBranch); err != nil {
 			return nil, err
 		}
 	}

@@ -460,6 +460,71 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 					ResourceName:            "github_repository_file.test",
 					ImportState:             true,
 					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"commit_author", "commit_email"}, // For some reason `d` doesn't contain the commit author and email when importing.
+				},
+			},
+		})
+	})
+	t.Run("imports_files_with_branch_in_id_without_error", func(t *testing.T) {
+		randomID := acctest.RandString(5)
+		repoName := fmt.Sprintf("%sfile-import-%s", testResourcePrefix, randomID)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name                 = "%s"
+				auto_init            = true
+				vulnerability_alerts = true
+			}
+
+			resource "github_repository_file" "test" {
+				repository     = github_repository.test.name
+				file           = "test"
+				content        = "bar"
+				commit_message = "Managed by Terraform"
+				commit_author  = "Terraform User"
+				commit_email   = "terraform@example.com"
+			}
+		`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"github_repository_file.test", "content",
+							"bar",
+						),
+						resource.TestCheckResourceAttr(
+							"github_repository_file.test", "sha",
+							"ba0e162e1c47469e3fe4b393a8bf8c569f302116",
+						),
+						resource.TestCheckResourceAttr(
+							"github_repository_file.test", "ref",
+							"main",
+						),
+						resource.TestCheckResourceAttrSet(
+							"github_repository_file.test", "commit_author",
+						),
+						resource.TestCheckResourceAttrSet(
+							"github_repository_file.test", "commit_email",
+						),
+						resource.TestCheckResourceAttrSet(
+							"github_repository_file.test", "commit_message",
+						),
+						resource.TestCheckResourceAttrSet(
+							"github_repository_file.test", "commit_sha",
+						),
+						resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch"),
+						resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch_source_branch"),
+						resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch_source_sha"),
+					),
+				},
+				{
+					ResourceName:            "github_repository_file.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
 					ImportStateId:           fmt.Sprintf("%s/%s:main", repoName, "test"),
 					ImportStateVerifyIgnore: []string{"commit_author", "commit_email"}, // For some reason `d` doesn't contain the commit author and email when importing.
 				},
