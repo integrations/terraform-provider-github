@@ -304,7 +304,6 @@ func expandStringSet(set *schema.Set) []string {
 
 // chunkStringSlice splits a slice into chunks of the specified max size.
 //
-//nolint:unparam // maxSize is parameterized for reusability across different contexts
 func chunkStringSlice(items []string, maxSize int) [][]string {
 	if len(items) == 0 {
 		return nil
