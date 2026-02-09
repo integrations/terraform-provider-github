@@ -157,7 +157,7 @@ func resourceGithubEnterpriseCostCenterRepositoriesDelete(ctx context.Context, d
 	costCenterID := d.Get("cost_center_id").(string)
 
 	repositoriesSet := d.Get("repository_names").(*schema.Set)
-	repositories := expandStringSet(repositoriesSet)
+	repositories := expandStringList(repositoriesSet.List())
 
 	if len(repositories) > 0 {
 		tflog.Info(ctx, "Removing all repositories from cost center", map[string]any{

@@ -165,7 +165,7 @@ func resourceGithubEnterpriseCostCenterUsersDelete(ctx context.Context, d *schem
 	costCenterID := d.Get("cost_center_id").(string)
 
 	usernamesSet := d.Get("usernames").(*schema.Set)
-	usernames := expandStringSet(usernamesSet)
+	usernames := expandStringList(usernamesSet.List())
 
 	if len(usernames) > 0 {
 		tflog.Info(ctx, "Removing all users from cost center", map[string]any{
