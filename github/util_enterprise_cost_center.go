@@ -13,6 +13,11 @@ import (
 const (
 	maxResourcesPerRequest          = 50
 	costCenterResourcesRetryTimeout = 5 * time.Minute
+
+	// CostCenterResourceType constants match the API response values.
+	CostCenterResourceTypeUser = "User"
+	CostCenterResourceTypeOrg  = "Org"
+	CostCenterResourceTypeRepo = "Repo"
 )
 
 // retryCostCenterRemoveResources removes resources from a cost center with retry logic.
