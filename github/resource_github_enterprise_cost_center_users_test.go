@@ -82,7 +82,7 @@ func testAccCheckGithubEnterpriseCostCenterUsersDestroy(s *terraform.State) erro
 
 		// Check if users are still assigned
 		for _, resource := range cc.Resources {
-			if resource.Type == "User" {
+			if resource.Type == CostCenterResourceTypeUser {
 				return fmt.Errorf("cost center %s still has user assignments", costCenterID)
 			}
 		}

@@ -90,7 +90,7 @@ func resourceGithubEnterpriseCostCenterRepositoriesUpdate(ctx context.Context, d
 
 	currentRepos := make(map[string]bool)
 	for _, r := range cc.Resources {
-		if r != nil && r.Type == "Repo" {
+		if r != nil && r.Type == CostCenterResourceTypeRepo {
 			currentRepos[r.Name] = true
 		}
 	}
@@ -164,7 +164,7 @@ func resourceGithubEnterpriseCostCenterRepositoriesRead(ctx context.Context, d *
 
 	var repositories []string
 	for _, r := range cc.Resources {
-		if r != nil && r.Type == "Repo" {
+		if r != nil && r.Type == CostCenterResourceTypeRepo {
 			repositories = append(repositories, r.Name)
 		}
 	}
