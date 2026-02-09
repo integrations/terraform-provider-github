@@ -13,9 +13,9 @@ import (
 func resourceGithubEnterpriseCostCenterRepositories() *schema.Resource {
 	return &schema.Resource{
 		Description:   "Manages repository assignments for a GitHub enterprise cost center (authoritative).",
-		CreateContext: resourceGithubEnterpriseCostCenterRepositoriesCreateOrUpdate,
+		CreateContext: resourceGithubEnterpriseCostCenterRepositoriesCreate,
 		ReadContext:   resourceGithubEnterpriseCostCenterRepositoriesRead,
-		UpdateContext: resourceGithubEnterpriseCostCenterRepositoriesCreateOrUpdate,
+		UpdateContext: resourceGithubEnterpriseCostCenterRepositoriesUpdate,
 		DeleteContext: resourceGithubEnterpriseCostCenterRepositoriesDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceGithubEnterpriseCostCenterRepositoriesImport,
@@ -45,18 +45,43 @@ func resourceGithubEnterpriseCostCenterRepositories() *schema.Resource {
 	}
 }
 
-func resourceGithubEnterpriseCostCenterRepositoriesCreateOrUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubEnterpriseCostCenterRepositoriesCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 	costCenterID := d.Get("cost_center_id").(string)
 
-	if d.Id() == "" {
-		id, err := buildID(enterpriseSlug, costCenterID)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		d.SetId(id)
+	id, err := buildID(enterpriseSlug, costCenterID)
+	if err != nil {
+		return diag.FromErr(err)
 	}
+	d.SetId(id)
+
+	// Get desired repositories from config
+	desiredReposSet := d.Get("repository_names").(*schema.Set)
+	toAdd := expandStringList(desiredReposSet.List())
+
+	// Add repositories
+	if len(toAdd) > 0 {
+		tflog.Info(ctx, "Adding repositories to cost center", map[string]any{
+			"enterprise_slug": enterpriseSlug,
+			"cost_center_id":  costCenterID,
+			"count":           len(toAdd),
+		})
+
+		for _, batch := range chunkStringSlice(toAdd, maxResourcesPerRequest) {
+			if diags := retryCostCenterAddResources(ctx, client, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Repositories: batch}); diags.HasError() {
+				return diags
+			}
+		}
+	}
+
+	return nil
+}
+
+func resourceGithubEnterpriseCostCenterRepositoriesUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client := meta.(*Owner).v3client
+	enterpriseSlug := d.Get("enterprise_slug").(string)
+	costCenterID := d.Get("cost_center_id").(string)
 
 	cc, _, err := client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
 	if err != nil {
@@ -116,7 +141,7 @@ func resourceGithubEnterpriseCostCenterRepositoriesCreateOrUpdate(ctx context.Co
 		}
 	}
 
-	return resourceGithubEnterpriseCostCenterRepositoriesRead(ctx, d, meta)
+	return nil
 }
 
 func resourceGithubEnterpriseCostCenterRepositoriesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
