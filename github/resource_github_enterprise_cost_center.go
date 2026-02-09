@@ -97,6 +97,16 @@ func resourceGithubEnterpriseCostCenterRead(ctx context.Context, d *schema.Resou
 		return diag.FromErr(err)
 	}
 
+	// If the cost center is archived (deleted), remove from state
+	if cc.GetState() == "deleted" {
+		tflog.Warn(ctx, "Cost center is archived, removing from state", map[string]any{
+			"enterprise_slug": enterpriseSlug,
+			"cost_center_id":  costCenterID,
+		})
+		d.SetId("")
+		return nil
+	}
+
 	if err := d.Set("name", cc.Name); err != nil {
 		return diag.FromErr(err)
 	}
@@ -115,12 +125,6 @@ func resourceGithubEnterpriseCostCenterUpdate(ctx context.Context, d *schema.Res
 	client := meta.(*Owner).v3client
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 	costCenterID := d.Id()
-
-	// Check current state to prevent updates on archived cost centers
-	currentState := d.Get("state").(string)
-	if currentState == "deleted" {
-		return diag.Errorf("cannot update cost center %q because it is archived", costCenterID)
-	}
 
 	if d.HasChange("name") {
 		name := d.Get("name").(string)
