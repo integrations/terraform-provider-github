@@ -436,10 +436,20 @@ func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceD
 	owner := meta.(*Owner).name
 	repo, file := splitRepoFilePath(repoFilePath)
 
-	opts := &github.RepositoryContentGetOptions{Ref: branch}
-	if err := d.Set("branch", branch); err != nil {
+	repoInfo, _, err := client.Repositories.Get(ctx, owner, repo)
+	if err != nil {
 		return nil, err
 	}
+	defaultBranch := repoInfo.GetDefaultBranch()
+	opts := &github.RepositoryContentGetOptions{}
+
+	if branch != defaultBranch {
+		opts.Ref = branch
+		if err := d.Set("branch", branch); err != nil {
+			return nil, err
+		}
+	}
+
 	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repo, file, opts)
 	if err != nil {
 		return nil, err
