@@ -34,19 +34,19 @@ func dataSourceGithubRepositoryPullRequests() *schema.Resource {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Default:          "created",
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"created", "updated", "popularity", "long-running"}, false), "sort_by"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"created", "updated", "popularity", "long-running"}, false)),
 			},
 			"sort_direction": {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Default:          "asc",
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"asc", "desc"}, false), "sort_direction"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"asc", "desc"}, false)),
 			},
 			"state": {
 				Type:             schema.TypeString,
 				Default:          "open",
 				Optional:         true,
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"open", "closed", "all"}, false), "state"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"open", "closed", "all"}, false)),
 			},
 			"results": {
 				Type:     schema.TypeList,

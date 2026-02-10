@@ -3,10 +3,10 @@ package github
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/shurcooL/githubv4"
 )
 
@@ -44,38 +44,20 @@ func resourceGithubTeamSettings() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"algorithm": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Description: "The algorithm to use when assigning pull requests to team members. Supported values are 'ROUND_ROBIN' and 'LOAD_BALANCE'.",
-							Default:     "ROUND_ROBIN",
-							ValidateDiagFunc: toDiagFunc(func(v any, key string) (we []string, errs []error) {
-								algorithm, ok := v.(string)
-								if !ok {
-									return nil, []error{fmt.Errorf("expected type of %s to be string", key)}
-								}
-
-								if algorithm != "ROUND_ROBIN" && algorithm != "LOAD_BALANCE" {
-									errs = append(errs, errors.New("review request delegation algorithm must be one of [\"ROUND_ROBIN\", \"LOAD_BALANCE\"]"))
-								}
-
-								return we, errs
-							}, "algorithm"),
+							Type:             schema.TypeString,
+							Optional:         true,
+							Description:      "The algorithm to use when assigning pull requests to team members. Supported values are 'ROUND_ROBIN' and 'LOAD_BALANCE'.",
+							Default:          "ROUND_ROBIN",
+							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"ROUND_ROBIN", "LOAD_BALANCE"}, false)),
 						},
 						"member_count": {
 							Type:         schema.TypeInt,
 							Optional:     true,
 							RequiredWith: []string{"review_request_delegation"},
 							Description:  "The number of team members to assign to a pull request.",
-							ValidateDiagFunc: toDiagFunc(func(v any, key string) (we []string, errs []error) {
-								count, ok := v.(int)
-								if !ok {
-									return nil, []error{fmt.Errorf("expected type of %s to be an integer", key)}
-								}
-								if count <= 0 {
-									errs = append(errs, errors.New("review request delegation reviewer count must be a positive number"))
-								}
-								return we, errs
-							}, "member_count"),
+							ValidateDiagFunc: validation.ToDiagFunc(validation.All(
+								validation.IntAtLeast(1),
+							)),
 						},
 						"notify": {
 							Type:        schema.TypeBool,
