@@ -10,7 +10,6 @@ import (
 
 func TestAccGithubEnterpriseIpAllowListEntry_basic(t *testing.T) {
 	resourceName := "github_enterprise_ip_allow_list_entry.test"
-	enterpriseSlug := "test-enterprise"
 	ip := "192.168.1.0/24"
 	name := "Test Entry"
 	isActive := true
@@ -22,9 +21,9 @@ func TestAccGithubEnterpriseIpAllowListEntry_basic(t *testing.T) {
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubEnterpriseIpAllowListEntryConfig(enterpriseSlug, ip, name, isActive),
+				Config: testAccGithubEnterpriseIpAllowListEntryConfig(testAccConf.enterpriseSlug, ip, name, isActive),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(resourceName, "enterprise_slug", enterpriseSlug),
+					resource.TestCheckResourceAttr(resourceName, "enterprise_slug", testAccConf.enterpriseSlug),
 					resource.TestCheckResourceAttr(resourceName, "ip", ip),
 					resource.TestCheckResourceAttr(resourceName, "name", name),
 					resource.TestCheckResourceAttr(resourceName, "is_active", strconv.FormatBool(isActive)),
@@ -41,7 +40,6 @@ func TestAccGithubEnterpriseIpAllowListEntry_basic(t *testing.T) {
 
 func TestAccGithubEnterpriseIpAllowListEntry_update(t *testing.T) {
 	resourceName := "github_enterprise_ip_allow_list_entry.test"
-	enterpriseSlug := "test-enterprise"
 	ip := "192.168.1.0/24"
 	name := "Test Entry"
 	isActive := true
@@ -57,18 +55,18 @@ func TestAccGithubEnterpriseIpAllowListEntry_update(t *testing.T) {
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubEnterpriseIpAllowListEntryConfig(enterpriseSlug, ip, name, isActive),
+				Config: testAccGithubEnterpriseIpAllowListEntryConfig(testAccConf.enterpriseSlug, ip, name, isActive),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(resourceName, "enterprise_slug", enterpriseSlug),
+					resource.TestCheckResourceAttr(resourceName, "enterprise_slug", testAccConf.enterpriseSlug),
 					resource.TestCheckResourceAttr(resourceName, "ip", ip),
 					resource.TestCheckResourceAttr(resourceName, "name", name),
 					resource.TestCheckResourceAttr(resourceName, "is_active", fmt.Sprintf("%t", isActive)),
 				),
 			},
 			{
-				Config: testAccGithubEnterpriseIpAllowListEntryConfig(enterpriseSlug, updatedIP, updatedName, updatedIsActive),
+				Config: testAccGithubEnterpriseIpAllowListEntryConfig(testAccConf.enterpriseSlug, updatedIP, updatedName, updatedIsActive),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(resourceName, "enterprise_slug", enterpriseSlug),
+					resource.TestCheckResourceAttr(resourceName, "enterprise_slug", testAccConf.enterpriseSlug),
 					resource.TestCheckResourceAttr(resourceName, "ip", updatedIP),
 					resource.TestCheckResourceAttr(resourceName, "name", updatedName),
 					resource.TestCheckResourceAttr(resourceName, "is_active", fmt.Sprintf("%t", updatedIsActive)),

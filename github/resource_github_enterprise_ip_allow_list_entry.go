@@ -99,6 +99,13 @@ func resourceGithubEnterpriseIpAllowListEntryCreate(ctx context.Context, d *sche
 
 	d.SetId(string(mutation.CreateIpAllowListEntry.IpAllowListEntry.ID))
 
+	if err := d.Set("created_at", mutation.CreateIpAllowListEntry.IpAllowListEntry.CreatedAt); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("updated_at", mutation.CreateIpAllowListEntry.IpAllowListEntry.UpdatedAt); err != nil {
+		return diag.FromErr(err)
+	}
+
 	return nil
 }
 
@@ -179,6 +186,10 @@ func resourceGithubEnterpriseIpAllowListEntryUpdate(ctx context.Context, d *sche
 
 	err := client.Mutate(ctx, &mutation, input, nil)
 	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := d.Set("updated_at", mutation.UpdateIpAllowListEntry.IpAllowListEntry.UpdatedAt); err != nil {
 		return diag.FromErr(err)
 	}
 
