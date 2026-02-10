@@ -34,13 +34,13 @@ func resourceGithubActionsHostedRunner() *schema.Resource {
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
-				ValidateFunc: validation.All(
+				ValidateDiagFunc: validation.ToDiagFunc(validation.All(
 					validation.StringLenBetween(1, 64),
 					validation.StringMatch(
 						regexp.MustCompile(`^[a-zA-Z0-9._-]+$`),
 						"name may only contain alphanumeric characters, '.', '-', and '_'",
 					),
-				),
+				)),
 				Description: "Name of the hosted runner. Must be between 1 and 64 characters and may only contain upper and lowercase letters a-z, numbers 0-9, '.', '-', and '_'.",
 			},
 			"image": {
@@ -56,11 +56,11 @@ func resourceGithubActionsHostedRunner() *schema.Resource {
 							Description: "The image ID.",
 						},
 						"source": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							Default:      "github",
-							ValidateFunc: validation.StringInSlice([]string{"github", "partner", "custom"}, false),
-							Description:  "The image source (github, partner, or custom).",
+							Type:             schema.TypeString,
+							Optional:         true,
+							Default:          "github",
+							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"github", "partner", "custom"}, false)),
+							Description:      "The image source (github, partner, or custom).",
 						},
 						"size_gb": {
 							Type:        schema.TypeInt,
@@ -82,11 +82,11 @@ func resourceGithubActionsHostedRunner() *schema.Resource {
 				Description: "The runner group ID.",
 			},
 			"maximum_runners": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				Computed:     true,
-				ValidateFunc: validation.IntAtLeast(1),
-				Description:  "Maximum number of runners to scale up to.",
+				Type:             schema.TypeInt,
+				Optional:         true,
+				Computed:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(1)),
+				Description:      "Maximum number of runners to scale up to.",
 			},
 			"public_ip_enabled": {
 				Type:        schema.TypeBool,
