@@ -19,6 +19,17 @@ data "github_app_token" "this" {
 }
 ```
 
+### Scoped to specific repositories
+
+```hcl
+data "github_app_token" "scoped" {
+  app_id          = "123456"
+  installation_id = "78910"
+  pem_file        = file("foo/bar.pem")
+  repositories    = ["my-repo", "another-repo"]
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -28,6 +39,8 @@ The following arguments are supported:
 * `installation_id` - (Required) This is the ID of the GitHub App installation.
 
 * `pem_file` - (Required) This is the contents of the GitHub App private key PEM file.
+
+* `repositories` - (Optional) List of repository names to scope the token to. If not specified, the token will have access to all repositories the installation has access to.
 
 ## Attribute Reference
 
