@@ -38,8 +38,12 @@ func resourceGithubRepositoryFile() *schema.Resource {
 			"repository": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "The repository name",
+			},
+			"repository_id": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The repository ID",
 			},
 			"file": {
 				Type:        schema.TypeString,
@@ -125,6 +129,7 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				DiffSuppressFunc: autoBranchDiffSuppressFunc,
 			},
 		},
+		CustomizeDiff: diffRepository,
 	}
 }
 
@@ -171,6 +176,8 @@ func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceD
 
 	checkOpt := github.RepositoryContentGetOptions{}
 
+	repoInfo, _, err := client.Repositories.Get(ctx, owner, repo)
+
 	if branch, ok := d.GetOk("branch"); ok {
 		tflog.Debug(ctx, "Using explicitly set branch", map[string]any{
 			"branch": branch.(string),
@@ -186,13 +193,16 @@ func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceD
 		}
 		checkOpt.Ref = branch.(string)
 	} else {
-		repoInfo, _, err := client.Repositories.Get(ctx, owner, repo)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 		if err := d.Set("branch", repoInfo.GetDefaultBranch()); err != nil {
 			return diag.FromErr(err)
 		}
+	}
+
+	if err := d.Set("repository_id", int(repoInfo.GetID())); err != nil {
+		return diag.FromErr(err)
 	}
 
 	opts := resourceGithubRepositoryFileOptions(d)
@@ -465,13 +475,14 @@ func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceD
 
 	opts := &github.RepositoryContentGetOptions{}
 
+	repoInfo, _, err := client.Repositories.Get(ctx, owner, repo)
 	if branch != "" {
 		opts.Ref = branch
 		if err := d.Set("branch", branch); err != nil {
 			return nil, err
 		}
 	} else {
-		repoInfo, _, err := client.Repositories.Get(ctx, owner, repo)
+
 		if err != nil {
 			return nil, err
 		}
@@ -480,6 +491,9 @@ func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceD
 		if err := d.Set("branch", branch); err != nil {
 			return nil, err
 		}
+	}
+	if err := d.Set("repository_id", int(repoInfo.GetID())); err != nil {
+		return nil, err
 	}
 
 	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repo, filePath, opts)
