@@ -110,6 +110,8 @@ func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
 
 	v3client := github.NewClient(client)
 	v3client.BaseURL = c.BaseURL.JoinPath(path)
+	//disabling go-github level retry check as retry check is performed at the transport layer of this provider
+	v3client.DisableRateLimitCheck = true
 
 	return v3client, nil
 }
