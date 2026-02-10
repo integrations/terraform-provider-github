@@ -1,6 +1,6 @@
-// TODO: Enable this test once we have a way to mock the GitHub API
+package github
 
-// package github
+// TODO: Enable this test once we have a way to mock the GitHub API
 
 // import (
 // 	"context"

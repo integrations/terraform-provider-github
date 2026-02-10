@@ -9,11 +9,16 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v82/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // checkRepositoryBranchExists tests if a branch exists in a repository.
-func checkRepositoryBranchExists(client *github.Client, owner, repo, branch string) error {
-	ctx := context.WithValue(context.Background(), ctxId, buildTwoPartID(repo, branch))
+func checkRepositoryBranchExists(ctx context.Context, client *github.Client, owner, repo, branch string) error {
+	tflog.Debug(ctx, "Checking if branch exists", map[string]any{
+		"branch": branch,
+		"owner":  owner,
+		"repo":   repo,
+	})
 	_, _, err := client.Repositories.GetBranch(ctx, owner, repo, branch, 2)
 	if err != nil {
 		var ghErr *github.ErrorResponse

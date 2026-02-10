@@ -418,7 +418,6 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 					ResourceName:            "github_repository_file.test",
 					ImportState:             true,
 					ImportStateVerify:       true,
-					ImportStateId:           fmt.Sprintf("%s:%s:", repoName, "test"),
 					ImportStateVerifyIgnore: []string{"commit_author", "commit_email"}, // For some reason `d` doesn't contain the commit author and email when importing.
 				},
 			},
@@ -468,7 +467,6 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 					ResourceName:            "github_repository_file.test",
 					ImportState:             true,
 					ImportStateVerify:       true,
-					ImportStateId:           fmt.Sprintf("%s:%s:main", repoName, "test"),
 					ImportStateVerifyIgnore: []string{"commit_author", "commit_email"}, // For some reason `d` doesn't contain the commit author and email when importing.
 				},
 			},

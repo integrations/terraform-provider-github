@@ -177,12 +177,17 @@ func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceD
 	checkOpt := github.RepositoryContentGetOptions{}
 
 	repoInfo, _, err := client.Repositories.Get(ctx, owner, repo)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	var branch string
 
-	if branch, ok := d.GetOk("branch"); ok {
+	if branchFieldVal, ok := d.GetOk("branch"); ok {
+		branch = branchFieldVal.(string)
 		tflog.Debug(ctx, "Using explicitly set branch", map[string]any{
-			"branch": branch.(string),
+			"branch": branch,
 		})
-		if err := checkRepositoryBranchExists(client, owner, repo, branch.(string)); err != nil {
+		if err := checkRepositoryBranchExists(ctx, client, owner, repo, branch); err != nil {
 			if d.Get("autocreate_branch").(bool) {
 				if err := resourceGithubRepositoryFileCreateBranch(ctx, d, meta); err != nil {
 					return diag.FromErr(err)
@@ -191,14 +196,9 @@ func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceD
 				return diag.FromErr(err)
 			}
 		}
-		checkOpt.Ref = branch.(string)
+		checkOpt.Ref = branch
 	} else {
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		if err := d.Set("branch", repoInfo.GetDefaultBranch()); err != nil {
-			return diag.FromErr(err)
-		}
+		branch = repoInfo.GetDefaultBranch()
 	}
 
 	if err := d.Set("repository_id", int(repoInfo.GetID())); err != nil {
@@ -243,12 +243,17 @@ func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceD
 		return diag.FromErr(err)
 	}
 
-	branch := d.Get("branch").(string)
+	if err := d.Set("branch", branch); err != nil {
+		return diag.FromErr(err)
+	}
 
 	newResourceID, err := buildID(repo, file, branch)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	tflog.Debug(ctx, "Setting ID", map[string]any{
+		"id": newResourceID,
+	})
 	d.SetId(newResourceID)
 	if err = d.Set("commit_sha", create.GetSHA()); err != nil {
 		return diag.FromErr(err)
@@ -261,34 +266,34 @@ func resourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceDat
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 
-	repo, file, _, err := parseID3(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
+	repoName, ok := d.Get("repository").(string)
+	if !ok {
+		return diag.FromErr(fmt.Errorf("repository not found or is not a string"))
+	}
+	file, ok := d.Get("file").(string)
+	if !ok {
+		return diag.FromErr(fmt.Errorf("file not found or is not a string"))
 	}
 
-	ctx = tflog.SetField(ctx, "repository", repo)
+	ctx = tflog.SetField(ctx, "repository", repoName)
 	ctx = tflog.SetField(ctx, "file", file)
 	ctx = tflog.SetField(ctx, "owner", owner)
 
 	opts := &github.RepositoryContentGetOptions{}
 
-	if branch, ok := d.GetOk("branch"); ok {
-		tflog.Debug(ctx, "Using explicitly set branch", map[string]any{
-			"branch": branch.(string),
-		})
-		if err := checkRepositoryBranchExists(client, owner, repo, branch.(string)); err != nil {
-			if d.Get("autocreate_branch").(bool) {
-				branch = d.Get("autocreate_branch_source_branch").(string)
-			} else {
-				tflog.Info(ctx, "Removing repository path from state because the branch no longer exists in GitHub")
-				d.SetId("")
-				return nil
-			}
+	branch := d.Get("branch").(string)
+	if err := checkRepositoryBranchExists(ctx, client, owner, repoName, branch); err != nil {
+		if d.Get("autocreate_branch").(bool) {
+			branch = d.Get("autocreate_branch_source_branch").(string)
+		} else {
+			tflog.Info(ctx, "Removing repository path from state because the branch no longer exists in GitHub")
+			d.SetId("")
+			return nil
 		}
-		opts.Ref = branch.(string)
 	}
+	opts.Ref = branch
 
-	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repo, file, opts)
+	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repoName, file, opts)
 	if err != nil {
 		var errorResponse *github.ErrorResponse
 		if errors.As(err, &errorResponse) && errorResponse.Response.StatusCode == http.StatusTooManyRequests {
@@ -309,12 +314,7 @@ func resourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceDat
 	if err = d.Set("content", content); err != nil {
 		return diag.FromErr(err)
 	}
-	if err = d.Set("repository", repo); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("file", file); err != nil {
-		return diag.FromErr(err)
-	}
+
 	if err = d.Set("sha", fc.GetSHA()); err != nil {
 		return diag.FromErr(err)
 	}
@@ -339,10 +339,10 @@ func resourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceDat
 		tflog.Debug(ctx, "Using known commit SHA", map[string]any{
 			"commit_sha": sha.(string),
 		})
-		commit, _, err = client.Repositories.GetCommit(ctx, owner, repo, sha.(string), nil)
+		commit, _, err = client.Repositories.GetCommit(ctx, owner, repoName, sha.(string), nil)
 	} else {
 		tflog.Debug(ctx, "Commit SHA unknown for file, looking for commit")
-		commit, err = getFileCommit(ctx, client, owner, repo, file, ref)
+		commit, err = getFileCommit(ctx, client, owner, repoName, file, ref)
 	}
 	if err != nil {
 		return diag.FromErr(err)
@@ -387,18 +387,15 @@ func resourceGithubRepositoryFileUpdate(ctx context.Context, d *schema.ResourceD
 	ctx = tflog.SetField(ctx, "file", file)
 	ctx = tflog.SetField(ctx, "owner", owner)
 
-	if branch, ok := d.GetOk("branch"); ok {
-		tflog.Debug(ctx, "Using explicitly set branch", map[string]any{
-			"branch": branch.(string),
-		})
-		if err := checkRepositoryBranchExists(client, owner, repo, branch.(string)); err != nil {
-			if d.Get("autocreate_branch").(bool) {
-				if err := resourceGithubRepositoryFileCreateBranch(ctx, d, meta); err != nil {
-					return diag.FromErr(err)
-				}
-			} else {
+	branch := d.Get("branch").(string)
+
+	if err := checkRepositoryBranchExists(ctx, client, owner, repo, branch); err != nil {
+		if d.Get("autocreate_branch").(bool) {
+			if err := resourceGithubRepositoryFileCreateBranch(ctx, d, meta); err != nil {
 				return diag.FromErr(err)
 			}
+		} else {
+			return diag.FromErr(err)
 		}
 	}
 
@@ -433,22 +430,18 @@ func resourceGithubRepositoryFileDelete(ctx context.Context, d *schema.ResourceD
 		opts.Message = github.Ptr(fmt.Sprintf("Delete %s", file))
 	}
 
-	if b, ok := d.GetOk("branch"); ok {
-		tflog.Debug(ctx, "Using explicitly set branch", map[string]any{
-			"branch": b.(string),
-		})
-		if err := checkRepositoryBranchExists(client, owner, repo, b.(string)); err != nil {
-			if d.Get("autocreate_branch").(bool) {
-				if err := resourceGithubRepositoryFileCreateBranch(ctx, d, meta); err != nil {
-					return diag.FromErr(err)
-				}
-			} else {
+	branch := d.Get("branch").(string)
+
+	if err := checkRepositoryBranchExists(ctx, client, owner, repo, branch); err != nil {
+		if d.Get("autocreate_branch").(bool) {
+			if err := resourceGithubRepositoryFileCreateBranch(ctx, d, meta); err != nil {
 				return diag.FromErr(err)
 			}
+		} else {
+			return diag.FromErr(err)
 		}
-		branch := b.(string)
-		opts.Branch = github.Ptr(branch)
 	}
+	opts.Branch = github.Ptr(branch)
 
 	_, _, err := client.Repositories.DeleteFile(ctx, owner, repo, file, opts)
 	return diag.FromErr(handleArchivedRepoDelete(err, "repository file", file, owner, repo))
@@ -476,6 +469,9 @@ func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceD
 	opts := &github.RepositoryContentGetOptions{}
 
 	repoInfo, _, err := client.Repositories.Get(ctx, owner, repo)
+	if err != nil {
+		return nil, err
+	}
 	if branch != "" {
 		opts.Ref = branch
 		if err := d.Set("branch", branch); err != nil {
@@ -483,9 +479,6 @@ func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceD
 		}
 	} else {
 
-		if err != nil {
-			return nil, err
-		}
 		defaultBranch := repoInfo.GetDefaultBranch()
 		branch = defaultBranch
 		if err := d.Set("branch", branch); err != nil {
@@ -504,10 +497,20 @@ func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceD
 		return nil, fmt.Errorf("filePath %s is not a file in repository %s/%s or repository is not readable", filePath, owner, repo)
 	}
 
+	if err := d.Set("repository", repo); err != nil {
+		return nil, err
+	}
+	if err := d.Set("file", filePath); err != nil {
+		return nil, err
+	}
+
 	newResourceID, err := buildID(repo, filePath, branch)
 	if err != nil {
 		return nil, err
 	}
+	tflog.Debug(ctx, "Setting ID", map[string]any{
+		"id": newResourceID,
+	})
 	d.SetId(newResourceID)
 	if err = d.Set("overwrite_on_create", false); err != nil {
 		return nil, err
