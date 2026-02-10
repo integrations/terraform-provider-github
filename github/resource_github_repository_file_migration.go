@@ -89,22 +89,24 @@ func resourceGithubRepositoryFileStateUpgradeV0(ctx context.Context, rawState ma
 		"rawState": rawState,
 	})
 
+	meta := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
+	repoName, ok := rawState["repository"].(string)
+	if !ok {
+		return nil, fmt.Errorf("repository not found or is not a string")
+	}
+
+	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve repository '%s': %w", repoName, err)
+	}
+
+	rawState["repository_id"] = int(repo.GetID())
+
 	// If branch is missing or empty, fetch the default branch from the repository
 	if branch, ok := rawState["branch"].(string); !ok || branch == "" {
-		meta := m.(*Owner)
-		client := meta.v3client
-		owner := meta.name
-
-		repoName, ok := rawState["repository"].(string)
-		if !ok {
-			return nil, fmt.Errorf("repository not found or is not a string")
-		}
-
-		repo, _, err := client.Repositories.Get(ctx, owner, repoName)
-		if err != nil {
-			return nil, fmt.Errorf("failed to retrieve repository %s: %w", repoName, err)
-		}
-
 		rawState["branch"] = repo.GetDefaultBranch()
 	}
 
