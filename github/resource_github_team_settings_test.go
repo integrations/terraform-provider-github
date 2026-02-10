@@ -150,7 +150,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 					Config: strings.Replace(config,
 						`algorithm = "ROUND_ROBIN"`,
 						`algorithm = "invalid"`, 1),
-					ExpectError: regexp.MustCompile(`review request delegation algorithm must be one of \[.*\]`),
+					ExpectError: regexp.MustCompile(`expected algorithm to be one of \[.*\]`),
 				},
 			},
 		})
