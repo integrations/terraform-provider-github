@@ -5,7 +5,7 @@ import (
 	"errors"
 	"log"
 
-	"github.com/google/go-github/v81/github"
+	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -75,6 +75,12 @@ func resourceGithubActionsOrganizationPermissions() *schema.Resource {
 						},
 					},
 				},
+			},
+			"sha_pinning_required": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether pinning to a specific SHA is required for all actions and reusable workflows in an organization.",
 			},
 		},
 	}
@@ -147,12 +153,18 @@ func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.Resour
 	allowedActions := d.Get("allowed_actions").(string)
 	enabledRepositories := d.Get("enabled_repositories").(string)
 
+	actionsPermissions := github.ActionsPermissions{
+		AllowedActions:      &allowedActions,
+		EnabledRepositories: &enabledRepositories,
+	}
+
+	if v, ok := d.GetOk("sha_pinning_required"); ok {
+		actionsPermissions.SHAPinningRequired = github.Ptr(v.(bool))
+	}
+
 	_, _, err = client.Actions.UpdateActionsPermissions(ctx,
 		orgName,
-		github.ActionsPermissions{
-			AllowedActions:      &allowedActions,
-			EnabledRepositories: &enabledRepositories,
-		})
+		actionsPermissions)
 	if err != nil {
 		return err
 	}
@@ -277,6 +289,10 @@ func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, me
 		return err
 	}
 	if err = d.Set("enabled_repositories", actionsPermissions.GetEnabledRepositories()); err != nil {
+		return err
+	}
+
+	if err = d.Set("sha_pinning_required", actionsPermissions.GetSHAPinningRequired()); err != nil {
 		return err
 	}
 

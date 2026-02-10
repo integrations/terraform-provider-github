@@ -107,8 +107,14 @@ func Test_buildID(t *testing.T) {
 			hasError: false,
 		},
 		{
-			testName: "part_with_unescaped_separator",
-			parts:    []string{"part1", "part:2", "part3"},
+			testName: "part_with_unescaped_separator_at_end",
+			parts:    []string{"part1", "part2", "part3:extra"},
+			expect:   "part1:part2:part3:extra",
+			hasError: false,
+		},
+		{
+			testName: "part_with_unescaped_separator_in_middle",
+			parts:    []string{"part1", "part2:extra", "part3"},
 			expect:   "",
 			hasError: true,
 		},
@@ -148,14 +154,14 @@ func Test_parseID(t *testing.T) {
 		hasError bool
 	}{
 		{
-			testName: "two_parts_expected_two",
+			testName: "two_parts",
 			id:       "part1:part2",
 			count:    2,
 			expect:   []string{"part1", "part2"},
 			hasError: false,
 		},
 		{
-			testName: "three_parts_expected_three",
+			testName: "three_parts",
 			id:       "part1:part2:part3",
 			count:    3,
 			expect:   []string{"part1", "part2", "part3"},
@@ -169,11 +175,11 @@ func Test_parseID(t *testing.T) {
 			hasError: true,
 		},
 		{
-			testName: "three_parts_expected_two",
-			id:       "part1:part2:part3",
+			testName: "two_parts_with_extra",
+			id:       "part1:part2:extra",
 			count:    2,
-			expect:   nil,
-			hasError: true,
+			expect:   []string{"part1", "part2:extra"},
+			hasError: false,
 		},
 		{
 			testName: "empty_id",
@@ -223,11 +229,11 @@ func Test_parseID2(t *testing.T) {
 			hasError: false,
 		},
 		{
-			testName: "invalid_three_parts",
-			id:       "part1:part2:part3",
-			expect1:  "",
-			expect2:  "",
-			hasError: true,
+			testName: "valid_two_parts_with_extra",
+			id:       "part1:part2:extra",
+			expect1:  "part1",
+			expect2:  "part2:extra",
+			hasError: false,
 		},
 		{
 			testName: "invalid_one_part",
@@ -280,16 +286,16 @@ func Test_parseID3(t *testing.T) {
 			hasError: false,
 		},
 		{
-			testName: "invalid_two_parts",
-			id:       "part1:part2",
-			expect1:  "",
-			expect2:  "",
-			expect3:  "",
-			hasError: true,
+			testName: "valid_three_parts_with_extra",
+			id:       "part1:part2:part3:extra",
+			expect1:  "part1",
+			expect2:  "part2",
+			expect3:  "part3:extra",
+			hasError: false,
 		},
 		{
-			testName: "invalid_four_parts",
-			id:       "part1:part2:part3:part4",
+			testName: "invalid_two_parts",
+			id:       "part1:part2",
 			expect1:  "",
 			expect2:  "",
 			expect3:  "",
@@ -316,6 +322,75 @@ func Test_parseID3(t *testing.T) {
 				}
 				if got3 != d.expect3 {
 					t.Fatalf("expected part 3 to be %q but got %q", d.expect3, got3)
+				}
+			}
+		})
+	}
+}
+
+func Test_parseID4(t *testing.T) {
+	t.Parallel()
+
+	for _, d := range []struct {
+		testName string
+		id       string
+		expect1  string
+		expect2  string
+		expect3  string
+		expect4  string
+		hasError bool
+	}{
+		{
+			testName: "valid_four_parts",
+			id:       "part1:part2:part3:part4",
+			expect1:  "part1",
+			expect2:  "part2",
+			expect3:  "part3",
+			expect4:  "part4",
+			hasError: false,
+		},
+		{
+			testName: "valid_four_parts_with_extra",
+			id:       "part1:part2:part3:part4:extra",
+			expect1:  "part1",
+			expect2:  "part2",
+			expect3:  "part3",
+			expect4:  "part4:extra",
+			hasError: false,
+		},
+		{
+			testName: "invalid_three_parts",
+			id:       "part1:part2:part3",
+			expect1:  "",
+			expect2:  "",
+			expect3:  "",
+			expect4:  "",
+			hasError: true,
+		},
+	} {
+		t.Run(d.testName, func(t *testing.T) {
+			t.Parallel()
+
+			got1, got2, got3, got4, err := parseID4(d.id)
+
+			if d.hasError && err == nil {
+				t.Fatalf("expected error but got none")
+			}
+			if !d.hasError && err != nil {
+				t.Fatalf("did not expect error but got: %v", err)
+			}
+			if !d.hasError {
+				if got1 != d.expect1 {
+					t.Fatalf("expected part 1 to be %q but got %q", d.expect1, got1)
+				}
+				if got2 != d.expect2 {
+					t.Fatalf("expected part 2 to be %q but got %q", d.expect2, got2)
+				}
+				if got3 != d.expect3 {
+					t.Fatalf("expected part 3 to be %q but got %q", d.expect3, got3)
+				}
+				if got4 != d.expect4 {
+					t.Fatalf("expected part 4 to be %q but got %q", d.expect4, got4)
 				}
 			}
 		})

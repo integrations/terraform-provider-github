@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/google/go-github/v81/github"
+	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -65,6 +65,12 @@ func resourceGithubActionsRepositoryPermissions() *schema.Resource {
 				Description:      "The GitHub repository.",
 				ValidateDiagFunc: toDiagFunc(validation.StringLenBetween(1, 100), "repository"),
 			},
+			"sha_pinning_required": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether pinning to a specific SHA is required for all actions and reusable workflows in a repository.",
+			},
 		},
 	}
 }
@@ -123,6 +129,10 @@ func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.Resource
 	// Only specify `allowed_actions` if actions are enabled
 	if enabled {
 		repoActionPermissions.AllowedActions = &allowedActions
+	}
+
+	if v, ok := d.GetOk("sha_pinning_required"); ok {
+		repoActionPermissions.SHAPinningRequired = github.Ptr(v.(bool))
 	}
 
 	_, _, err := client.Repositories.UpdateActionsPermissions(ctx,
@@ -207,6 +217,10 @@ func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta
 		return err
 	}
 	if err = d.Set("repository", repoName); err != nil {
+		return err
+	}
+
+	if err = d.Set("sha_pinning_required", actionsPermissions.GetSHAPinningRequired()); err != nil {
 		return err
 	}
 

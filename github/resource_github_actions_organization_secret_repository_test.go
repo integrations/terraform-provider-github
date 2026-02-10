@@ -1,6 +1,7 @@
 package github
 
 import (
+	"encoding/base64"
 	"fmt"
 	"testing"
 
@@ -9,43 +10,40 @@ import (
 )
 
 func TestAccGithubActionsOrganizationSecretRepository(t *testing.T) {
-	t.Run("set repository allowlist for a organization secret", func(t *testing.T) {
+	t.Run("create", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%srepo-act-org-secret-%s", testResourcePrefix, randomID)
-		secretName := testAccConf.testOrgSecretName
-		if len(secretName) == 0 {
-			t.Skip("test organization secret name is not set")
-		}
+		secretName := fmt.Sprintf("test_%s", randomID)
+		secretValue := base64.StdEncoding.EncodeToString([]byte("foo"))
+		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
-			resource "github_repository" "test_repo_1" {
-				name = "%s"
-				visibility = "internal"
-				vulnerability_alerts = "true"
-			}
+resource "github_actions_organization_secret" "test" {
+	secret_name     = "%s"
+	encrypted_value = "%s"
+	visibility      = "selected"
+}
 
-			resource "github_actions_organization_secret_repository" "org_secret_repo" {
-				secret_name = "%s"
-				repository_id = github_repository.test_repo_1.repo_id
-			}
-		`, repoName, secretName)
+resource "github_repository" "test" {
+	name       = "%s"
+	visibility = "public"
+}
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet(
-				"github_actions_organization_secret_repository.org_secret_repo", "secret_name",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_organization_secret_repository.org_secret_repo", "repository_id.#", "1",
-			),
-		)
+resource "github_actions_organization_secret_repository" "test" {
+	secret_name   = github_actions_organization_secret.test.secret_name
+	repository_id = github_repository.test.repo_id
+}
+`, secretName, secretValue, repoName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessHasOrgs(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrPair("github_actions_organization_secret_repository.test", "secret_name", "github_actions_organization_secret.test", "secret_name"),
+						resource.TestCheckResourceAttrPair("github_actions_organization_secret_repository.test", "repository_id", "github_repository.test", "repo_id"),
+					),
 				},
 			},
 		})

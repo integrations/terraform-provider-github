@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/google/go-github/v81/github"
+	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -113,11 +113,11 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(ctx context.Conte
 		return diag.FromErr(err)
 	}
 
-	if id, err := buildID(repoName, escapeIDPart(envName), strconv.FormatInt(resultKey.GetID(), 10)); err != nil {
+	id, err := buildID(repoName, escapeIDPart(envName), strconv.FormatInt(resultKey.GetID(), 10))
+	if err != nil {
 		return diag.FromErr(err)
-	} else {
-		d.SetId(id)
 	}
+	d.SetId(id)
 
 	return nil
 }
@@ -195,11 +195,11 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(ctx context.Conte
 		return diag.FromErr(err)
 	}
 
-	if id, err := buildID(repoName, escapeIDPart(envName), strconv.FormatInt(resultKey.GetID(), 10)); err != nil {
+	id, err := buildID(repoName, escapeIDPart(envName), strconv.FormatInt(resultKey.GetID(), 10))
+	if err != nil {
 		return diag.FromErr(err)
-	} else {
-		d.SetId(id)
 	}
+	d.SetId(id)
 
 	return nil
 }
