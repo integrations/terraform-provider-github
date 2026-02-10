@@ -101,11 +101,11 @@ The following additional attributes are exported:
 Repository files can be imported using a combination of the `repo`, `file` and `branch` or empty branch for the default branch, e.g.
 
 ```sh
-terraform import github_repository_file.gitignore example/.gitignore:feature-branch
+terraform import github_repository_file.gitignore example:.gitignore:feature-branch
 ```
 
 and using default branch:
 
 ```sh
-terraform import github_repository_file.gitignore example/.gitignore:
+terraform import github_repository_file.gitignore example:.gitignore:
 ```

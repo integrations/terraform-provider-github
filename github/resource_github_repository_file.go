@@ -455,14 +455,13 @@ func autoBranchDiffSuppressFunc(k, _, _ string, d *schema.ResourceData) bool {
 }
 
 func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	repoFilePath, branch, err := parseID2(d.Id())
+	repo, filePath, branch, err := parseID3(d.Id())
 	if err != nil {
-		return nil, fmt.Errorf("invalid ID specified. Supplied ID must be written as <repository>/<file path>: (when branch is default) or <repository>/<file path>:<branch>. %w", err)
+		return nil, fmt.Errorf("invalid ID specified. Supplied ID must be written as <repository>:<file path>: (when branch is default) or <repository>:<file path>:<branch>. %w", err)
 	}
 
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
-	repo, file := splitRepoFilePath(repoFilePath)
 
 	opts := &github.RepositoryContentGetOptions{}
 
@@ -483,15 +482,15 @@ func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceD
 		}
 	}
 
-	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repo, file, opts)
+	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repo, filePath, opts)
 	if err != nil {
 		return nil, err
 	}
 	if fc == nil {
-		return nil, fmt.Errorf("file %s is not a file in repository %s/%s or repository is not readable", file, owner, repo)
+		return nil, fmt.Errorf("filePath %s is not a file in repository %s/%s or repository is not readable", filePath, owner, repo)
 	}
 
-	newResourceID, err := buildID(repo, file, branch)
+	newResourceID, err := buildID(repo, filePath, branch)
 	if err != nil {
 		return nil, err
 	}
