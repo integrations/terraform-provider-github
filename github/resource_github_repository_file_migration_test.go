@@ -29,7 +29,7 @@ func Test_resourceGithubRepositoryFileStateUpgradeV0(t *testing.T) {
 				"overwrite_on_create": false,
 			},
 			want: map[string]any{
-				"id":                  "test-repo/path/to/file.txt:main",
+				"id":                  "test-repo:path/to/file.txt:main",
 				"repository":          "test-repo",
 				"file":                "path/to/file.txt",
 				"content":             "file content",
@@ -50,7 +50,7 @@ func Test_resourceGithubRepositoryFileStateUpgradeV0(t *testing.T) {
 				"branch":     "develop",
 			},
 			want: map[string]any{
-				"id":         "test-repo/README.md:develop",
+				"id":         "test-repo:README.md:develop",
 				"repository": "test-repo",
 				"file":       "README.md",
 				"content":    "# README",
@@ -68,7 +68,7 @@ func Test_resourceGithubRepositoryFileStateUpgradeV0(t *testing.T) {
 		// 				"content":    "file content",
 		// 			},
 		// 			want: map[string]any{
-		// 				"id":         "test-repo/path/to/file.txt:main",
+		// 				"id":         "test-repo:path/to/file.txt:main",
 		// 				"repository": "test-repo",
 		// 				"file":       "path/to/file.txt",
 		// 				"content":    "file content",
@@ -87,7 +87,7 @@ func Test_resourceGithubRepositoryFileStateUpgradeV0(t *testing.T) {
 		// 				"branch":     "",
 		// 			},
 		// 			want: map[string]any{
-		// 				"id":         "test-repo/path/to/file.txt:main",
+		// 				"id":         "test-repo:path/to/file.txt:main",
 		// 				"repository": "test-repo",
 		// 				"file":       "path/to/file.txt",
 		// 				"content":    "file content",

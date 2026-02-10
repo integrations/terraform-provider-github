@@ -108,7 +108,11 @@ func resourceGithubRepositoryFileStateUpgradeV0(ctx context.Context, rawState ma
 		rawState["branch"] = repo.GetDefaultBranch()
 	}
 
-	rawState["id"] = fmt.Sprintf("%s/%s:%s", rawState["repository"], rawState["file"], rawState["branch"])
+	newResourceID, err := buildID(rawState["repository"].(string), rawState["file"].(string), rawState["branch"].(string))
+	if err != nil {
+		return nil, fmt.Errorf("failed to build ID: %w", err)
+	}
+	rawState["id"] = newResourceID
 
 	tflog.Debug(ctx, "GitHub Repository File State after migration", map[string]any{
 		"rawState": rawState,

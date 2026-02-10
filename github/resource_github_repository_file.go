@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -236,7 +235,11 @@ func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceD
 
 	branch := d.Get("branch").(string)
 
-	d.SetId(fmt.Sprintf("%s/%s:%s", repo, file, branch))
+	newResourceID, err := buildID(repo, file, branch)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	d.SetId(newResourceID)
 	if err = d.Set("commit_sha", create.GetSHA()); err != nil {
 		return diag.FromErr(err)
 	}
@@ -248,11 +251,11 @@ func resourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceDat
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 
-	repoFilePath, _, err := parseID2(d.Id())
+	repo, file, _, err := parseID3(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	repo, file := splitRepoFilePath(repoFilePath)
+
 	ctx = tflog.SetField(ctx, "repository", repo)
 	ctx = tflog.SetField(ctx, "file", file)
 	ctx = tflog.SetField(ctx, "owner", owner)
@@ -452,12 +455,10 @@ func autoBranchDiffSuppressFunc(k, _, _ string, d *schema.ResourceData) bool {
 }
 
 func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	importIDParts := strings.Split(d.Id(), idSeparator)
-
-	if len(importIDParts) > 2 {
-		return nil, fmt.Errorf("invalid ID specified. Supplied ID must be written as <repository>/<file path> (when branch is \"main\") or <repository>/<file path>:<branch>")
+	repoFilePath, branch, err := parseID2(d.Id())
+	if err != nil {
+		return nil, fmt.Errorf("invalid ID specified. Supplied ID must be written as <repository>/<file path>: (when branch is default) or <repository>/<file path>:<branch>. %w", err)
 	}
-	repoFilePath := importIDParts[0]
 
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
@@ -465,8 +466,7 @@ func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceD
 
 	opts := &github.RepositoryContentGetOptions{}
 
-	if len(importIDParts) == 2 {
-		branch := importIDParts[1]
+	if branch != "" {
 		opts.Ref = branch
 		if err := d.Set("branch", branch); err != nil {
 			return nil, err
@@ -477,7 +477,8 @@ func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceD
 			return nil, err
 		}
 		defaultBranch := repoInfo.GetDefaultBranch()
-		if err := d.Set("branch", defaultBranch); err != nil {
+		branch = defaultBranch
+		if err := d.Set("branch", branch); err != nil {
 			return nil, err
 		}
 	}
@@ -490,9 +491,11 @@ func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceD
 		return nil, fmt.Errorf("file %s is not a file in repository %s/%s or repository is not readable", file, owner, repo)
 	}
 
-	branch := d.Get("branch").(string)
-
-	d.SetId(fmt.Sprintf("%s/%s:%s", repo, file, branch))
+	newResourceID, err := buildID(repo, file, branch)
+	if err != nil {
+		return nil, err
+	}
+	d.SetId(newResourceID)
 	if err = d.Set("overwrite_on_create", false); err != nil {
 		return nil, err
 	}
