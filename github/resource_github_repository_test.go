@@ -704,7 +704,7 @@ resource "github_repository" "test" {
 				{
 					Config: config,
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("github_repository.test", "vulnerability_alerts"),
+						resource.TestCheckNoResourceAttr("github_repository.test", "vulnerability_alerts"),
 					),
 				},
 			},
@@ -1170,9 +1170,8 @@ resource "github_repository" "test" {
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
+				resource.TestCheckNoResourceAttr(
 					"github_repository.test", "vulnerability_alerts",
-					"false",
 				),
 			),
 			"after": resource.ComposeTestCheckFunc(
@@ -1217,20 +1216,11 @@ resource "github_repository" "test" {
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "vulnerability_alerts",
-					"false",
-				),
+				resource.TestCheckNoResourceAttr("github_repository.test", "vulnerability_alerts"),
 			),
 			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "vulnerability_alerts",
-					"true",
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "visibility",
-					"private",
-				),
+				resource.TestCheckResourceAttr("github_repository.test", "vulnerability_alerts", "true"),
+				resource.TestCheckResourceAttr("github_repository.test", "visibility", "private"),
 			),
 		}
 
