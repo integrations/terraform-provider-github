@@ -242,11 +242,6 @@ func (e *unconvertibleIdError) Error() string {
 		e.OriginalId, e.OriginalError.Error())
 }
 
-func splitRepoFilePath(path string) (string, string) {
-	parts := strings.Split(path, "/")
-	return parts[0], strings.Join(parts[1:], "/")
-}
-
 func getTeamID(teamIDString string, meta any) (int64, error) {
 	// Given a string that is either a team id or team slug, return the
 	// id of the team it is referring to.
