@@ -77,6 +77,9 @@ type testAccConfig struct {
 
 	// Test options
 	testAdvancedSecurity bool
+
+	// Test repository configuration
+	testRepositoryVisibility string
 }
 
 var testAccConf *testAccConfig
@@ -131,6 +134,7 @@ func TestMain(m *testing.M) {
 		testExternalUserToken:             os.Getenv("GH_TEST_EXTERNAL_USER_TOKEN"),
 		testExternalUser2:                 os.Getenv("GH_TEST_EXTERNAL_USER2"),
 		testAdvancedSecurity:              os.Getenv("GH_TEST_ADVANCED_SECURITY") == "true",
+		testRepositoryVisibility:          "public",
 		enterpriseIsEMU:                   authMode == enterprise && os.Getenv("GH_TEST_ENTERPRISE_IS_EMU") == "true",
 	}
 
@@ -166,6 +170,10 @@ func TestMain(m *testing.M) {
 		i, err := strconv.Atoi(os.Getenv("GH_TEST_ENTERPRISE_EMU_GROUP_ID"))
 		if err == nil {
 			config.testEnterpriseEMUGroupId = i
+		}
+
+		if config.enterpriseIsEMU {
+			config.testRepositoryVisibility = "private"
 		}
 	}
 
