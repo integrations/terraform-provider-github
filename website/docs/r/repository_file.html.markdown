@@ -80,17 +80,19 @@ The following arguments are supported:
 
 - `overwrite_on_create` - (Optional) Enable overwriting existing files. If set to `true` it will overwrite an existing file with the same name. If set to `false` it will fail if there is an existing file with the same name.
 
-- `autocreate_branch` - (Optional) Automatically create the branch if it could not be found. Defaults to false. Subsequent reads if the branch is deleted will occur from 'autocreate_branch_source_branch'.
+- `autocreate_branch` - (Optional) **Deprecated** Automatically create the branch if it could not be found. Defaults to false. Subsequent reads if the branch is deleted will occur from 'autocreate_branch_source_branch'. Use the `github_branch` resource instead.
 
-- `autocreate_branch_source_branch` - (Optional) The branch name to start from, if 'autocreate_branch' is set. Defaults to 'main'.
+- `autocreate_branch_source_branch` - (Optional) **Deprecated** The branch name to start from, if 'autocreate_branch' is set. Defaults to 'main'. Use the `github_branch` resource instead.
 
-- `autocreate_branch_source_sha` - (Optional) The commit hash to start from, if 'autocreate_branch' is set. Defaults to the tip of 'autocreate_branch_source_branch'. If provided, 'autocreate_branch_source_branch' is ignored.
+- `autocreate_branch_source_sha` - (Optional) **Deprecated** The commit hash to start from, if 'autocreate_branch' is set. Defaults to the tip of 'autocreate_branch_source_branch'. If provided, 'autocreate_branch_source_branch' is ignored. Use the `github_branch` resource instead.
 
 ## Attributes Reference
 
 The following additional attributes are exported:
 
 - `commit_sha` - The SHA of the commit that modified the file.
+
+- `repository_id` - The ID of the repository.
 
 - `sha` - The SHA blob of the file.
 
