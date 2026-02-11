@@ -36,6 +36,7 @@ The following arguments are supported:
 * `allowed_actions`        - (Optional) The permissions policy that controls the actions that are allowed to run. Can be one of: `all`, `local_only`, or `selected`.
 * `enabled`                - (Optional) Should GitHub actions be enabled on this repository?
 * `allowed_actions_config` - (Optional) Sets the actions that are allowed in an repository. Only available when `allowed_actions` = `selected`. See [Allowed Actions Config](#allowed-actions-config) below for details.
+* `sha_pinning_required`   - (Optional) Whether pinning to a specific SHA is required for all actions and reusable workflows in the repository.
 
 ### Allowed Actions Config
 
