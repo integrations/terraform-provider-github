@@ -29,21 +29,15 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
@@ -52,11 +46,13 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 		enabledRepositories := "selected"
 		githubOwnedAllowed := true
 		verifiedAllowed := true
+		shaPinningRequired := true
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-org-perm-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name        = "tf-acc-test-topic-%[1]s"
+				name        = "%[1]s"
 				description = "Terraform acceptance tests %[1]s"
 				topics			= ["terraform", "testing"]
 			}
@@ -69,11 +65,12 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 					patterns_allowed     = ["actions/cache@*", "actions/checkout@*"]
 					verified_allowed     = %t
 				}
+				sha_pinning_required = %t
 				enabled_repositories_config {
 					repository_ids       = [github_repository.test.repo_id]
 				}
 			}
-		`, randomID, allowedActions, enabledRepositories, githubOwnedAllowed, verifiedAllowed)
+		`, repoName, allowedActions, enabledRepositories, githubOwnedAllowed, verifiedAllowed, shaPinningRequired)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -90,26 +87,20 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:      "github_actions_organization_permissions.test",
-						ImportState:       true,
-						ImportStateVerify: true,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					ResourceName:      "github_actions_organization_permissions.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
 		})
 	})
 
@@ -144,21 +135,15 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
@@ -186,21 +171,15 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
@@ -211,16 +190,18 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 		verifiedAllowed := true
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		randomID2 := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-org-perm-%s", testResourcePrefix, randomID)
+		repoName2 := fmt.Sprintf("%srepo-act-org-perm-%s", testResourcePrefix, randomID2)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name        = "tf-acc-test-topic-%[1]s"
+				name        = "%[1]s"
 				description = "Terraform acceptance tests %[1]s"
 				topics			= ["terraform", "testing"]
 			}
 
 			resource "github_repository" "test2" {
-				name        = "tf-acc-test-topic-%[2]s"
+				name        = "%[2]s"
 				description = "Terraform acceptance tests %[2]s"
 				topics			= ["terraform", "testing"]
 			}
@@ -232,7 +213,7 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 					repository_ids       = [github_repository.test.repo_id, github_repository.test2.repo_id]
 				}
 			}
-		`, randomID, randomID2, allowedActions, enabledRepositories, githubOwnedAllowed, verifiedAllowed)
+		`, repoName, repoName2, allowedActions, enabledRepositories, githubOwnedAllowed, verifiedAllowed)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -246,21 +227,15 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 }

@@ -40,6 +40,11 @@ func dataSourceGithubOrganizationCustomProperties() *schema.Resource {
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+			"values_editable_by": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -59,13 +64,17 @@ func dataSourceGithubOrganizationCustomPropertiesRead(d *schema.ResourceData, me
 		return fmt.Errorf("error querying GitHub custom properties %s: %w", orgName, err)
 	}
 
+	// TODO: Add support for other types of default values
+	defaultValue, _ := propertyAttributes.DefaultValueString()
+
 	d.SetId("org-custom-properties")
 	_ = d.Set("allowed_values", propertyAttributes.AllowedValues)
-	_ = d.Set("default_value", propertyAttributes.DefaultValue)
+	_ = d.Set("default_value", defaultValue)
 	_ = d.Set("description", propertyAttributes.Description)
 	_ = d.Set("property_name", propertyAttributes.PropertyName)
 	_ = d.Set("required", propertyAttributes.Required)
-	_ = d.Set("value_type", propertyAttributes.ValueType)
+	_ = d.Set("value_type", string(propertyAttributes.ValueType))
+	_ = d.Set("values_editable_by", propertyAttributes.ValuesEditableBy)
 
 	return nil
 }

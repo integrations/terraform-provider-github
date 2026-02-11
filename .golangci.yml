@@ -19,6 +19,7 @@ linters:
     - misspell
     - modernize
     - nilerr
+    - nilnesserr # https://golangci-lint.run/docs/linters/configuration/#nilnesserr
     - predeclared
     - staticcheck
     - unconvert
@@ -42,6 +43,9 @@ linters:
         linters:
           - unparam
         text: always receives
+      - linters:
+          - staticcheck
+        text: "SA1019.*ByID.*deprecated"
 
 issues:
   max-issues-per-linter: 0

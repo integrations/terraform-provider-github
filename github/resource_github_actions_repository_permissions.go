@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -64,6 +64,12 @@ func resourceGithubActionsRepositoryPermissions() *schema.Resource {
 				Required:         true,
 				Description:      "The GitHub repository.",
 				ValidateDiagFunc: toDiagFunc(validation.StringLenBetween(1, 100), "repository"),
+			},
+			"sha_pinning_required": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether pinning to a specific SHA is required for all actions and reusable workflows in a repository.",
 			},
 		},
 	}
@@ -125,7 +131,11 @@ func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.Resource
 		repoActionPermissions.AllowedActions = &allowedActions
 	}
 
-	_, _, err := client.Repositories.EditActionsPermissions(ctx,
+	if v, ok := d.GetOk("sha_pinning_required"); ok {
+		repoActionPermissions.SHAPinningRequired = github.Ptr(v.(bool))
+	}
+
+	_, _, err := client.Repositories.UpdateActionsPermissions(ctx,
 		owner,
 		repoName,
 		repoActionPermissions,
@@ -210,6 +220,10 @@ func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta
 		return err
 	}
 
+	if err = d.Set("sha_pinning_required", actionsPermissions.GetSHAPinningRequired()); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -222,11 +236,11 @@ func resourceGithubActionsRepositoryPermissionsDelete(d *schema.ResourceData, me
 
 	// Reset the repo to "default" settings
 	repoActionPermissions := github.ActionsPermissionsRepository{
-		AllowedActions: github.String("all"),
-		Enabled:        github.Bool(true),
+		AllowedActions: github.Ptr("all"),
+		Enabled:        github.Ptr(true),
 	}
 
-	_, _, err := client.Repositories.EditActionsPermissions(ctx,
+	_, _, err := client.Repositories.UpdateActionsPermissions(ctx,
 		owner,
 		repoName,
 		repoActionPermissions,

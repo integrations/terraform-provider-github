@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -16,6 +16,7 @@ func resourceGithubBranch() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGithubBranchCreate,
 		Read:   resourceGithubBranchRead,
+		Update: resourceGithubBranchUpdate,
 		Delete: resourceGithubBranchDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubBranchImport,
@@ -31,7 +32,6 @@ func resourceGithubBranch() *schema.Resource {
 			"branch": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "The repository branch to create.",
 			},
 			"source_branch": {
@@ -98,9 +98,9 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta any) error {
 	}
 	sourceBranchSHA := d.Get("source_sha").(string)
 
-	_, _, err := client.Git.CreateRef(ctx, orgName, repoName, &github.Reference{
-		Ref:    &branchRefName,
-		Object: &github.GitObject{SHA: &sourceBranchSHA},
+	_, _, err := client.Git.CreateRef(ctx, orgName, repoName, github.CreateRef{
+		Ref: branchRefName,
+		SHA: sourceBranchSHA,
 	})
 	// If the branch already exists, rather than erroring out just continue on to importing the branch
 	//   This avoids the case where a repo with gitignore_template and branch are being created at the same time crashing terraform
@@ -130,7 +130,7 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta any) error {
 
 	ref, resp, err := client.Git.GetRef(ctx, orgName, repoName, branchRefName)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
+		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
@@ -184,6 +184,29 @@ func resourceGithubBranchDelete(d *schema.ResourceData, meta any) error {
 	}
 
 	return nil
+}
+
+func resourceGithubBranchUpdate(d *schema.ResourceData, meta any) error {
+	if !d.HasChange("branch") {
+		return resourceGithubBranchRead(d, meta)
+	}
+
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
+	repoName, oldBranchName, err := parseTwoPartID(d.Id(), "repository", "branch")
+	if err != nil {
+		return err
+	}
+	newBranchName := d.Get("branch").(string)
+
+	if _, _, err := client.Repositories.RenameBranch(ctx, orgName, repoName, oldBranchName, newBranchName); err != nil {
+		return fmt.Errorf("error renaming GitHub branch %s/%s (%s -> %s): %w", orgName, repoName, oldBranchName, newBranchName, err)
+	}
+
+	d.SetId(buildTwoPartID(repoName, newBranchName))
+
+	return resourceGithubBranchRead(d, meta)
 }
 
 func resourceGithubBranchImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {

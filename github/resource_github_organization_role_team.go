@@ -2,10 +2,12 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strconv"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v82/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -13,9 +15,9 @@ func resourceGithubOrganizationRoleTeam() *schema.Resource {
 	return &schema.Resource{
 		Description: "Manage an association between an organization role and a team.",
 
-		Create: resourceGithubOrganizationRoleTeamCreate,
-		Read:   resourceGithubOrganizationRoleTeamRead,
-		Delete: resourceGithubOrganizationRoleTeamDelete,
+		CreateContext: resourceGithubOrganizationRoleTeamCreate,
+		ReadContext:   resourceGithubOrganizationRoleTeamRead,
+		DeleteContext: resourceGithubOrganizationRoleTeamDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -37,14 +39,13 @@ func resourceGithubOrganizationRoleTeam() *schema.Resource {
 	}
 }
 
-func resourceGithubOrganizationRoleTeamCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRoleTeamCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 	orgName := meta.(*Owner).name
 
 	roleId := int64(d.Get("role_id").(int))
@@ -52,31 +53,30 @@ func resourceGithubOrganizationRoleTeamCreate(d *schema.ResourceData, meta any) 
 
 	_, err = client.Organizations.AssignOrgRoleToTeam(ctx, orgName, teamSlug, roleId)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(buildTwoPartID(strconv.FormatInt(roleId, 10), teamSlug))
 
-	return resourceGithubOrganizationRoleTeamRead(d, meta)
+	return nil
 }
 
-func resourceGithubOrganizationRoleTeamRead(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRoleTeamRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 	orgName := meta.(*Owner).name
 
 	roleIdString, teamSlug, err := parseTwoPartID(d.Id(), "role_id", "team_slug")
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	roleId, err := strconv.ParseInt(roleIdString, 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	opts := &github.ListOptions{
@@ -87,7 +87,7 @@ func resourceGithubOrganizationRoleTeamRead(d *schema.ResourceData, meta any) er
 	for {
 		teams, resp, err := client.Organizations.ListTeamsAssignedToOrgRole(ctx, orgName, roleId, opts)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		for _, t := range teams {
@@ -110,29 +110,32 @@ func resourceGithubOrganizationRoleTeamRead(d *schema.ResourceData, meta any) er
 	}
 
 	if err = d.Set("role_id", roleId); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err = d.Set("team_slug", teamSlug); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubOrganizationRoleTeamDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRoleTeamDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 	orgName := meta.(*Owner).name
 
 	roleId := int64(d.Get("role_id").(int))
 	teamSlug := d.Get("team_slug").(string)
 
 	_, err = client.Organizations.RemoveOrgRoleFromTeam(ctx, orgName, teamSlug, roleId)
-	return err
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("Error deleting organization role team %d %s: %w", roleId, teamSlug, err))
+	}
+
+	return nil
 }

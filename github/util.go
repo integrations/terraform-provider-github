@@ -13,14 +13,90 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
+const (
+	idSeparator        = ":"
+	idSeparatorEscaped = `??`
+)
+
 // https://developer.github.com/guides/traversing-with-pagination/#basics-of-pagination
 var maxPerPage = 100
+
+// escapeIDPart escapes any idSeparator characters in a string.
+func escapeIDPart(part string) string {
+	return strings.ReplaceAll(part, idSeparator, idSeparatorEscaped)
+}
+
+// unescapeIDPart unescapes any escaped idSeparator characters in a string.
+func unescapeIDPart(part string) string {
+	return strings.ReplaceAll(part, idSeparatorEscaped, idSeparator)
+}
+
+// buildID joins the parts with the idSeparator.
+func buildID(parts ...string) (string, error) {
+	l := len(parts)
+	if l == 0 {
+		return "", fmt.Errorf("no parts provided to build id")
+	}
+
+	for i, p := range parts {
+		if i < l-1 && strings.Contains(p, idSeparator) {
+			return "", fmt.Errorf("unescaped separator in non-final part %q", p)
+		}
+	}
+
+	id := strings.Join(parts, idSeparator)
+	return id, nil
+}
+
+// parseID splits the id by the idSeparator checking the count.
+func parseID(id string, count int) ([]string, error) {
+	if len(id) == 0 {
+		return nil, fmt.Errorf("id is empty")
+	}
+
+	parts := strings.SplitN(id, idSeparator, count)
+	if len(parts) != count {
+		return nil, fmt.Errorf("unexpected ID format (%q); expected %d parts separated by %q", id, count, idSeparator)
+	}
+
+	return parts, nil
+}
+
+// parseID2 splits the id by the idSeparator into two parts.
+func parseID2(id string) (string, string, error) {
+	parts, err := parseID(id, 2)
+	if err != nil {
+		return "", "", err
+	}
+
+	return parts[0], parts[1], nil
+}
+
+// parseID3 splits the id by the idSeparator into three parts.
+func parseID3(id string) (string, string, string, error) {
+	parts, err := parseID(id, 3)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	return parts[0], parts[1], parts[2], nil
+}
+
+// parseID4 splits the id by the idSeparator into four parts.
+func parseID4(id string) (string, string, string, string, error) {
+	parts, err := parseID(id, 4)
+	if err != nil {
+		return "", "", "", "", err
+	}
+
+	return parts[0], parts[1], parts[2], parts[3], nil
+}
 
 func checkOrganization(meta any) error {
 	if !meta.(*Owner).IsOrganization {
@@ -192,9 +268,13 @@ func getTeamID(teamIDString string, meta any) (int64, error) {
 }
 
 func getTeamSlug(teamIDString string, meta any) (string, error) {
+	ctx := context.Background()
+	return getTeamSlugContext(ctx, teamIDString, meta)
+}
+
+func getTeamSlugContext(ctx context.Context, teamIDString string, meta any) (string, error) {
 	// Given a string that is either a team id or team slug, return the
 	// team slug it is referring to.
-	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	orgId := meta.(*Owner).id
@@ -248,7 +328,7 @@ func validateSecretNameFunc(v any, path cty.Path) diag.Diagnostics {
 // resourceDescription represents a formatting string that represents the resource
 // args will be passed to resourceDescription in `log.Printf`.
 func deleteResourceOn404AndSwallow304OtherwiseReturnError(err error, d *schema.ResourceData, resourceDescription string, args ...any) error {
-	ghErr := &github.ErrorResponse{}
+	var ghErr *github.ErrorResponse
 	if errors.As(err, &ghErr) {
 		if ghErr.Response.StatusCode == http.StatusNotModified {
 			return nil
@@ -261,4 +341,44 @@ func deleteResourceOn404AndSwallow304OtherwiseReturnError(err error, d *schema.R
 		}
 	}
 	return err
+}
+
+// Helper function to safely convert interface{} to int, handling both int and float64.
+func toInt(v any) int {
+	switch val := v.(type) {
+	case int:
+		return val
+	case float64:
+		return int(val)
+	case int64:
+		return int(val)
+	default:
+		return 0
+	}
+}
+
+// Helper function to safely convert interface{} to int64, handling both int and float64.
+func toInt64(v any) int64 {
+	switch val := v.(type) {
+	case int:
+		return int64(val)
+	case int64:
+		return val
+	case float64:
+		return int64(val)
+	default:
+		return 0
+	}
+}
+
+// lookupTeamID looks up the ID of a team by its slug.
+func lookupTeamID(ctx context.Context, meta *Owner, slug string) (int64, error) {
+	client := meta.v3client
+	owner := meta.name
+
+	team, _, err := client.Teams.GetTeamBySlug(ctx, owner, slug)
+	if err != nil {
+		return 0, err
+	}
+	return team.GetID(), nil
 }

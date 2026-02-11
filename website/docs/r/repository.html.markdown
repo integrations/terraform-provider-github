@@ -100,6 +100,8 @@ The following arguments are supported:
 
 * `allow_auto_merge` - (Optional) Set to `true` to allow auto-merging pull requests on the repository.
 
+* `allow_forking` - (Optional) Configure private forking for organization owned private and internal repositories; set to `true` to enable, `false` to disable, and leave unset for the default behaviour. Configuring this requires that private forking is not being explicitly configured at the organization level.
+
 * `squash_merge_commit_title` - (Optional) Can be `PR_TITLE` or `COMMIT_OR_PR_TITLE` for a default squash merge commit title. Applicable only if `allow_squash_merge` is `true`.
 
 * `squash_merge_commit_message` - (Optional) Can be `PR_BODY`, `COMMIT_MESSAGES`, or `BLANK` for a default squash merge commit message. Applicable only if `allow_squash_merge` is `true`.
@@ -112,7 +114,7 @@ The following arguments are supported:
 
 * `web_commit_signoff_required` - (Optional) Require contributors to sign off on web-based commits. See more [here](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/managing-the-commit-signoff-policy-for-your-repository). Defaults to `false`.
 
-* `has_downloads` - (Optional) Set to `true` to enable the (deprecated) downloads features on the repository.
+* `has_downloads` - (**DEPRECATED**) (Optional) Set to `true` to enable the (deprecated) downloads features on the repository. This attribute is no longer in use, but it hasn't been removed yet. It will be removed in a future version. See [this discussion](https://github.com/orgs/community/discussions/102145#discussioncomment-8351756).
 
 * `auto_init` - (Optional) Set to `true` to produce an initial commit in the repository.
 
@@ -138,9 +140,9 @@ initial repository creation and create the target branch inside of the repositor
 
 * `template` - (Optional) Use a template repository to create this resource. See [Template Repositories](#template-repositories) below for details.
 
-* `vulnerability_alerts` (Optional) - Set to `true` to enable security alerts for vulnerable dependencies. Enabling requires alerts to be enabled on the owner level. (Note for importing: GitHub enables the alerts on public repos but disables them on private repos by default.) See [GitHub Documentation](https://help.github.com/en/github/managing-security-vulnerabilities/about-security-alerts-for-vulnerable-dependencies) for details. Note that vulnerability alerts have not been successfully tested on any GitHub Enterprise instance and may be unavailable in those settings.
+* `vulnerability_alerts` - (Optional) Configure [Dependabot security alerts](https://help.github.com/en/github/managing-security-vulnerabilities/about-security-alerts-for-vulnerable-dependencies) for vulnerable dependencies; set to `true` to enable, set to `false` to disable, and leave unset for the default behavior. Configuring this requires that alerts are not being explicitly configured at the organization level.
 
-* `ignore_vulnerability_alerts_during_read` (Optional) - Set to `true` to not call the vulnerability alerts endpoint so the resource can also be used without admin permissions during read.
+* `ignore_vulnerability_alerts_during_read` (**DEPRECATED**) (Optional) - This is ignored as the provider now handles lack of permissions automatically.
 
 * `allow_update_branch` (Optional) - Set to `true` to always suggest updating pull request branches.
 
@@ -154,7 +156,7 @@ The `pages` block supports the following:
 
 * `cname` - (Optional) The custom domain for the repository. This can only be set after the repository has been created.
 
-#### GitHub Pages Source ####
+#### GitHub Pages Source
 
 The `source` block supports the following:
 
@@ -168,23 +170,41 @@ The `security_and_analysis` block supports the following:
 
 * `advanced_security` - (Optional) The advanced security configuration for the repository. See [Advanced Security Configuration](#advanced-security-configuration) below for details. If a repository's visibility is `public`, advanced security is always enabled and cannot be changed, so this setting cannot be supplied.
 
+* `code_security` - (Optional) The code security configuration for the repository. See [Code Security](#code-security-configuration) below for details.
+
 * `secret_scanning` - (Optional) The secret scanning configuration for the repository. See [Secret Scanning Configuration](#secret-scanning-configuration) below for details.
 
 * `secret_scanning_push_protection` - (Optional) The secret scanning push protection configuration for the repository. See [Secret Scanning Push Protection Configuration](#secret-scanning-push-protection-configuration) below for details.
 
-#### Advanced Security Configuration ####
+* `secret_scanning_ai_detection` - (Optional) The secret scanning ai detection configuration for the repository. See [Secret Scanning AI Detection Configuration](#secret-scanning-ai-detection-configuration) below for details.
+
+* `secret_scanning_non_provider_patterns` - (Optional) The secret scanning non-provider patterns configuration for this repository. See [Secret Scanning Non-Provider Patterns Configuration](#secret-scanning-non-provider-patterns-configuration) below for more details.
+
+#### Advanced Security Configuration
 
 The `advanced_security` block supports the following:
 
 * `status` - (Required) Set to `enabled` to enable advanced security features on the repository. Can be `enabled` or `disabled`.
 
-#### Secret Scanning Configuration ####
+#### Code Security Configuration
 
-* `status` - (Required) Set to `enabled` to enable secret scanning on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public` or `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`.
+* `status` - (Required) Set to `enabled` to enable GitHub Code Security on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.
 
-#### Secret Scanning Push Protection Configuration ####
+#### Secret Scanning Configuration
 
-* `status` - (Required) Set to `enabled` to enable secret scanning push protection on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public` or `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`.
+* `status` - (Required) Set to `enabled` to enable secret scanning on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.
+
+#### Secret Scanning Push Protection Configuration
+
+* `status` - (Required) Set to `enabled` to enable secret scanning push protection on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.
+
+#### Secret Scanning AI Detection
+
+* `status` - (Required) Set to `enabled` to enable secret scanning AI detection on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.
+
+#### Secret Scanning Non-Provider Patterns
+
+* `status` - (Required) Set to `enabled` to enable secret scanning non-provider patterns on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.
 
 ### Template Repositories
 
@@ -193,6 +213,8 @@ The `advanced_security` block supports the following:
 * `owner`: The GitHub organization or user the template repository is owned by.
 * `repository`: The name of the template repository.
 * `include_all_branches`: Whether the new repository should include all the branches from the template repository (defaults to false, which includes only the default branch from the template).
+
+~> **Note on `internal` visibility with templates**: When creating a repository from a template with `visibility = "internal"`, the provider uses a two-step process due to GitHub API limitations. The template creation API only supports a `private` boolean parameter. Therefore, repositories with `visibility = "internal"` are initially created as private and then immediately updated to internal visibility. This ensures internal repositories are never exposed publicly during creation.
 
 ## Attributes Reference
 
@@ -217,14 +239,14 @@ The following additional attributes are exported:
 * `primary_language` - The primary language used in the repository.
 
 * `pages` - The block consisting of the repository's GitHub Pages configuration with the following additional attributes:
- * `custom_404` - Whether the rendered GitHub Pages site has a custom 404 page.
- * `html_url` - The absolute URL (including scheme) of the rendered GitHub Pages site e.g. `https://username.github.io`.
- * `status` - The GitHub Pages site's build status e.g. `building` or `built`.
+* `custom_404` - Whether the rendered GitHub Pages site has a custom 404 page.
+* `html_url` - The absolute URL (including scheme) of the rendered GitHub Pages site e.g. `https://username.github.io`.
+* `status` - The GitHub Pages site's build status e.g. `building` or `built`.
 
 ## Import
 
 Repositories can be imported using the `name`, e.g.
 
-```
-$ terraform import github_repository.terraform terraform
+```shell
+terraform import github_repository.terraform myrepo
 ```

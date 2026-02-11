@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -126,7 +126,7 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta any) error {
 
 	repo, resp, repoErr := client.Teams.IsTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
 	if repoErr != nil {
-		ghErr := &github.ErrorResponse{}
+		var ghErr *github.ErrorResponse
 		if errors.As(repoErr, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
@@ -138,7 +138,7 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta any) error {
 				return nil
 			}
 		}
-		return err
+		return repoErr
 	}
 
 	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {

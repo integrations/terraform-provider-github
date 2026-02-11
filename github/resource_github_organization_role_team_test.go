@@ -12,7 +12,7 @@ import (
 func TestAccGithubOrganizationRoleTeam(t *testing.T) {
 	t.Run("adds team to an organization org role", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		teamName := fmt.Sprintf("tf-acc-team-%s", randomID)
+		teamName := fmt.Sprintf("%steam-org-role-%s", testResourcePrefix, randomID)
 		roleId := 8134
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
@@ -26,8 +26,8 @@ func TestAccGithubOrganizationRoleTeam(t *testing.T) {
 		`, teamName, roleId)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, organization) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,

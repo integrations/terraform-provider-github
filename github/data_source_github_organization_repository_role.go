@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v82/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -13,7 +14,7 @@ func dataSourceGithubOrganizationRepositoryRole() *schema.Resource {
 	return &schema.Resource{
 		Description: "Lookup a custom organization repository role.",
 
-		Read: dataSourceGithubOrganizationRepositoryRoleRead,
+		ReadContext: dataSourceGithubOrganizationRepositoryRoleRead,
 
 		Schema: map[string]*schema.Schema{
 			"role_id": {
@@ -46,22 +47,21 @@ func dataSourceGithubOrganizationRepositoryRole() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationRepositoryRoleRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubOrganizationRepositoryRoleRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 	orgName := meta.(*Owner).name
 
 	roleId := int64(d.Get("role_id").(int))
 
-	// TODO: Use this code when go-github adds the functionality to get a custom repo role
+	// TODO: Use this code when go-github is at v68+
 	// role, _, err := client.Organizations.GetCustomRepoRole(ctx, orgName, roleId)
 	// if err != nil {
-	// 	return err
+	// 	return diag.FromErr(err)
 	// }
 
 	roles, _, err := client.Organizations.ListCustomRepoRoles(ctx, orgName)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	var role *github.CustomRepoRoles
@@ -72,7 +72,7 @@ func dataSourceGithubOrganizationRepositoryRoleRead(d *schema.ResourceData, meta
 		}
 	}
 	if role == nil {
-		return fmt.Errorf("custom organization repo role with ID %d not found", roleId)
+		return diag.FromErr(fmt.Errorf("custom organization repo role with ID %d not found", roleId))
 	}
 
 	r := map[string]any{
@@ -87,7 +87,7 @@ func dataSourceGithubOrganizationRepositoryRoleRead(d *schema.ResourceData, meta
 
 	for k, v := range r {
 		if err := d.Set(k, v); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 

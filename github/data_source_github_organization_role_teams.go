@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v82/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -12,7 +13,7 @@ func dataSourceGithubOrganizationRoleTeams() *schema.Resource {
 	return &schema.Resource{
 		Description: "Lookup all teams assigned to a custom organization role.",
 
-		Read: dataSourceGithubOrganizationRoleTeamsRead,
+		ReadContext: dataSourceGithubOrganizationRoleTeamsRead,
 
 		Schema: map[string]*schema.Schema{
 			"role_id": {
@@ -47,7 +48,7 @@ func dataSourceGithubOrganizationRoleTeams() *schema.Resource {
 							Type:        schema.TypeString,
 							Computed:    true,
 						},
-						// TODO: Add these fields when go-github adds the functionality to get a custom org
+						// TODO: Add these fields when go-github is v68+
 						// See https://github.com/google/go-github/issues/3364
 						// "assignment": {
 						// 	Description: "Determines if the team has a direct, indirect, or mixed relationship to a role.",
@@ -71,9 +72,8 @@ func dataSourceGithubOrganizationRoleTeams() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationRoleTeamsRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubOrganizationRoleTeamsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 	orgName := meta.(*Owner).name
 
 	roleId := int64(d.Get("role_id").(int))
@@ -87,12 +87,12 @@ func dataSourceGithubOrganizationRoleTeamsRead(d *schema.ResourceData, meta any)
 	for {
 		teams, resp, err := client.Organizations.ListTeamsAssignedToOrgRole(ctx, orgName, roleId, opts)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		for _, team := range teams {
 			t := map[string]any{
-				"id":         team.GetID(),
+				"team_id":    int(team.GetID()),
 				"slug":       team.GetSlug(),
 				"name":       team.GetName(),
 				"permission": team.GetPermission(),
@@ -108,7 +108,7 @@ func dataSourceGithubOrganizationRoleTeamsRead(d *schema.ResourceData, meta any)
 
 	d.SetId(fmt.Sprintf("%d", roleId))
 	if err := d.Set("teams", allTeams); err != nil {
-		return fmt.Errorf("error setting teams: %w", err)
+		return diag.FromErr(fmt.Errorf("error setting teams: %w", err))
 	}
 
 	return nil

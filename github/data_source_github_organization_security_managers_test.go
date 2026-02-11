@@ -11,7 +11,7 @@ import (
 func TestAccDataSourceGithubOrganizationSecurityManagers(t *testing.T) {
 	t.Run("get the organization security managers without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		teamName := fmt.Sprintf("tf-acc-%s", randomID)
+		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
@@ -30,8 +30,8 @@ func TestAccDataSourceGithubOrganizationSecurityManagers(t *testing.T) {
 		`, teamName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, organization) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,

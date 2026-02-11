@@ -5,7 +5,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -40,11 +40,6 @@ func resourceGithubAppInstallationRepository() *schema.Resource {
 }
 
 func resourceGithubAppInstallationRepositoryCreate(d *schema.ResourceData, meta any) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
 	installationIDString := d.Get("installation_id").(string)
 	installationID, err := strconv.ParseInt(installationIDString, 10, 64)
 	if err != nil {
@@ -71,11 +66,6 @@ func resourceGithubAppInstallationRepositoryCreate(d *schema.ResourceData, meta 
 }
 
 func resourceGithubAppInstallationRepositoryRead(d *schema.ResourceData, meta any) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
 	client := meta.(*Owner).v3client
 	installationIDString, repoName, err := parseTwoPartID(d.Id(), "installation_id", "repository")
 	if err != nil {
@@ -124,11 +114,6 @@ func resourceGithubAppInstallationRepositoryRead(d *schema.ResourceData, meta an
 }
 
 func resourceGithubAppInstallationRepositoryDelete(d *schema.ResourceData, meta any) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
 	installationIDString := d.Get("installation_id").(string)
 	installationID, err := strconv.ParseInt(installationIDString, 10, 64)
 	if err != nil {

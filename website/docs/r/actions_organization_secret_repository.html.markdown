@@ -2,12 +2,12 @@
 layout: "github"
 page_title: "GitHub: github_actions_organization_secret_repository"
 description: |-
-  Adds/remove a repository to an organization secret when the visibility for repository access is set to selected.
+  Add access for a repository to an Actions Secret within a GitHub organization.
 ---
 
 # github_actions_organization_secret_repository
 
-This resource help you to allow/unallow a repository to use an existing GitHub Actions secrets within your GitHub organization.
+This resource adds permission for a repository to use an actions secret within your GitHub organization.
 You must have write access to an organization secret to use this resource.
 
 This resource is only applicable when `visibility` of the existing organization secret has been set to `selected`.
@@ -15,13 +15,20 @@ This resource is only applicable when `visibility` of the existing organization 
 ## Example Usage
 
 ```hcl
-data "github_repository" "repo" {
-  full_name = "my-org/repo"
+resource "github_actions_organization_secret" "example" {
+	secret_name     = "mysecret"
+	plaintext_value = "foo"
+	visibility      = "selected"
 }
 
-resource "github_actions_organization_secret_repository" "org_secret_repos" {
-  secret_name = "EXAMPLE_SECRET_NAME"
-  repository_id = github_repository.repo.repo_id
+resource "github_repository" "example" {
+	name       = "myrepo"
+	visibility = "public"
+}
+
+resource "github_actions_organization_secret_repository" "example" {
+  secret_name   = github_actions_organization_secret.example.name
+  repository_id = github_repository.example.repo_id
 }
 ```
 
@@ -29,13 +36,28 @@ resource "github_actions_organization_secret_repository" "org_secret_repos" {
 
 The following arguments are supported:
 
-* `secret_name`   - (Required) Name of the existing secret
-* `repository_id` - (Required) Repository id that can access the organization secret.
+- `secret_name` - (Required) Name of the actions organization secret.
+- `repository_id` - (Required) ID of the repository that should be able to access the secret.
 
 ## Import
 
-This resource can be imported using an ID made up of the secret name:
+This resource can be imported using an ID made of the secret name and repository name separated by a `:`.
 
+### Import Block
+
+The following import block imports the access of repository ID `123456` for the actions organization secret named `mysecret` to a `github_actions_organization_secret_repository` resource named `example`.
+
+```hcl
+import {
+  to = github_actions_organization_secret_repository.example
+  id = "mysecret:123456"
+}
 ```
-$ terraform import github_actions_organization_secret_repository.test_secret_repos test_secret_name:repo_id
+
+### Import Command
+
+The following command imports the access of repository ID `123456` for the actions organization secret named `mysecret` to a `github_actions_organization_secret_repository` resource named `example`.
+
+```shell
+terraform import github_actions_organization_secret_repository.example mysecret:123456
 ```
