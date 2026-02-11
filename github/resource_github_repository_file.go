@@ -382,13 +382,12 @@ func resourceGithubRepositoryFileUpdate(ctx context.Context, d *schema.ResourceD
 		opts.Message = github.Ptr(fmt.Sprintf("Update %s", file))
 	}
 
-	// TODO: Use UpdateFile if the file already exists
-	create, _, err := client.Repositories.CreateFile(ctx, owner, repo, file, opts)
+	update, _, err := client.Repositories.UpdateFile(ctx, owner, repo, file, opts)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	if err = d.Set("commit_sha", create.GetSHA()); err != nil {
+	if err = d.Set("commit_sha", update.GetSHA()); err != nil {
 		return diag.FromErr(err)
 	}
 

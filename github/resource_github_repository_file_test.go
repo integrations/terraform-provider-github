@@ -33,30 +33,13 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 			}
 		`, repoName)
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository_file.test", "content",
-				"bar",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_file.test", "sha",
-				"ba0e162e1c47469e3fe4b393a8bf8c569f302116",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_file.test", "ref",
-				"main",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_repository_file.test", "commit_author",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_repository_file.test", "commit_email",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_repository_file.test", "commit_message",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_repository_file.test", "commit_sha",
-			),
+			resource.TestCheckResourceAttr("github_repository_file.test", "content", "bar"),
+			resource.TestCheckResourceAttr("github_repository_file.test", "sha", "ba0e162e1c47469e3fe4b393a8bf8c569f302116"),
+			resource.TestCheckResourceAttr("github_repository_file.test", "ref", "main"),
+			resource.TestCheckResourceAttrSet("github_repository_file.test", "commit_author"),
+			resource.TestCheckResourceAttrSet("github_repository_file.test", "commit_email"),
+			resource.TestCheckResourceAttrSet("github_repository_file.test", "commit_message"),
+			resource.TestCheckResourceAttrSet("github_repository_file.test", "commit_sha"),
 			resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch"),
 			resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch_source_branch"),
 			resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch_source_sha"),
