@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -199,10 +198,11 @@ func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceD
 				return diag.FromErr(err)
 			}
 		}
-		checkOpt.Ref = branch
 	} else {
 		branch = repoInfo.GetDefaultBranch()
 	}
+
+	checkOpt.Ref = branch
 
 	opts := resourceGithubRepositoryFileOptions(d)
 
@@ -284,10 +284,6 @@ func resourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceDat
 
 	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repoName, file, opts)
 	if err != nil {
-		var errorResponse *github.ErrorResponse
-		if errors.As(err, &errorResponse) && errorResponse.Response.StatusCode == http.StatusTooManyRequests {
-			return diag.FromErr(err)
-		}
 		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "repository file %s/%s:%s:%s", owner, repoName, file, branch))
 	}
 	if fc == nil {
