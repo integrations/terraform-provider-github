@@ -111,6 +111,7 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				Description:      "Automatically create the branch if it could not be found. Subsequent reads if the branch is deleted will occur from 'autocreate_branch_source_branch'",
 				Default:          false,
 				DiffSuppressFunc: autoBranchDiffSuppressFunc,
+				Deprecated:       "Use `github_branch` resource instead",
 			},
 			"autocreate_branch_source_branch": {
 				Type:             schema.TypeString,
@@ -119,6 +120,7 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				Description:      "The branch name to start from, if 'autocreate_branch' is set. Defaults to 'main'.",
 				RequiredWith:     []string{"autocreate_branch"},
 				DiffSuppressFunc: autoBranchDiffSuppressFunc,
+				Deprecated:       "Use `github_branch` resource instead",
 			},
 			"autocreate_branch_source_sha": {
 				Type:             schema.TypeString,
@@ -127,6 +129,7 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				Description:      "The commit hash to start from, if 'autocreate_branch' is set. Defaults to the tip of 'autocreate_branch_source_branch'. If provided, 'autocreate_branch_source_branch' is ignored.",
 				RequiredWith:     []string{"autocreate_branch"},
 				DiffSuppressFunc: autoBranchDiffSuppressFunc,
+				Deprecated:       "Use `github_branch` resource instead",
 			},
 		},
 		CustomizeDiff: diffRepository,
