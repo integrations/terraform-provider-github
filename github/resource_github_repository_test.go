@@ -418,7 +418,7 @@ resource "github_repository" "test" {
 		`, testRepoName, testAccConf.testPublicTemplateRepositoryOwner, testAccConf.testPublicTemplateRepository)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
+			PreCheck:          func() { skipUnauthenticated(t); skipIfEMUEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -603,7 +603,10 @@ resource "github_repository" "test" {
 		`, testRepoName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
+			PreCheck: func() {
+				skipUnauthenticated(t)
+				skipIfEMUEnterprise(t)
+			},
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -1056,7 +1059,10 @@ resource "github_repository" "test" {
 			),
 		)
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
+			PreCheck: func() {
+				skipUnauthenticated(t)
+				skipIfEMUEnterprise(t)
+			},
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -1127,7 +1133,7 @@ resource "github_repository" "test" {
 		`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
+			PreCheck:          func() { skipUnauthenticated(t); skipIfEMUEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -1256,7 +1262,7 @@ resource "github_repository" "test" {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
+			PreCheck:          func() { skipUnauthenticated(t); skipIfEMUEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -1282,7 +1288,7 @@ resource "github_repository" "test" {
 		`, testRepoName, testAccConf.testPublicTemplateRepositoryOwner, testAccConf.testPublicTemplateRepository)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessMode(t, enterprise); skipIfEMUEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
