@@ -277,15 +277,6 @@ func resourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceDat
 
 	opts := &github.RepositoryContentGetOptions{}
 
-	if err := checkRepositoryBranchExists(ctx, client, owner, repoName, branch); err != nil {
-		if d.Get("autocreate_branch").(bool) {
-			branch = d.Get("autocreate_branch_source_branch").(string)
-		} else {
-			tflog.Info(ctx, "Removing repository path from state because the branch no longer exists in GitHub")
-			d.SetId("")
-			return nil
-		}
-	}
 	opts.Ref = branch
 
 	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repoName, file, opts)
@@ -294,6 +285,7 @@ func resourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceDat
 		if errors.As(err, &errorResponse) && errorResponse.Response.StatusCode == http.StatusTooManyRequests {
 			return diag.FromErr(err)
 		}
+		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "repository file %s/%s:%s:%s", owner, repoName, file, branch))
 	}
 	if fc == nil {
 		tflog.Info(ctx, "Removing repository path from state because it no longer exists in GitHub")
@@ -378,21 +370,12 @@ func resourceGithubRepositoryFileUpdate(ctx context.Context, d *schema.ResourceD
 
 	repo := d.Get("repository").(string)
 	file := d.Get("file").(string)
+	branch := d.Get("branch").(string)
+
 	ctx = tflog.SetField(ctx, "repository", repo)
 	ctx = tflog.SetField(ctx, "file", file)
 	ctx = tflog.SetField(ctx, "owner", owner)
-
-	branch := d.Get("branch").(string)
-
-	if err := checkRepositoryBranchExists(ctx, client, owner, repo, branch); err != nil {
-		if d.Get("autocreate_branch").(bool) {
-			if err := resourceGithubRepositoryFileCreateBranch(ctx, d, meta); err != nil {
-				return diag.FromErr(err)
-			}
-		} else {
-			return diag.FromErr(err)
-		}
-	}
+	ctx = tflog.SetField(ctx, "branch", branch)
 
 	opts := resourceGithubRepositoryFileOptions(d)
 
@@ -435,16 +418,6 @@ func resourceGithubRepositoryFileDelete(ctx context.Context, d *schema.ResourceD
 	}
 
 	branch := d.Get("branch").(string)
-
-	if err := checkRepositoryBranchExists(ctx, client, owner, repo, branch); err != nil {
-		if d.Get("autocreate_branch").(bool) {
-			if err := resourceGithubRepositoryFileCreateBranch(ctx, d, meta); err != nil {
-				return diag.FromErr(err)
-			}
-		} else {
-			return diag.FromErr(err)
-		}
-	}
 	opts.Branch = github.Ptr(branch)
 
 	_, _, err := client.Repositories.DeleteFile(ctx, owner, repo, file, opts)
