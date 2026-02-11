@@ -201,10 +201,6 @@ func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceD
 		branch = repoInfo.GetDefaultBranch()
 	}
 
-	if err := d.Set("repository_id", int(repoInfo.GetID())); err != nil {
-		return diag.FromErr(err)
-	}
-
 	opts := resourceGithubRepositoryFileOptions(d)
 
 	if opts.Message == nil {
@@ -243,10 +239,6 @@ func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceD
 		return diag.FromErr(err)
 	}
 
-	if err := d.Set("branch", branch); err != nil {
-		return diag.FromErr(err)
-	}
-
 	newResourceID, err := buildID(repo, file, branch)
 	if err != nil {
 		return diag.FromErr(err)
@@ -255,7 +247,15 @@ func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceD
 		"id": newResourceID,
 	})
 	d.SetId(newResourceID)
+
+	// Set computed values after the resource is created and in state
 	if err = d.Set("commit_sha", create.GetSHA()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("branch", branch); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("repository_id", int(repoInfo.GetID())); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -266,22 +266,17 @@ func resourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceDat
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 
-	repoName, ok := d.Get("repository").(string)
-	if !ok {
-		return diag.FromErr(fmt.Errorf("repository not found or is not a string"))
-	}
-	file, ok := d.Get("file").(string)
-	if !ok {
-		return diag.FromErr(fmt.Errorf("file not found or is not a string"))
-	}
+	repoName := d.Get("repository").(string)
+	file := d.Get("file").(string)
+	branch := d.Get("branch").(string)
 
 	ctx = tflog.SetField(ctx, "repository", repoName)
 	ctx = tflog.SetField(ctx, "file", file)
 	ctx = tflog.SetField(ctx, "owner", owner)
+	ctx = tflog.SetField(ctx, "owner", owner)
 
 	opts := &github.RepositoryContentGetOptions{}
 
-	branch := d.Get("branch").(string)
 	if err := checkRepositoryBranchExists(ctx, client, owner, repoName, branch); err != nil {
 		if d.Get("autocreate_branch").(bool) {
 			branch = d.Get("autocreate_branch_source_branch").(string)
@@ -405,6 +400,7 @@ func resourceGithubRepositoryFileUpdate(ctx context.Context, d *schema.ResourceD
 		opts.Message = github.Ptr(fmt.Sprintf("Update %s", file))
 	}
 
+	// TODO: Use UpdateFile if the file already exists
 	create, _, err := client.Repositories.CreateFile(ctx, owner, repo, file, opts)
 	if err != nil {
 		return diag.FromErr(err)
@@ -412,6 +408,14 @@ func resourceGithubRepositoryFileUpdate(ctx context.Context, d *schema.ResourceD
 
 	if err = d.Set("commit_sha", create.GetSHA()); err != nil {
 		return diag.FromErr(err)
+	}
+
+	if d.HasChanges("repository", "file", "branch") {
+		newResourceID, err := buildID(repo, file, branch)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		d.SetId(newResourceID)
 	}
 
 	return resourceGithubRepositoryFileRead(ctx, d, meta)
@@ -472,22 +476,11 @@ func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceD
 	if err != nil {
 		return nil, err
 	}
-	if branch != "" {
-		opts.Ref = branch
-		if err := d.Set("branch", branch); err != nil {
-			return nil, err
-		}
-	} else {
+	if branch == "" {
+		branch = repoInfo.GetDefaultBranch()
+	}
 
-		defaultBranch := repoInfo.GetDefaultBranch()
-		branch = defaultBranch
-		if err := d.Set("branch", branch); err != nil {
-			return nil, err
-		}
-	}
-	if err := d.Set("repository_id", int(repoInfo.GetID())); err != nil {
-		return nil, err
-	}
+	opts.Ref = branch
 
 	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repo, filePath, opts)
 	if err != nil {
@@ -512,6 +505,13 @@ func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceD
 		"id": newResourceID,
 	})
 	d.SetId(newResourceID)
+
+	if err := d.Set("branch", branch); err != nil {
+		return nil, err
+	}
+	if err := d.Set("repository_id", int(repoInfo.GetID())); err != nil {
+		return nil, err
+	}
 	if err = d.Set("overwrite_on_create", false); err != nil {
 		return nil, err
 	}
