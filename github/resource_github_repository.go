@@ -628,9 +628,11 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 	}
 
 	// only configure allow forking if repository is not public
-	if allowForking, ok := d.GetOkExists("allow_forking"); ok && visibility != "public" { //nolint:staticcheck,SA1019 // We sometimes need to use GetOkExists for booleans
-		if val, ok := allowForking.(bool); ok {
-			repository.AllowForking = github.Ptr(val)
+	if visibility != "public" && (d.IsNewResource() || d.HasChange("allow_forking")) {
+		if allowForking, ok := d.GetOkExists("allow_forking"); ok { //nolint:staticcheck,SA1019 // We sometimes need to use GetOkExists for booleans
+			if val, ok := allowForking.(bool); ok {
+				repository.AllowForking = github.Ptr(val)
+			}
 		}
 	}
 

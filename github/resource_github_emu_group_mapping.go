@@ -24,7 +24,7 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 		Description:   "Manages the mapping of an external group to a GitHub team.",
 		Schema: map[string]*schema.Schema{
 			"team_id": {
-				Type:        schema.TypeString,
+				Type:        schema.TypeInt,
 				Computed:    true,
 				Description: "ID of the GitHub team.",
 			},
@@ -99,7 +99,7 @@ func resourceGithubEMUGroupMappingCreate(ctx context.Context, d *schema.Resource
 		return diag.FromErr(err)
 	}
 
-	if err := d.Set("team_id", teamID); err != nil {
+	if err := d.Set("team_id", int(teamID)); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -334,7 +334,7 @@ func resourceGithubEMUGroupMappingImport(ctx context.Context, d *schema.Resource
 		return nil, err
 	}
 
-	if err := d.Set("team_id", teamID); err != nil {
+	if err := d.Set("team_id", int(teamID)); err != nil {
 		return nil, err
 	}
 

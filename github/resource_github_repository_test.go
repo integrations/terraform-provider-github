@@ -1078,20 +1078,15 @@ resource "github_repository" "test" {
 			}
 		`, testRepoName)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository.private", "visibility",
-				"private",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: config,
-					Check:  check,
+					Config: fmt.Sprintf(config, testRepoName, "foo"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.private", "visibility", "private"),
+					),
 				},
 			},
 		})
@@ -1107,20 +1102,15 @@ resource "github_repository" "test" {
 			}
 		`, testRepoName)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "visibility",
-				"internal",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessMode(t, enterprise) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "visibility", "internal"),
+					),
 				},
 			},
 		})
@@ -1354,6 +1344,68 @@ resource "github_repository" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_repository.test", "web_commit_signoff_required", "true"),
 					),
+				},
+			},
+		})
+	})
+
+	t.Run("check_allow_forking_not_set", func(t *testing.T) {
+		t.Skip("This test should be run manually after confirming that the test organization has been correctly configured to disable setting forking at the repo level.")
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+
+		config := `
+resource "github_repository" "private" {
+	name        = "%s"
+	description = "%s"
+	visibility  = "private"
+}
+`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, testRepoName, "foo"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.private", "allow_forking", "false"),
+					),
+				},
+				{
+					Config: fmt.Sprintf(config, testRepoName, "bar"),
+				},
+			},
+		})
+	})
+
+	t.Run("check_vulnerability_alerts_not_set", func(t *testing.T) {
+		t.Skip("This test should be run manually after confirming that the test organization has been correctly configured to disable setting vulnerability alerts at the repo level.")
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+
+		config := `
+resource "github_repository" "private" {
+	name        = "%s"
+	description = "%s"
+	visibility  = "public"
+}
+`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, testRepoName, "foo"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.private", "vulnerability_alerts", "true"),
+					),
+				},
+				{
+					Config: fmt.Sprintf(config, testRepoName, "bar"),
 				},
 			},
 		})
