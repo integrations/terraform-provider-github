@@ -27,8 +27,8 @@ The following arguments are supported:
 
 ## Import
 
-GitHub EMU External Group Mappings can be imported using the `team_slug` and external `group_id` separated by a colon, e.g.
+GitHub EMU External Group Mappings can be imported using the external `group_id` and `team_slug` separated by a colon, e.g.
 
 ```sh
-$ terraform import github_emu_group_mapping.example_emu_group_mapping emu-test-team:28836
+$ terraform import github_emu_group_mapping.example_emu_group_mapping 28836:emu-test-team
 ```
