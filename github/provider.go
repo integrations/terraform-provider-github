@@ -506,6 +506,8 @@ func tokenFromGHCLI(u *url.URL) string {
 	host := u.Host
 	if host == DotComAPIHost {
 		host = DotComHost
+	} else if GHECAPIHostMatch.MatchString(host) {
+		host = strings.TrimPrefix(host, "api.")
 	}
 
 	out, err := exec.Command(ghCliPath, "auth", "token", "--hostname", host).Output()
