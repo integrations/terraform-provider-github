@@ -1379,51 +1379,6 @@ resource "github_repository" "private" {
 			},
 		})
 	})
-}
-
-func Test_expandPages(t *testing.T) {
-	t.Run("expand Pages configuration with workflow", func(t *testing.T) {
-		input := []any{map[string]any{
-			"build_type": "workflow",
-			"source":     []any{map[string]any{}},
-		}}
-
-		pages := expandPages(input)
-		if pages == nil {
-			t.Fatal("pages is nil")
-		}
-		if pages.GetBuildType() != "workflow" {
-			t.Errorf("got %q; want %q", pages.GetBuildType(), "workflow")
-		}
-		if pages.GetSource().GetBranch() != "main" {
-			t.Errorf("got %q; want %q", pages.GetSource().GetBranch(), "main")
-		}
-	})
-
-	t.Run("expand Pages configuration with source", func(t *testing.T) {
-		input := []any{map[string]any{
-			"build_type": "legacy",
-			"source": []any{map[string]any{
-				"branch": "main",
-				"path":   "/docs",
-			}},
-		}}
-
-		pages := expandPages(input)
-		if pages == nil {
-			t.Fatal("pages is nil")
-		}
-		if pages.GetBuildType() != "legacy" {
-			t.Errorf("got %q; want %q", pages.GetBuildType(), "legacy")
-		}
-		if pages.GetSource().GetBranch() != "main" {
-			t.Errorf("got %q; want %q", pages.GetSource().GetBranch(), "main")
-		}
-		if pages.GetSource().GetPath() != "/docs" {
-			t.Errorf("got %q; want %q", pages.GetSource().GetPath(), "/docs")
-		}
-	})
-
 	t.Run("forks a repository without error", func(t *testing.T) {
 		randomID := acctest.RandString(5)
 		testRepoName := fmt.Sprintf("%sfork-%s", testResourcePrefix, randomID)
@@ -1546,6 +1501,50 @@ func Test_expandPages(t *testing.T) {
 				},
 			},
 		})
+	})
+}
+
+func Test_expandPages(t *testing.T) {
+	t.Run("expand Pages configuration with workflow", func(t *testing.T) {
+		input := []any{map[string]any{
+			"build_type": "workflow",
+			"source":     []any{map[string]any{}},
+		}}
+
+		pages := expandPages(input)
+		if pages == nil {
+			t.Fatal("pages is nil")
+		}
+		if pages.GetBuildType() != "workflow" {
+			t.Errorf("got %q; want %q", pages.GetBuildType(), "workflow")
+		}
+		if pages.GetSource().GetBranch() != "main" {
+			t.Errorf("got %q; want %q", pages.GetSource().GetBranch(), "main")
+		}
+	})
+
+	t.Run("expand Pages configuration with source", func(t *testing.T) {
+		input := []any{map[string]any{
+			"build_type": "legacy",
+			"source": []any{map[string]any{
+				"branch": "main",
+				"path":   "/docs",
+			}},
+		}}
+
+		pages := expandPages(input)
+		if pages == nil {
+			t.Fatal("pages is nil")
+		}
+		if pages.GetBuildType() != "legacy" {
+			t.Errorf("got %q; want %q", pages.GetBuildType(), "legacy")
+		}
+		if pages.GetSource().GetBranch() != "main" {
+			t.Errorf("got %q; want %q", pages.GetSource().GetBranch(), "main")
+		}
+		if pages.GetSource().GetPath() != "/docs" {
+			t.Errorf("got %q; want %q", pages.GetSource().GetPath(), "/docs")
+		}
 	})
 }
 
