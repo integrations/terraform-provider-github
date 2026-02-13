@@ -70,15 +70,15 @@ resource "github_repository_ruleset" "example_push" {
     file_path_restriction {
       restricted_file_paths = [".github/workflows/*", "*.env"]
     }
-    
+
     max_file_size {
       max_file_size = 100  # 100 MB
     }
-    
+
     max_file_path_length {
       max_file_path_length = 255
     }
-    
+
     file_extension_restriction {
       restricted_file_extensions = ["*.exe", "*.dll", "*.so"]
     }
@@ -98,13 +98,15 @@ resource "github_repository_ruleset" "example_push" {
 
 - `bypass_actors` - (Optional) (Block List) The actors that can bypass the rules in this ruleset. (see [below for nested schema](#bypass_actors))
 
-- `conditions` - (Optional) (Block List, Max: 1) Parameters for a repository ruleset ref name condition. (see [below for nested schema](#conditions))
+- `conditions` - (Optional) (Block List, Max: 1) Parameters for a repository ruleset condition. For `branch` and `tag` targets, `ref_name` is required. For `push` targets, `ref_name` must NOT be set - conditions are optional for push targets. (see [below for nested schema](#conditions))
 
 - `repository` - (Required) (String) Name of the repository to apply ruleset to.
 
 #### Rules ####
 
 The `rules` block supports the following:
+
+~> **Note:** Rules are target-specific. `branch` and `tag` targets support rules like `creation`, `deletion`, `pull_request`, `required_status_checks`, etc. `push` targets only support `file_path_restriction`, `max_file_size`, `max_file_path_length`, and `file_extension_restriction`. Using the wrong rules for a target will result in a validation error.
 
 - `branch_name_pattern` - (Optional) (Block List, Max: 1) Parameters to be used for the branch_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `tag_name_pattern` as it only applied to rulesets with target `branch`. (see [below for nested schema](#rulesbranch_name_pattern))
 
@@ -191,19 +193,19 @@ The `rules` block supports the following:
 
 #### rules.merge_queue ####
 
-- `check_response_timeout_minutes` - (Required) (Number)Maximum time for a required status check to report a conclusion. After this much time has elapsed, checks that have not reported a conclusion will be assumed to have failed. Defaults to `60`.
+- `check_response_timeout_minutes` - (Optional) (Number) Maximum time for a required status check to report a conclusion. After this much time has elapsed, checks that have not reported a conclusion will be assumed to have failed. Defaults to `60`.
 
-- `grouping_strategy` - (Required) (String)When set to ALLGREEN, the merge commit created by merge queue for each PR in the group must pass all required checks to merge. When set to HEADGREEN, only the commit at the head of the merge group, i.e. the commit containing changes from all of the PRs in the group, must pass its required checks to merge. Can be one of: ALLGREEN, HEADGREEN. Defaults to `ALLGREEN`.
+- `grouping_strategy` - (Optional) (String) When set to `ALLGREEN`, the merge commit created by merge queue for each PR in the group must pass all required checks to merge. When set to `HEADGREEN`, only the commit at the head of the merge group, i.e. the commit containing changes from all of the PRs in the group, must pass its required checks to merge. Can be one of: `ALLGREEN`, `HEADGREEN`. Defaults to `ALLGREEN`.
 
-- `max_entries_to_build` - (Required) (Number) Limit the number of queued pull requests requesting checks and workflow runs at the same time. Defaults to `5`.
+- `max_entries_to_build` - (Optional) (Number) Limit the number of queued pull requests requesting checks and workflow runs at the same time. Defaults to `5`.
 
-- `max_entries_to_merge` - (Required) (Number) Limit the number of queued pull requests that will be merged together in a group. Defaults to `5`.
+- `max_entries_to_merge` - (Optional) (Number) Limit the number of queued pull requests that will be merged together in a group. Defaults to `5`.
 
-- `merge_method` - (Required) (String) Method to use when merging changes from queued pull requests. Can be one of: MERGE, SQUASH, REBASE. Defaults to `MERGE`.
+- `merge_method` - (Optional) (String) Method to use when merging changes from queued pull requests. Can be one of: `MERGE`, `SQUASH`, `REBASE`. Defaults to `MERGE`.
 
-- `min_entries_to_merge` - (Required) (Number) The minimum number of PRs that will be merged together in a group. Defaults to `1`.
+- `min_entries_to_merge` - (Optional) (Number) The minimum number of PRs that will be merged together in a group. Defaults to `1`.
 
-- `min_entries_to_merge_wait_minutes` - (Required) (Number) The time merge queue should wait after the first PR is added to the queue for the minimum group size to be met. After this time has elapsed, the minimum group size will be ignored and a smaller group will be merged. Defaults to `5`.
+- `min_entries_to_merge_wait_minutes` - (Optional) (Number) The time merge queue should wait after the first PR is added to the queue for the minimum group size to be met. After this time has elapsed, the minimum group size will be ignored and a smaller group will be merged. Defaults to `5`.
 
 #### rules.pull_request ####
 
@@ -219,6 +221,24 @@ The `rules` block supports the following:
 - `review_on_push` - (Optional) (Boolean) Copilot automatically reviews each new push to the pull request. Defaults to `false`.
 
 - `review_draft_pull_requests` - (Optional) (Boolean) Copilot automatically reviews draft pull requests before they are marked as ready for review. Defaults to `false`.
+
+- `allowed_merge_methods` - (Required) (List of String, Min: 1) Array of merge methods to be allowed. Allowed values include `merge`, `squash`, and `rebase`. At least one must be enabled.
+
+- `required_reviewers` - (Optional) (Block List) Require specific reviewers to approve pull requests. Note: This feature is in beta. (see [below for nested schema](#rulespull_requestrequired_reviewers))
+
+#### rules.pull_request.required_reviewers ####
+
+- `reviewer` - (Required) (Block List, Max: 1) The reviewer that must review matching files. (see [below for nested schema](#rulespull_requestrequired_reviewersreviewer))
+
+- `file_patterns` - (Required) (List of String) File patterns (fnmatch syntax) that this reviewer must approve.
+
+- `minimum_approvals` - (Required) (Number) Minimum number of approvals required from this reviewer. Set to 0 to make approval optional.
+
+#### rules.pull_request.required_reviewers.reviewer ####
+
+- `id` - (Required) (Number) The ID of the reviewer (Team ID).
+
+- `type` - (Required) (String) The type of reviewer. Currently only `Team` is supported.
 
 #### rules.required_deployments ####
 
@@ -278,7 +298,7 @@ The `rules` block supports the following:
 
 #### bypass_actors ####
 
-- `actor_id` - (Number) The ID of the actor that can bypass a ruleset. If `actor_type` is `Integration`, `actor_id` is a GitHub App ID. App ID can be obtained by following instructions from the [Get an App API docs](https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-app)
+- `actor_id` - (Optional) (Number) The ID of the actor that can bypass a ruleset. If `actor_type` is `Integration`, `actor_id` is a GitHub App ID. App ID can be obtained by following instructions from the [Get an App API docs](https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-app). Some actor types such as `DeployKey` do not have an ID.
 
 - `actor_type` (String) The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`, `DeployKey`.
 
@@ -294,7 +314,9 @@ The `rules` block supports the following:
 
 #### conditions ####
 
-- `ref_name` - (Required) (Block List, Min: 1, Max: 1) (see [below for nested schema](#conditions.ref_name))
+- `ref_name` - (Optional) (Block List, Max: 1) Required for `branch` and `tag` targets. Must NOT be set for `push` targets. (see [below for nested schema](#conditionsref_name))
+
+~> **Note:** For `push` targets, do not include `ref_name` in conditions. Push rulesets operate on file content, not on refs. The `conditions` block is optional for push targets.
 
 #### conditions.ref_name ####
 

@@ -3,7 +3,7 @@ package github
 import (
 	"testing"
 
-	"github.com/google/go-github/v81/github"
+	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -57,7 +57,7 @@ func TestFlattenRulesBasicRules(t *testing.T) {
 		NonFastForward:        &github.EmptyRuleParameters{},
 	}
 
-	result := flattenRules(rules, false)
+	result := flattenRules(t.Context(), rules, false)
 
 	if len(result) != 1 {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
@@ -126,7 +126,7 @@ func TestFlattenRulesMaxFilePathLength(t *testing.T) {
 		},
 	}
 
-	result := flattenRules(rules, false)
+	result := flattenRules(t.Context(), rules, false)
 
 	if len(result) != 1 {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
@@ -167,7 +167,7 @@ func TestRoundTripMaxFilePathLength(t *testing.T) {
 	}
 
 	// Flatten back to terraform format
-	flattenedResult := flattenRules(expandedRules, false)
+	flattenedResult := flattenRules(t.Context(), expandedRules, false)
 
 	if len(flattenedResult) != 1 {
 		t.Fatalf("Expected 1 flattened result, got %d", len(flattenedResult))
@@ -224,7 +224,7 @@ func TestFlattenRulesMaxFileSize(t *testing.T) {
 		},
 	}
 
-	result := flattenRules(rules, false)
+	result := flattenRules(t.Context(), rules, false)
 
 	if len(result) != 1 {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
@@ -292,7 +292,7 @@ func TestFlattenRulesFileExtensionRestriction(t *testing.T) {
 		},
 	}
 
-	result := flattenRules(rules, false)
+	result := flattenRules(t.Context(), rules, false)
 
 	if len(result) != 1 {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
@@ -372,7 +372,7 @@ func TestCompletePushRulesetSupport(t *testing.T) {
 	}
 
 	// Flatten back to terraform format
-	flattenedResult := flattenRules(expandedRules, false)
+	flattenedResult := flattenRules(t.Context(), expandedRules, false)
 
 	if len(flattenedResult) != 1 {
 		t.Fatalf("Expected 1 flattened result, got %d", len(flattenedResult))
@@ -452,7 +452,7 @@ func TestCopilotCodeReviewRoundTrip(t *testing.T) {
 	}
 
 	// Flatten back to terraform format
-	flattenedResult := flattenRules(expandedRules, false)
+	flattenedResult := flattenRules(t.Context(), expandedRules, false)
 
 	if len(flattenedResult) != 1 {
 		t.Fatalf("Expected 1 flattened result, got %d", len(flattenedResult))
@@ -471,5 +471,346 @@ func TestCopilotCodeReviewRoundTrip(t *testing.T) {
 
 	if copilotRules[0]["review_draft_pull_requests"] != false {
 		t.Errorf("Expected review_draft_pull_requests to be false, got %v", copilotRules[0]["review_draft_pull_requests"])
+	}
+}
+
+func TestFlattenConditions_PushRuleset_WithRepositoryNameOnly(t *testing.T) {
+	// Push rulesets don't use ref_name - they only have repository_name or repository_id.
+	// flattenConditions should return the conditions even when RefName is nil.
+	conditions := &github.RepositoryRulesetConditions{
+		RefName: nil, // Push rulesets don't have ref_name
+		RepositoryName: &github.RepositoryRulesetRepositoryNamesConditionParameters{
+			Include: []string{"~ALL"},
+			Exclude: []string{},
+		},
+	}
+
+	result := flattenConditions(t.Context(), conditions, true) // org=true for organization rulesets
+
+	if len(result) != 1 {
+		t.Fatalf("Expected 1 conditions block, got %d", len(result))
+	}
+
+	conditionsMap := result[0].(map[string]any)
+
+	// ref_name should be empty for push rulesets
+	refNameSlice := conditionsMap["ref_name"]
+	if refNameSlice != nil {
+		t.Fatalf("Expected ref_name to be nil, got %T", conditionsMap["ref_name"])
+	}
+
+	// repository_name should be present
+	repoNameSlice, ok := conditionsMap["repository_name"].([]map[string]any)
+	if !ok {
+		t.Fatalf("Expected repository_name to be []map[string]any, got %T", conditionsMap["repository_name"])
+	}
+	if len(repoNameSlice) != 1 {
+		t.Fatalf("Expected 1 repository_name block, got %d", len(repoNameSlice))
+	}
+
+	include, ok := repoNameSlice[0]["include"].([]string)
+	if !ok {
+		t.Fatalf("Expected include to be []string, got %T", repoNameSlice[0]["include"])
+	}
+	if len(include) != 1 || include[0] != "~ALL" {
+		t.Errorf("Expected include to be [~ALL], got %v", include)
+	}
+}
+
+func TestFlattenConditions_BranchRuleset_WithRefNameAndRepositoryName(t *testing.T) {
+	// Branch/tag rulesets have both ref_name and repository_name.
+	// This test ensures we didn't break the existing behavior.
+	conditions := &github.RepositoryRulesetConditions{
+		RefName: &github.RepositoryRulesetRefConditionParameters{
+			Include: []string{"~DEFAULT_BRANCH", "refs/heads/main"},
+			Exclude: []string{"refs/heads/experimental-*"},
+		},
+		RepositoryName: &github.RepositoryRulesetRepositoryNamesConditionParameters{
+			Include: []string{"~ALL"},
+			Exclude: []string{"test-*"},
+		},
+	}
+
+	result := flattenConditions(t.Context(), conditions, true) // org=true for organization rulesets
+
+	if len(result) != 1 {
+		t.Fatalf("Expected 1 conditions block, got %d", len(result))
+	}
+
+	conditionsMap := result[0].(map[string]any)
+
+	// ref_name should be present for branch/tag rulesets
+	refNameSlice, ok := conditionsMap["ref_name"].([]map[string]any)
+	if !ok {
+		t.Fatalf("Expected ref_name to be []map[string]any, got %T", conditionsMap["ref_name"])
+	}
+	if len(refNameSlice) != 1 {
+		t.Fatalf("Expected 1 ref_name block, got %d", len(refNameSlice))
+	}
+
+	refInclude, ok := refNameSlice[0]["include"].([]string)
+	if !ok {
+		t.Fatalf("Expected ref_name include to be []string, got %T", refNameSlice[0]["include"])
+	}
+	if len(refInclude) != 2 {
+		t.Errorf("Expected 2 ref_name includes, got %d", len(refInclude))
+	}
+
+	refExclude, ok := refNameSlice[0]["exclude"].([]string)
+	if !ok {
+		t.Fatalf("Expected ref_name exclude to be []string, got %T", refNameSlice[0]["exclude"])
+	}
+	if len(refExclude) != 1 {
+		t.Errorf("Expected 1 ref_name exclude, got %d", len(refExclude))
+	}
+
+	// repository_name should also be present
+	repoNameSlice, ok := conditionsMap["repository_name"].([]map[string]any)
+	if !ok {
+		t.Fatalf("Expected repository_name to be []map[string]any, got %T", conditionsMap["repository_name"])
+	}
+	if len(repoNameSlice) != 1 {
+		t.Fatalf("Expected 1 repository_name block, got %d", len(repoNameSlice))
+	}
+
+	repoInclude, ok := repoNameSlice[0]["include"].([]string)
+	if !ok {
+		t.Fatalf("Expected repository_name include to be []string, got %T", repoNameSlice[0]["include"])
+	}
+	if len(repoInclude) != 1 || repoInclude[0] != "~ALL" {
+		t.Errorf("Expected repository_name include to be [~ALL], got %v", repoInclude)
+	}
+
+	repoExclude, ok := repoNameSlice[0]["exclude"].([]string)
+	if !ok {
+		t.Fatalf("Expected repository_name exclude to be []string, got %T", repoNameSlice[0]["exclude"])
+	}
+	if len(repoExclude) != 1 || repoExclude[0] != "test-*" {
+		t.Errorf("Expected repository_name exclude to be [test-*], got %v", repoExclude)
+	}
+}
+
+func TestFlattenConditions_PushRuleset_WithRepositoryIdOnly(t *testing.T) {
+	// Push rulesets can also use repository_id instead of repository_name.
+	conditions := &github.RepositoryRulesetConditions{
+		RefName: nil, // Push rulesets don't have ref_name
+		RepositoryID: &github.RepositoryRulesetRepositoryIDsConditionParameters{
+			RepositoryIDs: []int64{12345, 67890},
+		},
+	}
+
+	result := flattenConditions(t.Context(), conditions, true) // org=true for organization rulesets
+
+	if len(result) != 1 {
+		t.Fatalf("Expected 1 conditions block, got %d", len(result))
+	}
+
+	conditionsMap := result[0].(map[string]any)
+
+	// ref_name should be nil for push rulesets
+	refNameSlice := conditionsMap["ref_name"]
+	if refNameSlice != nil {
+		t.Fatalf("Expected ref_name to be nil, got %T", conditionsMap["ref_name"])
+	}
+
+	// repository_id should be present
+	repoIDs, ok := conditionsMap["repository_id"].([]int64)
+	if !ok {
+		t.Fatalf("Expected repository_id to be []int64, got %T", conditionsMap["repository_id"])
+	}
+	if len(repoIDs) != 2 {
+		t.Fatalf("Expected 2 repository IDs, got %d", len(repoIDs))
+	}
+	if repoIDs[0] != 12345 || repoIDs[1] != 67890 {
+		t.Errorf("Expected repository IDs [12345, 67890], got %v", repoIDs)
+	}
+}
+
+func TestExpandRequiredReviewers(t *testing.T) {
+	input := []any{
+		map[string]any{
+			"reviewer": []any{
+				map[string]any{
+					"id":   12345,
+					"type": "Team",
+				},
+			},
+			"file_patterns":     []any{"*.go", "src/**/*.ts"},
+			"minimum_approvals": 2,
+		},
+		map[string]any{
+			"reviewer": []any{
+				map[string]any{
+					"id":   67890,
+					"type": "Team",
+				},
+			},
+			"file_patterns":     []any{"docs/**/*.md"},
+			"minimum_approvals": 1,
+		},
+	}
+
+	result := expandRequiredReviewers(input)
+
+	if len(result) != 2 {
+		t.Fatalf("Expected 2 reviewers, got %d", len(result))
+	}
+
+	// Check first reviewer
+	if result[0].Reviewer == nil {
+		t.Fatal("Expected first reviewer to have a Reviewer")
+	}
+	if *result[0].Reviewer.ID != 12345 {
+		t.Errorf("Expected first reviewer ID to be 12345, got %d", *result[0].Reviewer.ID)
+	}
+	if *result[0].Reviewer.Type != github.RulesetReviewerTypeTeam {
+		t.Errorf("Expected first reviewer type to be Team, got %s", *result[0].Reviewer.Type)
+	}
+	if *result[0].MinimumApprovals != 2 {
+		t.Errorf("Expected first reviewer minimum approvals to be 2, got %d", *result[0].MinimumApprovals)
+	}
+	if len(result[0].FilePatterns) != 2 {
+		t.Fatalf("Expected first reviewer to have 2 file patterns, got %d", len(result[0].FilePatterns))
+	}
+	if result[0].FilePatterns[0] != "*.go" || result[0].FilePatterns[1] != "src/**/*.ts" {
+		t.Errorf("Unexpected file patterns for first reviewer: %v", result[0].FilePatterns)
+	}
+
+	// Check second reviewer
+	if result[1].Reviewer == nil {
+		t.Fatal("Expected second reviewer to have a Reviewer")
+	}
+	if *result[1].Reviewer.ID != 67890 {
+		t.Errorf("Expected second reviewer ID to be 67890, got %d", *result[1].Reviewer.ID)
+	}
+	if *result[1].MinimumApprovals != 1 {
+		t.Errorf("Expected second reviewer minimum approvals to be 1, got %d", *result[1].MinimumApprovals)
+	}
+}
+
+func TestExpandRequiredReviewersEmpty(t *testing.T) {
+	result := expandRequiredReviewers([]any{})
+	if result != nil {
+		t.Error("Expected nil for empty input")
+	}
+
+	result = expandRequiredReviewers(nil)
+	if result != nil {
+		t.Error("Expected nil for nil input")
+	}
+}
+
+func TestFlattenRequiredReviewers(t *testing.T) {
+	reviewerType := github.RulesetReviewerTypeTeam
+	reviewers := []*github.RulesetRequiredReviewer{
+		{
+			MinimumApprovals: github.Ptr(2),
+			FilePatterns:     []string{"*.go", "src/**/*.ts"},
+			Reviewer: &github.RulesetReviewer{
+				ID:   github.Ptr(int64(12345)),
+				Type: &reviewerType,
+			},
+		},
+		{
+			MinimumApprovals: github.Ptr(1),
+			FilePatterns:     []string{"docs/**/*.md"},
+			Reviewer: &github.RulesetReviewer{
+				ID:   github.Ptr(int64(67890)),
+				Type: &reviewerType,
+			},
+		},
+	}
+
+	result := flattenRequiredReviewers(reviewers)
+
+	if len(result) != 2 {
+		t.Fatalf("Expected 2 reviewers, got %d", len(result))
+	}
+
+	// Check first reviewer
+	if result[0]["minimum_approvals"] != 2 {
+		t.Errorf("Expected first reviewer minimum approvals to be 2, got %v", result[0]["minimum_approvals"])
+	}
+	filePatterns := result[0]["file_patterns"].([]string)
+	if len(filePatterns) != 2 {
+		t.Fatalf("Expected first reviewer to have 2 file patterns, got %d", len(filePatterns))
+	}
+	if filePatterns[0] != "*.go" || filePatterns[1] != "src/**/*.ts" {
+		t.Errorf("Unexpected file patterns for first reviewer: %v", filePatterns)
+	}
+
+	reviewerBlock := result[0]["reviewer"].([]map[string]any)
+	if len(reviewerBlock) != 1 {
+		t.Fatalf("Expected 1 reviewer block, got %d", len(reviewerBlock))
+	}
+	if reviewerBlock[0]["id"] != 12345 {
+		t.Errorf("Expected first reviewer ID to be 12345, got %v", reviewerBlock[0]["id"])
+	}
+	if reviewerBlock[0]["type"] != "Team" {
+		t.Errorf("Expected first reviewer type to be Team, got %v", reviewerBlock[0]["type"])
+	}
+
+	// Check second reviewer
+	if result[1]["minimum_approvals"] != 1 {
+		t.Errorf("Expected second reviewer minimum approvals to be 1, got %v", result[1]["minimum_approvals"])
+	}
+}
+
+func TestFlattenRequiredReviewersEmpty(t *testing.T) {
+	result := flattenRequiredReviewers(nil)
+	if result != nil {
+		t.Error("Expected nil for nil input")
+	}
+
+	result = flattenRequiredReviewers([]*github.RulesetRequiredReviewer{})
+	if result != nil {
+		t.Error("Expected nil for empty slice input")
+	}
+}
+
+func TestRoundTripRequiredReviewers(t *testing.T) {
+	// Start with Terraform-style input
+	input := []any{
+		map[string]any{
+			"reviewer": []any{
+				map[string]any{
+					"id":   12345,
+					"type": "Team",
+				},
+			},
+			"file_patterns":     []any{"*.go", "src/**/*.ts"},
+			"minimum_approvals": 2,
+		},
+	}
+
+	// Expand to go-github types
+	expanded := expandRequiredReviewers(input)
+
+	// Flatten back to Terraform types
+	flattened := flattenRequiredReviewers(expanded)
+
+	// Verify the round trip maintains data
+	if len(flattened) != 1 {
+		t.Fatalf("Expected 1 reviewer after round trip, got %d", len(flattened))
+	}
+
+	if flattened[0]["minimum_approvals"] != 2 {
+		t.Errorf("Expected minimum_approvals to be 2 after round trip, got %v", flattened[0]["minimum_approvals"])
+	}
+
+	filePatterns := flattened[0]["file_patterns"].([]string)
+	if len(filePatterns) != 2 {
+		t.Fatalf("Expected 2 file patterns after round trip, got %d", len(filePatterns))
+	}
+
+	reviewerBlock := flattened[0]["reviewer"].([]map[string]any)
+	if len(reviewerBlock) != 1 {
+		t.Fatalf("Expected 1 reviewer block after round trip, got %d", len(reviewerBlock))
+	}
+	if reviewerBlock[0]["id"] != 12345 {
+		t.Errorf("Expected reviewer ID to be 12345 after round trip, got %v", reviewerBlock[0]["id"])
+	}
+	if reviewerBlock[0]["type"] != "Team" {
+		t.Errorf("Expected reviewer type to be Team after round trip, got %v", reviewerBlock[0]["type"])
 	}
 }

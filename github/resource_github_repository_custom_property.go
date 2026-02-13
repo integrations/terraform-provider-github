@@ -4,16 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v81/github"
+	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-)
-
-const (
-	SINGLE_SELECT = "single_select"
-	MULTI_SELECT  = "multi_select"
-	STRING        = "string"
-	TRUE_FALSE    = "true_false"
 )
 
 func resourceGithubRepositoryCustomProperty() *schema.Resource {
@@ -37,7 +30,7 @@ func resourceGithubRepositoryCustomProperty() *schema.Resource {
 				Required:         true,
 				Description:      "Type of the custom property",
 				ForceNew:         true,
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{SINGLE_SELECT, MULTI_SELECT, STRING, TRUE_FALSE}, false), "property_type"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{string(github.PropertyValueTypeString), string(github.PropertyValueTypeSingleSelect), string(github.PropertyValueTypeMultiSelect), string(github.PropertyValueTypeTrueFalse), string(github.PropertyValueTypeURL)}, false)),
 			},
 			"property_name": {
 				Type:        schema.TypeString,
@@ -66,7 +59,7 @@ func resourceGithubRepositoryCustomPropertyCreate(d *schema.ResourceData, meta a
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	propertyName := d.Get("property_name").(string)
-	propertyType := d.Get("property_type").(string)
+	propertyType := github.PropertyValueType(d.Get("property_type").(string))
 	propertyValue := expandStringList(d.Get("property_value").(*schema.Set).List())
 
 	customProperty := github.CustomPropertyValue{
@@ -75,9 +68,9 @@ func resourceGithubRepositoryCustomPropertyCreate(d *schema.ResourceData, meta a
 
 	// The propertyValue can either be a list of strings or a string
 	switch propertyType {
-	case SINGLE_SELECT, TRUE_FALSE, STRING:
+	case github.PropertyValueTypeString, github.PropertyValueTypeSingleSelect, github.PropertyValueTypeURL, github.PropertyValueTypeTrueFalse:
 		customProperty.Value = propertyValue[0]
-	case MULTI_SELECT:
+	case github.PropertyValueTypeMultiSelect:
 		customProperty.Value = propertyValue
 	default:
 		return fmt.Errorf("custom property type is not valid: %v", propertyType)

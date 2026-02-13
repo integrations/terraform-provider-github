@@ -5,14 +5,18 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
+	"strings"
 
-	"github.com/google/go-github/v81/github"
+	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
+
+var supportedOrgRulesetTargetTypes = []string{string(github.RulesetTargetBranch), string(github.RulesetTargetTag), string(github.RulesetTargetPush)}
 
 func resourceGithubOrganizationRuleset() *schema.Resource {
 	return &schema.Resource{
@@ -26,24 +30,27 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 
 		SchemaVersion: 1,
 
+		CustomizeDiff: resourceGithubOrganizationRulesetDiff,
+
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringLenBetween(1, 100),
-				Description:  "The name of the ruleset.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 100)),
+				Description:      "The name of the ruleset.",
 			},
 			"target": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{"branch", "tag", "push"}, false),
-				Description:  "Possible values are `branch`, `tag` and `push`. Note: The `push` target is in beta and is subject to change.",
+				Type:     schema.TypeString,
+				Required: true,
+				// The API accepts an `repository` target, but we don't support it yet.
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice(supportedOrgRulesetTargetTypes, false)),
+				Description:      "The target of the ruleset. Possible values are " + strings.Join(supportedOrgRulesetTargetTypes[:len(supportedOrgRulesetTargetTypes)-1], ", ") + " and " + supportedOrgRulesetTargetTypes[len(supportedOrgRulesetTargetTypes)-1] + ".",
 			},
 			"enforcement": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{"disabled", "active", "evaluate"}, false),
-				Description:  "Possible values for Enforcement are `disabled`, `active`, `evaluate`. Note: `evaluate` is currently only supported for owners of type `organization`.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"disabled", "active", "evaluate"}, false)),
+				Description:      "The enforcement level of the ruleset. `evaluate` allows admins to test rules before enforcing them. Possible values are `disabled`, `active`, and `evaluate`. Note: `evaluate` is only available for Enterprise plans.",
 			},
 			"bypass_actors": {
 				Type:             schema.TypeList, // TODO: These are returned from GH API sorted by actor_id, we might want to investigate if we want to include sorting
@@ -59,16 +66,16 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Description: "The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `1`. Some resources such as DeployKey do not have an ID and this should be omitted.",
 						},
 						"actor_type": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validation.StringInSlice([]string{"Integration", "OrganizationAdmin", "RepositoryRole", "Team", "DeployKey"}, false),
-							Description:  "The type of actor that can bypass a ruleset. See https://docs.github.com/en/rest/orgs/rules for more information",
+							Type:             schema.TypeString,
+							Required:         true,
+							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"Integration", "OrganizationAdmin", "RepositoryRole", "Team", "DeployKey"}, false)),
+							Description:      "The type of actor that can bypass a ruleset. Can be one of: `Integration`, `OrganizationAdmin`, `RepositoryRole`, `Team`, or `DeployKey`.",
 						},
 						"bypass_mode": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validation.StringInSlice([]string{"always", "pull_request", "exempt"}, false),
-							Description:  "When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`, `exempt`.",
+							Type:             schema.TypeString,
+							Required:         true,
+							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"always", "pull_request", "exempt"}, false)),
+							Description:      "When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`, `exempt`.",
 						},
 					},
 				},
@@ -87,13 +94,14 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Parameters for an organization ruleset condition. `ref_name` is required alongside one of `repository_name` or `repository_id`.",
+				Description: "Parameters for an organization ruleset condition. `ref_name` is required for `branch` and `tag` targets, but must not be set for `push` targets. One of `repository_name` or `repository_id` is always required.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ref_name": {
-							Type:     schema.TypeList,
-							Required: true,
-							MaxItems: 1,
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Targets refs that match the specified patterns. Required for `branch` and `tag` targets.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -119,6 +127,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Type:         schema.TypeList,
 							Optional:     true,
 							MaxItems:     1,
+							Description:  "Targets repositories that match the specified name patterns.",
 							ExactlyOneOf: []string{"conditions.0.repository_id"},
 							AtLeastOneOf: []string{"conditions.0.repository_id"},
 							Elem: &schema.Resource{
@@ -201,11 +210,12 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 									"allowed_merge_methods": {
 										Type:        schema.TypeList,
 										Optional:    true,
+										Computed:    true,
 										MinItems:    1,
 										Description: "Array of allowed merge methods. Allowed values include `merge`, `squash`, and `rebase`. At least one option must be enabled.",
 										Elem: &schema.Schema{
 											Type:             schema.TypeString,
-											ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"merge", "squash", "rebase"}, false), "allowed_merge_methods"),
+											ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"merge", "squash", "rebase"}, false)),
 										},
 									},
 									"dismiss_stale_reviews_on_push": {
@@ -227,16 +237,59 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Description: "Whether the most recent reviewable push must be approved by someone other than the person who pushed it. Defaults to `false`.",
 									},
 									"required_approving_review_count": {
-										Type:        schema.TypeInt,
-										Optional:    true,
-										Default:     0,
-										Description: "The number of approving reviews that are required before a pull request can be merged. Defaults to `0`.",
+										Type:             schema.TypeInt,
+										Optional:         true,
+										Default:          0,
+										ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 10)),
+										Description:      "The number of approving reviews that are required before a pull request can be merged. Defaults to `0`.",
 									},
 									"required_review_thread_resolution": {
 										Type:        schema.TypeBool,
 										Optional:    true,
 										Default:     false,
 										Description: "All conversations on code must be resolved before a pull request can be merged. Defaults to `false`.",
+									},
+									"required_reviewers": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										Description: "Require specific reviewers to approve pull requests targeting matching branches. Note: This feature is in beta and subject to change.",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"reviewer": {
+													Type:        schema.TypeList,
+													Required:    true,
+													MaxItems:    1,
+													Description: "The reviewer that must review matching files.",
+													Elem: &schema.Resource{
+														Schema: map[string]*schema.Schema{
+															"id": {
+																Type:        schema.TypeInt,
+																Required:    true,
+																Description: "The ID of the reviewer that must review.",
+															},
+															"type": {
+																Type:             schema.TypeString,
+																Required:         true,
+																ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"Team"}, false), "type"),
+																Description:      "The type of reviewer. Currently only `Team` is supported.",
+															},
+														},
+													},
+												},
+												"file_patterns": {
+													Type:        schema.TypeList,
+													Required:    true,
+													MinItems:    1,
+													Description: "File patterns (fnmatch syntax) that this reviewer must approve.",
+													Elem:        &schema.Schema{Type: schema.TypeString},
+												},
+												"minimum_approvals": {
+													Type:        schema.TypeInt,
+													Required:    true,
+													Description: "Minimum number of approvals required from this reviewer. Set to 0 to make approval optional.",
+												},
+											},
+										},
 									},
 								},
 							},
@@ -278,9 +331,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
 												"context": {
-													Type:        schema.TypeString,
-													Required:    true,
-													Description: "The status check context name that must be present on the commit.",
+													Type:             schema.TypeString,
+													Required:         true,
+													ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsNotEmpty),
+													Description:      "The status check context name that must be present on the commit.",
 												},
 												"integration_id": {
 													Type:        schema.TypeInt,
@@ -308,7 +362,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 						"non_fast_forward": {
 							Type:        schema.TypeBool,
 							Optional:    true,
-							Description: "Prevent users with push access from force pushing to branches.",
+							Description: "Prevent users with push access from force pushing to refs.",
 						},
 						"commit_message_pattern": {
 							Type:        schema.TypeList,
@@ -328,9 +382,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Description: "If true, the rule will fail if the pattern matches.",
 									},
 									"operator": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
+										Type:             schema.TypeString,
+										ValidateDiagFunc: operatorValidation,
+										Required:         true,
+										Description:      "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
 									},
 									"pattern": {
 										Type:        schema.TypeString,
@@ -358,9 +413,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Description: "If true, the rule will fail if the pattern matches.",
 									},
 									"operator": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
+										Type:             schema.TypeString,
+										ValidateDiagFunc: operatorValidation,
+										Required:         true,
+										Description:      "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
 									},
 									"pattern": {
 										Type:        schema.TypeString,
@@ -388,9 +444,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Description: "If true, the rule will fail if the pattern matches.",
 									},
 									"operator": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
+										Type:             schema.TypeString,
+										ValidateDiagFunc: operatorValidation,
+										Required:         true,
+										Description:      "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
 									},
 									"pattern": {
 										Type:        schema.TypeString,
@@ -419,9 +476,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Description: "If true, the rule will fail if the pattern matches.",
 									},
 									"operator": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
+										Type:             schema.TypeString,
+										ValidateDiagFunc: operatorValidation,
+										Required:         true,
+										Description:      "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
 									},
 									"pattern": {
 										Type:        schema.TypeString,
@@ -450,9 +508,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Description: "If true, the rule will fail if the pattern matches.",
 									},
 									"operator": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
+										Type:             schema.TypeString,
+										ValidateDiagFunc: operatorValidation,
+										Required:         true,
+										Description:      "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
 									},
 									"pattern": {
 										Type:        schema.TypeString,
@@ -487,9 +546,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 													Description: "The repository in which the workflow is defined.",
 												},
 												"path": {
-													Type:        schema.TypeString,
-													Required:    true,
-													Description: "The path to the workflow YAML definition file.",
+													Type:             schema.TypeString,
+													Required:         true,
+													ValidateDiagFunc: validation.ToDiagFunc(validation.StringMatch(regexp.MustCompile(`^\.github\/workflows\/.*$`), "Path must be in the .github/workflows directory")),
+													Description:      "The path to the workflow YAML definition file.",
 												},
 												"ref": {
 													Type:        schema.TypeString,
@@ -518,14 +578,16 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
 												"alerts_threshold": {
-													Type:        schema.TypeString,
-													Required:    true,
-													Description: "The severity level at which code scanning results that raise alerts block a reference update. Can be one of: `none`, `errors`, `errors_and_warnings`, `all`.",
+													Description:      "The severity level at which code scanning results that raise alerts block a reference update. Can be one of: `none`, `errors`, `errors_and_warnings`, `all`.",
+													Required:         true,
+													Type:             schema.TypeString,
+													ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"none", "errors", "errors_and_warnings", "all"}, false)),
 												},
 												"security_alerts_threshold": {
-													Type:        schema.TypeString,
-													Required:    true,
-													Description: "The severity level at which code scanning results that raise security alerts block a reference update. Can be one of: `none`, `critical`, `high_or_higher`, `medium_or_higher`, `all`.",
+													Description:      "The severity level at which code scanning results that raise security alerts block a reference update. Can be one of: `none`, `critical`, `high_or_higher`, `medium_or_higher`, `all`.",
+													Required:         true,
+													Type:             schema.TypeString,
+													ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"none", "critical", "high_or_higher", "medium_or_higher", "all"}, false)),
 												},
 												"tool": {
 													Type:        schema.TypeString,
@@ -568,7 +630,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Type:             schema.TypeInt,
 										Required:         true,
 										Description:      "The maximum allowed size of a file in megabytes (MB). Valid range is 1-100 MB.",
-										ValidateDiagFunc: toDiagFunc(validation.IntBetween(1, 100), "max_file_size"),
+										ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(1, 100)),
 									},
 								},
 							},
@@ -581,9 +643,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"max_file_path_length": {
-										Type:        schema.TypeInt,
-										Required:    true,
-										Description: "The maximum allowed length of a file path.",
+										Type:             schema.TypeInt,
+										Required:         true,
+										Description:      "The maximum allowed length of a file path.",
+										ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(1, 32767)),
 									},
 								},
 							},
@@ -611,8 +674,9 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				},
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the ruleset for caching purposes.",
 			},
 		},
 	}
@@ -640,15 +704,24 @@ func resourceGithubOrganizationRulesetCreate(ctx context.Context, d *schema.Reso
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
-	_ = d.Set("ruleset_id", ruleset.ID)
-	_ = d.Set("node_id", ruleset.GetNodeID())
-	_ = d.Set("etag", resp.Header.Get("ETag"))
+	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
+	if err := d.Set("ruleset_id", ruleset.ID); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("rules", flattenRules(ctx, ruleset.Rules, true)); err != nil {
+		return diag.FromErr(err)
+	}
 
-	tflog.Info(ctx, fmt.Sprintf("Created organization ruleset: %s/%s (ID: %d)", owner, name, *ruleset.ID), map[string]any{
+	tflog.Info(ctx, fmt.Sprintf("Created organization ruleset: %s/%s (ID: %d)", owner, name, ruleset.GetID()), map[string]any{
 		"owner":      owner,
 		"name":       name,
-		"ruleset_id": *ruleset.ID,
+		"ruleset_id": ruleset.GetID(),
 	})
 
 	return nil
@@ -705,15 +778,33 @@ func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.Resour
 		return diag.FromErr(err)
 	}
 
-	_ = d.Set("ruleset_id", ruleset.ID)
-	_ = d.Set("name", ruleset.Name)
-	_ = d.Set("target", ruleset.GetTarget())
-	_ = d.Set("enforcement", ruleset.Enforcement)
-	_ = d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors))
-	_ = d.Set("conditions", flattenConditions(ruleset.GetConditions(), true))
-	_ = d.Set("rules", flattenRules(ruleset.Rules, true))
-	_ = d.Set("node_id", ruleset.GetNodeID())
-	_ = d.Set("etag", resp.Header.Get("ETag"))
+	if err := d.Set("ruleset_id", ruleset.ID); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("name", ruleset.Name); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("target", ruleset.GetTarget()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("enforcement", ruleset.Enforcement); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("conditions", flattenConditions(ctx, ruleset.GetConditions(), true)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("rules", flattenRules(ctx, ruleset.Rules, true)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
+	}
 
 	tflog.Trace(ctx, fmt.Sprintf("Successfully read organization ruleset: %s/%d", owner, rulesetID), map[string]any{
 		"owner":      owner,
@@ -757,10 +848,16 @@ func resourceGithubOrganizationRulesetUpdate(ctx context.Context, d *schema.Reso
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
-	_ = d.Set("ruleset_id", ruleset.ID)
-	_ = d.Set("node_id", ruleset.GetNodeID())
-	_ = d.Set("etag", resp.Header.Get("ETag"))
+	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
+	if err := d.Set("ruleset_id", ruleset.ID); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
+	}
 
 	tflog.Info(ctx, fmt.Sprintf("Updated organization ruleset: %s/%d", owner, rulesetID), map[string]any{
 		"owner":      owner,
@@ -852,4 +949,18 @@ func resourceGithubOrganizationRulesetImport(ctx context.Context, d *schema.Reso
 	})
 
 	return []*schema.ResourceData{d}, nil
+}
+
+func resourceGithubOrganizationRulesetDiff(ctx context.Context, d *schema.ResourceDiff, _ any) error {
+	err := validateRulesetConditions(ctx, d, true)
+	if err != nil {
+		return err
+	}
+
+	err = validateRulesetRules(ctx, d)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

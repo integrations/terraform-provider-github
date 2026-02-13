@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/google/go-github/v81/github"
+	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -112,11 +112,11 @@ func resourceGithubRepositoryEnvironmentCreate(ctx context.Context, d *schema.Re
 		return diag.FromErr(err)
 	}
 
-	if id, err := buildID(repoName, escapeIDPart(envName)); err != nil {
+	id, err := buildID(repoName, escapeIDPart(envName))
+	if err != nil {
 		return diag.FromErr(err)
-	} else {
-		d.SetId(id)
 	}
+	d.SetId(id)
 
 	return nil
 }
@@ -218,11 +218,11 @@ func resourceGithubRepositoryEnvironmentUpdate(ctx context.Context, d *schema.Re
 		return diag.FromErr(err)
 	}
 
-	if id, err := buildID(repoName, escapeIDPart(envName)); err != nil {
+	id, err := buildID(repoName, escapeIDPart(envName))
+	if err != nil {
 		return diag.FromErr(err)
-	} else {
-		d.SetId(id)
 	}
+	d.SetId(id)
 
 	return nil
 }
@@ -240,7 +240,7 @@ func resourceGithubRepositoryEnvironmentDelete(ctx context.Context, d *schema.Re
 
 	_, err = client.Repositories.DeleteEnvironment(ctx, owner, repoName, url.PathEscape(envName))
 	if err != nil {
-		return diag.FromErr(err)
+		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "environment (%s)", envName))
 	}
 
 	return nil
