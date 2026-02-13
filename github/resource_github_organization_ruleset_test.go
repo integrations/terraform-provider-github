@@ -738,6 +738,120 @@ resource "github_organization_ruleset" "test" {
 		})
 	})
 
+	t.Run("validates_conditions_require_exactly_one_repository_targeting", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		resourceName := "test-multiple-repo-targeting"
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "%s" {
+				name        = "test-multiple-targeting-%s"
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+					repository_id = [123]
+				}
+
+				rules {
+					creation = true
+				}
+			}
+		`, resourceName, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("only one of `conditions.0.repository_id,conditions.0.repository_name,conditions.0.repository_property` can be specified"),
+				},
+			},
+		})
+	})
+
+	t.Run("validates_conditions_require_at_least_one_repository_targeting", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		resourceName := "test-no-repo-targeting"
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "%s" {
+				name        = "test-no-targeting-%s"
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					creation = true
+				}
+			}
+		`, resourceName, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("one of `conditions.0.repository_id,conditions.0.repository_name,conditions.0.repository_property` must be specified"),
+				},
+			},
+		})
+	})
+
+	t.Run("validates_repository_property_works_as_single_targeting_option", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		resourceName := "test-repo-property-targeting"
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "%s" {
+				name        = "test-property-targeting-%s"
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+					repository_property {
+						include {
+							name            = "environment"
+							property_values = ["production"]
+							source          = "custom"
+						}
+					}
+				}
+
+				rules {
+					creation = true
+				}
+			}
+		`, resourceName, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: nil, // This should succeed
+				},
+			},
+		})
+	})
+
 	t.Run("creates_push_ruleset", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		rulesetName := fmt.Sprintf("%stest-push-%s", testResourcePrefix, randomID)

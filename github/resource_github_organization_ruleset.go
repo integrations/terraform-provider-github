@@ -124,10 +124,12 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							},
 						},
 						"repository_property": {
-							Type:        schema.TypeList,
-							Optional:    true,
-							MaxItems:    1,
-							Description: "Conditions to target repositories by custom or system properties.",
+							Type:         schema.TypeList,
+							Optional:     true,
+							MaxItems:     1,
+							ExactlyOneOf: []string{"conditions.0.repository_property", "conditions.0.repository_name", "conditions.0.repository_id"},
+							AtLeastOneOf: []string{"conditions.0.repository_property", "conditions.0.repository_name", "conditions.0.repository_id"},
+							Description:  "Conditions to target repositories by custom or system properties.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -154,7 +156,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 													Optional:     true,
 													Description:  "The source of the repository property. Defaults to 'custom' if not specified. Can be one of: custom, system",
 													Default:      "custom",
-													ValidateFunc: validation.StringInSlice([]string{"custom", "system"}, false),
+													ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"custom", "system"}, false)),
 												},
 											},
 										},
@@ -183,7 +185,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 													Optional:     true,
 													Description:  "The source of the repository property. Defaults to 'custom' if not specified. Can be one of: custom, system",
 													Default:      "custom",
-													ValidateFunc: validation.StringInSlice([]string{"custom", "system"}, false),
+													ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"custom", "system"}, false)),
 												},
 											},
 										},
@@ -192,10 +194,12 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							},
 						},
 						"repository_name": {
-							Type:        schema.TypeList,
-							Optional:    true,
-							MaxItems:    1,
-							Description: "Targets repositories that match the specified name patterns.",
+							Type:         schema.TypeList,
+							Optional:     true,
+							MaxItems:     1,
+							ExactlyOneOf: []string{"conditions.0.repository_property", "conditions.0.repository_name", "conditions.0.repository_id"},
+							AtLeastOneOf: []string{"conditions.0.repository_property", "conditions.0.repository_name", "conditions.0.repository_id"},
+							Description:  "Targets repositories that match the specified name patterns.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -224,9 +228,11 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							},
 						},
 						"repository_id": {
-							Type:        schema.TypeList,
-							Optional:    true,
-							Description: "The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass.",
+							Type:         schema.TypeList,
+							Optional:     true,
+							ExactlyOneOf: []string{"conditions.0.repository_property", "conditions.0.repository_name", "conditions.0.repository_id"},
+							AtLeastOneOf: []string{"conditions.0.repository_property", "conditions.0.repository_name", "conditions.0.repository_id"},
+							Description:  "The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass.",
 							Elem: &schema.Schema{
 								Type: schema.TypeInt,
 							},
