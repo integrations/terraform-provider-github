@@ -7,10 +7,23 @@ import (
 	"log"
 	"strings"
 
-	"github.com/google/go-github/v81/github"
+	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
+
+func isSAMLEnforcementError(err error) bool {
+	if err == nil {
+		return false
+	}
+	var ghErr *github.ErrorResponse
+	if errors.As(err, &ghErr) {
+		return ghErr.Response != nil &&
+			ghErr.Response.StatusCode == 403 &&
+			strings.Contains(ghErr.Message, "SAML enforcement")
+	}
+	return strings.Contains(err.Error(), "Resource protected by organization SAML enforcement")
+}
 
 func resourceGithubEnterpriseOrganization() *schema.Resource {
 	return &schema.Resource{
@@ -128,7 +141,17 @@ func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, meta 
 				Name:        github.Ptr(displayName),
 			},
 		)
-		return err
+		if err != nil {
+			if isSAMLEnforcementError(err) {
+				// The org was created but we can't set description/display_name until the PAT is authorized.
+				// Clear them from state so next plan will show drift and retry after PAT authorization.
+				log.Printf("[WARN] Organization %q created but could not set description/display_name due to SAML enforcement. Authorize the PAT and run apply again.", data.Get("name").(string))
+				_ = data.Set("description", "")
+				_ = data.Set("display_name", "")
+				return nil
+			}
+			return err
+		}
 	}
 	return nil
 }
@@ -301,10 +324,18 @@ func updateDescription(ctx context.Context, data *schema.ResourceData, v3 *githu
 			ctx,
 			orgName,
 			&github.Organization{
-				Description: github.Ptr(data.Get("description").(string)),
+				Description: github.Ptr(newDesc),
 			},
 		)
-		return err
+		if err != nil {
+			if isSAMLEnforcementError(err) {
+				// Reset state to old value so next plan shows drift
+				log.Printf("[WARN] Could not update description for %q due to SAML enforcement. Authorize the PAT and run apply again.", orgName)
+				_ = data.Set("description", oldDesc)
+				return nil
+			}
+			return err
+		}
 	}
 	return nil
 }
@@ -318,10 +349,18 @@ func updateDisplayName(ctx context.Context, data *schema.ResourceData, v4 *githu
 			ctx,
 			orgName,
 			&github.Organization{
-				Name: github.Ptr(data.Get("display_name").(string)),
+				Name: github.Ptr(newDisplayName),
 			},
 		)
-		return err
+		if err != nil {
+			if isSAMLEnforcementError(err) {
+				// Reset state to old value so next plan shows drift
+				log.Printf("[WARN] Could not update display_name for %q due to SAML enforcement. Authorize the PAT and run apply again.", orgName)
+				_ = data.Set("display_name", oldDisplayName)
+				return nil
+			}
+			return err
+		}
 	}
 	return nil
 }

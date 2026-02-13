@@ -1,51 +1,21 @@
 package github
 
 import (
-	"log"
+	"context"
 	"reflect"
 	"sort"
 
-	"github.com/google/go-github/v81/github"
+	"github.com/google/go-github/v82/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-// This is a workaround for the SDK not setting the default value for the allowed_merge_methods field.
-var defaultPullRequestMergeMethods = []github.PullRequestMergeMethod{github.PullRequestMergeMethodMerge, github.PullRequestMergeMethodRebase, github.PullRequestMergeMethodSquash}
-
-// Helper function to safely convert interface{} to int, handling both int and float64.
-func toInt(v any) int {
-	switch val := v.(type) {
-	case int:
-		return val
-	case float64:
-		return int(val)
-	case int64:
-		return int(val)
-	default:
-		return 0
-	}
-}
-
-// Helper function to safely convert interface{} to int64, handling both int and float64.
-func toInt64(v any) int64 {
-	switch val := v.(type) {
-	case int:
-		return int64(val)
-	case int64:
-		return val
-	case float64:
-		return int64(val)
-	default:
-		return 0
-	}
-}
-
 func toPullRequestMergeMethods(input any) []github.PullRequestMergeMethod {
 	value, ok := input.([]any)
-	if !ok || value == nil || len(value) == 0 {
-		log.Printf("[DEBUG] No allowed merge methods provided, using default: %#v", input)
-		return defaultPullRequestMergeMethods
+	if !ok || len(value) == 0 {
+		return []github.PullRequestMergeMethod{}
 	}
+
 	mergeMethods := make([]github.PullRequestMergeMethod, 0, len(value))
 	for _, item := range value {
 		if method, ok := item.(string); ok {
@@ -53,6 +23,72 @@ func toPullRequestMergeMethods(input any) []github.PullRequestMergeMethod {
 		}
 	}
 	return mergeMethods
+}
+
+// expandRequiredReviewers converts Terraform schema data to go-github RequiredReviewers.
+func expandRequiredReviewers(input []any) []*github.RulesetRequiredReviewer {
+	if len(input) == 0 {
+		return nil
+	}
+
+	reviewers := make([]*github.RulesetRequiredReviewer, 0, len(input))
+	for _, item := range input {
+		reviewerMap := item.(map[string]any)
+
+		var reviewer *github.RulesetReviewer
+		if rv, ok := reviewerMap["reviewer"].([]any); ok && len(rv) != 0 {
+			reviewerData := rv[0].(map[string]any)
+			reviewerType := github.RulesetReviewerType(reviewerData["type"].(string))
+			reviewer = &github.RulesetReviewer{
+				ID:   github.Ptr(int64(reviewerData["id"].(int))),
+				Type: &reviewerType,
+			}
+		}
+
+		filePatterns := make([]string, 0)
+		if fp, ok := reviewerMap["file_patterns"].([]any); ok {
+			for _, p := range fp {
+				filePatterns = append(filePatterns, p.(string))
+			}
+		}
+
+		reviewers = append(reviewers, &github.RulesetRequiredReviewer{
+			MinimumApprovals: github.Ptr(reviewerMap["minimum_approvals"].(int)),
+			FilePatterns:     filePatterns,
+			Reviewer:         reviewer,
+		})
+	}
+	return reviewers
+}
+
+// flattenRequiredReviewers converts go-github RequiredReviewers to Terraform schema data.
+func flattenRequiredReviewers(reviewers []*github.RulesetRequiredReviewer) []map[string]any {
+	if len(reviewers) == 0 {
+		return nil
+	}
+
+	reviewersList := make([]map[string]any, 0, len(reviewers))
+	for _, rr := range reviewers {
+		reviewerMap := map[string]any{
+			"file_patterns":     rr.FilePatterns,
+			"minimum_approvals": 0,
+		}
+		if rr.MinimumApprovals != nil {
+			reviewerMap["minimum_approvals"] = *rr.MinimumApprovals
+		}
+		if rr.Reviewer != nil {
+			reviewerData := map[string]any{}
+			if rr.Reviewer.ID != nil {
+				reviewerData["id"] = int(*rr.Reviewer.ID)
+			}
+			if rr.Reviewer.Type != nil {
+				reviewerData["type"] = string(*rr.Reviewer.Type)
+			}
+			reviewerMap["reviewer"] = []map[string]any{reviewerData}
+		}
+		reviewersList = append(reviewersList, reviewerMap)
+	}
+	return reviewersList
 }
 
 func resourceGithubRulesetObject(d *schema.ResourceData, org string) github.RepositoryRuleset {
@@ -220,20 +256,23 @@ func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions
 	return rulesetConditions
 }
 
-func flattenConditions(conditions *github.RepositoryRulesetConditions, org bool) []any {
-	if conditions == nil || conditions.RefName == nil {
+func flattenConditions(ctx context.Context, conditions *github.RepositoryRulesetConditions, org bool) []any {
+	if conditions == nil || reflect.DeepEqual(conditions, &github.RepositoryRulesetConditions{}) {
+		tflog.Debug(ctx, "Conditions are empty, returning empty list")
 		return []any{}
 	}
 
 	conditionsMap := make(map[string]any)
 	refNameSlice := make([]map[string]any, 0)
 
-	refNameSlice = append(refNameSlice, map[string]any{
-		"include": conditions.RefName.Include,
-		"exclude": conditions.RefName.Exclude,
-	})
+	if conditions.RefName != nil {
+		refNameSlice = append(refNameSlice, map[string]any{
+			"include": conditions.RefName.Include,
+			"exclude": conditions.RefName.Exclude,
+		})
 
-	conditionsMap["ref_name"] = refNameSlice
+		conditionsMap["ref_name"] = refNameSlice
+	}
 
 	// org-only fields
 	if org {
@@ -325,6 +364,12 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 			RequiredReviewThreadResolution: pullRequestMap["required_review_thread_resolution"].(bool),
 			AllowedMergeMethods:            toPullRequestMergeMethods(allowedMergeMethods),
 		}
+
+		// Add required reviewers if provided
+		if reqReviewers, ok := pullRequestMap["required_reviewers"].([]any); ok && len(reqReviewers) != 0 {
+			params.RequiredReviewers = expandRequiredReviewers(reqReviewers)
+		}
+
 		rulesetRules.PullRequest = params
 	}
 
@@ -518,10 +563,20 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 		rulesetRules.FileExtensionRestriction = params
 	}
 
+	// Copilot code review rule
+	if v, ok := rulesMap["copilot_code_review"].([]any); ok && len(v) != 0 {
+		copilotCodeReviewMap := v[0].(map[string]any)
+		params := &github.CopilotCodeReviewRuleParameters{
+			ReviewOnPush:            copilotCodeReviewMap["review_on_push"].(bool),
+			ReviewDraftPullRequests: copilotCodeReviewMap["review_draft_pull_requests"].(bool),
+		}
+		rulesetRules.CopilotCodeReview = params
+	}
+
 	return rulesetRules
 }
 
-func flattenRules(rules *github.RepositoryRulesetRules, org bool) []any {
+func flattenRules(ctx context.Context, rules *github.RepositoryRulesetRules, org bool) []any {
 	if rules == nil {
 		return []any{}
 	}
@@ -565,8 +620,9 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []any {
 			"required_approving_review_count":   rules.PullRequest.RequiredApprovingReviewCount,
 			"required_review_thread_resolution": rules.PullRequest.RequiredReviewThreadResolution,
 			"allowed_merge_methods":             rules.PullRequest.AllowedMergeMethods,
+			"required_reviewers":                flattenRequiredReviewers(rules.PullRequest.RequiredReviewers),
 		})
-		log.Printf("[DEBUG] Flattened Pull Request rules slice request slice: %#v", pullRequestSlice)
+		tflog.Debug(ctx, "Flattened Pull Request rules slice", map[string]any{"pull_request": pullRequestSlice})
 		rulesMap["pull_request"] = pullRequestSlice
 	}
 
@@ -732,6 +788,16 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []any {
 			"restricted_file_extensions": rules.FileExtensionRestriction.RestrictedFileExtensions,
 		})
 		rulesMap["file_extension_restriction"] = fileExtensionRestrictionSlice
+	}
+
+	// Copilot code review rule
+	if rules.CopilotCodeReview != nil {
+		copilotCodeReviewSlice := make([]map[string]any, 0)
+		copilotCodeReviewSlice = append(copilotCodeReviewSlice, map[string]any{
+			"review_on_push":             rules.CopilotCodeReview.ReviewOnPush,
+			"review_draft_pull_requests": rules.CopilotCodeReview.ReviewDraftPullRequests,
+		})
+		rulesMap["copilot_code_review"] = copilotCodeReviewSlice
 	}
 
 	return []any{rulesMap}

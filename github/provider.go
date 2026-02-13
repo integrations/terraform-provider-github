@@ -18,11 +18,11 @@ func Provider() *schema.Provider {
 	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"token": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				DefaultFunc:  schema.EnvDefaultFunc("GITHUB_TOKEN", nil),
-				Description:  descriptions["token"],
-				ExactlyOneOf: []string{"app_auth"},
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("GITHUB_TOKEN", nil),
+				Description: descriptions["token"],
+				// ConflictsWith: []string{"app_auth"}, // TODO: Enable as part of v7.
 			},
 			"owner": {
 				Type:        schema.TypeString,
@@ -94,11 +94,11 @@ func Provider() *schema.Provider {
 				Description: descriptions["parallel_requests"],
 			},
 			"app_auth": {
-				Type:         schema.TypeList,
-				Optional:     true,
-				MaxItems:     1,
-				Description:  descriptions["app_auth"],
-				ExactlyOneOf: []string{"token"},
+				Type:        schema.TypeList,
+				Optional:    true,
+				MaxItems:    1,
+				Description: descriptions["app_auth"],
+				// ConflictsWith: []string{"token"}, // TODO: Enable as part of v7.
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
@@ -139,9 +139,11 @@ func Provider() *schema.Provider {
 			"github_actions_organization_oidc_subject_claim_customization_template": resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate(),
 			"github_actions_organization_permissions":                               resourceGithubActionsOrganizationPermissions(),
 			"github_actions_organization_secret":                                    resourceGithubActionsOrganizationSecret(),
-			"github_actions_organization_variable":                                  resourceGithubActionsOrganizationVariable(),
 			"github_actions_organization_secret_repositories":                       resourceGithubActionsOrganizationSecretRepositories(),
 			"github_actions_organization_secret_repository":                         resourceGithubActionsOrganizationSecretRepository(),
+			"github_actions_organization_variable":                                  resourceGithubActionsOrganizationVariable(),
+			"github_actions_organization_variable_repositories":                     resourceGithubActionsOrganizationVariableRepositories(),
+			"github_actions_organization_variable_repository":                       resourceGithubActionsOrganizationVariableRepository(),
 			"github_actions_repository_access_level":                                resourceGithubActionsRepositoryAccessLevel(),
 			"github_actions_repository_oidc_subject_claim_customization_template":   resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(),
 			"github_actions_repository_permissions":                                 resourceGithubActionsRepositoryPermissions(),
@@ -161,6 +163,7 @@ func Provider() *schema.Provider {
 			"github_codespaces_user_secret":                                         resourceGithubCodespacesUserSecret(),
 			"github_dependabot_organization_secret":                                 resourceGithubDependabotOrganizationSecret(),
 			"github_dependabot_organization_secret_repositories":                    resourceGithubDependabotOrganizationSecretRepositories(),
+			"github_dependabot_organization_secret_repository":                      resourceGithubDependabotOrganizationSecretRepository(),
 			"github_dependabot_secret":                                              resourceGithubDependabotSecret(),
 			"github_emu_group_mapping":                                              resourceGithubEMUGroupMapping(),
 			"github_issue":                                                          resourceGithubIssue(),
@@ -212,6 +215,7 @@ func Provider() *schema.Provider {
 			"github_enterprise_organization":                                        resourceGithubEnterpriseOrganization(),
 			"github_enterprise_actions_runner_group":                                resourceGithubActionsEnterpriseRunnerGroup(),
 			"github_enterprise_actions_workflow_permissions":                        resourceGithubEnterpriseActionsWorkflowPermissions(),
+			"github_actions_organization_workflow_permissions":                      resourceGithubActionsOrganizationWorkflowPermissions(),
 			"github_enterprise_security_analysis_settings":                          resourceGithubEnterpriseSecurityAnalysisSettings(),
 			"github_workflow_repository_permissions":                                resourceGithubWorkflowRepositoryPermissions(),
 		},
@@ -266,6 +270,7 @@ func Provider() *schema.Provider {
 			"github_organization_webhooks":                                          dataSourceGithubOrganizationWebhooks(),
 			"github_ref":                                                            dataSourceGithubRef(),
 			"github_release":                                                        dataSourceGithubRelease(),
+			"github_release_asset":                                                  dataSourceGithubReleaseAsset(),
 			"github_repositories":                                                   dataSourceGithubRepositories(),
 			"github_repository":                                                     dataSourceGithubRepository(),
 			"github_repository_autolink_references":                                 dataSourceGithubRepositoryAutolinkReferences(),
@@ -505,6 +510,7 @@ func tokenFromGHCLI(u *url.URL) string {
 
 	out, err := exec.Command(ghCliPath, "auth", "token", "--hostname", host).Output()
 	if err != nil {
+		log.Printf("[DEBUG] Error getting token from GitHub CLI: %s", err.Error())
 		// GH CLI is either not installed or there was no `gh auth login` command issued,
 		// which is fine. don't return the error to keep the flow going
 		return ""

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v81/github"
+	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
@@ -189,7 +189,11 @@ func (injector *previewHeaderInjectorTransport) RoundTrip(req *http.Request) (*h
 		header := req.Header.Get(name)
 		if header == "" {
 			header = value
-		} else {
+			// NOTE: Some API endpoints expect a single Accept: application/octet-stream header.
+			// If one has been set, it's necessary to preserve it as-is, without
+			// appending previewHeaders value.
+			// See https://github.com/google/go-github/pull/3392
+		} else if strings.ToLower(name) != "accept" || header != "application/octet-stream" {
 			header = strings.Join([]string{header, value}, ",")
 		}
 		req.Header.Set(name, header)

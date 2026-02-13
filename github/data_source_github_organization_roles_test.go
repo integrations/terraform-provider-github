@@ -13,8 +13,8 @@ func TestAccDataSourceGithubOrganizationRoles(t *testing.T) {
 		`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessHasOrgs(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,

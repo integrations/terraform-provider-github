@@ -33,8 +33,8 @@ func TestAccDataSourceGithubOrganizationRoleTeams(t *testing.T) {
 		`, teamName, roleId)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessHasOrgs(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -82,8 +82,8 @@ func TestAccDataSourceGithubOrganizationRoleTeams(t *testing.T) {
 		`, teamName1, teamName2, roleId)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessHasOrgs(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,

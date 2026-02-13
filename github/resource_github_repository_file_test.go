@@ -33,30 +33,13 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 			}
 		`, repoName)
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository_file.test", "content",
-				"bar",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_file.test", "sha",
-				"ba0e162e1c47469e3fe4b393a8bf8c569f302116",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_file.test", "ref",
-				"main",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_repository_file.test", "commit_author",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_repository_file.test", "commit_email",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_repository_file.test", "commit_message",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_repository_file.test", "commit_sha",
-			),
+			resource.TestCheckResourceAttr("github_repository_file.test", "content", "bar"),
+			resource.TestCheckResourceAttr("github_repository_file.test", "sha", "ba0e162e1c47469e3fe4b393a8bf8c569f302116"),
+			resource.TestCheckResourceAttr("github_repository_file.test", "ref", "main"),
+			resource.TestCheckResourceAttrSet("github_repository_file.test", "commit_author"),
+			resource.TestCheckResourceAttrSet("github_repository_file.test", "commit_email"),
+			resource.TestCheckResourceAttrSet("github_repository_file.test", "commit_message"),
+			resource.TestCheckResourceAttrSet("github_repository_file.test", "commit_sha"),
 			resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch"),
 			resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch_source_branch"),
 			resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch_source_sha"),
@@ -69,6 +52,71 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				{
 					Config: config,
 					Check:  check,
+				},
+			},
+		})
+	})
+	t.Run("validates_commit_email_must_be_specified_if_commit_author_is_specified", func(t *testing.T) {
+		randomID := acctest.RandString(5)
+		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
+		config := fmt.Sprintf(`
+
+			resource "github_repository" "test" {
+				name                 = "%s"
+				auto_init            = true
+				vulnerability_alerts = true
+			}
+
+			resource "github_repository_file" "test" {
+				repository     = github_repository.test.name
+				branch         = "main"
+				file           = "test"
+				content        = "bar"
+				commit_message = "Managed by Terraform"
+				commit_author  = "Terraform User"
+			}
+		`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("all of `commit_author,commit_email` must be specified"),
+				},
+			},
+		})
+	})
+
+	t.Run("validates_commit_author_must_be_specified_if_commit_email_is_specified", func(t *testing.T) {
+		randomID := acctest.RandString(5)
+		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
+		config := fmt.Sprintf(`
+
+			resource "github_repository" "test" {
+				name                 = "%s"
+				auto_init            = true
+				vulnerability_alerts = true
+			}
+
+			resource "github_repository_file" "test" {
+				repository     = github_repository.test.name
+				branch         = "main"
+				file           = "test"
+				content        = "bar"
+				commit_message = "Managed by Terraform"
+				commit_email   = "terraform@example.com"
+			}
+		`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("all of `commit_author,commit_email` must be specified"),
 				},
 			},
 		})
@@ -207,7 +255,7 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 	t.Run("creates and manages files on auto created branch if branch does not exist", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
-		config := fmt.Sprintf(`
+		config := `
 			resource "github_repository" "test" {
 				name                 = "%s"
 				auto_init            = true
@@ -222,53 +270,33 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				commit_message    = "Managed by Terraform"
 				commit_author     = "Terraform User"
 				commit_email      = "terraform@example.com"
-				autocreate_branch = false
+				autocreate_branch = %t
 			}
-		`, repoName)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository_file.test", "content",
-				"bar",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_file.test", "sha",
-				"ba0e162e1c47469e3fe4b393a8bf8c569f302116",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_file.test", "ref",
-				"does/not/exist",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_repository_file.test", "commit_author",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_repository_file.test", "commit_email",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_repository_file.test", "commit_message",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_repository_file.test", "commit_sha",
-			),
-			resource.TestCheckResourceAttr("github_repository_file.test", "autocreate_branch", "true"),
-			resource.TestCheckResourceAttr("github_repository_file.test", "autocreate_branch_source_branch", "main"),
-			resource.TestCheckResourceAttrSet("github_repository_file.test", "autocreate_branch_source_sha"),
-		)
+		`
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config:      config,
+					Config:      fmt.Sprintf(config, repoName, false),
 					ExpectError: regexp.MustCompile(`unexpected status code: 404 Not Found`),
 				},
 				{
-					Config: strings.Replace(config,
-						"autocreate_branch = false",
-						"autocreate_branch = true", 1),
-					Check: check,
+					Config: fmt.Sprintf(config, repoName, true),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository_file.test", "content", "bar"),
+						resource.TestCheckResourceAttr("github_repository_file.test", "sha", "ba0e162e1c47469e3fe4b393a8bf8c569f302116"),
+						resource.TestCheckResourceAttr("github_repository_file.test", "ref", "does/not/exist"),
+						resource.TestCheckResourceAttrSet("github_repository_file.test", "commit_author"),
+						resource.TestCheckResourceAttrSet("github_repository_file.test", "commit_email"),
+						resource.TestCheckResourceAttrSet("github_repository_file.test", "commit_message"),
+						resource.TestCheckResourceAttrSet("github_repository_file.test", "commit_sha"),
+						resource.TestCheckResourceAttr("github_repository_file.test", "autocreate_branch", "true"),
+						resource.TestCheckResourceAttr("github_repository_file.test", "autocreate_branch_source_branch", "main"),
+						resource.TestCheckResourceAttrSet("github_repository_file.test", "autocreate_branch_source_sha"),
+						resource.TestCheckResourceAttrSet("github_repository_file.test", "repository_id"),
+					),
 				},
 			},
 		})
@@ -300,25 +328,19 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				archived = true`, 1)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnauthenticated(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr(
-							"github_repository_file.test", "file",
-							"archived-test.md",
-						),
+						resource.TestCheckResourceAttr("github_repository_file.test", "file", "archived-test.md"),
 					),
 				},
 				{
 					Config: archivedConfig,
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr(
-							"github_repository.test", "archived",
-							"true",
-						),
+						resource.TestCheckResourceAttr("github_repository.test", "archived", "true"),
 					),
 				},
 				// This step should succeed - the file should be removed from state
@@ -331,6 +353,104 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 								archived = true
 							}
 						`, repoName),
+				},
+			},
+		})
+	})
+	t.Run("imports_files_without_error", func(t *testing.T) {
+		randomID := acctest.RandString(5)
+		repoName := fmt.Sprintf("%sfile-import-%s", testResourcePrefix, randomID)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name                 = "%s"
+				auto_init            = true
+				vulnerability_alerts = true
+			}
+
+			resource "github_repository_file" "test" {
+				repository     = github_repository.test.name
+				file           = "test"
+				content        = "bar"
+				commit_message = "Managed by Terraform"
+				commit_author  = "Terraform User"
+				commit_email   = "terraform@example.com"
+			}
+		`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeAggregateTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository_file.test", "content", "bar"),
+						resource.TestCheckResourceAttrSet("github_repository_file.test", "sha"),
+						resource.TestCheckResourceAttr("github_repository_file.test", "ref", "main"),
+						resource.TestCheckResourceAttrSet("github_repository_file.test", "commit_author"),
+						resource.TestCheckResourceAttrSet("github_repository_file.test", "commit_email"),
+						resource.TestCheckResourceAttrSet("github_repository_file.test", "commit_message"),
+						resource.TestCheckResourceAttrSet("github_repository_file.test", "commit_sha"),
+						resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch"),
+						resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch_source_branch"),
+						resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch_source_sha"),
+						resource.TestCheckResourceAttrSet("github_repository_file.test", "repository_id"),
+					),
+				},
+				{
+					ResourceName:            "github_repository_file.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"commit_author", "commit_email"}, // For some reason `d` doesn't contain the commit author and email when importing.
+				},
+			},
+		})
+	})
+	t.Run("imports_files_with_branch_in_id_without_error", func(t *testing.T) {
+		randomID := acctest.RandString(5)
+		repoName := fmt.Sprintf("%sfile-import-%s", testResourcePrefix, randomID)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name                 = "%s"
+				auto_init            = true
+				vulnerability_alerts = true
+			}
+
+			resource "github_repository_file" "test" {
+				repository     = github_repository.test.name
+				file           = "test"
+				content        = "bar"
+				commit_message = "Managed by Terraform"
+				commit_author  = "Terraform User"
+				commit_email   = "terraform@example.com"
+			}
+		`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeAggregateTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository_file.test", "content", "bar"),
+						resource.TestCheckResourceAttrSet("github_repository_file.test", "sha"),
+						resource.TestCheckResourceAttr("github_repository_file.test", "ref", "main"),
+						resource.TestCheckResourceAttrSet("github_repository_file.test", "commit_author"),
+						resource.TestCheckResourceAttrSet("github_repository_file.test", "commit_email"),
+						resource.TestCheckResourceAttrSet("github_repository_file.test", "commit_message"),
+						resource.TestCheckResourceAttrSet("github_repository_file.test", "commit_sha"),
+						resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch"),
+						resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch_source_branch"),
+						resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch_source_sha"),
+						resource.TestCheckResourceAttrSet("github_repository_file.test", "repository_id"),
+					),
+				},
+				{
+					ResourceName:            "github_repository_file.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"commit_author", "commit_email"}, // For some reason `d` doesn't contain the commit author and email when importing.
 				},
 			},
 		})

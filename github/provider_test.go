@@ -6,32 +6,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
-
-var (
-	testAccProviders         map[string]*schema.Provider
-	testAccProviderFactories func(providers *[]*schema.Provider) map[string]func() (*schema.Provider, error)
-	testAccProvider          *schema.Provider
-)
-
-func init() {
-	testAccProvider = Provider()
-	testAccProviders = map[string]*schema.Provider{
-		"github": testAccProvider,
-	}
-	testAccProviderFactories = func(providers *[]*schema.Provider) map[string]func() (*schema.Provider, error) {
-		return map[string]func() (*schema.Provider, error){
-			//nolint:unparam
-			"github": func() (*schema.Provider, error) {
-				p := Provider()
-				*providers = append(*providers, p)
-				return p, nil
-			},
-		}
-	}
-}
 
 func TestProvider(t *testing.T) {
 	t.Run("runs internal validation without error", func(t *testing.T) {
@@ -51,15 +27,15 @@ func TestProvider(t *testing.T) {
 }
 
 func TestAccProviderConfigure(t *testing.T) {
-	t.Run("can be configured to run anonymously", func(t *testing.T) {
+	t.Run("can_be_configured_to_run_anonymously", func(t *testing.T) {
 		config := `
 		provider "github" {
-			token = ""
 		}
 		data "github_ip_ranges" "test" {}
 		`
 
 		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { t.Setenv("GITHUB_TOKEN", ""); t.Setenv("GH_PATH", "none-existent-path") },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -71,10 +47,36 @@ func TestAccProviderConfigure(t *testing.T) {
 		})
 	})
 
+	t.Run("can_be_configured_with_app_auth_and_ignore_github_token", func(t *testing.T) {
+		t.Skip("This test requires a valid app auth setup to run.")
+		config := fmt.Sprintf(`
+provider "github" {
+	owner = "%s"
+	app_auth {
+		id = "1234567890"
+		installation_id = "1234567890"
+		pem_file = "1234567890"
+	}
+}
+
+data "github_ip_ranges" "test" {}
+`, testAccConf.owner)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { t.Setenv("GITHUB_TOKEN", "1234567890") },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:             config,
+					ExpectNonEmptyPlan: false,
+				},
+			},
+		})
+	})
+
 	t.Run("can be configured to run insecurely", func(t *testing.T) {
 		config := `
 		provider "github" {
-			token = ""
 			insecure = true
 		}
 		data "github_ip_ranges" "test" {}
@@ -161,10 +163,15 @@ func TestAccProviderConfigure(t *testing.T) {
 			provider "github" {
 				token = "%s"
 				base_url = "%s"
-			}`, testAccConf.token, testAccConf.owner)
+			}`, testAccConf.token, testAccConf.baseURL)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, individual) },
+			PreCheck: func() {
+				skipUnlessMode(t, enterprise)
+				if testAccConf.baseURL.Host != "api.github.com" {
+					t.Skip("Skipping as test mode is not GHES")
+				}
+			},
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -187,7 +194,6 @@ func TestAccProviderConfigure(t *testing.T) {
 			`, testAccConf.owner, testMaxRetries)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -211,7 +217,6 @@ func TestAccProviderConfigure(t *testing.T) {
 			`, testAccConf.owner, testMaxPerPage)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -228,6 +233,7 @@ func TestAccProviderConfigure(t *testing.T) {
 		})
 	})
 	t.Run("should not allow both token and app_auth to be configured", func(t *testing.T) {
+		t.Skip("This would be a semver breaking change, this will be reinstated for v7.")
 		config := fmt.Sprintf(`
 			provider "github" {
 				owner = "%s"
@@ -243,37 +249,11 @@ func TestAccProviderConfigure(t *testing.T) {
 			`, testAccConf.owner, testAccConf.token)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config:      config,
-					ExpectError: regexp.MustCompile("only one of `app_auth,token` can be specified"),
-				},
-			},
-		})
-	})
-	t.Run("should not allow app_auth and GITHUB_TOKEN to be configured", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			provider "github" {
-				owner = "%s"
-				app_auth {
-					id = "1234567890"
-					installation_id = "1234567890"
-					pem_file = "1234567890"
-				}
-			}
-
-			data "github_ip_ranges" "test" {}
-			`, testAccConf.owner)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t); t.Setenv("GITHUB_TOKEN", "1234567890") },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config:      config,
-					ExpectError: regexp.MustCompile("only one of `app_auth,token` can be specified"),
+					ExpectError: regexp.MustCompile(`"app_auth": conflicts with token`),
 				},
 			},
 		})
