@@ -10,7 +10,7 @@ import (
 
 func TestAccGithubActionsOrganizationVariableRepositories(t *testing.T) {
 	t.Run("create", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		variableName := fmt.Sprintf("test_%s", randomID)
 		variableValue := "foo"
 		repoName0 := fmt.Sprintf("%s%s-0", testResourcePrefix, randomID)

@@ -11,7 +11,7 @@ import (
 
 func TestAccGithubBranchDataSource(t *testing.T) {
 	t.Run("queries an existing branch without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-branch-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
@@ -46,7 +46,7 @@ func TestAccGithubBranchDataSource(t *testing.T) {
 
 	// Can't test due to SDK and test framework limitations
 	// t.Run("queries an invalid branch without error", func(t *testing.T) {
-	// 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	// 	randomID := acctest.RandString(5)
 	// 	repoName := fmt.Sprintf("%sinvalid-branch-%s", testResourcePrefix, randomID)
 
 	// 	config := fmt.Sprintf(`

@@ -13,7 +13,7 @@ import (
 
 func TestAccGithubActionsRunnerGroup(t *testing.T) {
 	t.Run("creates runner groups without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-act-runner-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -98,7 +98,7 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 	})
 
 	t.Run("manages runner visibility", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-act-runner-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -146,7 +146,7 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 	})
 
 	t.Run("imports an all runner group without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-act-runner-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -190,7 +190,7 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 		// Based on GitHub UI there is no way to create a private runner group
 		t.Skip("This is not supported")
 
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-act-runner-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 					resource "github_repository" "test" {
@@ -227,7 +227,7 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 	})
 
 	t.Run("imports a selected runner group without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-act-runner-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {

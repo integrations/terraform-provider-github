@@ -85,6 +85,7 @@ func resourceGithubActionsSecret() *schema.Resource {
 				Computed:    true,
 				Description: "Date of secret update at the remote.",
 			},
+			// lintignore:XS001 // This is deprecated and will be removed in a future version.
 			"destroy_on_drift": {
 				Type:       schema.TypeBool,
 				Optional:   true,

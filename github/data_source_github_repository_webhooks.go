@@ -10,37 +10,45 @@ import (
 
 func dataSourceGithubRepositoryWebhooks() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoryWebhooksRead,
+		Description: "Use this data source to retrieve the webhooks for a repository.",
+		Read:        dataSourceGithubRepositoryWebhooksRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The name of the repository.",
 			},
 			"webhooks": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "An array of GitHub webhooks.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
-							Type:     schema.TypeInt,
-							Computed: true,
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The ID of the webhook.",
 						},
 						"type": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The type of the webhook.",
 						},
 						"name": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The name of the webhook.",
 						},
 						"url": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The URL of the webhook.",
 						},
 						"active": {
-							Type:     schema.TypeBool,
-							Computed: true,
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Whether the webhook is active.",
 						},
 					},
 				},

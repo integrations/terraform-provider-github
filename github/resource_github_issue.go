@@ -13,10 +13,11 @@ import (
 
 func resourceGithubIssue() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubIssueCreateOrUpdate,
-		Read:   resourceGithubIssueRead,
-		Update: resourceGithubIssueCreateOrUpdate,
-		Delete: resourceGithubIssueDelete,
+		Description: "Manages a GitHub issue within a repository.",
+		Create:      resourceGithubIssueCreateOrUpdate,
+		Read:        resourceGithubIssueRead,
+		Update:      resourceGithubIssueCreateOrUpdate,
+		Delete:      resourceGithubIssueDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -29,7 +30,6 @@ func resourceGithubIssue() *schema.Resource {
 			},
 			"number": {
 				Type:        schema.TypeInt,
-				Required:    false,
 				Computed:    true,
 				Description: "The issue number.",
 			},
@@ -68,8 +68,9 @@ func resourceGithubIssue() *schema.Resource {
 				Description: "The issue id.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the issue.",
 			},
 		},
 	}

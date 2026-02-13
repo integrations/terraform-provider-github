@@ -11,10 +11,11 @@ import (
 
 func resourceGithubAppInstallationRepositories() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubAppInstallationRepositoriesCreateOrUpdate,
-		Read:   resourceGithubAppInstallationRepositoriesRead,
-		Update: resourceGithubAppInstallationRepositoriesCreateOrUpdate,
-		Delete: resourceGithubAppInstallationRepositoriesDelete,
+		Description: "Manages the repository access list for a GitHub App installation.",
+		Create:      resourceGithubAppInstallationRepositoriesCreateOrUpdate,
+		Read:        resourceGithubAppInstallationRepositoriesRead,
+		Update:      resourceGithubAppInstallationRepositoriesCreateOrUpdate,
+		Delete:      resourceGithubAppInstallationRepositoriesDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

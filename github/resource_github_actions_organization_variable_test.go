@@ -14,7 +14,7 @@ import (
 
 func TestAccGithubActionsOrganizationVariable(t *testing.T) {
 	t.Run("create_update_visibility_all", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
+		randomID := acctest.RandString(5)
 		varName := fmt.Sprintf("test_%s", randomID)
 		value := "foo"
 		valueUpdated := "bar"
@@ -102,8 +102,8 @@ resource "github_actions_organization_variable" "test" {
 	})
 
 	t.Run("create_update_visibility_selected", func(t *testing.T) {
-		repoName0 := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
-		repoName1 := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
+		repoName0 := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(5))
+		repoName1 := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(5))
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 		varName := fmt.Sprintf("test_%s", randomID)
 		value := "foo"

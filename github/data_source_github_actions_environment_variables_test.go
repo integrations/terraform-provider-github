@@ -11,7 +11,7 @@ import (
 
 func TestAccGithubActionsEnvironmentVariablesDataSource(t *testing.T) {
 	t.Run("queries actions variables from an environment", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-env-vars-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`

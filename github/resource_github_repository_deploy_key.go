@@ -15,9 +15,10 @@ import (
 
 func resourceGithubRepositoryDeployKey() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryDeployKeyCreate,
-		Read:   resourceGithubRepositoryDeployKeyRead,
-		Delete: resourceGithubRepositoryDeployKeyDelete,
+		Description: "Manages a deploy key for a repository.",
+		Create:      resourceGithubRepositoryDeployKeyCreate,
+		Read:        resourceGithubRepositoryDeployKeyRead,
+		Delete:      resourceGithubRepositoryDeployKeyDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -51,8 +52,9 @@ func resourceGithubRepositoryDeployKey() *schema.Resource {
 				Description: "A title.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the deploy key.",
 			},
 		},
 	}

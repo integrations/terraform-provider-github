@@ -7,21 +7,25 @@ import (
 
 func dataSourceGithubBranchProtectionRules() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubBranchProtectionRulesRead,
+		Description: "Use this data source to retrieve the branch protection rules for a repository.",
+		Read:        dataSourceGithubBranchProtectionRulesRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The GitHub repository name.",
 			},
 			"rules": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "Collection of branch protection rules.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"pattern": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Identifies the protection rule pattern.",
 						},
 					},
 				},

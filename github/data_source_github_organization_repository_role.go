@@ -75,20 +75,22 @@ func dataSourceGithubOrganizationRepositoryRoleRead(ctx context.Context, d *sche
 		return diag.FromErr(fmt.Errorf("custom organization repo role with ID %d not found", roleId))
 	}
 
-	r := map[string]any{
-		"role_id":     role.GetID(),
-		"name":        role.GetName(),
-		"description": role.GetDescription(),
-		"base_role":   role.GetBaseRole(),
-		"permissions": role.Permissions,
-	}
-
 	d.SetId(strconv.FormatInt(role.GetID(), 10))
 
-	for k, v := range r {
-		if err := d.Set(k, v); err != nil {
-			return diag.FromErr(err)
-		}
+	if err := d.Set("role_id", role.GetID()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("name", role.GetName()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("description", role.GetDescription()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("base_role", role.GetBaseRole()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("permissions", role.Permissions); err != nil {
+		return diag.FromErr(err)
 	}
 
 	return nil

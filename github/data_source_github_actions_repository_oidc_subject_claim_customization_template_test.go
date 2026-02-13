@@ -9,7 +9,7 @@ import (
 )
 
 func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDataSource(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	randomID := acctest.RandString(5)
 	repoName := fmt.Sprintf("%srepo-oidc-%s", testResourcePrefix, randomID)
 
 	t.Run("get an repository oidc subject claim customization template without error", func(t *testing.T) {

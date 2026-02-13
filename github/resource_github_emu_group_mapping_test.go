@@ -17,7 +17,7 @@ func TestAccGithubEMUGroupMapping(t *testing.T) {
 		t.Skip("Skipping EMU group mapping tests because testEnterpriseEMUGroupId is not set")
 	}
 	t.Run("creates and manages EMU group mapping", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		teamName := fmt.Sprintf("%steam-emu-%s", testResourcePrefix, randomID)
 
 		resource.Test(t, resource.TestCase{
@@ -38,7 +38,7 @@ func TestAccGithubEMUGroupMapping(t *testing.T) {
 	})
 
 	t.Run("imports EMU group mapping", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		teamName := fmt.Sprintf("%steam-emu-%s", testResourcePrefix, randomID)
 		rn := "github_emu_group_mapping.test"
 
@@ -60,7 +60,7 @@ func TestAccGithubEMUGroupMapping(t *testing.T) {
 		})
 	})
 	t.Run("imports EMU group mapping with multiple teams", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		teamName := fmt.Sprintf("%steam1-emu-%s", testResourcePrefix, randomID)
 		teamName2 := fmt.Sprintf("%steam2-emu-%s", testResourcePrefix, randomID)
 		rn := "github_emu_group_mapping.test1"
@@ -102,7 +102,7 @@ func TestAccGithubEMUGroupMapping(t *testing.T) {
 	})
 
 	t.Run("handles team slug update by recreating", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		teamName1 := fmt.Sprintf("%steam-emu-%s", testResourcePrefix, randomID)
 		teamName2 := fmt.Sprintf("%s-upd", teamName1)
 

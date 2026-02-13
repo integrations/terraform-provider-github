@@ -11,7 +11,7 @@ import (
 
 func TestAccGithubIssueLabelsDataSource(t *testing.T) {
 	t.Run("queries the labels for a repository", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-issue-labels-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`

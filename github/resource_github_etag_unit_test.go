@@ -14,7 +14,7 @@ func TestEtagDiffSuppressFunction(t *testing.T) {
 
 	if etagField == nil {
 		t.Fatal("etag field not found in repository schema")
-		panic("unreachable") // This resolves https://github.com/golangci/golangci-lint/issues/5979
+		panic("unreachable") // lintignore:R009 // This resolves https://github.com/golangci/golangci-lint/issues/5979
 	}
 
 	if etagField.DiffSuppressFunc == nil {

@@ -11,7 +11,7 @@ import (
 
 func TestAccGithubActionsOrganizationVariablesDataSource(t *testing.T) {
 	t.Run("queries actions variables from an organization", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 
 		config := fmt.Sprintf(`
 			resource "github_actions_organization_variable" "test" {

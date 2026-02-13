@@ -27,10 +27,11 @@ func isSAMLEnforcementError(err error) bool {
 
 func resourceGithubEnterpriseOrganization() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubEnterpriseOrganizationCreate,
-		Read:   resourceGithubEnterpriseOrganizationRead,
-		Delete: resourceGithubEnterpriseOrganizationDelete,
-		Update: resourceGithubEnterpriseOrganizationUpdate,
+		Description: "Manages an organization within a GitHub Enterprise.",
+		Create:      resourceGithubEnterpriseOrganizationCreate,
+		Read:        resourceGithubEnterpriseOrganizationRead,
+		Delete:      resourceGithubEnterpriseOrganizationDelete,
+		Update:      resourceGithubEnterpriseOrganizationUpdate,
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubEnterpriseOrganizationImport,
 		},

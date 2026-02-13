@@ -13,10 +13,11 @@ import (
 
 func resourceGithubTeamSyncGroupMapping() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubTeamSyncGroupMappingCreate,
-		Read:   resourceGithubTeamSyncGroupMappingRead,
-		Update: resourceGithubTeamSyncGroupMappingUpdate,
-		Delete: resourceGithubTeamSyncGroupMappingDelete,
+		Description: "Manages the connection between a team and an identity provider group.",
+		Create:      resourceGithubTeamSyncGroupMappingCreate,
+		Read:        resourceGithubTeamSyncGroupMappingRead,
+		Update:      resourceGithubTeamSyncGroupMappingUpdate,
+		Delete:      resourceGithubTeamSyncGroupMappingDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				if err := d.Set("team_slug", d.Id()); err != nil {
@@ -59,8 +60,9 @@ func resourceGithubTeamSyncGroupMapping() *schema.Resource {
 				},
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the team sync group mapping.",
 			},
 		},
 	}

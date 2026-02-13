@@ -52,7 +52,7 @@ func TestAccDataSourceGithubOrganizationRoleUsers(t *testing.T) {
 			t.Skip("Skipping test because no organization user has been configured")
 		}
 
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 		roleId := 8134
 		config := fmt.Sprintf(`

@@ -10,7 +10,7 @@ import (
 
 func TestAccGithubActionsEnvironmentSecretsDataSource(t *testing.T) {
 	t.Run("queries actions secrets from an environment", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-env-secrets-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`

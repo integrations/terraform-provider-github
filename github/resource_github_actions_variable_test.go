@@ -15,7 +15,7 @@ import (
 
 func TestAccGithubActionsVariable(t *testing.T) {
 	t.Run("create", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		varName := "test"
 		value := "foo"
@@ -51,7 +51,7 @@ resource "github_actions_variable" "test" {
 	})
 
 	t.Run("create_update", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		varName := "test"
 		value := "foo"
@@ -98,7 +98,7 @@ resource "github_actions_variable" "test" {
 	})
 
 	t.Run("update_renamed_repo", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		updatedRepoName := fmt.Sprintf("%s%s-updated", testResourcePrefix, randomID)
 
@@ -150,7 +150,7 @@ resource "github_actions_variable" "test" {
 	})
 
 	t.Run("recreate_changed_repo", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		repoName2 := fmt.Sprintf("%supdated-%s", testResourcePrefix, randomID)
 
@@ -222,7 +222,7 @@ resource "github_actions_variable" "test" {
 	})
 
 	t.Run("destroy", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
@@ -253,7 +253,7 @@ resource "github_actions_variable" "test" {
 	})
 
 	t.Run("import", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
@@ -285,7 +285,7 @@ resource "github_actions_variable" "test" {
 	})
 
 	t.Run("error_on_existing", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		varName := "test"
 

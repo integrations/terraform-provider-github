@@ -11,7 +11,7 @@ import (
 func TestAccGithubWorkflowRepositoryPermissions(t *testing.T) {
 	t.Run("test setting of basic workflow repository permissions", func(t *testing.T) {
 		defaultWorkflowPermissions := "read"
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-workflow-perms-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
@@ -49,7 +49,7 @@ func TestAccGithubWorkflowRepositoryPermissions(t *testing.T) {
 		defaultWorkflowPermissions := "read"
 		canApprovePullRequestReviews := "true"
 
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-workflow-perms-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`

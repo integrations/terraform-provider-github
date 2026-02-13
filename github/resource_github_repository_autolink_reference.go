@@ -17,9 +17,10 @@ import (
 
 func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryAutolinkReferenceCreate,
-		Read:   resourceGithubRepositoryAutolinkReferenceRead,
-		Delete: resourceGithubRepositoryAutolinkReferenceDelete,
+		Description: "Manages an autolink reference for a repository.",
+		Create:      resourceGithubRepositoryAutolinkReferenceCreate,
+		Read:        resourceGithubRepositoryAutolinkReferenceRead,
+		Delete:      resourceGithubRepositoryAutolinkReferenceDelete,
 
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
@@ -85,8 +86,9 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 				Description: "Whether this autolink reference matches alphanumeric characters. If false, this autolink reference only matches numeric characters.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the autolink reference.",
 			},
 		},
 	}

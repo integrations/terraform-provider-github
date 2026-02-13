@@ -12,6 +12,7 @@ import (
 
 func resourceGithubOrganizationCustomRole() *schema.Resource {
 	return &schema.Resource{
+		Description:        "Manages a custom role for an organization.",
 		DeprecationMessage: "This resource is deprecated and will be removed in a future release. Use github_organization_repository_role resource instead.",
 
 		Create: resourceGithubOrganizationCustomRoleCreate,

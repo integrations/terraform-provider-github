@@ -14,9 +14,10 @@ import (
 
 func resourceGithubUserSshKey() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubUserSshKeyCreate,
-		Read:   resourceGithubUserSshKeyRead,
-		Delete: resourceGithubUserSshKeyDelete,
+		Description: "Manages an SSH key for the authenticated user.",
+		Create:      resourceGithubUserSshKeyCreate,
+		Read:        resourceGithubUserSshKeyRead,
+		Delete:      resourceGithubUserSshKeyDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -44,8 +45,9 @@ func resourceGithubUserSshKey() *schema.Resource {
 				Description: "The URL of the SSH key.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the SSH key.",
 			},
 		},
 	}

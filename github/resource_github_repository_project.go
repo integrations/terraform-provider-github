@@ -9,6 +9,7 @@ import (
 
 func resourceGithubRepositoryProject() *schema.Resource {
 	return &schema.Resource{
+		Description:        "Manages a classic project within a repository.",
 		DeprecationMessage: "This resource is deprecated as the API endpoints for classic projects have been removed. This resource no longer works and will be removed in a future version.",
 
 		Create: resourceGithubRepositoryProjectCreate,
@@ -52,9 +53,10 @@ func resourceGithubRepositoryProject() *schema.Resource {
 				Description: "URL of the project",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "An etag representing the repository project.",
 				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
 					return true
 				},

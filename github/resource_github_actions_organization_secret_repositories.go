@@ -10,6 +10,7 @@ import (
 
 func resourceGithubActionsOrganizationSecretRepositories() *schema.Resource {
 	return &schema.Resource{
+		Description: "Manages the repository access list for an organization Actions secret.",
 		Schema: map[string]*schema.Schema{
 			"secret_name": {
 				Type:             schema.TypeString,

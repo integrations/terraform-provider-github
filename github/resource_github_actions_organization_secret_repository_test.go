@@ -11,7 +11,7 @@ import (
 
 func TestAccGithubActionsOrganizationSecretRepository(t *testing.T) {
 	t.Run("create", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		secretName := fmt.Sprintf("test_%s", randomID)
 		secretValue := base64.StdEncoding.EncodeToString([]byte("foo"))
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)

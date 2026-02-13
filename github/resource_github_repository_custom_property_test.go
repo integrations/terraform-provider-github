@@ -10,7 +10,7 @@ import (
 
 func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 	t.Run("creates custom property of type single_select without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-custom-prop-%s", testResourcePrefix, randomID)
 		propertyName := fmt.Sprintf("tf-acc-test-property-%s", randomID)
 
@@ -52,7 +52,7 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 	})
 
 	t.Run("creates custom property of type multi_select without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-custom-prop-%s", testResourcePrefix, randomID)
 		propertyName := fmt.Sprintf("tf-acc-test-property-%s", randomID)
 
@@ -95,7 +95,7 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 	})
 
 	t.Run("creates custom property of type true-false without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-custom-prop-%s", testResourcePrefix, randomID)
 		propertyName := fmt.Sprintf("tf-acc-test-property-%s", randomID)
 
@@ -136,7 +136,7 @@ func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 	})
 
 	t.Run("creates custom property of type string without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-custom-prop-%s", testResourcePrefix, randomID)
 		propertyName := fmt.Sprintf("tf-acc-test-property-%s", randomID)
 

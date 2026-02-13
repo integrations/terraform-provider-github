@@ -72,7 +72,7 @@ func TestIsSAMLEnforcementError(t *testing.T) {
 
 func TestAccGithubEnterpriseOrganization(t *testing.T) {
 	t.Run("creates and updates an enterprise organization without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		orgName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
 		desc := "Initial org description"
@@ -146,7 +146,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 	})
 
 	t.Run("deletes an enterprise organization without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		orgName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
@@ -181,7 +181,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 	})
 
 	t.Run("creates and updates org with display name", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		orgName := fmt.Sprintf("tf-acc-test-displayname%s", randomID)
 
 		displayName := fmt.Sprintf("Tf Acc Test displayname %s", randomID)
@@ -270,7 +270,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 	})
 
 	t.Run("creates org without display name, set and update display name", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		orgName := fmt.Sprintf("tf-acc-test-adddisplayname%s", randomID)
 
 		displayName := fmt.Sprintf("Tf Acc Test Add displayname %s", randomID)
@@ -415,7 +415,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 	})
 
 	t.Run("imports enterprise organization without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		orgName := fmt.Sprintf("tf-acc-test-import%s", randomID)
 
 		config := fmt.Sprintf(`
@@ -458,7 +458,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 	})
 
 	t.Run("imports enterprise organization invalid enterprise name", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		orgName := fmt.Sprintf("tf-acc-test-adddisplayname%s", randomID)
 
 		config := fmt.Sprintf(`
@@ -502,7 +502,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 	})
 
 	t.Run("imports enterprise organization invalid organization name", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		orgName := fmt.Sprintf("tf-acc-test-adddisplayname%s", randomID)
 
 		config := fmt.Sprintf(`

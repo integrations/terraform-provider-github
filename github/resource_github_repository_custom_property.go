@@ -11,9 +11,10 @@ import (
 
 func resourceGithubRepositoryCustomProperty() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryCustomPropertyCreate,
-		Read:   resourceGithubRepositoryCustomPropertyRead,
-		Delete: resourceGithubRepositoryCustomPropertyDelete,
+		Description: "Manages a custom property value for a repository.",
+		Create:      resourceGithubRepositoryCustomPropertyCreate,
+		Read:        resourceGithubRepositoryCustomPropertyRead,
+		Delete:      resourceGithubRepositoryCustomPropertyDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

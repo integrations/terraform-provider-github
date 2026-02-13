@@ -10,25 +10,30 @@ import (
 
 func dataSourceGithubOrganizationTeamSyncGroups() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubOrganizationTeamSyncGroupsRead,
+		Description: "Use this data source to retrieve the identity provider groups for team synchronization in an organization.",
+		Read:        dataSourceGithubOrganizationTeamSyncGroupsRead,
 
 		Schema: map[string]*schema.Schema{
 			"groups": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "An array of GitHub Identity Provider Groups.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"group_id": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The ID of the IdP group.",
 						},
 						"group_name": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The name of the IdP group.",
 						},
 						"group_description": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The description of the IdP group.",
 						},
 					},
 				},

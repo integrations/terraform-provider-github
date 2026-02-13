@@ -283,7 +283,7 @@ func (t *RetryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 			return resp, err
 		}
 
-		time.Sleep(t.retryDelay)
+		time.Sleep(t.retryDelay) // lintignore:R018
 	}
 
 	return resp, err

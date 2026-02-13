@@ -15,6 +15,7 @@ import (
 
 func resourceGithubDependabotSecret() *schema.Resource {
 	return &schema.Resource{
+		Description:   "Manages a Dependabot secret within a repository.",
 		SchemaVersion: 1,
 		StateUpgraders: []schema.StateUpgrader{
 			{

@@ -10,7 +10,7 @@ import (
 
 func TestAccGithubTeam(t *testing.T) {
 	t.Run("creates a team configured with defaults", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 resource "github_team" "test" {
@@ -35,7 +35,7 @@ resource "github_team" "test" {
 	})
 
 	t.Run("creates a team configured with alternatives", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		testResourceName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 resource "github_team" "test" {
@@ -62,7 +62,7 @@ resource "github_team" "test" {
 	})
 
 	t.Run("creates a hierarchy of teams", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		team01Name := fmt.Sprintf("%steam-hier01-%s", testResourcePrefix, randomID)
 		team02Name := fmt.Sprintf("%steam-hier02-%s", testResourcePrefix, randomID)
 		team03Name := fmt.Sprintf("%steam-hier03-%s", testResourcePrefix, randomID)
@@ -139,7 +139,7 @@ resource "github_team" "test" {
 	})
 
 	t.Run("creates a team and removes the default maintainer", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		teamName := fmt.Sprintf("%steam-no-maint-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
@@ -163,7 +163,7 @@ resource "github_team" "test" {
 	})
 
 	t.Run("updates_slug", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		teamName := fmt.Sprintf("%steam-slug-%s", testResourcePrefix, randomID)
 		teamNameUpdated := fmt.Sprintf("%s-updated", teamName)
 		config := `

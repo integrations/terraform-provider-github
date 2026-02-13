@@ -58,6 +58,7 @@ func resourceGithubRepository() *schema.Resource {
 				Optional:      true,
 				ConflictsWith: []string{"visibility"},
 				Deprecated:    "use visibility instead",
+				Description:   "Deprecated: Use visibility instead. Set to 'true' to create a private repository.",
 			},
 			"visibility": {
 				Type:             schema.TypeString,
@@ -379,8 +380,9 @@ func resourceGithubRepository() *schema.Resource {
 							Description: "The GitHub Pages site's build status e.g. building or built.",
 						},
 						"url": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The URL for the Pages site.",
 						},
 					},
 				},
@@ -401,6 +403,7 @@ func resourceGithubRepository() *schema.Resource {
 				Computed:    true,
 				Description: "Set to 'true' to enable security alerts for vulnerable dependencies. Enabling requires alerts to be enabled on the owner level. (Note for importing: GitHub enables the alerts on all repos by default). Note that vulnerability alerts have not been successfully tested on any GitHub Enterprise instance and may be unavailable in those settings.",
 			},
+			// lintignore:XS001 // This is deprecated and will be removed in a future version.
 			"ignore_vulnerability_alerts_during_read": {
 				Type:       schema.TypeBool,
 				Optional:   true,
@@ -438,17 +441,19 @@ func resourceGithubRepository() *schema.Resource {
 				Description: "URL that can be provided to 'git clone' to clone the repository via HTTPS.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "An etag representing the repository.",
 				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
 					return true
 				},
 				DiffSuppressOnRefresh: true,
 			},
 			"primary_language": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The primary language used in the repository.",
 			},
 			"template": {
 				Type:        schema.TypeList,
@@ -631,7 +636,8 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 
 	// only configure allow forking if repository is not public
 	if visibility != "public" && (d.IsNewResource() || d.HasChange("allow_forking")) {
-		if allowForking, ok := d.GetOkExists("allow_forking"); ok { //nolint:staticcheck,SA1019 // We sometimes need to use GetOkExists for booleans
+		// lintignore:XR001
+		if allowForking, ok := d.GetOkExists("allow_forking"); ok { //nolint:staticcheck //SA1019 // We sometimes need to use GetOkExists for booleans
 			if val, ok := allowForking.(bool); ok {
 				repository.AllowForking = github.Ptr(val)
 			}
@@ -1001,6 +1007,7 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 	}
 
 	if d.IsNewResource() || d.HasChange("vulnerability_alerts") {
+		// lintignore:XR001
 		if v, ok := d.GetOkExists("vulnerability_alerts"); ok { //nolint:staticcheck,SA1019 // We sometimes need to use GetOkExists for booleans
 			if val, ok := v.(bool); ok {
 				err := updateVulnerabilityAlerts(ctx, client, owner, repoName, val)

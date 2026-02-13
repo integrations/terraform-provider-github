@@ -66,7 +66,6 @@ func resourceGithubRepositoryFile() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The name of the commit/branch/tag",
-				ForceNew:    true,
 			},
 			"commit_sha": {
 				Type:        schema.TypeString,
@@ -82,14 +81,12 @@ func resourceGithubRepositoryFile() *schema.Resource {
 			"commit_author": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Computed:     false,
 				Description:  "The commit author name, defaults to the authenticated user's name. GitHub app users may omit author and email information so GitHub can verify commits as the GitHub App. ",
 				RequiredWith: []string{"commit_email"},
 			},
 			"commit_email": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Computed:     false,
 				Description:  "The commit author email address, defaults to the authenticated user's email address. GitHub app users may omit author and email information so GitHub can verify commits as the GitHub App.",
 				RequiredWith: []string{"commit_author"},
 			},
@@ -506,7 +503,7 @@ func resourceGithubRepositoryFileCreateBranch(ctx context.Context, d *schema.Res
 			return fmt.Errorf("error querying GitHub branch reference %s/%s (%s): %s",
 				owner, repo, sourceBranchRefName, err.Error())
 		}
-		err = d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
+		err = d.Set("autocreate_branch_source_sha", ref.Object.GetSHA())
 		if err != nil {
 			return fmt.Errorf("error setting autocreate_branch_source_sha: %w", err)
 		}

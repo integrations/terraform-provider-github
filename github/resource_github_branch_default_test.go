@@ -10,7 +10,7 @@ import (
 
 func TestAccGithubBranchDefault(t *testing.T) {
 	t.Run("creates and manages branch defaults", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-branch-def-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
@@ -49,7 +49,7 @@ func TestAccGithubBranchDefault(t *testing.T) {
 	})
 
 	t.Run("replaces the default_branch of a repository", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-branch-def-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -97,7 +97,7 @@ func TestAccGithubBranchDefault(t *testing.T) {
 	})
 
 	t.Run("creates and manages branch defaults even if rename is set", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-branch-def-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -136,7 +136,7 @@ func TestAccGithubBranchDefault(t *testing.T) {
 	})
 
 	t.Run("replaces the default_branch of a repository without creating a branch resource prior to", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-branch-def-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {

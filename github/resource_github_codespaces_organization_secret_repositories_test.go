@@ -10,7 +10,7 @@ import (
 
 func TestAccGithubCodespacesOrganizationSecretRepositories(t *testing.T) {
 	t.Run("set repository allowlist for an organization secret", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName1 := fmt.Sprintf("%srepo-cs-org-secret-1-%s", testResourcePrefix, randomID)
 		repoName2 := fmt.Sprintf("%srepo-cs-org-secret-2-%s", testResourcePrefix, randomID)
 
