@@ -238,6 +238,212 @@ resource "github_organization_ruleset" "test" {
 		})
 	})
 
+	t.Run("create_ruleset_with_repository_property_exclude", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		rulesetName := fmt.Sprintf("%s-repo-prop-exclude-ruleset-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_organization_ruleset" "test" {
+	name        = "%s"
+	target      = "branch"
+	enforcement = "active"
+
+	conditions {
+		repository_property {
+			include = [{
+				name            = "tier"
+				source          = "custom"
+				property_values = ["premium"]
+			}]
+			exclude = [{
+				name            = "archived"
+				source          = "system"
+				property_values = ["true"]
+			}]
+		}
+
+		ref_name {
+			include = ["~DEFAULT_BRANCH"]
+			exclude = []
+		}
+	}
+
+	rules {
+		required_linear_history = true
+	}
+}
+`, rulesetName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.#", "1"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.#", "1"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.0.name", "archived"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.0.source", "system"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.0.property_values.0", "true"),
+					),
+				},
+			},
+		})
+	})
+
+	t.Run("create_ruleset_with_multiple_repository_properties", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		rulesetName := fmt.Sprintf("%s-repo-prop-multiple-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_organization_ruleset" "test" {
+	name        = "%s"
+	target      = "branch"
+	enforcement = "active"
+
+	conditions {
+		repository_property {
+			include = [
+				{
+					name            = "environment"
+					source          = "custom"
+					property_values = ["production"]
+				},
+				{
+					name            = "team"
+					source          = "custom"
+					property_values = ["backend", "platform"]
+				}
+			]
+			exclude = []
+		}
+
+		ref_name {
+			include = ["~DEFAULT_BRANCH"]
+			exclude = []
+		}
+	}
+
+	rules {
+		required_signatures = true
+	}
+}
+`, rulesetName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.#", "2"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.name", "environment"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.0", "production"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.1.name", "team"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.1.property_values.#", "2"),
+					),
+				},
+			},
+		})
+	})
+
+	t.Run("update_repository_property", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		rulesetName := fmt.Sprintf("%s-repo-prop-update-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_organization_ruleset" "test" {
+	name        = "%s"
+	target      = "branch"
+	enforcement = "active"
+
+	conditions {
+		repository_property {
+			include = [{
+				name            = "tier"
+				source          = "custom"
+				property_values = ["basic"]
+			}]
+			exclude = []
+		}
+
+		ref_name {
+			include = ["~DEFAULT_BRANCH"]
+			exclude = []
+		}
+	}
+
+	rules {
+		creation = true
+	}
+}
+`, rulesetName)
+
+		configUpdated := fmt.Sprintf(`
+resource "github_organization_ruleset" "test" {
+	name        = "%s"
+	target      = "branch"
+	enforcement = "active"
+
+	conditions {
+		repository_property {
+			include = [{
+				name            = "tier"
+				source          = "custom"
+				property_values = ["premium", "enterprise"]
+			}]
+			exclude = [{
+				name            = "archived"
+				source          = "system"
+				property_values = ["true"]
+			}]
+		}
+
+		ref_name {
+			include = ["~DEFAULT_BRANCH"]
+			exclude = []
+		}
+	}
+
+	rules {
+		creation = true
+		update   = true
+	}
+}
+`, rulesetName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.#", "1"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.0", "basic"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.#", "0"),
+					),
+				},
+				{
+					Config: configUpdated,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.#", "2"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.0", "premium"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.1", "enterprise"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.#", "1"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.0.name", "archived"),
+					),
+				},
+			},
+		})
+	})
+
 	t.Run("create_push_ruleset", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		rulesetName := fmt.Sprintf("%s-push-ruleset-%s", testResourcePrefix, randomID)

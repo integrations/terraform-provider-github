@@ -366,7 +366,11 @@ func flattenRulesetRepositoryPropertyTargetParameters(input []*github.Repository
 	for _, v := range input {
 		propertyMap := make(map[string]any)
 		propertyMap["name"] = v.Name
-		propertyMap["source"] = v.GetSource()
+		source := v.GetSource()
+		if source == "" {
+			source = "custom"
+		}
+		propertyMap["source"] = source
 		propertyMap["property_values"] = v.PropertyValues
 		result = append(result, propertyMap)
 	}
