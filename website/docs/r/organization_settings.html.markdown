@@ -58,6 +58,7 @@ The following arguments are supported:
 * `has_repository_projects` - (Optional) Whether or not repository projects are enabled for the organization.
 * `default_repository_permission` - (Optional) The default permission for organization members to create new repositories. Can be one of `read`, `write`, `admin`, or `none`. Defaults to `read`.
 * `members_can_create_repositories` - (Optional) Whether or not organization members can create new repositories. Defaults to `true`.
+* `members_can_change_repo_visibility` - (Optional) Whether or not organization members can change the visibility of repositories. Defaults to `true`.
 * `members_can_create_public_repositories` - (Optional) Whether or not organization members can create new public repositories. Defaults to `true`.
 * `members_can_create_private_repositories` - (Optional) Whether or not organization members can create new private repositories. Defaults to `true`.
 * `members_can_create_internal_repositories` - (Optional) Whether or not organization members can create new internal repositories. For Enterprise Organizations only.
