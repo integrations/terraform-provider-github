@@ -99,6 +99,43 @@ resource "github_organization_ruleset" "example_push" {
     }
   }
 }
+
+# Example with repository_property targeting
+resource "github_organization_ruleset" "example_property" {
+  name        = "example_property"
+  target      = "branch"
+  enforcement = "active"
+
+  conditions {
+    ref_name {
+      include = ["~ALL"]
+      exclude = []
+    }
+
+    repository_property {
+      include {
+        name            = "environment"
+        property_values = ["production", "staging"]
+        source          = "custom"
+      }
+      include {
+        name            = "team"
+        property_values = ["backend"]
+        source          = "custom"
+      }
+      exclude {
+        name            = "archived"
+        property_values = ["true"]
+        source          = "system"
+      }
+    }
+  }
+
+  rules {
+    required_signatures = true
+    pull_request {}
+  }
+}
 ```
 
 ## Argument Reference
