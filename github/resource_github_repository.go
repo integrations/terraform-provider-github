@@ -376,6 +376,7 @@ func resourceGithubRepository() *schema.Resource {
 						"public": {
 							Type:        schema.TypeBool,
 							Computed:    true,
+							Optional:    true,
 							Description: "Whether the GitHub Pages site is publicly visible. If set to `true`, the site is accessible to anyone on the internet. If set to `false`, the site will only be accessible to users who have at least `read` access to the repository that published the site.",
 						},
 						"status": {

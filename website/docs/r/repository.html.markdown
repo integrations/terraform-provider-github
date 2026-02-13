@@ -156,7 +156,7 @@ The `pages` block supports the following:
 
 * `cname` - (Optional) The custom domain for the repository. This can only be set after the repository has been created.
 
-* `public` - (Optional) Whether the GitHub Pages site is publicly visible. If set to `true`, the site is accessible to anyone on the internet. If set to `false`, the site will only be accessible to users who have at least `read` access to the repository that published the site.
+* `public` - (Optional, Computed) Whether the GitHub Pages site is publicly visible. If set to `true`, the site is accessible to anyone on the internet. If set to `false`, the site will only be accessible to users who have at least `read` access to the repository that published the site. There is no single default: accounts without GitHub Enterprise are forced to have public pages; with Enterprise and Managed Users, pages can only be private; only Enterprise accounts without Managed Users can choose. See [About access control for GitHub Pages sites](https://docs.github.com/en/enterprise-cloud@latest/pages/getting-started-with-github-pages/changing-the-visibility-of-your-github-pages-site#about-access-control-for-github-pages-sites). The value is also computed from GitHub, so omitting it is safe.
 
 #### GitHub Pages Source
 
