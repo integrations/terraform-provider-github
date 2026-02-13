@@ -172,27 +172,8 @@ func validateConditionsFieldForBranchAndTagTargets(ctx context.Context, target g
 	}
 
 	// Repository rulesets don't have repository_name, repository_id, or repository_property - only org rulesets do.
-	if isOrg {
-		hasRepoName := conditions["repository_name"] != nil && len(conditions["repository_name"].([]any)) > 0
-		hasRepoId := conditions["repository_id"] != nil && len(conditions["repository_id"].([]any)) > 0
-		hasRepoProp := conditions["repository_property"] != nil && len(conditions["repository_property"].([]any)) > 0
-
-		repoTargetingCount := 0
-		if hasRepoName {
-			repoTargetingCount++
-		}
-		if hasRepoId {
-			repoTargetingCount++
-		}
-		if hasRepoProp {
-			repoTargetingCount++
-		}
-
-		if repoTargetingCount != 1 {
-			tflog.Debug(ctx, fmt.Sprintf("Invalid repository targeting for %s target", target), map[string]any{"target": target})
-			return fmt.Errorf("exactly one of repository_name, repository_id, or repository_property must be set for %s target", target)
-		}
-	}
+	// Note: The built-in ExactlyOneOf/AtLeastOneOf schema validation already ensures exactly one
+	// repository targeting option is set, so no additional validation is needed here.
 	tflog.Debug(ctx, fmt.Sprintf("Conditions validation passed for %s target", target))
 	return nil
 }
