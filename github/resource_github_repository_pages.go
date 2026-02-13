@@ -265,7 +265,7 @@ func resourceGithubRepositoryPagesDelete(ctx context.Context, d *schema.Resource
 func resourceGithubRepositoryPagesImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	owner, repoName, err := parseID2(d.Id())
 	if err != nil {
-		return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <owner>/<repository>. Original error: %w", err)
+		return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <owner>:<repository>. Original error: %w", err)
 	}
 	if err := d.Set("owner", owner); err != nil {
 		return nil, err
@@ -273,12 +273,6 @@ func resourceGithubRepositoryPagesImport(ctx context.Context, d *schema.Resource
 	if err := d.Set("repository_name", repoName); err != nil {
 		return nil, err
 	}
-
-	id, err := buildID(owner, repoName)
-	if err != nil {
-		return nil, err
-	}
-	d.SetId(id)
 
 	return []*schema.ResourceData{d}, nil
 }
