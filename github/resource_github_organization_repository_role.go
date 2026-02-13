@@ -81,6 +81,10 @@ func resourceGithubOrganizationRepositoryRoleCreate(ctx context.Context, d *sche
 		return diag.FromErr(fmt.Errorf("error creating GitHub organization repository role (%s/%s): %w", orgName, d.Get("name").(string), err))
 	}
 
+	if err = d.Set("role_id", role.GetID()); err != nil {
+		return diag.FromErr(err)
+	}
+
 	d.SetId(fmt.Sprint(role.GetID()))
 	return nil
 }
@@ -177,9 +181,13 @@ func resourceGithubOrganizationRepositoryRoleUpdate(ctx context.Context, d *sche
 		Permissions: permissionsStr,
 	}
 
-	_, _, err = client.Organizations.UpdateCustomRepoRole(ctx, orgName, roleId, update)
+	role, _, err := client.Organizations.UpdateCustomRepoRole(ctx, orgName, roleId, update)
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("error updating GitHub organization repository role (%s/%s): %w", orgName, d.Get("name").(string), err))
+	}
+
+	if err = d.Set("role_id", role.GetID()); err != nil {
+		return diag.FromErr(err)
 	}
 
 	return nil
