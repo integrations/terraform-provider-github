@@ -5,12 +5,13 @@ import (
 	"time"
 
 	"github.com/google/go-github/v82/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubEnterpriseActionsHostedRunners() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubEnterpriseActionsHostedRunnersRead,
+		ReadContext: dataSourceGithubEnterpriseActionsHostedRunnersRead,
 
 		Schema: map[string]*schema.Schema{
 			"enterprise_slug": {
@@ -134,20 +135,19 @@ func dataSourceGithubEnterpriseActionsHostedRunners() *schema.Resource {
 	}
 }
 
-func dataSourceGithubEnterpriseActionsHostedRunnersRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubEnterpriseActionsHostedRunnersRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 
 	// List all hosted runners with pagination
-	opts := &github.ListOptions{PerPage: 100}
+	opts := &github.ListOptions{PerPage: maxPerPage}
 	var allRunners []*github.HostedRunner
 
 	for {
 		runners, resp, err := client.Enterprise.ListHostedRunners(ctx, enterpriseSlug, opts)
 		if err != nil {
-			return err
+			return diag.Errorf("error listing enterprise hosted runners: %s", err.Error())
 		}
 
 		allRunners = append(allRunners, runners.Runners...)
@@ -161,9 +161,8 @@ func dataSourceGithubEnterpriseActionsHostedRunnersRead(d *schema.ResourceData, 
 	// Set the ID as the enterprise slug
 	d.SetId(enterpriseSlug)
 
-	// Flatten runners data
 	if err := d.Set("runners", flattenHostedRunners(allRunners)); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
@@ -182,27 +181,14 @@ func flattenHostedRunners(runners []*github.HostedRunner) []any {
 
 		runnerMap := make(map[string]any)
 
-		if runner.ID != nil {
-			runnerMap["id"] = int(*runner.ID)
-		}
-		if runner.Name != nil {
-			runnerMap["name"] = *runner.Name
-		}
-		if runner.RunnerGroupID != nil {
-			runnerMap["runner_group_id"] = int(*runner.RunnerGroupID)
-		}
-		if runner.Platform != nil {
-			runnerMap["platform"] = *runner.Platform
-		}
-		if runner.Status != nil {
-			runnerMap["status"] = *runner.Status
-		}
-		if runner.MaximumRunners != nil {
-			runnerMap["maximum_runners"] = int(*runner.MaximumRunners)
-		}
-		if runner.PublicIPEnabled != nil {
-			runnerMap["public_ip_enabled"] = *runner.PublicIPEnabled
-		}
+		runnerMap["id"] = int(runner.GetID())
+		runnerMap["name"] = runner.GetName()
+		runnerMap["runner_group_id"] = int(runner.GetRunnerGroupID())
+		runnerMap["platform"] = runner.GetPlatform()
+		runnerMap["status"] = runner.GetStatus()
+		runnerMap["maximum_runners"] = int(runner.GetMaximumRunners())
+		runnerMap["public_ip_enabled"] = runner.GetPublicIPEnabled()
+
 		if runner.LastActiveOn != nil {
 			runnerMap["last_active_on"] = runner.LastActiveOn.Format(time.RFC3339)
 		}

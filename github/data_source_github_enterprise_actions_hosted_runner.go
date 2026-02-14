@@ -2,16 +2,16 @@ package github
 
 import (
 	"context"
-	"fmt"
+	"strconv"
 	"time"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubEnterpriseActionsHostedRunner() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubEnterpriseActionsHostedRunnerRead,
+		ReadContext: dataSourceGithubEnterpriseActionsHostedRunnerRead,
 
 		Schema: map[string]*schema.Schema{
 			"enterprise_slug": {
@@ -19,15 +19,15 @@ func dataSourceGithubEnterpriseActionsHostedRunner() *schema.Resource {
 				Required:    true,
 				Description: "The slug of the enterprise.",
 			},
-			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name of the hosted runner to lookup.",
-			},
 			"runner_id": {
 				Type:        schema.TypeInt,
-				Computed:    true,
+				Required:    true,
 				Description: "The numeric ID of the hosted runner.",
+			},
+			"name": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The name of the hosted runner.",
 			},
 			"runner_group_id": {
 				Type:        schema.TypeInt,
@@ -150,100 +150,44 @@ func dataSourceGithubEnterpriseActionsHostedRunner() *schema.Resource {
 	}
 }
 
-func dataSourceGithubEnterpriseActionsHostedRunnerRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubEnterpriseActionsHostedRunnerRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 
 	enterpriseSlug := d.Get("enterprise_slug").(string)
-	runnerName := d.Get("name").(string)
+	runnerID := int64(d.Get("runner_id").(int))
 
-	// List all runners and find the one matching the name
-	opts := &github.ListOptions{PerPage: 100}
-	var foundRunner *github.HostedRunner
-
-	for {
-		runners, resp, err := client.Enterprise.ListHostedRunners(ctx, enterpriseSlug, opts)
-		if err != nil {
-			return err
-		}
-
-		for _, runner := range runners.Runners {
-			if runner.Name != nil && *runner.Name == runnerName {
-				foundRunner = runner
-				break
-			}
-		}
-
-		if foundRunner != nil || resp.NextPage == 0 {
-			break
-		}
-		opts.Page = resp.NextPage
-	}
-
-	if foundRunner == nil {
-		return fmt.Errorf("no hosted runner found with name %q in enterprise %q", runnerName, enterpriseSlug)
+	// Get the specific runner by ID
+	runner, _, err := client.Enterprise.GetHostedRunner(ctx, enterpriseSlug, runnerID)
+	if err != nil {
+		return diag.Errorf("error reading enterprise hosted runner: %s", err.Error())
 	}
 
 	// Set the ID as enterprise_slug/runner_id
-	d.SetId(fmt.Sprintf("%s/%d", enterpriseSlug, *foundRunner.ID))
+	id, err := buildID(enterpriseSlug, strconv.FormatInt(runner.GetID(), 10))
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	d.SetId(id)
 
-	if foundRunner.ID != nil {
-		if err := d.Set("runner_id", int(*foundRunner.ID)); err != nil {
-			return err
-		}
+	runnerData := map[string]any{
+		"name":                 runner.GetName(),
+		"runner_group_id":      int(runner.GetRunnerGroupID()),
+		"platform":             runner.GetPlatform(),
+		"status":               runner.GetStatus(),
+		"maximum_runners":      int(runner.GetMaximumRunners()),
+		"public_ip_enabled":    runner.GetPublicIPEnabled(),
+		"image_details":        flattenHostedRunnerImage(runner.ImageDetails),
+		"machine_size_details": flattenHostedRunnerMachineSpec(runner.MachineSizeDetails),
+		"public_ips":           flattenHostedRunnerPublicIPs(runner.PublicIPs),
 	}
 
-	if foundRunner.RunnerGroupID != nil {
-		if err := d.Set("runner_group_id", int(*foundRunner.RunnerGroupID)); err != nil {
-			return err
-		}
+	if runner.LastActiveOn != nil {
+		runnerData["last_active_on"] = runner.LastActiveOn.Format(time.RFC3339)
 	}
 
-	if foundRunner.Platform != nil {
-		if err := d.Set("platform", *foundRunner.Platform); err != nil {
-			return err
-		}
-	}
-
-	if foundRunner.Status != nil {
-		if err := d.Set("status", *foundRunner.Status); err != nil {
-			return err
-		}
-	}
-
-	if foundRunner.MaximumRunners != nil {
-		if err := d.Set("maximum_runners", int(*foundRunner.MaximumRunners)); err != nil {
-			return err
-		}
-	}
-
-	if foundRunner.PublicIPEnabled != nil {
-		if err := d.Set("public_ip_enabled", *foundRunner.PublicIPEnabled); err != nil {
-			return err
-		}
-	}
-
-	if foundRunner.LastActiveOn != nil {
-		if err := d.Set("last_active_on", foundRunner.LastActiveOn.Format(time.RFC3339)); err != nil {
-			return err
-		}
-	}
-
-	if foundRunner.ImageDetails != nil {
-		if err := d.Set("image_details", flattenHostedRunnerImage(foundRunner.ImageDetails)); err != nil {
-			return err
-		}
-	}
-
-	if foundRunner.MachineSizeDetails != nil {
-		if err := d.Set("machine_size_details", flattenHostedRunnerMachineSpec(foundRunner.MachineSizeDetails)); err != nil {
-			return err
-		}
-	}
-
-	if foundRunner.PublicIPs != nil {
-		if err := d.Set("public_ips", flattenHostedRunnerPublicIPs(foundRunner.PublicIPs)); err != nil {
-			return err
+	for k, v := range runnerData {
+		if err := d.Set(k, v); err != nil {
+			return diag.FromErr(err)
 		}
 	}
 
