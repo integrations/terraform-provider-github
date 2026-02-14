@@ -2,8 +2,9 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"log"
+	"net/http"
 	"slices"
 	"strconv"
 
@@ -107,36 +108,20 @@ func resourceGithubOrganizationRepositoryRoleRead(ctx context.Context, d *schema
 		return diag.FromErr(err)
 	}
 
-	// TODO: Use this code when go-github is v68+
-	// role, _, err := client.Organizations.GetCustomRepoRole(ctx, orgName, roleId)
-	// if err != nil {
-	// 	if ghErr, ok := err.(*github.ErrorResponse); ok {
-	// 		if ghErr.Response.StatusCode == http.StatusNotFound {
-	// 			log.Printf("[WARN] GitHub organization repository role (%s/%d) not found, removing from state", orgName, roleId)
-	// 			d.SetId("")
-	// 			return nil
-	// 		}
-	// 	}
-	// 	return err
-	// }
-
-	roles, _, err := client.Organizations.ListCustomRepoRoles(ctx, orgName)
+	role, _, err := client.Organizations.GetCustomRepoRole(ctx, orgName, roleId)
 	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	var role *github.CustomRepoRoles
-	for _, r := range roles.CustomRepoRoles {
-		if r.GetID() == roleId {
-			role = r
-			break
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) {
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				tflog.Warn(ctx, "GitHub organization repository role not found, removing from state", map[string]any{
+					"orgName": orgName,
+					"roleId":  roleId,
+				})
+				d.SetId("")
+				return nil
+			}
 		}
-	}
-
-	if role == nil {
-		log.Printf("[WARN] GitHub organization repository role (%s/%d) not found, removing from state", orgName, roleId)
-		d.SetId("")
-		return nil
+		return diag.FromErr(err)
 	}
 
 	if err = d.Set("role_id", role.GetID()); err != nil {
