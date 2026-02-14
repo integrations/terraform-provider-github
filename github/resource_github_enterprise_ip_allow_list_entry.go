@@ -214,6 +214,5 @@ func resourceGithubEnterpriseIpAllowListEntryDelete(ctx context.Context, d *sche
 		return diag.FromErr(err)
 	}
 
-	d.SetId("")
 	return nil
 }
