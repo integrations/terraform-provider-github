@@ -171,9 +171,7 @@ func validateConditionsFieldForBranchAndTagTargets(ctx context.Context, target g
 		return fmt.Errorf("ref_name must be set for %s target", target)
 	}
 
-	// Repository rulesets don't have repository_name, repository_id, or repository_property - only org rulesets do.
-	// Note: The built-in ExactlyOneOf/AtLeastOneOf schema validation already ensures exactly one
-	// repository targeting option is set, so no additional validation is needed here.
+
 	tflog.Debug(ctx, fmt.Sprintf("Conditions validation passed for %s target", target))
 	return nil
 }
