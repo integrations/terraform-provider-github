@@ -164,7 +164,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 									"exclude": {
 										Type:        schema.TypeList,
 										Optional:    true,
-										Description: "The repository properties and values to exclude. The condition will not pass if any of these properties match.",
+										Description: "The repository properties and values to exclude. The ruleset will not apply if any of these properties match.",
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
 												"name": {
@@ -232,7 +232,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Optional:     true,
 							ExactlyOneOf: []string{"conditions.0.repository_property", "conditions.0.repository_name", "conditions.0.repository_id"},
 							AtLeastOneOf: []string{"conditions.0.repository_property", "conditions.0.repository_name", "conditions.0.repository_id"},
-							Description:  "The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass.",
+							Description:  "The repository IDs that the ruleset applies to. One of these IDs must match for the ruleset to apply.",
 							Elem: &schema.Schema{
 								Type: schema.TypeInt,
 							},
