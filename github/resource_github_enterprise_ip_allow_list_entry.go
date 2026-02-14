@@ -137,7 +137,7 @@ func resourceGithubEnterpriseIpAllowListEntryRead(ctx context.Context, d *schema
 	err := client.Query(ctx, &query, variables)
 	if err != nil {
 		if strings.Contains(err.Error(), "Could not resolve to a node with the global id") {
-			tflog.Info(ctx, "[INFO] Removing IP allow list entry (%s) from state because it no longer exists in GitHub", map[string]any{
+			tflog.Info(ctx, "Removing IP allow list entry from state because it no longer exists in GitHub", map[string]any{
 				"id": d.Id(),
 			})
 			d.SetId("")
