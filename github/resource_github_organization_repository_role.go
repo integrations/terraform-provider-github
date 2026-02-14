@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"slices"
 	"strconv"
 
 	"github.com/google/go-github/v82/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -53,6 +55,8 @@ func resourceGithubOrganizationRepositoryRole() *schema.Resource {
 				MinItems:    1,
 			},
 		},
+
+		CustomizeDiff: resourceGithubOrganizationRepositoryRoleCustomizeDiff,
 	}
 }
 
@@ -212,5 +216,77 @@ func resourceGithubOrganizationRepositoryRoleDelete(ctx context.Context, d *sche
 		return diag.FromErr(fmt.Errorf("Error deleting organization repository role %d: %w", roleId, err))
 	}
 
+	return nil
+}
+
+// Snapshot of the response to https://docs.github.com/en/enterprise-cloud@latest/rest/orgs/custom-roles?apiVersion=2022-11-28#list-repository-fine-grained-permissions-for-an-organization
+// The endpoint isn't covered in the SDK yet.
+var validRolePermissions = []string{
+	"add_assignee",
+	"add_label",
+	"bypass_branch_protection",
+	"close_discussion",
+	"close_issue",
+	"close_pull_request",
+	"convert_issues_to_discussions",
+	"create_discussion_category",
+	"create_solo_merge_queue_entry",
+	"create_tag",
+	"delete_alerts_code_scanning",
+	"delete_discussion",
+	"delete_discussion_comment",
+	"delete_issue",
+	"delete_tag",
+	"edit_category_on_discussion",
+	"edit_discussion_category",
+	"edit_discussion_comment",
+	"edit_repo_custom_properties_values",
+	"edit_repo_metadata",
+	"edit_repo_protections",
+	"jump_merge_queue",
+	"manage_deploy_keys",
+	"manage_settings_merge_types",
+	"manage_settings_pages",
+	"manage_settings_projects",
+	"manage_settings_wiki",
+	"manage_webhooks",
+	"mark_as_duplicate",
+	"push_protected_branch",
+	"read_code_quality",
+	"read_code_scanning",
+	"reopen_discussion",
+	"reopen_issue",
+	"reopen_pull_request",
+	"request_pr_review",
+	"resolve_dependabot_alerts",
+	"resolve_secret_scanning_alerts",
+	"set_interaction_limits",
+	"set_issue_type",
+	"set_milestone",
+	"set_social_preview",
+	"toggle_discussion_answer",
+	"toggle_discussion_comment_minimize",
+	"view_dependabot_alerts",
+	"view_secret_scanning_alerts",
+	"write_code_quality",
+	"write_code_scanning",
+	"write_repository_actions_environments",
+	"write_repository_actions_runners",
+	"write_repository_actions_secrets",
+	"write_repository_actions_settings",
+	"write_repository_actions_variables",
+}
+
+func resourceGithubOrganizationRepositoryRoleCustomizeDiff(ctx context.Context, d *schema.ResourceDiff, m any) error {
+	tflog.Debug(ctx, "Customizing diff for GitHub organization repository role", map[string]any{"permissionsChanged": d.HasChange("permissions")})
+	if d.HasChange("permissions") {
+		newPermissions := d.Get("permissions").(*schema.Set).List()
+		tflog.Debug(ctx, "Validating permissions values", map[string]any{"newPermissions": newPermissions})
+		for _, permission := range newPermissions {
+			if !slices.Contains(validRolePermissions, permission.(string)) {
+				return fmt.Errorf("invalid permission: %+v", permission)
+			}
+		}
+	}
 	return nil
 }
