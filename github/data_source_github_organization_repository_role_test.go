@@ -11,7 +11,7 @@ import (
 func TestAccGithubOrganizationRepositoryRoleDataSource(t *testing.T) {
 	t.Run("queries an organization repository role", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		roleName := fmt.Sprintf(`tf-acc-test-%s`, randomID)
+		roleName := fmt.Sprintf(`%s%s`, testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_organization_repository_role" "test" {
