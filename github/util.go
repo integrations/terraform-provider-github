@@ -142,6 +142,7 @@ func validateValueFunc(values []string) schema.SchemaValidateDiagFunc {
 }
 
 // return the pieces of id `left:right` as left, right.
+// @deprecated: use parseID2 instead.
 func parseTwoPartID(id, left, right string) (string, string, error) {
 	parts := strings.SplitN(id, ":", 2)
 	if len(parts) != 2 {
@@ -157,6 +158,7 @@ func buildTwoPartID(a, b string) string {
 }
 
 // return the pieces of id `left:center:right` as left, center, right.
+// @deprecated: use parseID3 instead.
 func parseThreePartID(id, left, center, right string) (string, string, string, error) {
 	parts := strings.SplitN(id, ":", 3)
 	if len(parts) != 3 {
