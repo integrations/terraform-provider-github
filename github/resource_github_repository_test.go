@@ -1542,9 +1542,9 @@ func Test_expandPages(t *testing.T) {
 func TestGithubRepositoryTopicPassesValidation(t *testing.T) {
 	resource := resourceGithubRepository()
 	schema := resource.Schema["topics"].Elem.(*schema.Schema)
-	diags := schema.ValidateDiagFunc("ef69e1a3-66be-40ca-bb62-4f36186aa292", cty.Path{cty.GetAttrStep{Name: "topic"}})
+	diags := schema.ValidateDiagFunc("ef69e1a3-66be-40ca-bb62-4f36186aa292", cty.Path{cty.GetAttrStep{Name: "topics"}})
 	if diags.HasError() {
-		t.Error(fmt.Errorf("unexpected topic validation failure: %s", diags[0].Summary))
+		t.Error(fmt.Errorf("unexpected topics validation failure: %s", diags[0].Summary))
 	}
 }
 
@@ -1552,7 +1552,7 @@ func TestGithubRepositoryTopicFailsValidationWhenOverMaxCharacters(t *testing.T)
 	resource := resourceGithubRepository()
 	schema := resource.Schema["topics"].Elem.(*schema.Schema)
 
-	diags := schema.ValidateDiagFunc(strings.Repeat("a", 51), cty.Path{cty.GetAttrStep{Name: "topic"}})
+	diags := schema.ValidateDiagFunc(strings.Repeat("a", 51), cty.Path{cty.GetAttrStep{Name: "topics"}})
 	if len(diags) != 1 {
 		t.Error(fmt.Errorf("unexpected number of topic validation failures; expected=1; actual=%d", len(diags)))
 	}
