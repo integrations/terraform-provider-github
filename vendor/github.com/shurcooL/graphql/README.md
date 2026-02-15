@@ -1,7 +1,7 @@
 graphql
 =======
 
-[![Build Status](https://travis-ci.org/shurcooL/graphql.svg?branch=master)](https://travis-ci.org/shurcooL/graphql) [![GoDoc](https://godoc.org/github.com/shurcooL/graphql?status.svg)](https://godoc.org/github.com/shurcooL/graphql)
+[![Go Reference](https://pkg.go.dev/badge/github.com/shurcooL/graphql.svg)](https://pkg.go.dev/github.com/shurcooL/graphql)
 
 Package `graphql` provides a GraphQL client implementation.
 
@@ -10,10 +10,8 @@ For more information, see package [`github.com/shurcooL/githubv4`](https://githu
 Installation
 ------------
 
-`graphql` requires Go version 1.8 or later.
-
-```bash
-go get -u github.com/shurcooL/graphql
+```sh
+go get github.com/shurcooL/graphql
 ```
 
 Usage
@@ -134,7 +132,7 @@ var q struct {
 Then, define a `variables` map with their values:
 
 ```Go
-variables := map[string]interface{}{
+variables := map[string]any{
 	"id":   graphql.ID(id),
 	"unit": starwars.LengthUnit("METER"),
 }
@@ -254,7 +252,7 @@ var m struct {
 		Commentary graphql.String
 	} `graphql:"createReview(episode: $ep, review: $review)"`
 }
-variables := map[string]interface{}{
+variables := map[string]any{
 	"ep": starwars.Episode("JEDI"),
 	"review": starwars.ReviewInput{
 		Stars:      graphql.Int(5),
@@ -279,11 +277,10 @@ fmt.Printf("Created a %v star review: %v\n", m.CreateReview.Stars, m.CreateRevie
 Directories
 -----------
 
-| Path                                                                                   | Synopsis                                                                                                        |
-|----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
-| [example/graphqldev](https://godoc.org/github.com/shurcooL/graphql/example/graphqldev) | graphqldev is a test program currently being used for developing graphql package.                               |
-| [ident](https://godoc.org/github.com/shurcooL/graphql/ident)                           | Package ident provides functions for parsing and converting identifier names between various naming convention. |
-| [internal/jsonutil](https://godoc.org/github.com/shurcooL/graphql/internal/jsonutil)   | Package jsonutil provides a function for decoding JSON into a GraphQL query data structure.                     |
+| Path                                                                                  | Synopsis                                                                                                        |
+|---------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
+| [ident](https://pkg.go.dev/github.com/shurcooL/graphql/ident)                         | Package ident provides functions for parsing and converting identifier names between various naming convention. |
+| [internal/jsonutil](https://pkg.go.dev/github.com/shurcooL/graphql/internal/jsonutil) | Package jsonutil provides a function for decoding JSON into a GraphQL query data structure.                     |
 
 License
 -------
