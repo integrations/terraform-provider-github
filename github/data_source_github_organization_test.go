@@ -59,21 +59,21 @@ func TestAccGithubOrganizationDataSource(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-archived-%s", testResourcePrefix, randomID)
 
-		config := fmt.Sprintf(`
+		config := `
 			resource "github_repository" "archived" {
 				name         = "%s"
-				archived     = true
-		  	}
+				archived     = %t
+			}
 
 			data "github_organization" "skip_archived" {
-				name = "%s"
+				name = "%[3]s"
 				ignore_archived_repos = true
 				depends_on = [
 					github_repository.archived,
 				]
 			}
 			data "github_organization" "all_repos" {
-				name = "%s"
+				name = "%[3]s"
 				ignore_archived_repos = false
 				depends_on = [
 					github_repository.archived,
@@ -86,20 +86,21 @@ func TestAccGithubOrganizationDataSource(t *testing.T) {
 			output "should_be_true" {
 				value = contains(data.github_organization.all_repos.repositories, github_repository.archived.full_name)
 			}
-		`, repoName, testAccConf.owner, testAccConf.owner)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckOutput("should_be_false", "false"),
-			resource.TestCheckOutput("should_be_true", "true"),
-		)
+		`
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: config,
-					Check:  check,
+					Config: fmt.Sprintf(config, repoName, false, testAccConf.owner), // We are removing the option to create archived repositories
+				},
+				{
+					Config: fmt.Sprintf(config, repoName, true, testAccConf.owner),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckOutput("should_be_false", "false"),
+						resource.TestCheckOutput("should_be_true", "true"),
+					),
 				},
 			},
 		})
