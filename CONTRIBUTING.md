@@ -13,8 +13,10 @@ Before submitting an issue or a pull request, please search the repository for e
 1. Fork and clone the repository.
 2. Create a new branch: `git switch -c my-branch-name`.
 3. Make your change, add tests, and make sure the tests still pass.
-4. Push to your fork and submit a pull request.
-5. Pat yourself on the back and wait for your pull request to be reviewed and merged.
+4. Update or add documentation to reflect your changes.
+5. Ensure formatting and linting are passing.
+6. Push to your fork and submit a pull request.
+7. Pat yourself on the back and wait for your pull request to be reviewed and merged.
 
 Here are a few things you can do that will increase the likelihood of your pull request being accepted:
 
@@ -47,7 +49,7 @@ Once you have the repository cloned, there's a couple of additional steps you'll
   ```
 
 - Build the project with `make build`
-- Try an example test run from the default (`main`) branch, like `TF_LOG=DEBUG TF_ACC=1 go test -v ./... -run ^TestAccGithubRepositories`. All those tests should pass.
+- Try an example test run from the default (`main`) branch, like `TF_LOG=DEBUG make testacc T=TestAccGithubRepositories`. All those tests should pass.
 
 ### Local Development Iteration
 
@@ -55,13 +57,13 @@ Once you have the repository cloned, there's a couple of additional steps you'll
 2. Run your test and observe it fail. Enabling debug output allows for observing the underlying requests and responses made as well as viewing state (search `STATE:`) generated during the acceptance test run.
 
 ```sh
-TF_LOG=DEBUG TF_ACC=1 go test -v ./... -run ^TestAccGithubIssueLabel
+TF_LOG=DEBUG make testacc T=TestAccGithubIssueLabel
 ```
 
 1. Align the resource's implementation to your test case and observe it pass:
 
 ```sh
-TF_ACC=1 go test -v ./... -run ^TestAccGithubIssueLabel
+make testacc T=TestAccGithubIssueLabel
 ```
 
 Note that some resources still use a previous format that is incompatible with automated test runs, which depend on using the `skipUnlessMode` helper. When encountering these resources, tests should be rewritten to the latest format.
@@ -70,7 +72,7 @@ Also note that there is no build / `terraform init` / `terraform plan` sequence 
 
 ### Debugging the terraform provider
 
-Println debugging can easily be used to obtain information about how code changes perform. If the `TF_LOG=DEBUG` level is set, calls to `log.Printf("[DEBUG] your message here")` will be printed in the program's output.
+Println debugging can easily be used to obtain information about how code changes perform. If the `TF_LOG=DEBUG` level is set, debug messages will be printed. Use `tflog.Debug(ctx, "your message here", map[string]any{...})` for new code. Some existing code still uses `log.Printf("[DEBUG] ...")` — see [ARCHITECTURE.md](ARCHITECTURE.md#logging) for the migration pattern.
 
 If a full debugger is desired, VSCode may be used. In order to do so,
 
@@ -88,7 +90,7 @@ If a full debugger is desired, VSCode may be used. In order to do so,
 
 Setting a `processId` of 0 allows a dropdown to select the process of the provider.
 
-1. Add a sleep call (e.g. `time.Sleep(10 * time.Second)`) in the [`func providerConfigure(p *schema.Provider) schema.ConfigureFunc`](https://github.com/integrations/terraform-provider-github/blob/cec7e175c50bb091feecdc96ba117067c35ee351/github/provider.go#L274C1-L274C64) before the immediate `return` call. This will allow time to connect the debugger while the provider is initializing, before any critical logic happens.
+1. Add a sleep call (e.g. `time.Sleep(10 * time.Second)`) in `providerConfigure` (in `github/provider.go`) before the immediate `return` call. This will allow time to connect the debugger while the provider is initializing, before any critical logic happens.
 
 2. Build the terraform provider with debug flags enabled and copy it to the appropriate bin folder with a command like `go build -gcflags="all=-N -l" -o ~/go/bin/`.
 
@@ -104,7 +106,7 @@ Manual testing should be performed on each PR opened in order to validate the pr
 
 ### Using a local version of the provider
 
-Build the provider and specify the output directory:
+Build the provider with debug flags for attaching a debugger:
 
 ```sh
 go build -gcflags="all=-N -l" -o ~/go/bin/
@@ -179,6 +181,7 @@ export GH_TEST_EXTERNAL_USER2=
 
 # Configure values for the enterprise under test
 export GH_TEST_ENTERPRISE_EMU_GROUP_ID=
+export GITHUB_ENTERPRISE_SLUG=
 
 # Configure test options
 export GH_TEST_ADVANCED_SECURITY=
