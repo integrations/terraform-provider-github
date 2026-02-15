@@ -2,7 +2,6 @@ package github
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 	"testing"
 
@@ -1119,40 +1118,29 @@ resource "github_repository" "test" {
 	t.Run("updates repos to private visibility", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%svisibility-public-%s", testResourcePrefix, randomID)
-		config := fmt.Sprintf(`
+		config := `
 			resource "github_repository" "public" {
 				name       = "%s"
-				visibility = "public"
+				visibility = "%s"
 				vulnerability_alerts = false
 			}
-		`, testRepoName)
-
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.public", "visibility",
-					"public",
-				),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.public", "visibility",
-					"private",
-				),
-			),
-		}
+		`
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: config,
-					Check:  checks["before"],
+					Config: fmt.Sprintf(config, testRepoName, "public"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.public", "visibility", "public"),
+					),
 				},
 				{
-					Config: reconfigureVisibility(config, "private"),
-					Check:  checks["after"],
+					Config: fmt.Sprintf(config, testRepoName, "private"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.public", "visibility", "private"),
+					),
 				},
 			},
 		})
@@ -1561,15 +1549,6 @@ func TestGithubRepositoryTopicFailsValidationWhenOverMaxCharacters(t *testing.T)
 	if expectedFailure != actualFailure {
 		t.Error(fmt.Errorf("unexpected topic validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
 	}
-}
-
-func reconfigureVisibility(config, visibility string) string {
-	re := regexp.MustCompile(`visibility = "(.*)"`)
-	newConfig := re.ReplaceAllString(
-		config,
-		fmt.Sprintf(`visibility = "%s"`, visibility),
-	)
-	return newConfig
 }
 
 type resourceDataLike map[string]any
