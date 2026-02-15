@@ -46,9 +46,9 @@ func resourceGithubTeamSettings() *schema.Resource {
 						"algorithm": {
 							Type:             schema.TypeString,
 							Optional:         true,
-							Description:      "The algorithm to use when assigning pull requests to team members. Supported values are 'ROUND_ROBIN' and 'LOAD_BALANCE'.",
-							Default:          "ROUND_ROBIN",
-							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"ROUND_ROBIN", "LOAD_BALANCE"}, false)),
+							Description:      "The algorithm to use when assigning pull requests to team members. Supported values are " + string(githubv4.TeamReviewAssignmentAlgorithmRoundRobin) + " and " + string(githubv4.TeamReviewAssignmentAlgorithmLoadBalance) + ".",
+							Default:          string(githubv4.TeamReviewAssignmentAlgorithmRoundRobin),
+							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{string(githubv4.TeamReviewAssignmentAlgorithmRoundRobin), string(githubv4.TeamReviewAssignmentAlgorithmLoadBalance)}, false)),
 						},
 						"member_count": {
 							Type:         schema.TypeInt,
