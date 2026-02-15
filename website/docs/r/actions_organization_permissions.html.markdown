@@ -39,6 +39,7 @@ The following arguments are supported:
 * `enabled_repositories`        - (Required) The policy that controls the repositories in the organization that are allowed to run GitHub Actions. Can be one of: `all`, `none`, or `selected`.
 * `allowed_actions_config`      - (Optional) Sets the actions that are allowed in an organization. Only available when `allowed_actions` = `selected`. See [Allowed Actions Config](#allowed-actions-config) below for details.
 * `enabled_repositories_config` - (Optional) Sets the list of selected repositories that are enabled for GitHub Actions in an organization. Only available when `enabled_repositories` = `selected`. See [Enabled Repositories Config](#enabled-repositories-config) below for details.
+* `sha_pinning_required`        - (Optional) Whether pinning to a specific SHA is required for all actions and reusable workflows in the organization.
 
 ### Allowed Actions Config
 
