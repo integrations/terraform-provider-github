@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -13,6 +14,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
+
+var supportedEnterpriseRulesetTargetTypes = []string{
+	string(github.RulesetTargetBranch),
+	string(github.RulesetTargetTag),
+	string(github.RulesetTargetPush),
+	string(github.RulesetTargetRepository),
+}
 
 func resourceGithubEnterpriseRuleset() *schema.Resource {
 	return &schema.Resource{
@@ -43,10 +51,10 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 				Description:  "The name of the ruleset.",
 			},
 			"target": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{"branch", "tag", "push", "repository"}, false),
-				Description:  "Possible values are `branch`, `tag`, `push`, and `repository`. Note: The `push` target is in beta and is subject to change.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice(supportedEnterpriseRulesetTargetTypes, false)),
+				Description:      "Possible values are " + strings.Join(supportedEnterpriseRulesetTargetTypes[:len(supportedEnterpriseRulesetTargetTypes)-1], ", ") + " and " + supportedEnterpriseRulesetTargetTypes[len(supportedEnterpriseRulesetTargetTypes)-1] + ". Note: The `repository` target is in preview and is subject to change.",
 			},
 			"enforcement": {
 				Type:         schema.TypeString,
@@ -165,8 +173,8 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 							Type:          schema.TypeList,
 							Optional:      true,
 							MaxItems:      1,
-							Description:   "Conditions for repository names that the ruleset targets. Conflicts with `repository_id`.",
-							ConflictsWith: []string{"conditions.0.repository_id"},
+							Description:   "Conditions for repository names that the ruleset targets. Conflicts with `repository_id` and `repository_property`.",
+							ConflictsWith: []string{"conditions.0.repository_id", "conditions.0.repository_property"},
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -197,10 +205,75 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 						"repository_id": {
 							Type:          schema.TypeList,
 							Optional:      true,
-							ConflictsWith: []string{"conditions.0.repository_name"},
-							Description:   "The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass. Conflicts with `repository_name`.",
+							ConflictsWith: []string{"conditions.0.repository_name", "conditions.0.repository_property"},
+							Description:   "The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass. Conflicts with `repository_name` and `repository_property`.",
 							Elem: &schema.Schema{
 								Type: schema.TypeInt,
+							},
+						},
+						"repository_property": {
+							Type:          schema.TypeList,
+							Optional:      true,
+							MaxItems:      1,
+							Description:   "Conditions based on repository properties. Conflicts with `repository_name` and `repository_id`.",
+							ConflictsWith: []string{"conditions.0.repository_name", "conditions.0.repository_id"},
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"include": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										Description: "Array of repository property conditions to include.",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"name": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The name of the repository property to target.",
+												},
+												"property_values": {
+													Type:        schema.TypeList,
+													Required:    true,
+													Description: "The values to match for the repository property.",
+													Elem: &schema.Schema{
+														Type: schema.TypeString,
+													},
+												},
+												"source": {
+													Type:        schema.TypeString,
+													Optional:    true,
+													Description: "The source of the repository property.",
+												},
+											},
+										},
+									},
+									"exclude": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										Description: "Array of repository property conditions to exclude.",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"name": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The name of the repository property to target.",
+												},
+												"property_values": {
+													Type:        schema.TypeList,
+													Required:    true,
+													Description: "The values to match for the repository property.",
+													Elem: &schema.Schema{
+														Type: schema.TypeString,
+													},
+												},
+												"source": {
+													Type:        schema.TypeString,
+													Optional:    true,
+													Description: "The source of the repository property.",
+												},
+											},
+										},
+									},
+								},
 							},
 						},
 					},
@@ -804,10 +877,6 @@ func resourceGithubEnterpriseRulesetRead(ctx context.Context, d *schema.Resource
 		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
 
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
-
 	ruleset, resp, err := client.Enterprise.GetRepositoryRuleset(ctx, enterpriseSlug, rulesetID)
 	if err != nil {
 		var ghErr *github.ErrorResponse
@@ -947,6 +1016,14 @@ func resourceGithubEnterpriseRulesetDelete(ctx context.Context, d *schema.Resour
 
 	_, err = client.Enterprise.DeleteRepositoryRuleset(ctx, enterpriseSlug, rulesetID)
 	if err != nil {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Enterprise ruleset already deleted", map[string]any{
+				"enterprise_slug": enterpriseSlug,
+				"ruleset_id":      rulesetID,
+			})
+			return nil
+		}
 		tflog.Error(ctx, "Failed to delete enterprise ruleset", map[string]any{
 			"enterprise_slug": enterpriseSlug,
 			"ruleset_id":      rulesetID,
@@ -963,18 +1040,18 @@ func resourceGithubEnterpriseRulesetDelete(ctx context.Context, d *schema.Resour
 	return nil
 }
 
-func resourceGithubEnterpriseRulesetImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	enterpriseSlug, rulesetIDStr, err := parseTwoPartID(d.Id(), "enterprise_slug", "ruleset_id")
+func resourceGithubEnterpriseRulesetImport(ctx context.Context, d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
+	enterpriseSlug, rulesetIDStr, err := parseID2(d.Id())
 	if err != nil {
-		return []*schema.ResourceData{d}, err
+		return nil, fmt.Errorf("error importing enterprise ruleset (expected format: <enterprise_slug>:<ruleset_id>): %w", err)
 	}
 
 	rulesetID, err := strconv.ParseInt(rulesetIDStr, 10, 64)
 	if err != nil {
-		return []*schema.ResourceData{d}, unconvertibleIdErr(rulesetIDStr, err)
+		return nil, fmt.Errorf("error importing enterprise ruleset (expected format: <enterprise_slug>:<ruleset_id>): %w", unconvertibleIdErr(rulesetIDStr, err))
 	}
 	if rulesetID == 0 {
-		return []*schema.ResourceData{d}, fmt.Errorf("`ruleset_id` must be present")
+		return nil, fmt.Errorf("error importing enterprise ruleset (expected format: <enterprise_slug>:<ruleset_id>): ruleset_id must be present")
 	}
 
 	tflog.Debug(ctx, "Importing enterprise ruleset", map[string]any{
@@ -982,14 +1059,7 @@ func resourceGithubEnterpriseRulesetImport(ctx context.Context, d *schema.Resour
 		"ruleset_id":      rulesetID,
 	})
 
-	client := meta.(*Owner).v3client
-
-	ruleset, _, err := client.Enterprise.GetRepositoryRuleset(ctx, enterpriseSlug, rulesetID)
-	if ruleset == nil || err != nil {
-		return []*schema.ResourceData{d}, err
-	}
-
-	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
+	d.SetId(rulesetIDStr)
 	_ = d.Set("enterprise_slug", enterpriseSlug)
 
 	tflog.Info(ctx, "Imported enterprise ruleset", map[string]any{
