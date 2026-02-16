@@ -27,7 +27,7 @@ func TestAccGithubRepositoryPagesDataSource(t *testing.T) {
 
 			resource "github_repository_pages" "test" {
 				owner      = "%s"
-				repository_name = github_repository.test.name
+				repository = github_repository.test.name
 				build_type = "legacy"
 				source {
 					branch = "main"
@@ -37,7 +37,7 @@ func TestAccGithubRepositoryPagesDataSource(t *testing.T) {
 
 			data "github_repository_pages" "test" {
 				owner           = "%s"
-				repository_name = github_repository.test.name
+				repository = github_repository.test.name
 
 				depends_on = [github_repository_pages.test]
 			}

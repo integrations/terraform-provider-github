@@ -2,10 +2,12 @@ package github
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccGithubRepositoryPages(t *testing.T) {
@@ -28,7 +30,7 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 
 			resource "github_repository_pages" "test" {
 				owner      = "%s"
-				repository_name = github_repository.test.name
+				repository = github_repository.test.name
 				build_type = "legacy"
 				source {
 					branch = "main"
@@ -68,7 +70,7 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 
 			resource "github_repository_pages" "test" {
 				owner      = "%s"
-				repository_name = github_repository.test.name
+				repository = github_repository.test.name
 				build_type = "workflow"
 			}
 		`, repoName, baseRepoVisibility, testAccConf.owner)
@@ -107,7 +109,7 @@ source {
 
 			resource "github_repository_pages" "test" {
 				owner      = "%s"
-				repository_name = github_repository.test.name
+				repository = github_repository.test.name
 				build_type = "%s"
 				%s
 			}
@@ -147,7 +149,7 @@ source {
 
 			resource "github_repository_pages" "test" {
 				owner      = "%s"
-				repository_name = github_repository.test.name
+				repository = github_repository.test.name
 				build_type = "legacy"
 				source {
 					branch = "main"
@@ -167,9 +169,21 @@ source {
 					),
 				},
 				{
-					ResourceName:            "github_repository_pages.test",
-					ImportState:             true,
-					ImportStateVerify:       true,
+					ResourceName:      "github_repository_pages.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+					ImportStateIdFunc: func(state *terraform.State) (string, error) {
+						repo := state.RootModule().Resources["github_repository.test"]
+
+						if repo == nil {
+							return "", fmt.Errorf("github_repository.test not found in state")
+						}
+						repoID := repo.Primary.ID
+						if repoID == "" {
+							return "", fmt.Errorf("github_repository.test does not have an id in terraform state")
+						}
+						return fmt.Sprintf("%s:%s", strings.Split(repo.Primary.Attributes["full_name"], "/")[0], repoID), nil
+					},
 					ImportStateVerifyIgnore: []string{"build_status"},
 				},
 			},

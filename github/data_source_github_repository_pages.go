@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"net/http"
+	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -14,7 +15,7 @@ func dataSourceGithubRepositoryPages() *schema.Resource {
 		ReadContext: dataSourceGithubRepositoryPagesRead,
 
 		Schema: map[string]*schema.Schema{
-			"repository_name": {
+			"repository": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The repository name to get GitHub Pages information for.",
@@ -82,7 +83,7 @@ func dataSourceGithubRepositoryPagesRead(ctx context.Context, d *schema.Resource
 	client := meta.v3client
 
 	owner := d.Get("owner").(string)
-	repoName := d.Get("repository_name").(string)
+	repoName := d.Get("repository").(string)
 
 	pages, resp, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)
 	if err != nil {
@@ -92,11 +93,12 @@ func dataSourceGithubRepositoryPagesRead(ctx context.Context, d *schema.Resource
 		return diag.Errorf("error reading repository pages: %s", err.Error())
 	}
 
-	id, err := buildID(owner, repoName)
+	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(id)
+
+	d.SetId(strconv.Itoa(int(repo.GetID())))
 
 	if err := d.Set("build_type", pages.GetBuildType()); err != nil {
 		return diag.FromErr(err)
