@@ -33,8 +33,25 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      - name: Set-up Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: latest
+          terraform_wrapper: false
+      - name: Set-up rumdl
+        uses: action-stars/install-tool-from-github-release@1fa61c3bea52eca3bcdb1f5c961a3b113fe7fa54 # v0.2.6
+        with:
+          github_token: ${{ github.token }}
+          owner: rvben
+          repository: rumdl
+          filename_format: "{name}-v{version}-{arch}-{os}.{ext}"
+          arch_amd64: x86_64
+          os_linux: unknown-linux-gnu
+          check_command: rumdl --version
+          version: latest
       - run: make tools
       - run: make lintcheck
-      - run: make website-lint
       - run: make build
       - run: make test
+      - run: make checkdocs
+      - run: make lintdocs RUMDL_ARGS="--output-format github"

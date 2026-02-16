@@ -1,0 +1,61 @@
+---
+page_title: "github_dependabot_organization_secret_repository (Resource) - GitHub"
+description: |-
+  Add access for a repository to a Dependabot Secret within a GitHub organization.
+---
+
+# github_dependabot_organization_secret_repository (Resource)
+
+This resource adds permission for a repository to use a Dependabot secret within your GitHub organization. You must have write access to an organization secret to use this resource.
+
+This resource is only applicable when `visibility` of the existing organization secret has been set to `selected`.
+
+## Example Usage
+
+```terraform
+resource "github_dependabot_organization_secret" "example" {
+  secret_name     = "mysecret"
+  plaintext_value = "foo"
+  visibility      = "selected"
+}
+
+resource "github_repository" "example" {
+  name       = "myrepo"
+  visibility = "public"
+}
+
+resource "github_dependabot_organization_secret_repository" "example" {
+  secret_name   = github_dependabot_organization_secret.example.name
+  repository_id = github_repository.example.repo_id
+}
+```
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `secret_name` - (Required) Name of the Dependabot organization secret.
+- `repository_id` - (Required) ID of the repository that should be able to access the secret.
+
+## Import
+
+This resource can be imported using an ID made of the secret name and repository name separated by a `:`.
+
+### Import Block
+
+The following import block imports the access of repository ID `123456` for the Dependabot organization secret named `mysecret` to a `github_dependabot_organization_secret_repository` resource named `example`.
+
+```terraform
+import {
+  to = github_dependabot_organization_secret_repository.example
+  id = "mysecret:123456"
+}
+```
+
+### Import Command
+
+The following command imports the access of repository ID `123456` for the Dependabot organization secret named `mysecret` to a `v` resource named `example`.
+
+```shell
+terraform import github_dependabot_organization_secret_repository.example mysecret:123456
+```

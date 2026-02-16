@@ -1,0 +1,28 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Manages Actions and Reusable Workflow access for a GitHub repository
+---
+
+# {{.Name}} ({{.Type}})
+
+This resource allows you to set the access level of a non-public repositories actions and reusable workflows for use in other repositories. You must have admin access to a repository to use this resource.
+
+## Example Usage
+
+{{ tffile "examples/resources/actions_repository_access_level/example_1.tf" }}
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `repository` - (Required) The GitHub repository
+- `access_level` - (Required) Where the actions or reusable workflows of the repository may be used. Possible values are `none`, `user`, `organization`, or `enterprise`.
+
+## Import
+
+This resource can be imported using the name of the GitHub repository:
+
+```hcl
+$ terraform import github_actions_repository_access_level.test my-repository
+```

@@ -1,0 +1,15 @@
+[global]
+disable = ["MD013", "MD028"]
+
+[per-file-ignores]
+".github/pull_request_template.md" = ["MD041"]
+"docs/**/*.md" = ["MD059"]
+
+[MD024]
+siblings-only = true
+
+[MD033]
+allowed-elements = ["a", "br", "details", "img", "summary", "sub", "sup"]
+
+[MD052]
+shortcut-syntax = true

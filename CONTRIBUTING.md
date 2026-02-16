@@ -13,8 +13,9 @@ Before submitting an issue or a pull request, please search the repository for e
 1. Fork and clone the repository.
 2. Create a new branch: `git switch -c my-branch-name`.
 3. Make your change, add tests, and make sure the tests still pass.
-4. Push to your fork and submit a pull request.
-5. Pat yourself on the back and wait for your pull request to be reviewed and merged.
+4. Make sure the documentation has been updated, and run `make generatedocs`.
+5. Push to your fork and submit a pull request.
+6. Pat yourself on the back and wait for your pull request to be reviewed and merged.
 
 Here are a few things you can do that will increase the likelihood of your pull request being accepted:
 

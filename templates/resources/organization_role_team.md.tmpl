@@ -1,0 +1,28 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Manage an association between an organization role and a team.
+---
+
+# {{.Name}} ({{.Type}})
+
+Manage an association between an organization role and a team.
+
+## Example Usage
+
+{{ tffile "examples/resources/organization_role_team/example_1.tf" }}
+
+## Schema
+
+### Required
+
+- `role_id` (Number) The ID of the organization role.
+- `team_slug` (String) The slug of the team name.
+
+## Import
+
+An organization role team association can be imported using the role ID and the team slug separated by a `:`.
+
+```shell
+terraform import github_organization_role_team.example "1234:example-team"
+```

@@ -1,4 +1,4 @@
-# Hi fellow bots and humans :wave:
+# Hi fellow bots and humans :wave
 
 If you're about to panic about leaked private keys, then please don't.
 These are purposefully exposed cryptographic materials used in tests of

@@ -2,7 +2,7 @@
 
 This displays repository management for non-organization GitHub accounts.
 
-This example will create a repository in the specified `owner` organization. See https://www.terraform.io/docs/providers/github/index.html for details on configuring [`providers.tf`](./providers.tf) accordingly.
+This example will create a repository in the specified `owner` organization. See <https://www.terraform.io/docs/providers/github/index.html> for details on configuring [`providers.tf`](./providers.tf) accordingly.
 
 Alternatively, you may use variables passed via command line:
 

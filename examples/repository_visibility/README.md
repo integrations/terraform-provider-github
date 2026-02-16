@@ -2,7 +2,7 @@
 
 This demos various repository [visibility settings](https://help.github.com/en/github/administering-a-repository/setting-repository-visibility) for repositories.
 
-This example will create a repositories in the specified `owner` organization. See https://www.terraform.io/docs/providers/github/index.html for details on configuring [`providers.tf`](./providers.tf) accordingly.
+This example will create a repositories in the specified `owner` organization. See <https://www.terraform.io/docs/providers/github/index.html> for details on configuring [`providers.tf`](./providers.tf) accordingly.
 
 Alternatively, you may use variables passed via command line:
 

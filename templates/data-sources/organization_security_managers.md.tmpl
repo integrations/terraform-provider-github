@@ -1,0 +1,28 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Get the security managers for an organization.
+---
+
+# {{.Name}} ({{.Type}})
+
+~> **Note:*- This data source is deprecated, please use the `github_organization_role_team` resource instead.
+
+Use this data source to retrieve the security managers for an organization.
+
+## Example Usage
+
+{{ tffile "examples/data-sources/organization_security_managers/example_1.tf" }}
+
+## Attributes Reference
+
+- `teams` - An list of GitHub teams. Each `team` block consists of the fields documented below.
+
+---___
+
+The `team` block consists of:
+
+- `id` - Unique identifier of the team.
+- `slug` - Name based identifier of the team.
+- `name` - Name of the team.
+- `permission` - Permission that the team will have for its repositories.
