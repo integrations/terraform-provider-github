@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -23,11 +25,16 @@ func resourceGithubRepositoryPages() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"repository_name": {
+			"repository": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: "The repository name to configure GitHub Pages for.",
+			},
+			"repository_id": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The ID of the repository to configure GitHub Pages for.",
 			},
 			"owner": {
 				Type:        schema.TypeString,
@@ -89,7 +96,7 @@ func resourceGithubRepositoryPages() *schema.Resource {
 				Description: "The API URL of the GitHub Pages resource.",
 			},
 		},
-		CustomizeDiff: resourceGithubRepositoryPagesDiff,
+		CustomizeDiff: customdiff.All(resourceGithubRepositoryPagesDiff, diffRepository),
 	}
 }
 
@@ -98,7 +105,7 @@ func resourceGithubRepositoryPagesCreate(ctx context.Context, d *schema.Resource
 	client := meta.v3client
 
 	owner := d.Get("owner").(string)
-	repoName := d.Get("repository_name").(string)
+	repoName := d.Get("repository").(string)
 
 	pages := expandPagesForCreate(d)
 	pages, _, err := client.Repositories.EnablePages(ctx, owner, repoName, pages)
@@ -106,11 +113,16 @@ func resourceGithubRepositoryPagesCreate(ctx context.Context, d *schema.Resource
 		return diag.FromErr(err)
 	}
 
-	id, err := buildID(owner, repoName)
+	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(id)
+
+	d.SetId(strconv.Itoa(int(repo.GetID())))
+
+	if err = d.Set("repository_id", int(repo.GetID())); err != nil {
+		return diag.FromErr(err)
+	}
 
 	if err := d.Set("build_type", pages.GetBuildType()); err != nil {
 		return diag.FromErr(err)
@@ -150,7 +162,7 @@ func resourceGithubRepositoryPagesRead(ctx context.Context, d *schema.ResourceDa
 	client := meta.v3client
 
 	owner := d.Get("owner").(string)
-	repoName := d.Get("repository_name").(string)
+	repoName := d.Get("repository").(string)
 
 	pages, resp, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)
 	if err != nil {
@@ -205,7 +217,7 @@ func resourceGithubRepositoryPagesUpdate(ctx context.Context, d *schema.Resource
 	client := meta.v3client
 
 	owner := d.Get("owner").(string)
-	repoName := d.Get("repository_name").(string)
+	repoName := d.Get("repository").(string)
 
 	update := &github.PagesUpdate{}
 
@@ -252,7 +264,7 @@ func resourceGithubRepositoryPagesDelete(ctx context.Context, d *schema.Resource
 	client := meta.v3client
 
 	owner := d.Get("owner").(string)
-	repoName := d.Get("repository_name").(string)
+	repoName := d.Get("repository").(string)
 
 	_, err := client.Repositories.DisablePages(ctx, owner, repoName)
 	if err != nil {
@@ -262,7 +274,7 @@ func resourceGithubRepositoryPagesDelete(ctx context.Context, d *schema.Resource
 	return nil
 }
 
-func resourceGithubRepositoryPagesImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubRepositoryPagesImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
 	owner, repoName, err := parseID2(d.Id())
 	if err != nil {
 		return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <owner>:<repository>. Original error: %w", err)
@@ -270,9 +282,22 @@ func resourceGithubRepositoryPagesImport(ctx context.Context, d *schema.Resource
 	if err := d.Set("owner", owner); err != nil {
 		return nil, err
 	}
-	if err := d.Set("repository_name", repoName); err != nil {
+	if err := d.Set("repository", repoName); err != nil {
 		return nil, err
 	}
+
+	meta := m.(*Owner)
+	client := meta.v3client
+
+	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
+	if err != nil {
+		return nil, err
+	}
+	if err = d.Set("repository_id", int(repo.GetID())); err != nil {
+		return nil, err
+	}
+
+	d.SetId(strconv.Itoa(int(repo.GetID())))
 
 	return []*schema.ResourceData{d}, nil
 }
