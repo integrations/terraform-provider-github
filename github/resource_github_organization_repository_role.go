@@ -170,13 +170,9 @@ func resourceGithubOrganizationRepositoryRoleUpdate(ctx context.Context, d *sche
 		Permissions: permissionsStr,
 	}
 
-	role, _, err := client.Organizations.UpdateCustomRepoRole(ctx, orgName, roleId, update)
+	_, _, err = client.Organizations.UpdateCustomRepoRole(ctx, orgName, roleId, update)
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("error updating GitHub organization repository role (%s/%s): %w", orgName, d.Get("name").(string), err))
-	}
-
-	if err = d.Set("role_id", role.GetID()); err != nil {
-		return diag.FromErr(err)
 	}
 
 	return nil
