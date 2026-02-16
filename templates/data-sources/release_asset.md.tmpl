@@ -1,0 +1,48 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Get information on a GitHub release asset.
+---
+
+# github\_release\_asset
+
+Use this data source to retrieve information about a GitHub release asset.
+
+## Example Usage
+
+To retrieve a specific release asset from a repository based on its ID:
+
+{{ tffile "examples/data-sources/release_asset/example_1.tf" }}
+
+To retrieve a specific release asset from a repository, and download the file into a `file` attribute on the data source:
+
+{{ tffile "examples/data-sources/release_asset/example_2.tf" }}
+
+To retrieve the first release asset associated with the latest release in a repository:
+
+{{ tffile "examples/data-sources/release_asset/example_3.tf" }}
+
+To retrieve all release assets associated with the the latest release in a repository:
+
+{{ tffile "examples/data-sources/release_asset/example_4.tf" }}
+
+## Argument Reference
+
+- `repository` - (Required) Name of the repository to retrieve the release from
+- `owner` - (Required) Owner of the repository
+- `asset_id` - (Required) ID of the release asset to retrieve
+- `download_file_contents` - (Optional) Whether to download the asset file content into the `file_contents` attribute (defaults to `false`)
+
+## Attributes Reference
+
+- `id` - ID of the asset
+- `url` - URL of the asset
+- `node_id` - Node ID of the asset
+- `name` - The file name of the asset
+- `label` - Label for the asset
+- `content_type` - MIME type of the asset
+- `size` - Asset size in bytes
+- `created_at` - Date the asset was created
+- `updated_at` - Date the asset was last updated
+- `browser_download_url` - Browser URL from which the release asset can be downloaded
+- `file_contents` - The base64-encoded release asset file contents (requires `download_file_contents` to be `true`)

@@ -1,0 +1,27 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Manages the Security manager teams for a GitHub Organization.
+---
+
+# {{.Name}} ({{.Type}})
+
+~> **Note:*- This resource is deprecated, please use the `github_organization_role_team` resource instead.
+
+## Example Usage
+
+{{ tffile "examples/resources/organization_security_manager/example_1.tf" }}
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `team_slug` - (Required) The slug of the team to manage.
+
+## Import
+
+GitHub Security Manager Teams can be imported using the GitHub team ID e.g.
+
+```hcl
+$ terraform import github_organization_security_manager.core 1234567
+```

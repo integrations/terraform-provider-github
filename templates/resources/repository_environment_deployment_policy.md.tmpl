@@ -1,0 +1,39 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Creates and manages environment deployment branch policies for GitHub repositories
+---
+
+# {{.Name}} ({{.Type}})
+
+This resource allows you to create and manage environment deployment branch policies for a GitHub repository.
+
+## Example Usage
+
+Create a branch-based deployment policy:
+
+{{ tffile "examples/resources/repository_environment_deployment_policy/example_1.tf" }}
+
+Create a tag-based deployment policy:
+
+{{ tffile "examples/resources/repository_environment_deployment_policy/example_2.tf" }}
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `environment` - (Required) The name of the environment.
+
+- `repository` - (Required) The repository of the environment.
+
+- `branch_pattern` - (Optional) The name pattern that branches must match in order to deploy to the environment. If not specified, `tag_pattern` must be specified.
+
+- `tag_pattern` - (Optional) The name pattern that tags must match in order to deploy to the environment. If not specified, `branch_pattern` must be specified.
+
+## Import
+
+This resource can be imported using an ID made of the repository name, environment name (any `:` in the name need to be escaped as `??`), and deployment policy ID all separated by a `:`.
+
+```shell
+terraform import github_repository_environment.example myrepo:myenv:123456
+```

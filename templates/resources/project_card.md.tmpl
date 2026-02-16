@@ -1,0 +1,41 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Creates and manages project cards for GitHub projects
+---
+
+# {{.Name}} ({{.Type}})
+
+!> **Warning:*- This resource no longer works as the [Projects (classic) REST API](https://docs.github.com/en/rest/projects/projects?apiVersion=2022-11-28) has been [removed](https://github.blog/changelog/2024-05-23-sunset-notice-projects-classic/) and as such has been deprecated. It will be removed in a future release.
+
+This resource allows you to create and manage cards for GitHub projects.
+
+## Example Usage
+
+{{ tffile "examples/resources/project_card/example_1.tf" }}
+
+## Example Usage adding an Issue to a Project
+
+{{ tffile "examples/resources/project_card/example_2.tf" }}
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `column_id` - (Required) The ID of the card.
+
+- `note` - (Optional) The note contents of the card. Markdown supported.
+
+- `content_id` - (Optional) `github_issue.issue_id`.
+
+- `content_type` - (Optional) Must be either `Issue` or `PullRequest`
+
+**Remarks:*- You must either set the `note` attribute or both `content_id` and `content_type`. See [note example](#example-usage) or [issue example](#example-usage-adding-an-issue-to-a-project) for more information.
+
+## Import
+
+A GitHub Project Card can be imported using its [Card ID](https://developer.github.com/v3/projects/cards/#get-a-project-card):
+
+```hcl
+$ terraform import github_project_card.card 01234567
+```

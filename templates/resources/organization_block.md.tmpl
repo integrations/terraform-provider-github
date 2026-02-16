@@ -1,0 +1,27 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Creates and manages blocks for GitHub organizations
+---
+
+# {{.Name}} ({{.Type}})
+
+This resource allows you to create and manage blocks for GitHub organizations.
+
+## Example Usage
+
+{{ tffile "examples/resources/organization_block/example_1.tf" }}
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `username` - (Required) The name of the user to block.
+
+## Import
+
+GitHub organization block can be imported using a username, e.g.
+
+```hcl
+$ terraform import github_github_organization_block.example someuser
+```

@@ -40,7 +40,7 @@ terraform apply
 # Allow all actions for all organizations
 resource "github_enterprise_actions_permissions" "basic" {
   enterprise_slug = "my-enterprise"
-  
+
   enabled_organizations = "all"
   allowed_actions = "all"
 }
@@ -48,7 +48,7 @@ resource "github_enterprise_actions_permissions" "basic" {
 # Use restrictive workflow permissions
 resource "github_enterprise_actions_workflow_permissions" "basic" {
   enterprise_slug = "my-enterprise"
-  
+
   default_workflow_permissions = "read"
   can_approve_pull_request_reviews = false
 }
@@ -60,10 +60,10 @@ resource "github_enterprise_actions_workflow_permissions" "basic" {
 # Selective actions and organizations
 resource "github_enterprise_actions_permissions" "advanced" {
   enterprise_slug = "my-enterprise"
-  
+
   enabled_organizations = "selected"
   allowed_actions = "selected"
-  
+
   allowed_actions_config {
     github_owned_allowed = true
     verified_allowed = true
@@ -73,7 +73,7 @@ resource "github_enterprise_actions_permissions" "advanced" {
       "my-org/custom-action@v1"
     ]
   }
-  
+
   enabled_organizations_config {
     organization_ids = [123456, 789012] # Replace with actual org IDs
   }
@@ -82,7 +82,7 @@ resource "github_enterprise_actions_permissions" "advanced" {
 # More permissive workflow settings
 resource "github_enterprise_actions_workflow_permissions" "advanced" {
   enterprise_slug = "my-enterprise"
-  
+
   default_workflow_permissions = "write"
   can_approve_pull_request_reviews = true
 }
@@ -91,13 +91,16 @@ resource "github_enterprise_actions_workflow_permissions" "advanced" {
 ## Available Enterprise Resources
 
 ### Actions & Workflow Management
+
 - **`github_enterprise_actions_permissions`** - Controls which organizations can use GitHub Actions and which actions are allowed to run
 - **`github_enterprise_actions_workflow_permissions`** - Manages default GITHUB_TOKEN permissions and whether GitHub Actions can approve pull requests
 
 ### Security & Analysis
+
 - **`github_enterprise_security_analysis_settings`** - Manages Advanced Security, secret scanning, and code analysis features for new repositories
 
 ### Additional Resources (Available)
+
 - **`github_enterprise_actions_runner_group`** - Manages enterprise-level runner groups for GitHub Actions
 
 ## Security Recommendations
@@ -167,6 +170,7 @@ terraform import github_enterprise_settings.example my-enterprise
 ### Verification
 
 After applying, verify settings in the GitHub Enterprise dashboard:
+
 1. Go to your enterprise settings
 2. Navigate to "Policies" > "Actions"  
 3. Check that the configured settings match your Terraform configuration
