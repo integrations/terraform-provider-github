@@ -289,6 +289,14 @@ func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions
 			}
 
 			rulesetConditions.RepositoryID = &github.RepositoryRulesetRepositoryIDsConditionParameters{RepositoryIDs: repositoryIDs}
+		} else if v, ok := inputConditions["repository_property"].([]any); ok && v != nil && len(v) != 0 {
+			inputRepoProp := v[0].(map[string]any)
+			include := expandRepositoryPropertyTargets(inputRepoProp["include"].([]any))
+			exclude := expandRepositoryPropertyTargets(inputRepoProp["exclude"].([]any))
+			rulesetConditions.RepositoryProperty = &github.RepositoryRulesetRepositoryPropertyConditionParameters{
+				Include: include,
+				Exclude: exclude,
+			}
 		}
 	}
 
@@ -351,9 +359,51 @@ func flattenConditions(ctx context.Context, conditions *github.RepositoryRuleset
 			conditionsMap["repository_id"] = conditions.RepositoryID.RepositoryIDs
 		}
 
+		if conditions.RepositoryProperty != nil {
+			conditionsMap["repository_property"] = []map[string]any{{
+				"include": flattenRepositoryPropertyTargets(conditions.RepositoryProperty.Include),
+				"exclude": flattenRepositoryPropertyTargets(conditions.RepositoryProperty.Exclude),
+			}}
+		}
+
 	}
 
 	return []any{conditionsMap}
+}
+
+func expandRepositoryPropertyTargets(input []any) []*github.RepositoryRulesetRepositoryPropertyTargetParameters {
+	targets := make([]*github.RepositoryRulesetRepositoryPropertyTargetParameters, 0, len(input))
+	for _, item := range input {
+		targetMap := item.(map[string]any)
+		propertyValues := make([]string, 0)
+		for _, pv := range targetMap["property_values"].([]any) {
+			propertyValues = append(propertyValues, pv.(string))
+		}
+		target := &github.RepositoryRulesetRepositoryPropertyTargetParameters{
+			Name:           targetMap["name"].(string),
+			PropertyValues: propertyValues,
+		}
+		if source, ok := targetMap["source"].(string); ok && source != "" {
+			target.Source = github.Ptr(source)
+		}
+		targets = append(targets, target)
+	}
+	return targets
+}
+
+func flattenRepositoryPropertyTargets(targets []*github.RepositoryRulesetRepositoryPropertyTargetParameters) []map[string]any {
+	result := make([]map[string]any, 0, len(targets))
+	for _, t := range targets {
+		m := map[string]any{
+			"name":            t.Name,
+			"property_values": t.PropertyValues,
+		}
+		if t.Source != nil {
+			m["source"] = *t.Source
+		}
+		result = append(result, m)
+	}
+	return result
 }
 
 func expandRules(input []any, org bool) *github.RepositoryRulesetRules {

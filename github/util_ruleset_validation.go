@@ -173,9 +173,12 @@ func validateConditionsFieldForBranchAndTagTargets(ctx context.Context, target g
 
 	// Repository rulesets don't have repository_name or repository_id, only org rulesets do.
 	if isOrg {
-		if (conditions["repository_name"] == nil || len(conditions["repository_name"].([]any)) == 0) && (conditions["repository_id"] == nil || len(conditions["repository_id"].([]any)) == 0) {
-			tflog.Debug(ctx, fmt.Sprintf("Missing repository_name or repository_id for %s target", target), map[string]any{"target": target})
-			return fmt.Errorf("either repository_name or repository_id must be set for %s target", target)
+		hasRepoName := conditions["repository_name"] != nil && len(conditions["repository_name"].([]any)) != 0
+		hasRepoID := conditions["repository_id"] != nil && len(conditions["repository_id"].([]any)) != 0
+		hasRepoProp := conditions["repository_property"] != nil && len(conditions["repository_property"].([]any)) != 0
+		if !hasRepoName && !hasRepoID && !hasRepoProp {
+			tflog.Debug(ctx, fmt.Sprintf("Missing repository_name, repository_id, or repository_property for %s target", target), map[string]any{"target": target})
+			return fmt.Errorf("either repository_name, repository_id, or repository_property must be set for %s target", target)
 		}
 	}
 	tflog.Debug(ctx, fmt.Sprintf("Conditions validation passed for %s target", target))
