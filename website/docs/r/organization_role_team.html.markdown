@@ -22,7 +22,7 @@ resource "github_organization_role_team" "example" {
 
 ```terraform
 locals {
-  security_manager_id = one([for x in data.github_organization_roles.all_roles.roles : x.role_id if x.name == "security_manager"][*])
+  security_manager_id = one([for x in data.github_organization_roles.all_roles.roles : x.role_id if x.name == "security_manager"])
 }
 
 data "github_organization_roles" "all_roles" {}
