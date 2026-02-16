@@ -17,6 +17,7 @@ This document serves as a guide for contributors implementing new features and r
         - [CRUD Function Signatures](#crud-function-signatures)
         - [Accessing the API Client](#accessing-the-api-client)
         - [Error Handling](#error-handling)
+        - [Import](#import)
         - [State Migrations](#state-migrations)
         - [Logging](#logging)
     - [Testing](#testing)
@@ -341,6 +342,42 @@ if err := deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "resource
     return diag.FromErr(err)
 }
 ```
+
+### Import
+
+Import is registered via the `Importer` field with a `StateContext` function. After import runs, Terraform **automatically calls `Read`** — so the import function's only job is to set enough state for `Read` to succeed. Do not duplicate `Read` logic in the import function.
+
+For resources with a single-part ID, the default passthrough importer is often sufficient:
+
+```go
+Importer: &schema.ResourceImporter{
+    StateContext: schema.ImportStatePassthroughContext,
+},
+```
+
+For resources with composite IDs, the import function must parse the user-provided ID and populate any schema attributes that `Read` depends on:
+
+```go
+func resourceGithubExampleImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+    owner, name, err := parseID2(d.Id())
+    if err != nil {
+        return nil, err
+    }
+
+    // Set attributes that Read needs to make API calls
+    d.Set("owner", owner)
+    // Re-build a normalized ID if needed
+    id, err := buildID(owner, name)
+    if err != nil {
+        return nil, err
+    }
+    d.SetId(id)
+
+    return []*schema.ResourceData{d}, nil
+}
+```
+
+**Key principle:** Import sets the minimum state required for `Read` to fetch the full resource. `Read` then populates all remaining attributes.
 
 ### State Migrations
 
