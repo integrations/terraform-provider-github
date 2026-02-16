@@ -134,3 +134,41 @@ resource "github_enterprise_ruleset" "branch_protection" {
     }
   }
 }
+
+resource "github_enterprise_ruleset" "branch_by_property" {
+  enterprise_slug = "your-enterprise"
+  name            = "production-repos-branch-protection"
+  target          = "branch"
+  enforcement     = "active"
+
+  conditions {
+    organization_name {
+      include = ["~ALL"]
+      exclude = []
+    }
+
+    # Target repositories based on custom properties
+    repository_property {
+      include {
+        name            = "environment"
+        property_values = ["production", "staging"]
+        source          = "custom"
+      }
+
+      exclude {
+        name            = "lifecycle"
+        property_values = ["deprecated", "archived"]
+      }
+    }
+
+    ref_name {
+      include = ["~DEFAULT_BRANCH", "refs/heads/release/*"]
+      exclude = []
+    }
+  }
+
+  rules {
+    deletion         = true
+    non_fast_forward = true
+  }
+}
