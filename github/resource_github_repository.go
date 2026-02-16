@@ -637,9 +637,11 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 	}
 
 	// only configure web commit signoff if explicitly set in the configuration
-	if webCommitSignoffRequired, ok := d.GetOkExists("web_commit_signoff_required"); ok { //nolint:staticcheck,SA1019 // We sometimes need to use GetOkExists for booleans
-		if val, ok := webCommitSignoffRequired.(bool); ok {
-			repository.WebCommitSignoffRequired = github.Ptr(val)
+	if d.IsNewResource() || d.HasChange("web_commit_signoff_required") {
+		if webCommitSignoffRequired, ok := d.GetOkExists("web_commit_signoff_required"); ok { //nolint:staticcheck,SA1019 // We sometimes need to use GetOkExists for booleans
+			if val, ok := webCommitSignoffRequired.(bool); ok {
+				repository.WebCommitSignoffRequired = github.Ptr(val)
+			}
 		}
 	}
 
