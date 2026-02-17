@@ -128,7 +128,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Optional:     true,
 							MaxItems:     1,
 							ExactlyOneOf: []string{"conditions.0.repository_property", "conditions.0.repository_name", "conditions.0.repository_id"},
-							AtLeastOneOf: []string{"conditions.0.repository_property", "conditions.0.repository_name", "conditions.0.repository_id"},
 							Description:  "Conditions to target repositories by custom or system properties.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
