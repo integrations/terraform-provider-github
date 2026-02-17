@@ -34,10 +34,11 @@ func resourceGithubUserSshSigningKey() *schema.Resource {
 				Required:    true,
 				ForceNew:    true,
 				Description: "The public SSH key to add to your GitHub account.",
-				DiffSuppressFunc: func(k, oldV, newV string, d *schema.ResourceData) bool {
-					newTrimmed := strings.TrimSpace(newV)
-					return oldV == newTrimmed
-				},
+			},
+			"key_id": {
+				Type:     schema.TypeInt,
+				Computed: true,
+				Description: "The unique identifier of the SSH signing key.",
 			},
 			"etag": {
 				Type:     schema.TypeString,
@@ -63,6 +64,9 @@ func resourceGithubUserSshSigningKeyCreate(ctx context.Context, d *schema.Resour
 
 	d.SetId(strconv.FormatInt(userKey.GetID(), 10))
 
+	if err = d.Set("key_id", userKey.GetID()); err != nil {
+		return diag.FromErr(err)
+	}
 	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
 		return diag.FromErr(err)
 	}
@@ -79,12 +83,8 @@ func resourceGithubUserSshSigningKeyCreate(ctx context.Context, d *schema.Resour
 func resourceGithubUserSshSigningKeyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
-	id, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return diag.Errorf("failed to convert ID %s: %v", d.Id(), err)
-	}
-
-	key, resp, err := client.Users.GetSSHSigningKey(ctx, id)
+	keyID := d.Get("key_id").(int64)
+	key, resp, err := client.Users.GetSSHSigningKey(ctx, keyID)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
@@ -99,29 +99,14 @@ func resourceGithubUserSshSigningKeyRead(ctx context.Context, d *schema.Resource
 			}
 		}
 	}
-
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("title", key.GetTitle()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("key", key.GetKey()); err != nil {
-		return diag.FromErr(err)
-	}
-
 	return nil
 }
 
 func resourceGithubUserSshSigningKeyDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
-	id, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return diag.Errorf("failed to convert ID %s: %v", d.Id(), err)
-	}
-
-	resp, err := client.Users.DeleteSSHSigningKey(ctx, id)
+	keyID := d.Get("key_id").(int64)
+	resp, err := client.Users.DeleteSSHSigningKey(ctx, keyID)
 	if resp.StatusCode == http.StatusNotFound {
 		return nil
 	}
