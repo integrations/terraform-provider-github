@@ -2,12 +2,14 @@ package github
 
 import (
 	"fmt"
-	"strings"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubRepositoryPages(t *testing.T) {
@@ -45,12 +47,12 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository_pages.test", "build_type", "legacy"),
-						resource.TestCheckResourceAttr("github_repository_pages.test", "source.0.branch", "main"),
-						resource.TestCheckResourceAttr("github_repository_pages.test", "source.0.path", "/"),
-						resource.TestCheckResourceAttrSet("github_repository_pages.test", "api_url"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_pages.test", tfjsonpath.New("build_type"), knownvalue.StringExact("legacy")),
+						statecheck.ExpectKnownValue("github_repository_pages.test", tfjsonpath.New("source").AtSliceIndex(0).AtMapKey("branch"), knownvalue.StringExact("main")),
+						statecheck.ExpectKnownValue("github_repository_pages.test", tfjsonpath.New("source").AtSliceIndex(0).AtMapKey("path"), knownvalue.StringExact("/")),
+						statecheck.ExpectKnownValue("github_repository_pages.test", tfjsonpath.New("api_url"), knownvalue.StringRegexp(regexp.MustCompile("https://.*"))),
+					},
 				},
 			},
 		})
@@ -81,9 +83,9 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository_pages.test", "build_type", "workflow"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_pages.test", tfjsonpath.New("build_type"), knownvalue.StringExact("workflow")),
+					},
 				},
 			},
 		})
@@ -121,15 +123,15 @@ source {
 			Steps: []resource.TestStep{
 				{
 					Config: fmt.Sprintf(config, repoName, baseRepoVisibility, testAccConf.owner, "legacy", sourceConfig),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository_pages.test", "build_type", "legacy"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_pages.test", tfjsonpath.New("build_type"), knownvalue.StringExact("legacy")),
+					},
 				},
 				{
 					Config: fmt.Sprintf(config, repoName, baseRepoVisibility, testAccConf.owner, "workflow", ""),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository_pages.test", "build_type", "workflow"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_pages.test", tfjsonpath.New("build_type"), knownvalue.StringExact("workflow")),
+					},
 				},
 			},
 		})
@@ -164,27 +166,14 @@ source {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository_pages.test", "build_type", "legacy"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_pages.test", tfjsonpath.New("build_type"), knownvalue.StringExact("legacy")),
+					},
 				},
 				{
-					ResourceName:      "github_repository_pages.test",
-					ImportState:       true,
-					ImportStateVerify: true,
-					ImportStateIdFunc: func(state *terraform.State) (string, error) {
-						repo := state.RootModule().Resources["github_repository.test"]
-
-						if repo == nil {
-							return "", fmt.Errorf("github_repository.test not found in state")
-						}
-						repoID := repo.Primary.ID
-						if repoID == "" {
-							return "", fmt.Errorf("github_repository.test does not have an id in terraform state")
-						}
-						return fmt.Sprintf("%s:%s", strings.Split(repo.Primary.Attributes["full_name"], "/")[0], repoID), nil
-					},
-					ImportStateVerifyIgnore: []string{"build_status"},
+					ResourceName:  "github_repository_pages.test",
+					ImportState:   true,
+					ImportStateId: fmt.Sprintf("%s:%s", testAccConf.owner, repoName),
 				},
 			},
 		})
