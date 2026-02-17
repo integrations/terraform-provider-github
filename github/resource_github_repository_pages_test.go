@@ -31,7 +31,6 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 			}
 
 			resource "github_repository_pages" "test" {
-				owner      = "%s"
 				repository = github_repository.test.name
 				build_type = "legacy"
 				source {
@@ -39,7 +38,7 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 					path   = "/"
 				}
 			}
-		`, repoName, baseRepoVisibility, testAccConf.owner)
+		`, repoName, baseRepoVisibility)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -71,11 +70,10 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 			}
 
 			resource "github_repository_pages" "test" {
-				owner      = "%s"
 				repository = github_repository.test.name
 				build_type = "workflow"
 			}
-		`, repoName, baseRepoVisibility, testAccConf.owner)
+		`, repoName, baseRepoVisibility)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -110,7 +108,6 @@ source {
 			}
 
 			resource "github_repository_pages" "test" {
-				owner      = "%s"
 				repository = github_repository.test.name
 				build_type = "%s"
 				%s
@@ -122,13 +119,13 @@ source {
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: fmt.Sprintf(config, repoName, baseRepoVisibility, testAccConf.owner, "legacy", sourceConfig),
+					Config: fmt.Sprintf(config, repoName, baseRepoVisibility, "legacy", sourceConfig),
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_repository_pages.test", tfjsonpath.New("build_type"), knownvalue.StringExact("legacy")),
 					},
 				},
 				{
-					Config: fmt.Sprintf(config, repoName, baseRepoVisibility, testAccConf.owner, "workflow", ""),
+					Config: fmt.Sprintf(config, repoName, baseRepoVisibility, "workflow", ""),
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_repository_pages.test", tfjsonpath.New("build_type"), knownvalue.StringExact("workflow")),
 					},
@@ -150,7 +147,6 @@ source {
 			}
 
 			resource "github_repository_pages" "test" {
-				owner      = "%s"
 				repository = github_repository.test.name
 				build_type = "legacy"
 				source {
@@ -158,7 +154,7 @@ source {
 					path   = "/"
 				}
 			}
-		`, repoName, baseRepoVisibility, testAccConf.owner)
+		`, repoName, baseRepoVisibility)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
