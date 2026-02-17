@@ -19,7 +19,7 @@ func resourceGithubUserSshSigningKey() *schema.Resource {
 		ReadContext:   resourceGithubUserSshSigningKeyRead,
 		DeleteContext: resourceGithubUserSshSigningKeyDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: resourceGithubUserSshSigningKeyImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -80,7 +80,7 @@ func resourceGithubUserSshSigningKeyCreate(ctx context.Context, d *schema.Resour
 	return nil
 }
 
-func resourceGithubUserSshSigningKeyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceGithubUserSshSigningKeyRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	keyID := d.Get("key_id").(int64)
@@ -102,7 +102,7 @@ func resourceGithubUserSshSigningKeyRead(ctx context.Context, d *schema.Resource
 	return nil
 }
 
-func resourceGithubUserSshSigningKeyDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceGithubUserSshSigningKeyDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	keyID := d.Get("key_id").(int64)
@@ -111,4 +111,40 @@ func resourceGithubUserSshSigningKeyDelete(ctx context.Context, d *schema.Resour
 		return nil
 	}
 	return diag.FromErr(err)
+}
+
+func resourceGithubUserSshSigningKeyImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+	client := meta.(*Owner).v3client
+
+	keyID, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid SSH signing key ID format: %v", err)
+	}
+
+	key, resp, err := client.Users.GetSSHSigningKey(ctx, keyID)
+	if err != nil {
+		if ghErr, ok := err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				return nil, fmt.Errorf("SSH signing key with ID %d not found", keyID)
+			}
+		}
+		return nil, err
+	}
+
+	d.SetId(strconv.FormatInt(key.GetID(), 10))
+
+	if err = d.Set("key_id", key.GetID()); err != nil {
+		return nil, err
+	}
+	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return nil, err
+	}
+	if err = d.Set("title", key.GetTitle()); err != nil {
+		return nil, err
+	}
+	if err = d.Set("key", key.GetKey()); err != nil {
+		return nil, err
+	}
+
+	return []*schema.ResourceData{d}, nil
 }
