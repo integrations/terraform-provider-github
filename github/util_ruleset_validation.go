@@ -171,7 +171,6 @@ func validateConditionsFieldForBranchAndTagTargets(ctx context.Context, target g
 		return fmt.Errorf("ref_name must be set for %s target", target)
 	}
 
-
 	tflog.Debug(ctx, fmt.Sprintf("Conditions validation passed for %s target", target))
 	return nil
 }
