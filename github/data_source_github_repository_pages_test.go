@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-testing/compare"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubRepositoryPagesDataSource(t *testing.T) {
@@ -49,12 +52,12 @@ func TestAccGithubRepositoryPagesDataSource(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("data.github_repository_pages.test", "build_type", "legacy"),
-						resource.TestCheckResourceAttr("data.github_repository_pages.test", "source.0.branch", "main"),
-						resource.TestCheckResourceAttr("data.github_repository_pages.test", "source.0.path", "/"),
-						resource.TestCheckResourceAttrSet("data.github_repository_pages.test", "url"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.CompareValuePairs("data.github_repository_pages.test", tfjsonpath.New("build_type"), "github_repository_pages.test", tfjsonpath.New("build_type"), compare.ValuesSame()),
+						statecheck.CompareValuePairs("data.github_repository_pages.test", tfjsonpath.New("source").AtSliceIndex(0).AtMapKey("branch"), "github_repository_pages.test", tfjsonpath.New("source").AtSliceIndex(0).AtMapKey("branch"), compare.ValuesSame()),
+						statecheck.CompareValuePairs("data.github_repository_pages.test", tfjsonpath.New("source").AtSliceIndex(0).AtMapKey("path"), "github_repository_pages.test", tfjsonpath.New("source").AtSliceIndex(0).AtMapKey("path"), compare.ValuesSame()),
+						statecheck.CompareValuePairs("data.github_repository_pages.test", tfjsonpath.New("api_url"), "github_repository_pages.test", tfjsonpath.New("api_url"), compare.ValuesSame()),
+					},
 				},
 			},
 		})
