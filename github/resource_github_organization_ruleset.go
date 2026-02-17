@@ -94,7 +94,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Parameters for an organization ruleset condition. Push rulesets require exactly one of: repository_id, repository_name, or repository_property. Branch/tag rulesets require ref_name AND exactly one repository targeting option.",
+				Description: "Parameters for an organization ruleset condition.The branch and tag rulesets conditions object should contain both repository_name and ref_name properties, or both repository_id and ref_name properties, or both repository_property and ref_name properties. The push rulesets conditions object does not require the ref_name property.", 
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ref_name": {
