@@ -13,7 +13,7 @@ import (
 
 func TestAccGithubRepositoryDeployKeysDataSource(t *testing.T) {
 	t.Run("manages deploy keys", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		keyName := fmt.Sprintf("%s_rsa", randomID)
 		cmd := exec.Command("bash", "-c", fmt.Sprintf("ssh-keygen -t rsa -b 4096 -C test@example.com -N '' -f test-fixtures/%s>/dev/null <<< y >/dev/null", keyName))
 		if err := cmd.Run(); err != nil {

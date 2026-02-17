@@ -14,6 +14,7 @@ import (
 
 func resourceGithubActionsOrganizationVariable() *schema.Resource {
 	return &schema.Resource{
+		Description: "Manages a GitHub Actions variable within an organization.",
 		Schema: map[string]*schema.Schema{
 			"variable_name": {
 				Type:             schema.TypeString,

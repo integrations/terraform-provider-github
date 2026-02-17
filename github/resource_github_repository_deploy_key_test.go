@@ -53,7 +53,7 @@ func TestSuppressDeployKeyDiff(t *testing.T) {
 
 func TestAccGithubRepositoryDeployKey_basic(t *testing.T) {
 	t.Run("creates repository deploy key without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		keyName := fmt.Sprintf("%s_rsa", randomID)
 		cmd := exec.Command("bash", "-c", fmt.Sprintf("ssh-keygen -t rsa -b 4096 -C test@example.com -N '' -f test-fixtures/%s>/dev/null <<< y >/dev/null", keyName))
 		if err := cmd.Run(); err != nil {
@@ -61,7 +61,7 @@ func TestAccGithubRepositoryDeployKey_basic(t *testing.T) {
 		}
 
 		rn := "github_repository_deploy_key.test_repo_deploy_key"
-		rs := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+		rs := acctest.RandString(10)
 		repositoryName := fmt.Sprintf("%srepo-deploy-key-%s", testResourcePrefix, rs)
 		keyPath := strings.ReplaceAll(filepath.Join("test-fixtures", fmt.Sprintf("%s.pub", keyName)), "\\", "/")
 
@@ -172,7 +172,7 @@ resource "github_repository_deploy_key" "test_repo_deploy_key" {
 
 func TestAccGithubRepositoryDeployKeyArchivedRepo(t *testing.T) {
 	t.Run("can delete deploy keys from archived repositories without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		keyName := fmt.Sprintf("%s_rsa", randomID)
 		cmd := exec.Command("bash", "-c", fmt.Sprintf("ssh-keygen -t rsa -b 4096 -C test@example.com -N '' -f test-fixtures/%s>/dev/null <<< y >/dev/null", keyName))
 		if err := cmd.Run(); err != nil {

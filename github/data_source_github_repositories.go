@@ -10,46 +10,54 @@ import (
 
 func dataSourceGithubRepositories() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoriesRead,
+		Description: "Use this data source to search for GitHub repositories.",
+		Read:        dataSourceGithubRepositoriesRead,
 
 		Schema: map[string]*schema.Schema{
 			"query": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Search query. See documentation for the search syntax.",
 			},
 			"sort": {
 				Type:             schema.TypeString,
 				Default:          "updated",
 				Optional:         true,
 				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"stars", "fork", "updated"}, false), "sort"),
+				Description:      "Sorts the repositories returned by the specified attribute. Valid values include 'stars', 'fork', and 'updated'.",
 			},
 			"include_repo_id": {
-				Type:     schema.TypeBool,
-				Default:  false,
-				Optional: true,
+				Type:        schema.TypeBool,
+				Default:     false,
+				Optional:    true,
+				Description: "Returns a list of found repository IDs.",
 			},
 			"results_per_page": {
 				Type:             schema.TypeInt,
 				Optional:         true,
 				Default:          100,
 				ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 1000), "results_per_page"),
+				Description:      "Set the number of repositories requested per API call.",
 			},
 			"full_names": {
-				Type: schema.TypeList,
+				Type:        schema.TypeList,
+				Description: "A list of full names of found repositories (e.g. 'hashicorp/terraform').",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 				Computed: true,
 			},
 			"names": {
-				Type: schema.TypeList,
+				Type:        schema.TypeList,
+				Description: "A list of found repository names (e.g. 'terraform').",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 				Computed: true,
 			},
 			"repo_ids": {
-				Type: schema.TypeList,
+				Type:        schema.TypeList,
+				Description: "A list of found repository IDs.",
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
 				},

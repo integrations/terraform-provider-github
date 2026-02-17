@@ -14,10 +14,11 @@ import (
 
 func resourceGithubTeamRepository() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubTeamRepositoryCreate,
-		Read:   resourceGithubTeamRepositoryRead,
-		Update: resourceGithubTeamRepositoryUpdate,
-		Delete: resourceGithubTeamRepositoryDelete,
+		Description: "Manages a team's access to a repository.",
+		Create:      resourceGithubTeamRepositoryCreate,
+		Read:        resourceGithubTeamRepositoryRead,
+		Update:      resourceGithubTeamRepositoryUpdate,
+		Delete:      resourceGithubTeamRepositoryDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
@@ -55,8 +56,9 @@ func resourceGithubTeamRepository() *schema.Resource {
 				Description: "The permissions of team members regarding the repository. Must be one of 'pull', 'triage', 'push', 'maintain', 'admin' or the name of an existing custom repository role within the organisation.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the team repository association.",
 			},
 		},
 	}

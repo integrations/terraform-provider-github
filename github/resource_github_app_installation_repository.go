@@ -11,9 +11,10 @@ import (
 
 func resourceGithubAppInstallationRepository() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubAppInstallationRepositoryCreate,
-		Read:   resourceGithubAppInstallationRepositoryRead,
-		Delete: resourceGithubAppInstallationRepositoryDelete,
+		Description: "Manages a repository's access to a GitHub App installation.",
+		Create:      resourceGithubAppInstallationRepositoryCreate,
+		Read:        resourceGithubAppInstallationRepositoryRead,
+		Delete:      resourceGithubAppInstallationRepositoryDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -32,8 +33,9 @@ func resourceGithubAppInstallationRepository() *schema.Resource {
 				Description: "The repository to install the app on.",
 			},
 			"repo_id": {
-				Type:     schema.TypeInt,
-				Computed: true,
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The ID of the repository.",
 			},
 		},
 	}

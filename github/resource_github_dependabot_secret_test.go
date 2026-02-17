@@ -15,7 +15,7 @@ import (
 
 func TestAccGithubDependabotSecret(t *testing.T) {
 	t.Run("create_plaintext", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		secretName := "test"
 		value := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
@@ -53,7 +53,7 @@ resource "github_dependabot_secret" "test" {
 	})
 
 	t.Run("create_update_plaintext", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		secretName := "test"
 		value := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
@@ -104,7 +104,7 @@ resource "github_dependabot_secret" "test" {
 	})
 
 	t.Run("create_update_encrypted", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		secretName := "test"
 		value := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
@@ -155,7 +155,7 @@ resource "github_dependabot_secret" "test" {
 	})
 
 	t.Run("create_update_encrypted_with_key", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		secretName := "test"
 		value := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
@@ -211,7 +211,7 @@ resource "github_dependabot_secret" "test" {
 	})
 
 	t.Run("update_on_drift", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		secretName := "test"
 
@@ -288,7 +288,7 @@ resource "github_dependabot_secret" "test" {
 	})
 
 	t.Run("lifecycle_can_ignore_drift", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		secretName := "test"
 
@@ -369,7 +369,7 @@ resource "github_dependabot_secret" "test" {
 	})
 
 	t.Run("update_renamed_repo", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		updatedRepoName := fmt.Sprintf("%s%s-updated", testResourcePrefix, randomID)
 
@@ -421,7 +421,7 @@ resource "github_dependabot_secret" "test" {
 	})
 
 	t.Run("recreate_changed_repo", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		repoName2 := fmt.Sprintf("%supdated-%s", testResourcePrefix, randomID)
 
@@ -493,7 +493,7 @@ resource "github_dependabot_secret" "test" {
 	})
 
 	t.Run("destroy", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
@@ -524,7 +524,7 @@ resource "github_dependabot_secret" "test" {
 	})
 
 	t.Run("import", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		secretName := "test"
 

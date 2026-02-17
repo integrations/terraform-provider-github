@@ -11,10 +11,11 @@ import (
 
 func resourceGithubOrganizationCustomProperties() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubCustomPropertiesCreate,
-		Read:   resourceGithubCustomPropertiesRead,
-		Update: resourceGithubCustomPropertiesUpdate,
-		Delete: resourceGithubCustomPropertiesDelete,
+		Description: "Manages a custom property for an organization.",
+		Create:      resourceGithubCustomPropertiesCreate,
+		Read:        resourceGithubCustomPropertiesRead,
+		Update:      resourceGithubCustomPropertiesUpdate,
+		Delete:      resourceGithubCustomPropertiesDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubCustomPropertiesImport,
 		},

@@ -10,16 +10,19 @@ import (
 
 func dataSourceGithubActionsOrganizationRegistrationToken() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubActionsOrganizationRegistrationTokenRead,
+		Description: "Use this data source to retrieve a registration token for a GitHub Actions self-hosted runner in an organization.",
+		Read:        dataSourceGithubActionsOrganizationRegistrationTokenRead,
 
 		Schema: map[string]*schema.Schema{
 			"token": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The token that has been retrieved.",
 			},
 			"expires_at": {
-				Type:     schema.TypeInt,
-				Computed: true,
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The token expiration date as a Unix timestamp.",
 			},
 		},
 	}

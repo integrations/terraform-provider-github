@@ -13,6 +13,7 @@ import (
 
 func resourceGithubRepositoryDeploymentBranchPolicy() *schema.Resource {
 	return &schema.Resource{
+		Description:        "Manages a deployment branch policy for a repository environment.",
 		DeprecationMessage: "This resource is deprecated in favour of the github_repository_environment_deployment_policy resource.",
 
 		Create: resourceGithubRepositoryDeploymentBranchPolicyCreate,

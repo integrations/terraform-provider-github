@@ -26,17 +26,20 @@ func dataSourceGithubRepositoryEnvironmentDeploymentPolicies() *schema.Resource 
 				Description: "The name of the environment.",
 			},
 			"policies": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "An array of deployment branch policies.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The type of deployment policy (branch or tag).",
 						},
 						"pattern": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The name pattern that branches or tags must match in order to deploy to the environment.",
 						},
 					},
 				},

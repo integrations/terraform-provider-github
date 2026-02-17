@@ -10,7 +10,7 @@ import (
 
 func TestAccDataSourceGithubOrganizationSecurityManagers(t *testing.T) {
 	t.Run("get the organization security managers without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`

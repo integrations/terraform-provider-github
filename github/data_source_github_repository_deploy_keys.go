@@ -10,33 +10,40 @@ import (
 
 func dataSourceGithubRepositoryDeployKeys() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoryDeployKeysRead,
+		Description: "Use this data source to retrieve the deploy keys for a repository.",
+		Read:        dataSourceGithubRepositoryDeployKeysRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Name of the repository to retrieve the deploy keys from.",
 			},
 			"keys": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "The list of this repository's deploy keys.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
-							Type:     schema.TypeInt,
-							Computed: true,
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "Key ID.",
 						},
 						"key": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Key itself.",
 						},
 						"title": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Key title.",
 						},
 						"verified": {
-							Type:     schema.TypeBool,
-							Computed: true,
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Whether the key was verified.",
 						},
 					},
 				},

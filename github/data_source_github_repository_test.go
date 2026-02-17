@@ -85,7 +85,7 @@ func TestAccDataSourceGithubRepository(t *testing.T) {
 	})
 
 	t.Run("queries a repository with pages configured", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-ds-pages-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
@@ -124,7 +124,7 @@ func TestAccDataSourceGithubRepository(t *testing.T) {
 	})
 
 	t.Run("checks defaults on a new repository", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-ds-defaults-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
@@ -217,7 +217,7 @@ func TestAccDataSourceGithubRepository(t *testing.T) {
 	})
 
 	t.Run("queries a repository that was generated from a template", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-ds-template-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
@@ -258,7 +258,7 @@ func TestAccDataSourceGithubRepository(t *testing.T) {
 	})
 
 	t.Run("queries a repository that has no primary_language", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-ds-nolang-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
@@ -291,7 +291,7 @@ func TestAccDataSourceGithubRepository(t *testing.T) {
 	})
 
 	// t.Run("queries a repository that has go as primary_language", func(t *testing.T) {
-	// 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	// 	randomID := acctest.RandString(5)
 	//  testResourceName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
 
 	// 	config := fmt.Sprintf(`
@@ -333,7 +333,7 @@ func TestAccDataSourceGithubRepository(t *testing.T) {
 	// })
 
 	t.Run("queries a repository that has a license", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-ds-license-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`

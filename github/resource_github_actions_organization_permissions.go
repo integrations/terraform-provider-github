@@ -12,10 +12,11 @@ import (
 
 func resourceGithubActionsOrganizationPermissions() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsOrganizationPermissionsCreateOrUpdate,
-		Read:   resourceGithubActionsOrganizationPermissionsRead,
-		Update: resourceGithubActionsOrganizationPermissionsCreateOrUpdate,
-		Delete: resourceGithubActionsOrganizationPermissionsDelete,
+		Description: "Manages GitHub Actions permissions for an organization.",
+		Create:      resourceGithubActionsOrganizationPermissionsCreateOrUpdate,
+		Read:        resourceGithubActionsOrganizationPermissionsRead,
+		Update:      resourceGithubActionsOrganizationPermissionsCreateOrUpdate,
+		Delete:      resourceGithubActionsOrganizationPermissionsDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

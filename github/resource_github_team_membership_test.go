@@ -21,7 +21,7 @@ func TestAccGithubTeamMembership(t *testing.T) {
 		ctx := t.Context()
 
 		var membership github.Membership
-		randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+		randString := acctest.RandString(10)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -57,7 +57,7 @@ func TestAccGithubTeamMembership(t *testing.T) {
 		var otherMembership github.Membership
 
 		rn := "github_team_membership.test_team_membership"
-		randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+		randString := acctest.RandString(10)
 
 		otherCase := flipUsernameCase(testAccConf.testOrgUser)
 

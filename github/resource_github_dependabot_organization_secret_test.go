@@ -258,8 +258,8 @@ resource "github_dependabot_organization_secret" "test" {
 	})
 
 	t.Run("create_update_visibility_selected", func(t *testing.T) {
-		repoName0 := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
-		repoName1 := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
+		repoName0 := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(5))
+		repoName1 := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(5))
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 		secretName := fmt.Sprintf("test_%s", randomID)
 		value := base64.StdEncoding.EncodeToString([]byte("foo"))

@@ -12,6 +12,7 @@ import (
 
 func resourceGithubOrganizationSecurityManager() *schema.Resource {
 	return &schema.Resource{
+		Description:        "Manages the security manager role for a team in an organization.",
 		DeprecationMessage: "This resource is deprecated in favor of the github_organization_role_team resource.",
 
 		Create: resourceGithubOrganizationSecurityManagerCreate,

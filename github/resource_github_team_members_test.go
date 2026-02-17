@@ -16,7 +16,7 @@ func TestAccGithubTeamMembers(t *testing.T) {
 	}
 
 	t.Run("creates a team & members configured with defaults", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		teamName := fmt.Sprintf("%steam-members-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`

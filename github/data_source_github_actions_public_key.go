@@ -8,20 +8,24 @@ import (
 
 func dataSourceGithubActionsPublicKey() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubActionsPublicKeyRead,
+		Description: "Use this data source to retrieve the public key for a repository's GitHub Actions secrets.",
+		Read:        dataSourceGithubActionsPublicKeyRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The name of the repository.",
 			},
 			"key_id": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The identifier for the key.",
 			},
 			"key": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The Base64 encoded public key.",
 			},
 		},
 	}

@@ -10,7 +10,7 @@ import (
 
 func TestAccGithubRepositoryMilestone(t *testing.T) {
 	t.Run("creates a repository milestone", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-milestone-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 

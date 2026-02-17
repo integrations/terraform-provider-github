@@ -10,10 +10,12 @@ import (
 )
 
 func resourceGithubUserInvitationAccepter() *schema.Resource {
+	// lintignore:XR002
 	return &schema.Resource{
-		Create: resourceGithubUserInvitationAccepterCreate,
-		Read:   schema.Noop, // Nothing to read as invitation is removed after it's accepted
-		Delete: schema.Noop, // Nothing to remove as invitation is removed after it's accepted
+		Description: "Accepts a repository invitation for the authenticated user.",
+		Create:      resourceGithubUserInvitationAccepterCreate,
+		Read:        schema.Noop, // Nothing to read as invitation is removed after it's accepted
+		Delete:      schema.Noop, // Nothing to remove as invitation is removed after it's accepted
 
 		Schema: map[string]*schema.Schema{
 			"invitation_id": {

@@ -12,39 +12,45 @@ import (
 
 func dataSourceGithubUsers() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubUsersRead,
+		Description: "Use this data source to retrieve information about multiple GitHub users at once.",
+		Read:        dataSourceGithubUsersRead,
 
 		Schema: map[string]*schema.Schema{
 			"usernames": {
-				Type: schema.TypeList,
+				Type:        schema.TypeList,
+				Description: "List of usernames to look up.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 				Required: true,
 			},
 			"logins": {
-				Type: schema.TypeList,
+				Type:        schema.TypeList,
+				Description: "List of logins of users that could be found.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 				Computed: true,
 			},
 			"emails": {
-				Type: schema.TypeList,
+				Type:        schema.TypeList,
+				Description: "List of the user's publicly visible profile emails (empty string if not shown).",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 				Computed: true,
 			},
 			"node_ids": {
-				Type: schema.TypeList,
+				Type:        schema.TypeList,
+				Description: "List of Node IDs of users that could be found.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 				Computed: true,
 			},
 			"unknown_logins": {
-				Type: schema.TypeList,
+				Type:        schema.TypeList,
+				Description: "List of logins without a matching user.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},

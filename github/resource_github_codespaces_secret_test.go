@@ -13,7 +13,7 @@ import (
 
 func TestAccGithubCodespacesSecret(t *testing.T) {
 	t.Run("reads a repository public key without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-codespaces-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
@@ -49,7 +49,7 @@ func TestAccGithubCodespacesSecret(t *testing.T) {
 	})
 
 	t.Run("creates and updates secrets without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-codespaces-%s", testResourcePrefix, randomID)
 		secretValue := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
 		updatedSecretValue := base64.StdEncoding.EncodeToString([]byte("updated_super_secret_value"))
@@ -126,7 +126,7 @@ func TestAccGithubCodespacesSecret(t *testing.T) {
 	})
 
 	t.Run("creates and updates repository name without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-codespaces-%s", testResourcePrefix, randomID)
 		updatedRepoName := fmt.Sprintf("%s-updated", repoName)
 		secretValue := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
@@ -209,7 +209,7 @@ func TestAccGithubCodespacesSecret(t *testing.T) {
 	})
 
 	t.Run("deletes secrets without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-codespaces-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 				resource "github_repository" "test" {

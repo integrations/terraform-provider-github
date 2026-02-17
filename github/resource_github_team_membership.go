@@ -13,10 +13,11 @@ import (
 
 func resourceGithubTeamMembership() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubTeamMembershipCreateOrUpdate,
-		Read:   resourceGithubTeamMembershipRead,
-		Update: resourceGithubTeamMembershipCreateOrUpdate,
-		Delete: resourceGithubTeamMembershipDelete,
+		Description: "Manages the membership of a user in a team.",
+		Create:      resourceGithubTeamMembershipCreateOrUpdate,
+		Read:        resourceGithubTeamMembershipRead,
+		Update:      resourceGithubTeamMembershipCreateOrUpdate,
+		Delete:      resourceGithubTeamMembershipDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
@@ -56,8 +57,9 @@ func resourceGithubTeamMembership() *schema.Resource {
 				ValidateDiagFunc: validateValueFunc([]string{"member", "maintainer"}),
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the team membership.",
 			},
 		},
 	}

@@ -22,6 +22,7 @@ func resourceGithubEMUGroupMappingV0() *schema.Resource {
 				Required:    true,
 				Description: "Integer corresponding to the external group ID to be linked.",
 			},
+			// lintignore:XS001 // No changes to old schema versions
 			"etag": {
 				Type:     schema.TypeString,
 				Computed: true,

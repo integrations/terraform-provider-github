@@ -11,69 +11,83 @@ import (
 func resourceGithubRepositoryFileV0() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
+			// lintignore:XS001 // No changes to old schema versions
 			"repository": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
+			// lintignore:XS001 // No changes to old schema versions
 			"file": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
+			// lintignore:XS001 // No changes to old schema versions
 			"content": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			// lintignore:XS001 // No changes to old schema versions
 			"branch": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
+			// lintignore:XS001,S020 // No changes to old schema versions
 			"ref": {
 				Type:     schema.TypeString,
 				Computed: true,
 				ForceNew: true,
 			},
+			// lintignore:XS001 // No changes to old schema versions
 			"commit_sha": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			// lintignore:XS001 // No changes to old schema versions
 			"commit_message": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
+			// lintignore:XS001 // No changes to old schema versions
 			"commit_author": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				RequiredWith: []string{"commit_email"},
 			},
+			// lintignore:XS001 // No changes to old schema versions
 			"commit_email": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				RequiredWith: []string{"commit_author"},
 			},
+			// lintignore:XS001 // No changes to old schema versions
 			"sha": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			// lintignore:XS001 // No changes to old schema versions
 			"overwrite_on_create": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
+			// lintignore:XS001 // No changes to old schema versions
 			"autocreate_branch": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
+			// lintignore:XS001 // No changes to old schema versions
 			"autocreate_branch_source_branch": {
 				Type:         schema.TypeString,
 				Default:      "main",
 				Optional:     true,
 				RequiredWith: []string{"autocreate_branch"},
 			},
+			// lintignore:XS001 // No changes to old schema versions
 			"autocreate_branch_source_sha": {
 				Type:         schema.TypeString,
 				Optional:     true,

@@ -11,7 +11,8 @@ import (
 
 func dataSourceGithubRepositoryTeams() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubTeamsRead,
+		Description: "Use this data source to retrieve the teams associated with a repository.",
+		Read:        dataSourceGithubTeamsRead,
 
 		Schema: map[string]*schema.Schema{
 			"full_name": {
@@ -19,29 +20,35 @@ func dataSourceGithubRepositoryTeams() *schema.Resource {
 				Optional:      true,
 				Computed:      true,
 				ConflictsWith: []string{"name"},
+				Description:   "Full name of the repository (in org/name format).",
 			},
 			"name": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
 				ConflictsWith: []string{"full_name"},
+				Description:   "The name of the repository.",
 			},
 			"teams": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "List of teams which have access to the repository.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Team name.",
 						},
 						"slug": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Team slug.",
 						},
 						"permission": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Team permission.",
 						},
 					},
 				},

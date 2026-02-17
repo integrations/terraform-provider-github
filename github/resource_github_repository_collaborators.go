@@ -15,19 +15,21 @@ import (
 
 func resourceGithubRepositoryCollaborators() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryCollaboratorsCreate,
-		Read:   resourceGithubRepositoryCollaboratorsRead,
-		Update: resourceGithubRepositoryCollaboratorsUpdate,
-		Delete: resourceGithubRepositoryCollaboratorsDelete,
+		Description: "Manages the complete set of collaborators and team access for a repository.",
+		Create:      resourceGithubRepositoryCollaboratorsCreate,
+		Read:        resourceGithubRepositoryCollaboratorsRead,
+		Update:      resourceGithubRepositoryCollaboratorsUpdate,
+		Delete:      resourceGithubRepositoryCollaboratorsDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The name of the repository.",
 			},
 			"user": {
 				Type:        schema.TypeSet,
@@ -36,9 +38,10 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"permission": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "push",
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "push",
+							Description: "The permission of the user (pull, triage, push, maintain, admin).",
 						},
 						"username": {
 							Type:             schema.TypeString,
@@ -56,9 +59,10 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"permission": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "push",
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "push",
+							Description: "The permission of the team (pull, triage, push, maintain, admin).",
 						},
 						"team_id": {
 							Type:        schema.TypeString,

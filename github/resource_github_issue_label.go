@@ -12,10 +12,11 @@ import (
 
 func resourceGithubIssueLabel() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubIssueLabelCreateOrUpdate,
-		Read:   resourceGithubIssueLabelRead,
-		Update: resourceGithubIssueLabelCreateOrUpdate,
-		Delete: resourceGithubIssueLabelDelete,
+		Description: "Manages a single label within a repository.",
+		Create:      resourceGithubIssueLabelCreateOrUpdate,
+		Read:        resourceGithubIssueLabelRead,
+		Update:      resourceGithubIssueLabelCreateOrUpdate,
+		Delete:      resourceGithubIssueLabelDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -48,9 +49,10 @@ func resourceGithubIssueLabel() *schema.Resource {
 				Description: "The URL to the issue label.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "An etag representing the issue label.",
 				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
 					return true
 				},

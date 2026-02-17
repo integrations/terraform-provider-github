@@ -11,7 +11,7 @@ import (
 
 func TestAccGithubActionsOrganizationSecretsDataSource(t *testing.T) {
 	t.Run("queries organization actions secrets from a repository", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 
 		config := fmt.Sprintf(`
 			resource "github_actions_organization_secret" "test" {

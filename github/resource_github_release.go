@@ -81,8 +81,9 @@ func resourceGithubRelease() *schema.Resource {
 				Description: "If specified, a discussion of the specified category is created and linked to the release. The value must be a category that already exists in the repository.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the release.",
 			},
 			"release_id": {
 				Type:        schema.TypeInt,
@@ -273,7 +274,7 @@ func resourceGithubReleaseImport(d *schema.ResourceData, meta any) ([]*schema.Re
 	if repository == nil || err != nil {
 		return []*schema.ResourceData{d}, err
 	}
-	if err = d.Set("repository", *repository.Name); err != nil {
+	if err = d.Set("repository", repository.Name); err != nil {
 		return []*schema.ResourceData{d}, err
 	}
 

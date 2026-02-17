@@ -8,6 +8,7 @@ import (
 
 func resourceGithubProjectColumn() *schema.Resource {
 	return &schema.Resource{
+		Description:        "Manages a column in a classic project.",
 		DeprecationMessage: "This resource is deprecated as the API endpoints for classic projects have been removed. This resource no longer works and will be removed in a future version.",
 
 		Create: resourceGithubProjectColumnCreate,
@@ -36,8 +37,9 @@ func resourceGithubProjectColumn() *schema.Resource {
 				Description: "The ID of the column.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the project column.",
 			},
 		},
 	}

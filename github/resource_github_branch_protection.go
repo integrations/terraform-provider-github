@@ -13,6 +13,7 @@ import (
 
 func resourceGithubBranchProtection() *schema.Resource {
 	return &schema.Resource{
+		Description:   "Manages a branch protection rule for a repository using the GraphQL API.",
 		SchemaVersion: 2,
 
 		Schema: map[string]*schema.Schema{
@@ -293,37 +294,37 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta any) error 
 	}
 	protection := query.Node.Node
 
-	err = d.Set(PROTECTION_PATTERN, protection.Pattern)
+	err = d.Set("pattern", protection.Pattern)
 	if err != nil {
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_PATTERN, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
-	err = d.Set(PROTECTION_ALLOWS_DELETIONS, protection.AllowsDeletions)
+	err = d.Set("allows_deletions", protection.AllowsDeletions)
 	if err != nil {
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_ALLOWS_DELETIONS, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
-	err = d.Set(PROTECTION_ALLOWS_FORCE_PUSHES, protection.AllowsForcePushes)
+	err = d.Set("allows_force_pushes", protection.AllowsForcePushes)
 	if err != nil {
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_ALLOWS_FORCE_PUSHES, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
-	err = d.Set(PROTECTION_IS_ADMIN_ENFORCED, protection.IsAdminEnforced)
+	err = d.Set("enforce_admins", protection.IsAdminEnforced)
 	if err != nil {
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_IS_ADMIN_ENFORCED, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
-	err = d.Set(PROTECTION_REQUIRES_COMMIT_SIGNATURES, protection.RequiresCommitSignatures)
+	err = d.Set("require_signed_commits", protection.RequiresCommitSignatures)
 	if err != nil {
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_COMMIT_SIGNATURES, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
-	err = d.Set(PROTECTION_REQUIRES_LINEAR_HISTORY, protection.RequiresLinearHistory)
+	err = d.Set("required_linear_history", protection.RequiresLinearHistory)
 	if err != nil {
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_LINEAR_HISTORY, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
-	err = d.Set(PROTECTION_REQUIRES_CONVERSATION_RESOLUTION, protection.RequiresConversationResolution)
+	err = d.Set("require_conversation_resolution", protection.RequiresConversationResolution)
 	if err != nil {
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_CONVERSATION_RESOLUTION, protection.Repository.Name, protection.Pattern, d.Id())
 	}
@@ -334,30 +335,30 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta any) error 
 	}
 
 	approvingReviews := setApprovingReviews(protection, data, meta)
-	err = d.Set(PROTECTION_REQUIRES_APPROVING_REVIEWS, approvingReviews)
+	err = d.Set("required_pull_request_reviews", approvingReviews)
 	if err != nil {
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_APPROVING_REVIEWS, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
 	statusChecks := setStatusChecks(protection)
-	err = d.Set(PROTECTION_REQUIRES_STATUS_CHECKS, statusChecks)
+	err = d.Set("required_status_checks", statusChecks)
 	if err != nil {
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_STATUS_CHECKS, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
 	restrictsPushes := setPushes(protection, data, meta)
-	err = d.Set(PROTECTION_RESTRICTS_PUSHES, restrictsPushes)
+	err = d.Set("restrict_pushes", restrictsPushes)
 	if err != nil {
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_RESTRICTS_PUSHES, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
 	forcePushBypassers := setForcePushBypassers(protection, data, meta)
-	err = d.Set(PROTECTION_FORCE_PUSHES_BYPASSERS, forcePushBypassers)
+	err = d.Set("force_push_bypassers", forcePushBypassers)
 	if err != nil {
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_FORCE_PUSHES_BYPASSERS, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
-	err = d.Set(PROTECTION_LOCK_BRANCH, protection.LockBranch)
+	err = d.Set("lock_branch", protection.LockBranch)
 	if err != nil {
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_LOCK_BRANCH, protection.Repository.Name, protection.Pattern, d.Id())
 	}

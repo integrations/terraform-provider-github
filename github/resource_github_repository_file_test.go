@@ -12,7 +12,7 @@ import (
 
 func TestAccGithubRepositoryFile(t *testing.T) {
 	t.Run("creates and manages files", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
@@ -123,7 +123,7 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 	})
 
 	t.Run("can be configured to overwrite files on create", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -190,7 +190,7 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 	})
 
 	t.Run("creates and manages files on default branch if branch is omitted", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
@@ -253,7 +253,7 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 	})
 
 	t.Run("creates and manages files on auto created branch if branch does not exist", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := `
 			resource "github_repository" "test" {
@@ -303,7 +303,7 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 	})
 
 	t.Run("can delete files from archived repositories without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-file-arch-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {

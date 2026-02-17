@@ -11,24 +11,29 @@ import (
 
 func dataSourceGithubExternalGroups() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubExternalGroupsRead,
+		Description: "Use this data source to retrieve the external groups for an organization.",
+		Read:        dataSourceGithubExternalGroupsRead,
 		Schema: map[string]*schema.Schema{
 			"external_groups": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "An array of external groups belonging to the organization.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"group_id": {
-							Type:     schema.TypeInt,
-							Computed: true,
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The ID of the group.",
 						},
 						"group_name": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The name of the group.",
 						},
 						"updated_at": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The date the group was last updated.",
 						},
 					},
 				},

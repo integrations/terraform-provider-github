@@ -11,19 +11,23 @@ import (
 
 func dataSourceGithubCollaborators() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubCollaboratorsRead,
+		Description: "Use this data source to retrieve the collaborators for a repository.",
+		Read:        dataSourceGithubCollaboratorsRead,
 
 		Schema: map[string]*schema.Schema{
 			"owner": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The organization that owns the repository.",
 			},
 			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The name of the repository.",
 			},
 			"affiliation": {
-				Type: schema.TypeString,
+				Type:        schema.TypeString,
+				Description: "Filter collaborators returned by their affiliation. Can be one of: outside, direct, all. Defaults to all.",
 				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{
 					"all",
 					"direct",
@@ -33,7 +37,8 @@ func dataSourceGithubCollaborators() *schema.Resource {
 				Default:  "all",
 			},
 			"permission": {
-				Type: schema.TypeString,
+				Type:        schema.TypeString,
+				Description: "Filter collaborators returned by their permission. Can be one of: pull, triage, push, maintain, admin.",
 				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{
 					"pull",
 					"triage",
@@ -45,73 +50,90 @@ func dataSourceGithubCollaborators() *schema.Resource {
 				Default:  "",
 			},
 			"collaborator": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "List of collaborators for the repository.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"login": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The collaborator's login.",
 						},
 						"id": {
-							Type:     schema.TypeInt,
-							Computed: true,
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The ID of the collaborator.",
 						},
 						"url": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The GitHub API URL for the collaborator.",
 						},
 						"html_url": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The GitHub HTML URL for the collaborator.",
 						},
 						"followers_url": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The GitHub API URL for the collaborator's followers.",
 						},
 						"following_url": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The GitHub API URL for those following the collaborator.",
 						},
 						"gists_url": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The GitHub API URL for the collaborator's gists.",
 						},
 						"starred_url": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The GitHub API URL for the collaborator's starred repositories.",
 						},
 						"subscriptions_url": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The GitHub API URL for the collaborator's subscribed repositories.",
 						},
 						"organizations_url": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The GitHub API URL for the collaborator's organizations.",
 						},
 						"repos_url": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The GitHub API URL for the collaborator's repositories.",
 						},
 						"events_url": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The GitHub API URL for the collaborator's events.",
 						},
 						"received_events_url": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The GitHub API URL for the collaborator's received events.",
 						},
 						"type": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The type of the collaborator (e.g., user).",
 						},
 						"site_admin": {
-							Type:     schema.TypeBool,
-							Computed: true,
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Whether the user is a GitHub admin.",
 						},
 						"permission": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The permission of the collaborator.",
 						},
 					},
 				},

@@ -11,7 +11,7 @@ import (
 
 func TestAccGithubTeamRepository(t *testing.T) {
 	t.Run("manages team permissions to a repository", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		teamName := fmt.Sprintf("%steam-repo-%s", testResourcePrefix, randomID)
 		repoName := fmt.Sprintf("%srepo-team-repo-%s", testResourcePrefix, randomID)
 
@@ -102,7 +102,7 @@ func TestAccGithubTeamRepository(t *testing.T) {
 	})
 
 	t.Run("accepts both team slug and team ID for `team_id`", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		teamName := fmt.Sprintf("%steam-repo-slug-%s", testResourcePrefix, randomID)
 		repoName := fmt.Sprintf("%srepo-team-repo-slug-%s", testResourcePrefix, randomID)
 
@@ -147,7 +147,7 @@ func TestAccGithubTeamRepository(t *testing.T) {
 }
 
 func TestAccGithubTeamRepositoryArchivedRepo(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	randomID := acctest.RandString(5)
 	teamName := fmt.Sprintf("%steam-archive-%s", testResourcePrefix, randomID)
 	repoName := fmt.Sprintf("%srepo-team-archive-%s", testResourcePrefix, randomID)
 

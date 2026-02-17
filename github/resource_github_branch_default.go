@@ -12,10 +12,11 @@ import (
 
 func resourceGithubBranchDefault() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubBranchDefaultCreate,
-		Read:   resourceGithubBranchDefaultRead,
-		Delete: resourceGithubBranchDefaultDelete,
-		Update: resourceGithubBranchDefaultUpdate,
+		Description: "Manages the default branch for a repository.",
+		Create:      resourceGithubBranchDefaultCreate,
+		Read:        resourceGithubBranchDefaultRead,
+		Delete:      resourceGithubBranchDefaultDelete,
+		Update:      resourceGithubBranchDefaultUpdate,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -39,9 +40,10 @@ func resourceGithubBranchDefault() *schema.Resource {
 				Description: "Indicate if it should rename the branch rather than use an existing branch. Defaults to 'false'.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "An etag representing the default branch object.",
 				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
 					return true
 				},
@@ -119,8 +121,8 @@ func resourceGithubBranchDefaultRead(d *schema.ResourceData, meta any) error {
 	}
 
 	_ = d.Set("etag", resp.Header.Get("ETag"))
-	_ = d.Set("branch", *repository.DefaultBranch)
-	_ = d.Set("repository", *repository.Name)
+	_ = d.Set("branch", repository.DefaultBranch)
+	_ = d.Set("repository", repository.Name)
 	return nil
 }
 

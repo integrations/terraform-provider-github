@@ -11,6 +11,7 @@ import (
 
 func resourceGithubOrganizationRoleTeamAssignment() *schema.Resource {
 	return &schema.Resource{
+		Description:        "Manages the assignment of a team to an organization role.",
 		DeprecationMessage: "This resource is deprecated in favor of the github_organization_role_team resource.",
 
 		Create: resourceGithubOrganizationRoleTeamAssignmentCreate,

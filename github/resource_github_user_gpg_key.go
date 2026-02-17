@@ -13,9 +13,13 @@ import (
 
 func resourceGithubUserGpgKey() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubUserGpgKeyCreate,
-		Read:   resourceGithubUserGpgKeyRead,
-		Delete: resourceGithubUserGpgKeyDelete,
+		Description: "Manages a GPG key for the authenticated user.",
+		Create:      resourceGithubUserGpgKeyCreate,
+		Read:        resourceGithubUserGpgKeyRead,
+		Delete:      resourceGithubUserGpgKeyDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"armored_public_key": {
@@ -30,8 +34,9 @@ func resourceGithubUserGpgKey() *schema.Resource {
 				Description: "The key ID of the GPG key.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the GPG key.",
 			},
 		},
 	}

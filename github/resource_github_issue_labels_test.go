@@ -11,7 +11,7 @@ import (
 
 func TestAccGithubIssueLabels(t *testing.T) {
 	t.Run("authoritatively overtakes existing labels", func(t *testing.T) {
-		repoName := fmt.Sprintf("%srepo-issue-labels-%s", testResourcePrefix, acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
+		repoName := fmt.Sprintf("%srepo-issue-labels-%s", testResourcePrefix, acctest.RandString(5))
 		empty := []map[string]any{}
 
 		resource.Test(t, resource.TestCase{
@@ -114,7 +114,7 @@ func testAccGithubIssueLabelsConfig(repoName string, labels []map[string]any) st
 }
 
 func TestAccGithubIssueLabelsArchived(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	randomID := acctest.RandString(5)
 
 	t.Run("can delete labels from archived repositories without error", func(t *testing.T) {
 		repoName := fmt.Sprintf("%srepo-labels-arch-%s", testResourcePrefix, randomID)

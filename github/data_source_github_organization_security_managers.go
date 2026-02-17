@@ -9,14 +9,16 @@ import (
 
 func dataSourceGithubOrganizationSecurityManagers() *schema.Resource {
 	return &schema.Resource{
+		Description:        "Use this data source to retrieve the teams with the security manager role in an organization.",
 		DeprecationMessage: "This data source is deprecated in favour of using the github_organization_role_teams data source.",
 
 		Read: dataSourceGithubOrganizationSecurityManagersRead,
 
 		Schema: map[string]*schema.Schema{
 			"teams": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "An array of teams with the security manager role.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {

@@ -10,7 +10,7 @@ import (
 
 func TestAccGithubOrganizationRepositoryRole(t *testing.T) {
 	t.Run("can create an organization repository role without erroring", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		name := fmt.Sprintf("tf-acc-org-repo-role-%s", randomID)
 		description := "This is a test org repo role."
 		baseRole := "write"
@@ -52,7 +52,7 @@ func TestAccGithubOrganizationRepositoryRole(t *testing.T) {
 	})
 
 	t.Run("can create an minimal organization repository role without erroring", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		name := fmt.Sprintf("tf-acc-org-repo-role-%s", randomID)
 		permission0 := "reopen_issue"
 

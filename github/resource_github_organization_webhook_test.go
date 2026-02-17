@@ -11,7 +11,7 @@ import (
 
 func TestAccGithubOrganizationWebhook(t *testing.T) {
 	t.Run("creates and updates webhooks without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-org-webhook-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
@@ -66,7 +66,7 @@ func TestAccGithubOrganizationWebhook(t *testing.T) {
 	})
 
 	t.Run("imports webhooks without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-org-webhook-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 

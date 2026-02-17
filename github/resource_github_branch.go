@@ -14,10 +14,11 @@ import (
 
 func resourceGithubBranch() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubBranchCreate,
-		Read:   resourceGithubBranchRead,
-		Update: resourceGithubBranchUpdate,
-		Delete: resourceGithubBranchDelete,
+		Description: "Manages a branch within a repository.",
+		Create:      resourceGithubBranchCreate,
+		Read:        resourceGithubBranchRead,
+		Update:      resourceGithubBranchUpdate,
+		Delete:      resourceGithubBranchDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubBranchImport,
 		},
@@ -92,7 +93,7 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta any) error {
 			return fmt.Errorf("error querying GitHub branch reference %s/%s (%s): %w",
 				orgName, repoName, sourceBranchRefName, err)
 		}
-		if err = d.Set("source_sha", *ref.Object.SHA); err != nil {
+		if err = d.Set("source_sha", ref.Object.SHA); err != nil {
 			return err
 		}
 	}
@@ -156,10 +157,10 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta any) error {
 	if err = d.Set("branch", branchName); err != nil {
 		return err
 	}
-	if err = d.Set("ref", *ref.Ref); err != nil {
+	if err = d.Set("ref", ref.Ref); err != nil {
 		return err
 	}
-	if err = d.Set("sha", *ref.Object.SHA); err != nil {
+	if err = d.Set("sha", ref.Object.SHA); err != nil {
 		return err
 	}
 

@@ -13,6 +13,7 @@ import (
 
 func resourceGithubActionsVariable() *schema.Resource {
 	return &schema.Resource{
+		Description:   "Manages a GitHub Actions variable within a repository.",
 		SchemaVersion: 1,
 		StateUpgraders: []schema.StateUpgrader{
 			{

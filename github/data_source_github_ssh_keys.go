@@ -4,13 +4,15 @@ import "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 func dataSourceGithubSshKeys() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubSshKeysRead,
+		Description: "Use this data source to retrieve GitHub's SSH public keys.",
+		Read:        dataSourceGithubSshKeysRead,
 
 		Schema: map[string]*schema.Schema{
 			"keys": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Type:        schema.TypeList,
+				Computed:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Description: "An array of GitHub's SSH public keys.",
 			},
 		},
 	}

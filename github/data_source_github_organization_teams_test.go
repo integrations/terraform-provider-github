@@ -10,7 +10,7 @@ import (
 
 func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
 	t.Run("queries", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		teamName := fmt.Sprintf("%steam-0-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`

@@ -12,7 +12,7 @@ import (
 
 func TestAccGithubTeamSettings(t *testing.T) {
 	t.Run("manages team settings can use team_id id and slug", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		teamName := fmt.Sprintf("%steam-settings-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
@@ -48,7 +48,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 	})
 
 	t.Run("manages team code review settings", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		teamName := fmt.Sprintf("%steam-settings-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
@@ -124,7 +124,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 	})
 
 	t.Run("cannot manage team code review settings if disabled", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		teamName := fmt.Sprintf("%steam-settings-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {

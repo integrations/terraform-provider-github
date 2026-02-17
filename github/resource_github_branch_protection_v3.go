@@ -14,10 +14,11 @@ import (
 
 func resourceGithubBranchProtectionV3() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubBranchProtectionV3Create,
-		Read:   resourceGithubBranchProtectionV3Read,
-		Update: resourceGithubBranchProtectionV3Update,
-		Delete: resourceGithubBranchProtectionV3Delete,
+		Description: "Manages a branch protection rule for a repository using the REST API (v3).",
+		Create:      resourceGithubBranchProtectionV3Create,
+		Read:        resourceGithubBranchProtectionV3Read,
+		Update:      resourceGithubBranchProtectionV3Update,
+		Delete:      resourceGithubBranchProtectionV3Delete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -43,10 +44,11 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"include_admins": {
-							Type:       schema.TypeBool,
-							Optional:   true,
-							Default:    false,
-							Deprecated: "Use enforce_admins instead",
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     false,
+							Deprecated:  "Use enforce_admins instead",
+							Description: "Deprecated: Use enforce_admins instead.",
 							DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
 								return true
 							},
@@ -58,10 +60,11 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 							Description: "Require branches to be up to date before merging.",
 						},
 						"contexts": {
-							Type:       schema.TypeSet,
-							Optional:   true,
-							Computed:   true,
-							Deprecated: "GitHub is deprecating the use of `contexts`. Use a `checks` array instead.",
+							Type:        schema.TypeSet,
+							Optional:    true,
+							Computed:    true,
+							Deprecated:  "GitHub is deprecating the use of `contexts`. Use a `checks` array instead.",
+							Description: "Deprecated: Use checks instead. The list of status checks to require.",
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},
@@ -88,10 +91,11 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						// FIXME: Remove this deprecated field
 						"include_admins": {
-							Type:       schema.TypeBool,
-							Optional:   true,
-							Default:    false,
-							Deprecated: "Use enforce_admins instead",
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     false,
+							Deprecated:  "Use enforce_admins instead",
+							Description: "Deprecated: Use enforce_admins instead.",
 							DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
 								return true
 							},
@@ -139,25 +143,29 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 							Description: "Require that the most recent push must be approved by someone other than the last pusher.",
 						},
 						"bypass_pull_request_allowances": {
-							Type:     schema.TypeList,
-							Optional: true,
-							MaxItems: 1,
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Allow specific users, teams, or apps to bypass pull request requirements.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"users": {
-										Type:     schema.TypeSet,
-										Optional: true,
-										Elem:     &schema.Schema{Type: schema.TypeString},
+										Type:        schema.TypeSet,
+										Optional:    true,
+										Elem:        &schema.Schema{Type: schema.TypeString},
+										Description: "The list of user logins allowed to bypass pull request requirements.",
 									},
 									"teams": {
-										Type:     schema.TypeSet,
-										Optional: true,
-										Elem:     &schema.Schema{Type: schema.TypeString},
+										Type:        schema.TypeSet,
+										Optional:    true,
+										Elem:        &schema.Schema{Type: schema.TypeString},
+										Description: "The list of team slugs allowed to bypass pull request requirements.",
 									},
 									"apps": {
-										Type:     schema.TypeSet,
-										Optional: true,
-										Elem:     &schema.Schema{Type: schema.TypeString},
+										Type:        schema.TypeSet,
+										Optional:    true,
+										Elem:        &schema.Schema{Type: schema.TypeString},
+										Description: "The list of app slugs allowed to bypass pull request requirements.",
 									},
 								},
 							},
@@ -212,8 +220,9 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 				Description: "Setting this to 'true' requires all conversations on code must be resolved before a pull request can be merged.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the branch protection object.",
 			},
 		},
 	}

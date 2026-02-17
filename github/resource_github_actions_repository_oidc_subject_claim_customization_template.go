@@ -11,10 +11,11 @@ import (
 
 func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateCreateOrUpdate,
-		Read:   resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead,
-		Update: resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateCreateOrUpdate,
-		Delete: resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDelete,
+		Description: "Manages the OpenID Connect subject claim customization template for a repository.",
+		Create:      resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateCreateOrUpdate,
+		Read:        resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead,
+		Update:      resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateCreateOrUpdate,
+		Delete:      resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

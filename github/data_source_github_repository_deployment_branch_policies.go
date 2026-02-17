@@ -9,6 +9,7 @@ import (
 
 func dataSourceGithubRepositoryDeploymentBranchPolicies() *schema.Resource {
 	return &schema.Resource{
+		Description:        "Use this data source to retrieve the deployment branch policies for a repository environment.",
 		DeprecationMessage: "This data source is deprecated in favour of the github_repository_environment_deployment_policies data source.",
 
 		Read: dataSourceGithubRepositoryDeploymentBranchPoliciesRead,
@@ -17,27 +18,28 @@ func dataSourceGithubRepositoryDeploymentBranchPolicies() *schema.Resource {
 			"repository": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "The GitHub repository name.",
 			},
 			"environment_name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "The target environment name.",
 			},
 			"deployment_branch_policies": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "The list of this repository/environment deployment policies.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "ID of the policy.",
 						},
 						"name": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The name pattern that branches must match in order to deploy to the environment.",
 						},
 					},
 				},

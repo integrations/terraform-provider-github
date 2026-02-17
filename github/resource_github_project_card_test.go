@@ -14,7 +14,7 @@ func TestAccGithubProjectCard(t *testing.T) {
 	t.Skip("Skipping test as the GitHub API no longer supports classic projects")
 
 	t.Run("creates a project card using a note", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		testResourceName := fmt.Sprintf("%sproject-card-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
@@ -54,7 +54,7 @@ func TestAccGithubProjectCard(t *testing.T) {
 	})
 
 	t.Run("creates a project card using an issue", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-project-card-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 

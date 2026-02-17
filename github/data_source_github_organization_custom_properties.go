@@ -9,41 +9,49 @@ import (
 
 func dataSourceGithubOrganizationCustomProperties() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubOrganizationCustomPropertiesRead,
+		Description: "Use this data source to retrieve information about an organization's custom property.",
+		Read:        dataSourceGithubOrganizationCustomPropertiesRead,
 
 		Schema: map[string]*schema.Schema{
 			"property_name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The name of the custom property.",
 			},
 			"value_type": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The type of the custom property. Can be one of 'string', 'single_select', 'multi_select', or 'true_false'.",
 			},
 			"required": {
-				Type:     schema.TypeBool,
-				Optional: true,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Whether the custom property is required.",
 			},
 			"default_value": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "The default value of the custom property.",
 			},
 			"description": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "The description of the custom property.",
 			},
 			"allowed_values": {
-				Type:     schema.TypeList,
-				Optional: true,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Type:        schema.TypeList,
+				Optional:    true,
+				Computed:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Description: "List of allowed values for the custom property. Only populated when value_type is 'single_select' or 'multi_select'.",
 			},
 			"values_editable_by": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "Who can edit the values of the custom property. Can be one of 'org_actors' or 'org_and_repo_actors'.",
 			},
 		},
 	}
