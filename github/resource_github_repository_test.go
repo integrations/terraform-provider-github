@@ -1349,6 +1349,36 @@ resource "github_repository" "test" {
 		})
 	})
 
+	t.Run("check_web_commit_signoff_required_not_set", func(t *testing.T) {
+		t.Skip("This test should be run manually after confirming that the test organization has been correctly configured to disable setting sign off on web-based commits at the repo level.")
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%scommit-signoff-%s", testResourcePrefix, randomID)
+
+		config := `
+			resource "github_repository" "test" {
+				name        = "%s"
+				description = "%s"
+			}
+		`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, testRepoName, "foo"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "web_commit_signoff_required", "false"),
+					),
+				},
+				{
+					Config: fmt.Sprintf(config, testRepoName, "bar"),
+				},
+			},
+		})
+	})
+
 	t.Run("check_allow_forking_not_set", func(t *testing.T) {
 		t.Skip("This test should be run manually after confirming that the test organization has been correctly configured to disable setting forking at the repo level.")
 
