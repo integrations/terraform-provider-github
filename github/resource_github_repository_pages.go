@@ -36,12 +36,13 @@ func resourceGithubRepositoryPages() *schema.Resource {
 				Computed:    true,
 				Description: "The ID of the repository to configure GitHub Pages for.",
 			},
-			"owner": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The owner of the repository to configure GitHub Pages for.",
-			},
+			// TODO: Uncomment this when we are ready to support owner fields properly. https://github.com/integrations/terraform-provider-github/pull/3166#discussion_r2816053082
+			// "owner": {
+			// 	Type:        schema.TypeString,
+			// 	Required:    true,
+			// 	ForceNew:    true,
+			// 	Description: "The owner of the repository to configure GitHub Pages for.",
+			// },
 			"source": {
 				Type:        schema.TypeList,
 				MaxItems:    1,
@@ -104,7 +105,7 @@ func resourceGithubRepositoryPagesCreate(ctx context.Context, d *schema.Resource
 	meta := m.(*Owner)
 	client := meta.v3client
 
-	owner := d.Get("owner").(string)
+	owner := meta.name // TODO: Add owner support // d.Get("owner").(string)
 	repoName := d.Get("repository").(string)
 
 	pages := expandPagesForCreate(d)
@@ -161,7 +162,7 @@ func resourceGithubRepositoryPagesRead(ctx context.Context, d *schema.ResourceDa
 	meta := m.(*Owner)
 	client := meta.v3client
 
-	owner := d.Get("owner").(string)
+	owner := meta.name // TODO: Add owner support // d.Get("owner").(string)
 	repoName := d.Get("repository").(string)
 
 	pages, resp, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)
@@ -216,7 +217,7 @@ func resourceGithubRepositoryPagesUpdate(ctx context.Context, d *schema.Resource
 	meta := m.(*Owner)
 	client := meta.v3client
 
-	owner := d.Get("owner").(string)
+	owner := meta.name // TODO: Add owner support // d.Get("owner").(string)
 	repoName := d.Get("repository").(string)
 
 	update := &github.PagesUpdate{}
@@ -263,7 +264,7 @@ func resourceGithubRepositoryPagesDelete(ctx context.Context, d *schema.Resource
 	meta := m.(*Owner)
 	client := meta.v3client
 
-	owner := d.Get("owner").(string)
+	owner := meta.name // TODO: Add owner support // d.Get("owner").(string)
 	repoName := d.Get("repository").(string)
 
 	_, err := client.Repositories.DisablePages(ctx, owner, repoName)
@@ -279,9 +280,9 @@ func resourceGithubRepositoryPagesImport(ctx context.Context, d *schema.Resource
 	if err != nil {
 		return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <owner>:<repository>. Original error: %w", err)
 	}
-	if err := d.Set("owner", owner); err != nil {
-		return nil, err
-	}
+	// if err := d.Set("owner", owner); err != nil { // TODO: Add owner support
+	// 	return nil, err
+	// }
 	if err := d.Set("repository", repoName); err != nil {
 		return nil, err
 	}
