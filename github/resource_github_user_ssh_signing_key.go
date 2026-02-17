@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -36,8 +35,8 @@ func resourceGithubUserSshSigningKey() *schema.Resource {
 				Description: "The public SSH key to add to your GitHub account.",
 			},
 			"key_id": {
-				Type:     schema.TypeInt,
-				Computed: true,
+				Type:        schema.TypeInt,
+				Computed:    true,
 				Description: "The unique identifier of the SSH signing key.",
 			},
 			"etag": {
@@ -84,7 +83,7 @@ func resourceGithubUserSshSigningKeyRead(ctx context.Context, d *schema.Resource
 	client := meta.(*Owner).v3client
 
 	keyID := d.Get("key_id").(int64)
-	key, resp, err := client.Users.GetSSHSigningKey(ctx, keyID)
+	_, _, err := client.Users.GetSSHSigningKey(ctx, keyID)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {

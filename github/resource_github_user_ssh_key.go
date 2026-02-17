@@ -2,21 +2,21 @@ package github
 
 import (
 	"context"
-	"errors"
-	"log"
+	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/google/go-github/v82/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubUserSshKey() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubUserSshKeyCreate,
-		Read:   resourceGithubUserSshKeyRead,
-		Delete: resourceGithubUserSshKeyDelete,
+		CreateContext: resourceGithubUserSshKeyCreate,
+		ReadContext:   resourceGithubUserSshKeyRead,
+		DeleteContext: resourceGithubUserSshKeyDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceGithubUserSshKeyImport,
 		},
@@ -35,8 +35,8 @@ func resourceGithubUserSshKey() *schema.Resource {
 				Description: "The public SSH key to add to your GitHub account.",
 			},
 			"key_id": {
-				Type:     schema.TypeInt,
-				Computed: true,
+				Type:        schema.TypeInt,
+				Computed:    true,
 				Description: "The unique identifier of the SSH key.",
 			},
 			"etag": {
@@ -83,7 +83,7 @@ func resourceGithubUserSshKeyRead(ctx context.Context, d *schema.ResourceData, m
 	client := meta.(*Owner).v3client
 
 	keyID := d.Get("key_id").(int64)
-	key, resp, err := client.Users.GetKey(ctx, keyID)
+	_, _, err := client.Users.GetKey(ctx, keyID)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {

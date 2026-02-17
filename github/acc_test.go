@@ -298,7 +298,7 @@ func sweepUserSSHKeys(_ string) error {
 	owner := meta.name
 	ctx := context.Background()
 
-	keys, _, err := client.Users.ListSSHKeys(ctx, owner, nil)
+	keys, _, err := client.Users.ListKeys(ctx, owner, nil)
 	if err != nil {
 		return err
 	}
@@ -307,7 +307,7 @@ func sweepUserSSHKeys(_ string) error {
 		if title := k.GetTitle(); strings.HasPrefix(title, testResourcePrefix) {
 			fmt.Printf("destroying user SSH key %s\n", title)
 
-			if _, err := client.Users.DeleteSSHKey(ctx, k.GetID()); err != nil {
+			if _, err := client.Users.DeleteKey(ctx, k.GetID()); err != nil {
 				return err
 			}
 		}
