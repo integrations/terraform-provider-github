@@ -197,7 +197,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Optional:     true,
 							MaxItems:     1,
 							ExactlyOneOf: []string{"conditions.0.repository_property", "conditions.0.repository_name", "conditions.0.repository_id"},
-							AtLeastOneOf: []string{"conditions.0.repository_property", "conditions.0.repository_name", "conditions.0.repository_id"},
 							Description:  "Targets repositories that match the specified name patterns.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -230,7 +229,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Type:         schema.TypeList,
 							Optional:     true,
 							ExactlyOneOf: []string{"conditions.0.repository_property", "conditions.0.repository_name", "conditions.0.repository_id"},
-							AtLeastOneOf: []string{"conditions.0.repository_property", "conditions.0.repository_name", "conditions.0.repository_id"},
 							Description:  "The repository IDs that the ruleset applies to. One of these IDs must match for the ruleset to apply.",
 							Elem: &schema.Schema{
 								Type: schema.TypeInt,
