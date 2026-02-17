@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -22,7 +22,7 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 		Delete: resourceGithubRepositoryAutolinkReferenceDelete,
 
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+			StateContext: func(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")
 				if len(parts) != 2 {
 					return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository>/<autolink_reference_id>")
@@ -40,7 +40,7 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 					client := meta.(*Owner).v3client
 					owner := meta.(*Owner).name
 
-					autolink, err := getAutolinkByKeyPrefix(client, owner, repository, id)
+					autolink, err := getAutolinkByKeyPrefix(ctx, client, owner, repository, id)
 					if err != nil {
 						return nil, err
 					}
