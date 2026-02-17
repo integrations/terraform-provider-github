@@ -113,21 +113,25 @@ resource "github_organization_ruleset" "example_property" {
     }
 
     repository_property {
-      include {
-        name            = "environment"
-        property_values = ["production", "staging"]
-        source          = "custom"
-      }
-      include {
-        name            = "team"
-        property_values = ["backend"]
-        source          = "custom"
-      }
-      exclude {
-        name            = "archived"
-        property_values = ["true"]
-        source          = "system"
-      }
+      include = [
+        {
+          name            = "environment"
+          property_values = ["production", "staging"]
+          source          = "custom"
+        },
+        {
+          name            = "team"
+          property_values = ["backend"]
+          source          = "custom"
+        }
+      ]
+      exclude = [
+        {
+          name            = "archived"
+          property_values = ["true"]
+          source          = "system"
+        }
+      ]
     }
   }
 
