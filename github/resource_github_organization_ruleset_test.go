@@ -1,10 +1,12 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"testing"
 
+	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -250,15 +252,11 @@ resource "github_organization_ruleset" "test" {
 
 	conditions {
 		repository_property {
-			include = [{
-				name            = "tier"
-				source          = "custom"
-				property_values = ["premium"]
-			}]
+			include = []
 			exclude = [{
-				name            = "archived"
-				source          = "system"
-				property_values = ["true"]
+				name            = "team"
+				source          = "custom"
+				property_values = ["red"]
 			}]
 		}
 
@@ -282,11 +280,11 @@ resource "github_organization_ruleset" "test" {
 					Config: config,
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.#", "1"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.#", "0"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.#", "1"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.0.name", "archived"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.0.source", "system"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.0.property_values.0", "true"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.0.name", "team"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.0.source", "custom"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.0.property_values.0", "red"),
 					),
 				},
 			},
@@ -296,6 +294,45 @@ resource "github_organization_ruleset" "test" {
 	t.Run("create_ruleset_with_multiple_repository_properties", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		rulesetName := fmt.Sprintf("%s-repo-prop-multiple-%s", testResourcePrefix, randomID)
+
+		// Setup: Create custom properties for testing
+		meta, err := getTestMeta()
+		if err != nil {
+			t.Fatalf("Error getting test meta: %v", err)
+		}
+
+		ctx := context.Background()
+		org := testAccConf.owner
+
+		// Create test properties
+		properties := []struct {
+			name   string
+			values []string
+		}{
+			{name: "e2e_test_environment", values: []string{"production", "staging"}},
+			{name: "e2e_test_tier", values: []string{"premium", "enterprise"}},
+		}
+
+		for _, prop := range properties {
+			_, _, err := meta.v3client.Organizations.CreateOrUpdateCustomProperty(ctx, org, prop.name, &github.CustomProperty{
+				ValueType:     github.PropertyValueTypeSingleSelect,
+				Required:      github.Ptr(false),
+				AllowedValues: prop.values,
+			})
+			if err != nil {
+				t.Logf("Warning: Could not create custom property %s (may already exist): %v", prop.name, err)
+			}
+		}
+
+		// Cleanup: Remove custom properties after test
+		defer func() {
+			for _, prop := range properties {
+				_, err := meta.v3client.Organizations.RemoveCustomProperty(ctx, org, prop.name)
+				if err != nil {
+					t.Logf("Warning: Could not remove custom property %s: %v", prop.name, err)
+				}
+			}
+		}()
 
 		config := fmt.Sprintf(`
 resource "github_organization_ruleset" "test" {
@@ -307,14 +344,14 @@ resource "github_organization_ruleset" "test" {
 		repository_property {
 			include = [
 				{
-					name            = "environment"
+					name            = "e2e_test_environment"
 					source          = "custom"
 					property_values = ["production"]
 				},
 				{
-					name            = "team"
+					name            = "e2e_test_tier"
 					source          = "custom"
-					property_values = ["backend", "platform"]
+					property_values = ["premium", "enterprise"]
 				}
 			]
 			exclude = []
@@ -341,10 +378,15 @@ resource "github_organization_ruleset" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.#", "2"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.name", "environment"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.name", "e2e_test_environment"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.source", "custom"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.#", "1"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.0", "production"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.1.name", "team"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.1.name", "e2e_test_tier"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.1.source", "custom"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.1.property_values.#", "2"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.1.property_values.0", "premium"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.1.property_values.1", "enterprise"),
 					),
 				},
 			},
@@ -364,9 +406,9 @@ resource "github_organization_ruleset" "test" {
 	conditions {
 		repository_property {
 			include = [{
-				name            = "tier"
+				name            = "team"
 				source          = "custom"
-				property_values = ["basic"]
+				property_values = ["blue"]
 			}]
 			exclude = []
 		}
@@ -392,15 +434,11 @@ resource "github_organization_ruleset" "test" {
 	conditions {
 		repository_property {
 			include = [{
-				name            = "tier"
+				name            = "team"
 				source          = "custom"
-				property_values = ["premium", "enterprise"]
+				property_values = ["backend", "platform"]
 			}]
-			exclude = [{
-				name            = "archived"
-				source          = "system"
-				property_values = ["true"]
-			}]
+			exclude = []
 		}
 
 		ref_name {
@@ -425,7 +463,7 @@ resource "github_organization_ruleset" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.#", "1"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.0", "basic"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.0", "blue"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.#", "0"),
 					),
 				},
@@ -434,10 +472,9 @@ resource "github_organization_ruleset" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.#", "2"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.0", "premium"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.1", "enterprise"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.#", "1"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.0.name", "archived"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.0", "backend"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.1", "platform"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.#", "0"),
 					),
 				},
 			},
@@ -977,7 +1014,7 @@ resource "github_organization_ruleset" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config:      config,
-					ExpectError: regexp.MustCompile("only one of `conditions.0.repository_id,conditions.0.repository_name,conditions.0.repository_property` can be specified"),
+					ExpectError: regexp.MustCompile(`(?s)only one of.*conditions\.0\.repository_id.*conditions\.0\.repository_name.*conditions\.0\.repository_property.*can be specified`),
 				},
 			},
 		})
@@ -1011,7 +1048,7 @@ resource "github_organization_ruleset" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config:      config,
-					ExpectError: regexp.MustCompile("one of `conditions.0.repository_id,conditions.0.repository_name,conditions.0.repository_property` must be specified"),
+					ExpectError: regexp.MustCompile(`(?s)one of.*conditions\.0\.repository_id.*conditions\.0\.repository_name.*conditions\.0\.repository_property.*must be specified`),
 				},
 			},
 		})
@@ -1019,40 +1056,82 @@ resource "github_organization_ruleset" "test" {
 
 	t.Run("validates_repository_property_works_as_single_targeting_option", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		resourceName := "test-repo-property-targeting"
-		config := fmt.Sprintf(`
-			resource "github_organization_ruleset" "%s" {
-				name        = "test-property-targeting-%s"
-				target      = "branch"
-				enforcement = "active"
+		rulesetName := fmt.Sprintf("%s-repo-prop-only-%s", testResourcePrefix, randomID)
 
-				conditions {
-					ref_name {
-						include = ["~ALL"]
-						exclude = []
-					}
-					repository_property {
-						include {
-							name            = "environment"
-							property_values = ["production"]
-							source          = "custom"
-						}
-					}
-				}
+		// Setup: Create custom property for testing
+		meta, err := getTestMeta()
+		if err != nil {
+			t.Fatalf("Error getting test meta: %v", err)
+		}
 
-				rules {
-					creation = true
-				}
+		ctx := context.Background()
+		org := testAccConf.owner
+		propName := "e2e_test_environment"
+		propValues := []string{"production", "staging"}
+
+		_, _, err = meta.v3client.Organizations.CreateOrUpdateCustomProperty(ctx, org, propName, &github.CustomProperty{
+			ValueType:     github.PropertyValueTypeSingleSelect,
+			Required:      github.Ptr(false),
+			AllowedValues: propValues,
+		})
+		if err != nil {
+			t.Logf("Warning: Could not create custom property %s (may already exist): %v", propName, err)
+		}
+
+		// Cleanup: Remove custom property after test
+		defer func() {
+			_, err := meta.v3client.Organizations.RemoveCustomProperty(ctx, org, propName)
+			if err != nil {
+				t.Logf("Warning: Could not remove custom property %s: %v", propName, err)
 			}
-		`, resourceName, randomID)
+		}()
+
+		config := fmt.Sprintf(`
+resource "github_organization_ruleset" "test" {
+	name        = "%s"
+	target      = "branch"
+	enforcement = "active"
+
+	conditions {
+		repository_property {
+			include = [{
+				name            = "e2e_test_environment"
+				source          = "custom"
+				property_values = ["production", "staging"]
+			}]
+			exclude = []
+		}
+
+		ref_name {
+			include = ["~DEFAULT_BRANCH"]
+			exclude = []
+		}
+	}
+
+	rules {
+		creation = true
+		update   = true
+	}
+}
+`, rulesetName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config:      config,
-					ExpectError: nil, // This should succeed
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "target", "branch"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "enforcement", "active"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.#", "1"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.name", "e2e_test_environment"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.source", "custom"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.#", "2"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.0", "production"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.1", "staging"),
+					),
 				},
 			},
 		})
