@@ -69,7 +69,7 @@ func dataSourceGithubRepositoryPages() *schema.Resource {
 				Computed:    true,
 				Description: "The GitHub Pages site's build status e.g. 'building' or 'built'.",
 			},
-			"url": {
+			"api_url": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The API URL of the GitHub Pages resource.",
@@ -115,7 +115,7 @@ func dataSourceGithubRepositoryPagesRead(ctx context.Context, d *schema.Resource
 	if err := d.Set("status", pages.GetStatus()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("url", pages.GetURL()); err != nil {
+	if err := d.Set("api_url", pages.GetURL()); err != nil {
 		return diag.FromErr(err)
 	}
 
