@@ -6,8 +6,8 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubEnterpriseTeam(t *testing.T) {
@@ -81,10 +81,11 @@ func TestAccGithubEnterpriseTeam(t *testing.T) {
 					`, testAccConf.enterpriseSlug, testResourcePrefix, randomID),
 				},
 				{
-					ResourceName:        "github_enterprise_team.test",
-					ImportState:         true,
-					ImportStateVerify:   true,
-					ImportStateIdPrefix: fmt.Sprintf(`%s/`, testAccConf.enterpriseSlug),
+					ResourceName:            "github_enterprise_team.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"group_id"},
+					ImportStateIdPrefix:     fmt.Sprintf(`%s/`, testAccConf.enterpriseSlug),
 				},
 			},
 		})
