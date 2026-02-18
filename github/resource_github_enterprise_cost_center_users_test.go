@@ -7,7 +7,10 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubEnterpriseCostCenterUsers(t *testing.T) {
@@ -39,11 +42,11 @@ func TestAccGithubEnterpriseCostCenterUsers(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_enterprise_cost_center_users.test", "enterprise_slug", testAccConf.enterpriseSlug),
-						resource.TestCheckResourceAttr("github_enterprise_cost_center_users.test", "usernames.#", "1"),
-						resource.TestCheckTypeSetElemAttr("github_enterprise_cost_center_users.test", "usernames.*", user),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_enterprise_cost_center_users.test", tfjsonpath.New("enterprise_slug"), knownvalue.StringExact(testAccConf.enterpriseSlug)),
+						statecheck.ExpectKnownValue("github_enterprise_cost_center_users.test", tfjsonpath.New("usernames"), knownvalue.SetSizeExact(1)),
+						statecheck.ExpectKnownValue("github_enterprise_cost_center_users.test", tfjsonpath.New("usernames"), knownvalue.SetPartial([]knownvalue.Check{knownvalue.StringExact(user)})),
+					},
 				},
 				{
 					ResourceName:      "github_enterprise_cost_center_users.test",

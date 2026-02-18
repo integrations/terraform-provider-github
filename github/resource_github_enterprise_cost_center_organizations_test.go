@@ -8,7 +8,10 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubEnterpriseCostCenterOrganizations(t *testing.T) {
@@ -44,11 +47,11 @@ func TestAccGithubEnterpriseCostCenterOrganizations(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_enterprise_cost_center_organizations.test", "enterprise_slug", testAccConf.enterpriseSlug),
-						resource.TestCheckResourceAttr("github_enterprise_cost_center_organizations.test", "organization_logins.#", "1"),
-						resource.TestCheckTypeSetElemAttr("github_enterprise_cost_center_organizations.test", "organization_logins.*", orgLogin),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_enterprise_cost_center_organizations.test", tfjsonpath.New("enterprise_slug"), knownvalue.StringExact(testAccConf.enterpriseSlug)),
+						statecheck.ExpectKnownValue("github_enterprise_cost_center_organizations.test", tfjsonpath.New("organization_logins"), knownvalue.SetSizeExact(1)),
+						statecheck.ExpectKnownValue("github_enterprise_cost_center_organizations.test", tfjsonpath.New("organization_logins"), knownvalue.SetPartial([]knownvalue.Check{knownvalue.StringExact(orgLogin)})),
+					},
 				},
 				{
 					ResourceName:      "github_enterprise_cost_center_organizations.test",
