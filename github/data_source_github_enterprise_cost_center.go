@@ -82,7 +82,6 @@ func dataSourceGithubEnterpriseCostCenterRead(ctx context.Context, d *schema.Res
 		return diag.FromErr(err)
 	}
 
-	// Extract resources by type
 	users := make([]string, 0)
 	organizations := make([]string, 0)
 	repositories := make([]string, 0)

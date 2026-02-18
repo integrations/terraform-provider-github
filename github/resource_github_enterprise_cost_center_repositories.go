@@ -56,11 +56,9 @@ func resourceGithubEnterpriseCostCenterRepositoriesCreate(ctx context.Context, d
 	}
 	d.SetId(id)
 
-	// Get desired repositories from config
 	desiredReposSet := d.Get("repository_names").(*schema.Set)
 	toAdd := expandStringList(desiredReposSet.List())
 
-	// Add repositories
 	if len(toAdd) > 0 {
 		tflog.Info(ctx, "Adding repositories to cost center", map[string]any{
 			"enterprise_slug": enterpriseSlug,
@@ -89,9 +87,9 @@ func resourceGithubEnterpriseCostCenterRepositoriesUpdate(ctx context.Context, d
 	}
 
 	currentRepos := make(map[string]bool)
-	for _, r := range cc.Resources {
-		if r != nil && r.Type == CostCenterResourceTypeRepo {
-			currentRepos[r.Name] = true
+	for _, ccResource := range cc.Resources {
+		if ccResource != nil && ccResource.Type == CostCenterResourceTypeRepo {
+			currentRepos[ccResource.Name] = true
 		}
 	}
 
@@ -163,9 +161,9 @@ func resourceGithubEnterpriseCostCenterRepositoriesRead(ctx context.Context, d *
 	}
 
 	var repositories []string
-	for _, r := range cc.Resources {
-		if r != nil && r.Type == CostCenterResourceTypeRepo {
-			repositories = append(repositories, r.Name)
+	for _, ccResource := range cc.Resources {
+		if ccResource != nil && ccResource.Type == CostCenterResourceTypeRepo {
+			repositories = append(repositories, ccResource.Name)
 		}
 	}
 
