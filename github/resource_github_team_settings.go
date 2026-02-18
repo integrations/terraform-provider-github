@@ -4,11 +4,58 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
+
+// getBatchUserNodeIds retrieves the GraphQL node IDs for multiple usernames in a single request.
+func getBatchUserNodeIds(ctx context.Context, meta any, usernames []string) (map[string]string, error) {
+	if len(usernames) == 0 {
+		return make(map[string]string), nil
+	}
+
+	client := meta.(*Owner).v4client
+
+	// Create GraphQL variables and query struct using reflection (similar to data_source_github_users.go)
+	type UserFragment struct {
+		ID string `graphql:"id"`
+	}
+
+	var fields []reflect.StructField
+	variables := make(map[string]any)
+
+	for idx, username := range usernames {
+		label := fmt.Sprintf("User%d", idx)
+		variables[label] = githubv4.String(username)
+		fields = append(fields, reflect.StructField{
+			Name: label,
+			Type: reflect.TypeFor[UserFragment](),
+			Tag:  reflect.StructTag(fmt.Sprintf("graphql:\"%[1]s: user(login: $%[1]s)\"", label)),
+		})
+	}
+
+	query := reflect.New(reflect.StructOf(fields)).Elem()
+
+	err := client.Query(ctx, query.Addr().Interface(), variables)
+	if err != nil && !strings.Contains(err.Error(), "Could not resolve to a User with the login of") {
+		return nil, fmt.Errorf("failed to query users in batch: %w", err)
+	}
+
+	result := make(map[string]string)
+	for idx, username := range usernames {
+		label := fmt.Sprintf("User%d", idx)
+		user := query.FieldByName(label).Interface().(UserFragment)
+		if user.ID != "" {
+			result[username] = user.ID
+		}
+	}
+
+	return result, nil
+}
 
 func resourceGithubTeamSettings() *schema.Resource {
 	return &schema.Resource{
@@ -83,6 +130,14 @@ func resourceGithubTeamSettings() *schema.Resource {
 							Default:     false,
 							Description: "whether to notify the entire team when at least one member is also assigned to the pull request.",
 						},
+						"excluded_members": {
+							Type:        schema.TypeSet,
+							Optional:    true,
+							Description: "A list of team member usernames to exclude from the PR review process.",
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
+						},
 					},
 				},
 			},
@@ -143,6 +198,19 @@ func resourceGithubTeamSettingsRead(d *schema.ResourceData, meta any) error {
 		reviewRequestDelegation["algorithm"] = query.Organization.Team.ReviewRequestDelegationAlgorithm
 		reviewRequestDelegation["member_count"] = query.Organization.Team.ReviewRequestDelegationCount
 		reviewRequestDelegation["notify"] = query.Organization.Team.ReviewRequestDelegationNotifyAll
+
+		// NOTE: The exclusion list is not available via the GraphQL read query yet.
+		// The excluded_team_member_node_ids field can be set but cannot be read back from the GitHub API.
+		// This is because the GraphQL API for team review assignments is currently in preview.
+		// As a workaround, we preserve the excluded_members from the current state.
+		if currentDelegation := d.Get("review_request_delegation").([]any); len(currentDelegation) > 0 {
+			if currentSettings, ok := currentDelegation[0].(map[string]any); ok {
+				if excludedMembers, exists := currentSettings["excluded_members"]; exists {
+					reviewRequestDelegation["excluded_members"] = excludedMembers
+				}
+			}
+		}
+
 		if err = d.Set("review_request_delegation", []any{reviewRequestDelegation}); err != nil {
 			return err
 		}
@@ -151,6 +219,8 @@ func resourceGithubTeamSettingsRead(d *schema.ResourceData, meta any) error {
 			return err
 		}
 	}
+	// NOTE: The excluded members are preserved from the current state in the read logic above
+	// since the GitHub API doesn't currently support reading them back.
 
 	return nil
 }
@@ -177,12 +247,42 @@ func resourceGithubTeamSettingsUpdate(d *schema.ResourceData, meta any) error {
 				} `graphql:"updateTeamReviewAssignment(input:$input)"`
 			}
 
+			exclusionList := make([]githubv4.ID, 0)
+			if excludedMembers, ok := settings["excluded_members"]; ok && excludedMembers != nil {
+				// Collect all usernames first
+				usernames := make([]string, 0)
+				for _, v := range excludedMembers.(*schema.Set).List() {
+					if v != nil {
+						username := v.(string)
+						usernames = append(usernames, username)
+					}
+				}
+
+				// Get all node IDs in a single batch request
+				if len(usernames) > 0 {
+					nodeIds, err := getBatchUserNodeIds(ctx, meta, usernames)
+					if err != nil {
+						return fmt.Errorf("failed to get node IDs for excluded members: %w", err)
+					}
+
+					// Convert to the exclusion list
+					for _, username := range usernames {
+						if nodeId, exists := nodeIds[username]; exists {
+							exclusionList = append(exclusionList, githubv4.ID(nodeId))
+						} else {
+							return fmt.Errorf("failed to get node ID for user %s: user not found", username)
+						}
+					}
+				}
+			}
+
 			return graphql.Mutate(ctx, &mutation, UpdateTeamReviewAssignmentInput{
 				TeamID:                           d.Id(),
 				ReviewRequestDelegation:          true,
 				ReviewRequestDelegationAlgorithm: settings["algorithm"].(string),
 				ReviewRequestDelegationCount:     settings["member_count"].(int),
 				ReviewRequestDelegationNotifyAll: settings["notify"].(bool),
+				ExcludedTeamMemberIds:            exclusionList,
 			}, nil)
 		}
 	}
@@ -252,12 +352,13 @@ func resolveTeamIDs(idOrSlug string, meta *Owner, ctx context.Context) (nodeId, 
 }
 
 type UpdateTeamReviewAssignmentInput struct {
-	ClientMutationID                 string `json:"clientMutationId,omitempty"`
-	TeamID                           string `graphql:"id" json:"id"`
-	ReviewRequestDelegation          bool   `graphql:"enabled" json:"enabled"`
-	ReviewRequestDelegationAlgorithm string `graphql:"algorithm" json:"algorithm"`
-	ReviewRequestDelegationCount     int    `graphql:"teamMemberCount" json:"teamMemberCount"`
-	ReviewRequestDelegationNotifyAll bool   `graphql:"notifyTeam" json:"notifyTeam"`
+	ClientMutationID                 string        `json:"clientMutationId,omitempty"`
+	TeamID                           string        `graphql:"id" json:"id"`
+	ReviewRequestDelegation          bool          `graphql:"enabled" json:"enabled"`
+	ReviewRequestDelegationAlgorithm string        `graphql:"algorithm" json:"algorithm"`
+	ReviewRequestDelegationCount     int           `graphql:"teamMemberCount" json:"teamMemberCount"`
+	ReviewRequestDelegationNotifyAll bool          `graphql:"notifyTeam" json:"notifyTeam"`
+	ExcludedTeamMemberIds            []githubv4.ID `graphql:"excludedTeamMemberIds" json:"excludedTeamMemberIds"`
 }
 
 func defaultTeamReviewAssignmentSettings(id string) UpdateTeamReviewAssignmentInput {
