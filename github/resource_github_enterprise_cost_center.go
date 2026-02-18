@@ -68,7 +68,6 @@ func resourceGithubEnterpriseCostCenterCreate(ctx context.Context, d *schema.Res
 
 	d.SetId(cc.ID)
 
-	// Set computed fields from the API response
 	if err := d.Set("state", cc.GetState()); err != nil {
 		return diag.FromErr(err)
 	}

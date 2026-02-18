@@ -56,11 +56,9 @@ func resourceGithubEnterpriseCostCenterOrganizationsCreate(ctx context.Context, 
 	}
 	d.SetId(id)
 
-	// Get desired organizations from config
 	desiredOrgsSet := d.Get("organization_logins").(*schema.Set)
 	toAdd := expandStringList(desiredOrgsSet.List())
 
-	// Add organizations
 	if len(toAdd) > 0 {
 		tflog.Info(ctx, "Adding organizations to cost center", map[string]any{
 			"enterprise_slug": enterpriseSlug,
@@ -89,16 +87,16 @@ func resourceGithubEnterpriseCostCenterOrganizationsUpdate(ctx context.Context, 
 	}
 
 	currentOrgs := make(map[string]bool)
-	for _, r := range cc.Resources {
-		if r != nil && r.Type == CostCenterResourceTypeOrg {
-			currentOrgs[r.Name] = true
+	for _, ccResource := range cc.Resources {
+		if ccResource != nil && ccResource.Type == CostCenterResourceTypeOrg {
+			currentOrgs[ccResource.Name] = true
 		}
 	}
 
 	desiredOrgsSet := d.Get("organization_logins").(*schema.Set)
 	desiredOrgs := make(map[string]bool)
-	for _, o := range desiredOrgsSet.List() {
-		desiredOrgs[o.(string)] = true
+	for _, org := range desiredOrgsSet.List() {
+		desiredOrgs[org.(string)] = true
 	}
 
 	var toAdd, toRemove []string
@@ -163,9 +161,9 @@ func resourceGithubEnterpriseCostCenterOrganizationsRead(ctx context.Context, d 
 	}
 
 	var organizations []string
-	for _, r := range cc.Resources {
-		if r != nil && r.Type == CostCenterResourceTypeOrg {
-			organizations = append(organizations, r.Name)
+	for _, ccResource := range cc.Resources {
+		if ccResource != nil && ccResource.Type == CostCenterResourceTypeOrg {
+			organizations = append(organizations, ccResource.Name)
 		}
 	}
 
