@@ -72,9 +72,6 @@ func resourceGithubUserSshSigningKeyCreate(ctx context.Context, d *schema.Resour
 	if err = d.Set("title", userKey.GetTitle()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err = d.Set("key", userKey.GetKey()); err != nil {
-		return diag.FromErr(err)
-	}
 
 	return nil
 }

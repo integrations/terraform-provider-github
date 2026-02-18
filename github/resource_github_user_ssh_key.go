@@ -72,9 +72,6 @@ func resourceGithubUserSshKeyCreate(ctx context.Context, d *schema.ResourceData,
 	if err = d.Set("title", userKey.GetTitle()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err = d.Set("key", userKey.GetKey()); err != nil {
-		return diag.FromErr(err)
-	}
 
 	return nil
 }
