@@ -4,8 +4,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-testing/compare"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubEnterpriseCostCentersDataSource(t *testing.T) {
@@ -33,10 +37,10 @@ func TestAccGithubEnterpriseCostCentersDataSource(t *testing.T) {
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{{
 			Config: config,
-			Check: resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr("data.github_enterprise_cost_centers.test", "state", "active"),
-				resource.TestCheckTypeSetElemAttrPair("data.github_enterprise_cost_centers.test", "cost_centers.*.id", "github_enterprise_cost_center.test", "id"),
-			),
+			ConfigStateChecks: []statecheck.StateCheck{
+				statecheck.ExpectKnownValue("data.github_enterprise_cost_centers.test", tfjsonpath.New("state"), knownvalue.StringExact("active")),
+				statecheck.CompareValueCollection("data.github_enterprise_cost_centers.test", []tfjsonpath.Path{tfjsonpath.New("cost_centers"), tfjsonpath.New("id")}, "github_enterprise_cost_center.test", tfjsonpath.New("id"), compare.ValuesSame()),
+			},
 		}},
 	})
 }

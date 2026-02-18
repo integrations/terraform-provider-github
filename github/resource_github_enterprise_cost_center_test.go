@@ -6,6 +6,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubEnterpriseCostCenter(t *testing.T) {
@@ -27,11 +30,11 @@ func TestAccGithubEnterpriseCostCenter(t *testing.T) {
 							name            = "%s%s"
 						}
 					`, testAccConf.enterpriseSlug, testResourcePrefix, randomID),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_enterprise_cost_center.test", "enterprise_slug", testAccConf.enterpriseSlug),
-						resource.TestCheckResourceAttr("github_enterprise_cost_center.test", "name", testResourcePrefix+randomID),
-						resource.TestCheckResourceAttr("github_enterprise_cost_center.test", "state", "active"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_enterprise_cost_center.test", tfjsonpath.New("enterprise_slug"), knownvalue.StringExact(testAccConf.enterpriseSlug)),
+						statecheck.ExpectKnownValue("github_enterprise_cost_center.test", tfjsonpath.New("name"), knownvalue.StringExact(testResourcePrefix+randomID)),
+						statecheck.ExpectKnownValue("github_enterprise_cost_center.test", tfjsonpath.New("state"), knownvalue.StringExact("active")),
+					},
 				},
 			},
 		})
@@ -55,9 +58,9 @@ func TestAccGithubEnterpriseCostCenter(t *testing.T) {
 							name            = "%s%s"
 						}
 					`, testAccConf.enterpriseSlug, testResourcePrefix, randomID),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_enterprise_cost_center.test", "name", testResourcePrefix+randomID),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_enterprise_cost_center.test", tfjsonpath.New("name"), knownvalue.StringExact(testResourcePrefix+randomID)),
+					},
 				},
 				{
 					Config: fmt.Sprintf(`
@@ -70,9 +73,9 @@ func TestAccGithubEnterpriseCostCenter(t *testing.T) {
 							name            = "%supdated-%s"
 						}
 					`, testAccConf.enterpriseSlug, testResourcePrefix, randomID),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_enterprise_cost_center.test", "name", testResourcePrefix+"updated-"+randomID),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_enterprise_cost_center.test", tfjsonpath.New("name"), knownvalue.StringExact(testResourcePrefix+"updated-"+randomID)),
+					},
 				},
 			},
 		})
