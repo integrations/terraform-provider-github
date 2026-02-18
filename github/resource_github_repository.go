@@ -287,6 +287,7 @@ func resourceGithubRepository() *schema.Resource {
 			"web_commit_signoff_required": {
 				Type:        schema.TypeBool,
 				Optional:    true,
+				Computed:    true,
 				Description: "Require contributors to sign off on web-based commits.",
 			},
 			"auto_init": {
