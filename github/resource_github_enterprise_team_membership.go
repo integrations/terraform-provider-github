@@ -2,6 +2,8 @@ package github
 
 import (
 	"context"
+	"errors"
+	"net/http"
 	"strings"
 
 	"github.com/google/go-github/v82/github"
@@ -64,7 +66,6 @@ func resourceGithubEnterpriseTeamMembershipCreate(ctx context.Context, d *schema
 	enterpriseSlug := strings.TrimSpace(d.Get("enterprise_slug").(string))
 	username := strings.TrimSpace(d.Get("username").(string))
 
-	// Get team by slug or ID
 	var team *github.EnterpriseTeam
 	var err error
 	if v, ok := d.GetOk("team_slug"); ok {
@@ -80,7 +81,6 @@ func resourceGithubEnterpriseTeamMembershipCreate(ctx context.Context, d *schema
 		return diag.Errorf("enterprise team not found")
 	}
 
-	// Add the user to the team using the SDK
 	user, _, err := client.Enterprise.AddTeamMember(ctx, enterpriseSlug, team.Slug, username)
 	if err != nil {
 		return diag.FromErr(err)
@@ -129,10 +129,14 @@ func resourceGithubEnterpriseTeamMembershipRead(ctx context.Context, d *schema.R
 		}
 	}
 
-	// Get the membership using the SDK
 	user, resp, err := client.Enterprise.GetTeamMembership(ctx, enterpriseSlug, teamSlug, username)
 	if err != nil {
-		if resp != nil && resp.StatusCode == 404 {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			d.SetId("")
 			return nil
 		}
@@ -186,11 +190,13 @@ func resourceGithubEnterpriseTeamMembershipDelete(ctx context.Context, d *schema
 		}
 	}
 
-	// Remove the user from the team using the SDK
 	resp, err := client.Enterprise.RemoveTeamMember(ctx, enterpriseSlug, teamSlug, username)
 	if err != nil {
-		// Already gone? That's fine, we wanted it deleted anyway.
-		if resp != nil && resp.StatusCode == 404 {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
+			return nil
+		}
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			return nil
 		}
 		return diag.FromErr(err)

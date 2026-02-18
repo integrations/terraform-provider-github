@@ -2,6 +2,8 @@ package github
 
 import (
 	"context"
+	"errors"
+	"net/http"
 	"strings"
 
 	"github.com/google/go-github/v82/github"
@@ -60,7 +62,6 @@ func resourceGithubEnterpriseTeamOrganizationsCreate(ctx context.Context, d *sch
 	client := meta.(*Owner).v3client
 	enterpriseSlug := strings.TrimSpace(d.Get("enterprise_slug").(string))
 
-	// Get team by slug or ID
 	var team *github.EnterpriseTeam
 	var err error
 	if v, ok := d.GetOk("team_slug"); ok {
@@ -78,11 +79,10 @@ func resourceGithubEnterpriseTeamOrganizationsCreate(ctx context.Context, d *sch
 
 	orgSlugsSet := d.Get("organization_slugs").(*schema.Set)
 	orgSlugs := make([]string, 0, orgSlugsSet.Len())
-	for _, v := range orgSlugsSet.List() {
-		orgSlugs = append(orgSlugs, v.(string))
+	for _, item := range orgSlugsSet.List() {
+		orgSlugs = append(orgSlugs, item.(string))
 	}
 
-	// Add organizations to the team using the SDK
 	_, _, err = client.Enterprise.AddMultipleAssignments(ctx, enterpriseSlug, team.Slug, orgSlugs)
 	if err != nil {
 		return diag.FromErr(err)
@@ -160,11 +160,10 @@ func resourceGithubEnterpriseTeamOrganizationsUpdate(ctx context.Context, d *sch
 		toAdd := newSet.Difference(oldSet)
 		toRemove := oldSet.Difference(newSet)
 
-		// Add new organizations
 		if toAdd.Len() > 0 {
 			addSlugs := make([]string, 0, toAdd.Len())
-			for _, v := range toAdd.List() {
-				addSlugs = append(addSlugs, v.(string))
+			for _, item := range toAdd.List() {
+				addSlugs = append(addSlugs, item.(string))
 			}
 			_, _, err = client.Enterprise.AddMultipleAssignments(ctx, enterpriseSlug, teamSlug, addSlugs)
 			if err != nil {
@@ -172,11 +171,10 @@ func resourceGithubEnterpriseTeamOrganizationsUpdate(ctx context.Context, d *sch
 			}
 		}
 
-		// Remove old organizations
 		if toRemove.Len() > 0 {
 			removeSlugs := make([]string, 0, toRemove.Len())
-			for _, v := range toRemove.List() {
-				removeSlugs = append(removeSlugs, v.(string))
+			for _, item := range toRemove.List() {
+				removeSlugs = append(removeSlugs, item.(string))
 			}
 			_, _, err = client.Enterprise.RemoveMultipleAssignments(ctx, enterpriseSlug, teamSlug, removeSlugs)
 			if err != nil {
@@ -195,17 +193,19 @@ func resourceGithubEnterpriseTeamOrganizationsDelete(ctx context.Context, d *sch
 		return diag.FromErr(err)
 	}
 
-	// Get organizations from state
 	orgSlugsSet := d.Get("organization_slugs").(*schema.Set)
 	if orgSlugsSet.Len() > 0 {
 		removeSlugs := make([]string, 0, orgSlugsSet.Len())
-		for _, v := range orgSlugsSet.List() {
-			removeSlugs = append(removeSlugs, v.(string))
+		for _, item := range orgSlugsSet.List() {
+			removeSlugs = append(removeSlugs, item.(string))
 		}
 		_, resp, err := client.Enterprise.RemoveMultipleAssignments(ctx, enterpriseSlug, teamSlug, removeSlugs)
 		if err != nil {
-			// Already gone? That's fine, we wanted it deleted anyway.
-			if resp != nil && resp.StatusCode == 404 {
+			var ghErr *github.ErrorResponse
+			if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
+				return nil
+			}
+			if resp != nil && resp.StatusCode == http.StatusNotFound {
 				return nil
 			}
 			return diag.FromErr(err)
