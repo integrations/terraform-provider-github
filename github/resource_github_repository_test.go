@@ -2,7 +2,6 @@ package github
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -993,14 +992,6 @@ resource "github_repository" "test" {
 		}
 
 		resource.Test(t, resource.TestCase{
-			PreCheck: func() {
-				if os.Getenv("GITHUB_TOKEN") == "" || os.Getenv("GITHUB_OWNER") == "" {
-					t.Skip("Skipping as GITHUB_TOKEN and GITHUB_OWNER are required for this testcase")
-				}
-				if testAccConf.baseURL.String() == DotComAPIURL {
-					t.Skip("Skipping as this testcase targets GHES")
-				}
-			},
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
