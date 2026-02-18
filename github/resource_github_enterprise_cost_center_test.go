@@ -98,10 +98,10 @@ func TestAccGithubEnterpriseCostCenter(t *testing.T) {
 					`, testAccConf.enterpriseSlug, testResourcePrefix, randomID),
 				},
 				{
-				ResourceName:        "github_enterprise_cost_center.test",
-				ImportState:         true,
-				ImportStateVerify:   true,
-				ImportStateIdPrefix: testAccConf.enterpriseSlug + ":",
+					ResourceName:        "github_enterprise_cost_center.test",
+					ImportState:         true,
+					ImportStateVerify:   true,
+					ImportStateIdPrefix: testAccConf.enterpriseSlug + ":",
 				},
 			},
 		})
