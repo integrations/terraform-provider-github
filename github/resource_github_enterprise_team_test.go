@@ -8,6 +8,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubEnterpriseTeam(t *testing.T) {
@@ -31,11 +34,11 @@ func TestAccGithubEnterpriseTeam(t *testing.T) {
 							organization_selection_type = "disabled"
 						}
 					`, testAccConf.enterpriseSlug, testResourcePrefix, randomID),
-					Check: resource.ComposeAggregateTestCheckFunc(
-						resource.TestCheckResourceAttrSet("github_enterprise_team.test", "slug"),
-						resource.TestCheckResourceAttrSet("github_enterprise_team.test", "team_id"),
-						resource.TestCheckResourceAttr("github_enterprise_team.test", "organization_selection_type", "disabled"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_enterprise_team.test", tfjsonpath.New("slug"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_enterprise_team.test", tfjsonpath.New("team_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_enterprise_team.test", tfjsonpath.New("organization_selection_type"), knownvalue.StringExact("disabled")),
+					},
 				},
 				{
 					Config: fmt.Sprintf(`
@@ -50,10 +53,10 @@ func TestAccGithubEnterpriseTeam(t *testing.T) {
 							organization_selection_type = "selected"
 						}
 					`, testAccConf.enterpriseSlug, testResourcePrefix, randomID),
-					Check: resource.ComposeAggregateTestCheckFunc(
-						resource.TestCheckResourceAttr("github_enterprise_team.test", "description", "updated description"),
-						resource.TestCheckResourceAttr("github_enterprise_team.test", "organization_selection_type", "selected"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_enterprise_team.test", tfjsonpath.New("description"), knownvalue.StringExact("updated description")),
+						statecheck.ExpectKnownValue("github_enterprise_team.test", tfjsonpath.New("organization_selection_type"), knownvalue.StringExact("selected")),
+					},
 				},
 			},
 		})
@@ -123,10 +126,10 @@ func TestAccGithubEnterpriseTeamOrganizations(t *testing.T) {
 							organization_slugs = [%q]
 						}
 					`, testAccConf.enterpriseSlug, testResourcePrefix, randomID, orgSlug),
-					Check: resource.ComposeAggregateTestCheckFunc(
-						resource.TestCheckResourceAttr("github_enterprise_team_organizations.test", "organization_slugs.#", "1"),
-						resource.TestCheckTypeSetElemAttr("github_enterprise_team_organizations.test", "organization_slugs.*", orgSlug),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_enterprise_team_organizations.test", tfjsonpath.New("organization_slugs"), knownvalue.SetSizeExact(1)),
+						statecheck.ExpectKnownValue("github_enterprise_team_organizations.test", tfjsonpath.New("organization_slugs"), knownvalue.SetPartial([]knownvalue.Check{knownvalue.StringExact(orgSlug)})),
+					},
 				},
 			},
 		})
@@ -229,9 +232,9 @@ func TestAccGithubEnterpriseTeamMembership(t *testing.T) {
 							username        = %q
 						}
 					`, testAccConf.enterpriseSlug, testResourcePrefix, randomID, username),
-					Check: resource.ComposeAggregateTestCheckFunc(
-						resource.TestCheckResourceAttr("github_enterprise_team_membership.test", "username", username),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_enterprise_team_membership.test", tfjsonpath.New("username"), knownvalue.StringExact(username)),
+					},
 				},
 			},
 		})

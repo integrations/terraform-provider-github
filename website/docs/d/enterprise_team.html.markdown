@@ -2,7 +2,7 @@
 layout: "github"
 page_title: "GitHub: github_enterprise_team"
 description: |-
-  Get information about a GitHub enterprise team.
+  Gets information about a GitHub enterprise team.
 ---
 
 # github_enterprise_team

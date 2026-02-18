@@ -2,7 +2,7 @@
 layout: "github"
 page_title: "GitHub: github_enterprise_team_organizations"
 description: |-
-  Get organizations assigned to a GitHub enterprise team.
+  Gets organizations assigned to a GitHub enterprise team.
 ---
 
 # github_enterprise_team_organizations
