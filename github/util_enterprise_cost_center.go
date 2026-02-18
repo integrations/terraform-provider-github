@@ -11,7 +11,7 @@ import (
 
 // Cost center resource management constants and retry functions.
 const (
-	maxResourcesPerRequest          = 50
+	maxCostCenterResourcesPerRequest          = 50
 	costCenterResourcesRetryTimeout = 5 * time.Minute
 
 	// CostCenterResourceType constants match the API response values.

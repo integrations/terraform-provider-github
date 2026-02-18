@@ -66,7 +66,7 @@ func resourceGithubEnterpriseCostCenterUsersCreate(ctx context.Context, d *schem
 			"count":           len(toAdd),
 		})
 
-		for _, batch := range chunkStringSlice(toAdd, maxResourcesPerRequest) {
+		for _, batch := range chunkStringSlice(toAdd, maxCostCenterResourcesPerRequest) {
 			if diags := retryCostCenterAddResources(ctx, client, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Users: batch}); diags.HasError() {
 				return diags
 			}
@@ -118,7 +118,7 @@ func resourceGithubEnterpriseCostCenterUsersUpdate(ctx context.Context, d *schem
 			"count":           len(toRemove),
 		})
 
-		for _, batch := range chunkStringSlice(toRemove, maxResourcesPerRequest) {
+		for _, batch := range chunkStringSlice(toRemove, maxCostCenterResourcesPerRequest) {
 			if diags := retryCostCenterRemoveResources(ctx, client, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Users: batch}); diags.HasError() {
 				return diags
 			}
@@ -132,7 +132,7 @@ func resourceGithubEnterpriseCostCenterUsersUpdate(ctx context.Context, d *schem
 			"count":           len(toAdd),
 		})
 
-		for _, batch := range chunkStringSlice(toAdd, maxResourcesPerRequest) {
+		for _, batch := range chunkStringSlice(toAdd, maxCostCenterResourcesPerRequest) {
 			if diags := retryCostCenterAddResources(ctx, client, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Users: batch}); diags.HasError() {
 				return diags
 			}
@@ -189,7 +189,7 @@ func resourceGithubEnterpriseCostCenterUsersDelete(ctx context.Context, d *schem
 			"count":           len(usernames),
 		})
 
-		for _, batch := range chunkStringSlice(usernames, maxResourcesPerRequest) {
+		for _, batch := range chunkStringSlice(usernames, maxCostCenterResourcesPerRequest) {
 			if diags := retryCostCenterRemoveResources(ctx, client, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Users: batch}); diags.HasError() {
 				return diags
 			}

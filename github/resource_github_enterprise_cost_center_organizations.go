@@ -66,7 +66,7 @@ func resourceGithubEnterpriseCostCenterOrganizationsCreate(ctx context.Context, 
 			"count":           len(toAdd),
 		})
 
-		for _, batch := range chunkStringSlice(toAdd, maxResourcesPerRequest) {
+		for _, batch := range chunkStringSlice(toAdd, maxCostCenterResourcesPerRequest) {
 			if diags := retryCostCenterAddResources(ctx, client, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Organizations: batch}); diags.HasError() {
 				return diags
 			}
@@ -118,7 +118,7 @@ func resourceGithubEnterpriseCostCenterOrganizationsUpdate(ctx context.Context, 
 			"count":           len(toRemove),
 		})
 
-		for _, batch := range chunkStringSlice(toRemove, maxResourcesPerRequest) {
+		for _, batch := range chunkStringSlice(toRemove, maxCostCenterResourcesPerRequest) {
 			if diags := retryCostCenterRemoveResources(ctx, client, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Organizations: batch}); diags.HasError() {
 				return diags
 			}
@@ -132,7 +132,7 @@ func resourceGithubEnterpriseCostCenterOrganizationsUpdate(ctx context.Context, 
 			"count":           len(toAdd),
 		})
 
-		for _, batch := range chunkStringSlice(toAdd, maxResourcesPerRequest) {
+		for _, batch := range chunkStringSlice(toAdd, maxCostCenterResourcesPerRequest) {
 			if diags := retryCostCenterAddResources(ctx, client, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Organizations: batch}); diags.HasError() {
 				return diags
 			}
@@ -189,7 +189,7 @@ func resourceGithubEnterpriseCostCenterOrganizationsDelete(ctx context.Context, 
 			"count":           len(organizations),
 		})
 
-		for _, batch := range chunkStringSlice(organizations, maxResourcesPerRequest) {
+		for _, batch := range chunkStringSlice(organizations, maxCostCenterResourcesPerRequest) {
 			if diags := retryCostCenterRemoveResources(ctx, client, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Organizations: batch}); diags.HasError() {
 				return diags
 			}
