@@ -22,7 +22,7 @@ func dataSourceGithubEnterpriseSCIMUser() *schema.Resource {
 	}
 
 	return &schema.Resource{
-		Description: "Lookup SCIM provisioning information for a single GitHub enterprise user.",
+		Description: "Retrieves SCIM provisioning information for a single GitHub enterprise user.",
 		ReadContext: dataSourceGithubEnterpriseSCIMUserRead,
 		Schema:      s,
 	}

@@ -12,7 +12,7 @@ import (
 
 func dataSourceGithubEnterpriseSCIMGroups() *schema.Resource {
 	return &schema.Resource{
-		Description: "Lookup SCIM groups provisioned for a GitHub enterprise.",
+		Description: "Retrieves SCIM groups provisioned for a GitHub enterprise.",
 		ReadContext: dataSourceGithubEnterpriseSCIMGroupsRead,
 
 		Schema: map[string]*schema.Schema{
@@ -27,11 +27,11 @@ func dataSourceGithubEnterpriseSCIMGroups() *schema.Resource {
 				Optional:    true,
 			},
 			"results_per_page": {
-				Description:  "Number of results per request (mapped to SCIM 'count'). Used while auto-fetching all pages.",
-				Type:         schema.TypeInt,
-				Optional:     true,
-				Default:      100,
-				ValidateFunc: validation.IntBetween(1, 100),
+				Description:      "Number of results per request (mapped to SCIM 'count'). Used while auto-fetching all pages.",
+				Type:             schema.TypeInt,
+				Optional:         true,
+				Default:          100,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(1, 100)),
 			},
 
 			"schemas": {
@@ -80,8 +80,8 @@ func dataSourceGithubEnterpriseSCIMGroupsRead(ctx context.Context, d *schema.Res
 	}
 
 	flat := make([]any, 0, len(groups))
-	for _, g := range groups {
-		flat = append(flat, flattenEnterpriseSCIMGroup(g))
+	for _, group := range groups {
+		flat = append(flat, flattenEnterpriseSCIMGroup(group))
 	}
 
 	id := fmt.Sprintf("%s/scim-groups", enterprise)

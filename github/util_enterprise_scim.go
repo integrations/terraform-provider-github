@@ -123,15 +123,15 @@ func flattenEnterpriseSCIMMeta(meta *gh.SCIMEnterpriseMeta) []any {
 
 func flattenEnterpriseSCIMGroupMembers(members []*gh.SCIMEnterpriseDisplayReference) []any {
 	out := make([]any, 0, len(members))
-	for _, m := range members {
+	for _, member := range members {
 		item := map[string]any{
-			"value": m.Value,
+			"value": member.Value,
 		}
-		if m.Ref != nil {
-			item["ref"] = *m.Ref
+		if member.Ref != nil {
+			item["ref"] = *member.Ref
 		}
-		if m.Display != nil {
-			item["display_name"] = *m.Display
+		if member.Display != nil {
+			item["display_name"] = *member.Display
 		}
 		out = append(out, item)
 	}
@@ -175,11 +175,11 @@ func flattenEnterpriseSCIMUserName(name *gh.SCIMEnterpriseUserName) []any {
 
 func flattenEnterpriseSCIMUserEmails(emails []*gh.SCIMEnterpriseUserEmail) []any {
 	out := make([]any, 0, len(emails))
-	for _, e := range emails {
+	for _, email := range emails {
 		out = append(out, map[string]any{
-			"value":   e.Value,
-			"type":    e.Type,
-			"primary": e.Primary,
+			"value":   email.Value,
+			"type":    email.Type,
+			"primary": email.Primary,
 		})
 	}
 	return out
@@ -187,18 +187,18 @@ func flattenEnterpriseSCIMUserEmails(emails []*gh.SCIMEnterpriseUserEmail) []any
 
 func flattenEnterpriseSCIMUserRoles(roles []*gh.SCIMEnterpriseUserRole) []any {
 	out := make([]any, 0, len(roles))
-	for _, r := range roles {
+	for _, role := range roles {
 		item := map[string]any{
-			"value": r.Value,
+			"value": role.Value,
 		}
-		if r.Display != nil {
-			item["display"] = *r.Display
+		if role.Display != nil {
+			item["display"] = *role.Display
 		}
-		if r.Type != nil {
-			item["type"] = *r.Type
+		if role.Type != nil {
+			item["type"] = *role.Type
 		}
-		if r.Primary != nil {
-			item["primary"] = *r.Primary
+		if role.Primary != nil {
+			item["primary"] = *role.Primary
 		}
 		out = append(out, item)
 	}
