@@ -2,7 +2,7 @@
 layout: "github"
 page_title: "GitHub: github_enterprise_teams"
 description: |-
-  List all enterprise teams in a GitHub enterprise.
+  Lists all enterprise teams in a GitHub enterprise.
 ---
 
 # github_enterprise_teams
