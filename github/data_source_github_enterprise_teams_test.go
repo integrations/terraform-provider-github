@@ -6,6 +6,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubEnterpriseTeamsDataSource(t *testing.T) {
@@ -32,12 +35,16 @@ func TestAccGithubEnterpriseTeamsDataSource(t *testing.T) {
 							depends_on      = [github_enterprise_team.test]
 						}
 					`, testAccConf.enterpriseSlug, testResourcePrefix, randomID),
-					Check: resource.ComposeAggregateTestCheckFunc(
-						resource.TestCheckResourceAttrSet("data.github_enterprise_teams.all", "id"),
-						resource.TestCheckResourceAttrSet("data.github_enterprise_teams.all", "teams.0.team_id"),
-						resource.TestCheckResourceAttrSet("data.github_enterprise_teams.all", "teams.0.slug"),
-						resource.TestCheckResourceAttrSet("data.github_enterprise_teams.all", "teams.0.name"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_enterprise_teams.all", tfjsonpath.New("id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("data.github_enterprise_teams.all", tfjsonpath.New("teams"), knownvalue.ListPartial(map[int]knownvalue.Check{
+							0: knownvalue.ObjectPartial(map[string]knownvalue.Check{
+								"team_id": knownvalue.NotNull(),
+								"slug":    knownvalue.NotNull(),
+								"name":    knownvalue.NotNull(),
+							}),
+						})),
+					},
 				},
 			},
 		})

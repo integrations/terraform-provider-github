@@ -50,9 +50,9 @@ func findEnterpriseTeamByID(ctx context.Context, client *github.Client, enterpri
 		if err != nil {
 			return nil, err
 		}
-		for _, t := range teams {
-			if t.ID == id {
-				return t, nil
+		for _, team := range teams {
+			if team.ID == id {
+				return team, nil
 			}
 		}
 		if resp.NextPage == 0 {
@@ -75,6 +75,26 @@ func listAllEnterpriseTeamOrganizations(ctx context.Context, client *github.Clie
 			return nil, err
 		}
 		all = append(all, orgs...)
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
+	}
+
+	return all, nil
+}
+
+// listAllEnterpriseTeams returns all enterprise teams with pagination handled.
+func listAllEnterpriseTeams(ctx context.Context, client *github.Client, enterpriseSlug string) ([]*github.EnterpriseTeam, error) {
+	var all []*github.EnterpriseTeam
+	opt := &github.ListOptions{PerPage: maxPerPage}
+
+	for {
+		teams, resp, err := client.Enterprise.ListTeams(ctx, enterpriseSlug, opt)
+		if err != nil {
+			return nil, err
+		}
+		all = append(all, teams...)
 		if resp.NextPage == 0 {
 			break
 		}

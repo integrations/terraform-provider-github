@@ -2,7 +2,7 @@
 layout: "github"
 page_title: "GitHub: github_enterprise_team_membership"
 description: |-
-  Check if a user is a member of a GitHub enterprise team.
+  Checks if a user is a member of a GitHub enterprise team.
 ---
 
 # github_enterprise_team_membership

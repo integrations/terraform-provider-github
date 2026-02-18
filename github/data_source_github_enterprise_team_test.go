@@ -5,8 +5,12 @@ import (
 	"os"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-testing/compare"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubEnterpriseTeamDataSource(t *testing.T) {
@@ -33,12 +37,12 @@ func TestAccGithubEnterpriseTeamDataSource(t *testing.T) {
 							slug            = github_enterprise_team.test.slug
 						}
 					`, testAccConf.enterpriseSlug, testResourcePrefix, randomID),
-					Check: resource.ComposeAggregateTestCheckFunc(
-						resource.TestCheckResourceAttrSet("data.github_enterprise_team.by_slug", "id"),
-						resource.TestCheckResourceAttrPair("data.github_enterprise_team.by_slug", "team_id", "github_enterprise_team.test", "team_id"),
-						resource.TestCheckResourceAttrPair("data.github_enterprise_team.by_slug", "slug", "github_enterprise_team.test", "slug"),
-						resource.TestCheckResourceAttrPair("data.github_enterprise_team.by_slug", "name", "github_enterprise_team.test", "name"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_enterprise_team.by_slug", tfjsonpath.New("id"), knownvalue.NotNull()),
+						statecheck.CompareValuePairs("data.github_enterprise_team.by_slug", tfjsonpath.New("team_id"), "github_enterprise_team.test", tfjsonpath.New("team_id"), compare.ValuesSame()),
+						statecheck.CompareValuePairs("data.github_enterprise_team.by_slug", tfjsonpath.New("slug"), "github_enterprise_team.test", tfjsonpath.New("slug"), compare.ValuesSame()),
+						statecheck.CompareValuePairs("data.github_enterprise_team.by_slug", tfjsonpath.New("name"), "github_enterprise_team.test", tfjsonpath.New("name"), compare.ValuesSame()),
+					},
 				},
 			},
 		})
@@ -67,11 +71,11 @@ func TestAccGithubEnterpriseTeamDataSource(t *testing.T) {
 							team_id         = github_enterprise_team.test.team_id
 						}
 					`, testAccConf.enterpriseSlug, testResourcePrefix, randomID),
-					Check: resource.ComposeAggregateTestCheckFunc(
-						resource.TestCheckResourceAttrSet("data.github_enterprise_team.by_id", "id"),
-						resource.TestCheckResourceAttrPair("data.github_enterprise_team.by_id", "team_id", "github_enterprise_team.test", "team_id"),
-						resource.TestCheckResourceAttrPair("data.github_enterprise_team.by_id", "slug", "github_enterprise_team.test", "slug"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_enterprise_team.by_id", tfjsonpath.New("id"), knownvalue.NotNull()),
+						statecheck.CompareValuePairs("data.github_enterprise_team.by_id", tfjsonpath.New("team_id"), "github_enterprise_team.test", tfjsonpath.New("team_id"), compare.ValuesSame()),
+						statecheck.CompareValuePairs("data.github_enterprise_team.by_id", tfjsonpath.New("slug"), "github_enterprise_team.test", tfjsonpath.New("slug"), compare.ValuesSame()),
+					},
 				},
 			},
 		})
@@ -115,11 +119,11 @@ func TestAccGithubEnterpriseTeamOrganizationsDataSource(t *testing.T) {
 							depends_on      = [github_enterprise_team_organizations.assign]
 						}
 					`, testAccConf.enterpriseSlug, testResourcePrefix, randomID, orgSlug),
-					Check: resource.ComposeAggregateTestCheckFunc(
-						resource.TestCheckResourceAttrSet("data.github_enterprise_team_organizations.test", "id"),
-						resource.TestCheckResourceAttr("data.github_enterprise_team_organizations.test", "organization_slugs.#", "1"),
-						resource.TestCheckTypeSetElemAttr("data.github_enterprise_team_organizations.test", "organization_slugs.*", orgSlug),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_enterprise_team_organizations.test", tfjsonpath.New("id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("data.github_enterprise_team_organizations.test", tfjsonpath.New("organization_slugs"), knownvalue.SetSizeExact(1)),
+						statecheck.ExpectKnownValue("data.github_enterprise_team_organizations.test", tfjsonpath.New("organization_slugs"), knownvalue.SetPartial([]knownvalue.Check{knownvalue.StringExact(orgSlug)})),
+					},
 				},
 			},
 		})
@@ -163,10 +167,10 @@ func TestAccGithubEnterpriseTeamMembershipDataSource(t *testing.T) {
 							depends_on      = [github_enterprise_team_membership.test]
 						}
 					`, testAccConf.enterpriseSlug, testResourcePrefix, randomID, username, username),
-					Check: resource.ComposeAggregateTestCheckFunc(
-						resource.TestCheckResourceAttrSet("data.github_enterprise_team_membership.test", "id"),
-						resource.TestCheckResourceAttr("data.github_enterprise_team_membership.test", "username", username),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_enterprise_team_membership.test", tfjsonpath.New("id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("data.github_enterprise_team_membership.test", tfjsonpath.New("username"), knownvalue.StringExact(username)),
+					},
 				},
 			},
 		})
