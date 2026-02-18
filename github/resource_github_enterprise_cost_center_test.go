@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccGithubEnterpriseCostCenter(t *testing.T) {
@@ -99,20 +98,10 @@ func TestAccGithubEnterpriseCostCenter(t *testing.T) {
 					`, testAccConf.enterpriseSlug, testResourcePrefix, randomID),
 				},
 				{
-					ResourceName:      "github_enterprise_cost_center.test",
-					ImportState:       true,
-					ImportStateVerify: true,
-					ImportStateIdFunc: func(s *terraform.State) (string, error) {
-						rs, ok := s.RootModule().Resources["github_enterprise_cost_center.test"]
-						if !ok {
-							return "", fmt.Errorf("resource not found in state")
-						}
-						id, err := buildID(testAccConf.enterpriseSlug, rs.Primary.ID)
-						if err != nil {
-							return "", err
-						}
-						return id, nil
-					},
+				ResourceName:        "github_enterprise_cost_center.test",
+				ImportState:         true,
+				ImportStateVerify:   true,
+				ImportStateIdPrefix: testAccConf.enterpriseSlug + ":",
 				},
 			},
 		})
