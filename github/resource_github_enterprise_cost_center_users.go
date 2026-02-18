@@ -56,11 +56,9 @@ func resourceGithubEnterpriseCostCenterUsersCreate(ctx context.Context, d *schem
 	}
 	d.SetId(id)
 
-	// Get desired users from config
 	desiredUsersSet := d.Get("usernames").(*schema.Set)
 	toAdd := expandStringList(desiredUsersSet.List())
 
-	// Add users
 	if len(toAdd) > 0 {
 		tflog.Info(ctx, "Adding users to cost center", map[string]any{
 			"enterprise_slug": enterpriseSlug,
@@ -83,28 +81,24 @@ func resourceGithubEnterpriseCostCenterUsersUpdate(ctx context.Context, d *schem
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 	costCenterID := d.Get("cost_center_id").(string)
 
-	// Get current assignments from API
 	cc, _, err := client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	// Extract current users
 	currentUsers := make(map[string]bool)
-	for _, r := range cc.Resources {
-		if r != nil && r.Type == CostCenterResourceTypeUser {
-			currentUsers[r.Name] = true
+	for _, ccResource := range cc.Resources {
+		if ccResource != nil && ccResource.Type == CostCenterResourceTypeUser {
+			currentUsers[ccResource.Name] = true
 		}
 	}
 
-	// Get desired users from config
 	desiredUsersSet := d.Get("usernames").(*schema.Set)
 	desiredUsers := make(map[string]bool)
-	for _, u := range desiredUsersSet.List() {
-		desiredUsers[u.(string)] = true
+	for _, username := range desiredUsersSet.List() {
+		desiredUsers[username.(string)] = true
 	}
 
-	// Calculate additions and removals
 	var toAdd, toRemove []string
 	for user := range desiredUsers {
 		if !currentUsers[user] {
@@ -117,7 +111,6 @@ func resourceGithubEnterpriseCostCenterUsersUpdate(ctx context.Context, d *schem
 		}
 	}
 
-	// Remove users no longer desired
 	if len(toRemove) > 0 {
 		tflog.Info(ctx, "Removing users from cost center", map[string]any{
 			"enterprise_slug": enterpriseSlug,
@@ -132,7 +125,6 @@ func resourceGithubEnterpriseCostCenterUsersUpdate(ctx context.Context, d *schem
 		}
 	}
 
-	// Add new users
 	if len(toAdd) > 0 {
 		tflog.Info(ctx, "Adding users to cost center", map[string]any{
 			"enterprise_slug": enterpriseSlug,
@@ -168,11 +160,10 @@ func resourceGithubEnterpriseCostCenterUsersRead(ctx context.Context, d *schema.
 		return diag.FromErr(err)
 	}
 
-	// Extract users from resources
 	var users []string
-	for _, r := range cc.Resources {
-		if r != nil && r.Type == CostCenterResourceTypeUser {
-			users = append(users, r.Name)
+	for _, ccResource := range cc.Resources {
+		if ccResource != nil && ccResource.Type == CostCenterResourceTypeUser {
+			users = append(users, ccResource.Name)
 		}
 	}
 
