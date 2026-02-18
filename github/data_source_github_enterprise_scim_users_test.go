@@ -5,6 +5,9 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubEnterpriseSCIMUsersDataSource(t *testing.T) {
@@ -18,12 +21,11 @@ func TestAccGithubEnterpriseSCIMUsersDataSource(t *testing.T) {
 						enterprise = "%s"
 					}
 				`, testAccConf.enterpriseSlug),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet("data.github_enterprise_scim_users.test", "id"),
-					resource.TestCheckResourceAttrSet("data.github_enterprise_scim_users.test", "total_results"),
-					resource.TestCheckResourceAttrSet("data.github_enterprise_scim_users.test", "schemas.#"),
-					resource.TestCheckResourceAttrSet("data.github_enterprise_scim_users.test", "resources.#"),
-				),
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue("data.github_enterprise_scim_users.test", tfjsonpath.New("total_results"), knownvalue.NotNull()),
+					statecheck.ExpectKnownValue("data.github_enterprise_scim_users.test", tfjsonpath.New("schemas"), knownvalue.NotNull()),
+					statecheck.ExpectKnownValue("data.github_enterprise_scim_users.test", tfjsonpath.New("resources"), knownvalue.NotNull()),
+				},
 			}},
 		})
 	})

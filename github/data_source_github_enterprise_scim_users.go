@@ -12,7 +12,7 @@ import (
 
 func dataSourceGithubEnterpriseSCIMUsers() *schema.Resource {
 	return &schema.Resource{
-		Description: "Lookup SCIM users provisioned for a GitHub enterprise.",
+		Description: "Retrieves SCIM users provisioned for a GitHub enterprise.",
 		ReadContext: dataSourceGithubEnterpriseSCIMUsersRead,
 
 		Schema: map[string]*schema.Schema{
@@ -27,11 +27,11 @@ func dataSourceGithubEnterpriseSCIMUsers() *schema.Resource {
 				Optional:    true,
 			},
 			"results_per_page": {
-				Description:  "Number of results per request (mapped to SCIM 'count'). Used while auto-fetching all pages.",
-				Type:         schema.TypeInt,
-				Optional:     true,
-				Default:      100,
-				ValidateFunc: validation.IntBetween(1, 100),
+				Description:      "Number of results per request (mapped to SCIM 'count'). Used while auto-fetching all pages.",
+				Type:             schema.TypeInt,
+				Optional:         true,
+				Default:          100,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(1, 100)),
 			},
 
 			"schemas": {
@@ -80,8 +80,8 @@ func dataSourceGithubEnterpriseSCIMUsersRead(ctx context.Context, d *schema.Reso
 	}
 
 	flat := make([]any, 0, len(users))
-	for _, u := range users {
-		flat = append(flat, flattenEnterpriseSCIMUser(u))
+	for _, user := range users {
+		flat = append(flat, flattenEnterpriseSCIMUser(user))
 	}
 
 	id := fmt.Sprintf("%s/scim-users", enterprise)

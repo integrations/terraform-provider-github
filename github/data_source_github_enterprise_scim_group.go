@@ -22,7 +22,7 @@ func dataSourceGithubEnterpriseSCIMGroup() *schema.Resource {
 	}
 
 	return &schema.Resource{
-		Description: "Lookup SCIM provisioning information for a single GitHub enterprise group.",
+		Description: "Retrieves SCIM provisioning information for a single GitHub enterprise group.",
 		ReadContext: dataSourceGithubEnterpriseSCIMGroupRead,
 		Schema:      s,
 	}
