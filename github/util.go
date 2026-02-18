@@ -294,7 +294,6 @@ func errIsRetryable(err error) bool {
 }
 
 // chunkStringSlice splits a slice into chunks of the specified max size.
-// nolint:unparam // Keep maxSize for generic reuse across resources beyond current cost-center callers.
 func chunkStringSlice(items []string, maxSize int) [][]string {
 	if len(items) == 0 {
 		return nil
