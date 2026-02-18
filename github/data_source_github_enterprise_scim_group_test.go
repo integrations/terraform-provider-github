@@ -5,6 +5,9 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubEnterpriseSCIMGroupDataSource(t *testing.T) {
@@ -23,11 +26,10 @@ func TestAccGithubEnterpriseSCIMGroupDataSource(t *testing.T) {
 						scim_group_id = data.github_enterprise_scim_groups.all.resources[0].id
 					}
 				`, testAccConf.enterpriseSlug),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet("data.github_enterprise_scim_group.test", "id"),
-					resource.TestCheckResourceAttrSet("data.github_enterprise_scim_group.test", "display_name"),
-					resource.TestCheckResourceAttrSet("data.github_enterprise_scim_group.test", "schemas.#"),
-				),
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue("data.github_enterprise_scim_group.test", tfjsonpath.New("display_name"), knownvalue.NotNull()),
+					statecheck.ExpectKnownValue("data.github_enterprise_scim_group.test", tfjsonpath.New("schemas"), knownvalue.NotNull()),
+				},
 			}},
 		})
 	})
