@@ -13,7 +13,6 @@ Use this data source to retrieve GitHub Pages configuration for a repository.
 
 ```hcl
 data "github_repository_pages" "example" {
-  owner      = "my-org"
   repository = "my-repo"
 }
 ```
@@ -21,8 +20,6 @@ data "github_repository_pages" "example" {
 ## Argument Reference
 
 The following arguments are supported:
-
-- `owner` - (Required) The owner of the repository.
 
 - `repository` - (Required) The repository name to get GitHub Pages information for.
 
@@ -40,9 +37,11 @@ The following attributes are exported:
 
 - `source` - The source branch and directory for the rendered Pages site. See [Source](#source) below for details.
 
-- `status` - The GitHub Pages site's build status (e.g., `building` or `built`).
+- `build_status` - The GitHub Pages site's build status (e.g., `building` or `built`).
 
-- `url` - The API URL of the GitHub Pages resource.
+- `api_url` - The API URL of the GitHub Pages resource.
+
+- `public` - Whether the GitHub Pages site is public.
 
 ### Source
 
