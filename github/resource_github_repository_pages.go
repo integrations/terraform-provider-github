@@ -198,9 +198,17 @@ func resourceGithubRepositoryPagesRead(ctx context.Context, d *schema.ResourceDa
 	if err := d.Set("build_type", pages.GetBuildType()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("cname", pages.GetCNAME()); err != nil {
-		return diag.FromErr(err)
+	upstreamCname := pages.GetCNAME()
+	if upstreamCname != "" {
+		if err := d.Set("cname", upstreamCname); err != nil {
+			return diag.FromErr(err)
+		}
+	} else {
+		if err := d.Set("cname", nil); err != nil {
+			return diag.FromErr(err)
+		}
 	}
+
 	if err := d.Set("custom_404", pages.GetCustom404()); err != nil {
 		return diag.FromErr(err)
 	}
