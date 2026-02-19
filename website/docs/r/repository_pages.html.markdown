@@ -128,8 +128,8 @@ In addition to the above arguments, the following attributes are exported:
 
 ## Import
 
-GitHub repository pages can be imported using the `owner:repository` format:
+GitHub repository pages can be imported using the `repository-slug`, e.g.
 
 ```sh
-terraform import github_repository_pages.example my-org:my-repo
+terraform import github_repository_pages.example my-repo
 ```

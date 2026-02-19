@@ -169,7 +169,7 @@ source {
 				{
 					ResourceName:  "github_repository_pages.test",
 					ImportState:   true,
-					ImportStateId: fmt.Sprintf("%s:%s", testAccConf.owner, repoName),
+					ImportStateId: repoName,
 				},
 			},
 		})
