@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -276,9 +277,9 @@ func resourceGithubRepositoryPagesDelete(ctx context.Context, d *schema.Resource
 }
 
 func resourceGithubRepositoryPagesImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-	owner, repoName, err := parseID2(d.Id())
-	if err != nil {
-		return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <owner>:<repository>. Original error: %w", err)
+	repoName := d.Id()
+	if strings.Contains(repoName, " ") {
+		return nil, fmt.Errorf("invalid ID specified: supplied ID must be the slug of the repository name")
 	}
 	// if err := d.Set("owner", owner); err != nil { // TODO: Add owner support
 	// 	return nil, err
@@ -288,6 +289,7 @@ func resourceGithubRepositoryPagesImport(ctx context.Context, d *schema.Resource
 	}
 
 	meta := m.(*Owner)
+	owner := meta.name
 	client := meta.v3client
 
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
