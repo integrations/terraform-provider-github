@@ -2,9 +2,11 @@ package github
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-testing/compare"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
@@ -128,6 +130,88 @@ source {
 					Config: fmt.Sprintf(config, repoName, baseRepoVisibility, "workflow", ""),
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_repository_pages.test", tfjsonpath.New("build_type"), knownvalue.StringExact("workflow")),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("creates_pages_with_private_visibility", func(t *testing.T) {
+		randomID := acctest.RandString(5)
+		repoName := fmt.Sprintf("%spages-%s", testResourcePrefix, randomID)
+
+		config := `
+			resource "github_repository" "test" {
+				name       = "%s"
+				visibility = "%s"
+				auto_init  = true
+
+			}
+
+			resource "github_repository_pages" "test" {
+				repository = github_repository.test.name
+				build_type = "workflow"
+				
+				public = false
+			}
+		`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck: func() {
+				skipUnlessEnterprise(t)
+			},
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, repoName, baseRepoVisibility),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_pages.test", tfjsonpath.New("public"), knownvalue.Bool(false)),
+					},
+				},
+			},
+		})
+	})
+	t.Run("updates_pages_visibility", func(t *testing.T) {
+		randomID := acctest.RandString(5)
+		repoName := fmt.Sprintf("%spages-%s", testResourcePrefix, randomID)
+
+		config := `
+			resource "github_repository" "test" {
+				name       = "%s"
+				visibility = "%s"
+				auto_init  = true
+
+			}
+
+			resource "github_repository_pages" "test" {
+				repository = github_repository.test.name
+				build_type = "workflow"
+				
+				public = %t
+			}
+		`
+
+		publicValuesDiffer := statecheck.CompareValue(compare.ValuesDiffer())
+
+		resource.Test(t, resource.TestCase{
+			PreCheck: func() {
+				skipUnlessEnterprise(t)
+				if os.Getenv("GH_TEST_ENTERPRISE_IS_EMU") == "true" {
+					t.Skip("Skipping as enterprise test mode is EMU")
+				}
+			},
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, repoName, baseRepoVisibility, true),
+					ConfigStateChecks: []statecheck.StateCheck{
+						publicValuesDiffer.AddStateValue("github_repository_pages.test", tfjsonpath.New("public")),
+					},
+				},
+				{
+					Config: fmt.Sprintf(config, repoName, baseRepoVisibility, false),
+					ConfigStateChecks: []statecheck.StateCheck{
+						publicValuesDiffer.AddStateValue("github_repository_pages.test", tfjsonpath.New("public")),
 					},
 				},
 			},

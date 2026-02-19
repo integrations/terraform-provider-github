@@ -65,7 +65,7 @@ func dataSourceGithubRepositoryPages() *schema.Resource {
 				Computed:    true,
 				Description: "The absolute URL (with scheme) to the rendered GitHub Pages site.",
 			},
-			"status": {
+			"build_status": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The GitHub Pages site's build status e.g. 'building' or 'built'.",
@@ -74,6 +74,11 @@ func dataSourceGithubRepositoryPages() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The API URL of the GitHub Pages resource.",
+			},
+			"public": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Whether the GitHub Pages site is public.",
 			},
 		},
 	}
@@ -113,13 +118,15 @@ func dataSourceGithubRepositoryPagesRead(ctx context.Context, d *schema.Resource
 	if err := d.Set("html_url", pages.GetHTMLURL()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("status", pages.GetStatus()); err != nil {
+	if err := d.Set("build_status", pages.GetStatus()); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("api_url", pages.GetURL()); err != nil {
 		return diag.FromErr(err)
 	}
-
+	if err := d.Set("public", pages.GetPublic()); err != nil {
+		return diag.FromErr(err)
+	}
 	// Set source only for legacy build type
 	if pages.GetBuildType() == "legacy" && pages.GetSource() != nil {
 		source := []map[string]any{

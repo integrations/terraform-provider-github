@@ -97,6 +97,12 @@ func resourceGithubRepositoryPages() *schema.Resource {
 				Computed:    true,
 				Description: "The API URL of the GitHub Pages resource.",
 			},
+			"public": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether the GitHub Pages site is public.",
+			},
 		},
 		CustomizeDiff: customdiff.All(resourceGithubRepositoryPagesDiff, diffRepository),
 	}
@@ -109,8 +115,8 @@ func resourceGithubRepositoryPagesCreate(ctx context.Context, d *schema.Resource
 	owner := meta.name // TODO: Add owner support // d.Get("owner").(string)
 	repoName := d.Get("repository").(string)
 
-	pages := expandPagesForCreate(d)
-	pages, _, err := client.Repositories.EnablePages(ctx, owner, repoName, pages)
+	pagesReq := expandPagesForCreate(d)
+	pages, _, err := client.Repositories.EnablePages(ctx, owner, repoName, pagesReq)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -145,11 +151,25 @@ func resourceGithubRepositoryPagesCreate(ctx context.Context, d *schema.Resource
 		return diag.FromErr(err)
 	}
 
-	// Handle CNAME update after creation if specified
-	if cname, ok := d.GetOk("cname"); ok && cname.(string) != "" {
-		update := &github.PagesUpdate{
-			CNAME: github.Ptr(cname.(string)),
+	// Determine if we need to update the page with CNAME or public flag
+	shouldUpdatePage := false
+	update := &github.PagesUpdate{}
+	cname, cnameExists := d.GetOk("cname")
+	if cnameExists && cname.(string) != "" {
+		shouldUpdatePage = true
+		update.CNAME = github.Ptr(cname.(string))
+	}
+	public, publicExists := d.GetOkExists("public") // nolint:staticcheck // SA1019: There is no better alternative for checking if boolean value is set
+	if publicExists && public != nil {
+		shouldUpdatePage = true
+		update.Public = github.Ptr(public.(bool))
+	} else {
+		if err := d.Set("public", pages.GetPublic()); err != nil {
+			return diag.FromErr(err)
 		}
+	}
+
+	if shouldUpdatePage {
 		_, err = client.Repositories.UpdatePages(ctx, owner, repoName, update)
 		if err != nil {
 			return diag.FromErr(err)
@@ -194,6 +214,10 @@ func resourceGithubRepositoryPagesRead(ctx context.Context, d *schema.ResourceDa
 		return diag.FromErr(err)
 	}
 
+	if err := d.Set("public", pages.GetPublic()); err != nil {
+		return diag.FromErr(err)
+	}
+
 	// Set source only for legacy build type
 	if pages.GetBuildType() == "legacy" && pages.GetSource() != nil {
 		source := []map[string]any{
@@ -227,6 +251,13 @@ func resourceGithubRepositoryPagesUpdate(ctx context.Context, d *schema.Resource
 		cname := d.Get("cname").(string)
 		if cname != "" {
 			update.CNAME = github.Ptr(cname)
+		}
+	}
+
+	if d.HasChange("public") {
+		public, ok := d.Get("public").(bool)
+		if ok {
+			update.Public = github.Ptr(public)
 		}
 	}
 
