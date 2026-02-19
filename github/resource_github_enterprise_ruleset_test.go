@@ -2,6 +2,7 @@ package github
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -840,4 +841,54 @@ func importEnterpriseRulesetByResourcePath(rulesetLogicalName string) resource.I
 
 		return fmt.Sprintf("%s:%s", enterpriseSlug, rulesetID), nil
 	}
+}
+
+func TestAccGithubEnterpriseRuleset_conflictingRepositoryConditions(t *testing.T) {
+	config := fmt.Sprintf(`
+		resource "github_enterprise_ruleset" "test" {
+			enterprise_slug = "%s"
+			name            = "%s-conflict-test"
+			target          = "branch"
+			enforcement     = "active"
+
+			conditions {
+				organization_name {
+					include = ["~ALL"]
+					exclude = []
+				}
+
+				repository_name {
+					include = ["~ALL"]
+					exclude = []
+				}
+
+				repository_property {
+					include {
+						name            = "language"
+						property_values = ["Go"]
+					}
+				}
+
+				ref_name {
+					include = ["~ALL"]
+					exclude = []
+				}
+			}
+
+			rules {
+				creation = true
+			}
+		}
+	`, testAccConf.enterpriseSlug, testResourcePrefix)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { skipUnlessEnterprise(t) },
+		ProviderFactories: providerFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      config,
+				ExpectError: regexp.MustCompile(`"conditions.0.repository_name": only one of`),
+			},
+		},
+	})
 }
