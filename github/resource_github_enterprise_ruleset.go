@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -14,13 +13,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
-
-var supportedEnterpriseRulesetTargetTypes = []string{
-	string(github.RulesetTargetBranch),
-	string(github.RulesetTargetTag),
-	string(github.RulesetTargetPush),
-	string(github.RulesetTargetRepository),
-}
 
 func resourceGithubEnterpriseRuleset() *schema.Resource {
 	return &schema.Resource{
@@ -54,7 +46,7 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 				Type:             schema.TypeString,
 				Required:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice(supportedEnterpriseRulesetTargetTypes, false)),
-				Description:      "Possible values are " + strings.Join(supportedEnterpriseRulesetTargetTypes[:len(supportedEnterpriseRulesetTargetTypes)-1], ", ") + " and " + supportedEnterpriseRulesetTargetTypes[len(supportedEnterpriseRulesetTargetTypes)-1] + ". Note: The `repository` target is in preview and is subject to change.",
+				Description:      "Possible values are `branch`, `tag`, `push` and `repository`. Note: The `repository` target is in preview and is subject to change.",
 			},
 			"enforcement": {
 				Type:         schema.TypeString,
@@ -797,25 +789,6 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 	}
 }
 
-// resourceGithubEnterpriseRulesetObject creates a GitHub RepositoryRuleset object for enterprise-level rulesets
-func resourceGithubEnterpriseRulesetObject(d *schema.ResourceData) github.RepositoryRuleset {
-	enterpriseSlug := d.Get("enterprise_slug").(string)
-	target := github.RulesetTarget(d.Get("target").(string))
-	enforcement := github.RulesetEnforcement(d.Get("enforcement").(string))
-	sourceTypeEnum := github.RulesetSourceType("Enterprise")
-
-	return github.RepositoryRuleset{
-		Name:         d.Get("name").(string),
-		Target:       &target,
-		Source:       enterpriseSlug,
-		SourceType:   &sourceTypeEnum,
-		Enforcement:  enforcement,
-		BypassActors: expandBypassActors(d.Get("bypass_actors").([]any)),
-		Conditions:   expandConditions(d.Get("conditions").([]any), true),
-		Rules:        expandRules(d.Get("rules").([]any), true),
-	}
-}
-
 func resourceGithubEnterpriseRulesetCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	enterpriseSlug := d.Get("enterprise_slug").(string)
@@ -946,16 +919,7 @@ func resourceGithubEnterpriseRulesetUpdate(ctx context.Context, d *schema.Resour
 	client := meta.(*Owner).v3client
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 	name := d.Get("name").(string)
-
-	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		tflog.Error(ctx, "Could not convert ruleset ID to int64", map[string]any{
-			"enterprise_slug": enterpriseSlug,
-			"ruleset_id":      d.Id(),
-			"error":           err.Error(),
-		})
-		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
-	}
+	rulesetID := int64(d.Get("ruleset_id").(int))
 
 	tflog.Debug(ctx, "Updating enterprise ruleset", map[string]any{
 		"enterprise_slug": enterpriseSlug,
@@ -965,7 +929,7 @@ func resourceGithubEnterpriseRulesetUpdate(ctx context.Context, d *schema.Resour
 
 	rulesetReq := resourceGithubEnterpriseRulesetObject(d)
 
-	ruleset, resp, err := client.Enterprise.UpdateRepositoryRuleset(ctx, enterpriseSlug, rulesetID, rulesetReq)
+	_, resp, err := client.Enterprise.UpdateRepositoryRuleset(ctx, enterpriseSlug, rulesetID, rulesetReq)
 	if err != nil {
 		tflog.Error(ctx, "Failed to update enterprise ruleset", map[string]any{
 			"enterprise_slug": enterpriseSlug,
@@ -975,13 +939,6 @@ func resourceGithubEnterpriseRulesetUpdate(ctx context.Context, d *schema.Resour
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
-	if err := d.Set("ruleset_id", ruleset.ID); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
-		return diag.FromErr(err)
-	}
 	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
 		return diag.FromErr(err)
 	}
@@ -998,23 +955,14 @@ func resourceGithubEnterpriseRulesetUpdate(ctx context.Context, d *schema.Resour
 func resourceGithubEnterpriseRulesetDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	enterpriseSlug := d.Get("enterprise_slug").(string)
-
-	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		tflog.Error(ctx, "Could not convert ruleset ID to int64", map[string]any{
-			"enterprise_slug": enterpriseSlug,
-			"ruleset_id":      d.Id(),
-			"error":           err.Error(),
-		})
-		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
-	}
+	rulesetID := int64(d.Get("ruleset_id").(int))
 
 	tflog.Debug(ctx, "Deleting enterprise ruleset", map[string]any{
 		"enterprise_slug": enterpriseSlug,
 		"ruleset_id":      rulesetID,
 	})
 
-	_, err = client.Enterprise.DeleteRepositoryRuleset(ctx, enterpriseSlug, rulesetID)
+	_, err := client.Enterprise.DeleteRepositoryRuleset(ctx, enterpriseSlug, rulesetID)
 	if err != nil {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
@@ -1060,7 +1008,12 @@ func resourceGithubEnterpriseRulesetImport(ctx context.Context, d *schema.Resour
 	})
 
 	d.SetId(rulesetIDStr)
-	_ = d.Set("enterprise_slug", enterpriseSlug)
+	if err := d.Set("enterprise_slug", enterpriseSlug); err != nil {
+		return nil, err
+	}
+	if err := d.Set("ruleset_id", rulesetID); err != nil {
+		return nil, err
+	}
 
 	tflog.Info(ctx, "Imported enterprise ruleset", map[string]any{
 		"enterprise_slug": enterpriseSlug,
@@ -1070,3 +1023,28 @@ func resourceGithubEnterpriseRulesetImport(ctx context.Context, d *schema.Resour
 	return []*schema.ResourceData{d}, nil
 }
 
+var supportedEnterpriseRulesetTargetTypes = []string{
+	string(github.RulesetTargetBranch),
+	string(github.RulesetTargetTag),
+	string(github.RulesetTargetPush),
+	string(github.RulesetTargetRepository),
+}
+
+// resourceGithubEnterpriseRulesetObject creates a GitHub RepositoryRuleset object for enterprise-level rulesets
+func resourceGithubEnterpriseRulesetObject(d *schema.ResourceData) github.RepositoryRuleset {
+	enterpriseSlug := d.Get("enterprise_slug").(string)
+	target := github.RulesetTarget(d.Get("target").(string))
+	enforcement := github.RulesetEnforcement(d.Get("enforcement").(string))
+	sourceTypeEnum := github.RulesetSourceType("Enterprise")
+
+	return github.RepositoryRuleset{
+		Name:         d.Get("name").(string),
+		Target:       &target,
+		Source:       enterpriseSlug,
+		SourceType:   &sourceTypeEnum,
+		Enforcement:  enforcement,
+		BypassActors: expandBypassActors(d.Get("bypass_actors").([]any)),
+		Conditions:   expandConditions(d.Get("conditions").([]any), true),
+		Rules:        expandRules(d.Get("rules").([]any), true),
+	}
+}
