@@ -42,38 +42,14 @@ func TestAccGithubEnterpriseRulesetDataSource(t *testing.T) {
 					deletion = false
 				}
 			}
-		`, testAccConf.enterpriseSlug, testRulesetName)
 
-		config2 := config + `
 			data "github_enterprise_ruleset" "test" {
 				enterprise_slug = github_enterprise_ruleset.test.enterprise_slug
 				ruleset_id      = github_enterprise_ruleset.test.ruleset_id
-			}
-		`
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet(
-				"data.github_enterprise_ruleset.test", "name",
-			),
-			resource.TestCheckResourceAttr(
-				"data.github_enterprise_ruleset.test", "name",
-				testRulesetName,
-			),
-			resource.TestCheckResourceAttr(
-				"data.github_enterprise_ruleset.test", "target",
-				"branch",
-			),
-			resource.TestCheckResourceAttr(
-				"data.github_enterprise_ruleset.test", "enforcement",
-				"active",
-			),
-			resource.TestCheckResourceAttrSet(
-				"data.github_enterprise_ruleset.test", "node_id",
-			),
-			resource.TestCheckResourceAttrSet(
-				"data.github_enterprise_ruleset.test", "etag",
-			),
-		)
+				depends_on = [github_enterprise_ruleset.test]
+			}
+		`, testAccConf.enterpriseSlug, testRulesetName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() {
@@ -83,11 +59,29 @@ func TestAccGithubEnterpriseRulesetDataSource(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  resource.ComposeTestCheckFunc(),
-				},
-				{
-					Config: config2,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrSet(
+							"data.github_enterprise_ruleset.test", "name",
+						),
+						resource.TestCheckResourceAttr(
+							"data.github_enterprise_ruleset.test", "name",
+							testRulesetName,
+						),
+						resource.TestCheckResourceAttr(
+							"data.github_enterprise_ruleset.test", "target",
+							"branch",
+						),
+						resource.TestCheckResourceAttr(
+							"data.github_enterprise_ruleset.test", "enforcement",
+							"active",
+						),
+						resource.TestCheckResourceAttrSet(
+							"data.github_enterprise_ruleset.test", "node_id",
+						),
+						resource.TestCheckResourceAttrSet(
+							"data.github_enterprise_ruleset.test", "etag",
+						),
+					),
 				},
 			},
 		})

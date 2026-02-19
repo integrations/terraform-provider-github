@@ -14,6 +14,7 @@ import (
 
 func dataSourceGithubEnterpriseRuleset() *schema.Resource {
 	return &schema.Resource{
+		Description: "Use this data source to retrieve information about a GitHub enterprise ruleset.",
 		ReadContext: dataSourceGithubEnterpriseRulesetRead,
 
 		Schema: map[string]*schema.Schema{
