@@ -31,8 +31,7 @@ resource "github_repository" "example" {
 }
 
 resource "github_repository_pages" "example" {
-  owner      = "my-org"
-  repository_name = github_repository.example.name
+  repository = github_repository.example.name
   build_type = "legacy"
 
   source {
@@ -58,8 +57,7 @@ resource "github_repository" "example" {
 }
 
 resource "github_repository_pages" "example" {
-  owner      = "my-org"
-  repository_name = github_repository.example.name
+  repository = github_repository.example.name
   build_type = "workflow"
 }
 ```
@@ -80,8 +78,7 @@ resource "github_repository" "example" {
 }
 
 resource "github_repository_pages" "example" {
-  owner      = "my-org"
-  repository_name = github_repository.example.name
+  repository = github_repository.example.name
   build_type = "legacy"
   cname      = "example.com"
 
@@ -96,15 +93,15 @@ resource "github_repository_pages" "example" {
 
 The following arguments are supported:
 
-- `owner` - (Required) The owner of the repository to configure GitHub Pages for.
-
-- `repository_name` - (Required) The repository name to configure GitHub Pages for.
+- `repository` - (Required) The repository name to configure GitHub Pages for.
 
 - `build_type` - (Optional) The type of GitHub Pages site to build. Can be `legacy` or `workflow`. Defaults to `legacy`.
 
 - `source` - (Optional) The source branch and directory for the rendered Pages site. Required when `build_type` is `legacy`. See [Source](#source) below for details.
 
 - `cname` - (Optional) The custom domain for the repository.
+
+- `public` - (Optional) Whether the GitHub Pages site is public.
 
 ### Source
 
@@ -117,6 +114,8 @@ The `source` block supports the following:
 ## Attribute Reference
 
 In addition to the above arguments, the following attributes are exported:
+
+- `repository_id` - The ID of the repository.
 
 - `custom_404` - Whether the rendered GitHub Pages site has a custom 404 page.
 
