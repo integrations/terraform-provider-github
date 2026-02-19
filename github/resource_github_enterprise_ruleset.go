@@ -162,11 +162,11 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 							},
 						},
 						"repository_name": {
-							Type:          schema.TypeList,
-							Optional:      true,
-							MaxItems:      1,
-							Description:   "Conditions for repository names that the ruleset targets. Conflicts with `repository_id` and `repository_property`.",
-							ConflictsWith: []string{"conditions.0.repository_id", "conditions.0.repository_property"},
+							Type:         schema.TypeList,
+							Optional:     true,
+							MaxItems:     1,
+							Description:  "Conditions for repository names that the ruleset targets. Exactly one of `repository_name`, `repository_id`, or `repository_property` must be set.",
+							ExactlyOneOf: []string{"conditions.0.repository_name", "conditions.0.repository_id", "conditions.0.repository_property"},
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -195,20 +195,20 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 							},
 						},
 						"repository_id": {
-							Type:          schema.TypeList,
-							Optional:      true,
-							ConflictsWith: []string{"conditions.0.repository_name", "conditions.0.repository_property"},
-							Description:   "The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass. Conflicts with `repository_name` and `repository_property`.",
+							Type:         schema.TypeList,
+							Optional:     true,
+							ExactlyOneOf: []string{"conditions.0.repository_name", "conditions.0.repository_id", "conditions.0.repository_property"},
+							Description:  "The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass. Exactly one of `repository_name`, `repository_id`, or `repository_property` must be set.",
 							Elem: &schema.Schema{
 								Type: schema.TypeInt,
 							},
 						},
 						"repository_property": {
-							Type:          schema.TypeList,
-							Optional:      true,
-							MaxItems:      1,
-							Description:   "Conditions based on repository properties. Conflicts with `repository_name` and `repository_id`.",
-							ConflictsWith: []string{"conditions.0.repository_name", "conditions.0.repository_id"},
+							Type:         schema.TypeList,
+							Optional:     true,
+							MaxItems:     1,
+							Description:  "Conditions based on repository properties. Exactly one of `repository_name`, `repository_id`, or `repository_property` must be set.",
+							ExactlyOneOf: []string{"conditions.0.repository_name", "conditions.0.repository_id", "conditions.0.repository_property"},
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -878,9 +878,6 @@ func resourceGithubEnterpriseRulesetRead(ctx context.Context, d *schema.Resource
 		return diag.FromErr(err)
 	}
 
-	if err := d.Set("ruleset_id", ruleset.ID); err != nil {
-		return diag.FromErr(err)
-	}
 	if err := d.Set("name", ruleset.Name); err != nil {
 		return diag.FromErr(err)
 	}

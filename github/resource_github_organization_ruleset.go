@@ -952,7 +952,7 @@ func resourceGithubOrganizationRulesetImport(ctx context.Context, d *schema.Reso
 }
 
 func resourceGithubOrganizationRulesetDiff(ctx context.Context, d *schema.ResourceDiff, _ any) error {
-	err := validateRulesetConditions(ctx, d, true)
+	err := validateRulesetConditions(ctx, d)
 	if err != nil {
 		return err
 	}
