@@ -20,11 +20,12 @@ func dataSourceGithubRepositoryPages() *schema.Resource {
 				Required:    true,
 				Description: "The repository name to get GitHub Pages information for.",
 			},
-			"owner": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The owner of the repository.",
-			},
+			// TODO: Uncomment this when we are ready to support owner fields properly. https://github.com/integrations/terraform-provider-github/pull/3166#discussion_r2816053082
+			// "owner": {
+			// 	Type:        schema.TypeString,
+			// 	Required:    true,
+			// 	Description: "The owner of the repository.",
+			// },
 			"source": {
 				Type:        schema.TypeList,
 				Computed:    true,
@@ -82,7 +83,7 @@ func dataSourceGithubRepositoryPagesRead(ctx context.Context, d *schema.Resource
 	meta := m.(*Owner)
 	client := meta.v3client
 
-	owner := d.Get("owner").(string)
+	owner := meta.name // TODO: Add owner support // d.Get("owner").(string)
 	repoName := d.Get("repository").(string)
 
 	pages, resp, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)
