@@ -149,7 +149,9 @@ func resourceGithubEnterpriseIpAllowListEntryRead(ctx context.Context, d *schema
 	entry := query.Node.IpAllowListEntry
 
 	d.Set("ip", entry.AllowListValue)
-	d.Set("name", entry.Name)
+	if err := d.Set("name", entry.Name); err != nil {
+		return diag.FromErr(err)
+	}
 	d.Set("is_active", entry.IsActive)
 	d.Set("created_at", entry.CreatedAt)
 	d.Set("updated_at", entry.UpdatedAt)
