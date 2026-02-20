@@ -152,6 +152,9 @@ func resourceGithubEnterpriseIpAllowListEntryRead(ctx context.Context, d *schema
 	if err := d.Set("name", entry.Name); err != nil {
 		return diag.FromErr(err)
 	}
+	if err := d.Set("ip", entry.AllowListValue); err != nil {
+		return diag.FromErr(err)
+	}
 	if err := d.Set("is_active", entry.IsActive); err != nil {
 		return diag.FromErr(err)
 	}
@@ -225,39 +228,16 @@ func resourceGithubEnterpriseIpAllowListEntryDelete(ctx context.Context, d *sche
 }
 
 func resourceGithubEnterpriseIpAllowListEntryImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	client := meta.(*Owner).v4client
-
-	var query struct {
-		Node struct {
-			IpAllowListEntry struct {
-				ID             githubv4.String
-				AllowListValue githubv4.String
-				Owner          struct {
-					Enterprise struct {
-						Slug githubv4.String
-					} `graphql:"... on Enterprise"`
-				}
-			} `graphql:"... on IpAllowListEntry"`
-		} `graphql:"node(id: $id)"`
-	}
-
-	variables := map[string]interface{}{
-		"id": githubv4.ID(d.Id()),
-	}
-
-	err := client.Query(ctx, &query, variables)
+	// <enterprise_slug>:<ip_allow_list_entry_id>
+	enterprise_slug, ip_allow_list_entry_id, err := parseID2(d.Id())
 	if err != nil {
 		return nil, err
 	}
 
-	entry := query.Node.IpAllowListEntry
-
-	if err := d.Set("enterprise_slug", string(entry.Owner.Enterprise.Slug)); err != nil {
+	if err := d.Set("enterprise_slug", enterprise_slug); err != nil {
 		return nil, err
 	}
-	if err := d.Set("ip", string(entry.AllowListValue)); err != nil {
-		return nil, err
-	}
+	d.SetId(ip_allow_list_entry_id)
 
 	return []*schema.ResourceData{d}, nil
 }
