@@ -2,9 +2,6 @@ package github
 
 import (
 	"fmt"
-	"net/url"
-	"os"
-	"path/filepath"
 	"regexp"
 	"testing"
 
@@ -263,63 +260,44 @@ data "github_ip_ranges" "test" {}
 	})
 }
 
-func Test_tokenFromGHCLI(t *testing.T) {
-	// Create a fake gh CLI script that echoes back the hostname it receives.
-	// tokenFromGHCLI calls: gh auth token --hostname <host>
-	// Our fake script extracts the hostname argument and prints it as the "token".
-	tmpDir := t.TempDir()
-	fakeGH := filepath.Join(tmpDir, "gh")
-	err := os.WriteFile(fakeGH, []byte("#!/bin/sh\necho \"$4\"\n"), 0755)
-	if err != nil {
-		t.Fatalf("failed to create fake gh script: %s", err)
-	}
-
+func Test_ghCLIHostFromAPIHost(t *testing.T) {
 	testCases := []struct {
 		name         string
-		url          string
+		host         string
 		expectedHost string
 	}{
 		{
 			name:         "dotcom API host is mapped to dotcom host",
-			url:          "https://api.github.com/",
+			host:         "api.github.com",
 			expectedHost: "github.com",
 		},
 		{
 			name:         "ghec API host has api. prefix stripped",
-			url:          "https://api.my-enterprise.ghe.com/",
+			host:         "api.my-enterprise.ghe.com",
 			expectedHost: "my-enterprise.ghe.com",
 		},
 		{
 			name:         "ghec API host with numbers has api. prefix stripped",
-			url:          "https://api.customer-123.ghe.com/",
+			host:         "api.customer-123.ghe.com",
 			expectedHost: "customer-123.ghe.com",
 		},
 		{
 			name:         "ghes host is passed through unchanged",
-			url:          "https://github.example.com/",
+			host:         "github.example.com",
 			expectedHost: "github.example.com",
 		},
 		{
 			name:         "ghes host with port is passed through unchanged",
-			url:          "https://github.example.com:8443/",
+			host:         "github.example.com:8443",
 			expectedHost: "github.example.com:8443",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Setenv("GH_PATH", fakeGH)
-
-			u, err := url.Parse(tc.url)
-			if err != nil {
-				t.Fatalf("failed to parse URL %q: %s", tc.url, err)
-			}
-
-			// tokenFromGHCLI returns the trimmed output of the fake script,
-			// which is the hostname argument passed to `gh auth token --hostname`.
-			got := tokenFromGHCLI(u)
+			got := ghCLIHostFromAPIHost(tc.host)
 			if got != tc.expectedHost {
-				t.Errorf("tokenFromGHCLI(%q): hostname passed to gh CLI = %q, want %q", tc.url, got, tc.expectedHost)
+				t.Errorf("ghCLIHostFromAPIHost(%q) = %q, want %q", tc.host, got, tc.expectedHost)
 			}
 		})
 	}
