@@ -131,6 +131,22 @@ func resourceGithubRepositoryAutolinkReferenceRead(d *schema.ResourceData, meta 
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
+	_, _, repo_err := client.Repositories.Get(ctx, owner, repoName)
+	if repo_err != nil {
+		if ghErr, ok := repo_err.(*github.ErrorResponse); ok {
+			if ghErr.Response.StatusCode == http.StatusNotModified {
+				return nil
+			}
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[INFO] Removing autolink reference from state because repository  %s/%s no longer exists in GitHub",
+					owner, repoName)
+				d.SetId("")
+				return nil
+			}
+		}
+		return repo_err
+	}
+
 	autolinkRef, _, err := client.Repositories.GetAutolink(ctx, owner, repoName, autolinkRefID)
 	if err != nil {
 		var ghErr *github.ErrorResponse
