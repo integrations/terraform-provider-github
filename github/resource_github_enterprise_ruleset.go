@@ -1029,17 +1029,12 @@ var supportedEnterpriseRulesetTargetTypes = []string{
 
 // resourceGithubEnterpriseRulesetObject creates a GitHub RepositoryRuleset object for enterprise-level rulesets
 func resourceGithubEnterpriseRulesetObject(d *schema.ResourceData) github.RepositoryRuleset {
-	enterpriseSlug := d.Get("enterprise_slug").(string)
-	target := github.RulesetTarget(d.Get("target").(string))
-	enforcement := github.RulesetEnforcement(d.Get("enforcement").(string))
-	sourceTypeEnum := github.RulesetSourceType("Enterprise")
-
 	return github.RepositoryRuleset{
 		Name:         d.Get("name").(string),
-		Target:       &target,
-		Source:       enterpriseSlug,
-		SourceType:   &sourceTypeEnum,
-		Enforcement:  enforcement,
+		Target:       github.Ptr(github.RulesetTarget(d.Get("target").(string))),
+		Source:       d.Get("enterprise_slug").(string),
+		SourceType:   github.Ptr(github.RulesetSourceType("Enterprise")),
+		Enforcement:  github.RulesetEnforcement(d.Get("enforcement").(string)),
 		BypassActors: expandBypassActors(d.Get("bypass_actors").([]any)),
 		Conditions:   expandConditions(d.Get("conditions").([]any), true),
 		Rules:        expandRules(d.Get("rules").([]any), true),
