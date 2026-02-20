@@ -2,7 +2,6 @@ package github
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 	"testing"
 
@@ -704,7 +703,7 @@ resource "github_repository" "test" {
 				{
 					Config: config,
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("github_repository.test", "vulnerability_alerts"),
+						resource.TestCheckNoResourceAttr("github_repository.test", "vulnerability_alerts"),
 					),
 				},
 			},
@@ -1119,40 +1118,29 @@ resource "github_repository" "test" {
 	t.Run("updates repos to private visibility", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%svisibility-public-%s", testResourcePrefix, randomID)
-		config := fmt.Sprintf(`
+		config := `
 			resource "github_repository" "public" {
 				name       = "%s"
-				visibility = "public"
+				visibility = "%s"
 				vulnerability_alerts = false
 			}
-		`, testRepoName)
-
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.public", "visibility",
-					"public",
-				),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.public", "visibility",
-					"private",
-				),
-			),
-		}
+		`
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: config,
-					Check:  checks["before"],
+					Config: fmt.Sprintf(config, testRepoName, "public"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.public", "visibility", "public"),
+					),
 				},
 				{
-					Config: reconfigureVisibility(config, "private"),
-					Check:  checks["after"],
+					Config: fmt.Sprintf(config, testRepoName, "private"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.public", "visibility", "private"),
+					),
 				},
 			},
 		})
@@ -1170,9 +1158,8 @@ resource "github_repository" "test" {
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
+				resource.TestCheckNoResourceAttr(
 					"github_repository.test", "vulnerability_alerts",
-					"false",
 				),
 			),
 			"after": resource.ComposeTestCheckFunc(
@@ -1217,20 +1204,11 @@ resource "github_repository" "test" {
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "vulnerability_alerts",
-					"false",
-				),
+				resource.TestCheckNoResourceAttr("github_repository.test", "vulnerability_alerts"),
 			),
 			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "vulnerability_alerts",
-					"true",
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "visibility",
-					"private",
-				),
+				resource.TestCheckResourceAttr("github_repository.test", "vulnerability_alerts", "true"),
+				resource.TestCheckResourceAttr("github_repository.test", "visibility", "private"),
 			),
 		}
 
@@ -1614,9 +1592,9 @@ func Test_expandPages(t *testing.T) {
 func TestGithubRepositoryTopicPassesValidation(t *testing.T) {
 	resource := resourceGithubRepository()
 	schema := resource.Schema["topics"].Elem.(*schema.Schema)
-	diags := schema.ValidateDiagFunc("ef69e1a3-66be-40ca-bb62-4f36186aa292", cty.Path{cty.GetAttrStep{Name: "topic"}})
+	diags := schema.ValidateDiagFunc("ef69e1a3-66be-40ca-bb62-4f36186aa292", cty.Path{cty.GetAttrStep{Name: "topics"}})
 	if diags.HasError() {
-		t.Error(fmt.Errorf("unexpected topic validation failure: %s", diags[0].Summary))
+		t.Error(fmt.Errorf("unexpected topics validation failure: %s", diags[0].Summary))
 	}
 }
 
@@ -1624,7 +1602,7 @@ func TestGithubRepositoryTopicFailsValidationWhenOverMaxCharacters(t *testing.T)
 	resource := resourceGithubRepository()
 	schema := resource.Schema["topics"].Elem.(*schema.Schema)
 
-	diags := schema.ValidateDiagFunc(strings.Repeat("a", 51), cty.Path{cty.GetAttrStep{Name: "topic"}})
+	diags := schema.ValidateDiagFunc(strings.Repeat("a", 51), cty.Path{cty.GetAttrStep{Name: "topics"}})
 	if len(diags) != 1 {
 		t.Error(fmt.Errorf("unexpected number of topic validation failures; expected=1; actual=%d", len(diags)))
 	}
@@ -1633,15 +1611,6 @@ func TestGithubRepositoryTopicFailsValidationWhenOverMaxCharacters(t *testing.T)
 	if expectedFailure != actualFailure {
 		t.Error(fmt.Errorf("unexpected topic validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
 	}
-}
-
-func reconfigureVisibility(config, visibility string) string {
-	re := regexp.MustCompile(`visibility = "(.*)"`)
-	newConfig := re.ReplaceAllString(
-		config,
-		fmt.Sprintf(`visibility = "%s"`, visibility),
-	)
-	return newConfig
 }
 
 type resourceDataLike map[string]any

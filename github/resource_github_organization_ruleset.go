@@ -270,7 +270,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 															"type": {
 																Type:             schema.TypeString,
 																Required:         true,
-																ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"Team"}, false), "type"),
+																ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"Team"}, false)),
 																Description:      "The type of reviewer. Currently only `Team` is supported.",
 															},
 														},

@@ -41,11 +41,11 @@ func resourceGithubActionsOrganizationWorkflowPermissions() *schema.Resource {
 				Description: "The slug of the Organization.",
 			},
 			"default_workflow_permissions": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "read",
-				Description:  "The default workflow permissions granted to the GITHUB_TOKEN when running workflows in any repository in the organization. Can be 'read' or 'write'.",
-				ValidateFunc: validation.StringInSlice([]string{"read", "write"}, false),
+				Type:             schema.TypeString,
+				Optional:         true,
+				Default:          "read",
+				Description:      "The default workflow permissions granted to the GITHUB_TOKEN when running workflows in any repository in the organization. Can be 'read' or 'write'.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"read", "write"}, false)),
 			},
 			"can_approve_pull_request_reviews": {
 				Type:        schema.TypeBool,

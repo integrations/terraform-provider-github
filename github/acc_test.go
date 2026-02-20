@@ -300,6 +300,24 @@ func skipUnlessEnterprise(t *testing.T) {
 	}
 }
 
+func skipUnlessHasAppInstallations(t *testing.T) {
+	t.Helper()
+
+	meta, err := getTestMeta()
+	if err != nil {
+		t.Fatalf("failed to get test meta: %s", err)
+	}
+
+	installations, _, err := meta.v3client.Organizations.ListInstallations(context.Background(), meta.name, nil)
+	if err != nil {
+		t.Fatalf("failed to list app installations: %s", err)
+	}
+
+	if len(installations.Installations) == 0 {
+		t.Skip("Skipping because no GitHub App installations found in the test organization")
+	}
+}
+
 func skipUnlessMode(t *testing.T, testModes ...testMode) {
 	if !slices.Contains(testModes, testAccConf.authMode) {
 		t.Skip("Skipping as not supported test mode")

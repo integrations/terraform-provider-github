@@ -170,6 +170,7 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 
 		resource "github_team" "test" {
 			name = "%s"
+			description = "test"
 		}
 
 		resource "github_team_repository" "test" {
