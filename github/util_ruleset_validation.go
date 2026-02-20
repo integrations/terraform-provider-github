@@ -171,13 +171,6 @@ func validateConditionsFieldForBranchAndTagTargets(ctx context.Context, target g
 		return fmt.Errorf("ref_name must be set for %s target", target)
 	}
 
-	// Repository rulesets don't have repository_name or repository_id, only org rulesets do.
-	if isOrg {
-		if (conditions["repository_name"] == nil || len(conditions["repository_name"].([]any)) == 0) && (conditions["repository_id"] == nil || len(conditions["repository_id"].([]any)) == 0) {
-			tflog.Debug(ctx, fmt.Sprintf("Missing repository_name or repository_id for %s target", target), map[string]any{"target": target})
-			return fmt.Errorf("either repository_name or repository_id must be set for %s target", target)
-		}
-	}
 	tflog.Debug(ctx, fmt.Sprintf("Conditions validation passed for %s target", target))
 	return nil
 }
