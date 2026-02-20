@@ -3,10 +3,10 @@ package github
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/shurcooL/githubv4"
 )
 
@@ -44,38 +44,20 @@ func resourceGithubTeamSettings() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"algorithm": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Description: "The algorithm to use when assigning pull requests to team members. Supported values are 'ROUND_ROBIN' and 'LOAD_BALANCE'.",
-							Default:     "ROUND_ROBIN",
-							ValidateDiagFunc: toDiagFunc(func(v any, key string) (we []string, errs []error) {
-								algorithm, ok := v.(string)
-								if !ok {
-									return nil, []error{fmt.Errorf("expected type of %s to be string", key)}
-								}
-
-								if algorithm != "ROUND_ROBIN" && algorithm != "LOAD_BALANCE" {
-									errs = append(errs, errors.New("review request delegation algorithm must be one of [\"ROUND_ROBIN\", \"LOAD_BALANCE\"]"))
-								}
-
-								return we, errs
-							}, "algorithm"),
+							Type:             schema.TypeString,
+							Optional:         true,
+							Description:      "The algorithm to use when assigning pull requests to team members. Supported values are " + string(githubv4.TeamReviewAssignmentAlgorithmRoundRobin) + " and " + string(githubv4.TeamReviewAssignmentAlgorithmLoadBalance) + ".",
+							Default:          string(githubv4.TeamReviewAssignmentAlgorithmRoundRobin),
+							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{string(githubv4.TeamReviewAssignmentAlgorithmRoundRobin), string(githubv4.TeamReviewAssignmentAlgorithmLoadBalance)}, false)),
 						},
 						"member_count": {
 							Type:         schema.TypeInt,
 							Optional:     true,
 							RequiredWith: []string{"review_request_delegation"},
 							Description:  "The number of team members to assign to a pull request.",
-							ValidateDiagFunc: toDiagFunc(func(v any, key string) (we []string, errs []error) {
-								count, ok := v.(int)
-								if !ok {
-									return nil, []error{fmt.Errorf("expected type of %s to be an integer", key)}
-								}
-								if count <= 0 {
-									errs = append(errs, errors.New("review request delegation reviewer count must be a positive number"))
-								}
-								return we, errs
-							}, "member_count"),
+							ValidateDiagFunc: validation.ToDiagFunc(validation.All(
+								validation.IntAtLeast(1),
+							)),
 						},
 						"notify": {
 							Type:        schema.TypeBool,
@@ -177,12 +159,13 @@ func resourceGithubTeamSettingsUpdate(d *schema.ResourceData, meta any) error {
 				} `graphql:"updateTeamReviewAssignment(input:$input)"`
 			}
 
-			return graphql.Mutate(ctx, &mutation, UpdateTeamReviewAssignmentInput{
-				TeamID:                           d.Id(),
-				ReviewRequestDelegation:          true,
-				ReviewRequestDelegationAlgorithm: settings["algorithm"].(string),
-				ReviewRequestDelegationCount:     settings["member_count"].(int),
-				ReviewRequestDelegationNotifyAll: settings["notify"].(bool),
+			teamReviewAlgorithm := githubv4.TeamReviewAssignmentAlgorithm(settings["algorithm"].(string))
+			return graphql.Mutate(ctx, &mutation, githubv4.UpdateTeamReviewAssignmentInput{
+				ID:              d.Id(),
+				Enabled:         githubv4.Boolean(true),
+				Algorithm:       &teamReviewAlgorithm,
+				TeamMemberCount: githubv4.NewInt(githubv4.Int(settings["member_count"].(int))),
+				NotifyTeam:      githubv4.NewBoolean(githubv4.Boolean(settings["notify"].(bool))),
 			}, nil)
 		}
 	}
@@ -251,22 +234,14 @@ func resolveTeamIDs(idOrSlug string, meta *Owner, ctx context.Context) (nodeId, 
 	}
 }
 
-type UpdateTeamReviewAssignmentInput struct {
-	ClientMutationID                 string `json:"clientMutationId,omitempty"`
-	TeamID                           string `graphql:"id" json:"id"`
-	ReviewRequestDelegation          bool   `graphql:"enabled" json:"enabled"`
-	ReviewRequestDelegationAlgorithm string `graphql:"algorithm" json:"algorithm"`
-	ReviewRequestDelegationCount     int    `graphql:"teamMemberCount" json:"teamMemberCount"`
-	ReviewRequestDelegationNotifyAll bool   `graphql:"notifyTeam" json:"notifyTeam"`
-}
-
-func defaultTeamReviewAssignmentSettings(id string) UpdateTeamReviewAssignmentInput {
-	return UpdateTeamReviewAssignmentInput{
-		TeamID:                           id,
-		ReviewRequestDelegation:          false,
-		ReviewRequestDelegationAlgorithm: "ROUND_ROBIN",
-		ReviewRequestDelegationCount:     1,
-		ReviewRequestDelegationNotifyAll: true,
+func defaultTeamReviewAssignmentSettings(id string) githubv4.UpdateTeamReviewAssignmentInput {
+	roundRobinAlgo := githubv4.TeamReviewAssignmentAlgorithmRoundRobin
+	return githubv4.UpdateTeamReviewAssignmentInput{
+		ID:              id,
+		Enabled:         githubv4.Boolean(false),
+		Algorithm:       &roundRobinAlgo,
+		TeamMemberCount: githubv4.NewInt(githubv4.Int(1)),
+		NotifyTeam:      githubv4.NewBoolean(true),
 	}
 }
 

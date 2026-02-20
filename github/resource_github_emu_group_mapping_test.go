@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccGithubEMUGroupMapping(t *testing.T) {
@@ -21,7 +21,7 @@ func TestAccGithubEMUGroupMapping(t *testing.T) {
 		teamName := fmt.Sprintf("%steam-emu-%s", testResourcePrefix, randomID)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEMUEnterprise(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubEMUGroupMappingDestroy,
 			Steps: []resource.TestStep{
@@ -43,7 +43,7 @@ func TestAccGithubEMUGroupMapping(t *testing.T) {
 		rn := "github_emu_group_mapping.test"
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEMUEnterprise(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubEMUGroupMappingDestroy,
 			Steps: []resource.TestStep{
@@ -84,7 +84,7 @@ func TestAccGithubEMUGroupMapping(t *testing.T) {
 `, teamName, teamName2, groupID)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEMUEnterprise(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubEMUGroupMappingDestroy,
 			Steps: []resource.TestStep{
@@ -107,7 +107,7 @@ func TestAccGithubEMUGroupMapping(t *testing.T) {
 		teamName2 := fmt.Sprintf("%s-upd", teamName1)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEMUEnterprise(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubEMUGroupMappingDestroy,
 			Steps: []resource.TestStep{
@@ -149,7 +149,7 @@ resource "github_emu_group_mapping" "test" {
 `
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessEnterprise(t) },
+			PreCheck:          func() { skipUnlessEMUEnterprise(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubEMUGroupMappingDestroy,
 			Steps: []resource.TestStep{
