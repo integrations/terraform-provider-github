@@ -310,12 +310,13 @@ The `rules` block supports the following:
 
 - `actor_id` - (Optional) (Number) The ID of the actor that can bypass a ruleset. Some actor types such as `DeployKey` do not have an ID.
 
-- `actor_type` (String) The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`.
+- `actor_type` (String) The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`, `EnterpriseOwner`.
 
 - `bypass_mode` - (Optional) (String) When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`, `exempt`.
 
 ~>Note: at the time of writing this, the following actor types correspond to the following actor IDs:
 
+- `EnterpriseOwner` -> `0`
 - `OrganizationAdmin` -> `1`
 - `RepositoryRole` (This is the actor type, the following are the base repository roles and their associated IDs.)
     - `maintain` -> `2`
