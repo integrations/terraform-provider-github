@@ -282,7 +282,7 @@ func dataSourceGithubEnterpriseRuleset() *schema.Resource {
 								},
 							},
 						},
-						// Repository target rules (only valid when target = "repository")
+						// Repository target rules (only populated when target = "repository")
 						"repository_creation": {
 							Type:        schema.TypeBool,
 							Computed:    true,
