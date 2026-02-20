@@ -835,20 +835,12 @@ func resourceGithubEnterpriseRulesetRead(ctx context.Context, d *schema.Resource
 	client := meta.(*Owner).v3client
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 
+	rulesetID := int64(d.Get("ruleset_id").(int))
+
 	tflog.Trace(ctx, "Reading enterprise ruleset", map[string]any{
 		"enterprise_slug": enterpriseSlug,
-		"ruleset_id":      d.Id(),
+		"ruleset_id":      rulesetID,
 	})
-
-	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		tflog.Error(ctx, "Could not convert ruleset ID to int64", map[string]any{
-			"enterprise_slug": enterpriseSlug,
-			"ruleset_id":      d.Id(),
-			"error":           err.Error(),
-		})
-		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
-	}
 
 	ruleset, resp, err := client.Enterprise.GetRepositoryRuleset(ctx, enterpriseSlug, rulesetID)
 	if err != nil {
