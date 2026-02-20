@@ -3,13 +3,14 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v83/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRepositoryAutolinkReferences() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoryAutolinkReferencesRead,
+		ReadContext: dataSourceGithubRepositoryAutolinkReferencesRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -40,33 +41,21 @@ func dataSourceGithubRepositoryAutolinkReferences() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryAutolinkReferencesRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+func dataSourceGithubRepositoryAutolinkReferencesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
 	repoName := d.Get("repository").(string)
 
-	results := make([]map[string]any, 0)
-
-	for {
-		listOptions := &github.ListOptions{}
-		autoLinks, resp, err := client.Repositories.ListAutolinks(context.Background(), orgName, repoName, listOptions)
-		if err != nil {
-			return err
-		}
-
-		results = append(results, flattenAutolinkReferences(autoLinks)...)
-
-		if resp.NextPage == 0 {
-			break
-		}
-
-		listOptions.Page = resp.NextPage
+	autoLinks, _, err := client.Repositories.ListAutolinks(ctx, owner, repoName)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	d.SetId(repoName)
-	err := d.Set("autolink_references", results)
-	if err != nil {
-		return err
+	if err := d.Set("autolink_references", flattenAutolinkReferences(autoLinks)); err != nil {
+		return diag.FromErr(err)
 	}
 
 	return nil
