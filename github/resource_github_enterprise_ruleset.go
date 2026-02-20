@@ -317,7 +317,7 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 										Description: "Array of allowed merge methods. Allowed values include `merge`, `squash`, and `rebase`. At least one option must be enabled.",
 										Elem: &schema.Schema{
 											Type:             schema.TypeString,
-											ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"merge", "squash", "rebase"}, false), "allowed_merge_methods"),
+											ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"merge", "squash", "rebase"}, false)),
 										},
 									},
 									"dismiss_stale_reviews_on_push": {
@@ -680,7 +680,7 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 										Type:             schema.TypeInt,
 										Required:         true,
 										Description:      "The maximum allowed size of a file in megabytes (MB). Valid range is 1-100 MB.",
-										ValidateDiagFunc: toDiagFunc(validation.IntBetween(1, 100), "max_file_size"),
+										ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(1, 100)),
 									},
 								},
 							},

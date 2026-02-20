@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubEnterpriseRulesetDataSource(t *testing.T) {
@@ -59,29 +62,14 @@ func TestAccGithubEnterpriseRulesetDataSource(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet(
-							"data.github_enterprise_ruleset.test", "name",
-						),
-						resource.TestCheckResourceAttr(
-							"data.github_enterprise_ruleset.test", "name",
-							testRulesetName,
-						),
-						resource.TestCheckResourceAttr(
-							"data.github_enterprise_ruleset.test", "target",
-							"branch",
-						),
-						resource.TestCheckResourceAttr(
-							"data.github_enterprise_ruleset.test", "enforcement",
-							"active",
-						),
-						resource.TestCheckResourceAttrSet(
-							"data.github_enterprise_ruleset.test", "node_id",
-						),
-						resource.TestCheckResourceAttrSet(
-							"data.github_enterprise_ruleset.test", "etag",
-						),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_enterprise_ruleset.test", tfjsonpath.New("name"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("data.github_enterprise_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(testRulesetName)),
+						statecheck.ExpectKnownValue("data.github_enterprise_ruleset.test", tfjsonpath.New("target"), knownvalue.StringExact("branch")),
+						statecheck.ExpectKnownValue("data.github_enterprise_ruleset.test", tfjsonpath.New("enforcement"), knownvalue.StringExact("active")),
+						statecheck.ExpectKnownValue("data.github_enterprise_ruleset.test", tfjsonpath.New("node_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("data.github_enterprise_ruleset.test", tfjsonpath.New("etag"), knownvalue.NotNull()),
+					},
 				},
 			},
 		})

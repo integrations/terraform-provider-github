@@ -5,9 +5,12 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubEnterpriseRuleset_basic(t *testing.T) {
@@ -51,12 +54,12 @@ func TestAccGithubEnterpriseRuleset_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: config,
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "enterprise_slug", testAccConf.enterpriseSlug),
-					resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "name", rulesetName),
-					resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "target", "branch"),
-					resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "enforcement", "active"),
-				),
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("enterprise_slug"), knownvalue.StringExact(testAccConf.enterpriseSlug)),
+					statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(rulesetName)),
+					statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("target"), knownvalue.StringExact("branch")),
+					statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("enforcement"), knownvalue.StringExact("active")),
+				},
 			},
 		},
 	})
@@ -141,30 +144,30 @@ resource "github_enterprise_ruleset" "test" {
 }
 `, testAccConf.enterpriseSlug, rulesetName)
 
-	check := resource.ComposeTestCheckFunc(
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "name", rulesetName),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "target", "branch"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "enforcement", "active"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "bypass_actors.#", "2"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "bypass_actors.0.actor_type", "DeployKey"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "bypass_actors.0.bypass_mode", "always"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "bypass_actors.1.actor_id", "1"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "bypass_actors.1.actor_type", "OrganizationAdmin"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "bypass_actors.1.bypass_mode", "always"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.alerts_threshold", "errors"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.security_alerts_threshold", "high_or_higher"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.tool", "CodeQL"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "rules.0.copilot_code_review.0.review_on_push", "true"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "rules.0.copilot_code_review.0.review_draft_pull_requests", "false"),
-	)
+	checks := []statecheck.StateCheck{
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(rulesetName)),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("target"), knownvalue.StringExact("branch")),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("enforcement"), knownvalue.StringExact("active")),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("bypass_actors"), knownvalue.ListSizeExact(2)),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("actor_type"), knownvalue.StringExact("DeployKey")),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("bypass_mode"), knownvalue.StringExact("always")),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(1).AtMapKey("actor_id"), knownvalue.Int64Exact(1)),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(1).AtMapKey("actor_type"), knownvalue.StringExact("OrganizationAdmin")),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(1).AtMapKey("bypass_mode"), knownvalue.StringExact("always")),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("required_code_scanning").AtSliceIndex(0).AtMapKey("required_code_scanning_tool").AtSliceIndex(0).AtMapKey("alerts_threshold"), knownvalue.StringExact("errors")),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("required_code_scanning").AtSliceIndex(0).AtMapKey("required_code_scanning_tool").AtSliceIndex(0).AtMapKey("security_alerts_threshold"), knownvalue.StringExact("high_or_higher")),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("required_code_scanning").AtSliceIndex(0).AtMapKey("required_code_scanning_tool").AtSliceIndex(0).AtMapKey("tool"), knownvalue.StringExact("CodeQL")),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("copilot_code_review").AtSliceIndex(0).AtMapKey("review_on_push"), knownvalue.Bool(true)),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("copilot_code_review").AtSliceIndex(0).AtMapKey("review_draft_pull_requests"), knownvalue.Bool(false)),
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { skipUnlessEnterprise(t) },
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: config,
-				Check:  check,
+				Config:            config,
+				ConfigStateChecks: checks,
 			},
 		},
 	})
@@ -212,21 +215,21 @@ resource "github_enterprise_ruleset" "test" {
 }
 `, testAccConf.enterpriseSlug, rulesetName, workflowFilePath)
 
-	check := resource.ComposeTestCheckFunc(
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "name", rulesetName),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "target", "branch"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "enforcement", "active"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "rules.0.required_workflows.0.do_not_enforce_on_create", "true"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "rules.0.required_workflows.0.required_workflow.0.path", workflowFilePath),
-	)
+	checks := []statecheck.StateCheck{
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(rulesetName)),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("target"), knownvalue.StringExact("branch")),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("enforcement"), knownvalue.StringExact("active")),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("required_workflows").AtSliceIndex(0).AtMapKey("do_not_enforce_on_create"), knownvalue.Bool(true)),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("required_workflows").AtSliceIndex(0).AtMapKey("required_workflow").AtSliceIndex(0).AtMapKey("path"), knownvalue.StringExact(workflowFilePath)),
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { skipUnlessEnterprise(t) },
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: config,
-				Check:  check,
+				Config:            config,
+				ConfigStateChecks: checks,
 			},
 		},
 	})
@@ -268,19 +271,19 @@ resource "github_enterprise_ruleset" "test" {
 }
 `, testAccConf.enterpriseSlug, rulesetName)
 
-	check := resource.ComposeTestCheckFunc(
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "name", rulesetName),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "target", "tag"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "enforcement", "active"),
-	)
+	checks := []statecheck.StateCheck{
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(rulesetName)),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("target"), knownvalue.StringExact("tag")),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("enforcement"), knownvalue.StringExact("active")),
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { skipUnlessEnterprise(t) },
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: config,
-				Check:  check,
+				Config:            config,
+				ConfigStateChecks: checks,
 			},
 		},
 	})
@@ -336,28 +339,28 @@ resource "github_enterprise_ruleset" "test" {
 }
 `, testAccConf.enterpriseSlug, rulesetName)
 
-	check := resource.ComposeTestCheckFunc(
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "name", rulesetName),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "target", "push"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "enforcement", "active"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "bypass_actors.#", "2"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "bypass_actors.0.actor_type", "DeployKey"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "bypass_actors.0.bypass_mode", "always"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "bypass_actors.1.actor_id", "1"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "bypass_actors.1.actor_type", "OrganizationAdmin"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "bypass_actors.1.bypass_mode", "always"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "rules.0.file_path_restriction.0.restricted_file_paths.0", "test.txt"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "rules.0.max_file_size.0.max_file_size", "99"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "rules.0.file_extension_restriction.0.restricted_file_extensions.0", "*.zip"),
-	)
+	checks := []statecheck.StateCheck{
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(rulesetName)),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("target"), knownvalue.StringExact("push")),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("enforcement"), knownvalue.StringExact("active")),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("bypass_actors"), knownvalue.ListSizeExact(2)),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("actor_type"), knownvalue.StringExact("DeployKey")),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("bypass_mode"), knownvalue.StringExact("always")),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(1).AtMapKey("actor_id"), knownvalue.Int64Exact(1)),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(1).AtMapKey("actor_type"), knownvalue.StringExact("OrganizationAdmin")),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(1).AtMapKey("bypass_mode"), knownvalue.StringExact("always")),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("file_path_restriction").AtSliceIndex(0).AtMapKey("restricted_file_paths").AtSliceIndex(0), knownvalue.StringExact("test.txt")),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("max_file_size").AtSliceIndex(0).AtMapKey("max_file_size"), knownvalue.Int64Exact(99)),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("file_extension_restriction").AtSliceIndex(0).AtMapKey("restricted_file_extensions").AtSliceIndex(0), knownvalue.StringExact("*.zip")),
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { skipUnlessEnterprise(t) },
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: config,
-				Check:  check,
+				Config:            config,
+				ConfigStateChecks: checks,
 			},
 		},
 	})
@@ -429,13 +432,13 @@ resource "github_enterprise_ruleset" "test" {
 `, testAccConf.enterpriseSlug, nameUpdated),
 	}
 
-	checks := map[string]resource.TestCheckFunc{
-		"before": resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "name", name),
-		),
-		"after": resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "name", nameUpdated),
-		),
+	checks := map[string][]statecheck.StateCheck{
+		"before": {
+			statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(name)),
+		},
+		"after": {
+			statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(nameUpdated)),
+		},
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -443,12 +446,12 @@ resource "github_enterprise_ruleset" "test" {
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: configs["before"],
-				Check:  checks["before"],
+				Config:            configs["before"],
+				ConfigStateChecks: checks["before"],
 			},
 			{
-				Config: configs["after"],
-				Check:  checks["after"],
+				Config:            configs["after"],
+				ConfigStateChecks: checks["after"],
 			},
 		},
 	})
@@ -530,13 +533,13 @@ resource "github_enterprise_ruleset" "test" {
 `, testAccConf.enterpriseSlug, rulesetName),
 	}
 
-	checks := map[string]resource.TestCheckFunc{
-		"with_actors": resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "bypass_actors.#", "2"),
-		),
-		"without_actors": resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "bypass_actors.#", "0"),
-		),
+	checks := map[string][]statecheck.StateCheck{
+		"with_actors": {
+			statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("bypass_actors"), knownvalue.ListSizeExact(2)),
+		},
+		"without_actors": {
+			statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("bypass_actors"), knownvalue.ListSizeExact(0)),
+		},
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -544,12 +547,12 @@ resource "github_enterprise_ruleset" "test" {
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: configs["with_actors"],
-				Check:  checks["with_actors"],
+				Config:            configs["with_actors"],
+				ConfigStateChecks: checks["with_actors"],
 			},
 			{
-				Config: configs["without_actors"],
-				Check:  checks["without_actors"],
+				Config:            configs["without_actors"],
+				ConfigStateChecks: checks["without_actors"],
 			},
 		},
 	})
@@ -635,13 +638,13 @@ resource "github_enterprise_ruleset" "test" {
 `, testAccConf.enterpriseSlug, rulesetName, bypassModeUpdated),
 	}
 
-	checks := map[string]resource.TestCheckFunc{
-		"before": resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "bypass_actors.0.bypass_mode", bypassMode),
-		),
-		"after": resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "bypass_actors.0.bypass_mode", bypassModeUpdated),
-		),
+	checks := map[string][]statecheck.StateCheck{
+		"before": {
+			statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("bypass_mode"), knownvalue.StringExact(bypassMode)),
+		},
+		"after": {
+			statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("bypass_mode"), knownvalue.StringExact(bypassModeUpdated)),
+		},
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -649,12 +652,12 @@ resource "github_enterprise_ruleset" "test" {
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: configs["before"],
-				Check:  checks["before"],
+				Config:            configs["before"],
+				ConfigStateChecks: checks["before"],
 			},
 			{
-				Config: configs["after"],
-				Check:  checks["after"],
+				Config:            configs["after"],
+				ConfigStateChecks: checks["after"],
 			},
 		},
 	})
@@ -696,22 +699,22 @@ resource "github_enterprise_ruleset" "test" {
 }
 `, testAccConf.enterpriseSlug, rulesetName)
 
-	check := resource.ComposeTestCheckFunc(
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "name", rulesetName),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "conditions.0.repository_name.0.include.#", "2"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "conditions.0.repository_name.0.include.0", "prod-*"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "conditions.0.repository_name.0.include.1", "production-*"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "conditions.0.repository_name.0.exclude.0", "prod-test*"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "conditions.0.repository_name.0.protected", "true"),
-	)
+	checks := []statecheck.StateCheck{
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(rulesetName)),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_name").AtSliceIndex(0).AtMapKey("include"), knownvalue.ListSizeExact(2)),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_name").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(0), knownvalue.StringExact("prod-*")),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_name").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(1), knownvalue.StringExact("production-*")),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_name").AtSliceIndex(0).AtMapKey("exclude").AtSliceIndex(0), knownvalue.StringExact("prod-test*")),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_name").AtSliceIndex(0).AtMapKey("protected"), knownvalue.Bool(true)),
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { skipUnlessEnterprise(t) },
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: config,
-				Check:  check,
+				Config:            config,
+				ConfigStateChecks: checks,
 			},
 		},
 	})
@@ -748,21 +751,21 @@ resource "github_enterprise_ruleset" "test" {
 }
 `, testAccConf.enterpriseSlug, rulesetName)
 
-	check := resource.ComposeTestCheckFunc(
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "name", rulesetName),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "target", "branch"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "enforcement", "active"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "conditions.0.organization_id.#", "1"),
-		resource.TestCheckResourceAttr("github_enterprise_ruleset.test", "conditions.0.organization_id.0", "2284107"),
-	)
+	checks := []statecheck.StateCheck{
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(rulesetName)),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("target"), knownvalue.StringExact("branch")),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("enforcement"), knownvalue.StringExact("active")),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("organization_id"), knownvalue.ListSizeExact(1)),
+		statecheck.ExpectKnownValue("github_enterprise_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("organization_id").AtSliceIndex(0), knownvalue.Int64Exact(2284107)),
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { skipUnlessEnterprise(t) },
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: config,
-				Check:  check,
+				Config:            config,
+				ConfigStateChecks: checks,
 			},
 		},
 	})
