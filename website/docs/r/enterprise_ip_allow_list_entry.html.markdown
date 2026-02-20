@@ -31,8 +31,8 @@ The following arguments are supported:
 
 ## Import
 
-This resource can be imported using the ID of the IP allow list entry:
+This resource can be imported using the enterprise slug and ID of the IP allow list entry:
 
 ```bash
-$ terraform import github_enterprise_ip_allow_list_entry.test IALE_kwHOC1234567890a
+$ terraform import github_enterprise_ip_allow_list_entry.test enterprise-slug:IALE_kwHOC1234567890a
 ```
