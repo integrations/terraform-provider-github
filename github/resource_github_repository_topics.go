@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -70,24 +70,39 @@ func resourceGithubRepositoryTopicsRead(d *schema.ResourceData, meta any) error 
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 
-	topics, _, err := client.Repositories.ListAllTopics(ctx, owner, repoName)
-	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
-			if ghErr.Response.StatusCode == http.StatusNotModified {
-				return nil
+	results := make([]string, 0)
+	listOptions := &github.ListOptions{PerPage: maxPerPage}
+	for {
+		topics, resp, err := client.Repositories.ListAllTopics(ctx, owner, repoName, listOptions)
+		if err != nil {
+			var ghErr *github.ErrorResponse
+			if errors.As(err, &ghErr) {
+				if ghErr.Response.StatusCode == http.StatusNotModified {
+					return nil
+				}
+				if ghErr.Response.StatusCode == http.StatusNotFound {
+					log.Printf("[INFO] Removing topics from repository %s/%s from state because it no longer exists in GitHub",
+						owner, repoName)
+					d.SetId("")
+					return nil
+				}
 			}
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing topics from repository %s/%s from state because it no longer exists in GitHub",
-					owner, repoName)
-				d.SetId("")
-				return nil
-			}
+			return err
 		}
+
+		results = append(results, topics...)
+
+		if resp.NextPage == 0 {
+			break
+		}
+
+		listOptions.Page = resp.NextPage
+	}
+
+	if err := d.Set("topics", flattenStringList(results)); err != nil {
 		return err
 	}
 
-	_ = d.Set("topics", flattenStringList(topics))
 	return nil
 }
 
