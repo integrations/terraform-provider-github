@@ -152,9 +152,15 @@ func resourceGithubEnterpriseIpAllowListEntryRead(ctx context.Context, d *schema
 	if err := d.Set("name", entry.Name); err != nil {
 		return diag.FromErr(err)
 	}
-	d.Set("is_active", entry.IsActive)
-	d.Set("created_at", entry.CreatedAt)
-	d.Set("updated_at", entry.UpdatedAt)
+	if err := d.Set("is_active", entry.IsActive); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("created_at", entry.CreatedAt); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("updated_at", entry.UpdatedAt); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
