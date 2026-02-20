@@ -884,7 +884,7 @@ func resourceGithubRepositoryRulesetImport(ctx context.Context, d *schema.Resour
 }
 
 func resourceGithubRepositoryRulesetDiff(ctx context.Context, d *schema.ResourceDiff, meta any) error {
-	err := validateRulesetConditions(ctx, d, false)
+	err := validateRulesetConditions(ctx, d)
 	if err != nil {
 		return err
 	}

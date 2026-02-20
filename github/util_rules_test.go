@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/go-github/v82/github"
@@ -812,5 +813,298 @@ func TestRoundTripRequiredReviewers(t *testing.T) {
 	}
 	if reviewerBlock[0]["type"] != "Team" {
 		t.Errorf("Expected reviewer type to be Team after round trip, got %v", reviewerBlock[0]["type"])
+	}
+}
+
+// Tests for new condition types: organization_id
+
+func TestExpandConditionsOrganizationID(t *testing.T) {
+	// Test expanding organization_id condition
+	conditionsMap := map[string]any{
+		"ref_name": []any{
+			map[string]any{
+				"include": []any{"main", "develop"},
+				"exclude": []any{"feature/*"},
+			},
+		},
+		"organization_id": []any{123, 456, 789},
+	}
+
+	input := []any{conditionsMap}
+	result := expandConditions(input, true) // org=true for enterprise rulesets
+
+	if result == nil {
+		t.Fatal("Expected result to not be nil")
+	}
+
+	if result.OrganizationID == nil {
+		t.Fatal("Expected OrganizationID to be set")
+	}
+
+	expectedIDs := []int64{123, 456, 789}
+	if len(result.OrganizationID.OrganizationIDs) != len(expectedIDs) {
+		t.Fatalf("Expected %d organization IDs, got %d", len(expectedIDs), len(result.OrganizationID.OrganizationIDs))
+	}
+
+	for i, expectedID := range expectedIDs {
+		if result.OrganizationID.OrganizationIDs[i] != expectedID {
+			t.Errorf("Expected organization ID %d at index %d, got %d", expectedID, i, result.OrganizationID.OrganizationIDs[i])
+		}
+	}
+}
+
+func TestFlattenConditionsOrganizationID(t *testing.T) {
+	// Test flattening organization_id condition
+	conditions := &github.RepositoryRulesetConditions{
+		RefName: &github.RepositoryRulesetRefConditionParameters{
+			Include: []string{"main"},
+			Exclude: []string{},
+		},
+		OrganizationID: &github.RepositoryRulesetOrganizationIDsConditionParameters{
+			OrganizationIDs: []int64{123, 456},
+		},
+	}
+
+	result := flattenConditions(context.Background(), conditions, true)
+
+	if len(result) != 1 {
+		t.Fatalf("Expected 1 element in result, got %d", len(result))
+	}
+
+	conditionsMap := result[0].(map[string]any)
+	orgIDs := conditionsMap["organization_id"].([]int64)
+
+	if len(orgIDs) != 2 {
+		t.Fatalf("Expected 2 organization IDs, got %d", len(orgIDs))
+	}
+
+	if orgIDs[0] != 123 || orgIDs[1] != 456 {
+		t.Errorf("Expected organization IDs [123, 456], got %v", orgIDs)
+	}
+}
+
+func TestRoundTripConditionsWithAllProperties(t *testing.T) {
+	// Test that organization_id condition survives expand -> flatten round trip
+	conditionsMap := map[string]any{
+		"ref_name": []any{
+			map[string]any{
+				"include": []any{"main", "develop"},
+				"exclude": []any{"feature/*"},
+			},
+		},
+		"organization_id": []any{123, 456},
+	}
+
+	input := []any{conditionsMap}
+
+	// Expand to GitHub API format
+	expandedConditions := expandConditions(input, true)
+
+	if expandedConditions == nil {
+		t.Fatal("Expected expandedConditions to not be nil")
+	}
+
+	// Flatten back to terraform format
+	flattenedResult := flattenConditions(context.Background(), expandedConditions, true)
+
+	if len(flattenedResult) != 1 {
+		t.Fatalf("Expected 1 flattened result, got %d", len(flattenedResult))
+	}
+
+	flattenedConditionsMap := flattenedResult[0].(map[string]any)
+
+	// Verify organization_id survived
+	orgIDs := flattenedConditionsMap["organization_id"].([]int64)
+	if len(orgIDs) != 2 || orgIDs[0] != 123 || orgIDs[1] != 456 {
+		t.Errorf("Expected organization_id [123, 456] after round trip, got %v", orgIDs)
+	}
+}
+
+func TestExpandConditionsRepositoryProperty(t *testing.T) {
+	conditionsMap := map[string]any{
+		"ref_name": []any{
+			map[string]any{
+				"include": []any{"main"},
+				"exclude": []any{},
+			},
+		},
+		"organization_id": []any{123},
+		"repository_property": []any{
+			map[string]any{
+				"include": []any{
+					map[string]any{
+						"name":            "environment",
+						"property_values": []any{"production", "staging"},
+						"source":          "custom",
+					},
+				},
+				"exclude": []any{
+					map[string]any{
+						"name":            "team",
+						"property_values": []any{"experimental"},
+						"source":          "",
+					},
+				},
+			},
+		},
+	}
+
+	input := []any{conditionsMap}
+	result := expandConditions(input, true)
+
+	if result == nil {
+		t.Fatal("Expected result to not be nil")
+	}
+
+	if result.RepositoryProperty == nil {
+		t.Fatal("Expected RepositoryProperty to be set")
+	}
+
+	if len(result.RepositoryProperty.Include) != 1 {
+		t.Fatalf("Expected 1 include target, got %d", len(result.RepositoryProperty.Include))
+	}
+
+	inc := result.RepositoryProperty.Include[0]
+	if inc.Name != "environment" {
+		t.Errorf("Expected include name to be 'environment', got %q", inc.Name)
+	}
+	if len(inc.PropertyValues) != 2 || inc.PropertyValues[0] != "production" || inc.PropertyValues[1] != "staging" {
+		t.Errorf("Expected include property_values [production, staging], got %v", inc.PropertyValues)
+	}
+	if inc.Source == nil || *inc.Source != "custom" {
+		t.Errorf("Expected include source to be 'custom', got %v", inc.Source)
+	}
+
+	if len(result.RepositoryProperty.Exclude) != 1 {
+		t.Fatalf("Expected 1 exclude target, got %d", len(result.RepositoryProperty.Exclude))
+	}
+
+	exc := result.RepositoryProperty.Exclude[0]
+	if exc.Name != "team" {
+		t.Errorf("Expected exclude name to be 'team', got %q", exc.Name)
+	}
+	if exc.Source != nil {
+		t.Errorf("Expected exclude source to be nil for empty string, got %v", exc.Source)
+	}
+}
+
+func TestFlattenConditionsRepositoryProperty(t *testing.T) {
+	conditions := &github.RepositoryRulesetConditions{
+		RefName: &github.RepositoryRulesetRefConditionParameters{
+			Include: []string{"main"},
+			Exclude: []string{},
+		},
+		OrganizationID: &github.RepositoryRulesetOrganizationIDsConditionParameters{
+			OrganizationIDs: []int64{123},
+		},
+		RepositoryProperty: &github.RepositoryRulesetRepositoryPropertyConditionParameters{
+			Include: []*github.RepositoryRulesetRepositoryPropertyTargetParameters{
+				{
+					Name:           "environment",
+					PropertyValues: []string{"production"},
+					Source:         github.Ptr("custom"),
+				},
+			},
+			Exclude: []*github.RepositoryRulesetRepositoryPropertyTargetParameters{
+				{
+					Name:           "team",
+					PropertyValues: []string{"experimental"},
+				},
+			},
+		},
+	}
+
+	result := flattenConditions(context.Background(), conditions, true)
+
+	if len(result) != 1 {
+		t.Fatalf("Expected 1 element in result, got %d", len(result))
+	}
+
+	conditionsMap := result[0].(map[string]any)
+	repoProp, ok := conditionsMap["repository_property"].([]map[string]any)
+	if !ok {
+		t.Fatalf("Expected repository_property to be []map[string]any, got %T", conditionsMap["repository_property"])
+	}
+	if len(repoProp) != 1 {
+		t.Fatalf("Expected 1 repository_property block, got %d", len(repoProp))
+	}
+
+	includes := repoProp[0]["include"].([]map[string]any)
+	if len(includes) != 1 {
+		t.Fatalf("Expected 1 include, got %d", len(includes))
+	}
+	if includes[0]["name"] != "environment" {
+		t.Errorf("Expected include name to be 'environment', got %v", includes[0]["name"])
+	}
+	if includes[0]["source"] != "custom" {
+		t.Errorf("Expected include source to be 'custom', got %v", includes[0]["source"])
+	}
+
+	excludes := repoProp[0]["exclude"].([]map[string]any)
+	if len(excludes) != 1 {
+		t.Fatalf("Expected 1 exclude, got %d", len(excludes))
+	}
+	if excludes[0]["name"] != "team" {
+		t.Errorf("Expected exclude name to be 'team', got %v", excludes[0]["name"])
+	}
+}
+
+func TestRoundTripConditionsRepositoryProperty(t *testing.T) {
+	conditionsMap := map[string]any{
+		"ref_name": []any{
+			map[string]any{
+				"include": []any{"main"},
+				"exclude": []any{},
+			},
+		},
+		"organization_id": []any{123},
+		"repository_property": []any{
+			map[string]any{
+				"include": []any{
+					map[string]any{
+						"name":            "environment",
+						"property_values": []any{"production", "staging"},
+						"source":          "custom",
+					},
+				},
+				"exclude": []any{
+					map[string]any{
+						"name":            "team",
+						"property_values": []any{"experimental"},
+						"source":          "",
+					},
+				},
+			},
+		},
+	}
+
+	input := []any{conditionsMap}
+	expanded := expandConditions(input, true)
+	if expanded == nil {
+		t.Fatal("Expected expanded conditions to not be nil")
+	}
+
+	flattened := flattenConditions(context.Background(), expanded, true)
+	if len(flattened) != 1 {
+		t.Fatalf("Expected 1 flattened result, got %d", len(flattened))
+	}
+
+	flatMap := flattened[0].(map[string]any)
+	repoProp, ok := flatMap["repository_property"].([]map[string]any)
+	if !ok {
+		t.Fatalf("Expected repository_property after round trip, got %T", flatMap["repository_property"])
+	}
+
+	includes := repoProp[0]["include"].([]map[string]any)
+	if len(includes) != 1 {
+		t.Fatalf("Expected 1 include after round trip, got %d", len(includes))
+	}
+	if includes[0]["name"] != "environment" {
+		t.Errorf("Expected include name 'environment' after round trip, got %v", includes[0]["name"])
+	}
+
+	propVals := includes[0]["property_values"].([]string)
+	if len(propVals) != 2 || propVals[0] != "production" || propVals[1] != "staging" {
+		t.Errorf("Expected property_values [production, staging] after round trip, got %v", propVals)
 	}
 }
