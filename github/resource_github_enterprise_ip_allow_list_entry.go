@@ -18,18 +18,20 @@ func resourceGithubEnterpriseIpAllowListEntry() *schema.Resource {
 		UpdateContext: resourceGithubEnterpriseIpAllowListEntryUpdate,
 		DeleteContext: resourceGithubEnterpriseIpAllowListEntryDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: resourceGithubEnterpriseIpAllowListEntryImport,
 		},
 
 		Schema: map[string]*schema.Schema{
 			"enterprise_slug": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "The slug of the enterprise to apply the IP allow list entry to.",
 			},
 			"ip": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "An IP address or range of IP addresses in CIDR notation.",
 			},
 			"name": {
@@ -147,15 +149,12 @@ func resourceGithubEnterpriseIpAllowListEntryRead(ctx context.Context, d *schema
 	}
 
 	entry := query.Node.IpAllowListEntry
-
-	d.Set("ip", entry.AllowListValue)
 	if err := d.Set("name", entry.Name); err != nil {
 		return diag.FromErr(err)
 	}
 	d.Set("is_active", entry.IsActive)
 	d.Set("created_at", entry.CreatedAt)
 	d.Set("updated_at", entry.UpdatedAt)
-	d.Set("enterprise_slug", entry.Owner.Enterprise.Slug)
 
 	return nil
 }
@@ -217,4 +216,42 @@ func resourceGithubEnterpriseIpAllowListEntryDelete(ctx context.Context, d *sche
 	}
 
 	return nil
+}
+
+func resourceGithubEnterpriseIpAllowListEntryImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+	client := meta.(*Owner).v4client
+
+	var query struct {
+		Node struct {
+			IpAllowListEntry struct {
+				ID             githubv4.String
+				AllowListValue githubv4.String
+				Owner          struct {
+					Enterprise struct {
+						Slug githubv4.String
+					} `graphql:"... on Enterprise"`
+				}
+			} `graphql:"... on IpAllowListEntry"`
+		} `graphql:"node(id: $id)"`
+	}
+
+	variables := map[string]interface{}{
+		"id": githubv4.ID(d.Id()),
+	}
+
+	err := client.Query(ctx, &query, variables)
+	if err != nil {
+		return nil, err
+	}
+
+	entry := query.Node.IpAllowListEntry
+
+	if err := d.Set("enterprise_slug", string(entry.Owner.Enterprise.Slug)); err != nil {
+		return nil, err
+	}
+	if err := d.Set("ip", string(entry.AllowListValue)); err != nil {
+		return nil, err
+	}
+
+	return []*schema.ResourceData{d}, nil
 }
