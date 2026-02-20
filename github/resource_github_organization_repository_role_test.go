@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubOrganizationRepositoryRole(t *testing.T) {
@@ -13,7 +13,7 @@ func TestAccGithubOrganizationRepositoryRole(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		name := fmt.Sprintf("tf-acc-org-repo-role-%s", randomID)
 		description := "This is a test org repo role."
-		baseRole := "write"
+		baseRole := "read"
 		permission0 := "reopen_issue"
 		permission1 := "reopen_pull_request"
 
@@ -59,6 +59,7 @@ func TestAccGithubOrganizationRepositoryRole(t *testing.T) {
 		config := fmt.Sprintf(`
 			resource "github_organization_repository_role" "test" {
 				name        = "%s"
+				base_role   = "read"
 				permissions = [
 				"%s"
 				]

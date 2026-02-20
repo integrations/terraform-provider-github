@@ -128,33 +128,6 @@ func wrapErrors(errs []error) diag.Diagnostics {
 	return diags
 }
 
-// toDiagFunc is a helper that operates on Hashicorp's helper/validation functions
-// and converts them to the diag.Diagnostic format
-// --> nolint: oldFunc needs to be schema.SchemaValidateFunc to keep compatibility with
-// the old code until all uses of schema.SchemaValidateFunc are gone.
-func toDiagFunc(oldFunc schema.SchemaValidateFunc, keyName string) schema.SchemaValidateDiagFunc { //nolint:staticcheck
-	return func(i any, path cty.Path) diag.Diagnostics {
-		warnings, errors := oldFunc(i, keyName)
-		var diags diag.Diagnostics
-
-		for _, err := range errors {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  err.Error(),
-			})
-		}
-
-		for _, warn := range warnings {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Warning,
-				Summary:  warn,
-			})
-		}
-
-		return diags
-	}
-}
-
 func validateValueFunc(values []string) schema.SchemaValidateDiagFunc {
 	return func(v any, k cty.Path) diag.Diagnostics {
 		errs := make([]error, 0)
@@ -240,11 +213,6 @@ type unconvertibleIdError struct {
 func (e *unconvertibleIdError) Error() string {
 	return fmt.Sprintf("Unexpected ID format (%q), expected numerical ID. %s",
 		e.OriginalId, e.OriginalError.Error())
-}
-
-func splitRepoFilePath(path string) (string, string) {
-	parts := strings.Split(path, "/")
-	return parts[0], strings.Join(parts[1:], "/")
 }
 
 func getTeamID(teamIDString string, meta any) (int64, error) {

@@ -50,7 +50,7 @@ func resourceGithubRepositoryEnvironment() *schema.Resource {
 			"wait_timer": {
 				Type:             schema.TypeInt,
 				Optional:         true,
-				ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 43200), "wait_timer"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 43200)),
 				Description:      "Amount of time to delay a job after the job is initially triggered.",
 			},
 			"reviewers": {

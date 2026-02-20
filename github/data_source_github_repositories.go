@@ -21,7 +21,7 @@ func dataSourceGithubRepositories() *schema.Resource {
 				Type:             schema.TypeString,
 				Default:          "updated",
 				Optional:         true,
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"stars", "fork", "updated"}, false), "sort"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"stars", "fork", "updated"}, false)),
 			},
 			"include_repo_id": {
 				Type:     schema.TypeBool,
@@ -32,7 +32,7 @@ func dataSourceGithubRepositories() *schema.Resource {
 				Type:             schema.TypeInt,
 				Optional:         true,
 				Default:          100,
-				ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 1000), "results_per_page"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 1000)),
 			},
 			"full_names": {
 				Type: schema.TypeList,

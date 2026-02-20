@@ -4,13 +4,22 @@ package githubv4
 
 // Input represents one of the Input structs:
 //
-// AbortQueuedMigrationsInput, AcceptEnterpriseAdministratorInvitationInput, AcceptTopicSuggestionInput, AddAssigneesToAssignableInput, AddCommentInput, AddDiscussionCommentInput, AddDiscussionPollVoteInput, AddEnterpriseOrganizationMemberInput, AddEnterpriseSupportEntitlementInput, AddLabelsToLabelableInput, AddProjectCardInput, AddProjectColumnInput, AddProjectDraftIssueInput, AddProjectNextItemInput, AddProjectV2DraftIssueInput, AddProjectV2ItemByIdInput, AddPullRequestReviewCommentInput, AddPullRequestReviewInput, AddPullRequestReviewThreadInput, AddReactionInput, AddStarInput, AddUpvoteInput, AddVerifiableDomainInput, ApproveDeploymentsInput, ApproveVerifiableDomainInput, ArchiveProjectV2ItemInput, ArchiveRepositoryInput, AuditLogOrder, CancelEnterpriseAdminInvitationInput, CancelSponsorshipInput, ChangeUserStatusInput, CheckAnnotationData, CheckAnnotationRange, CheckRunAction, CheckRunFilter, CheckRunOutput, CheckRunOutputImage, CheckSuiteAutoTriggerPreference, CheckSuiteFilter, ClearLabelsFromLabelableInput, ClearProjectV2ItemFieldValueInput, CloneProjectInput, CloneTemplateRepositoryInput, CloseIssueInput, ClosePullRequestInput, CommitAuthor, CommitContributionOrder, CommitMessage, CommittableBranch, ContributionOrder, ConvertProjectCardNoteToIssueInput, ConvertPullRequestToDraftInput, CreateBranchProtectionRuleInput, CreateCheckRunInput, CreateCheckSuiteInput, CreateCommitOnBranchInput, CreateDiscussionInput, CreateEnterpriseOrganizationInput, CreateEnvironmentInput, CreateIpAllowListEntryInput, CreateIssueInput, CreateLinkedBranchInput, CreateMigrationSourceInput, CreateProjectInput, CreateProjectV2Input, CreatePullRequestInput, CreateRefInput, CreateRepositoryInput, CreateSponsorsTierInput, CreateSponsorshipInput, CreateTeamDiscussionCommentInput, CreateTeamDiscussionInput, DeclineTopicSuggestionInput, DeleteBranchProtectionRuleInput, DeleteDeploymentInput, DeleteDiscussionCommentInput, DeleteDiscussionInput, DeleteEnvironmentInput, DeleteIpAllowListEntryInput, DeleteIssueCommentInput, DeleteIssueInput, DeleteLinkedBranchInput, DeleteProjectCardInput, DeleteProjectColumnInput, DeleteProjectInput, DeleteProjectNextItemInput, DeleteProjectV2ItemInput, DeletePullRequestReviewCommentInput, DeletePullRequestReviewInput, DeleteRefInput, DeleteTeamDiscussionCommentInput, DeleteTeamDiscussionInput, DeleteVerifiableDomainInput, DeploymentOrder, DisablePullRequestAutoMergeInput, DiscussionOrder, DiscussionPollOptionOrder, DismissPullRequestReviewInput, DismissRepositoryVulnerabilityAlertInput, DraftPullRequestReviewComment, DraftPullRequestReviewThread, EnablePullRequestAutoMergeInput, EnterpriseAdministratorInvitationOrder, EnterpriseMemberOrder, EnterpriseServerInstallationOrder, EnterpriseServerUserAccountEmailOrder, EnterpriseServerUserAccountOrder, EnterpriseServerUserAccountsUploadOrder, FileAddition, FileChanges, FileDeletion, FollowOrganizationInput, FollowUserInput, GistOrder, GrantEnterpriseOrganizationsMigratorRoleInput, GrantMigratorRoleInput, InviteEnterpriseAdminInput, IpAllowListEntryOrder, IssueCommentOrder, IssueFilters, IssueOrder, LabelOrder, LanguageOrder, LinkProjectV2ToRepositoryInput, LinkProjectV2ToTeamInput, LinkRepositoryToProjectInput, LockLockableInput, MarkDiscussionCommentAsAnswerInput, MarkFileAsViewedInput, MarkPullRequestReadyForReviewInput, MergeBranchInput, MergePullRequestInput, MilestoneOrder, MinimizeCommentInput, MoveProjectCardInput, MoveProjectColumnInput, OrgEnterpriseOwnerOrder, OrganizationOrder, PackageFileOrder, PackageOrder, PackageVersionOrder, PinIssueInput, ProjectOrder, ProjectV2FieldOrder, ProjectV2FieldValue, ProjectV2Filters, ProjectV2ItemFieldValueOrder, ProjectV2ItemOrder, ProjectV2Order, ProjectV2ViewOrder, PullRequestOrder, ReactionOrder, RefOrder, RegenerateEnterpriseIdentityProviderRecoveryCodesInput, RegenerateVerifiableDomainTokenInput, RejectDeploymentsInput, ReleaseOrder, RemoveAssigneesFromAssignableInput, RemoveEnterpriseAdminInput, RemoveEnterpriseIdentityProviderInput, RemoveEnterpriseOrganizationInput, RemoveEnterpriseSupportEntitlementInput, RemoveLabelsFromLabelableInput, RemoveOutsideCollaboratorInput, RemoveReactionInput, RemoveStarInput, RemoveUpvoteInput, ReopenIssueInput, ReopenPullRequestInput, RepositoryInvitationOrder, RepositoryMigrationOrder, RepositoryOrder, RequestReviewsInput, RequiredStatusCheckInput, RerequestCheckSuiteInput, ResolveReviewThreadInput, RevokeEnterpriseOrganizationsMigratorRoleInput, RevokeMigratorRoleInput, SavedReplyOrder, SecurityAdvisoryIdentifierFilter, SecurityAdvisoryOrder, SecurityVulnerabilityOrder, SetEnterpriseIdentityProviderInput, SetOrganizationInteractionLimitInput, SetRepositoryInteractionLimitInput, SetUserInteractionLimitInput, SponsorOrder, SponsorableOrder, SponsorsActivityOrder, SponsorsTierOrder, SponsorshipNewsletterOrder, SponsorshipOrder, StarOrder, StartRepositoryMigrationInput, SubmitPullRequestReviewInput, TeamDiscussionCommentOrder, TeamDiscussionOrder, TeamMemberOrder, TeamOrder, TeamRepositoryOrder, TransferEnterpriseOrganizationInput, TransferIssueInput, UnarchiveProjectV2ItemInput, UnarchiveRepositoryInput, UnfollowOrganizationInput, UnfollowUserInput, UnlinkProjectV2FromRepositoryInput, UnlinkProjectV2FromTeamInput, UnlinkRepositoryFromProjectInput, UnlockLockableInput, UnmarkDiscussionCommentAsAnswerInput, UnmarkFileAsViewedInput, UnmarkIssueAsDuplicateInput, UnminimizeCommentInput, UnpinIssueInput, UnresolveReviewThreadInput, UpdateBranchProtectionRuleInput, UpdateCheckRunInput, UpdateCheckSuitePreferencesInput, UpdateDiscussionCommentInput, UpdateDiscussionInput, UpdateEnterpriseAdministratorRoleInput, UpdateEnterpriseAllowPrivateRepositoryForkingSettingInput, UpdateEnterpriseDefaultRepositoryPermissionSettingInput, UpdateEnterpriseMembersCanChangeRepositoryVisibilitySettingInput, UpdateEnterpriseMembersCanCreateRepositoriesSettingInput, UpdateEnterpriseMembersCanDeleteIssuesSettingInput, UpdateEnterpriseMembersCanDeleteRepositoriesSettingInput, UpdateEnterpriseMembersCanInviteCollaboratorsSettingInput, UpdateEnterpriseMembersCanMakePurchasesSettingInput, UpdateEnterpriseMembersCanUpdateProtectedBranchesSettingInput, UpdateEnterpriseMembersCanViewDependencyInsightsSettingInput, UpdateEnterpriseOrganizationProjectsSettingInput, UpdateEnterpriseOwnerOrganizationRoleInput, UpdateEnterpriseProfileInput, UpdateEnterpriseRepositoryProjectsSettingInput, UpdateEnterpriseTeamDiscussionsSettingInput, UpdateEnterpriseTwoFactorAuthenticationRequiredSettingInput, UpdateEnvironmentInput, UpdateIpAllowListEnabledSettingInput, UpdateIpAllowListEntryInput, UpdateIpAllowListForInstalledAppsEnabledSettingInput, UpdateIssueCommentInput, UpdateIssueInput, UpdateNotificationRestrictionSettingInput, UpdateOrganizationAllowPrivateRepositoryForkingSettingInput, UpdateOrganizationWebCommitSignoffSettingInput, UpdateProjectCardInput, UpdateProjectColumnInput, UpdateProjectDraftIssueInput, UpdateProjectInput, UpdateProjectNextInput, UpdateProjectNextItemFieldInput, UpdateProjectV2DraftIssueInput, UpdateProjectV2Input, UpdateProjectV2ItemFieldValueInput, UpdateProjectV2ItemPositionInput, UpdatePullRequestBranchInput, UpdatePullRequestInput, UpdatePullRequestReviewCommentInput, UpdatePullRequestReviewInput, UpdateRefInput, UpdateRepositoryInput, UpdateRepositoryWebCommitSignoffSettingInput, UpdateSponsorshipPreferencesInput, UpdateSubscriptionInput, UpdateTeamDiscussionCommentInput, UpdateTeamDiscussionInput, UpdateTeamsRepositoryInput, UpdateTopicsInput, UserStatusOrder, VerifiableDomainOrder, VerifyVerifiableDomainInput, WorkflowRunOrder.
+// AbortQueuedMigrationsInput, AbortRepositoryMigrationInput, AcceptEnterpriseAdministratorInvitationInput, AcceptEnterpriseMemberInvitationInput, AcceptTopicSuggestionInput, AccessUserNamespaceRepositoryInput, AddAssigneesToAssignableInput, AddBlockedByInput, AddCommentInput, AddDiscussionCommentInput, AddDiscussionPollVoteInput, AddEnterpriseOrganizationMemberInput, AddEnterpriseSupportEntitlementInput, AddLabelsToLabelableInput, AddProjectCardInput, AddProjectColumnInput, AddProjectV2DraftIssueInput, AddProjectV2ItemByIdInput, AddPullRequestReviewCommentInput, AddPullRequestReviewInput, AddPullRequestReviewThreadInput, AddPullRequestReviewThreadReplyInput, AddReactionInput, AddStarInput, AddSubIssueInput, AddUpvoteInput, AddVerifiableDomainInput, AgentAssignmentInput, ApproveDeploymentsInput, ApproveVerifiableDomainInput, ArchiveProjectV2ItemInput, ArchiveRepositoryInput, AuditLogOrder, BranchNamePatternParametersInput, BulkSponsorship, CancelEnterpriseAdminInvitationInput, CancelEnterpriseMemberInvitationInput, CancelSponsorshipInput, ChangeUserStatusInput, CheckAnnotationData, CheckAnnotationRange, CheckRunAction, CheckRunFilter, CheckRunOutput, CheckRunOutputImage, CheckSuiteAutoTriggerPreference, CheckSuiteFilter, ClearLabelsFromLabelableInput, ClearProjectV2ItemFieldValueInput, CloneProjectInput, CloneTemplateRepositoryInput, CloseDiscussionInput, CloseIssueInput, ClosePullRequestInput, CodeScanningParametersInput, CodeScanningToolInput, CommitAuthor, CommitAuthorEmailPatternParametersInput, CommitContributionOrder, CommitMessage, CommitMessagePatternParametersInput, CommittableBranch, CommitterEmailPatternParametersInput, ContributionOrder, ConvertProjectCardNoteToIssueInput, ConvertProjectV2DraftIssueItemToIssueInput, ConvertPullRequestToDraftInput, CopilotCodeReviewParametersInput, CopyProjectV2Input, CreateAttributionInvitationInput, CreateBranchProtectionRuleInput, CreateCheckRunInput, CreateCheckSuiteInput, CreateCommitOnBranchInput, CreateDeploymentInput, CreateDeploymentStatusInput, CreateDiscussionInput, CreateEnterpriseOrganizationInput, CreateEnvironmentInput, CreateIpAllowListEntryInput, CreateIssueInput, CreateIssueTypeInput, CreateLabelInput, CreateLinkedBranchInput, CreateMigrationSourceInput, CreateProjectInput, CreateProjectV2FieldInput, CreateProjectV2Input, CreateProjectV2StatusUpdateInput, CreatePullRequestInput, CreateRefInput, CreateRepositoryCustomPropertyInput, CreateRepositoryInput, CreateRepositoryRulesetInput, CreateSponsorsListingInput, CreateSponsorsTierInput, CreateSponsorshipInput, CreateSponsorshipsInput, CreateUserListInput, CustomPropertyValueInput, DeclineTopicSuggestionInput, DeleteBranchProtectionRuleInput, DeleteDeploymentInput, DeleteDiscussionCommentInput, DeleteDiscussionInput, DeleteEnvironmentInput, DeleteIpAllowListEntryInput, DeleteIssueCommentInput, DeleteIssueInput, DeleteIssueTypeInput, DeleteLabelInput, DeleteLinkedBranchInput, DeletePackageVersionInput, DeleteProjectCardInput, DeleteProjectColumnInput, DeleteProjectInput, DeleteProjectV2FieldInput, DeleteProjectV2Input, DeleteProjectV2ItemInput, DeleteProjectV2StatusUpdateInput, DeleteProjectV2WorkflowInput, DeletePullRequestReviewCommentInput, DeletePullRequestReviewInput, DeleteRefInput, DeleteRepositoryCustomPropertyInput, DeleteRepositoryRulesetInput, DeleteUserListInput, DeleteVerifiableDomainInput, DeploymentOrder, DequeuePullRequestInput, DisablePullRequestAutoMergeInput, DiscussionOrder, DiscussionPollOptionOrder, DismissPullRequestReviewInput, DismissRepositoryVulnerabilityAlertInput, DraftPullRequestReviewComment, DraftPullRequestReviewThread, EnablePullRequestAutoMergeInput, EnqueuePullRequestInput, EnterpriseAdministratorInvitationOrder, EnterpriseMemberInvitationOrder, EnterpriseMemberOrder, EnterpriseOrder, EnterpriseServerInstallationOrder, EnterpriseServerUserAccountEmailOrder, EnterpriseServerUserAccountOrder, EnterpriseServerUserAccountsUploadOrder, Environments, FileAddition, FileChanges, FileDeletion, FileExtensionRestrictionParametersInput, FilePathRestrictionParametersInput, FollowOrganizationInput, FollowUserInput, GistOrder, GrantEnterpriseOrganizationsMigratorRoleInput, GrantMigratorRoleInput, ImportProjectInput, InviteEnterpriseAdminInput, InviteEnterpriseMemberInput, IpAllowListEntryOrder, IssueCommentOrder, IssueDependencyOrder, IssueFilters, IssueOrder, IssueTypeOrder, LabelOrder, LanguageOrder, LinkProjectV2ToRepositoryInput, LinkProjectV2ToTeamInput, LinkRepositoryToProjectInput, LockLockableInput, MannequinOrder, MarkDiscussionCommentAsAnswerInput, MarkFileAsViewedInput, MarkProjectV2AsTemplateInput, MarkPullRequestReadyForReviewInput, MaxFilePathLengthParametersInput, MaxFileSizeParametersInput, MergeBranchInput, MergePullRequestInput, MergeQueueParametersInput, MilestoneOrder, MinimizeCommentInput, MoveProjectCardInput, MoveProjectColumnInput, OrgEnterpriseOwnerOrder, OrganizationOrder, OrganizationPropertyConditionTargetInput, OrganizationPropertyTargetDefinitionInput, PackageFileOrder, PackageOrder, PackageVersionOrder, PinEnvironmentInput, PinIssueInput, PinnedEnvironmentOrder, ProjectCardImport, ProjectColumnImport, ProjectOrder, ProjectV2Collaborator, ProjectV2FieldOrder, ProjectV2FieldValue, ProjectV2Filters, ProjectV2ItemFieldValueOrder, ProjectV2ItemOrder, ProjectV2Iteration, ProjectV2IterationFieldConfigurationInput, ProjectV2Order, ProjectV2SingleSelectFieldOptionInput, ProjectV2StatusOrder, ProjectV2ViewOrder, ProjectV2WorkflowOrder, PromoteRepositoryCustomPropertyInput, PropertyTargetDefinitionInput, PublishSponsorsTierInput, PullRequestOrder, PullRequestParametersInput, ReactionOrder, RefNameConditionTargetInput, RefOrder, RefUpdate, RegenerateEnterpriseIdentityProviderRecoveryCodesInput, RegenerateVerifiableDomainTokenInput, RejectDeploymentsInput, ReleaseOrder, RemoveAssigneesFromAssignableInput, RemoveBlockedByInput, RemoveEnterpriseAdminInput, RemoveEnterpriseIdentityProviderInput, RemoveEnterpriseMemberInput, RemoveEnterpriseOrganizationInput, RemoveEnterpriseSupportEntitlementInput, RemoveLabelsFromLabelableInput, RemoveOutsideCollaboratorInput, RemoveReactionInput, RemoveStarInput, RemoveSubIssueInput, RemoveUpvoteInput, ReopenDiscussionInput, ReopenIssueInput, ReopenPullRequestInput, ReorderEnvironmentInput, ReplaceActorsForAssignableInput, RepositoryIdConditionTargetInput, RepositoryInvitationOrder, RepositoryMigrationOrder, RepositoryNameConditionTargetInput, RepositoryOrder, RepositoryPropertyConditionTargetInput, RepositoryRuleConditionsInput, RepositoryRuleInput, RepositoryRuleOrder, RepositoryRulesetBypassActorInput, ReprioritizeSubIssueInput, RequestReviewsByLoginInput, RequestReviewsInput, RequiredDeploymentsParametersInput, RequiredReviewerConfigurationInput, RequiredStatusCheckInput, RequiredStatusChecksParametersInput, RerequestCheckSuiteInput, ResolveReviewThreadInput, RetireSponsorsTierInput, RevertPullRequestInput, RevokeEnterpriseOrganizationsMigratorRoleInput, RevokeMigratorRoleInput, RuleParametersInput, SavedReplyOrder, SecurityAdvisoryIdentifierFilter, SecurityAdvisoryOrder, SecurityVulnerabilityOrder, SetEnterpriseIdentityProviderInput, SetOrganizationInteractionLimitInput, SetRepositoryCustomPropertyValuesInput, SetRepositoryInteractionLimitInput, SetUserInteractionLimitInput, SponsorAndLifetimeValueOrder, SponsorOrder, SponsorableOrder, SponsorsActivityOrder, SponsorsTierOrder, SponsorshipNewsletterOrder, SponsorshipOrder, StarOrder, StartOrganizationMigrationInput, StartRepositoryMigrationInput, StatusCheckConfigurationInput, SubmitPullRequestReviewInput, TagNamePatternParametersInput, TeamMemberOrder, TeamOrder, TeamRepositoryOrder, TransferEnterpriseOrganizationInput, TransferIssueInput, UnarchiveProjectV2ItemInput, UnarchiveRepositoryInput, UnfollowOrganizationInput, UnfollowUserInput, UnlinkProjectV2FromRepositoryInput, UnlinkProjectV2FromTeamInput, UnlinkRepositoryFromProjectInput, UnlockLockableInput, UnmarkDiscussionCommentAsAnswerInput, UnmarkFileAsViewedInput, UnmarkIssueAsDuplicateInput, UnmarkProjectV2AsTemplateInput, UnminimizeCommentInput, UnpinIssueInput, UnresolveReviewThreadInput, UpdateBranchProtectionRuleInput, UpdateCheckRunInput, UpdateCheckSuitePreferencesInput, UpdateDiscussionCommentInput, UpdateDiscussionInput, UpdateEnterpriseAdministratorRoleInput, UpdateEnterpriseAllowPrivateRepositoryForkingSettingInput, UpdateEnterpriseDefaultRepositoryPermissionSettingInput, UpdateEnterpriseDeployKeySettingInput, UpdateEnterpriseMembersCanChangeRepositoryVisibilitySettingInput, UpdateEnterpriseMembersCanCreateRepositoriesSettingInput, UpdateEnterpriseMembersCanDeleteIssuesSettingInput, UpdateEnterpriseMembersCanDeleteRepositoriesSettingInput, UpdateEnterpriseMembersCanInviteCollaboratorsSettingInput, UpdateEnterpriseMembersCanMakePurchasesSettingInput, UpdateEnterpriseMembersCanUpdateProtectedBranchesSettingInput, UpdateEnterpriseMembersCanViewDependencyInsightsSettingInput, UpdateEnterpriseOrganizationProjectsSettingInput, UpdateEnterpriseOwnerOrganizationRoleInput, UpdateEnterpriseProfileInput, UpdateEnterpriseRepositoryProjectsSettingInput, UpdateEnterpriseTwoFactorAuthenticationDisallowedMethodsSettingInput, UpdateEnterpriseTwoFactorAuthenticationRequiredSettingInput, UpdateEnvironmentInput, UpdateIpAllowListEnabledSettingInput, UpdateIpAllowListEntryInput, UpdateIpAllowListForInstalledAppsEnabledSettingInput, UpdateIpAllowListUserLevelEnforcementEnabledSettingInput, UpdateIssueCommentInput, UpdateIssueInput, UpdateIssueIssueTypeInput, UpdateIssueTypeInput, UpdateLabelInput, UpdateNotificationRestrictionSettingInput, UpdateOrganizationAllowPrivateRepositoryForkingSettingInput, UpdateOrganizationWebCommitSignoffSettingInput, UpdateParametersInput, UpdatePatreonSponsorabilityInput, UpdateProjectCardInput, UpdateProjectColumnInput, UpdateProjectInput, UpdateProjectV2CollaboratorsInput, UpdateProjectV2DraftIssueInput, UpdateProjectV2FieldInput, UpdateProjectV2Input, UpdateProjectV2ItemFieldValueInput, UpdateProjectV2ItemPositionInput, UpdateProjectV2StatusUpdateInput, UpdatePullRequestBranchInput, UpdatePullRequestInput, UpdatePullRequestReviewCommentInput, UpdatePullRequestReviewInput, UpdateRefInput, UpdateRefsInput, UpdateRepositoryCustomPropertyInput, UpdateRepositoryInput, UpdateRepositoryRulesetInput, UpdateRepositoryWebCommitSignoffSettingInput, UpdateSponsorshipPreferencesInput, UpdateSubscriptionInput, UpdateTeamReviewAssignmentInput, UpdateTeamsRepositoryInput, UpdateTopicsInput, UpdateUserListInput, UpdateUserListsForItemInput, UserStatusOrder, VerifiableDomainOrder, VerifyVerifiableDomainInput, WorkflowFileReferenceInput, WorkflowRunOrder, WorkflowsParametersInput.
 type Input interface{}
 
 // AbortQueuedMigrationsInput is an autogenerated input type of AbortQueuedMigrations.
 type AbortQueuedMigrationsInput struct {
 	// The ID of the organization that is running the migrations. (Required.)
 	OwnerID ID `json:"ownerId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// AbortRepositoryMigrationInput is an autogenerated input type of AbortRepositoryMigration.
+type AbortRepositoryMigrationInput struct {
+	// The ID of the migration to be aborted. (Required.)
+	MigrationID ID `json:"migrationId"`
 
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
@@ -25,12 +34,32 @@ type AcceptEnterpriseAdministratorInvitationInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
+// AcceptEnterpriseMemberInvitationInput is an autogenerated input type of AcceptEnterpriseMemberInvitation.
+type AcceptEnterpriseMemberInvitationInput struct {
+	// The id of the invitation being accepted. (Required.)
+	InvitationID ID `json:"invitationId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
 // AcceptTopicSuggestionInput is an autogenerated input type of AcceptTopicSuggestion.
 type AcceptTopicSuggestionInput struct {
-	// The Node ID of the repository. (Required.)
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The Node ID of the repository. **Upcoming Change on 2024-04-01 UTC** **Description:** `repositoryId` will be removed. **Reason:** Suggested topics are no longer supported. (Optional.)
+	RepositoryID *ID `json:"repositoryId,omitempty"`
+	// The name of the suggested topic. **Upcoming Change on 2024-04-01 UTC** **Description:** `name` will be removed. **Reason:** Suggested topics are no longer supported. (Optional.)
+	Name *String `json:"name,omitempty"`
+}
+
+// AccessUserNamespaceRepositoryInput is an autogenerated input type of AccessUserNamespaceRepository.
+type AccessUserNamespaceRepositoryInput struct {
+	// The ID of the enterprise owning the user namespace repository. (Required.)
+	EnterpriseID ID `json:"enterpriseId"`
+	// The ID of the user namespace repository to access. (Required.)
 	RepositoryID ID `json:"repositoryId"`
-	// The name of the suggested topic. (Required.)
-	Name String `json:"name"`
 
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
@@ -40,8 +69,21 @@ type AcceptTopicSuggestionInput struct {
 type AddAssigneesToAssignableInput struct {
 	// The id of the assignable object to add assignees to. (Required.)
 	AssignableID ID `json:"assignableId"`
-	// The id of users to add as assignees. (Required.)
+	// The ids of actors (users or bots) to add as assignees. (Required.)
 	AssigneeIDs []ID `json:"assigneeIds"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// Configuration for assigning Copilot to this issue. (Optional.)
+	AgentAssignment *AgentAssignmentInput `json:"agentAssignment,omitempty"`
+}
+
+// AddBlockedByInput is an autogenerated input type of AddBlockedBy.
+type AddBlockedByInput struct {
+	// The ID of the issue to be blocked. (Required.)
+	IssueID ID `json:"issueId"`
+	// The ID of the issue that blocks the given issue. (Required.)
+	BlockingIssueID ID `json:"blockingIssueId"`
 
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
@@ -65,10 +107,10 @@ type AddDiscussionCommentInput struct {
 	// The contents of the comment. (Required.)
 	Body String `json:"body"`
 
-	// The Node ID of the discussion comment within this discussion to reply to. (Optional.)
-	ReplyToID *ID `json:"replyToId,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The Node ID of the discussion comment within this discussion to reply to. (Optional.)
+	ReplyToID *ID `json:"replyToId,omitempty"`
 }
 
 // AddDiscussionPollVoteInput is an autogenerated input type of AddDiscussionPollVote.
@@ -89,10 +131,10 @@ type AddEnterpriseOrganizationMemberInput struct {
 	// The IDs of the enterprise members to add. (Required.)
 	UserIDs []ID `json:"userIds"`
 
-	// The role to assign the users in the organization. (Optional.)
-	Role *OrganizationMemberRole `json:"role,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The role to assign the users in the organization. (Optional.)
+	Role *OrganizationMemberRole `json:"role,omitempty"`
 }
 
 // AddEnterpriseSupportEntitlementInput is an autogenerated input type of AddEnterpriseSupportEntitlement.
@@ -122,12 +164,12 @@ type AddProjectCardInput struct {
 	// The Node ID of the ProjectColumn. (Required.)
 	ProjectColumnID ID `json:"projectColumnId"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The content of the card. Must be a member of the ProjectCardItem union. (Optional.)
 	ContentID *ID `json:"contentId,omitempty"`
 	// The note on the card. (Optional.)
 	Note *String `json:"note,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
 // AddProjectColumnInput is an autogenerated input type of AddProjectColumn.
@@ -141,45 +183,19 @@ type AddProjectColumnInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
-// AddProjectDraftIssueInput is an autogenerated input type of AddProjectDraftIssue.
-type AddProjectDraftIssueInput struct {
-
-	// The ID of the Project to add the draft issue to. This field is required. **Upcoming Change on 2023-01-01 UTC** **Description:** `projectId` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
-	ProjectID *ID `json:"projectId,omitempty"`
-	// The title of the draft issue. This field is required. **Upcoming Change on 2023-01-01 UTC** **Description:** `title` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
-	Title *String `json:"title,omitempty"`
-	// The body of the draft issue. **Upcoming Change on 2023-01-01 UTC** **Description:** `body` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
-	Body *String `json:"body,omitempty"`
-	// The IDs of the assignees of the draft issue. **Upcoming Change on 2023-01-01 UTC** **Description:** `assigneeIds` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
-	AssigneeIDs *[]ID `json:"assigneeIds,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
-}
-
-// AddProjectNextItemInput is an autogenerated input type of AddProjectNextItem.
-type AddProjectNextItemInput struct {
-
-	// The ID of the Project to add the item to. This field is required. **Upcoming Change on 2023-01-01 UTC** **Description:** `projectId` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
-	ProjectID *ID `json:"projectId,omitempty"`
-	// The content id of the item (Issue or PullRequest). This field is required. **Upcoming Change on 2023-01-01 UTC** **Description:** `contentId` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
-	ContentID *ID `json:"contentId,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
-}
-
 // AddProjectV2DraftIssueInput is an autogenerated input type of AddProjectV2DraftIssue.
 type AddProjectV2DraftIssueInput struct {
 	// The ID of the Project to add the draft issue to. (Required.)
 	ProjectID ID `json:"projectId"`
-	// The title of the draft issue. (Required.)
+	// The title of the draft issue. A project item can also be created by providing the URL of an Issue or Pull Request if you have access. (Required.)
 	Title String `json:"title"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The body of the draft issue. (Optional.)
 	Body *String `json:"body,omitempty"`
 	// The IDs of the assignees of the draft issue. (Optional.)
 	AssigneeIDs *[]ID `json:"assigneeIds,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
 // AddProjectV2ItemByIdInput is an autogenerated input type of AddProjectV2ItemById.
@@ -195,23 +211,23 @@ type AddProjectV2ItemByIdInput struct {
 
 // AddPullRequestReviewCommentInput is an autogenerated input type of AddPullRequestReviewComment.
 type AddPullRequestReviewCommentInput struct {
-	// The text of the comment. (Required.)
-	Body String `json:"body"`
 
-	// The node ID of the pull request reviewing. (Optional.)
-	PullRequestID *ID `json:"pullRequestId,omitempty"`
-	// The Node ID of the review to modify. (Optional.)
-	PullRequestReviewID *ID `json:"pullRequestReviewId,omitempty"`
-	// The SHA of the commit to comment on. (Optional.)
-	CommitOID *GitObjectID `json:"commitOID,omitempty"`
-	// The relative path of the file to comment on. (Optional.)
-	Path *String `json:"path,omitempty"`
-	// The line index in the diff to comment on. (Optional.)
-	Position *Int `json:"position,omitempty"`
-	// The comment id to reply to. (Optional.)
-	InReplyTo *ID `json:"inReplyTo,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The node ID of the pull request reviewing **Upcoming Change on 2023-10-01 UTC** **Description:** `pullRequestId` will be removed. use addPullRequestReviewThread or addPullRequestReviewThreadReply instead **Reason:** We are deprecating the addPullRequestReviewComment mutation. (Optional.)
+	PullRequestID *ID `json:"pullRequestId,omitempty"`
+	// The Node ID of the review to modify. **Upcoming Change on 2023-10-01 UTC** **Description:** `pullRequestReviewId` will be removed. use addPullRequestReviewThread or addPullRequestReviewThreadReply instead **Reason:** We are deprecating the addPullRequestReviewComment mutation. (Optional.)
+	PullRequestReviewID *ID `json:"pullRequestReviewId,omitempty"`
+	// The SHA of the commit to comment on. **Upcoming Change on 2023-10-01 UTC** **Description:** `commitOID` will be removed. use addPullRequestReviewThread or addPullRequestReviewThreadReply instead **Reason:** We are deprecating the addPullRequestReviewComment mutation. (Optional.)
+	CommitOID *GitObjectID `json:"commitOID,omitempty"`
+	// The text of the comment. This field is required **Upcoming Change on 2023-10-01 UTC** **Description:** `body` will be removed. use addPullRequestReviewThread or addPullRequestReviewThreadReply instead **Reason:** We are deprecating the addPullRequestReviewComment mutation. (Optional.)
+	Body *String `json:"body,omitempty"`
+	// The relative path of the file to comment on. **Upcoming Change on 2023-10-01 UTC** **Description:** `path` will be removed. use addPullRequestReviewThread or addPullRequestReviewThreadReply instead **Reason:** We are deprecating the addPullRequestReviewComment mutation. (Optional.)
+	Path *String `json:"path,omitempty"`
+	// The line index in the diff to comment on. **Upcoming Change on 2023-10-01 UTC** **Description:** `position` will be removed. use addPullRequestReviewThread or addPullRequestReviewThreadReply instead **Reason:** We are deprecating the addPullRequestReviewComment mutation. (Optional.)
+	Position *Int `json:"position,omitempty"`
+	// The comment id to reply to. **Upcoming Change on 2023-10-01 UTC** **Description:** `inReplyTo` will be removed. use addPullRequestReviewThread or addPullRequestReviewThreadReply instead **Reason:** We are deprecating the addPullRequestReviewComment mutation. (Optional.)
+	InReplyTo *ID `json:"inReplyTo,omitempty"`
 }
 
 // AddPullRequestReviewInput is an autogenerated input type of AddPullRequestReview.
@@ -219,41 +235,56 @@ type AddPullRequestReviewInput struct {
 	// The Node ID of the pull request to modify. (Required.)
 	PullRequestID ID `json:"pullRequestId"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The commit OID the review pertains to. (Optional.)
 	CommitOID *GitObjectID `json:"commitOID,omitempty"`
 	// The contents of the review body comment. (Optional.)
 	Body *String `json:"body,omitempty"`
 	// The event to perform on the pull request review. (Optional.)
 	Event *PullRequestReviewEvent `json:"event,omitempty"`
-	// The review line comments. (Optional.)
+	// The review line comments. **Upcoming Change on 2023-10-01 UTC** **Description:** `comments` will be removed. use the `threads` argument instead **Reason:** We are deprecating comment fields that use diff-relative positioning. (Optional.)
 	Comments *[]*DraftPullRequestReviewComment `json:"comments,omitempty"`
 	// The review line comment threads. (Optional.)
 	Threads *[]*DraftPullRequestReviewThread `json:"threads,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
 // AddPullRequestReviewThreadInput is an autogenerated input type of AddPullRequestReviewThread.
 type AddPullRequestReviewThreadInput struct {
-	// Path to the file being commented on. (Required.)
-	Path String `json:"path"`
 	// Body of the thread's first comment. (Required.)
 	Body String `json:"body"`
-	// The line of the blob to which the thread refers. The end of the line range for multi-line comments. (Required.)
-	Line Int `json:"line"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// Path to the file being commented on. (Optional.)
+	Path *String `json:"path,omitempty"`
 	// The node ID of the pull request reviewing. (Optional.)
 	PullRequestID *ID `json:"pullRequestId,omitempty"`
 	// The Node ID of the review to modify. (Optional.)
 	PullRequestReviewID *ID `json:"pullRequestReviewId,omitempty"`
+	// The line of the blob to which the thread refers, required for line-level threads. The end of the line range for multi-line comments. (Optional.)
+	Line *Int `json:"line,omitempty"`
 	// The side of the diff on which the line resides. For multi-line comments, this is the side for the end of the line range. (Optional.)
 	Side *DiffSide `json:"side,omitempty"`
 	// The first line of the range to which the comment refers. (Optional.)
 	StartLine *Int `json:"startLine,omitempty"`
 	// The side of the diff on which the start line resides. (Optional.)
 	StartSide *DiffSide `json:"startSide,omitempty"`
+	// The level at which the comments in the corresponding thread are targeted, can be a diff line or a file. (Optional.)
+	SubjectType *PullRequestReviewThreadSubjectType `json:"subjectType,omitempty"`
+}
+
+// AddPullRequestReviewThreadReplyInput is an autogenerated input type of AddPullRequestReviewThreadReply.
+type AddPullRequestReviewThreadReplyInput struct {
+	// The Node ID of the thread to which this reply is being written. (Required.)
+	PullRequestReviewThreadID ID `json:"pullRequestReviewThreadId"`
+	// The text of the reply. (Required.)
+	Body String `json:"body"`
+
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The Node ID of the pending review to which the reply will belong. (Optional.)
+	PullRequestReviewID *ID `json:"pullRequestReviewId,omitempty"`
 }
 
 // AddReactionInput is an autogenerated input type of AddReaction.
@@ -276,6 +307,21 @@ type AddStarInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
+// AddSubIssueInput is an autogenerated input type of AddSubIssue.
+type AddSubIssueInput struct {
+	// The id of the issue. (Required.)
+	IssueID ID `json:"issueId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The id of the sub-issue. (Optional.)
+	SubIssueID *ID `json:"subIssueId,omitempty"`
+	// The url of the sub-issue. (Optional.)
+	SubIssueURL *String `json:"subIssueUrl,omitempty"`
+	// Option to replace parent issue if one already exists. (Optional.)
+	ReplaceParent *Boolean `json:"replaceParent,omitempty"`
+}
+
 // AddUpvoteInput is an autogenerated input type of AddUpvote.
 type AddUpvoteInput struct {
 	// The Node ID of the discussion or comment to upvote. (Required.)
@@ -296,6 +342,19 @@ type AddVerifiableDomainInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
+// AgentAssignmentInput represents represents configuration for assigning Copilot to an issue (public variant).
+type AgentAssignmentInput struct {
+
+	// The Node ID of the target repository where Copilot should work. Defaults to the issue's repository if not provided. (Optional.)
+	TargetRepositoryID *ID `json:"targetRepositoryId,omitempty"`
+	// The base ref/branch for the repository. Defaults to the default branch if not provided. (Optional.)
+	BaseRef *String `json:"baseRef,omitempty"`
+	// Custom instructions for Copilot. (Optional.)
+	CustomInstructions *String `json:"customInstructions,omitempty"`
+	// Custom agent for Copilot. (Optional.)
+	CustomAgent *String `json:"customAgent,omitempty"`
+}
+
 // ApproveDeploymentsInput is an autogenerated input type of ApproveDeployments.
 type ApproveDeploymentsInput struct {
 	// The node ID of the workflow run containing the pending deployments. (Required.)
@@ -303,10 +362,10 @@ type ApproveDeploymentsInput struct {
 	// The ids of environments to reject deployments. (Required.)
 	EnvironmentIDs []ID `json:"environmentIds"`
 
-	// Optional comment for approving deployments. (Optional.)
-	Comment *String `json:"comment,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// Optional comment for approving deployments. (Optional.)
+	Comment *String `json:"comment,omitempty"`
 }
 
 // ApproveVerifiableDomainInput is an autogenerated input type of ApproveVerifiableDomain.
@@ -347,6 +406,30 @@ type AuditLogOrder struct {
 	Direction *OrderDirection `json:"direction,omitempty"`
 }
 
+// BranchNamePatternParametersInput represents parameters to be used for the branch_name_pattern rule.
+type BranchNamePatternParametersInput struct {
+	// The operator to use for matching. (Required.)
+	Operator String `json:"operator"`
+	// The pattern to match with. (Required.)
+	Pattern String `json:"pattern"`
+
+	// How this rule appears when configuring it. (Optional.)
+	Name *String `json:"name,omitempty"`
+	// If true, the rule will fail if the pattern matches. (Optional.)
+	Negate *Boolean `json:"negate,omitempty"`
+}
+
+// BulkSponsorship represents information about a sponsorship to make for a user or organization with a GitHub Sponsors profile, as part of sponsoring many users or organizations at once.
+type BulkSponsorship struct {
+	// The amount to pay to the sponsorable in US dollars. Valid values: 1-12000. (Required.)
+	Amount Int `json:"amount"`
+
+	// The ID of the user or organization who is receiving the sponsorship. Required if sponsorableLogin is not given. (Optional.)
+	SponsorableID *ID `json:"sponsorableId,omitempty"`
+	// The username of the user or organization who is receiving the sponsorship. Required if sponsorableId is not given. (Optional.)
+	SponsorableLogin *String `json:"sponsorableLogin,omitempty"`
+}
+
 // CancelEnterpriseAdminInvitationInput is an autogenerated input type of CancelEnterpriseAdminInvitation.
 type CancelEnterpriseAdminInvitationInput struct {
 	// The Node ID of the pending enterprise administrator invitation. (Required.)
@@ -356,9 +439,20 @@ type CancelEnterpriseAdminInvitationInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
+// CancelEnterpriseMemberInvitationInput is an autogenerated input type of CancelEnterpriseMemberInvitation.
+type CancelEnterpriseMemberInvitationInput struct {
+	// The Node ID of the pending enterprise member invitation. (Required.)
+	InvitationID ID `json:"invitationId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
 // CancelSponsorshipInput is an autogenerated input type of CancelSponsorship.
 type CancelSponsorshipInput struct {
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The ID of the user or organization who is acting as the sponsor, paying for the sponsorship. Required if sponsorLogin is not given. (Optional.)
 	SponsorID *ID `json:"sponsorId,omitempty"`
 	// The username of the user or organization who is acting as the sponsor, paying for the sponsorship. Required if sponsorId is not given. (Optional.)
@@ -367,13 +461,13 @@ type CancelSponsorshipInput struct {
 	SponsorableID *ID `json:"sponsorableId,omitempty"`
 	// The username of the user or organization who is receiving the sponsorship. Required if sponsorableId is not given. (Optional.)
 	SponsorableLogin *String `json:"sponsorableLogin,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
 // ChangeUserStatusInput is an autogenerated input type of ChangeUserStatus.
 type ChangeUserStatusInput struct {
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The emoji to represent your status. Can either be a native Unicode emoji or an emoji name with colons, e.g., :grinning:. (Optional.)
 	Emoji *String `json:"emoji,omitempty"`
 	// A short description of your current status. (Optional.)
@@ -384,8 +478,6 @@ type ChangeUserStatusInput struct {
 	LimitedAvailability *Boolean `json:"limitedAvailability,omitempty"`
 	// If set, the user status will not be shown after this date. (Optional.)
 	ExpiresAt *DateTime `json:"expiresAt,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
 // CheckAnnotationData represents information from a check run analysis to specific lines of code.
@@ -521,12 +613,12 @@ type CloneProjectInput struct {
 	// The name of the project. (Required.)
 	Name String `json:"name"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The description of the project. (Optional.)
 	Body *String `json:"body,omitempty"`
 	// The visibility of the project, defaults to false (private). (Optional.)
 	Public *Boolean `json:"public,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
 // CloneTemplateRepositoryInput is an autogenerated input type of CloneTemplateRepository.
@@ -540,12 +632,23 @@ type CloneTemplateRepositoryInput struct {
 	// Indicates the repository's visibility level. (Required.)
 	Visibility RepositoryVisibility `json:"visibility"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// A short description of the new repository. (Optional.)
 	Description *String `json:"description,omitempty"`
 	// Whether to copy all branches from the template to the new repository. Defaults to copying only the default branch of the template. (Optional.)
 	IncludeAllBranches *Boolean `json:"includeAllBranches,omitempty"`
+}
+
+// CloseDiscussionInput is an autogenerated input type of CloseDiscussion.
+type CloseDiscussionInput struct {
+	// ID of the discussion to be closed. (Required.)
+	DiscussionID ID `json:"discussionId"`
+
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The reason why the discussion is being closed. (Optional.)
+	Reason *DiscussionCloseReason `json:"reason,omitempty"`
 }
 
 // CloseIssueInput is an autogenerated input type of CloseIssue.
@@ -553,10 +656,12 @@ type CloseIssueInput struct {
 	// ID of the issue to be closed. (Required.)
 	IssueID ID `json:"issueId"`
 
-	// The reason the issue is to be closed. (Optional.)
-	StateReason *IssueClosedStateReason `json:"stateReason,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The reason the issue is to be closed. (Optional.)
+	StateReason *IssueClosedStateReason `json:"stateReason,omitempty"`
+	// ID of the issue that this is a duplicate of. (Optional.)
+	DuplicateIssueID *ID `json:"duplicateIssueId,omitempty"`
 }
 
 // ClosePullRequestInput is an autogenerated input type of ClosePullRequest.
@@ -568,6 +673,22 @@ type ClosePullRequestInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
+// CodeScanningParametersInput represents choose which tools must provide code scanning results before the reference is updated. When configured, code scanning must be enabled and have results for both the commit and the reference being updated.
+type CodeScanningParametersInput struct {
+	// Tools that must provide code scanning results for this rule to pass. (Required.)
+	CodeScanningTools []CodeScanningToolInput `json:"codeScanningTools"`
+}
+
+// CodeScanningToolInput represents a tool that must provide code scanning results for this rule to pass.
+type CodeScanningToolInput struct {
+	// The severity level at which code scanning results that raise alerts block a reference update. For more information on alert severity levels, see "[About code scanning alerts](${externalDocsUrl}/code-security/code-scanning/managing-code-scanning-alerts/about-code-scanning-alerts#about-alert-severity-and-security-severity-levels).". (Required.)
+	AlertsThreshold String `json:"alertsThreshold"`
+	// The severity level at which code scanning results that raise security alerts block a reference update. For more information on security severity levels, see "[About code scanning alerts](${externalDocsUrl}/code-security/code-scanning/managing-code-scanning-alerts/about-code-scanning-alerts#about-alert-severity-and-security-severity-levels).". (Required.)
+	SecurityAlertsThreshold String `json:"securityAlertsThreshold"`
+	// The name of a code scanning tool. (Required.)
+	Tool String `json:"tool"`
+}
+
 // CommitAuthor specifies an author for filtering Git commits.
 type CommitAuthor struct {
 
@@ -575,6 +696,19 @@ type CommitAuthor struct {
 	ID *ID `json:"id,omitempty"`
 	// Email addresses to filter by. Commits authored by any of the specified email addresses will be returned. (Optional.)
 	Emails *[]String `json:"emails,omitempty"`
+}
+
+// CommitAuthorEmailPatternParametersInput represents parameters to be used for the commit_author_email_pattern rule.
+type CommitAuthorEmailPatternParametersInput struct {
+	// The operator to use for matching. (Required.)
+	Operator String `json:"operator"`
+	// The pattern to match with. (Required.)
+	Pattern String `json:"pattern"`
+
+	// How this rule appears when configuring it. (Optional.)
+	Name *String `json:"name,omitempty"`
+	// If true, the rule will fail if the pattern matches. (Optional.)
+	Negate *Boolean `json:"negate,omitempty"`
 }
 
 // CommitContributionOrder represents ordering options for commit contribution connections.
@@ -594,6 +728,19 @@ type CommitMessage struct {
 	Body *String `json:"body,omitempty"`
 }
 
+// CommitMessagePatternParametersInput represents parameters to be used for the commit_message_pattern rule.
+type CommitMessagePatternParametersInput struct {
+	// The operator to use for matching. (Required.)
+	Operator String `json:"operator"`
+	// The pattern to match with. (Required.)
+	Pattern String `json:"pattern"`
+
+	// How this rule appears when configuring it. (Optional.)
+	Name *String `json:"name,omitempty"`
+	// If true, the rule will fail if the pattern matches. (Optional.)
+	Negate *Boolean `json:"negate,omitempty"`
+}
+
 // CommittableBranch represents a git ref for a commit to be appended to. The ref must be a branch, i.e. its fully qualified name must start with `refs/heads/` (although the input is not required to be fully qualified). The Ref may be specified by its global node ID or by the `repositoryNameWithOwner` and `branchName`. ### Examples Specify a branch using a global node ID: { "id": "MDM6UmVmMTpyZWZzL2hlYWRzL21haW4=" } Specify a branch using `repositoryNameWithOwner` and `branchName`: { "repositoryNameWithOwner": "github/graphql-client", "branchName": "main" }.
 type CommittableBranch struct {
 
@@ -603,6 +750,19 @@ type CommittableBranch struct {
 	RepositoryNameWithOwner *String `json:"repositoryNameWithOwner,omitempty"`
 	// The unqualified name of the branch to append the commit to. (Optional.)
 	BranchName *String `json:"branchName,omitempty"`
+}
+
+// CommitterEmailPatternParametersInput represents parameters to be used for the committer_email_pattern rule.
+type CommitterEmailPatternParametersInput struct {
+	// The operator to use for matching. (Required.)
+	Operator String `json:"operator"`
+	// The pattern to match with. (Required.)
+	Pattern String `json:"pattern"`
+
+	// How this rule appears when configuring it. (Optional.)
+	Name *String `json:"name,omitempty"`
+	// If true, the rule will fail if the pattern matches. (Optional.)
+	Negate *Boolean `json:"negate,omitempty"`
 }
 
 // ContributionOrder represents ordering options for contribution connections.
@@ -618,10 +778,21 @@ type ConvertProjectCardNoteToIssueInput struct {
 	// The ID of the repository to create the issue in. (Required.)
 	RepositoryID ID `json:"repositoryId"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The title of the newly created issue. Defaults to the card's note text. (Optional.)
 	Title *String `json:"title,omitempty"`
 	// The body of the newly created issue. (Optional.)
 	Body *String `json:"body,omitempty"`
+}
+
+// ConvertProjectV2DraftIssueItemToIssueInput is an autogenerated input type of ConvertProjectV2DraftIssueItemToIssue.
+type ConvertProjectV2DraftIssueItemToIssueInput struct {
+	// The ID of the draft issue ProjectV2Item to convert. (Required.)
+	ItemID ID `json:"itemId"`
+	// The ID of the repository to create the issue in. (Required.)
+	RepositoryID ID `json:"repositoryId"`
+
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
@@ -635,6 +806,43 @@ type ConvertPullRequestToDraftInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
+// CopilotCodeReviewParametersInput represents request Copilot code review for new pull requests automatically if the author has access to Copilot code review and their premium requests quota has not reached the limit.
+type CopilotCodeReviewParametersInput struct {
+
+	// Copilot automatically reviews draft pull requests before they are marked as ready for review. (Optional.)
+	ReviewDraftPullRequests *Boolean `json:"reviewDraftPullRequests,omitempty"`
+	// Copilot automatically reviews each new push to the pull request. (Optional.)
+	ReviewOnPush *Boolean `json:"reviewOnPush,omitempty"`
+}
+
+// CopyProjectV2Input is an autogenerated input type of CopyProjectV2.
+type CopyProjectV2Input struct {
+	// The ID of the source Project to copy. (Required.)
+	ProjectID ID `json:"projectId"`
+	// The owner ID of the new project. (Required.)
+	OwnerID ID `json:"ownerId"`
+	// The title of the project. (Required.)
+	Title String `json:"title"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// Include draft issues in the new project. (Optional.)
+	IncludeDraftIssues *Boolean `json:"includeDraftIssues,omitempty"`
+}
+
+// CreateAttributionInvitationInput is an autogenerated input type of CreateAttributionInvitation.
+type CreateAttributionInvitationInput struct {
+	// The Node ID of the owner scoping the reattributable data. (Required.)
+	OwnerID ID `json:"ownerId"`
+	// The Node ID of the account owning the data to reattribute. (Required.)
+	SourceID ID `json:"sourceId"`
+	// The Node ID of the account which may claim the data. (Required.)
+	TargetID ID `json:"targetId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
 // CreateBranchProtectionRuleInput is an autogenerated input type of CreateBranchProtectionRule.
 type CreateBranchProtectionRuleInput struct {
 	// The global relay id of the repository in which a new branch protection rule should be created in. (Required.)
@@ -642,6 +850,8 @@ type CreateBranchProtectionRuleInput struct {
 	// The glob-like pattern used to determine matching branches. (Required.)
 	Pattern String `json:"pattern"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// Are approving reviews required to update matching branches. (Optional.)
 	RequiresApprovingReviews *Boolean `json:"requiresApprovingReviews,omitempty"`
 	// Number of approving reviews required to update matching branches. (Optional.)
@@ -656,7 +866,7 @@ type CreateBranchProtectionRuleInput struct {
 	AllowsForcePushes *Boolean `json:"allowsForcePushes,omitempty"`
 	// Can this branch be deleted. (Optional.)
 	AllowsDeletions *Boolean `json:"allowsDeletions,omitempty"`
-	// Can admins overwrite branch protection. (Optional.)
+	// Can admins override branch protection. (Optional.)
 	IsAdminEnforced *Boolean `json:"isAdminEnforced,omitempty"`
 	// Are status checks required to update matching branches. (Optional.)
 	RequiresStatusChecks *Boolean `json:"requiresStatusChecks,omitempty"`
@@ -682,6 +892,10 @@ type CreateBranchProtectionRuleInput struct {
 	RequiredStatusCheckContexts *[]String `json:"requiredStatusCheckContexts,omitempty"`
 	// The list of required status checks. (Optional.)
 	RequiredStatusChecks *[]RequiredStatusCheckInput `json:"requiredStatusChecks,omitempty"`
+	// Are successful deployments required before merging. (Optional.)
+	RequiresDeployments *Boolean `json:"requiresDeployments,omitempty"`
+	// The list of required deployment environments. (Optional.)
+	RequiredDeploymentEnvironments *[]String `json:"requiredDeploymentEnvironments,omitempty"`
 	// Are conversations required to be resolved before merging. (Optional.)
 	RequiresConversationResolution *Boolean `json:"requiresConversationResolution,omitempty"`
 	// Whether the most recent push must be approved by someone other than the person who pushed it. (Optional.)
@@ -690,8 +904,6 @@ type CreateBranchProtectionRuleInput struct {
 	LockBranch *Boolean `json:"lockBranch,omitempty"`
 	// Whether users can pull changes from upstream when the branch is locked. Set to `true` to allow fork syncing. Set to `false` to prevent fork syncing. (Optional.)
 	LockAllowsFetchAndMerge *Boolean `json:"lockAllowsFetchAndMerge,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
 // CreateCheckRunInput is an autogenerated input type of CreateCheckRun.
@@ -703,6 +915,8 @@ type CreateCheckRunInput struct {
 	// The SHA of the head commit. (Required.)
 	HeadSha GitObjectID `json:"headSha"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The URL of the integrator's site that has the full details of the check. (Optional.)
 	DetailsURL *URI `json:"detailsUrl,omitempty"`
 	// A reference for the run on the integrator's system. (Optional.)
@@ -719,8 +933,6 @@ type CreateCheckRunInput struct {
 	Output *CheckRunOutput `json:"output,omitempty"`
 	// Possible further actions the integrator can perform, which a user may trigger. (Optional.)
 	Actions *[]CheckRunAction `json:"actions,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
 // CreateCheckSuiteInput is an autogenerated input type of CreateCheckSuite.
@@ -743,10 +955,54 @@ type CreateCommitOnBranchInput struct {
 	// The git commit oid expected at the head of the branch prior to the commit. (Required.)
 	ExpectedHeadOid GitObjectID `json:"expectedHeadOid"`
 
-	// A description of changes to files in this commit. (Optional.)
-	FileChanges *FileChanges `json:"fileChanges,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// A description of changes to files in this commit. (Optional.)
+	FileChanges *FileChanges `json:"fileChanges,omitempty"`
+}
+
+// CreateDeploymentInput is an autogenerated input type of CreateDeployment.
+type CreateDeploymentInput struct {
+	// The node ID of the repository. (Required.)
+	RepositoryID ID `json:"repositoryId"`
+	// The node ID of the ref to be deployed. (Required.)
+	RefID ID `json:"refId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// Attempt to automatically merge the default branch into the requested ref, defaults to true. (Optional.)
+	AutoMerge *Boolean `json:"autoMerge,omitempty"`
+	// The status contexts to verify against commit status checks. To bypass required contexts, pass an empty array. Defaults to all unique contexts. (Optional.)
+	RequiredContexts *[]String `json:"requiredContexts,omitempty"`
+	// Short description of the deployment. (Optional.)
+	Description *String `json:"description,omitempty"`
+	// Name for the target deployment environment. (Optional.)
+	Environment *String `json:"environment,omitempty"`
+	// Specifies a task to execute. (Optional.)
+	Task *String `json:"task,omitempty"`
+	// JSON payload with extra information about the deployment. (Optional.)
+	Payload *String `json:"payload,omitempty"`
+}
+
+// CreateDeploymentStatusInput is an autogenerated input type of CreateDeploymentStatus.
+type CreateDeploymentStatusInput struct {
+	// The node ID of the deployment. (Required.)
+	DeploymentID ID `json:"deploymentId"`
+	// The state of the deployment. (Required.)
+	State DeploymentStatusState `json:"state"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// A short description of the status. Maximum length of 140 characters. (Optional.)
+	Description *String `json:"description,omitempty"`
+	// If provided, updates the environment of the deploy. Otherwise, does not modify the environment. (Optional.)
+	Environment *String `json:"environment,omitempty"`
+	// Sets the URL for accessing your environment. (Optional.)
+	EnvironmentURL *String `json:"environmentUrl,omitempty"`
+	// Adds a new inactive status to all non-transient, non-production environment deployments with the same repository and environment name as the created status's deployment. (Optional.)
+	AutoInactive *Boolean `json:"autoInactive,omitempty"`
+	// The log URL to associate with this status. This URL should contain output to keep the user updated while the task is running or serve as historical information for what happened in the deployment. (Optional.)
+	LogURL *String `json:"logUrl,omitempty"`
 }
 
 // CreateDiscussionInput is an autogenerated input type of CreateDiscussion.
@@ -801,10 +1057,10 @@ type CreateIpAllowListEntryInput struct {
 	// Whether the IP allow list entry is active when an IP allow list is enabled. (Required.)
 	IsActive Boolean `json:"isActive"`
 
-	// An optional name for the IP allow list entry. (Optional.)
-	Name *String `json:"name,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// An optional name for the IP allow list entry. (Optional.)
+	Name *String `json:"name,omitempty"`
 }
 
 // CreateIssueInput is an autogenerated input type of CreateIssue.
@@ -814,9 +1070,11 @@ type CreateIssueInput struct {
 	// The title for the issue. (Required.)
 	Title String `json:"title"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The body for the issue description. (Optional.)
 	Body *String `json:"body,omitempty"`
-	// The Node ID for the user assignee for this issue. (Optional.)
+	// The Node ID of assignees for this issue. (Optional.)
 	AssigneeIDs *[]ID `json:"assigneeIds,omitempty"`
 	// The Node ID of the milestone for this issue. (Optional.)
 	MilestoneID *ID `json:"milestoneId,omitempty"`
@@ -824,10 +1082,48 @@ type CreateIssueInput struct {
 	LabelIDs *[]ID `json:"labelIds,omitempty"`
 	// An array of Node IDs for projects associated with this issue. (Optional.)
 	ProjectIDs *[]ID `json:"projectIds,omitempty"`
+	// An array of Node IDs for Projects V2 associated with this issue. (Optional.)
+	ProjectV2IDs *[]ID `json:"projectV2Ids,omitempty"`
 	// The name of an issue template in the repository, assigns labels and assignees from the template to the issue. (Optional.)
 	IssueTemplate *String `json:"issueTemplate,omitempty"`
+	// The Node ID of the issue type for this issue. (Optional.)
+	IssueTypeID *ID `json:"issueTypeId,omitempty"`
+	// The Node ID of the parent issue to add this new issue to. (Optional.)
+	ParentIssueID *ID `json:"parentIssueId,omitempty"`
+	// Configuration for assigning Copilot to this issue. (Optional.)
+	AgentAssignment *AgentAssignmentInput `json:"agentAssignment,omitempty"`
+}
+
+// CreateIssueTypeInput is an autogenerated input type of CreateIssueType.
+type CreateIssueTypeInput struct {
+	// The ID for the organization on which the issue type is created. (Required.)
+	OwnerID ID `json:"ownerId"`
+	// Whether or not the issue type is enabled on the org level. (Required.)
+	IsEnabled Boolean `json:"isEnabled"`
+	// Name of the new issue type. (Required.)
+	Name String `json:"name"`
+
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// Description of the new issue type. (Optional.)
+	Description *String `json:"description,omitempty"`
+	// Color for the issue type. (Optional.)
+	Color *IssueTypeColor `json:"color,omitempty"`
+}
+
+// CreateLabelInput is an autogenerated input type of CreateLabel.
+type CreateLabelInput struct {
+	// The Node ID of the repository. (Required.)
+	RepositoryID ID `json:"repositoryId"`
+	// A 6 character hex code, without the leading #, identifying the color of the label. (Required.)
+	Color String `json:"color"`
+	// The name of the label. (Required.)
+	Name String `json:"name"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// A brief description of the label, such as its purpose. (Optional.)
+	Description *String `json:"description,omitempty"`
 }
 
 // CreateLinkedBranchInput is an autogenerated input type of CreateLinkedBranch.
@@ -837,31 +1133,31 @@ type CreateLinkedBranchInput struct {
 	// The commit SHA to base the new branch on. (Required.)
 	Oid GitObjectID `json:"oid"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The name of the new branch. Defaults to issue number and title. (Optional.)
 	Name *String `json:"name,omitempty"`
 	// ID of the repository to create the branch in. Defaults to the issue repository. (Optional.)
 	RepositoryID *ID `json:"repositoryId,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
 // CreateMigrationSourceInput is an autogenerated input type of CreateMigrationSource.
 type CreateMigrationSourceInput struct {
-	// The Octoshift migration source name. (Required.)
+	// The migration source name. (Required.)
 	Name String `json:"name"`
-	// The Octoshift migration source URL. (Required.)
-	URL String `json:"url"`
-	// The Octoshift migration source type. (Required.)
+	// The migration source type. (Required.)
 	Type MigrationSourceType `json:"type"`
-	// The ID of the organization that will own the Octoshift migration source. (Required.)
+	// The ID of the organization that will own the migration source. (Required.)
 	OwnerID ID `json:"ownerId"`
 
-	// The Octoshift migration source access token. (Optional.)
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The migration source URL, for example `https://github.com` or `https://monalisa.ghe.com`. (Optional.)
+	URL *String `json:"url,omitempty"`
+	// The migration source access token. (Optional.)
 	AccessToken *String `json:"accessToken,omitempty"`
 	// The GitHub personal access token of the user importing to the target repository. (Optional.)
 	GitHubPat *String `json:"githubPat,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
 // CreateProjectInput is an autogenerated input type of CreateProject.
@@ -871,14 +1167,31 @@ type CreateProjectInput struct {
 	// The name of project. (Required.)
 	Name String `json:"name"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The description of project. (Optional.)
 	Body *String `json:"body,omitempty"`
 	// The name of the GitHub-provided template. (Optional.)
 	Template *ProjectTemplate `json:"template,omitempty"`
 	// A list of repository IDs to create as linked repositories for the project. (Optional.)
 	RepositoryIDs *[]ID `json:"repositoryIds,omitempty"`
+}
+
+// CreateProjectV2FieldInput is an autogenerated input type of CreateProjectV2Field.
+type CreateProjectV2FieldInput struct {
+	// The ID of the Project to create the field in. (Required.)
+	ProjectID ID `json:"projectId"`
+	// The data type of the field. (Required.)
+	DataType ProjectV2CustomFieldType `json:"dataType"`
+	// The name of the field. (Required.)
+	Name String `json:"name"`
+
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// Options for a single select field. At least one value is required if data_type is SINGLE_SELECT. (Optional.)
+	SingleSelectOptions *[]ProjectV2SingleSelectFieldOptionInput `json:"singleSelectOptions,omitempty"`
+	// Configuration for an iteration field. (Optional.)
+	IterationConfiguration *ProjectV2IterationFieldConfigurationInput `json:"iterationConfiguration,omitempty"`
 }
 
 // CreateProjectV2Input is an autogenerated input type of CreateProjectV2.
@@ -888,12 +1201,29 @@ type CreateProjectV2Input struct {
 	// The title of the project. (Required.)
 	Title String `json:"title"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The repository to link the project to. (Optional.)
 	RepositoryID *ID `json:"repositoryId,omitempty"`
 	// The team to link the project to. The team will be granted read permissions. (Optional.)
 	TeamID *ID `json:"teamId,omitempty"`
+}
+
+// CreateProjectV2StatusUpdateInput is an autogenerated input type of CreateProjectV2StatusUpdate.
+type CreateProjectV2StatusUpdateInput struct {
+	// The ID of the Project to create the status update in. (Required.)
+	ProjectID ID `json:"projectId"`
+
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The start date of the status update. (Optional.)
+	StartDate *Date `json:"startDate,omitempty"`
+	// The target date of the status update. (Optional.)
+	TargetDate *Date `json:"targetDate,omitempty"`
+	// The status of the status update. (Optional.)
+	Status *ProjectV2StatusUpdateStatus `json:"status,omitempty"`
+	// The body of the status update. (Optional.)
+	Body *String `json:"body,omitempty"`
 }
 
 // CreatePullRequestInput is an autogenerated input type of CreatePullRequest.
@@ -907,14 +1237,16 @@ type CreatePullRequestInput struct {
 	// The title of the pull request. (Required.)
 	Title String `json:"title"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The Node ID of the head repository. (Optional.)
+	HeadRepositoryID *ID `json:"headRepositoryId,omitempty"`
 	// The contents of the pull request. (Optional.)
 	Body *String `json:"body,omitempty"`
 	// Indicates whether maintainers can modify the pull request. (Optional.)
 	MaintainerCanModify *Boolean `json:"maintainerCanModify,omitempty"`
 	// Indicates whether this pull request should be a draft. (Optional.)
 	Draft *Boolean `json:"draft,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
 // CreateRefInput is an autogenerated input type of CreateRef.
@@ -937,6 +1269,8 @@ type CreateRepositoryInput struct {
 	// Indicates the repository's visibility level. (Required.)
 	Visibility RepositoryVisibility `json:"visibility"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The ID of the owner for the new repository. (Optional.)
 	OwnerID *ID `json:"ownerId,omitempty"`
 	// A short description of the new repository. (Optional.)
@@ -951,8 +1285,48 @@ type CreateRepositoryInput struct {
 	HasIssuesEnabled *Boolean `json:"hasIssuesEnabled,omitempty"`
 	// When an organization is specified as the owner, this ID identifies the team that should be granted access to the new repository. (Optional.)
 	TeamID *ID `json:"teamId,omitempty"`
+}
+
+// CreateRepositoryRulesetInput is an autogenerated input type of CreateRepositoryRuleset.
+type CreateRepositoryRulesetInput struct {
+	// The global relay id of the source in which a new ruleset should be created in. (Required.)
+	SourceID ID `json:"sourceId"`
+	// The name of the ruleset. (Required.)
+	Name String `json:"name"`
+	// The set of conditions for this ruleset. (Required.)
+	Conditions RepositoryRuleConditionsInput `json:"conditions"`
+	// The enforcement level for this ruleset. (Required.)
+	Enforcement RuleEnforcement `json:"enforcement"`
+
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The target of the ruleset. (Optional.)
+	Target *RepositoryRulesetTarget `json:"target,omitempty"`
+	// The list of rules for this ruleset. (Optional.)
+	Rules *[]RepositoryRuleInput `json:"rules,omitempty"`
+	// A list of actors that are allowed to bypass rules in this ruleset. (Optional.)
+	BypassActors *[]RepositoryRulesetBypassActorInput `json:"bypassActors,omitempty"`
+}
+
+// CreateSponsorsListingInput is an autogenerated input type of CreateSponsorsListing.
+type CreateSponsorsListingInput struct {
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The username of the organization to create a GitHub Sponsors profile for, if desired. Defaults to creating a GitHub Sponsors profile for the authenticated user if omitted. (Optional.)
+	SponsorableLogin *String `json:"sponsorableLogin,omitempty"`
+	// The username of the supported fiscal host's GitHub organization, if you want to receive sponsorship payouts through a fiscal host rather than directly to a bank account. For example, 'Open-Source-Collective' for Open Source Collective or 'numfocus' for numFOCUS. Case insensitive. See https://docs.github.com/sponsors/receiving-sponsorships-through-github-sponsors/using-a-fiscal-host-to-receive-github-sponsors-payouts for more information. (Optional.)
+	FiscalHostLogin *String `json:"fiscalHostLogin,omitempty"`
+	// The URL for your profile page on the fiscal host's website, e.g., https://opencollective.com/babel or https://numfocus.org/project/bokeh. Required if fiscalHostLogin is specified. (Optional.)
+	FiscallyHostedProjectProfileURL *String `json:"fiscallyHostedProjectProfileUrl,omitempty"`
+	// The country or region where the sponsorable's bank account is located. Required if fiscalHostLogin is not specified, ignored when fiscalHostLogin is specified. (Optional.)
+	BillingCountryOrRegionCode *SponsorsCountryOrRegionCode `json:"billingCountryOrRegionCode,omitempty"`
+	// The country or region where the sponsorable resides. This is for tax purposes. Required if the sponsorable is yourself, ignored when sponsorableLogin specifies an organization. (Optional.)
+	ResidenceCountryOrRegionCode *SponsorsCountryOrRegionCode `json:"residenceCountryOrRegionCode,omitempty"`
+	// The email address we should use to contact you about the GitHub Sponsors profile being created. This will not be shared publicly. Must be a verified email address already on your GitHub account. Only relevant when the sponsorable is yourself. Defaults to your primary email address on file if omitted. (Optional.)
+	ContactEmail *String `json:"contactEmail,omitempty"`
+	// Provide an introduction to serve as the main focus that appears on your GitHub Sponsors profile. It's a great opportunity to help potential sponsors learn more about you, your work, and why their sponsorship is important to you. GitHub-flavored Markdown is supported. (Optional.)
+	FullDescription *String `json:"fullDescription,omitempty"`
 }
 
 // CreateSponsorsTierInput is an autogenerated input type of CreateSponsorsTier.
@@ -962,6 +1336,8 @@ type CreateSponsorsTierInput struct {
 	// A description of what this tier is, what perks sponsors might receive, what a sponsorship at this tier means for you, etc. (Required.)
 	Description String `json:"description"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The ID of the user or organization who owns the GitHub Sponsors profile. Defaults to the current user if omitted and sponsorableLogin is not given. (Optional.)
 	SponsorableID *ID `json:"sponsorableId,omitempty"`
 	// The username of the user or organization who owns the GitHub Sponsors profile. Defaults to the current user if omitted and sponsorableId is not given. (Optional.)
@@ -978,13 +1354,13 @@ type CreateSponsorsTierInput struct {
 	WelcomeMessage *String `json:"welcomeMessage,omitempty"`
 	// Whether to make the tier available immediately for sponsors to choose. Defaults to creating a draft tier that will not be publicly visible. (Optional.)
 	Publish *Boolean `json:"publish,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
 // CreateSponsorshipInput is an autogenerated input type of CreateSponsorship.
 type CreateSponsorshipInput struct {
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The ID of the user or organization who is acting as the sponsor, paying for the sponsorship. Required if sponsorLogin is not given. (Optional.)
 	SponsorID *ID `json:"sponsorId,omitempty"`
 	// The username of the user or organization who is acting as the sponsor, paying for the sponsorship. Required if sponsorId is not given. (Optional.)
@@ -1003,47 +1379,49 @@ type CreateSponsorshipInput struct {
 	ReceiveEmails *Boolean `json:"receiveEmails,omitempty"`
 	// Specify whether others should be able to see that the sponsor is sponsoring the sponsorable. Public visibility still does not reveal which tier is used. (Optional.)
 	PrivacyLevel *SponsorshipPrivacy `json:"privacyLevel,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
-// CreateTeamDiscussionCommentInput is an autogenerated input type of CreateTeamDiscussionComment.
-type CreateTeamDiscussionCommentInput struct {
-	// The ID of the discussion to which the comment belongs. (Required.)
-	DiscussionID ID `json:"discussionId"`
-	// The content of the comment. (Required.)
-	Body String `json:"body"`
+// CreateSponsorshipsInput is an autogenerated input type of CreateSponsorships.
+type CreateSponsorshipsInput struct {
+	// The username of the user or organization who is acting as the sponsor, paying for the sponsorships. (Required.)
+	SponsorLogin String `json:"sponsorLogin"`
+	// The list of maintainers to sponsor and for how much apiece. (Required.)
+	Sponsorships []BulkSponsorship `json:"sponsorships"`
 
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// Whether the sponsor should receive email updates from the sponsorables. (Optional.)
+	ReceiveEmails *Boolean `json:"receiveEmails,omitempty"`
+	// Specify whether others should be able to see that the sponsor is sponsoring the sponsorables. Public visibility still does not reveal the dollar value of the sponsorship. (Optional.)
+	PrivacyLevel *SponsorshipPrivacy `json:"privacyLevel,omitempty"`
+	// Whether the sponsorships created should continue each billing cycle for the sponsor (monthly or annually), versus lasting only a single month. Defaults to one-time sponsorships. (Optional.)
+	Recurring *Boolean `json:"recurring,omitempty"`
 }
 
-// CreateTeamDiscussionInput is an autogenerated input type of CreateTeamDiscussion.
-type CreateTeamDiscussionInput struct {
-	// The ID of the team to which the discussion belongs. (Required.)
-	TeamID ID `json:"teamId"`
-	// The title of the discussion. (Required.)
-	Title String `json:"title"`
-	// The content of the discussion. (Required.)
-	Body String `json:"body"`
+// CreateUserListInput is an autogenerated input type of CreateUserList.
+type CreateUserListInput struct {
+	// The name of the new list. (Required.)
+	Name String `json:"name"`
 
-	// If true, restricts the visibility of this discussion to team members and organization admins. If false or not specified, allows any organization member to view this discussion. (Optional.)
-	Private *Boolean `json:"private,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// A description of the list. (Optional.)
+	Description *String `json:"description,omitempty"`
+	// Whether or not the list is private. (Optional.)
+	IsPrivate *Boolean `json:"isPrivate,omitempty"`
 }
 
 // DeclineTopicSuggestionInput is an autogenerated input type of DeclineTopicSuggestion.
 type DeclineTopicSuggestionInput struct {
-	// The Node ID of the repository. (Required.)
-	RepositoryID ID `json:"repositoryId"`
-	// The name of the suggested topic. (Required.)
-	Name String `json:"name"`
-	// The reason why the suggested topic is declined. (Required.)
-	Reason TopicSuggestionDeclineReason `json:"reason"`
 
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The Node ID of the repository. **Upcoming Change on 2024-04-01 UTC** **Description:** `repositoryId` will be removed. **Reason:** Suggested topics are no longer supported. (Optional.)
+	RepositoryID *ID `json:"repositoryId,omitempty"`
+	// The name of the suggested topic. **Upcoming Change on 2024-04-01 UTC** **Description:** `name` will be removed. **Reason:** Suggested topics are no longer supported. (Optional.)
+	Name *String `json:"name,omitempty"`
+	// The reason why the suggested topic is declined. **Upcoming Change on 2024-04-01 UTC** **Description:** `reason` will be removed. **Reason:** Suggested topics are no longer supported. (Optional.)
+	Reason *TopicSuggestionDeclineReason `json:"reason,omitempty"`
 }
 
 // DeleteBranchProtectionRuleInput is an autogenerated input type of DeleteBranchProtectionRule.
@@ -1118,10 +1496,37 @@ type DeleteIssueInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
+// DeleteIssueTypeInput is an autogenerated input type of DeleteIssueType.
+type DeleteIssueTypeInput struct {
+	// The ID of the issue type to delete. (Required.)
+	IssueTypeID ID `json:"issueTypeId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// DeleteLabelInput is an autogenerated input type of DeleteLabel.
+type DeleteLabelInput struct {
+	// The Node ID of the label to be deleted. (Required.)
+	ID ID `json:"id"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
 // DeleteLinkedBranchInput is an autogenerated input type of DeleteLinkedBranch.
 type DeleteLinkedBranchInput struct {
 	// The ID of the linked branch. (Required.)
 	LinkedBranchID ID `json:"linkedBranchId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// DeletePackageVersionInput is an autogenerated input type of DeletePackageVersion.
+type DeletePackageVersionInput struct {
+	// The ID of the package version to be deleted. (Required.)
+	PackageVersionID ID `json:"packageVersionId"`
 
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
@@ -1154,13 +1559,20 @@ type DeleteProjectInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
-// DeleteProjectNextItemInput is an autogenerated input type of DeleteProjectNextItem.
-type DeleteProjectNextItemInput struct {
+// DeleteProjectV2FieldInput is an autogenerated input type of DeleteProjectV2Field.
+type DeleteProjectV2FieldInput struct {
+	// The ID of the field to delete. (Required.)
+	FieldID ID `json:"fieldId"`
 
-	// The ID of the Project from which the item should be removed. This field is required. **Upcoming Change on 2023-01-01 UTC** **Description:** `projectId` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
-	ProjectID *ID `json:"projectId,omitempty"`
-	// The ID of the item to be removed. This field is required. **Upcoming Change on 2023-01-01 UTC** **Description:** `itemId` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
-	ItemID *ID `json:"itemId,omitempty"`
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// DeleteProjectV2Input is an autogenerated input type of DeleteProjectV2.
+type DeleteProjectV2Input struct {
+	// The ID of the Project to delete. (Required.)
+	ProjectID ID `json:"projectId"`
+
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
@@ -1171,6 +1583,24 @@ type DeleteProjectV2ItemInput struct {
 	ProjectID ID `json:"projectId"`
 	// The ID of the item to be removed. (Required.)
 	ItemID ID `json:"itemId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// DeleteProjectV2StatusUpdateInput is an autogenerated input type of DeleteProjectV2StatusUpdate.
+type DeleteProjectV2StatusUpdateInput struct {
+	// The ID of the status update to be removed. (Required.)
+	StatusUpdateID ID `json:"statusUpdateId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// DeleteProjectV2WorkflowInput is an autogenerated input type of DeleteProjectV2Workflow.
+type DeleteProjectV2WorkflowInput struct {
+	// The ID of the workflow to be removed. (Required.)
+	WorkflowID ID `json:"workflowId"`
 
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
@@ -1203,19 +1633,19 @@ type DeleteRefInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
-// DeleteTeamDiscussionCommentInput is an autogenerated input type of DeleteTeamDiscussionComment.
-type DeleteTeamDiscussionCommentInput struct {
-	// The ID of the comment to delete. (Required.)
-	ID ID `json:"id"`
+// DeleteRepositoryRulesetInput is an autogenerated input type of DeleteRepositoryRuleset.
+type DeleteRepositoryRulesetInput struct {
+	// The global relay id of the repository ruleset to be deleted. (Required.)
+	RepositoryRulesetID ID `json:"repositoryRulesetId"`
 
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
-// DeleteTeamDiscussionInput is an autogenerated input type of DeleteTeamDiscussion.
-type DeleteTeamDiscussionInput struct {
-	// The discussion ID to delete. (Required.)
-	ID ID `json:"id"`
+// DeleteUserListInput is an autogenerated input type of DeleteUserList.
+type DeleteUserListInput struct {
+	// The ID of the list to delete. (Required.)
+	ListID ID `json:"listId"`
 
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
@@ -1236,6 +1666,15 @@ type DeploymentOrder struct {
 	Field DeploymentOrderField `json:"field"`
 	// The ordering direction. (Required.)
 	Direction OrderDirection `json:"direction"`
+}
+
+// DequeuePullRequestInput is an autogenerated input type of DequeuePullRequest.
+type DequeuePullRequestInput struct {
+	// The ID of the pull request to be dequeued. (Required.)
+	ID ID `json:"id"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
 // DisablePullRequestAutoMergeInput is an autogenerated input type of DisablePullRequestAutoMerge.
@@ -1297,13 +1736,13 @@ type DraftPullRequestReviewComment struct {
 
 // DraftPullRequestReviewThread specifies a review comment thread to be left with a Pull Request Review.
 type DraftPullRequestReviewThread struct {
-	// Path to the file being commented on. (Required.)
-	Path String `json:"path"`
-	// The line of the blob to which the thread refers. The end of the line range for multi-line comments. (Required.)
-	Line Int `json:"line"`
 	// Body of the comment to leave. (Required.)
 	Body String `json:"body"`
 
+	// Path to the file being commented on. Required if not using positioning. (Optional.)
+	Path *String `json:"path,omitempty"`
+	// The line of the blob to which the thread refers. The end of the line range for multi-line comments. Required if not using positioning. (Optional.)
+	Line *Int `json:"line,omitempty"`
 	// The side of the diff on which the line resides. For multi-line comments, this is the side for the end of the line range. (Optional.)
 	Side *DiffSide `json:"side,omitempty"`
 	// The first line of the range to which the comment refers. (Optional.)
@@ -1317,6 +1756,8 @@ type EnablePullRequestAutoMergeInput struct {
 	// ID of the pull request to enable auto-merge on. (Required.)
 	PullRequestID ID `json:"pullRequestId"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// Commit headline to use for the commit when the PR is mergable; if omitted, a default message will be used. NOTE: when merging with a merge queue any input value for commit headline is ignored. (Optional.)
 	CommitHeadline *String `json:"commitHeadline,omitempty"`
 	// Commit body to use for the commit when the PR is mergable; if omitted, a default message will be used. NOTE: when merging with a merge queue any input value for commit message is ignored. (Optional.)
@@ -1325,8 +1766,21 @@ type EnablePullRequestAutoMergeInput struct {
 	MergeMethod *PullRequestMergeMethod `json:"mergeMethod,omitempty"`
 	// The email address to associate with this merge. (Optional.)
 	AuthorEmail *String `json:"authorEmail,omitempty"`
+	// The expected head OID of the pull request. (Optional.)
+	ExpectedHeadOid *GitObjectID `json:"expectedHeadOid,omitempty"`
+}
+
+// EnqueuePullRequestInput is an autogenerated input type of EnqueuePullRequest.
+type EnqueuePullRequestInput struct {
+	// The ID of the pull request to enqueue. (Required.)
+	PullRequestID ID `json:"pullRequestId"`
+
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// Add the pull request to the front of the queue. (Optional.)
+	Jump *Boolean `json:"jump,omitempty"`
+	// The expected head OID of the pull request. (Optional.)
+	ExpectedHeadOid *GitObjectID `json:"expectedHeadOid,omitempty"`
 }
 
 // EnterpriseAdministratorInvitationOrder represents ordering options for enterprise administrator invitation connections.
@@ -1337,10 +1791,26 @@ type EnterpriseAdministratorInvitationOrder struct {
 	Direction OrderDirection `json:"direction"`
 }
 
+// EnterpriseMemberInvitationOrder represents ordering options for enterprise administrator invitation connections.
+type EnterpriseMemberInvitationOrder struct {
+	// The field to order enterprise member invitations by. (Required.)
+	Field EnterpriseMemberInvitationOrderField `json:"field"`
+	// The ordering direction. (Required.)
+	Direction OrderDirection `json:"direction"`
+}
+
 // EnterpriseMemberOrder represents ordering options for enterprise member connections.
 type EnterpriseMemberOrder struct {
 	// The field to order enterprise members by. (Required.)
 	Field EnterpriseMemberOrderField `json:"field"`
+	// The ordering direction. (Required.)
+	Direction OrderDirection `json:"direction"`
+}
+
+// EnterpriseOrder represents ordering options for enterprises.
+type EnterpriseOrder struct {
+	// The field to order enterprises by. (Required.)
+	Field EnterpriseOrderField `json:"field"`
 	// The ordering direction. (Required.)
 	Direction OrderDirection `json:"direction"`
 }
@@ -1377,6 +1847,14 @@ type EnterpriseServerUserAccountsUploadOrder struct {
 	Direction OrderDirection `json:"direction"`
 }
 
+// Environments represents ordering options for environments.
+type Environments struct {
+	// The field to order environments by. (Required.)
+	Field EnvironmentOrderField `json:"field"`
+	// The direction in which to order environments by the specified field. (Required.)
+	Direction OrderDirection `json:"direction"`
+}
+
 // FileAddition represents a command to add a file at the given path with the given contents as part of a commit. Any existing file at that that path will be replaced.
 type FileAddition struct {
 	// The path in the repository where the file will be located. (Required.)
@@ -1398,6 +1876,18 @@ type FileChanges struct {
 type FileDeletion struct {
 	// The path to delete. (Required.)
 	Path String `json:"path"`
+}
+
+// FileExtensionRestrictionParametersInput represents prevent commits that include files with specified file extensions from being pushed to the commit graph.
+type FileExtensionRestrictionParametersInput struct {
+	// The file extensions that are restricted from being pushed to the commit graph. (Required.)
+	RestrictedFileExtensions []String `json:"restrictedFileExtensions"`
+}
+
+// FilePathRestrictionParametersInput represents prevent commits that include changes in specified file and folder paths from being pushed to the commit graph. This includes absolute paths that contain file names.
+type FilePathRestrictionParametersInput struct {
+	// The file paths that are restricted from being pushed to the commit graph. (Required.)
+	RestrictedFilePaths []String `json:"restrictedFilePaths"`
 }
 
 // FollowOrganizationInput is an autogenerated input type of FollowOrganization.
@@ -1450,19 +1940,49 @@ type GrantMigratorRoleInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
+// ImportProjectInput is an autogenerated input type of ImportProject.
+type ImportProjectInput struct {
+	// The name of the Organization or User to create the Project under. (Required.)
+	OwnerName String `json:"ownerName"`
+	// The name of Project. (Required.)
+	Name String `json:"name"`
+	// A list of columns containing issues and pull requests. (Required.)
+	ColumnImports []ProjectColumnImport `json:"columnImports"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The description of Project. (Optional.)
+	Body *String `json:"body,omitempty"`
+	// Whether the Project is public or not. (Optional.)
+	Public *Boolean `json:"public,omitempty"`
+}
+
 // InviteEnterpriseAdminInput is an autogenerated input type of InviteEnterpriseAdmin.
 type InviteEnterpriseAdminInput struct {
 	// The ID of the enterprise to which you want to invite an administrator. (Required.)
 	EnterpriseID ID `json:"enterpriseId"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The login of a user to invite as an administrator. (Optional.)
 	Invitee *String `json:"invitee,omitempty"`
 	// The email of the person to invite as an administrator. (Optional.)
 	Email *String `json:"email,omitempty"`
 	// The role of the administrator. (Optional.)
 	Role *EnterpriseAdministratorRole `json:"role,omitempty"`
+}
+
+// InviteEnterpriseMemberInput is an autogenerated input type of InviteEnterpriseMember.
+type InviteEnterpriseMemberInput struct {
+	// The ID of the enterprise to which you want to invite an unaffiliated member. (Required.)
+	EnterpriseID ID `json:"enterpriseId"`
+
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The login of a user to invite as an unaffiliated member. (Optional.)
+	Invitee *String `json:"invitee,omitempty"`
+	// The email of the person to invite as an unaffiliated member. (Optional.)
+	Email *String `json:"email,omitempty"`
 }
 
 // IpAllowListEntryOrder represents ordering options for IP allow list entry connections.
@@ -1478,6 +1998,14 @@ type IssueCommentOrder struct {
 	// The field in which to order issue comments by. (Required.)
 	Field IssueCommentOrderField `json:"field"`
 	// The direction in which to order issue comments by the specified field. (Required.)
+	Direction OrderDirection `json:"direction"`
+}
+
+// IssueDependencyOrder represents ordering options issue dependencies.
+type IssueDependencyOrder struct {
+	// The field to order issue dependencies by. (Required.)
+	Field IssueDependencyOrderField `json:"field"`
+	// The ordering direction. (Required.)
 	Direction OrderDirection `json:"direction"`
 }
 
@@ -1500,6 +2028,8 @@ type IssueFilters struct {
 	Since *DateTime `json:"since,omitempty"`
 	// List issues filtered by the list of states given. (Optional.)
 	States *[]IssueState `json:"states,omitempty"`
+	// List issues filtered by the type given, only supported by searches on repositories. (Optional.)
+	Type *String `json:"type,omitempty"`
 	// List issues subscribed to by viewer. (Optional.)
 	ViewerSubscribed *Boolean `json:"viewerSubscribed,omitempty"`
 }
@@ -1509,6 +2039,14 @@ type IssueOrder struct {
 	// The field in which to order issues by. (Required.)
 	Field IssueOrderField `json:"field"`
 	// The direction in which to order issues by the specified field. (Required.)
+	Direction OrderDirection `json:"direction"`
+}
+
+// IssueTypeOrder represents ordering options for issue types connections.
+type IssueTypeOrder struct {
+	// The field to order issue types by. (Required.)
+	Field IssueTypeOrderField `json:"field"`
+	// The ordering direction. (Required.)
 	Direction OrderDirection `json:"direction"`
 }
 
@@ -1566,10 +2104,18 @@ type LockLockableInput struct {
 	// ID of the item to be locked. (Required.)
 	LockableID ID `json:"lockableId"`
 
-	// A reason for why the item will be locked. (Optional.)
-	LockReason *LockReason `json:"lockReason,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// A reason for why the item will be locked. (Optional.)
+	LockReason *LockReason `json:"lockReason,omitempty"`
+}
+
+// MannequinOrder represents ordering options for mannequins.
+type MannequinOrder struct {
+	// The field to order mannequins by. (Required.)
+	Field MannequinOrderField `json:"field"`
+	// The ordering direction. (Required.)
+	Direction OrderDirection `json:"direction"`
 }
 
 // MarkDiscussionCommentAsAnswerInput is an autogenerated input type of MarkDiscussionCommentAsAnswer.
@@ -1592,6 +2138,15 @@ type MarkFileAsViewedInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
+// MarkProjectV2AsTemplateInput is an autogenerated input type of MarkProjectV2AsTemplate.
+type MarkProjectV2AsTemplateInput struct {
+	// The ID of the Project to mark as a template. (Required.)
+	ProjectID ID `json:"projectId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
 // MarkPullRequestReadyForReviewInput is an autogenerated input type of MarkPullRequestReadyForReview.
 type MarkPullRequestReadyForReviewInput struct {
 	// ID of the pull request to be marked as ready for review. (Required.)
@@ -1599,6 +2154,18 @@ type MarkPullRequestReadyForReviewInput struct {
 
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// MaxFilePathLengthParametersInput represents prevent commits that include file paths that exceed the specified character limit from being pushed to the commit graph.
+type MaxFilePathLengthParametersInput struct {
+	// The maximum amount of characters allowed in file paths. (Required.)
+	MaxFilePathLength Int `json:"maxFilePathLength"`
+}
+
+// MaxFileSizeParametersInput represents prevent commits with individual files that exceed the specified limit from being pushed to the commit graph.
+type MaxFileSizeParametersInput struct {
+	// The maximum file size allowed in megabytes. This limit does not apply to Git Large File Storage (Git LFS). (Required.)
+	MaxFileSize Int `json:"maxFileSize"`
 }
 
 // MergeBranchInput is an autogenerated input type of MergeBranch.
@@ -1610,12 +2177,12 @@ type MergeBranchInput struct {
 	// The head to merge into the base branch. This can be a branch name or a commit GitObjectID. (Required.)
 	Head String `json:"head"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// Message to use for the merge commit. If omitted, a default will be used. (Optional.)
 	CommitMessage *String `json:"commitMessage,omitempty"`
 	// The email address to associate with this commit. (Optional.)
 	AuthorEmail *String `json:"authorEmail,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
 // MergePullRequestInput is an autogenerated input type of MergePullRequest.
@@ -1623,6 +2190,8 @@ type MergePullRequestInput struct {
 	// ID of the pull request to be merged. (Required.)
 	PullRequestID ID `json:"pullRequestId"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// Commit headline to use for the merge commit; if omitted, a default message will be used. (Optional.)
 	CommitHeadline *String `json:"commitHeadline,omitempty"`
 	// Commit body to use for the merge commit; if omitted, a default message will be used. (Optional.)
@@ -1633,8 +2202,24 @@ type MergePullRequestInput struct {
 	MergeMethod *PullRequestMergeMethod `json:"mergeMethod,omitempty"`
 	// The email address to associate with this merge. (Optional.)
 	AuthorEmail *String `json:"authorEmail,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// MergeQueueParametersInput represents merges must be performed via a merge queue.
+type MergeQueueParametersInput struct {
+	// Maximum time for a required status check to report a conclusion. After this much time has elapsed, checks that have not reported a conclusion will be assumed to have failed. (Required.)
+	CheckResponseTimeoutMinutes Int `json:"checkResponseTimeoutMinutes"`
+	// When set to ALLGREEN, the merge commit created by merge queue for each PR in the group must pass all required checks to merge. When set to HEADGREEN, only the commit at the head of the merge group, i.e. the commit containing changes from all of the PRs in the group, must pass its required checks to merge. (Required.)
+	GroupingStrategy MergeQueueGroupingStrategy `json:"groupingStrategy"`
+	// Limit the number of queued pull requests requesting checks and workflow runs at the same time. (Required.)
+	MaxEntriesToBuild Int `json:"maxEntriesToBuild"`
+	// The maximum number of PRs that will be merged together in a group. (Required.)
+	MaxEntriesToMerge Int `json:"maxEntriesToMerge"`
+	// Method to use when merging changes from queued pull requests. (Required.)
+	MergeMethod MergeQueueMergeMethod `json:"mergeMethod"`
+	// The minimum number of PRs that will be merged together in a group. (Required.)
+	MinEntriesToMerge Int `json:"minEntriesToMerge"`
+	// The time merge queue should wait after the first PR is added to the queue for the minimum group size to be met. After this time has elapsed, the minimum group size will be ignored and a smaller group will be merged. (Required.)
+	MinEntriesToMergeWaitMinutes Int `json:"minEntriesToMergeWaitMinutes"`
 }
 
 // MilestoneOrder represents ordering options for milestone connections.
@@ -1663,10 +2248,10 @@ type MoveProjectCardInput struct {
 	// The id of the column to move it into. (Required.)
 	ColumnID ID `json:"columnId"`
 
-	// Place the new card after the card with this id. Pass null to place it at the top. (Optional.)
-	AfterCardID *ID `json:"afterCardId,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// Place the new card after the card with this id. Pass null to place it at the top. (Optional.)
+	AfterCardID *ID `json:"afterCardId,omitempty"`
 }
 
 // MoveProjectColumnInput is an autogenerated input type of MoveProjectColumn.
@@ -1674,10 +2259,10 @@ type MoveProjectColumnInput struct {
 	// The id of the column to move. (Required.)
 	ColumnID ID `json:"columnId"`
 
-	// Place the new column after the column with this id. Pass null to place it at the front. (Optional.)
-	AfterColumnID *ID `json:"afterColumnId,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// Place the new column after the column with this id. Pass null to place it at the front. (Optional.)
+	AfterColumnID *ID `json:"afterColumnId,omitempty"`
 }
 
 // OrgEnterpriseOwnerOrder represents ordering options for an organization's enterprise owner connections.
@@ -1694,6 +2279,22 @@ type OrganizationOrder struct {
 	Field OrganizationOrderField `json:"field"`
 	// The ordering direction. (Required.)
 	Direction OrderDirection `json:"direction"`
+}
+
+// OrganizationPropertyConditionTargetInput represents parameters to be used for the organization_property condition.
+type OrganizationPropertyConditionTargetInput struct {
+	// Array of organization properties that must not match. (Required.)
+	Exclude []OrganizationPropertyTargetDefinitionInput `json:"exclude"`
+	// Array of organization properties that must match. (Required.)
+	Include []OrganizationPropertyTargetDefinitionInput `json:"include"`
+}
+
+// OrganizationPropertyTargetDefinitionInput represents a property that must match.
+type OrganizationPropertyTargetDefinitionInput struct {
+	// The name of the property. (Required.)
+	Name String `json:"name"`
+	// The values to match for. (Required.)
+	PropertyValues []String `json:"propertyValues"`
 }
 
 // PackageFileOrder represents ways in which lists of package files can be ordered upon return.
@@ -1723,6 +2324,17 @@ type PackageVersionOrder struct {
 	Direction *OrderDirection `json:"direction,omitempty"`
 }
 
+// PinEnvironmentInput is an autogenerated input type of PinEnvironment.
+type PinEnvironmentInput struct {
+	// The ID of the environment to modify. (Required.)
+	EnvironmentID ID `json:"environmentId"`
+	// The desired state of the environment. If true, environment will be pinned. If false, it will be unpinned. (Required.)
+	Pinned Boolean `json:"pinned"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
 // PinIssueInput is an autogenerated input type of PinIssue.
 type PinIssueInput struct {
 	// The ID of the issue to be pinned. (Required.)
@@ -1732,12 +2344,50 @@ type PinIssueInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
+// PinnedEnvironmentOrder represents ordering options for pinned environments.
+type PinnedEnvironmentOrder struct {
+	// The field to order pinned environments by. (Required.)
+	Field PinnedEnvironmentOrderField `json:"field"`
+	// The direction in which to order pinned environments by the specified field. (Required.)
+	Direction OrderDirection `json:"direction"`
+}
+
+// ProjectCardImport represents an issue or PR and its owning repository to be used in a project card.
+type ProjectCardImport struct {
+	// Repository name with owner (owner/repository). (Required.)
+	Repository String `json:"repository"`
+	// The issue or pull request number. (Required.)
+	Number Int `json:"number"`
+}
+
+// ProjectColumnImport represents a project column and a list of its issues and PRs.
+type ProjectColumnImport struct {
+	// The name of the column. (Required.)
+	ColumnName String `json:"columnName"`
+	// The position of the column, starting from 0. (Required.)
+	Position Int `json:"position"`
+
+	// A list of issues and pull requests in the column. (Optional.)
+	Issues *[]ProjectCardImport `json:"issues,omitempty"`
+}
+
 // ProjectOrder represents ways in which lists of projects can be ordered upon return.
 type ProjectOrder struct {
 	// The field in which to order projects by. (Required.)
 	Field ProjectOrderField `json:"field"`
 	// The direction in which to order projects by the specified field. (Required.)
 	Direction OrderDirection `json:"direction"`
+}
+
+// ProjectV2Collaborator represents a collaborator to update on a project. Only one of the userId or teamId should be provided.
+type ProjectV2Collaborator struct {
+	// The role to grant the collaborator. (Required.)
+	Role ProjectV2Roles `json:"role"`
+
+	// The ID of the user as a collaborator. (Optional.)
+	UserID *ID `json:"userId,omitempty"`
+	// The ID of the team as a collaborator. (Optional.)
+	TeamID *ID `json:"teamId,omitempty"`
 }
 
 // ProjectV2FieldOrder represents ordering options for project v2 field connections.
@@ -1786,11 +2436,49 @@ type ProjectV2ItemOrder struct {
 	Direction OrderDirection `json:"direction"`
 }
 
+// ProjectV2Iteration represents represents an iteration.
+type ProjectV2Iteration struct {
+	// The start date for the iteration. (Required.)
+	StartDate Date `json:"startDate"`
+	// The duration of the iteration, in days. (Required.)
+	Duration Int `json:"duration"`
+	// The title for the iteration. (Required.)
+	Title String `json:"title"`
+}
+
+// ProjectV2IterationFieldConfigurationInput represents represents an iteration field configuration.
+type ProjectV2IterationFieldConfigurationInput struct {
+	// The start date for the first iteration. (Required.)
+	StartDate Date `json:"startDate"`
+	// The duration of each iteration, in days. (Required.)
+	Duration Int `json:"duration"`
+	// Zero or more iterations for the field. (Required.)
+	Iterations []ProjectV2Iteration `json:"iterations"`
+}
+
 // ProjectV2Order represents ways in which lists of projects can be ordered upon return.
 type ProjectV2Order struct {
 	// The field in which to order projects by. (Required.)
 	Field ProjectV2OrderField `json:"field"`
 	// The direction in which to order projects by the specified field. (Required.)
+	Direction OrderDirection `json:"direction"`
+}
+
+// ProjectV2SingleSelectFieldOptionInput represents represents a single select field option.
+type ProjectV2SingleSelectFieldOptionInput struct {
+	// The name of the option. (Required.)
+	Name String `json:"name"`
+	// The display color of the option. (Required.)
+	Color ProjectV2SingleSelectFieldOptionColor `json:"color"`
+	// The description text of the option. (Required.)
+	Description String `json:"description"`
+}
+
+// ProjectV2StatusOrder represents ways in which project v2 status updates can be ordered.
+type ProjectV2StatusOrder struct {
+	// The field by which to order nodes. (Required.)
+	Field ProjectV2StatusUpdateOrderField `json:"field"`
+	// The direction in which to order nodes. (Required.)
 	Direction OrderDirection `json:"direction"`
 }
 
@@ -1802,12 +2490,59 @@ type ProjectV2ViewOrder struct {
 	Direction OrderDirection `json:"direction"`
 }
 
+// ProjectV2WorkflowOrder represents ordering options for project v2 workflows connections.
+type ProjectV2WorkflowOrder struct {
+	// The field to order the project v2 workflows by. (Required.)
+	Field ProjectV2WorkflowsOrderField `json:"field"`
+	// The ordering direction. (Required.)
+	Direction OrderDirection `json:"direction"`
+}
+
+// PropertyTargetDefinitionInput represents a property that must match.
+type PropertyTargetDefinitionInput struct {
+	// The name of the property. (Required.)
+	Name String `json:"name"`
+	// The values to match for. (Required.)
+	PropertyValues []String `json:"propertyValues"`
+
+	// The source of the property. Choose 'custom' or 'system'. Defaults to 'custom' if not specified. (Optional.)
+	Source *String `json:"source,omitempty"`
+}
+
+// PublishSponsorsTierInput is an autogenerated input type of PublishSponsorsTier.
+type PublishSponsorsTierInput struct {
+	// The ID of the draft tier to publish. (Required.)
+	TierID ID `json:"tierId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
 // PullRequestOrder represents ways in which lists of issues can be ordered upon return.
 type PullRequestOrder struct {
 	// The field in which to order pull requests by. (Required.)
 	Field PullRequestOrderField `json:"field"`
 	// The direction in which to order pull requests by the specified field. (Required.)
 	Direction OrderDirection `json:"direction"`
+}
+
+// PullRequestParametersInput represents require all commits be made to a non-target branch and submitted via a pull request before they can be merged.
+type PullRequestParametersInput struct {
+	// New, reviewable commits pushed will dismiss previous pull request review approvals. (Required.)
+	DismissStaleReviewsOnPush Boolean `json:"dismissStaleReviewsOnPush"`
+	// Require an approving review in pull requests that modify files that have a designated code owner. (Required.)
+	RequireCodeOwnerReview Boolean `json:"requireCodeOwnerReview"`
+	// Whether the most recent reviewable push must be approved by someone other than the person who pushed it. (Required.)
+	RequireLastPushApproval Boolean `json:"requireLastPushApproval"`
+	// The number of approving reviews that are required before a pull request can be merged. (Required.)
+	RequiredApprovingReviewCount Int `json:"requiredApprovingReviewCount"`
+	// All conversations on code must be resolved before a pull request can be merged. (Required.)
+	RequiredReviewThreadResolution Boolean `json:"requiredReviewThreadResolution"`
+
+	// Array of allowed merge methods. Allowed values include `merge`, `squash`, and `rebase`. At least one option must be enabled. (Optional.)
+	AllowedMergeMethods *[]PullRequestAllowedMergeMethods `json:"allowedMergeMethods,omitempty"`
+	// This argument is in beta and subject to change. A collection of reviewers and associated file patterns. Each reviewer has a list of file patterns which determine the files that reviewer is required to review. (Optional.)
+	RequiredReviewers *[]RequiredReviewerConfigurationInput `json:"requiredReviewers,omitempty"`
 }
 
 // ReactionOrder represents ways in which lists of reactions can be ordered upon return.
@@ -1818,12 +2553,33 @@ type ReactionOrder struct {
 	Direction OrderDirection `json:"direction"`
 }
 
+// RefNameConditionTargetInput represents parameters to be used for the ref_name condition.
+type RefNameConditionTargetInput struct {
+	// Array of ref names or patterns to exclude. The condition will not pass if any of these patterns match. (Required.)
+	Exclude []String `json:"exclude"`
+	// Array of ref names or patterns to include. One of these patterns must match for the condition to pass. Also accepts `~DEFAULT_BRANCH` to include the default branch or `~ALL` to include all branches. (Required.)
+	Include []String `json:"include"`
+}
+
 // RefOrder represents ways in which lists of git refs can be ordered upon return.
 type RefOrder struct {
 	// The field in which to order refs by. (Required.)
 	Field RefOrderField `json:"field"`
 	// The direction in which to order refs by the specified field. (Required.)
 	Direction OrderDirection `json:"direction"`
+}
+
+// RefUpdate represents a ref update.
+type RefUpdate struct {
+	// The fully qualified name of the ref to be update. For example `refs/heads/branch-name`. (Required.)
+	Name GitRefname `json:"name"`
+	// The value this ref should be updated to. (Required.)
+	AfterOid GitObjectID `json:"afterOid"`
+
+	// The value this ref needs to point to before the update. (Optional.)
+	BeforeOid *GitObjectID `json:"beforeOid,omitempty"`
+	// Force a non fast-forward update. (Optional.)
+	Force *Boolean `json:"force,omitempty"`
 }
 
 // RegenerateEnterpriseIdentityProviderRecoveryCodesInput is an autogenerated input type of RegenerateEnterpriseIdentityProviderRecoveryCodes.
@@ -1851,10 +2607,10 @@ type RejectDeploymentsInput struct {
 	// The ids of environments to reject deployments. (Required.)
 	EnvironmentIDs []ID `json:"environmentIds"`
 
-	// Optional comment for rejecting deployments. (Optional.)
-	Comment *String `json:"comment,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// Optional comment for rejecting deployments. (Optional.)
+	Comment *String `json:"comment,omitempty"`
 }
 
 // ReleaseOrder represents ways in which lists of releases can be ordered upon return.
@@ -1869,8 +2625,19 @@ type ReleaseOrder struct {
 type RemoveAssigneesFromAssignableInput struct {
 	// The id of the assignable object to remove assignees from. (Required.)
 	AssignableID ID `json:"assignableId"`
-	// The id of users to remove as assignees. (Required.)
+	// The ids of actors to remove as assignees. (Required.)
 	AssigneeIDs []ID `json:"assigneeIds"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// RemoveBlockedByInput is an autogenerated input type of RemoveBlockedBy.
+type RemoveBlockedByInput struct {
+	// The ID of the blocked issue. (Required.)
+	IssueID ID `json:"issueId"`
+	// The ID of the blocking issue. (Required.)
+	BlockingIssueID ID `json:"blockingIssueId"`
 
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
@@ -1891,6 +2658,17 @@ type RemoveEnterpriseAdminInput struct {
 type RemoveEnterpriseIdentityProviderInput struct {
 	// The ID of the enterprise from which to remove the identity provider. (Required.)
 	EnterpriseID ID `json:"enterpriseId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// RemoveEnterpriseMemberInput is an autogenerated input type of RemoveEnterpriseMember.
+type RemoveEnterpriseMemberInput struct {
+	// The ID of the enterprise from which the user should be removed. (Required.)
+	EnterpriseID ID `json:"enterpriseId"`
+	// The ID of the user to remove from the enterprise. (Required.)
+	UserID ID `json:"userId"`
 
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
@@ -1960,10 +2738,30 @@ type RemoveStarInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
+// RemoveSubIssueInput is an autogenerated input type of RemoveSubIssue.
+type RemoveSubIssueInput struct {
+	// The id of the issue. (Required.)
+	IssueID ID `json:"issueId"`
+	// The id of the sub-issue. (Required.)
+	SubIssueID ID `json:"subIssueId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
 // RemoveUpvoteInput is an autogenerated input type of RemoveUpvote.
 type RemoveUpvoteInput struct {
 	// The Node ID of the discussion or comment to remove upvote. (Required.)
 	SubjectID ID `json:"subjectId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// ReopenDiscussionInput is an autogenerated input type of ReopenDiscussion.
+type ReopenDiscussionInput struct {
+	// ID of the discussion to be reopened. (Required.)
+	DiscussionID ID `json:"discussionId"`
 
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
@@ -1987,6 +2785,38 @@ type ReopenPullRequestInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
+// ReorderEnvironmentInput is an autogenerated input type of ReorderEnvironment.
+type ReorderEnvironmentInput struct {
+	// The ID of the environment to modify. (Required.)
+	EnvironmentID ID `json:"environmentId"`
+	// The desired position of the environment. (Required.)
+	Position Int `json:"position"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// ReplaceActorsForAssignableInput is an autogenerated input type of ReplaceActorsForAssignable.
+type ReplaceActorsForAssignableInput struct {
+	// The id of the assignable object to replace the assignees for. (Required.)
+	AssignableID ID `json:"assignableId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The ids of the actors to replace the existing assignees. May be used as an alternative to or in conjunction with actorLogins. (Optional.)
+	ActorIDs *[]ID `json:"actorIds,omitempty"`
+	// The usernames of the actors to replace the existing assignees. May be used as an alternative to or in conjunction with actorIds. For bots, use the login format with [bot] suffix (e.g., 'my-app[bot]'). (Optional.)
+	ActorLogins *[]String `json:"actorLogins,omitempty"`
+	// Configuration for assigning an AI agent to this issue. (Optional.)
+	AgentAssignment *AgentAssignmentInput `json:"agentAssignment,omitempty"`
+}
+
+// RepositoryIdConditionTargetInput represents parameters to be used for the repository_id condition.
+type RepositoryIdConditionTargetInput struct {
+	// One of these repo IDs must match the repo. (Required.)
+	RepositoryIDs []ID `json:"repositoryIds"`
+}
+
 // RepositoryInvitationOrder represents ordering options for repository invitation connections.
 type RepositoryInvitationOrder struct {
 	// The field to order repository invitations by. (Required.)
@@ -2003,6 +2833,17 @@ type RepositoryMigrationOrder struct {
 	Direction RepositoryMigrationOrderDirection `json:"direction"`
 }
 
+// RepositoryNameConditionTargetInput represents parameters to be used for the repository_name condition.
+type RepositoryNameConditionTargetInput struct {
+	// Array of repository names or patterns to exclude. The condition will not pass if any of these patterns match. (Required.)
+	Exclude []String `json:"exclude"`
+	// Array of repository names or patterns to include. One of these patterns must match for the condition to pass. Also accepts `~ALL` to include all repositories. (Required.)
+	Include []String `json:"include"`
+
+	// Target changes that match these patterns will be prevented except by those with bypass permissions. (Optional.)
+	Protected *Boolean `json:"protected,omitempty"`
+}
+
 // RepositoryOrder represents ordering options for repository connections.
 type RepositoryOrder struct {
 	// The field to order repositories by. (Required.)
@@ -2011,19 +2852,128 @@ type RepositoryOrder struct {
 	Direction OrderDirection `json:"direction"`
 }
 
+// RepositoryPropertyConditionTargetInput represents parameters to be used for the repository_property condition.
+type RepositoryPropertyConditionTargetInput struct {
+	// Array of repository properties that must not match. (Required.)
+	Exclude []PropertyTargetDefinitionInput `json:"exclude"`
+	// Array of repository properties that must match. (Required.)
+	Include []PropertyTargetDefinitionInput `json:"include"`
+}
+
+// RepositoryRuleConditionsInput specifies the conditions required for a ruleset to evaluate.
+type RepositoryRuleConditionsInput struct {
+
+	// Configuration for the ref_name condition. (Optional.)
+	RefName *RefNameConditionTargetInput `json:"refName,omitempty"`
+	// Configuration for the repository_name condition. (Optional.)
+	RepositoryName *RepositoryNameConditionTargetInput `json:"repositoryName,omitempty"`
+	// Configuration for the repository_id condition. (Optional.)
+	RepositoryID *RepositoryIdConditionTargetInput `json:"repositoryId,omitempty"`
+	// Configuration for the repository_property condition. (Optional.)
+	RepositoryProperty *RepositoryPropertyConditionTargetInput `json:"repositoryProperty,omitempty"`
+	// Configuration for the organization_property condition. (Optional.)
+	OrganizationProperty *OrganizationPropertyConditionTargetInput `json:"organizationProperty,omitempty"`
+}
+
+// RepositoryRuleInput specifies the attributes for a new or updated rule.
+type RepositoryRuleInput struct {
+	// The type of rule to create. (Required.)
+	Type RepositoryRuleType `json:"type"`
+
+	// Optional ID of this rule when updating. (Optional.)
+	ID *ID `json:"id,omitempty"`
+	// The parameters for the rule. (Optional.)
+	Parameters *RuleParametersInput `json:"parameters,omitempty"`
+}
+
+// RepositoryRuleOrder represents ordering options for repository rules.
+type RepositoryRuleOrder struct {
+	// The field to order repository rules by. (Required.)
+	Field RepositoryRuleOrderField `json:"field"`
+	// The ordering direction. (Required.)
+	Direction OrderDirection `json:"direction"`
+}
+
+// RepositoryRulesetBypassActorInput specifies the attributes for a new or updated ruleset bypass actor. Only one of `actor_id`, `repository_role_database_id`, `organization_admin`, or `deploy_key` should be specified.
+type RepositoryRulesetBypassActorInput struct {
+	// The bypass mode for this actor. (Required.)
+	BypassMode RepositoryRulesetBypassActorBypassMode `json:"bypassMode"`
+
+	// For Team and Integration bypasses, the Team or Integration ID. (Optional.)
+	ActorID *ID `json:"actorId,omitempty"`
+	// For role bypasses, the role database ID. (Optional.)
+	RepositoryRoleDatabaseID *Int `json:"repositoryRoleDatabaseId,omitempty"`
+	// For organization owner bypasses, true. (Optional.)
+	OrganizationAdmin *Boolean `json:"organizationAdmin,omitempty"`
+	// For enterprise owner bypasses, true. (Optional.)
+	EnterpriseOwner *Boolean `json:"enterpriseOwner,omitempty"`
+	// For deploy key bypasses, true. Can only use ALWAYS as the bypass mode. (Optional.)
+	DeployKey *Boolean `json:"deployKey,omitempty"`
+}
+
+// ReprioritizeSubIssueInput is an autogenerated input type of ReprioritizeSubIssue.
+type ReprioritizeSubIssueInput struct {
+	// The id of the parent issue. (Required.)
+	IssueID ID `json:"issueId"`
+	// The id of the sub-issue to reprioritize. (Required.)
+	SubIssueID ID `json:"subIssueId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The id of the sub-issue to be prioritized after (either positional argument after OR before should be specified). (Optional.)
+	AfterID *ID `json:"afterId,omitempty"`
+	// The id of the sub-issue to be prioritized before (either positional argument after OR before should be specified). (Optional.)
+	BeforeID *ID `json:"beforeId,omitempty"`
+}
+
+// RequestReviewsByLoginInput is an autogenerated input type of RequestReviewsByLogin.
+type RequestReviewsByLoginInput struct {
+	// The Node ID of the pull request to modify. (Required.)
+	PullRequestID ID `json:"pullRequestId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The login strings of the users to request reviews from. (Optional.)
+	UserLogins *[]String `json:"userLogins,omitempty"`
+	// The logins of the bots to request reviews from, including the [bot] suffix (e.g., 'copilot-pull-request-reviewer[bot]'). (Optional.)
+	BotLogins *[]String `json:"botLogins,omitempty"`
+	// The slugs of the teams to request reviews from (format: 'org/team-slug'). (Optional.)
+	TeamSlugs *[]String `json:"teamSlugs,omitempty"`
+	// Add users to the set rather than replace. (Optional.)
+	Union *Boolean `json:"union,omitempty"`
+}
+
 // RequestReviewsInput is an autogenerated input type of RequestReviews.
 type RequestReviewsInput struct {
 	// The Node ID of the pull request to modify. (Required.)
 	PullRequestID ID `json:"pullRequestId"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The Node IDs of the user to request. (Optional.)
 	UserIDs *[]ID `json:"userIds,omitempty"`
+	// The Node IDs of the bot to request. (Optional.)
+	BotIDs *[]ID `json:"botIds,omitempty"`
 	// The Node IDs of the team to request. (Optional.)
 	TeamIDs *[]ID `json:"teamIds,omitempty"`
 	// Add users to the set rather than replace. (Optional.)
 	Union *Boolean `json:"union,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// RequiredDeploymentsParametersInput represents choose which environments must be successfully deployed to before refs can be pushed into a ref that matches this rule.
+type RequiredDeploymentsParametersInput struct {
+	// The environments that must be successfully deployed to before branches can be merged. (Required.)
+	RequiredDeploymentEnvironments []String `json:"requiredDeploymentEnvironments"`
+}
+
+// RequiredReviewerConfigurationInput represents a reviewing team, and file patterns describing which files they must approve changes to.
+type RequiredReviewerConfigurationInput struct {
+	// Array of file patterns. Pull requests which change matching files must be approved by the specified team. File patterns use fnmatch syntax. (Required.)
+	FilePatterns []String `json:"filePatterns"`
+	// Minimum number of approvals required from the specified team. If set to zero, the team will be added to the pull request but approval is optional. (Required.)
+	MinimumApprovals Int `json:"minimumApprovals"`
+	// Node ID of the team which must review changes to matching files. (Required.)
+	ReviewerID ID `json:"reviewerId"`
 }
 
 // RequiredStatusCheckInput specifies the attributes for a new or updated required status check.
@@ -2033,6 +2983,17 @@ type RequiredStatusCheckInput struct {
 
 	// The ID of the App that must set the status in order for it to be accepted. Omit this value to use whichever app has recently been setting this status, or use "any" to allow any app to set the status. (Optional.)
 	AppID *ID `json:"appId,omitempty"`
+}
+
+// RequiredStatusChecksParametersInput represents choose which status checks must pass before the ref is updated. When enabled, commits must first be pushed to another ref where the checks pass.
+type RequiredStatusChecksParametersInput struct {
+	// Status checks that are required. (Required.)
+	RequiredStatusChecks []StatusCheckConfigurationInput `json:"requiredStatusChecks"`
+	// Whether pull requests targeting a matching branch must be tested with the latest code. This setting will not take effect unless at least one status check is enabled. (Required.)
+	StrictRequiredStatusChecksPolicy Boolean `json:"strictRequiredStatusChecksPolicy"`
+
+	// Allow repositories and branches to be created if a check would otherwise prohibit it. (Optional.)
+	DoNotEnforceOnCreate *Boolean `json:"doNotEnforceOnCreate,omitempty"`
 }
 
 // RerequestCheckSuiteInput is an autogenerated input type of RerequestCheckSuite.
@@ -2053,6 +3014,30 @@ type ResolveReviewThreadInput struct {
 
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// RetireSponsorsTierInput is an autogenerated input type of RetireSponsorsTier.
+type RetireSponsorsTierInput struct {
+	// The ID of the published tier to retire. (Required.)
+	TierID ID `json:"tierId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// RevertPullRequestInput is an autogenerated input type of RevertPullRequest.
+type RevertPullRequestInput struct {
+	// The ID of the pull request to revert. (Required.)
+	PullRequestID ID `json:"pullRequestId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The title of the revert pull request. (Optional.)
+	Title *String `json:"title,omitempty"`
+	// The description of the revert pull request. (Optional.)
+	Body *String `json:"body,omitempty"`
+	// Indicates whether the revert pull request should be a draft. (Optional.)
+	Draft *Boolean `json:"draft,omitempty"`
 }
 
 // RevokeEnterpriseOrganizationsMigratorRoleInput is an autogenerated input type of RevokeEnterpriseOrganizationsMigratorRole.
@@ -2077,6 +3062,45 @@ type RevokeMigratorRoleInput struct {
 
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// RuleParametersInput specifies the parameters for a `RepositoryRule` object. Only one of the fields should be specified.
+type RuleParametersInput struct {
+
+	// Parameters used for the `update` rule type. (Optional.)
+	Update *UpdateParametersInput `json:"update,omitempty"`
+	// Parameters used for the `merge_queue` rule type. (Optional.)
+	MergeQueue *MergeQueueParametersInput `json:"mergeQueue,omitempty"`
+	// Parameters used for the `required_deployments` rule type. (Optional.)
+	RequiredDeployments *RequiredDeploymentsParametersInput `json:"requiredDeployments,omitempty"`
+	// Parameters used for the `pull_request` rule type. (Optional.)
+	PullRequest *PullRequestParametersInput `json:"pullRequest,omitempty"`
+	// Parameters used for the `required_status_checks` rule type. (Optional.)
+	RequiredStatusChecks *RequiredStatusChecksParametersInput `json:"requiredStatusChecks,omitempty"`
+	// Parameters used for the `commit_message_pattern` rule type. (Optional.)
+	CommitMessagePattern *CommitMessagePatternParametersInput `json:"commitMessagePattern,omitempty"`
+	// Parameters used for the `commit_author_email_pattern` rule type. (Optional.)
+	CommitAuthorEmailPattern *CommitAuthorEmailPatternParametersInput `json:"commitAuthorEmailPattern,omitempty"`
+	// Parameters used for the `committer_email_pattern` rule type. (Optional.)
+	CommitterEmailPattern *CommitterEmailPatternParametersInput `json:"committerEmailPattern,omitempty"`
+	// Parameters used for the `branch_name_pattern` rule type. (Optional.)
+	BranchNamePattern *BranchNamePatternParametersInput `json:"branchNamePattern,omitempty"`
+	// Parameters used for the `tag_name_pattern` rule type. (Optional.)
+	TagNamePattern *TagNamePatternParametersInput `json:"tagNamePattern,omitempty"`
+	// Parameters used for the `file_path_restriction` rule type. (Optional.)
+	FilePathRestriction *FilePathRestrictionParametersInput `json:"filePathRestriction,omitempty"`
+	// Parameters used for the `max_file_path_length` rule type. (Optional.)
+	MaxFilePathLength *MaxFilePathLengthParametersInput `json:"maxFilePathLength,omitempty"`
+	// Parameters used for the `file_extension_restriction` rule type. (Optional.)
+	FileExtensionRestriction *FileExtensionRestrictionParametersInput `json:"fileExtensionRestriction,omitempty"`
+	// Parameters used for the `max_file_size` rule type. (Optional.)
+	MaxFileSize *MaxFileSizeParametersInput `json:"maxFileSize,omitempty"`
+	// Parameters used for the `workflows` rule type. (Optional.)
+	Workflows *WorkflowsParametersInput `json:"workflows,omitempty"`
+	// Parameters used for the `code_scanning` rule type. (Optional.)
+	CodeScanning *CodeScanningParametersInput `json:"codeScanning,omitempty"`
+	// Parameters used for the `copilot_code_review` rule type. (Optional.)
+	CopilotCodeReview *CopilotCodeReviewParametersInput `json:"copilotCodeReview,omitempty"`
 }
 
 // SavedReplyOrder represents ordering options for saved reply connections.
@@ -2124,10 +3148,10 @@ type SetEnterpriseIdentityProviderInput struct {
 	// The digest algorithm used to sign SAML requests for the identity provider. (Required.)
 	DigestMethod SamlDigestAlgorithm `json:"digestMethod"`
 
-	// The Issuer Entity ID for the SAML identity provider. (Optional.)
-	Issuer *String `json:"issuer,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The Issuer Entity ID for the SAML identity provider. (Optional.)
+	Issuer *String `json:"issuer,omitempty"`
 }
 
 // SetOrganizationInteractionLimitInput is an autogenerated input type of SetOrganizationInteractionLimit.
@@ -2137,10 +3161,10 @@ type SetOrganizationInteractionLimitInput struct {
 	// The limit to set. (Required.)
 	Limit RepositoryInteractionLimit `json:"limit"`
 
-	// When this limit should expire. (Optional.)
-	Expiry *RepositoryInteractionLimitExpiry `json:"expiry,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// When this limit should expire. (Optional.)
+	Expiry *RepositoryInteractionLimitExpiry `json:"expiry,omitempty"`
 }
 
 // SetRepositoryInteractionLimitInput is an autogenerated input type of SetRepositoryInteractionLimit.
@@ -2150,10 +3174,10 @@ type SetRepositoryInteractionLimitInput struct {
 	// The limit to set. (Required.)
 	Limit RepositoryInteractionLimit `json:"limit"`
 
-	// When this limit should expire. (Optional.)
-	Expiry *RepositoryInteractionLimitExpiry `json:"expiry,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// When this limit should expire. (Optional.)
+	Expiry *RepositoryInteractionLimitExpiry `json:"expiry,omitempty"`
 }
 
 // SetUserInteractionLimitInput is an autogenerated input type of SetUserInteractionLimit.
@@ -2163,10 +3187,18 @@ type SetUserInteractionLimitInput struct {
 	// The limit to set. (Required.)
 	Limit RepositoryInteractionLimit `json:"limit"`
 
-	// When this limit should expire. (Optional.)
-	Expiry *RepositoryInteractionLimitExpiry `json:"expiry,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// When this limit should expire. (Optional.)
+	Expiry *RepositoryInteractionLimitExpiry `json:"expiry,omitempty"`
+}
+
+// SponsorAndLifetimeValueOrder represents ordering options for connections to get sponsor entities and associated USD amounts for GitHub Sponsors.
+type SponsorAndLifetimeValueOrder struct {
+	// The field to order results by. (Required.)
+	Field SponsorAndLifetimeValueOrderField `json:"field"`
+	// The ordering direction. (Required.)
+	Direction OrderDirection `json:"direction"`
 }
 
 // SponsorOrder represents ordering options for connections to get sponsor entities for GitHub Sponsors.
@@ -2225,25 +3257,42 @@ type StarOrder struct {
 	Direction OrderDirection `json:"direction"`
 }
 
+// StartOrganizationMigrationInput is an autogenerated input type of StartOrganizationMigration.
+type StartOrganizationMigrationInput struct {
+	// The URL of the organization to migrate. (Required.)
+	SourceOrgURL URI `json:"sourceOrgUrl"`
+	// The name of the target organization. (Required.)
+	TargetOrgName String `json:"targetOrgName"`
+	// The ID of the enterprise the target organization belongs to. (Required.)
+	TargetEnterpriseID ID `json:"targetEnterpriseId"`
+	// The migration source access token. (Required.)
+	SourceAccessToken String `json:"sourceAccessToken"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
 // StartRepositoryMigrationInput is an autogenerated input type of StartRepositoryMigration.
 type StartRepositoryMigrationInput struct {
-	// The ID of the Octoshift migration source. (Required.)
+	// The ID of the migration source. (Required.)
 	SourceID ID `json:"sourceId"`
 	// The ID of the organization that will own the imported repository. (Required.)
 	OwnerID ID `json:"ownerId"`
-	// The Octoshift migration source repository URL. (Required.)
+	// The URL of the source repository. (Required.)
 	SourceRepositoryURL URI `json:"sourceRepositoryUrl"`
 	// The name of the imported repository. (Required.)
 	RepositoryName String `json:"repositoryName"`
-	// The Octoshift migration source access token. (Required.)
-	AccessToken String `json:"accessToken"`
 
-	// Whether to continue the migration on error. (Optional.)
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// Whether to continue the migration on error. Defaults to `true`. (Optional.)
 	ContinueOnError *Boolean `json:"continueOnError,omitempty"`
 	// The signed URL to access the user-uploaded git archive. (Optional.)
 	GitArchiveURL *String `json:"gitArchiveUrl,omitempty"`
 	// The signed URL to access the user-uploaded metadata archive. (Optional.)
 	MetadataArchiveURL *String `json:"metadataArchiveUrl,omitempty"`
+	// The migration source access token. (Optional.)
+	AccessToken *String `json:"accessToken,omitempty"`
 	// The GitHub personal access token of the user importing to the target repository. (Optional.)
 	GitHubPat *String `json:"githubPat,omitempty"`
 	// Whether to skip migrating releases for the repository. (Optional.)
@@ -2252,8 +3301,15 @@ type StartRepositoryMigrationInput struct {
 	TargetRepoVisibility *String `json:"targetRepoVisibility,omitempty"`
 	// Whether to lock the source repository. (Optional.)
 	LockSource *Boolean `json:"lockSource,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// StatusCheckConfigurationInput represents required status check.
+type StatusCheckConfigurationInput struct {
+	// The status check context name that must be present on the commit. (Required.)
+	Context String `json:"context"`
+
+	// The optional integration ID that this status check must originate from. (Optional.)
+	IntegrationID *Int `json:"integrationId,omitempty"`
 }
 
 // SubmitPullRequestReviewInput is an autogenerated input type of SubmitPullRequestReview.
@@ -2261,30 +3317,27 @@ type SubmitPullRequestReviewInput struct {
 	// The event to send to the Pull Request Review. (Required.)
 	Event PullRequestReviewEvent `json:"event"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The Pull Request ID to submit any pending reviews. (Optional.)
 	PullRequestID *ID `json:"pullRequestId,omitempty"`
 	// The Pull Request Review ID to submit. (Optional.)
 	PullRequestReviewID *ID `json:"pullRequestReviewId,omitempty"`
 	// The text field to set on the Pull Request Review. (Optional.)
 	Body *String `json:"body,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
-// TeamDiscussionCommentOrder represents ways in which team discussion comment connections can be ordered.
-type TeamDiscussionCommentOrder struct {
-	// The field by which to order nodes. (Required.)
-	Field TeamDiscussionCommentOrderField `json:"field"`
-	// The direction in which to order nodes. (Required.)
-	Direction OrderDirection `json:"direction"`
-}
+// TagNamePatternParametersInput represents parameters to be used for the tag_name_pattern rule.
+type TagNamePatternParametersInput struct {
+	// The operator to use for matching. (Required.)
+	Operator String `json:"operator"`
+	// The pattern to match with. (Required.)
+	Pattern String `json:"pattern"`
 
-// TeamDiscussionOrder represents ways in which team discussion connections can be ordered.
-type TeamDiscussionOrder struct {
-	// The field by which to order nodes. (Required.)
-	Field TeamDiscussionOrderField `json:"field"`
-	// The direction in which to order nodes. (Required.)
-	Direction OrderDirection `json:"direction"`
+	// How this rule appears when configuring it. (Optional.)
+	Name *String `json:"name,omitempty"`
+	// If true, the rule will fail if the pattern matches. (Optional.)
+	Negate *Boolean `json:"negate,omitempty"`
 }
 
 // TeamMemberOrder represents ordering options for team member connections.
@@ -2329,10 +3382,10 @@ type TransferIssueInput struct {
 	// The Node ID of the repository the issue should be transferred to. (Required.)
 	RepositoryID ID `json:"repositoryId"`
 
-	// Whether to create labels if they don't exist in the target repository (matched by name). (Optional.)
-	CreateLabelsIfMissing *Boolean `json:"createLabelsIfMissing,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// Whether to create labels if they don't exist in the target repository (matched by name). (Optional.)
+	CreateLabelsIfMissing *Boolean `json:"createLabelsIfMissing,omitempty"`
 }
 
 // UnarchiveProjectV2ItemInput is an autogenerated input type of UnarchiveProjectV2Item.
@@ -2446,6 +3499,15 @@ type UnmarkIssueAsDuplicateInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
+// UnmarkProjectV2AsTemplateInput is an autogenerated input type of UnmarkProjectV2AsTemplate.
+type UnmarkProjectV2AsTemplateInput struct {
+	// The ID of the Project to unmark as a template. (Required.)
+	ProjectID ID `json:"projectId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
 // UnminimizeCommentInput is an autogenerated input type of UnminimizeComment.
 type UnminimizeCommentInput struct {
 	// The Node ID of the subject to modify. (Required.)
@@ -2478,6 +3540,8 @@ type UpdateBranchProtectionRuleInput struct {
 	// The global relay id of the branch protection rule to be updated. (Required.)
 	BranchProtectionRuleID ID `json:"branchProtectionRuleId"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The glob-like pattern used to determine matching branches. (Optional.)
 	Pattern *String `json:"pattern,omitempty"`
 	// Are approving reviews required to update matching branches. (Optional.)
@@ -2494,7 +3558,7 @@ type UpdateBranchProtectionRuleInput struct {
 	AllowsForcePushes *Boolean `json:"allowsForcePushes,omitempty"`
 	// Can this branch be deleted. (Optional.)
 	AllowsDeletions *Boolean `json:"allowsDeletions,omitempty"`
-	// Can admins overwrite branch protection. (Optional.)
+	// Can admins override branch protection. (Optional.)
 	IsAdminEnforced *Boolean `json:"isAdminEnforced,omitempty"`
 	// Are status checks required to update matching branches. (Optional.)
 	RequiresStatusChecks *Boolean `json:"requiresStatusChecks,omitempty"`
@@ -2520,6 +3584,10 @@ type UpdateBranchProtectionRuleInput struct {
 	RequiredStatusCheckContexts *[]String `json:"requiredStatusCheckContexts,omitempty"`
 	// The list of required status checks. (Optional.)
 	RequiredStatusChecks *[]RequiredStatusCheckInput `json:"requiredStatusChecks,omitempty"`
+	// Are successful deployments required before merging. (Optional.)
+	RequiresDeployments *Boolean `json:"requiresDeployments,omitempty"`
+	// The list of required deployment environments. (Optional.)
+	RequiredDeploymentEnvironments *[]String `json:"requiredDeploymentEnvironments,omitempty"`
 	// Are conversations required to be resolved before merging. (Optional.)
 	RequiresConversationResolution *Boolean `json:"requiresConversationResolution,omitempty"`
 	// Whether the most recent push must be approved by someone other than the person who pushed it. (Optional.)
@@ -2528,8 +3596,6 @@ type UpdateBranchProtectionRuleInput struct {
 	LockBranch *Boolean `json:"lockBranch,omitempty"`
 	// Whether users can pull changes from upstream when the branch is locked. Set to `true` to allow fork syncing. Set to `false` to prevent fork syncing. (Optional.)
 	LockAllowsFetchAndMerge *Boolean `json:"lockAllowsFetchAndMerge,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
 // UpdateCheckRunInput is an autogenerated input type of UpdateCheckRun.
@@ -2539,6 +3605,8 @@ type UpdateCheckRunInput struct {
 	// The node of the check. (Required.)
 	CheckRunID ID `json:"checkRunId"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The name of the check. (Optional.)
 	Name *String `json:"name,omitempty"`
 	// The URL of the integrator's site that has the full details of the check. (Optional.)
@@ -2557,8 +3625,6 @@ type UpdateCheckRunInput struct {
 	Output *CheckRunOutput `json:"output,omitempty"`
 	// Possible further actions the integrator can perform, which a user may trigger. (Optional.)
 	Actions *[]CheckRunAction `json:"actions,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
 // UpdateCheckSuitePreferencesInput is an autogenerated input type of UpdateCheckSuitePreferences.
@@ -2588,14 +3654,14 @@ type UpdateDiscussionInput struct {
 	// The Node ID of the discussion to update. (Required.)
 	DiscussionID ID `json:"discussionId"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The new discussion title. (Optional.)
 	Title *String `json:"title,omitempty"`
 	// The new contents of the discussion body. (Optional.)
 	Body *String `json:"body,omitempty"`
 	// The Node ID of a discussion category within the same repository to change this discussion to. (Optional.)
 	CategoryID *ID `json:"categoryId,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
 // UpdateEnterpriseAdministratorRoleInput is an autogenerated input type of UpdateEnterpriseAdministratorRole.
@@ -2618,10 +3684,10 @@ type UpdateEnterpriseAllowPrivateRepositoryForkingSettingInput struct {
 	// The value for the allow private repository forking setting on the enterprise. (Required.)
 	SettingValue EnterpriseEnabledDisabledSettingValue `json:"settingValue"`
 
-	// The value for the allow private repository forking policy on the enterprise. (Optional.)
-	PolicyValue *EnterpriseAllowPrivateRepositoryForkingPolicyValue `json:"policyValue,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The value for the allow private repository forking policy on the enterprise. (Optional.)
+	PolicyValue *EnterpriseAllowPrivateRepositoryForkingPolicyValue `json:"policyValue,omitempty"`
 }
 
 // UpdateEnterpriseDefaultRepositoryPermissionSettingInput is an autogenerated input type of UpdateEnterpriseDefaultRepositoryPermissionSetting.
@@ -2630,6 +3696,17 @@ type UpdateEnterpriseDefaultRepositoryPermissionSettingInput struct {
 	EnterpriseID ID `json:"enterpriseId"`
 	// The value for the base repository permission setting on the enterprise. (Required.)
 	SettingValue EnterpriseDefaultRepositoryPermissionSettingValue `json:"settingValue"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// UpdateEnterpriseDeployKeySettingInput is an autogenerated input type of UpdateEnterpriseDeployKeySetting.
+type UpdateEnterpriseDeployKeySettingInput struct {
+	// The ID of the enterprise on which to set the deploy key setting. (Required.)
+	EnterpriseID ID `json:"enterpriseId"`
+	// The value for the deploy key setting on the enterprise. (Required.)
+	SettingValue EnterpriseEnabledDisabledSettingValue `json:"settingValue"`
 
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
@@ -2651,6 +3728,8 @@ type UpdateEnterpriseMembersCanCreateRepositoriesSettingInput struct {
 	// The ID of the enterprise on which to set the members can create repositories setting. (Required.)
 	EnterpriseID ID `json:"enterpriseId"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// Value for the members can create repositories setting on the enterprise. This or the granular public/private/internal allowed fields (but not both) must be provided. (Optional.)
 	SettingValue *EnterpriseMembersCanCreateRepositoriesSettingValue `json:"settingValue,omitempty"`
 	// When false, allow member organizations to set their own repository creation member privileges. (Optional.)
@@ -2661,8 +3740,6 @@ type UpdateEnterpriseMembersCanCreateRepositoriesSettingInput struct {
 	MembersCanCreatePrivateRepositories *Boolean `json:"membersCanCreatePrivateRepositories,omitempty"`
 	// Allow members to create internal repositories. Defaults to current value. (Optional.)
 	MembersCanCreateInternalRepositories *Boolean `json:"membersCanCreateInternalRepositories,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
 // UpdateEnterpriseMembersCanDeleteIssuesSettingInput is an autogenerated input type of UpdateEnterpriseMembersCanDeleteIssuesSetting.
@@ -2760,6 +3837,8 @@ type UpdateEnterpriseProfileInput struct {
 	// The Enterprise ID to update. (Required.)
 	EnterpriseID ID `json:"enterpriseId"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The name of the enterprise. (Optional.)
 	Name *String `json:"name,omitempty"`
 	// The description of the enterprise. (Optional.)
@@ -2768,8 +3847,8 @@ type UpdateEnterpriseProfileInput struct {
 	WebsiteURL *String `json:"websiteUrl,omitempty"`
 	// The location of the enterprise. (Optional.)
 	Location *String `json:"location,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The security contact email address of the enterprise. (Optional.)
+	SecurityContactEmail *String `json:"securityContactEmail,omitempty"`
 }
 
 // UpdateEnterpriseRepositoryProjectsSettingInput is an autogenerated input type of UpdateEnterpriseRepositoryProjectsSetting.
@@ -2783,12 +3862,12 @@ type UpdateEnterpriseRepositoryProjectsSettingInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
-// UpdateEnterpriseTeamDiscussionsSettingInput is an autogenerated input type of UpdateEnterpriseTeamDiscussionsSetting.
-type UpdateEnterpriseTeamDiscussionsSettingInput struct {
-	// The ID of the enterprise on which to set the team discussions setting. (Required.)
+// UpdateEnterpriseTwoFactorAuthenticationDisallowedMethodsSettingInput is an autogenerated input type of UpdateEnterpriseTwoFactorAuthenticationDisallowedMethodsSetting.
+type UpdateEnterpriseTwoFactorAuthenticationDisallowedMethodsSettingInput struct {
+	// The ID of the enterprise on which to set the two-factor authentication disallowed methods setting. (Required.)
 	EnterpriseID ID `json:"enterpriseId"`
-	// The value for the team discussions setting on the enterprise. (Required.)
-	SettingValue EnterpriseEnabledDisabledSettingValue `json:"settingValue"`
+	// The value for the two-factor authentication disallowed methods setting on the enterprise. (Required.)
+	SettingValue EnterpriseDisallowedMethodsSettingValue `json:"settingValue"`
 
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
@@ -2810,12 +3889,14 @@ type UpdateEnvironmentInput struct {
 	// The node ID of the environment. (Required.)
 	EnvironmentID ID `json:"environmentId"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The wait timer in minutes. (Optional.)
 	WaitTimer *Int `json:"waitTimer,omitempty"`
 	// The ids of users or teams that can approve deployments to this environment. (Optional.)
 	Reviewers *[]ID `json:"reviewers,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// Whether deployments to this environment can be approved by the user who created the deployment. (Optional.)
+	PreventSelfReview *Boolean `json:"preventSelfReview,omitempty"`
 }
 
 // UpdateIpAllowListEnabledSettingInput is an autogenerated input type of UpdateIpAllowListEnabledSetting.
@@ -2838,10 +3919,10 @@ type UpdateIpAllowListEntryInput struct {
 	// Whether the IP allow list entry is active when an IP allow list is enabled. (Required.)
 	IsActive Boolean `json:"isActive"`
 
-	// An optional name for the IP allow list entry. (Optional.)
-	Name *String `json:"name,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// An optional name for the IP allow list entry. (Optional.)
+	Name *String `json:"name,omitempty"`
 }
 
 // UpdateIpAllowListForInstalledAppsEnabledSettingInput is an autogenerated input type of UpdateIpAllowListForInstalledAppsEnabledSetting.
@@ -2850,6 +3931,17 @@ type UpdateIpAllowListForInstalledAppsEnabledSettingInput struct {
 	OwnerID ID `json:"ownerId"`
 	// The value for the IP allow list configuration for installed GitHub Apps setting. (Required.)
 	SettingValue IpAllowListForInstalledAppsEnabledSettingValue `json:"settingValue"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// UpdateIpAllowListUserLevelEnforcementEnabledSettingInput is an autogenerated input type of UpdateIpAllowListUserLevelEnforcementEnabledSetting.
+type UpdateIpAllowListUserLevelEnforcementEnabledSettingInput struct {
+	// The ID of the owner. (Required.)
+	OwnerID ID `json:"ownerId"`
+	// The value for the IP allow list user-level enforcement enabled setting. (Required.)
+	SettingValue IpAllowListUserLevelEnforcementEnabledSettingValue `json:"settingValue"`
 
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
@@ -2871,11 +3963,13 @@ type UpdateIssueInput struct {
 	// The ID of the Issue to modify. (Required.)
 	ID ID `json:"id"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The title for the issue. (Optional.)
 	Title *String `json:"title,omitempty"`
 	// The body for the issue description. (Optional.)
 	Body *String `json:"body,omitempty"`
-	// An array of Node IDs of users for this issue. (Optional.)
+	// An array of Node IDs of users or bots for this issue. (Optional.)
 	AssigneeIDs *[]ID `json:"assigneeIds,omitempty"`
 	// The Node ID of the milestone for this issue. (Optional.)
 	MilestoneID *ID `json:"milestoneId,omitempty"`
@@ -2885,8 +3979,53 @@ type UpdateIssueInput struct {
 	State *IssueState `json:"state,omitempty"`
 	// An array of Node IDs for projects associated with this issue. (Optional.)
 	ProjectIDs *[]ID `json:"projectIds,omitempty"`
+	// The ID of the Issue Type for this issue. (Optional.)
+	IssueTypeID *ID `json:"issueTypeId,omitempty"`
+	// Configuration for assigning an AI agent to this issue. (Optional.)
+	AgentAssignment *AgentAssignmentInput `json:"agentAssignment,omitempty"`
+}
+
+// UpdateIssueIssueTypeInput is an autogenerated input type of UpdateIssueIssueType.
+type UpdateIssueIssueTypeInput struct {
+	// The ID of the issue to update. (Required.)
+	IssueID ID `json:"issueId"`
+
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The ID of the issue type to update on the issue. (Optional.)
+	IssueTypeID *ID `json:"issueTypeId,omitempty"`
+}
+
+// UpdateIssueTypeInput is an autogenerated input type of UpdateIssueType.
+type UpdateIssueTypeInput struct {
+	// The ID of the issue type to update. (Required.)
+	IssueTypeID ID `json:"issueTypeId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// Whether or not the issue type is enabled for the organization. (Optional.)
+	IsEnabled *Boolean `json:"isEnabled,omitempty"`
+	// The name of the issue type. (Optional.)
+	Name *String `json:"name,omitempty"`
+	// The description of the issue type. (Optional.)
+	Description *String `json:"description,omitempty"`
+	// Color for the issue type. (Optional.)
+	Color *IssueTypeColor `json:"color,omitempty"`
+}
+
+// UpdateLabelInput is an autogenerated input type of UpdateLabel.
+type UpdateLabelInput struct {
+	// The Node ID of the label to be updated. (Required.)
+	ID ID `json:"id"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// A 6 character hex code, without the leading #, identifying the updated color of the label. (Optional.)
+	Color *String `json:"color,omitempty"`
+	// A brief description of the label, such as its purpose. (Optional.)
+	Description *String `json:"description,omitempty"`
+	// The updated name of the label. (Optional.)
+	Name *String `json:"name,omitempty"`
 }
 
 // UpdateNotificationRestrictionSettingInput is an autogenerated input type of UpdateNotificationRestrictionSetting.
@@ -2922,17 +4061,34 @@ type UpdateOrganizationWebCommitSignoffSettingInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
+// UpdateParametersInput represents only allow users with bypass permission to update matching refs.
+type UpdateParametersInput struct {
+	// Branch can pull changes from its upstream repository. (Required.)
+	UpdateAllowsFetchAndMerge Boolean `json:"updateAllowsFetchAndMerge"`
+}
+
+// UpdatePatreonSponsorabilityInput is an autogenerated input type of UpdatePatreonSponsorability.
+type UpdatePatreonSponsorabilityInput struct {
+	// Whether Patreon tiers should be shown on the GitHub Sponsors profile page, allowing potential sponsors to make their payment through Patreon instead of GitHub. (Required.)
+	EnablePatreonSponsorships Boolean `json:"enablePatreonSponsorships"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The username of the organization with the GitHub Sponsors profile, if any. Defaults to the GitHub Sponsors profile for the authenticated user if omitted. (Optional.)
+	SponsorableLogin *String `json:"sponsorableLogin,omitempty"`
+}
+
 // UpdateProjectCardInput is an autogenerated input type of UpdateProjectCard.
 type UpdateProjectCardInput struct {
 	// The ProjectCard ID to update. (Required.)
 	ProjectCardID ID `json:"projectCardId"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// Whether or not the ProjectCard should be archived. (Optional.)
 	IsArchived *Boolean `json:"isArchived,omitempty"`
 	// The note of ProjectCard. (Optional.)
 	Note *String `json:"note,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
 // UpdateProjectColumnInput is an autogenerated input type of UpdateProjectColumn.
@@ -2946,26 +4102,13 @@ type UpdateProjectColumnInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
-// UpdateProjectDraftIssueInput is an autogenerated input type of UpdateProjectDraftIssue.
-type UpdateProjectDraftIssueInput struct {
-	// The ID of the draft issue to update. (Required.)
-	DraftIssueID ID `json:"draftIssueId"`
-
-	// The title of the draft issue. (Optional.)
-	Title *String `json:"title,omitempty"`
-	// The body of the draft issue. (Optional.)
-	Body *String `json:"body,omitempty"`
-	// The IDs of the assignees of the draft issue. (Optional.)
-	AssigneeIDs *[]ID `json:"assigneeIds,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
-}
-
 // UpdateProjectInput is an autogenerated input type of UpdateProject.
 type UpdateProjectInput struct {
 	// The Project ID to update. (Required.)
 	ProjectID ID `json:"projectId"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The name of project. (Optional.)
 	Name *String `json:"name,omitempty"`
 	// The description of project. (Optional.)
@@ -2974,40 +4117,15 @@ type UpdateProjectInput struct {
 	State *ProjectState `json:"state,omitempty"`
 	// Whether the project is public or not. (Optional.)
 	Public *Boolean `json:"public,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
-// UpdateProjectNextInput is an autogenerated input type of UpdateProjectNext.
-type UpdateProjectNextInput struct {
+// UpdateProjectV2CollaboratorsInput is an autogenerated input type of UpdateProjectV2Collaborators.
+type UpdateProjectV2CollaboratorsInput struct {
+	// The ID of the project to update the collaborators for. (Required.)
+	ProjectID ID `json:"projectId"`
+	// The collaborators to update. (Required.)
+	Collaborators []ProjectV2Collaborator `json:"collaborators"`
 
-	// The ID of the Project to update. This field is required. **Upcoming Change on 2023-01-01 UTC** **Description:** `projectId` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
-	ProjectID *ID `json:"projectId,omitempty"`
-	// Set the title of the project. **Upcoming Change on 2023-01-01 UTC** **Description:** `title` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
-	Title *String `json:"title,omitempty"`
-	// Set the readme description of the project. **Upcoming Change on 2023-01-01 UTC** **Description:** `description` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
-	Description *String `json:"description,omitempty"`
-	// Set the short description of the project. **Upcoming Change on 2023-01-01 UTC** **Description:** `shortDescription` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
-	ShortDescription *String `json:"shortDescription,omitempty"`
-	// Set the project to closed or open. **Upcoming Change on 2023-01-01 UTC** **Description:** `closed` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
-	Closed *Boolean `json:"closed,omitempty"`
-	// Set the project to public or private. **Upcoming Change on 2023-01-01 UTC** **Description:** `public` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
-	Public *Boolean `json:"public,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
-}
-
-// UpdateProjectNextItemFieldInput is an autogenerated input type of UpdateProjectNextItemField.
-type UpdateProjectNextItemFieldInput struct {
-
-	// The ID of the Project. This field is required. (Optional.)
-	ProjectID *ID `json:"projectId,omitempty"`
-	// The id of the item to be updated. This field is required. **Upcoming Change on 2023-01-01 UTC** **Description:** `itemId` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
-	ItemID *ID `json:"itemId,omitempty"`
-	// The id of the field to be updated. **Upcoming Change on 2023-01-01 UTC** **Description:** `fieldId` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
-	FieldID *ID `json:"fieldId,omitempty"`
-	// The value which will be set on the field. This field is required. **Upcoming Change on 2023-01-01 UTC** **Description:** `value` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. (Optional.)
-	Value *String `json:"value,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
@@ -3017,14 +4135,29 @@ type UpdateProjectV2DraftIssueInput struct {
 	// The ID of the draft issue to update. (Required.)
 	DraftIssueID ID `json:"draftIssueId"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The title of the draft issue. (Optional.)
 	Title *String `json:"title,omitempty"`
 	// The body of the draft issue. (Optional.)
 	Body *String `json:"body,omitempty"`
 	// The IDs of the assignees of the draft issue. (Optional.)
 	AssigneeIDs *[]ID `json:"assigneeIds,omitempty"`
+}
+
+// UpdateProjectV2FieldInput is an autogenerated input type of UpdateProjectV2Field.
+type UpdateProjectV2FieldInput struct {
+	// The ID of the field to update. (Required.)
+	FieldID ID `json:"fieldId"`
+
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The name to update. (Optional.)
+	Name *String `json:"name,omitempty"`
+	// Options for a field of type SINGLE_SELECT. Empty input is ignored, provided values overwrite existing options, and existing options should be fetched for partial updates. (Optional.)
+	SingleSelectOptions *[]ProjectV2SingleSelectFieldOptionInput `json:"singleSelectOptions,omitempty"`
+	// Configuration for a field of type ITERATION. Empty input is ignored, provided values overwrite the existing configuration, and existing configuration should be fetched for partial updates. (Optional.)
+	IterationConfiguration *ProjectV2IterationFieldConfigurationInput `json:"iterationConfiguration,omitempty"`
 }
 
 // UpdateProjectV2Input is an autogenerated input type of UpdateProjectV2.
@@ -3032,6 +4165,8 @@ type UpdateProjectV2Input struct {
 	// The ID of the Project to update. (Required.)
 	ProjectID ID `json:"projectId"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// Set the title of the project. (Optional.)
 	Title *String `json:"title,omitempty"`
 	// Set the short description of the project. (Optional.)
@@ -3042,8 +4177,6 @@ type UpdateProjectV2Input struct {
 	Closed *Boolean `json:"closed,omitempty"`
 	// Set the project to public or private. (Optional.)
 	Public *Boolean `json:"public,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
 // UpdateProjectV2ItemFieldValueInput is an autogenerated input type of UpdateProjectV2ItemFieldValue.
@@ -3068,10 +4201,27 @@ type UpdateProjectV2ItemPositionInput struct {
 	// The ID of the item to be moved. (Required.)
 	ItemID ID `json:"itemId"`
 
-	// The ID of the item to position this item after. If omitted or set to null the item will be moved to top. (Optional.)
-	AfterID *ID `json:"afterId,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The ID of the item to position this item after. If omitted or set to null the item will be moved to top. (Optional.)
+	AfterID *ID `json:"afterId,omitempty"`
+}
+
+// UpdateProjectV2StatusUpdateInput is an autogenerated input type of UpdateProjectV2StatusUpdate.
+type UpdateProjectV2StatusUpdateInput struct {
+	// The ID of the status update to be updated. (Required.)
+	StatusUpdateID ID `json:"statusUpdateId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The start date of the status update. (Optional.)
+	StartDate *Date `json:"startDate,omitempty"`
+	// The target date of the status update. (Optional.)
+	TargetDate *Date `json:"targetDate,omitempty"`
+	// The status of the status update. (Optional.)
+	Status *ProjectV2StatusUpdateStatus `json:"status,omitempty"`
+	// The body of the status update. (Optional.)
+	Body *String `json:"body,omitempty"`
 }
 
 // UpdatePullRequestBranchInput is an autogenerated input type of UpdatePullRequestBranch.
@@ -3079,10 +4229,12 @@ type UpdatePullRequestBranchInput struct {
 	// The Node ID of the pull request. (Required.)
 	PullRequestID ID `json:"pullRequestId"`
 
-	// The head ref oid for the upstream branch. (Optional.)
-	ExpectedHeadOid *GitObjectID `json:"expectedHeadOid,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The head ref oid for the upstream branch. (Optional.)
+	ExpectedHeadOid *GitObjectID `json:"expectedHeadOid,omitempty"`
+	// The update branch method to use. If omitted, defaults to 'MERGE'. (Optional.)
+	UpdateMethod *PullRequestBranchUpdateMethod `json:"updateMethod,omitempty"`
 }
 
 // UpdatePullRequestInput is an autogenerated input type of UpdatePullRequest.
@@ -3090,6 +4242,8 @@ type UpdatePullRequestInput struct {
 	// The Node ID of the pull request. (Required.)
 	PullRequestID ID `json:"pullRequestId"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The name of the branch you want your changes pulled into. This should be an existing branch on the current repository. (Optional.)
 	BaseRefName *String `json:"baseRefName,omitempty"`
 	// The title of the pull request. (Optional.)
@@ -3108,8 +4262,6 @@ type UpdatePullRequestInput struct {
 	LabelIDs *[]ID `json:"labelIds,omitempty"`
 	// An array of Node IDs for projects associated with this pull request. (Optional.)
 	ProjectIDs *[]ID `json:"projectIds,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
 // UpdatePullRequestReviewCommentInput is an autogenerated input type of UpdatePullRequestReviewComment.
@@ -3141,8 +4293,19 @@ type UpdateRefInput struct {
 	// The GitObjectID that the Ref shall be updated to target. (Required.)
 	Oid GitObjectID `json:"oid"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// Permit updates of branch Refs that are not fast-forwards?. (Optional.)
 	Force *Boolean `json:"force,omitempty"`
+}
+
+// UpdateRefsInput is an autogenerated input type of UpdateRefs.
+type UpdateRefsInput struct {
+	// The Node ID of the repository. (Required.)
+	RepositoryID ID `json:"repositoryId"`
+	// A list of ref updates. (Required.)
+	RefUpdates []RefUpdate `json:"refUpdates"`
+
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
@@ -3152,6 +4315,8 @@ type UpdateRepositoryInput struct {
 	// The ID of the repository to update. (Required.)
 	RepositoryID ID `json:"repositoryId"`
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The new name of the repository. (Optional.)
 	Name *String `json:"name,omitempty"`
 	// A new description for the repository. Pass an empty string to erase the existing description. (Optional.)
@@ -3168,8 +4333,29 @@ type UpdateRepositoryInput struct {
 	HasProjectsEnabled *Boolean `json:"hasProjectsEnabled,omitempty"`
 	// Indicates if the repository should have the discussions feature enabled. (Optional.)
 	HasDiscussionsEnabled *Boolean `json:"hasDiscussionsEnabled,omitempty"`
+	// Indicates if the repository displays a Sponsor button for financial contributions. (Optional.)
+	HasSponsorshipsEnabled *Boolean `json:"hasSponsorshipsEnabled,omitempty"`
+}
+
+// UpdateRepositoryRulesetInput is an autogenerated input type of UpdateRepositoryRuleset.
+type UpdateRepositoryRulesetInput struct {
+	// The global relay id of the repository ruleset to be updated. (Required.)
+	RepositoryRulesetID ID `json:"repositoryRulesetId"`
+
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The name of the ruleset. (Optional.)
+	Name *String `json:"name,omitempty"`
+	// The target of the ruleset. (Optional.)
+	Target *RepositoryRulesetTarget `json:"target,omitempty"`
+	// The list of rules for this ruleset. (Optional.)
+	Rules *[]RepositoryRuleInput `json:"rules,omitempty"`
+	// The list of conditions for this ruleset. (Optional.)
+	Conditions *RepositoryRuleConditionsInput `json:"conditions,omitempty"`
+	// The enforcement level for this ruleset. (Optional.)
+	Enforcement *RuleEnforcement `json:"enforcement,omitempty"`
+	// A list of actors that are allowed to bypass rules in this ruleset. (Optional.)
+	BypassActors *[]RepositoryRulesetBypassActorInput `json:"bypassActors,omitempty"`
 }
 
 // UpdateRepositoryWebCommitSignoffSettingInput is an autogenerated input type of UpdateRepositoryWebCommitSignoffSetting.
@@ -3186,6 +4372,8 @@ type UpdateRepositoryWebCommitSignoffSettingInput struct {
 // UpdateSponsorshipPreferencesInput is an autogenerated input type of UpdateSponsorshipPreferences.
 type UpdateSponsorshipPreferencesInput struct {
 
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
 	// The ID of the user or organization who is acting as the sponsor, paying for the sponsorship. Required if sponsorLogin is not given. (Optional.)
 	SponsorID *ID `json:"sponsorId,omitempty"`
 	// The username of the user or organization who is acting as the sponsor, paying for the sponsorship. Required if sponsorId is not given. (Optional.)
@@ -3198,8 +4386,6 @@ type UpdateSponsorshipPreferencesInput struct {
 	ReceiveEmails *Boolean `json:"receiveEmails,omitempty"`
 	// Specify whether others should be able to see that the sponsor is sponsoring the sponsorable. Public visibility still does not reveal which tier is used. (Optional.)
 	PrivacyLevel *SponsorshipPrivacy `json:"privacyLevel,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
 // UpdateSubscriptionInput is an autogenerated input type of UpdateSubscription.
@@ -3213,34 +4399,29 @@ type UpdateSubscriptionInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
-// UpdateTeamDiscussionCommentInput is an autogenerated input type of UpdateTeamDiscussionComment.
-type UpdateTeamDiscussionCommentInput struct {
-	// The ID of the comment to modify. (Required.)
+// UpdateTeamReviewAssignmentInput is an autogenerated input type of UpdateTeamReviewAssignment.
+type UpdateTeamReviewAssignmentInput struct {
+	// The Node ID of the team to update review assignments of. (Required.)
 	ID ID `json:"id"`
-	// The updated text of the comment. (Required.)
-	Body String `json:"body"`
+	// Turn on or off review assignment. (Required.)
+	Enabled Boolean `json:"enabled"`
 
-	// The current version of the body content. (Optional.)
-	BodyVersion *String `json:"bodyVersion,omitempty"`
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
-}
-
-// UpdateTeamDiscussionInput is an autogenerated input type of UpdateTeamDiscussion.
-type UpdateTeamDiscussionInput struct {
-	// The Node ID of the discussion to modify. (Required.)
-	ID ID `json:"id"`
-
-	// The updated title of the discussion. (Optional.)
-	Title *String `json:"title,omitempty"`
-	// The updated text of the discussion. (Optional.)
-	Body *String `json:"body,omitempty"`
-	// The current version of the body content. If provided, this update operation will be rejected if the given version does not match the latest version on the server. (Optional.)
-	BodyVersion *String `json:"bodyVersion,omitempty"`
-	// If provided, sets the pinned state of the updated discussion. (Optional.)
-	Pinned *Boolean `json:"pinned,omitempty"`
-	// A unique identifier for the client performing the mutation. (Optional.)
-	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The algorithm to use for review assignment. (Optional.)
+	Algorithm *TeamReviewAssignmentAlgorithm `json:"algorithm,omitempty"`
+	// The number of team members to assign. (Optional.)
+	TeamMemberCount *Int `json:"teamMemberCount,omitempty"`
+	// Notify the entire team of the PR if it is delegated. (Optional.)
+	NotifyTeam *Boolean `json:"notifyTeam,omitempty"`
+	// Remove the team review request when assigning. (Optional.)
+	RemoveTeamRequest *Boolean `json:"removeTeamRequest,omitempty"`
+	// Include the members of any child teams when assigning. (Optional.)
+	IncludeChildTeamMembers *Boolean `json:"includeChildTeamMembers,omitempty"`
+	// Count any members whose review has already been requested against the required number of members assigned to review. (Optional.)
+	CountMembersAlreadyRequested *Boolean `json:"countMembersAlreadyRequested,omitempty"`
+	// An array of team member IDs to exclude. (Optional.)
+	ExcludedTeamMemberIDs *[]ID `json:"excludedTeamMemberIds,omitempty"`
 }
 
 // UpdateTeamsRepositoryInput is an autogenerated input type of UpdateTeamsRepository.
@@ -3265,6 +4446,34 @@ type UpdateTopicsInput struct {
 
 	// A unique identifier for the client performing the mutation. (Optional.)
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
+}
+
+// UpdateUserListInput is an autogenerated input type of UpdateUserList.
+type UpdateUserListInput struct {
+	// The ID of the list to update. (Required.)
+	ListID ID `json:"listId"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The name of the list. (Optional.)
+	Name *String `json:"name,omitempty"`
+	// A description of the list. (Optional.)
+	Description *String `json:"description,omitempty"`
+	// Whether or not the list is private. (Optional.)
+	IsPrivate *Boolean `json:"isPrivate,omitempty"`
+}
+
+// UpdateUserListsForItemInput is an autogenerated input type of UpdateUserListsForItem.
+type UpdateUserListsForItemInput struct {
+	// The item to add to the list. (Required.)
+	ItemID ID `json:"itemId"`
+	// The lists to which this item should belong. (Required.)
+	ListIDs []ID `json:"listIds"`
+
+	// A unique identifier for the client performing the mutation. (Optional.)
+	ClientMutationID *String `json:"clientMutationId,omitempty"`
+	// The suggested lists to create and add this item to. (Optional.)
+	SuggestedListIDs *[]ID `json:"suggestedListIds,omitempty"`
 }
 
 // UserStatusOrder represents ordering options for user status connections.
@@ -3292,10 +4501,32 @@ type VerifyVerifiableDomainInput struct {
 	ClientMutationID *String `json:"clientMutationId,omitempty"`
 }
 
+// WorkflowFileReferenceInput represents a workflow that must run for this rule to pass.
+type WorkflowFileReferenceInput struct {
+	// The path to the workflow file. (Required.)
+	Path String `json:"path"`
+	// The ID of the repository where the workflow is defined. (Required.)
+	RepositoryID Int `json:"repositoryId"`
+
+	// The ref (branch or tag) of the workflow file to use. (Optional.)
+	Ref *String `json:"ref,omitempty"`
+	// The commit SHA of the workflow file to use. (Optional.)
+	Sha *String `json:"sha,omitempty"`
+}
+
 // WorkflowRunOrder represents ways in which lists of workflow runs can be ordered upon return.
 type WorkflowRunOrder struct {
 	// The field by which to order workflows. (Required.)
 	Field WorkflowRunOrderField `json:"field"`
 	// The direction in which to order workflow runs by the specified field. (Required.)
 	Direction OrderDirection `json:"direction"`
+}
+
+// WorkflowsParametersInput represents require all changes made to a targeted branch to pass the specified workflows before they can be merged.
+type WorkflowsParametersInput struct {
+	// Workflows that must pass for this rule to pass. (Required.)
+	Workflows []WorkflowFileReferenceInput `json:"workflows"`
+
+	// Allow repositories and branches to be created if a check would otherwise prohibit it. (Optional.)
+	DoNotEnforceOnCreate *Boolean `json:"doNotEnforceOnCreate,omitempty"`
 }

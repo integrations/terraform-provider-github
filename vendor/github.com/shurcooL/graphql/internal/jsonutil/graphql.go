@@ -17,7 +17,7 @@ import (
 //
 // The implementation is created on top of the JSON tokenizer available
 // in "encoding/json".Decoder.
-func UnmarshalGraphQL(data []byte, v interface{}) error {
+func UnmarshalGraphQL(data []byte, v any) error {
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.UseNumber()
 	err := (&decoder{tokenizer: dec}).Decode(v)
@@ -57,7 +57,7 @@ type decoder struct {
 }
 
 // Decode decodes a single JSON value from d.tokenizer into v.
-func (d *decoder) Decode(v interface{}) error {
+func (d *decoder) Decode(v any) error {
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr {
 		return fmt.Errorf("cannot decode into non-pointer %T", v)

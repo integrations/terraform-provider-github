@@ -24,23 +24,23 @@ func dataSourceGithubCollaborators() *schema.Resource {
 			},
 			"affiliation": {
 				Type: schema.TypeString,
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"all",
 					"direct",
 					"outside",
-				}, false), "affiliation"),
+				}, false)),
 				Optional: true,
 				Default:  "all",
 			},
 			"permission": {
 				Type: schema.TypeString,
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"pull",
 					"triage",
 					"push",
 					"maintain",
 					"admin",
-				}, false), "permission"),
+				}, false)),
 				Optional: true,
 				Default:  "",
 			},
