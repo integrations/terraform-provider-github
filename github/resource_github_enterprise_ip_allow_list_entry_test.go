@@ -8,7 +8,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccGithubEnterpriseIpAllowListEntry_basic(t *testing.T) {
+func TestAccGithubEnterpriseIpAllowListEntry(t *testing.T) {
+	t.Run("basic", func(t *testing.T) {
 	resourceName := "github_enterprise_ip_allow_list_entry.test"
 	ip := "192.168.1.0/24"
 	name := "Test Entry"
