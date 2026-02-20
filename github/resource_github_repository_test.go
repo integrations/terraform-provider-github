@@ -1260,7 +1260,32 @@ resource "github_repository" "test" {
 		})
 	})
 
-	t.Run("creates repos with explicit web commit signoff required", func(t *testing.T) {
+	t.Run("check_web_commit_signoff_required_enabled", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%scommit-signoff-%s", testResourcePrefix, randomID)
+		config := `
+			resource "github_repository" "test" {
+				name                        = "%s"
+				auto_init                   = true
+				web_commit_signoff_required = %s
+			}
+		`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, testRepoName, "true"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "web_commit_signoff_required", "true"),
+					),
+				},
+			},
+		})
+	})
+
+	t.Run("check_web_commit_signoff_required_disabled", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%scommit-signoff-%s", testResourcePrefix, randomID)
 		config := `
@@ -1281,18 +1306,36 @@ resource "github_repository" "test" {
 						resource.TestCheckResourceAttr("github_repository.test", "web_commit_signoff_required", "false"),
 					),
 				},
+			},
+		})
+	})
+
+	t.Run("check_web_commit_signoff_required_not_set", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%scommit-signoff-%s", testResourcePrefix, randomID)
+		config := `
+			resource "github_repository" "test" {
+				name                        = "%s"
+				auto_init                   = true
+			}
+		`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
 				{
-					Config: fmt.Sprintf(config, testRepoName, "true"),
+					Config: fmt.Sprintf(config, testRepoName),
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository.test", "web_commit_signoff_required", "true"),
+						resource.TestCheckResourceAttr("github_repository.test", "web_commit_signoff_required", "false"),
 					),
 				},
 			},
 		})
 	})
 
-	t.Run("check_web_commit_signoff_required_not_set", func(t *testing.T) {
-		t.Skip("This test should be run manually after confirming that the test organization has been correctly configured to disable setting commit signoff at the repo level.")
+	t.Run("check_web_commit_signoff_required_organization_enabled_but_not_set", func(t *testing.T) {
+		t.Skip("This test should be run manually after confirming that the test organization has 'Require contributors to sign off on web-based commits' enabled under Organizations -> Settings -> Repository -> Repository defaults.")
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%scommit-signoff-%s", testResourcePrefix, randomID)
