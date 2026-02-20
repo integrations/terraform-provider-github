@@ -132,6 +132,8 @@ The `rules` block supports the following:
 
 - `required_linear_history` - (Optional) (Boolean) Prevent merge commits from being pushed to matching branches.
 
+- `required_reviewers` - (Optional) (Block List) Require specific reviewers to approve pull requests. Note: This feature is in beta. (see [below for nested schema](#rulespull_requestrequired_reviewers))
+
 - `required_signatures` - (Optional) (Boolean) Commits pushed to matching branches must have verified signatures.
 
 - `required_status_checks` - (Optional) (Block List, Max: 1) Choose which status checks must pass before branches can be merged into a branch that matches this rule. When enabled, commits must first be pushed to another branch, then merged or pushed directly to a branch that matches this rule after status checks have passed. (see [below for nested schema](#rulesrequired_status_checks))
@@ -221,10 +223,6 @@ The `rules` block supports the following:
 - `review_on_push` - (Optional) (Boolean) Copilot automatically reviews each new push to the pull request. Defaults to `false`.
 
 - `review_draft_pull_requests` - (Optional) (Boolean) Copilot automatically reviews draft pull requests before they are marked as ready for review. Defaults to `false`.
-
-- `allowed_merge_methods` - (Required) (List of String, Min: 1) Array of merge methods to be allowed. Allowed values include `merge`, `squash`, and `rebase`. At least one must be enabled.
-
-- `required_reviewers` - (Optional) (Block List) Require specific reviewers to approve pull requests. Note: This feature is in beta. (see [below for nested schema](#rulespull_requestrequired_reviewers))
 
 #### rules.pull_request.required_reviewers ####
 
