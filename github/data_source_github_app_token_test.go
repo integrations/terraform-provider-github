@@ -61,9 +61,9 @@ func TestAccGithubAppTokenDataSource(t *testing.T) {
 			"token":           "",
 		})
 
-		err = dataSourceGithubAppTokenRead(schema, meta)
-		if err != nil {
-			t.Logf("Unexpected error: %s", err)
+		diags := dataSourceGithubAppTokenRead(t.Context(), schema, meta)
+		if diags.HasError() {
+			t.Logf("Unexpected error: %v", diags)
 			t.Fail()
 		}
 

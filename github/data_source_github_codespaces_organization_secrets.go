@@ -5,12 +5,13 @@ import (
 
 	"github.com/google/go-github/v83/github"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubCodespacesOrganizationSecrets() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubCodespacesOrganizationSecretsRead,
+		ReadContext: dataSourceGithubCodespacesOrganizationSecretsRead,
 
 		Schema: map[string]*schema.Schema{
 			"secrets": {
@@ -41,8 +42,7 @@ func dataSourceGithubCodespacesOrganizationSecrets() *schema.Resource {
 	}
 }
 
-func dataSourceGithubCodespacesOrganizationSecretsRead(d *schema.ResourceData, meta any) error {
-	ctx := context.Background()
+func dataSourceGithubCodespacesOrganizationSecretsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 
@@ -54,7 +54,7 @@ func dataSourceGithubCodespacesOrganizationSecretsRead(d *schema.ResourceData, m
 	for {
 		secrets, resp, err := client.Codespaces.ListOrgSecrets(ctx, owner, &options)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		for _, secret := range secrets.Secrets {
 			new_secret := map[string]string{
@@ -75,7 +75,7 @@ func dataSourceGithubCodespacesOrganizationSecretsRead(d *schema.ResourceData, m
 	d.SetId(owner)
 	err := d.Set("secrets", all_secrets)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

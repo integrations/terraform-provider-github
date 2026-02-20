@@ -3,12 +3,13 @@ package github
 import (
 	"context"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubIssueLabels() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubIssueLabelsRead,
+		ReadContext: dataSourceGithubIssueLabelsRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -43,22 +44,21 @@ func dataSourceGithubIssueLabels() *schema.Resource {
 	}
 }
 
-func dataSourceGithubIssueLabelsRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubIssueLabelsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repository := d.Get("repository").(string)
-	ctx := context.Background()
 
 	d.SetId(repository)
 
 	labels, err := listLabels(client, ctx, owner, repository)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = d.Set("labels", flattenLabels(labels))
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

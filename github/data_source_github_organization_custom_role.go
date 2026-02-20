@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/go-github/v83/github"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -14,7 +15,7 @@ func dataSourceGithubOrganizationCustomRole() *schema.Resource {
 	return &schema.Resource{
 		DeprecationMessage: "This data source is deprecated and will be removed in a future release. Use the github_organization_repository_role data source instead.",
 
-		Read: dataSourceGithubOrganizationCustomRoleRead,
+		ReadContext: dataSourceGithubOrganizationCustomRoleRead,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
@@ -37,14 +38,13 @@ func dataSourceGithubOrganizationCustomRole() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationCustomRoleRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubOrganizationCustomRoleRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 	orgName := meta.(*Owner).name
 
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// ListCustomRepoRoles returns a list of all custom repository roles for an organization.
@@ -52,7 +52,7 @@ func dataSourceGithubOrganizationCustomRoleRead(d *schema.ResourceData, meta any
 	// implemented in the go-github library.
 	roleList, _, err := client.Organizations.ListCustomRepoRoles(ctx, orgName)
 	if err != nil {
-		return fmt.Errorf("error querying GitHub custom repository roles %s: %w", orgName, err)
+		return diag.Errorf("error querying GitHub custom repository roles %s: %v", orgName, err)
 	}
 
 	var role *github.CustomRepoRoles
@@ -72,19 +72,19 @@ func dataSourceGithubOrganizationCustomRoleRead(d *schema.ResourceData, meta any
 	d.SetId(fmt.Sprint(*role.ID))
 	err = d.Set("name", role.Name)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	err = d.Set("description", role.Description)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	err = d.Set("base_role", role.BaseRole)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	err = d.Set("permissions", role.Permissions)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

@@ -6,13 +6,14 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
 
 func dataSourceGithubUsers() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubUsersRead,
+		ReadContext: dataSourceGithubUsersRead,
 
 		Schema: map[string]*schema.Schema{
 			"usernames": {
@@ -54,7 +55,7 @@ func dataSourceGithubUsers() *schema.Resource {
 	}
 }
 
-func dataSourceGithubUsersRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubUsersRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	usernames := expandStringList(d.Get("usernames").([]any))
 
 	// Create GraphQL variables and query struct
@@ -77,11 +78,10 @@ func dataSourceGithubUsersRead(d *schema.ResourceData, meta any) error {
 	query := reflect.New(reflect.StructOf(fields)).Elem()
 
 	if len(usernames) > 0 {
-		ctx := context.WithValue(context.Background(), ctxId, d.Id())
 		client := meta.(*Owner).v4client
 		err := client.Query(ctx, query.Addr().Interface(), variables)
 		if err != nil && !strings.Contains(err.Error(), "Could not resolve to a User with the login of") {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
@@ -100,16 +100,16 @@ func dataSourceGithubUsersRead(d *schema.ResourceData, meta any) error {
 
 	d.SetId(buildChecksumID(usernames))
 	if err := d.Set("logins", logins); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("emails", emails); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("node_ids", nodeIDs); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("unknown_logins", unknownLogins); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

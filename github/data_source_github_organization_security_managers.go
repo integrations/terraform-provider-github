@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -11,7 +12,7 @@ func dataSourceGithubOrganizationSecurityManagers() *schema.Resource {
 	return &schema.Resource{
 		DeprecationMessage: "This data source is deprecated in favour of using the github_organization_role_teams data source.",
 
-		Read: dataSourceGithubOrganizationSecurityManagersRead,
+		ReadContext: dataSourceGithubOrganizationSecurityManagersRead,
 
 		Schema: map[string]*schema.Schema{
 			"teams": {
@@ -46,9 +47,8 @@ func dataSourceGithubOrganizationSecurityManagers() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationSecurityManagersRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubOrganizationSecurityManagersRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 	orgName := meta.(*Owner).name
 
 	allTeams := make([]any, 0)
@@ -56,7 +56,7 @@ func dataSourceGithubOrganizationSecurityManagersRead(d *schema.ResourceData, me
 	//nolint:staticcheck // SA1019: ListSecurityManagerTeams is deprecated but still needed for legacy compatibility
 	teams, _, err := client.Organizations.ListSecurityManagerTeams(ctx, orgName)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	for _, team := range teams {
@@ -71,7 +71,7 @@ func dataSourceGithubOrganizationSecurityManagersRead(d *schema.ResourceData, me
 
 	d.SetId(fmt.Sprintf("%s/github-org-security-managers", orgName))
 	if err := d.Set("teams", allTeams); err != nil {
-		return fmt.Errorf("error setting teams: %w", err)
+		return diag.Errorf("error setting teams: %v", err)
 	}
 
 	return nil

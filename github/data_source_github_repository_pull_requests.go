@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v83/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -12,7 +13,7 @@ import (
 // Docs: https://docs.github.com/en/rest/reference/pulls#list-pull-requests
 func dataSourceGithubRepositoryPullRequests() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoryPullRequestsRead,
+		ReadContext: dataSourceGithubRepositoryPullRequestsRead,
 		Schema: map[string]*schema.Schema{
 			"owner": {
 				Type:     schema.TypeString,
@@ -128,8 +129,7 @@ func dataSourceGithubRepositoryPullRequests() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryPullRequestsRead(d *schema.ResourceData, meta any) error {
-	ctx := context.Background()
+func dataSourceGithubRepositoryPullRequestsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -158,7 +158,7 @@ func dataSourceGithubRepositoryPullRequestsRead(d *schema.ResourceData, meta any
 	for {
 		pullRequests, resp, err := client.PullRequests.List(ctx, owner, baseRepository, options)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		for _, pullRequest := range pullRequests {
@@ -222,7 +222,7 @@ func dataSourceGithubRepositoryPullRequestsRead(d *schema.ResourceData, meta any
 	}, "/"))
 
 	if err := d.Set("results", results); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

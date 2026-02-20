@@ -2,16 +2,16 @@ package github
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/google/go-github/v83/github"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubDependabotSecrets() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubDependabotSecretsRead,
+		ReadContext: dataSourceGithubDependabotSecretsRead,
 
 		Schema: map[string]*schema.Schema{
 			"full_name": {
@@ -50,8 +50,7 @@ func dataSourceGithubDependabotSecrets() *schema.Resource {
 	}
 }
 
-func dataSourceGithubDependabotSecretsRead(d *schema.ResourceData, meta any) error {
-	ctx := context.Background()
+func dataSourceGithubDependabotSecretsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	var repoName string
@@ -60,7 +59,7 @@ func dataSourceGithubDependabotSecretsRead(d *schema.ResourceData, meta any) err
 		var err error
 		owner, repoName, err = splitRepoFullName(fullName.(string))
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
@@ -69,7 +68,7 @@ func dataSourceGithubDependabotSecretsRead(d *schema.ResourceData, meta any) err
 	}
 
 	if repoName == "" {
-		return fmt.Errorf("one of %q or %q has to be provided", "full_name", "name")
+		return diag.Errorf("one of %q or %q has to be provided", "full_name", "name")
 	}
 
 	options := github.ListOptions{
@@ -80,7 +79,7 @@ func dataSourceGithubDependabotSecretsRead(d *schema.ResourceData, meta any) err
 	for {
 		secrets, resp, err := client.Dependabot.ListRepoSecrets(ctx, owner, repoName, &options)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		for _, secret := range secrets.Secrets {
 			new_secret := map[string]string{
@@ -99,7 +98,7 @@ func dataSourceGithubDependabotSecretsRead(d *schema.ResourceData, meta any) err
 	d.SetId(repoName)
 	err := d.Set("secrets", all_secrets)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

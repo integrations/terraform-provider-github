@@ -5,12 +5,13 @@ import (
 	"fmt"
 
 	"github.com/google/go-github/v83/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubOrganizationTeamSyncGroups() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubOrganizationTeamSyncGroupsRead,
+		ReadContext: dataSourceGithubOrganizationTeamSyncGroupsRead,
 
 		Schema: map[string]*schema.Schema{
 			"groups": {
@@ -37,9 +38,8 @@ func dataSourceGithubOrganizationTeamSyncGroups() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationTeamSyncGroupsRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubOrganizationTeamSyncGroupsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 
 	orgName := meta.(*Owner).name
 	options := &github.ListIDPGroupsOptions{
@@ -52,7 +52,7 @@ func dataSourceGithubOrganizationTeamSyncGroupsRead(d *schema.ResourceData, meta
 	for {
 		idpGroupList, resp, err := client.Teams.ListIDPGroupsInOrganization(ctx, orgName, options)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		result := flattenGithubIDPGroupList(idpGroupList)
@@ -67,7 +67,7 @@ func dataSourceGithubOrganizationTeamSyncGroupsRead(d *schema.ResourceData, meta
 
 	d.SetId(fmt.Sprintf("%s/github-org-team-sync-groups", orgName))
 	if err := d.Set("groups", groups); err != nil {
-		return fmt.Errorf("error setting groups: %w", err)
+		return diag.Errorf("error setting groups: %v", err)
 	}
 
 	return nil

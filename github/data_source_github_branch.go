@@ -7,12 +7,13 @@ import (
 	"net/http"
 
 	"github.com/google/go-github/v83/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubBranch() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubBranchRead,
+		ReadContext: dataSourceGithubBranchRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -41,8 +42,7 @@ func dataSourceGithubBranch() *schema.Resource {
 	}
 }
 
-func dataSourceGithubBranchRead(d *schema.ResourceData, meta any) error {
-	ctx := context.Background()
+func dataSourceGithubBranchRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
@@ -59,21 +59,21 @@ func dataSourceGithubBranchRead(d *schema.ResourceData, meta any) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(buildTwoPartID(repoName, branchName))
 	err = d.Set("etag", resp.Header.Get("ETag"))
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	err = d.Set("ref", *ref.Ref)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	err = d.Set("sha", *ref.Object.SHA)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

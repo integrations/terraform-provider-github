@@ -5,12 +5,13 @@ import (
 	"fmt"
 
 	"github.com/google/go-github/v83/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRepositoryWebhooks() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoryWebhooksRead,
+		ReadContext: dataSourceGithubRepositoryWebhooksRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -49,12 +50,11 @@ func dataSourceGithubRepositoryWebhooks() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryWebhooksRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubRepositoryWebhooksRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	repository := d.Get("repository").(string)
 	owner := meta.(*Owner).name
 
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 
 	options := &github.ListOptions{
 		PerPage: 100,
@@ -64,7 +64,7 @@ func dataSourceGithubRepositoryWebhooksRead(d *schema.ResourceData, meta any) er
 	for {
 		hooks, resp, err := client.Repositories.ListHooks(ctx, owner, repository, options)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		results = append(results, flattenGitHubWebhooks(hooks)...)
@@ -78,10 +78,10 @@ func dataSourceGithubRepositoryWebhooksRead(d *schema.ResourceData, meta any) er
 
 	d.SetId(fmt.Sprintf("%s/%s", owner, repository))
 	if err := d.Set("repository", repository); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("webhooks", results); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
