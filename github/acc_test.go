@@ -43,7 +43,8 @@ type testAccConfig struct {
 	token    string
 
 	// Enterprise configuration
-	enterpriseSlug string
+	enterpriseSlug  string
+	enterpriseIsEMU bool
 
 	// Global test configuration
 	testPublicRepository              string
@@ -76,6 +77,9 @@ type testAccConfig struct {
 
 	// Test options
 	testAdvancedSecurity bool
+
+	// Test repository configuration
+	testRepositoryVisibility string
 }
 
 var testAccConf *testAccConfig
@@ -130,6 +134,8 @@ func TestMain(m *testing.M) {
 		testExternalUserToken:             os.Getenv("GH_TEST_EXTERNAL_USER_TOKEN"),
 		testExternalUser2:                 os.Getenv("GH_TEST_EXTERNAL_USER2"),
 		testAdvancedSecurity:              os.Getenv("GH_TEST_ADVANCED_SECURITY") == "true",
+		testRepositoryVisibility:          "public",
+		enterpriseIsEMU:                   authMode == enterprise && os.Getenv("GH_TEST_ENTERPRISE_IS_EMU") == "true",
 	}
 
 	if config.authMode != anonymous {
@@ -164,6 +170,10 @@ func TestMain(m *testing.M) {
 		i, err := strconv.Atoi(os.Getenv("GH_TEST_ENTERPRISE_EMU_GROUP_ID"))
 		if err == nil {
 			config.testEnterpriseEMUGroupId = i
+		}
+
+		if config.enterpriseIsEMU {
+			config.testRepositoryVisibility = "private"
 		}
 	}
 
@@ -315,6 +325,18 @@ func skipUnlessHasAppInstallations(t *testing.T) {
 
 	if len(installations.Installations) == 0 {
 		t.Skip("Skipping because no GitHub App installations found in the test organization")
+	}
+}
+
+func skipUnlessEMUEnterprise(t *testing.T) {
+	if !testAccConf.enterpriseIsEMU {
+		t.Skip("Skipping as test mode is not EMU enterprise")
+	}
+}
+
+func skipIfEMUEnterprise(t *testing.T) {
+	if testAccConf.enterpriseIsEMU {
+		t.Skip("Skipping as this test is not supported for EMU enterprise")
 	}
 }
 
