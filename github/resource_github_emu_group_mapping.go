@@ -125,7 +125,7 @@ func resourceGithubEMUGroupMappingCreate(ctx context.Context, d *schema.Resource
 		return diag.FromErr(err)
 	}
 
-	tflog.Trace(ctx, "Resource created or updated successfully", map[string]any{
+	tflog.Trace(ctx, "Resource created successfully", map[string]any{
 		"resource_id": d.Id(),
 	})
 
