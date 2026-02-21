@@ -22,6 +22,8 @@ func resourceGithubBranchDefault() *schema.Resource {
 			// StateContext: resourceGithubBranchDefaultImport,
 		},
 
+		CustomizeDiff: diffRepository,
+
 		Schema: map[string]*schema.Schema{
 			"branch": {
 				Type:        schema.TypeString,
@@ -31,10 +33,13 @@ func resourceGithubBranchDefault() *schema.Resource {
 			"repository": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "The GitHub repository.",
 			},
-			// TODO add repository_id and diffRepository to handle repository renames
+			"repository_id": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The GitHub repository ID.",
+			},
 			"rename": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -101,6 +106,9 @@ func resourceGithubBranchDefaultCreate(ctx context.Context, d *schema.ResourceDa
 
 	d.SetId(repoName)
 
+	if err := d.Set("repository_id", int(repository.GetID())); err != nil {
+		return diag.FromErr(err)
+	}
 	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
 		return diag.FromErr(err)
 	}
@@ -156,13 +164,15 @@ func resourceGithubBranchDefaultRead(ctx context.Context, d *schema.ResourceData
 		return nil
 	}
 
+	if err := d.Set("repository_id", int(repository.GetID())); err != nil {
+		return diag.FromErr(err)
+	}
+
 	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
 		return diag.FromErr(err)
 	}
+
 	if err := d.Set("branch", repository.GetDefaultBranch()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("repository", repository.GetName()); err != nil {
 		return diag.FromErr(err)
 	}
 
