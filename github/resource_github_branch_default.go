@@ -18,8 +18,7 @@ func resourceGithubBranchDefault() *schema.Resource {
 		UpdateContext: resourceGithubBranchDefaultUpdate,
 		DeleteContext: resourceGithubBranchDefaultDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-			// StateContext: resourceGithubBranchDefaultImport,
+			StateContext: resourceGithubBranchDefaultImport,
 		},
 
 		CustomizeDiff: diffRepository,
@@ -126,8 +125,7 @@ func resourceGithubBranchDefaultRead(ctx context.Context, d *schema.ResourceData
 	client := meta.v3client
 	owner := meta.name
 
-	// repoName := d.Get("repository").(string)
-	repoName := d.Id()
+	repoName := d.Get("repository").(string)
 
 	tflog.Trace(ctx, "Reading default branch resource", map[string]any{
 		"owner":      owner,
@@ -186,8 +184,7 @@ func resourceGithubBranchDefaultUpdate(ctx context.Context, d *schema.ResourceDa
 	client := meta.v3client
 	owner := meta.name
 
-	// repoName := d.Get("repository").(string)
-	repoName := d.Id()
+	repoName := d.Get("repository").(string)
 	defaultBranch := d.Get("branch").(string)
 	rename := d.Get("rename").(bool)
 
@@ -235,8 +232,7 @@ func resourceGithubBranchDefaultDelete(ctx context.Context, d *schema.ResourceDa
 	meta := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
-	// repoName := d.Get("repository").(string)
-	repoName := d.Id()
+	repoName := d.Get("repository").(string)
 
 	tflog.Trace(ctx, "Deleting default branch resource", map[string]any{
 		"owner":      owner,
@@ -256,19 +252,12 @@ func resourceGithubBranchDefaultDelete(ctx context.Context, d *schema.ResourceDa
 	return nil
 }
 
-// func resourceGithubBranchDefaultImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-// 	repoName, defaultBranch, err := parseID2(d.Id())
-// 	if err != nil {
-// 		return nil, err
-// 	}
+func resourceGithubBranchDefaultImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+	repoName := d.Id()
 
-// 	d.SetId(repoName)
-// 	if err := d.Set("branch", defaultBranch); err != nil {
-// 		return nil, err
-// 	}
-// 	if err := d.Set("repository", repoName); err != nil {
-// 		return nil, err
-// 	}
+	if err := d.Set("repository", repoName); err != nil {
+		return nil, err
+	}
 
-// 	return []*schema.ResourceData{d}, nil
-// }
+	return []*schema.ResourceData{d}, nil
+}
