@@ -74,13 +74,13 @@ func resourceGithubEMUGroupMappingCreate(ctx context.Context, d *schema.Resource
 	}
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	tflog.SetField(ctx, "org_name", orgName)
+	ctx = tflog.SetField(ctx, "org_name", orgName)
 
 	teamSlug := d.Get("team_slug").(string)
-	tflog.SetField(ctx, "team_slug", teamSlug)
+	ctx = tflog.SetField(ctx, "team_slug", teamSlug)
 
 	groupID := toInt64(d.Get("group_id"))
-	tflog.SetField(ctx, "group_id", groupID)
+	ctx = tflog.SetField(ctx, "group_id", groupID)
 	eg := &github.ExternalGroup{
 		GroupID: github.Ptr(groupID),
 	}
@@ -133,9 +133,8 @@ func resourceGithubEMUGroupMappingCreate(ctx context.Context, d *schema.Resource
 }
 
 func resourceGithubEMUGroupMappingRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	tflog.Trace(ctx, "Reading EMU group mapping", map[string]any{
-		"resource_id": d.Id(),
-	})
+	ctx = tflog.SetField(ctx, "resource_id", d.Id())
+	tflog.Trace(ctx, "Reading EMU group mapping")
 
 	err := checkOrganization(meta)
 	if err != nil {
@@ -147,26 +146,22 @@ func resourceGithubEMUGroupMappingRead(ctx context.Context, d *schema.ResourceDa
 	groupID := toInt64(d.Get("group_id"))
 	teamSlug := d.Get("team_slug").(string)
 
-	tflog.SetField(ctx, "group_id", groupID)
-	tflog.SetField(ctx, "team_slug", teamSlug)
-	tflog.SetField(ctx, "org_name", orgName)
+	ctx = tflog.SetField(ctx, "group_id", groupID)
+	ctx = tflog.SetField(ctx, "team_slug", teamSlug)
+	ctx = tflog.SetField(ctx, "org_name", orgName)
 
 	tflog.Debug(ctx, "Querying external groups linked to team from GitHub API")
 
 	groupsList, resp, err := client.Teams.ListExternalGroupsForTeamBySlug(ctx, orgName, teamSlug)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusBadRequest {
-			tflog.Info(ctx, "Removing EMU group mapping from state because the team has explicit members in GitHub", map[string]any{
-				"resource_id": d.Id(),
-			})
+			tflog.Info(ctx, "Removing EMU group mapping from state because the team has explicit members in GitHub")
 			d.SetId("")
 			return nil
 		}
 		if resp != nil && (resp.StatusCode == http.StatusNotFound) {
 			// If the Group is not found, remove it from state
-			tflog.Info(ctx, "Removing EMU group mapping from state because team no longer exists in GitHub", map[string]any{
-				"resource_id": d.Id(),
-			})
+			tflog.Info(ctx, "Removing EMU group mapping from state because team no longer exists in GitHub")
 			d.SetId("")
 			return nil
 		}
@@ -174,9 +169,7 @@ func resourceGithubEMUGroupMappingRead(ctx context.Context, d *schema.ResourceDa
 	}
 
 	if len(groupsList.Groups) < 1 {
-		tflog.Info(ctx, "Removing EMU group mapping from state because no external groups are linked to the team", map[string]any{
-			"resource_id": d.Id(),
-		})
+		tflog.Info(ctx, "Removing EMU group mapping from state because no external groups are linked to the team")
 		d.SetId("")
 		return nil
 	}
@@ -210,9 +203,8 @@ func resourceGithubEMUGroupMappingRead(ctx context.Context, d *schema.ResourceDa
 }
 
 func resourceGithubEMUGroupMappingUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	tflog.Trace(ctx, "Updating EMU group mapping", map[string]any{
-		"resource_id": d.Id(),
-	})
+	ctx = tflog.SetField(ctx, "resource_id", d.Id())
+	tflog.Trace(ctx, "Updating EMU group mapping")
 
 	err := checkOrganization(meta)
 	if err != nil {
@@ -220,13 +212,13 @@ func resourceGithubEMUGroupMappingUpdate(ctx context.Context, d *schema.Resource
 	}
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	tflog.SetField(ctx, "org_name", orgName)
+	ctx = tflog.SetField(ctx, "org_name", orgName)
 
 	teamSlug := d.Get("team_slug").(string)
-	tflog.SetField(ctx, "team_slug", teamSlug)
+	ctx = tflog.SetField(ctx, "team_slug", teamSlug)
 
 	groupID := toInt64(d.Get("group_id"))
-	tflog.SetField(ctx, "group_id", groupID)
+	ctx = tflog.SetField(ctx, "group_id", groupID)
 	eg := &github.ExternalGroup{
 		GroupID: github.Ptr(groupID),
 	}
@@ -255,9 +247,7 @@ func resourceGithubEMUGroupMappingUpdate(ctx context.Context, d *schema.Resource
 		}
 	}
 
-	tflog.Trace(ctx, "Updated successfully", map[string]any{
-		"resource_id": d.Id(),
-	})
+	tflog.Trace(ctx, "Updated successfully")
 
 	return nil
 }
