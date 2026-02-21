@@ -49,12 +49,17 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 				Computed: true,
 			},
 		},
-		SchemaVersion: 1,
+		SchemaVersion: 2,
 		StateUpgraders: []schema.StateUpgrader{
 			{
 				Type:    resourceGithubEMUGroupMappingV0().CoreConfigSchema().ImpliedType(),
 				Upgrade: resourceGithubEMUGroupMappingStateUpgradeV0,
 				Version: 0,
+			},
+			{
+				Type:    resourceGithubEMUGroupMappingV1().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceGithubEMUGroupMappingStateUpgradeV1,
+				Version: 1,
 			},
 		},
 	}
@@ -94,7 +99,7 @@ func resourceGithubEMUGroupMappingCreate(ctx context.Context, d *schema.Resource
 		return diag.FromErr(err)
 	}
 
-	newResourceID, err := buildID(strconv.FormatInt(teamID, 10), teamSlug, strconv.FormatInt(groupID, 10))
+	newResourceID, err := buildID(strconv.FormatInt(groupID, 10), strconv.FormatInt(teamID, 10))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -226,7 +231,7 @@ func resourceGithubEMUGroupMappingUpdate(ctx context.Context, d *schema.Resource
 		GroupID: github.Ptr(groupID),
 	}
 
-	if d.HasChanges("group_id", "team_slug") {
+	if d.HasChange("team_slug") {
 
 		tflog.Debug(ctx, "Updating connected external group via GitHub API")
 
@@ -248,18 +253,6 @@ func resourceGithubEMUGroupMappingUpdate(ctx context.Context, d *schema.Resource
 		if err := d.Set("group_name", group.GetGroupName()); err != nil {
 			return diag.FromErr(err)
 		}
-
-		teamID := toInt64(d.Get("team_id"))
-
-		newResourceID, err := buildID(strconv.FormatInt(teamID, 10), teamSlug, strconv.FormatInt(groupID, 10))
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
-		tflog.Trace(ctx, "Setting resource ID", map[string]any{
-			"resource_id": newResourceID,
-		})
-		d.SetId(newResourceID)
 	}
 
 	tflog.Trace(ctx, "Updated successfully", map[string]any{
@@ -346,7 +339,7 @@ func resourceGithubEMUGroupMappingImport(ctx context.Context, d *schema.Resource
 		return nil, err
 	}
 
-	resourceID, err := buildID(strconv.FormatInt(teamID, 10), teamSlug, groupIDString)
+	resourceID, err := buildID(groupIDString, strconv.FormatInt(teamID, 10))
 	if err != nil {
 		return nil, err
 	}
