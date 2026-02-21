@@ -19,6 +19,7 @@ func resourceGithubBranchDefault() *schema.Resource {
 		DeleteContext: resourceGithubBranchDefaultDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
+			// StateContext: resourceGithubBranchDefaultImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -33,6 +34,7 @@ func resourceGithubBranchDefault() *schema.Resource {
 				ForceNew:    true,
 				Description: "The GitHub repository.",
 			},
+			// TODO add repository_id and diffRepository to handle repository renames
 			"rename": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -52,9 +54,11 @@ func resourceGithubBranchDefault() *schema.Resource {
 	}
 }
 
-func resourceGithubBranchDefaultCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubBranchDefaultCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
 	repoName := d.Get("repository").(string)
 	defaultBranch := d.Get("branch").(string)
 	rename := d.Get("rename").(bool)
@@ -64,14 +68,14 @@ func resourceGithubBranchDefaultCreate(ctx context.Context, d *schema.ResourceDa
 		return diag.FromErr(err)
 	}
 
-	if *repository.DefaultBranch != defaultBranch {
+	if repository.GetDefaultBranch() != defaultBranch {
 		if rename {
-			if _, _, err := client.Repositories.RenameBranch(ctx, owner, repoName, *repository.DefaultBranch, defaultBranch); err != nil {
+			if _, _, err := client.Repositories.RenameBranch(ctx, owner, repoName, repository.GetDefaultBranch(), defaultBranch); err != nil {
 				return diag.FromErr(err)
 			}
 		} else {
 			repository := &github.Repository{
-				DefaultBranch: &defaultBranch,
+				DefaultBranch: github.Ptr(defaultBranch),
 			}
 
 			if _, _, err := client.Repositories.Edit(ctx, owner, repoName, repository); err != nil {
@@ -85,9 +89,12 @@ func resourceGithubBranchDefaultCreate(ctx context.Context, d *schema.ResourceDa
 	return resourceGithubBranchDefaultRead(ctx, d, meta)
 }
 
-func resourceGithubBranchDefaultRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubBranchDefaultRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
+	// repoName := d.Get("repository").(string)
 	repoName := d.Id()
 
 	if !d.IsNewResource() {
@@ -116,15 +123,24 @@ func resourceGithubBranchDefaultRead(ctx context.Context, d *schema.ResourceData
 		return nil
 	}
 
-	_ = d.Set("etag", resp.Header.Get("ETag"))
-	_ = d.Set("branch", *repository.DefaultBranch)
-	_ = d.Set("repository", *repository.Name)
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("branch", repository.GetDefaultBranch()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("repository", repository.GetName()); err != nil {
+		return diag.FromErr(err)
+	}
 	return nil
 }
 
-func resourceGithubBranchDefaultUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubBranchDefaultUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
+	// repoName := d.Get("repository").(string)
 	repoName := d.Id()
 	defaultBranch := d.Get("branch").(string)
 	rename := d.Get("rename").(bool)
@@ -134,12 +150,12 @@ func resourceGithubBranchDefaultUpdate(ctx context.Context, d *schema.ResourceDa
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		if _, _, err := client.Repositories.RenameBranch(ctx, owner, repoName, *repository.DefaultBranch, defaultBranch); err != nil {
+		if _, _, err := client.Repositories.RenameBranch(ctx, owner, repoName, repository.GetDefaultBranch(), defaultBranch); err != nil {
 			return diag.FromErr(err)
 		}
 	} else {
 		repository := &github.Repository{
-			DefaultBranch: &defaultBranch,
+			DefaultBranch: github.Ptr(defaultBranch),
 		}
 
 		if _, _, err := client.Repositories.Edit(ctx, owner, repoName, repository); err != nil {
@@ -150,9 +166,11 @@ func resourceGithubBranchDefaultUpdate(ctx context.Context, d *schema.ResourceDa
 	return resourceGithubBranchDefaultRead(ctx, d, meta)
 }
 
-func resourceGithubBranchDefaultDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubBranchDefaultDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+	// repoName := d.Get("repository").(string)
 	repoName := d.Id()
 
 	repository := &github.Repository{
@@ -162,3 +180,20 @@ func resourceGithubBranchDefaultDelete(ctx context.Context, d *schema.ResourceDa
 	_, _, err := client.Repositories.Edit(ctx, owner, repoName, repository)
 	return diag.FromErr(err)
 }
+
+// func resourceGithubBranchDefaultImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+// 	repoName, defaultBranch, err := parseID2(d.Id())
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	d.SetId(repoName)
+// 	if err := d.Set("branch", defaultBranch); err != nil {
+// 		return nil, err
+// 	}
+// 	if err := d.Set("repository", repoName); err != nil {
+// 		return nil, err
+// 	}
+
+// 	return []*schema.ResourceData{d}, nil
+// }
