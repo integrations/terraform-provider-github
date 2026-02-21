@@ -7,15 +7,16 @@ import (
 	"net/http"
 
 	"github.com/google/go-github/v83/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubBranchDefault() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubBranchDefaultCreate,
-		Read:   resourceGithubBranchDefaultRead,
-		Delete: resourceGithubBranchDefaultDelete,
-		Update: resourceGithubBranchDefaultUpdate,
+		CreateContext: resourceGithubBranchDefaultCreate,
+		ReadContext:   resourceGithubBranchDefaultRead,
+		DeleteContext: resourceGithubBranchDefaultDelete,
+		UpdateContext: resourceGithubBranchDefaultUpdate,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -51,24 +52,22 @@ func resourceGithubBranchDefault() *schema.Resource {
 	}
 }
 
-func resourceGithubBranchDefaultCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchDefaultCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	defaultBranch := d.Get("branch").(string)
 	rename := d.Get("rename").(bool)
 
-	ctx := context.Background()
-
 	repository, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if *repository.DefaultBranch != defaultBranch {
 		if rename {
 			if _, _, err := client.Repositories.RenameBranch(ctx, owner, repoName, *repository.DefaultBranch, defaultBranch); err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 		} else {
 			repository := &github.Repository{
@@ -76,22 +75,21 @@ func resourceGithubBranchDefaultCreate(d *schema.ResourceData, meta any) error {
 			}
 
 			if _, _, err := client.Repositories.Edit(ctx, owner, repoName, repository); err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 		}
 	}
 
 	d.SetId(repoName)
 
-	return resourceGithubBranchDefaultRead(d, meta)
+	return resourceGithubBranchDefaultRead(ctx, d, meta)
 }
 
-func resourceGithubBranchDefaultRead(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchDefaultRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Id()
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
@@ -110,7 +108,7 @@ func resourceGithubBranchDefaultRead(d *schema.ResourceData, meta any) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if repository.DefaultBranch == nil {
@@ -124,7 +122,7 @@ func resourceGithubBranchDefaultRead(d *schema.ResourceData, meta any) error {
 	return nil
 }
 
-func resourceGithubBranchDefaultDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchDefaultDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Id()
@@ -133,28 +131,24 @@ func resourceGithubBranchDefaultDelete(d *schema.ResourceData, meta any) error {
 		DefaultBranch: nil,
 	}
 
-	ctx := context.Background()
-
 	_, _, err := client.Repositories.Edit(ctx, owner, repoName, repository)
-	return err
+	return diag.FromErr(err)
 }
 
-func resourceGithubBranchDefaultUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchDefaultUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Id()
 	defaultBranch := d.Get("branch").(string)
 	rename := d.Get("rename").(bool)
 
-	ctx := context.Background()
-
 	if rename {
 		repository, _, err := client.Repositories.Get(ctx, owner, repoName)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		if _, _, err := client.Repositories.RenameBranch(ctx, owner, repoName, *repository.DefaultBranch, defaultBranch); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	} else {
 		repository := &github.Repository{
@@ -162,9 +156,9 @@ func resourceGithubBranchDefaultUpdate(d *schema.ResourceData, meta any) error {
 		}
 
 		if _, _, err := client.Repositories.Edit(ctx, owner, repoName, repository); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
-	return resourceGithubBranchDefaultRead(d, meta)
+	return resourceGithubBranchDefaultRead(ctx, d, meta)
 }
