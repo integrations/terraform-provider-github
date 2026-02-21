@@ -80,6 +80,11 @@ func dataSourceGithubRepositoryPages() *schema.Resource {
 				Computed:    true,
 				Description: "Whether the GitHub Pages site is publicly visible. If set to `true`, the site is accessible to anyone on the internet. If set to `false`, the site will only be accessible to users who have at least `read` access to the repository that published the site.",
 			},
+			"https_enforced": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Whether the rendered GitHub Pages site will only be served over HTTPS.",
+			},
 		},
 	}
 }
@@ -125,6 +130,9 @@ func dataSourceGithubRepositoryPagesRead(ctx context.Context, d *schema.Resource
 		return diag.FromErr(err)
 	}
 	if err := d.Set("public", pages.GetPublic()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("https_enforced", pages.GetHTTPSEnforced()); err != nil {
 		return diag.FromErr(err)
 	}
 	// Set source only for legacy build type

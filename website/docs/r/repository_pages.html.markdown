@@ -80,7 +80,8 @@ resource "github_repository" "example" {
 resource "github_repository_pages" "example" {
   repository = github_repository.example.name
   build_type = "legacy"
-  cname      = "example.com"
+  cname          = "example.com"
+  https_enforced = true
 
   source {
     branch = "main"
@@ -102,6 +103,8 @@ The following arguments are supported:
 - `cname` - (Optional) The custom domain for the repository.
 
 - `public` - (Optional) Whether the GitHub Pages site is public.
+
+- `https_enforced` - (Optional) Whether HTTPS is enforced for the GitHub Pages site. GitHub Pages sites serve over HTTPS by default; this setting only applies when a custom domain (`cname`) is configured. Requires `cname` to be set.
 
 ### Source
 

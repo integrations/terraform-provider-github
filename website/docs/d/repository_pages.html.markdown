@@ -43,6 +43,8 @@ The following attributes are exported:
 
 - `public` - Whether the GitHub Pages site is public.
 
+- `https_enforced` - Whether HTTPS is enforced for the GitHub Pages site. This setting only applies when a custom domain is configured.
+
 ### Source
 
 The `source` block contains:
