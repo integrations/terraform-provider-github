@@ -218,6 +218,36 @@ source {
 		})
 	})
 
+	t.Run("errors_when_https_enforced_without_cname", func(t *testing.T) {
+		randomID := acctest.RandString(5)
+		repoName := fmt.Sprintf("%spages-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name       = "%s"
+				visibility = "%s"
+				auto_init  = true
+			}
+
+			resource "github_repository_pages" "test" {
+				repository     = github_repository.test.name
+				build_type     = "workflow"
+				https_enforced = true
+			}
+		`, repoName, baseRepoVisibility)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile(`all of .cname,https_enforced. must be specified`),
+				},
+			},
+		})
+	})
+
 	t.Run("imports_pages_configuration", func(t *testing.T) {
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%spages-%s", testResourcePrefix, randomID)
