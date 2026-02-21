@@ -407,14 +407,15 @@ func resourceGithubTeamDelete(ctx context.Context, d *schema.ResourceData, meta 
 	}
 
 	_, err = client.Teams.DeleteTeamByID(ctx, orgId, id)
-	/*
-		When deleting a team and it failed, we need to check if it has already been deleted meanwhile.
-		This could be the case when deleting nested teams via Terraform by looping through a module
-		or resource and the parent team might have been deleted already. If the parent team had
-		been deleted already (via parallel runs), the child team is also already gone (deleted by
-		GitHub automatically).
-		So we're checking if it still exists and if not, simply remove it from TF state.
-	*/if err != nil {
+	// When deleting a team and it failed, we need to check if it has already been deleted meanwhile.
+	// This could be the case when deleting nested teams via Terraform by looping through a module
+	// or resource and the parent team might have been deleted already. If the parent team had
+	// been deleted already (via parallel runs), the child team is also already gone (deleted by
+	// GitHub automatically).
+	// So we're checking if it still exists and if not, simply remove it from TF state.
+	//
+	// https://docs.github.com/en/enterprise-cloud@latest/rest/teams/teams?apiVersion=2022-11-28#delete-a-team
+	if err != nil {
 		// Fetch the team in order to see if it exists or not (http 404)
 		_, _, err = client.Teams.GetTeamByID(ctx, orgId, id)
 		if err != nil {
