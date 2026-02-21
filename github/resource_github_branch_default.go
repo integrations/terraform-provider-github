@@ -15,8 +15,8 @@ func resourceGithubBranchDefault() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceGithubBranchDefaultCreate,
 		ReadContext:   resourceGithubBranchDefaultRead,
-		DeleteContext: resourceGithubBranchDefaultDelete,
 		UpdateContext: resourceGithubBranchDefaultUpdate,
+		DeleteContext: resourceGithubBranchDefaultDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -122,19 +122,6 @@ func resourceGithubBranchDefaultRead(ctx context.Context, d *schema.ResourceData
 	return nil
 }
 
-func resourceGithubBranchDefaultDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	repoName := d.Id()
-
-	repository := &github.Repository{
-		DefaultBranch: nil,
-	}
-
-	_, _, err := client.Repositories.Edit(ctx, owner, repoName, repository)
-	return diag.FromErr(err)
-}
-
 func resourceGithubBranchDefaultUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
@@ -161,4 +148,17 @@ func resourceGithubBranchDefaultUpdate(ctx context.Context, d *schema.ResourceDa
 	}
 
 	return resourceGithubBranchDefaultRead(ctx, d, meta)
+}
+
+func resourceGithubBranchDefaultDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client := meta.(*Owner).v3client
+	owner := meta.(*Owner).name
+	repoName := d.Id()
+
+	repository := &github.Repository{
+		DefaultBranch: nil,
+	}
+
+	_, _, err := client.Repositories.Edit(ctx, owner, repoName, repository)
+	return diag.FromErr(err)
 }
