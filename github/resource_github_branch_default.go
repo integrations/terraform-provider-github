@@ -70,7 +70,7 @@ func resourceGithubBranchDefaultCreate(ctx context.Context, d *schema.ResourceDa
 		"rename":     rename,
 	})
 
-	repository, _, err := client.Repositories.Get(ctx, owner, repoName)
+	repository, resp, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -101,10 +101,15 @@ func resourceGithubBranchDefaultCreate(ctx context.Context, d *schema.ResourceDa
 
 	d.SetId(repoName)
 
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
+	}
+
 	tflog.Trace(ctx, "Finished creating default branch resource", map[string]any{
 		"resource_id": d.Id(),
 	})
-	return resourceGithubBranchDefaultRead(ctx, d, meta)
+
+	return nil
 }
 
 func resourceGithubBranchDefaultRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
@@ -183,12 +188,15 @@ func resourceGithubBranchDefaultUpdate(ctx context.Context, d *schema.ResourceDa
 		"rename":     rename,
 	})
 
+	var etag string
+
 	if rename {
 		tflog.Debug(ctx, "Renaming branch to new default")
-		repository, _, err := client.Repositories.Get(ctx, owner, repoName)
+		repository, resp, err := client.Repositories.Get(ctx, owner, repoName)
 		if err != nil {
 			return diag.FromErr(err)
 		}
+		etag = resp.Header.Get("ETag")
 		if _, _, err := client.Repositories.RenameBranch(ctx, owner, repoName, repository.GetDefaultBranch(), defaultBranch); err != nil {
 			return diag.FromErr(err)
 		}
@@ -198,13 +206,18 @@ func resourceGithubBranchDefaultUpdate(ctx context.Context, d *schema.ResourceDa
 			DefaultBranch: github.Ptr(defaultBranch),
 		}
 
-		if _, _, err := client.Repositories.Edit(ctx, owner, repoName, repository); err != nil {
+		if _, resp, err := client.Repositories.Edit(ctx, owner, repoName, repository); err != nil {
 			return diag.FromErr(err)
+		} else {
+			etag = resp.Header.Get("ETag")
 		}
+	}
+	if err := d.Set("etag", etag); err != nil {
+		return diag.FromErr(err)
 	}
 
 	tflog.Trace(ctx, "Finished updating default branch resource")
-	return resourceGithubBranchDefaultRead(ctx, d, meta)
+	return nil
 }
 
 func resourceGithubBranchDefaultDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
