@@ -30,24 +30,18 @@ func TestAccGithubBranchDefault(t *testing.T) {
 			}
 		`, repoName)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_branch_default.test", "branch",
-				"main",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_default.test", "repository",
-				repoName,
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.CompareValuePairs("github_branch_default.test", tfjsonpath.New("repository"), "github_repository.test", tfjsonpath.New("name"), compare.ValuesSame()),
+						statecheck.CompareValuePairs("github_branch_default.test", tfjsonpath.New("branch"), "github_repository.test", tfjsonpath.New("default_branch"), compare.ValuesSame()),
+						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("etag"), knownvalue.NotNull()),
+					},
 				},
 			},
 		})
@@ -80,9 +74,12 @@ func TestAccGithubBranchDefault(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_branch_default.test", "branch", "test"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.CompareValuePairs("github_branch_default.test", tfjsonpath.New("repository"), "github_repository.test", tfjsonpath.New("name"), compare.ValuesSame()),
+						statecheck.CompareValuePairs("github_branch_default.test", tfjsonpath.New("branch"), "github_branch.test", tfjsonpath.New("branch"), compare.ValuesSame()),
+						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("etag"), knownvalue.NotNull()),
+					},
 				},
 				{
 					Config: `
@@ -112,24 +109,18 @@ func TestAccGithubBranchDefault(t *testing.T) {
 			}
 		`, repoName)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_branch_default.test", "branch",
-				"main",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_default.test", "repository",
-				repoName,
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.CompareValuePairs("github_branch_default.test", tfjsonpath.New("repository"), "github_repository.test", tfjsonpath.New("name"), compare.ValuesSame()),
+						statecheck.CompareValuePairs("github_branch_default.test", tfjsonpath.New("branch"), "github_repository.test", tfjsonpath.New("default_branch"), compare.ValuesSame()),
+						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("etag"), knownvalue.NotNull()),
+					},
 				},
 			},
 		})
@@ -157,7 +148,12 @@ func TestAccGithubBranchDefault(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  resource.ComposeTestCheckFunc(resource.TestCheckResourceAttr("github_branch_default.test", "branch", "development")),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.CompareValuePairs("github_branch_default.test", tfjsonpath.New("repository"), "github_repository.test", tfjsonpath.New("name"), compare.ValuesSame()),
+						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("branch"), knownvalue.StringExact("development")),
+						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("etag"), knownvalue.NotNull()),
+					},
 				},
 			},
 		})
