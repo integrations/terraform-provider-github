@@ -103,6 +103,13 @@ func resourceGithubRepositoryPages() *schema.Resource {
 				Computed:    true,
 				Description: "Whether the GitHub Pages site is publicly visible. If set to `true`, the site is accessible to anyone on the internet. If set to `false`, the site will only be accessible to users who have at least `read` access to the repository that published the site.",
 			},
+			"https_enforced": {
+				Type:         schema.TypeBool,
+				Optional:     true,
+				Computed:     true,
+				RequiredWith: []string{"cname"},
+				Description:  "Whether the rendered GitHub Pages site will only be served over HTTPS. Requires 'cname' to be set.",
+			},
 		},
 		CustomizeDiff: customdiff.All(resourceGithubRepositoryPagesDiff, diffRepository),
 	}
@@ -168,6 +175,15 @@ func resourceGithubRepositoryPagesCreate(ctx context.Context, d *schema.Resource
 			return diag.FromErr(err)
 		}
 	}
+	httpsEnforced, httpsEnforcedExists := d.GetOkExists("https_enforced") // nolint:staticcheck // SA1019: There is no better alternative for checking if boolean value is set
+	if httpsEnforcedExists && httpsEnforced != nil {
+		shouldUpdatePage = true
+		update.HTTPSEnforced = github.Ptr(httpsEnforced.(bool))
+	} else {
+		if err := d.Set("https_enforced", pages.GetHTTPSEnforced()); err != nil {
+			return diag.FromErr(err)
+		}
+	}
 
 	if shouldUpdatePage {
 		_, err = client.Repositories.UpdatePages(ctx, owner, repoName, update)
@@ -225,6 +241,9 @@ func resourceGithubRepositoryPagesRead(ctx context.Context, d *schema.ResourceDa
 	if err := d.Set("public", pages.GetPublic()); err != nil {
 		return diag.FromErr(err)
 	}
+	if err := d.Set("https_enforced", pages.GetHTTPSEnforced()); err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Set source only for legacy build type
 	if pages.GetBuildType() == "legacy" && pages.GetSource() != nil {
@@ -266,6 +285,13 @@ func resourceGithubRepositoryPagesUpdate(ctx context.Context, d *schema.Resource
 		public, ok := d.Get("public").(bool)
 		if ok {
 			update.Public = github.Ptr(public)
+		}
+	}
+
+	if d.HasChange("https_enforced") {
+		httpsEnforced, ok := d.Get("https_enforced").(bool)
+		if ok {
+			update.HTTPSEnforced = github.Ptr(httpsEnforced)
 		}
 	}
 
