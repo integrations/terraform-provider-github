@@ -23,12 +23,20 @@ resource "github_emu_group_mapping" "example_emu_group_mapping" {
 The following arguments are supported:
 
 - `team_slug` - (Required) Slug of the GitHub team
-- `group_id`  - (Required) Integer corresponding to the external group ID to be linked
+- `group_id` - (Required) Integer corresponding to the external group ID to be linked
+
+## Attributes Reference
+
+The following additional attributes are exported:
+
+- `team_id`    - The ID of the GitHub team
+- `group_name` - The name of the external group
+- `etag` - An etag representing the external group state
 
 ## Import
 
 GitHub EMU External Group Mappings can be imported using the external `group_id` and `team_slug` separated by a colon, e.g.
 
 ```sh
-$ terraform import github_emu_group_mapping.example_emu_group_mapping 28836:emu-test-team
+terraform import github_emu_group_mapping.example_emu_group_mapping 28836:emu-test-team
 ```
