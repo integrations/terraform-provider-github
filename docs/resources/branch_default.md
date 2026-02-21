@@ -58,9 +58,15 @@ The following arguments are supported:
 - `branch` - (Required) The branch (e.g. `main`)
 - `rename` - (Optional) Indicate if it should rename the branch rather than use an existing branch. Defaults to `false`.
 
+## Attribute Reference
+
+The following attributes are exported:
+
+- `repository_id` - The GitHub repository ID.
+
 ## Import
 
-GitHub Branch Defaults can be imported using an ID made up of `repository`, e.g.
+GitHub Branch Defaults can be imported using the repository name, e.g.
 
 ```shell
 terraform import github_branch_default.branch_default my-repo
