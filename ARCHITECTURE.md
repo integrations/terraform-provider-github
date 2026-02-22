@@ -65,7 +65,7 @@ terraform-provider-github/
 │   └── transport.go             # Custom HTTP transport with ETag caching
 │
 ├── ARCHITECTURE.md              # This file - implementation guide
-├── MAINTAINERS.md               # Maintainers, decision log, contributors
+├── MAINTAINERS.md               # Maintainers and contributors
 └── CONTRIBUTING.md              # How to contribute
 ```
 
@@ -301,7 +301,7 @@ func resourceGithubExampleDelete(ctx context.Context, d *schema.ResourceData, me
 ```go
 func resourceExampleRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
     meta := m.(*Owner)
-    // REST API client (go-github v82)
+    // REST API client (go-github)
     client := meta.v3client
 
     // GraphQL client (for queries not available in REST)
@@ -326,7 +326,7 @@ if err != nil {
     var ghErr *github.ErrorResponse
     if errors.As(err, &ghErr) {
         if ghErr.Response.StatusCode == http.StatusNotFound {
-            log.Printf("[INFO] Removing %s from state because it no longer exists", name)
+            tflog.Info(ctx, "Removing resource from state because it no longer exists", map[string]any{"name": name})
             d.SetId("")
             return nil
         }
@@ -446,10 +446,21 @@ func resourceExampleCreate(ctx context.Context, d *schema.ResourceData, meta any
 
 ### Test Structure
 
+Use `ConfigStateChecks` for post-apply state assertions and `ConfigPlanChecks` for plan-level assertions (e.g., verifying `ForceNew` triggers). These replace the legacy `Check:` + `resource.ComposeTestCheckFunc` pattern.
+
 ```go
+import (
+    "github.com/hashicorp/terraform-plugin-testing/compare"
+    "github.com/hashicorp/terraform-plugin-testing/helper/resource"
+    "github.com/hashicorp/terraform-plugin-testing/knownvalue"
+    "github.com/hashicorp/terraform-plugin-testing/plancheck"
+    "github.com/hashicorp/terraform-plugin-testing/statecheck"
+    "github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
+)
+
 func TestAccGithubExample(t *testing.T) {
-  
-  t.Run("creates resource without error", func(t *testing.T) {
+
+    t.Run("creates resource without error", func(t *testing.T) {
         randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
         testResourceName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
         config := fmt.Sprintf(`
@@ -464,15 +475,41 @@ func TestAccGithubExample(t *testing.T) {
             Steps: []resource.TestStep{
                 {
                     Config: config,
-                    Check: resource.ComposeTestCheckFunc(
-                        resource.TestCheckResourceAttr( "github_example.test", "name", testResourceName ),
-                    ),
+                    ConfigStateChecks: []statecheck.StateCheck{
+                        // Verify computed values are populated
+                        statecheck.ExpectKnownValue("github_example.test", tfjsonpath.New("etag"), knownvalue.NotNull()),
+                        statecheck.ExpectKnownValue("github_example.test", tfjsonpath.New("node_id"), knownvalue.NotNull()),
+                        // Compare computed values across resources
+                        statecheck.CompareValuePairs("github_example.test", tfjsonpath.New("repo_id"), "github_repository.test", tfjsonpath.New("repo_id"), compare.ValuesSame()),
+                    },
+                },
+            },
+        })
+    })
+
+    t.Run("forces new when field changes", func(t *testing.T) {
+        // ... config steps ...
+
+        resource.Test(t, resource.TestCase{
+            PreCheck:          func() { skipUnauthenticated(t) },
+            ProviderFactories: providerFactories,
+            Steps: []resource.TestStep{
+                {Config: configBefore},
+                {
+                    Config: configAfter,
+                    ConfigPlanChecks: resource.ConfigPlanChecks{
+                        PreApply: []plancheck.PlanCheck{
+                            plancheck.ExpectResourceAction("github_example.test", plancheck.ResourceActionDestroyBeforeCreate),
+                        },
+                    },
                 },
             },
         })
     })
 }
 ```
+
+> **Legacy pattern:** Existing tests may still use `Check: resource.ComposeTestCheckFunc(...)`. New tests should use `ConfigStateChecks` and `ConfigPlanChecks` instead. See `data_source_github_ip_ranges_test.go` for a real-world example.
 
 ### Test Modes
 
@@ -537,10 +574,8 @@ The following resources are deprecated and will be removed in future versions:
 
 ### Pending go-github Updates
 
-Several features are blocked waiting for go-github v68+:
+The following features are blocked waiting for upstream changes in [google/go-github#3364](https://github.com/google/go-github/issues/3364) (adds `assignment`, `parent_team_id`, `parent_team_slug` fields):
 
-- `data_source_github_organization_repository_role.go:56`
-- `resource_github_organization_repository_role.go:102`
 - `data_source_github_organization_role_users.go:41`
 - `data_source_github_organization_role_teams.go:51`
 
@@ -564,6 +599,10 @@ Several features are blocked waiting for go-github v68+:
 | `expandStringList([]any)`                                   | Convert to `[]string`                          |
 | `flattenStringList([]string)`                               | Convert to `[]any`                             |
 | `deleteResourceOn404AndSwallow304OtherwiseReturnError(...)` | Handle 404/304 responses                       |
+| `diffRepository`                                            | `CustomizeDiffFunc`: force replacement on repo ID change |
+| `diffSecret`                                                | `CustomizeDiffFunc`: detect remote secret drift via timestamps |
+| `diffSecretVariableVisibility`                              | `CustomizeDiffFunc`: validate `selected_repository_ids` vs `visibility` |
+| `diffTeam`                                                  | `CustomizeDiffFunc`: force new resource on team ID change |
 
 ### Naming Conventions
 
@@ -613,6 +652,14 @@ Several features are blocked waiting for go-github v68+:
 **Rationale:** These libraries provide better handling of GitHub API rate limits and conditional requests than our current custom implementation.
 
 **Reference:** <https://github.com/integrations/terraform-provider-github/issues/2709#issuecomment-3811466444>
+
+#### Migrate to `terraform-plugin-testing`
+
+**Decision:** Migrate from the SDK testing package (`github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource`) to `terraform-plugin-testing` (`github.com/hashicorp/terraform-plugin-testing`). Use `ConfigStateChecks` and `ConfigPlanChecks` as the preferred assertion patterns, replacing `Check:` + `resource.ComposeTestCheckFunc`.
+
+**Rationale:** `terraform-plugin-testing` is the standalone testing framework that decouples test utilities from the SDK. `ConfigStateChecks` and `ConfigPlanChecks` provide type-safe, composable assertions with better error messages.
+
+**Reference:** <https://developer.hashicorp.com/terraform/plugin/testing>
 
 #### No Local Git CLI Support
 
