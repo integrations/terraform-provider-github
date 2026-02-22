@@ -53,8 +53,8 @@ Once you have the repository cloned, there's a couple of additional steps you'll
 
 ### Local Development Iteration
 
-1. Write a test describing what you will fix. See [`github_label`](./github/resource_github_issue_label_test.go) for an example format.
-2. Run your test and observe it fail. Enabling debug output allows for observing the underlying requests and responses made as well as viewing state (search `STATE:`) generated during the acceptance test run.
+1. Write a test describing what you will fix. See [`github_ip_ranges`](./github/data_source_github_ip_ranges_test.go) for an example using the preferred `ConfigStateChecks` pattern, and [ARCHITECTURE.md](ARCHITECTURE.md#test-structure) for full guidance.
+2. Run your test and observe it fail. Enabling debug output allows for observing the underlying requests and responses made during the acceptance test run.
 
 ```sh
 TF_LOG=DEBUG make testacc T=TestAccGithubIssueLabel
