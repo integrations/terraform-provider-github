@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -60,7 +60,7 @@ func resourceGithubActionsEnterpriseRunnerGroup() *schema.Resource {
 				Type:             schema.TypeString,
 				Required:         true,
 				Description:      "The visibility of the runner group.",
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"all", "selected"}, false), "visibility"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"all", "selected"}, false)),
 			},
 			"restricted_to_workflows": {
 				Type:        schema.TypeBool,

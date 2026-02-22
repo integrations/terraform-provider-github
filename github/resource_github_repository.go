@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -39,7 +39,7 @@ func resourceGithubRepository() *schema.Resource {
 			"name": {
 				Type:             schema.TypeString,
 				Required:         true,
-				ValidateDiagFunc: toDiagFunc(validation.StringMatch(regexp.MustCompile(`^[-a-zA-Z0-9_.]{1,100}$`), "must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less"), "name"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringMatch(regexp.MustCompile(`^[-a-zA-Z0-9_.]{1,100}$`), "must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less")),
 				Description:      "The name of the repository.",
 			},
 			"description": {
@@ -63,7 +63,7 @@ func resourceGithubRepository() *schema.Resource {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Computed:         true, // is affected by "private"
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"public", "private", "internal"}, false), "visibility"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"public", "private", "internal"}, false)),
 				Description:      "Can be 'public' or 'private'. If your organization is associated with an enterprise account using GitHub Enterprise Cloud or GitHub Enterprise Server 2.20+, visibility can also be 'internal'.",
 			},
 			// terraform-sdk-provider doesn't properly support tristate booleans: https://github.com/hashicorp/terraform-plugin-sdk/issues/817
@@ -104,7 +104,7 @@ func resourceGithubRepository() *schema.Resource {
 									"status": {
 										Type:             schema.TypeString,
 										Required:         true,
-										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false), "status"),
+										ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false)),
 										Description:      "Set to 'enabled' to enable advanced security features on the repository. Can be 'enabled' or 'disabled', This value being present when split licensing is enabled will error out.",
 									},
 								},
@@ -120,7 +120,7 @@ func resourceGithubRepository() *schema.Resource {
 									"status": {
 										Type:             schema.TypeString,
 										Required:         true,
-										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false), "code_security"),
+										ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false)),
 										Description:      "Set to 'enabled' to enable code security on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.",
 									},
 								},
@@ -136,7 +136,7 @@ func resourceGithubRepository() *schema.Resource {
 									"status": {
 										Type:             schema.TypeString,
 										Required:         true,
-										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false), "secret_scanning"),
+										ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false)),
 										Description:      "Set to 'enabled' to enable secret scanning on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.",
 									},
 								},
@@ -152,7 +152,7 @@ func resourceGithubRepository() *schema.Resource {
 									"status": {
 										Type:             schema.TypeString,
 										Required:         true,
-										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false), "secret_scanning_push_protection"),
+										ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false)),
 										Description:      "Set to 'enabled' to enable secret scanning push protection on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.",
 									},
 								},
@@ -168,7 +168,7 @@ func resourceGithubRepository() *schema.Resource {
 									"status": {
 										Type:             schema.TypeString,
 										Required:         true,
-										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false), "secret_scanning_ai_detection"),
+										ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false)),
 										Description:      "Set to 'enabled' to enable secret scanning AI detection on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.",
 									},
 								},
@@ -184,7 +184,7 @@ func resourceGithubRepository() *schema.Resource {
 									"status": {
 										Type:             schema.TypeString,
 										Required:         true,
-										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false), "secret_scanning_non_provider_patterns"),
+										ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false)),
 										Description:      "Set to 'enabled' to enable secret scanning non-provider patterns on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.",
 									},
 								},
@@ -392,7 +392,7 @@ func resourceGithubRepository() *schema.Resource {
 				Description: "The list of topics of the repository.",
 				Elem: &schema.Schema{
 					Type:             schema.TypeString,
-					ValidateDiagFunc: toDiagFunc(validation.StringMatch(regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,49}$`), "must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 50 characters or less"), "topics"),
+					ValidateDiagFunc: validation.ToDiagFunc(validation.StringMatch(regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,49}$`), "must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 50 characters or less")),
 				},
 			},
 			"vulnerability_alerts": {

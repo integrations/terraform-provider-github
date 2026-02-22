@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v83/github"
 
 	"github.com/shurcooL/githubv4"
 
@@ -82,7 +82,7 @@ func dataSourceGithubTeam() *schema.Resource {
 				Type:             schema.TypeString,
 				Default:          "all",
 				Optional:         true,
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"all", "immediate"}, false), "membership_type"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"all", "immediate"}, false)),
 			},
 			"summary_only": {
 				Type:     schema.TypeBool,
@@ -93,7 +93,7 @@ func dataSourceGithubTeam() *schema.Resource {
 				Type:             schema.TypeInt,
 				Optional:         true,
 				Default:          100,
-				ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 100), "results_per_page"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 100)),
 				Deprecated:       "This is deprecated and will be removed in a future release.",
 			},
 		},

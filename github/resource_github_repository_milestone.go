@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -75,9 +75,9 @@ func resourceGithubRepositoryMilestone() *schema.Resource {
 			"state": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"open", "closed",
-				}, true), "state"),
+				}, false)),
 				Default:     "open",
 				Description: "The state of the milestone. Either 'open' or 'closed'. Default: 'open'.",
 			},

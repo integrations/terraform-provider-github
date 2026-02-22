@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -23,7 +23,7 @@ func resourceGithubWorkflowRepositoryPermissions() *schema.Resource {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Description:      "The default workflow permissions granted to the GITHUB_TOKEN when running workflows.",
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"read", "write"}, false), "default_workflow_permissions"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"read", "write"}, false)),
 			},
 			"can_approve_pull_request_reviews": {
 				Type:        schema.TypeBool,
@@ -35,7 +35,7 @@ func resourceGithubWorkflowRepositoryPermissions() *schema.Resource {
 				Type:             schema.TypeString,
 				Required:         true,
 				Description:      "The GitHub repository.",
-				ValidateDiagFunc: toDiagFunc(validation.StringLenBetween(1, 100), "repository"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 100)),
 			},
 		},
 	}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -28,11 +28,11 @@ func resourceGithubEnterpriseActionsWorkflowPermissions() *schema.Resource {
 				Description: "The slug of the enterprise.",
 			},
 			"default_workflow_permissions": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "read",
-				Description:  "The default workflow permissions granted to the GITHUB_TOKEN when running workflows. Can be 'read' or 'write'.",
-				ValidateFunc: validation.StringInSlice([]string{"read", "write"}, false),
+				Type:             schema.TypeString,
+				Optional:         true,
+				Default:          "read",
+				Description:      "The default workflow permissions granted to the GITHUB_TOKEN when running workflows. Can be 'read' or 'write'.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"read", "write"}, false)),
 			},
 			"can_approve_pull_request_reviews": {
 				Type:        schema.TypeBool,

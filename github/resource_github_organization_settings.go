@@ -6,7 +6,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -73,7 +73,7 @@ func resourceGithubOrganizationSettings() *schema.Resource {
 				Optional:         true,
 				Default:          "read",
 				Description:      "The default permission for organization members to create new repositories. Can be one of 'read', 'write', 'admin' or 'none'.",
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"read", "write", "admin", "none"}, false), "default_repository_permission"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"read", "write", "admin", "none"}, false)),
 			},
 			"members_can_create_repositories": {
 				Type:        schema.TypeBool,

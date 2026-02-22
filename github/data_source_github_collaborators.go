@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -24,23 +24,23 @@ func dataSourceGithubCollaborators() *schema.Resource {
 			},
 			"affiliation": {
 				Type: schema.TypeString,
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"all",
 					"direct",
 					"outside",
-				}, false), "affiliation"),
+				}, false)),
 				Optional: true,
 				Default:  "all",
 			},
 			"permission": {
 				Type: schema.TypeString,
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"pull",
 					"triage",
 					"push",
 					"maintain",
 					"admin",
-				}, false), "permission"),
+				}, false)),
 				Optional: true,
 				Default:  "",
 			},

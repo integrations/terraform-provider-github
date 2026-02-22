@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -26,18 +26,18 @@ func resourceGithubRepositoryTopics() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"repository": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[-a-zA-Z0-9_.]{1,100}$`), "must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less"),
-				Description:  "The name of the repository. The name is not case sensitive.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringMatch(regexp.MustCompile(`^[-a-zA-Z0-9_.]{1,100}$`), "must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less")),
+				Description:      "The name of the repository. The name is not case sensitive.",
 			},
 			"topics": {
 				Type:        schema.TypeSet,
 				Required:    true,
 				Description: "An array of topics to add to the repository. Pass one or more topics to replace the set of existing topics. Send an empty array ([]) to clear all topics from the repository. Note: Topic names cannot contain uppercase letters.",
 				Elem: &schema.Schema{
-					Type:         schema.TypeString,
-					ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,49}$`), "must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 50 characters or less"),
+					Type:             schema.TypeString,
+					ValidateDiagFunc: validation.ToDiagFunc(validation.StringMatch(regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,49}$`), "must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 50 characters or less")),
 				},
 			},
 		},
@@ -70,24 +70,39 @@ func resourceGithubRepositoryTopicsRead(d *schema.ResourceData, meta any) error 
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 
-	topics, _, err := client.Repositories.ListAllTopics(ctx, owner, repoName)
-	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
-			if ghErr.Response.StatusCode == http.StatusNotModified {
-				return nil
+	results := make([]string, 0)
+	listOptions := &github.ListOptions{PerPage: maxPerPage}
+	for {
+		topics, resp, err := client.Repositories.ListAllTopics(ctx, owner, repoName, listOptions)
+		if err != nil {
+			var ghErr *github.ErrorResponse
+			if errors.As(err, &ghErr) {
+				if ghErr.Response.StatusCode == http.StatusNotModified {
+					return nil
+				}
+				if ghErr.Response.StatusCode == http.StatusNotFound {
+					log.Printf("[INFO] Removing topics from repository %s/%s from state because it no longer exists in GitHub",
+						owner, repoName)
+					d.SetId("")
+					return nil
+				}
 			}
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing topics from repository %s/%s from state because it no longer exists in GitHub",
-					owner, repoName)
-				d.SetId("")
-				return nil
-			}
+			return err
 		}
+
+		results = append(results, topics...)
+
+		if resp.NextPage == 0 {
+			break
+		}
+
+		listOptions.Page = resp.NextPage
+	}
+
+	if err := d.Set("topics", flattenStringList(results)); err != nil {
 		return err
 	}
 
-	_ = d.Set("topics", flattenStringList(topics))
 	return nil
 }
 

@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -31,11 +31,11 @@ func dataSourceGithubRelease() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Describes how to fetch the release. Valid values are `id`, `tag`, `latest`.",
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"latest",
 					"id",
 					"tag",
-				}, false), "retrieve_by"),
+				}, false)),
 			},
 			"release_tag": {
 				Type:        schema.TypeString,

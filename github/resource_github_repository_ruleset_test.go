@@ -12,13 +12,6 @@ import (
 )
 
 func TestAccGithubRepositoryRuleset(t *testing.T) {
-	baseRepoVisibility := "public"
-
-	if testAccConf.authMode == enterprise {
-		// This enables repos to be created even in GHEC EMU
-		baseRepoVisibility = "private"
-	}
-
 	t.Run("create_branch_ruleset", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-%s", testResourcePrefix, randomID)
@@ -120,7 +113,7 @@ resource "github_repository_ruleset" "test" {
 		non_fast_forward = true
 	}
 }
-`, repoName, baseRepoVisibility)
+`, repoName, testAccConf.testRepositoryVisibility)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -189,7 +182,7 @@ resource "github_repository_ruleset" "test" {
 			}
 		}
 	}
-`, repoName, baseRepoVisibility)
+`, repoName, testAccConf.testRepositoryVisibility)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -308,13 +301,13 @@ resource "github_repository_ruleset" "test" {
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: fmt.Sprintf(config, repoName, randomID, baseRepoVisibility, name),
+					Config: fmt.Sprintf(config, repoName, randomID, testAccConf.testRepositoryVisibility, name),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", name),
 					),
 				},
 				{
-					Config: fmt.Sprintf(config, repoName, randomID, baseRepoVisibility, nameUpdated),
+					Config: fmt.Sprintf(config, repoName, randomID, testAccConf.testRepositoryVisibility, nameUpdated),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", nameUpdated),
 					),
@@ -367,9 +360,9 @@ resource "github_repository_ruleset" "test" {
 	}
 }
 `
-		config := fmt.Sprintf(baseConfig, repoName, baseRepoVisibility, bypassActorsConfig)
+		config := fmt.Sprintf(baseConfig, repoName, testAccConf.testRepositoryVisibility, bypassActorsConfig)
 
-		configUpdated := fmt.Sprintf(baseConfig, repoName, baseRepoVisibility, "")
+		configUpdated := fmt.Sprintf(baseConfig, repoName, testAccConf.testRepositoryVisibility, "")
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
@@ -435,13 +428,13 @@ resource "github_repository_ruleset" "test" {
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: fmt.Sprintf(config, repoName, randomID, baseRepoVisibility, bypassMode),
+					Config: fmt.Sprintf(config, repoName, randomID, testAccConf.testRepositoryVisibility, bypassMode),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.0.bypass_mode", bypassMode),
 					),
 				},
 				{
-					Config: fmt.Sprintf(config, repoName, randomID, baseRepoVisibility, bypassModeUpdated),
+					Config: fmt.Sprintf(config, repoName, randomID, testAccConf.testRepositoryVisibility, bypassModeUpdated),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.0.bypass_mode", bypassModeUpdated),
 					),
@@ -486,7 +479,7 @@ resource "github_repository_ruleset" "test" {
 					creation = true
 				}
 			}
-		`, repoName, randomID, baseRepoVisibility)
+		`, repoName, randomID, testAccConf.testRepositoryVisibility)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -508,13 +501,6 @@ resource "github_repository_ruleset" "test" {
 }
 
 func TestAccGithubRepositoryRulesetArchived(t *testing.T) {
-	baseRepoVisibility := "public"
-
-	if testAccConf.authMode == enterprise {
-		// This enables repos to be created even in GHEC EMU
-		baseRepoVisibility = "private"
-	}
-
 	t.Run("skips update and delete on archived repository", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-arch-%s", testResourcePrefix, randomID)
@@ -543,9 +529,9 @@ func TestAccGithubRepositoryRulesetArchived(t *testing.T) {
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
-				{Config: fmt.Sprintf(config, repoName, archivedBefore, baseRepoVisibility, enforcementBefore)},
-				{Config: fmt.Sprintf(config, repoName, archivedAfter, baseRepoVisibility, enforcementBefore)},
-				{Config: fmt.Sprintf(config, repoName, archivedAfter, baseRepoVisibility, enforcementAfter)},
+				{Config: fmt.Sprintf(config, repoName, archivedBefore, testAccConf.testRepositoryVisibility, enforcementBefore)},
+				{Config: fmt.Sprintf(config, repoName, archivedAfter, testAccConf.testRepositoryVisibility, enforcementBefore)},
+				{Config: fmt.Sprintf(config, repoName, archivedAfter, testAccConf.testRepositoryVisibility, enforcementAfter)},
 			},
 		})
 	})
@@ -577,10 +563,10 @@ resource "github_repository_ruleset" "test" {
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: fmt.Sprintf(repoConfig, repoName, false, baseRepoVisibility, ""),
+					Config: fmt.Sprintf(repoConfig, repoName, false, testAccConf.testRepositoryVisibility, ""),
 				},
 				{
-					Config:      fmt.Sprintf(repoConfig, repoName, true, baseRepoVisibility, rulesetConfig),
+					Config:      fmt.Sprintf(repoConfig, repoName, true, testAccConf.testRepositoryVisibility, rulesetConfig),
 					ExpectError: regexp.MustCompile("cannot create ruleset on archived repository"),
 				},
 			},
@@ -764,12 +750,6 @@ func TestAccGithubRepositoryRuleset_requiredReviewers(t *testing.T) {
 	repoName := fmt.Sprintf("%srepo-ruleset-req-rev-%s", testResourcePrefix, randomID)
 	teamName := fmt.Sprintf("%steam-req-rev-%s", testResourcePrefix, randomID)
 	rulesetName := fmt.Sprintf("%s-ruleset-req-rev-%s", testResourcePrefix, randomID)
-	baseRepoVisibility := "public"
-
-	if testAccConf.authMode == enterprise {
-		// This enables repos to be created even in GHEC EMU
-		baseRepoVisibility = "private"
-	}
 
 	config := fmt.Sprintf(`
 resource "github_repository" "test" {
@@ -822,7 +802,7 @@ resource "github_repository_ruleset" "test" {
 
 	depends_on = [github_team_repository.test]
 }
-`, repoName, baseRepoVisibility, teamName, rulesetName)
+`, repoName, testAccConf.testRepositoryVisibility, teamName, rulesetName)
 
 	// Updated config: change minimum_approvals from 1 to 2
 	configUpdated := fmt.Sprintf(`
@@ -876,7 +856,7 @@ resource "github_repository_ruleset" "test" {
 
 	depends_on = [github_team_repository.test]
 }
-`, repoName, baseRepoVisibility, teamName, rulesetName)
+`, repoName, testAccConf.testRepositoryVisibility, teamName, rulesetName)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { skipUnlessHasOrgs(t) },

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"log"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -25,13 +25,13 @@ func resourceGithubActionsOrganizationPermissions() *schema.Resource {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Description:      "The permissions policy that controls the actions that are allowed to run. Can be one of: 'all', 'local_only', or 'selected'.",
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"all", "local_only", "selected"}, false), "allowed_actions"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"all", "local_only", "selected"}, false)),
 			},
 			"enabled_repositories": {
 				Type:             schema.TypeString,
 				Required:         true,
 				Description:      "The policy that controls the repositories in the organization that are allowed to run GitHub Actions. Can be one of: 'all', 'none', or 'selected'.",
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"all", "none", "selected"}, false), "enabled_repositories"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"all", "none", "selected"}, false)),
 			},
 			"allowed_actions_config": {
 				Type:        schema.TypeList,

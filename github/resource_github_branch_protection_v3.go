@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -130,7 +130,7 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 							Optional:         true,
 							Default:          1,
 							Description:      "Require 'x' number of approvals to satisfy branch protection requirements. If this is specified it must be a number between 0-6.",
-							ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 6), "required_approving_review_count"),
+							ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 6)),
 						},
 						"require_last_push_approval": {
 							Type:        schema.TypeBool,

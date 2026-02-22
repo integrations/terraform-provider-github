@@ -81,7 +81,7 @@ func resourceGithubBranchProtection() *schema.Resource {
 							Optional:         true,
 							Default:          1,
 							Description:      "Require 'x' number of approvals to satisfy branch protection requirements. If this is specified it must be a number between 0-6.",
-							ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 6), PROTECTION_REQUIRED_APPROVING_REVIEW_COUNT),
+							ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 6)),
 						},
 						PROTECTION_REQUIRES_CODE_OWNER_REVIEWS: {
 							Type:        schema.TypeBool,

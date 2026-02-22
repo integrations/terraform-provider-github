@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/shurcooL/githubv4"
@@ -29,7 +29,7 @@ func dataSourceGithubOrganizationTeams() *schema.Resource {
 				Type:             schema.TypeInt,
 				Optional:         true,
 				Default:          100,
-				ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 100), "results_per_page"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 100)),
 			},
 			"teams": {
 				Type:     schema.TypeList,
