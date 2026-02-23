@@ -60,7 +60,7 @@ func getEnterpriseID(ctx context.Context, client *githubv4.Client, enterpriseSlu
 		} `graphql:"enterprise(slug: $slug)"`
 	}
 
-	variables := map[string]interface{}{
+	variables := map[string]any{
 		"slug": githubv4.String(enterpriseSlug),
 	}
 

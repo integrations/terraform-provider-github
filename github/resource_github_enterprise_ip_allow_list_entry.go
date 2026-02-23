@@ -132,7 +132,7 @@ func resourceGithubEnterpriseIpAllowListEntryRead(ctx context.Context, d *schema
 		} `graphql:"node(id: $id)"`
 	}
 
-	variables := map[string]interface{}{
+	variables := map[string]any{
 		"id": githubv4.ID(d.Id()),
 	}
 
@@ -248,7 +248,7 @@ func resourceGithubEnterpriseIpAllowListEntryImport(ctx context.Context, d *sche
 		} `graphql:"node(id: $id)"`
 	}
 
-	variables := map[string]interface{}{
+	variables := map[string]any{
 		"id": githubv4.ID(d.Id()),
 	}
 
@@ -266,9 +266,6 @@ func resourceGithubEnterpriseIpAllowListEntryImport(ctx context.Context, d *sche
 		return nil, err
 	}
 	if err := d.Set("name", entry.Name); err != nil {
-		return nil, err
-	}
-	if err := d.Set("ip", entry.AllowListValue); err != nil {
 		return nil, err
 	}
 	if err := d.Set("is_active", entry.IsActive); err != nil {
