@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	gh "github.com/google/go-github/v82/github"
+	gh "github.com/google/go-github/v83/github"
 )
 
 func TestFlattenEnterpriseSCIMMeta(t *testing.T) {
