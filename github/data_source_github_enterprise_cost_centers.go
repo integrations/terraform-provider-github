@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -23,8 +23,9 @@ func dataSourceGithubEnterpriseCostCenters() *schema.Resource {
 			"state": {
 				Type:             schema.TypeString,
 				Optional:         true,
-				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"active", "deleted"}, false)),
-				Description:      "Filter cost centers by state.",
+				Default:          "all",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"all", "active", "deleted"}, false)),
+				Description:      "Filter cost centers by state. Valid values are 'all', 'active', and 'deleted'.",
 			},
 			"cost_centers": {
 				Type:        schema.TypeSet,
@@ -62,12 +63,14 @@ func dataSourceGithubEnterpriseCostCenters() *schema.Resource {
 func dataSourceGithubEnterpriseCostCentersRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	enterpriseSlug := d.Get("enterprise_slug").(string)
-	var state *string
-	if v, ok := d.GetOk("state"); ok {
-		state = github.Ptr(v.(string))
+	stateFilter := d.Get("state").(string)
+
+	var opts github.ListCostCenterOptions
+	if stateFilter != "all" {
+		opts.State = github.Ptr(stateFilter)
 	}
 
-	result, _, err := client.Enterprise.ListCostCenters(ctx, enterpriseSlug, &github.ListCostCenterOptions{State: state})
+	result, _, err := client.Enterprise.ListCostCenters(ctx, enterpriseSlug, &opts)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -85,11 +88,7 @@ func dataSourceGithubEnterpriseCostCentersRead(ctx context.Context, d *schema.Re
 		})
 	}
 
-	stateStr := "all"
-	if state != nil {
-		stateStr = *state
-	}
-	id, err := buildID(enterpriseSlug, stateStr)
+	id, err := buildID(enterpriseSlug, stateFilter)
 	if err != nil {
 		return diag.FromErr(err)
 	}
