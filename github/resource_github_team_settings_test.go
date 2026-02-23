@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -8,6 +9,10 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 	"github.com/shurcooL/githubv4"
 )
 
@@ -29,20 +34,27 @@ func TestAccGithubTeamSettings(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("github_team_settings.test", "team_id"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_settings.test",
+							tfjsonpath.New("team_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_team_settings.test",
+							tfjsonpath.New("team_slug"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_team_settings.test",
+							tfjsonpath.New("team_uid"), knownvalue.NotNull()),
+					},
 				},
 				{
 					Config: strings.Replace(config,
 						`github_team.test.id`,
 						`github_team.test.slug`, 1),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("github_team_settings.test", "team_id"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_settings.test",
+							tfjsonpath.New("team_id"), knownvalue.NotNull()),
+					},
 				},
 			},
 		})
@@ -71,30 +83,39 @@ func TestAccGithubTeamSettings(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config: fmt.Sprintf(config, teamName, testAlgorithm, 1, true),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_team_settings.test", "review_request_delegation.0.algorithm", string(testAlgorithm)),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_settings.test",
+							tfjsonpath.New("review_request_delegation").AtSliceIndex(0).AtMapKey("algorithm"),
+							knownvalue.StringExact(string(testAlgorithm))),
+					},
 				},
 				{
 					Config: fmt.Sprintf(config, teamName, githubv4.TeamReviewAssignmentAlgorithmLoadBalance, 1, true),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_team_settings.test", "review_request_delegation.0.algorithm", string(githubv4.TeamReviewAssignmentAlgorithmLoadBalance)),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_settings.test",
+							tfjsonpath.New("review_request_delegation").AtSliceIndex(0).AtMapKey("algorithm"),
+							knownvalue.StringExact(string(githubv4.TeamReviewAssignmentAlgorithmLoadBalance))),
+					},
 				},
 				{
 					Config: fmt.Sprintf(config, teamName, testAlgorithm, 3, true),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_team_settings.test", "review_request_delegation.0.member_count", "3"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_settings.test",
+							tfjsonpath.New("review_request_delegation").AtSliceIndex(0).AtMapKey("member_count"),
+							knownvalue.Int64Exact(3)),
+					},
 				},
 				{
 					Config: fmt.Sprintf(config, teamName, testAlgorithm, 3, false),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_team_settings.test", "review_request_delegation.0.notify", "false"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_settings.test",
+							tfjsonpath.New("review_request_delegation").AtSliceIndex(0).AtMapKey("notify"),
+							knownvalue.Bool(false)),
+					},
 				},
 			},
 		})
@@ -122,6 +143,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config:      config,
@@ -130,4 +152,166 @@ func TestAccGithubTeamSettings(t *testing.T) {
 			},
 		})
 	})
+
+	t.Run("manages removing review request delegation", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		teamName := fmt.Sprintf("%steam-settings-%s", testResourcePrefix, randomID)
+
+		configWithDelegation := fmt.Sprintf(`
+			resource "github_team" "test" {
+				name        = "%s"
+				description = "generated by terraform provider automated testing"
+			}
+
+			resource "github_team_settings" "test" {
+				team_id    = "${github_team.test.id}"
+				review_request_delegation {
+					algorithm    = "ROUND_ROBIN"
+					member_count = 1
+					notify       = true
+				}
+			}
+		`, teamName)
+
+		configWithoutDelegation := fmt.Sprintf(`
+			resource "github_team" "test" {
+				name        = "%s"
+				description = "generated by terraform provider automated testing"
+			}
+
+			resource "github_team_settings" "test" {
+				team_id    = "${github_team.test.id}"
+			}
+		`, teamName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: configWithDelegation,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_settings.test",
+							tfjsonpath.New("review_request_delegation").AtSliceIndex(0).AtMapKey("algorithm"),
+							knownvalue.StringExact("ROUND_ROBIN")),
+					},
+				},
+				{
+					Config: configWithoutDelegation,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_settings.test",
+							tfjsonpath.New("review_request_delegation"),
+							knownvalue.ListExact([]knownvalue.Check{})),
+					},
+				},
+				{
+					Config: configWithDelegation,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_settings.test",
+							tfjsonpath.New("review_request_delegation").AtSliceIndex(0).AtMapKey("algorithm"),
+							knownvalue.StringExact("ROUND_ROBIN")),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("creates_with_empty_review_request_delegation_block_without_error", func(t *testing.T) {
+		t.Skip("TODO this isn't working as expected")
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		teamName := fmt.Sprintf("%steam-settings-%s", testResourcePrefix, randomID)
+		config := fmt.Sprintf(`
+			resource "github_team" "test" {
+				name        = "%s"
+				description = "generated by terraform provider automated testing"
+			}
+
+			resource "github_team_settings" "test" {
+				team_id    = "${github_team.test.id}"
+				review_request_delegation {}
+			}
+		`, teamName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_settings.test", tfjsonpath.New("review_request_delegation").AtSliceIndex(0).AtMapKey("algorithm"), knownvalue.StringExact(string(githubv4.TeamReviewAssignmentAlgorithmRoundRobin))),
+						statecheck.ExpectKnownValue("github_team_settings.test", tfjsonpath.New("review_request_delegation").AtSliceIndex(0).AtMapKey("notify"), knownvalue.Bool(false)),
+					},
+				},
+			},
+		})
+	})
+	t.Run("validates_member_count_greater_than_0", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		teamName := fmt.Sprintf("%steam-settings-%s", testResourcePrefix, randomID)
+		config := fmt.Sprintf(`
+			resource "github_team" "test" {
+				name        = "%s"
+				description = "generated by terraform provider automated testing"
+			}
+
+			resource "github_team_settings" "test" {
+				team_id    = "${github_team.test.id}"
+				review_request_delegation {
+					member_count = 0
+				}
+			}
+		`, teamName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile(`expected member_count to be at least (1), got 0`),
+				},
+			},
+		})
+	})
+}
+
+func testAccCheckGithubTeamSettingsDestroy(s *terraform.State) error {
+	meta, err := getTestMeta()
+	if err != nil {
+		return err
+	}
+	graphql := meta.v4client
+	orgName := meta.name
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "github_team_settings" {
+			continue
+		}
+
+		teamSlug := rs.Primary.Attributes["team_slug"]
+		if teamSlug == "" {
+			continue
+		}
+
+		query := queryTeamSettings{}
+		variables := map[string]any{
+			"slug":  githubv4.String(teamSlug),
+			"login": githubv4.String(orgName),
+		}
+
+		err := graphql.Query(context.Background(), &query, variables)
+		if err != nil {
+			// Team itself may have been destroyed, which is fine
+			continue
+		}
+
+		if query.Organization.Team.ReviewRequestDelegation {
+			return fmt.Errorf("team %s still has review request delegation enabled", teamSlug)
+		}
+	}
+	return nil
 }
