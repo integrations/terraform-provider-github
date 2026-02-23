@@ -72,13 +72,11 @@ resource "github_organization_ruleset" "test" {
 	}
 
 	bypass_actors {
-		actor_id    = 1
 		actor_type  = "OrganizationAdmin"
 		bypass_mode = "always"
 	}
 
 	bypass_actors {
-		actor_id    = 0
 		actor_type  = "EnterpriseOwner"
 		bypass_mode = "always"
 	}
@@ -173,10 +171,8 @@ resource "github_organization_ruleset" "test" {
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.1.actor_id", "5"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.1.actor_type", "RepositoryRole"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.1.bypass_mode", "always"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.2.actor_id", "1"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.2.actor_type", "OrganizationAdmin"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.2.bypass_mode", "always"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.3.actor_id", "0"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.3.actor_type", "EnterpriseOwner"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.3.bypass_mode", "always"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.pull_request.0.allowed_merge_methods.#", "3"),
@@ -636,7 +632,6 @@ resource "github_organization_ruleset" "test" {
 	}
 
 	bypass_actors {
-		actor_id    = 1
 		actor_type  = "OrganizationAdmin"
 		bypass_mode = "always"
 	}
@@ -716,7 +711,6 @@ resource "github_organization_ruleset" "test" {
 	enforcement = "active"
 
 	bypass_actors {
-		actor_id    = 1
 		actor_type  = "OrganizationAdmin"
 		bypass_mode = "%s"
 	}
