@@ -4,15 +4,15 @@ import (
 	"context"
 	"time"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 )
 
 // Cost center resource management constants and retry functions.
 const (
-	maxCostCenterResourcesPerRequest          = 50
-	costCenterResourcesRetryTimeout = 5 * time.Minute
+	maxCostCenterResourcesPerRequest = 50
+	costCenterResourcesRetryTimeout  = 5 * time.Minute
 
 	// CostCenterResourceType constants match the API response values.
 	CostCenterResourceTypeUser = "User"
