@@ -376,16 +376,13 @@ func resourceGithubRepositoryPagesDiff(ctx context.Context, d *schema.ResourceDi
 	}
 
 	buildType := d.Get("build_type").(string)
-	switch buildType {
-	case "workflow":
-		if _, ok := d.GetOk("source"); ok {
-			return fmt.Errorf("'source' is not supported for workflow build type")
-		}
-		return nil
-	case "legacy":
-		if _, ok := d.GetOk("source"); !ok {
-			return fmt.Errorf("'source' is required for legacy build type")
-		}
+	_, ok := d.GetOk("source")
+
+	if buildType == "workflow" && ok {
+		return fmt.Errorf("'source' is not supported for workflow build type")
+	}
+	if buildType == "legacy" && !ok {
+		return fmt.Errorf("'source' is required for legacy build type")
 	}
 
 	return nil
