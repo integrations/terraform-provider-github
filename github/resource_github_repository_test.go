@@ -716,7 +716,7 @@ resource "github_repository" "test" {
 				{
 					Config: config,
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckNoResourceAttr("github_repository.test", "vulnerability_alerts"),
+						resource.TestCheckNoResourceAttr("github_repository.test", "vulnerability_alerts"), // This will error if it's run as an unprivileged user but that shouldn't ever happen
 					),
 				},
 			},
