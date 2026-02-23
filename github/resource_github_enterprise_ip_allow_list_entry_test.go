@@ -47,9 +47,6 @@ resource "github_enterprise_ip_allow_list_entry" "test" {
 			},
 		})
 	})
-}
-
-func TestAccGithubEnterpriseIpAllowListEntry_update(t *testing.T) {
 	t.Run("update", func(t *testing.T) {
 		resourceName := "github_enterprise_ip_allow_list_entry.test"
 		ip := "192.168.1.0/24"
