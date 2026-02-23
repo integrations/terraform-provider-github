@@ -630,7 +630,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 
 	// only configure allow forking if repository is not public
 	if visibility != "public" && (d.IsNewResource() || d.HasChange("allow_forking")) {
-		if allowForking, ok := d.GetOkExists("allow_forking"); ok { //nolint:staticcheck,SA1019 // We sometimes need to use GetOkExists for booleans
+		if allowForking, ok := d.GetOkExists("allow_forking"); ok { //nolint:staticcheck //SA1019 // We sometimes need to use GetOkExists for booleans
 			if val, ok := allowForking.(bool); ok {
 				repository.AllowForking = github.Ptr(val)
 			}
@@ -995,7 +995,7 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 	}
 
 	if d.IsNewResource() || d.HasChange("vulnerability_alerts") {
-		if v, ok := d.GetOkExists("vulnerability_alerts"); ok { //nolint:staticcheck,SA1019 // We sometimes need to use GetOkExists for booleans
+		if v, ok := d.GetOkExists("vulnerability_alerts"); ok { //nolint:staticcheck //SA1019 // We sometimes need to use GetOkExists for booleans
 			if val, ok := v.(bool); ok {
 				err := updateVulnerabilityAlerts(ctx, client, owner, repoName, val)
 				if err != nil {
