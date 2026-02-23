@@ -301,7 +301,7 @@ resource "github_organization_ruleset" "test" {
 			t.Fatalf("Error getting test meta: %v", err)
 		}
 
-		ctx := context.Background()
+		ctx := t.Context()
 		org := testAccConf.owner
 
 		// Create test properties
