@@ -62,7 +62,7 @@ The following arguments are supported:
 The following arguments are supported:
 
 - `algorithm` - (Optional) The algorithm to use when assigning pull requests to team members. Supported values are `ROUND_ROBIN` and `LOAD_BALANCE`. Default value is `ROUND_ROBIN`
-- `member_count` - (Optional) The number of team members to assign to a pull request
+- `member_count` - (Optional) The number of team members to assign to a pull request. Default value is `1`.
 - `notify` - (Optional, **Deprecated**: Use the top-level `notify` attribute instead.) Whether to notify the entire team when at least one member is also assigned to the pull request. Conflicts with the top-level `notify` attribute.
 
 ## Attributes Reference
