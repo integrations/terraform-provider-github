@@ -328,6 +328,7 @@ func resourceGithubRepository() *schema.Resource {
 				MaxItems:    1,
 				Optional:    true,
 				Description: "The repository's GitHub Pages configuration",
+				Deprecated:  "Use the github_repository_pages resource instead. This field will be removed in a future version.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"source": {
@@ -859,7 +860,8 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 		_ = d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle())
 	}
 
-	if repo.GetHasPages() {
+	_, isPagesConfigured := d.GetOk("pages")
+	if repo.GetHasPages() && isPagesConfigured {
 		pages, _, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)
 		if err != nil {
 			return diag.FromErr(err)

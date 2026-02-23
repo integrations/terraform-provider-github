@@ -1110,47 +1110,31 @@ resource "github_repository" "test" {
 		})
 	})
 
-	t.Run("updates repos to public visibility", func(t *testing.T) {
+	t.Run("updates_repos_to_public_visibility", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%spublic-vuln-%s", testResourcePrefix, randomID)
-		config := fmt.Sprintf(`
+		config := `
 				resource "github_repository" "test" {
 				name       = "%s"
-				visibility = "private"
+				visibility = "%s"
 			}
-		`, testRepoName)
-
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckNoResourceAttr(
-					"github_repository.test", "vulnerability_alerts",
-				),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "vulnerability_alerts",
-					"true",
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "visibility",
-					"private",
-				),
-			),
-		}
+		`
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: config,
-					Check:  checks["before"],
+					Config: fmt.Sprintf(config, testRepoName, "private"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "visibility", "private"),
+					),
 				},
 				{
-					Config: strings.Replace(config,
-						`}`,
-						"vulnerability_alerts = true\n}", 1),
-					Check: checks["after"],
+					Config: fmt.Sprintf(config, testRepoName, "public"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "visibility", "public"),
+					),
 				},
 			},
 		})
