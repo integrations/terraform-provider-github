@@ -219,7 +219,6 @@ func TestAccGithubTeamSettings(t *testing.T) {
 	})
 
 	t.Run("creates_with_empty_review_request_delegation_block_without_error", func(t *testing.T) {
-		t.Skip("TODO this isn't working as expected")
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-settings-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
