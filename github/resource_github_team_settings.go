@@ -17,7 +17,7 @@ func resourceGithubTeamSettings() *schema.Resource {
 		Update: resourceGithubTeamSettingsUpdate,
 		Delete: resourceGithubTeamSettingsDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourceGithubTeamSettingsImport,
+			StateContext: resourceGithubTeamSettingsImport,
 		},
 		Schema: map[string]*schema.Schema{
 			"team_id": {
@@ -186,8 +186,8 @@ func resourceGithubTeamSettingsDelete(d *schema.ResourceData, meta any) error {
 	return graphql.Mutate(ctx, &mutation, defaultTeamReviewAssignmentSettings(d.Id()), nil)
 }
 
-func resourceGithubTeamSettingsImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	nodeId, slug, err := resolveTeamIDs(d.Id(), meta.(*Owner), context.Background())
+func resourceGithubTeamSettingsImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+	nodeId, slug, err := resolveTeamIDs(d.Id(), meta.(*Owner), ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +201,7 @@ func resourceGithubTeamSettingsImport(d *schema.ResourceData, meta any) ([]*sche
 	if err = d.Set("team_uid", nodeId); err != nil {
 		return nil, err
 	}
-	return []*schema.ResourceData{d}, resourceGithubTeamSettingsRead(d, meta)
+	return []*schema.ResourceData{d}, nil
 }
 
 func resolveTeamIDs(idOrSlug string, meta *Owner, ctx context.Context) (nodeId, slug string, err error) {
