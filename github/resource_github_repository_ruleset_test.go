@@ -173,6 +173,11 @@ resource "github_repository_ruleset" "test" {
 			}
 		}
 
+		bypass_actors {
+			actor_type  = "EnterpriseOwner"
+			bypass_mode = "always"
+		}
+
 		rules {
 			branch_name_pattern {
 				name     = "test"
@@ -193,6 +198,9 @@ resource "github_repository_ruleset" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", "test"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "enforcement", "active"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.#", "1"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.0.actor_type", "EnterpriseOwner"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.0.bypass_mode", "always"),
 					),
 				},
 			},
