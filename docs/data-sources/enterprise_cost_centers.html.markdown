@@ -21,7 +21,7 @@ data "github_enterprise_cost_centers" "active" {
 ## Argument Reference
 
 * `enterprise_slug` - (Required) The slug of the enterprise.
-* `state` - (Optional) Filter cost centers by state. Valid values are `active` and `deleted`.
+* `state` - (Optional) Filter cost centers by state. Valid values are `all`, `active`, and `deleted`. Defaults to `all`.
 
 ## Attributes Reference
 
