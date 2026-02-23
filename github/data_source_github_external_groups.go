@@ -6,12 +6,13 @@ import (
 	"fmt"
 
 	"github.com/google/go-github/v83/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubExternalGroups() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubExternalGroupsRead,
+		ReadContext: dataSourceGithubExternalGroupsRead,
 		Schema: map[string]*schema.Schema{
 			"external_groups": {
 				Type:     schema.TypeList,
@@ -37,15 +38,14 @@ func dataSourceGithubExternalGroups() *schema.Resource {
 	}
 }
 
-func dataSourceGithubExternalGroupsRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubExternalGroupsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	opts := &github.ListExternalGroupsOptions{}
 
 	externalGroups := new(github.ExternalGroupList)
@@ -53,7 +53,7 @@ func dataSourceGithubExternalGroupsRead(d *schema.ResourceData, meta any) error 
 	for {
 		groups, resp, err := client.Teams.ListExternalGroups(ctx, orgName, opts)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		externalGroups.Groups = append(externalGroups.Groups, groups.Groups...)
@@ -67,17 +67,17 @@ func dataSourceGithubExternalGroupsRead(d *schema.ResourceData, meta any) error 
 	// convert to JSON in order to martial to format we can return
 	jsonGroups, err := json.Marshal(externalGroups.Groups)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	groupsState := make([]map[string]any, 0)
 	err = json.Unmarshal(jsonGroups, &groupsState)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err := d.Set("external_groups", groupsState); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(fmt.Sprintf("/orgs/%v/external-groups", orgName))

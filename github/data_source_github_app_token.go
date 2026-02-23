@@ -1,14 +1,16 @@
 package github
 
 import (
+	"context"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubAppToken() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubAppTokenRead,
+		ReadContext: dataSourceGithubAppTokenRead,
 
 		Schema: map[string]*schema.Schema{
 			"app_id": {
@@ -36,7 +38,7 @@ func dataSourceGithubAppToken() *schema.Resource {
 	}
 }
 
-func dataSourceGithubAppTokenRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubAppTokenRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	appID := d.Get("app_id").(string)
 	installationID := d.Get("installation_id").(string)
 	pemFile := d.Get("pem_file").(string)
@@ -52,11 +54,11 @@ func dataSourceGithubAppTokenRead(d *schema.ResourceData, meta any) error {
 
 	token, err := GenerateOAuthTokenFromApp(meta.(*Owner).v3client.BaseURL, appID, installationID, pemFile)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	err = d.Set("token", token)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	d.SetId("id")
 

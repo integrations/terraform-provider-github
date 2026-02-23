@@ -2,14 +2,14 @@ package github
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubOrganizationCustomProperties() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubOrganizationCustomPropertiesRead,
+		ReadContext: dataSourceGithubOrganizationCustomPropertiesRead,
 
 		Schema: map[string]*schema.Schema{
 			"property_name": {
@@ -49,19 +49,18 @@ func dataSourceGithubOrganizationCustomProperties() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationCustomPropertiesRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubOrganizationCustomPropertiesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 	orgName := meta.(*Owner).name
 
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	propertyAttributes, _, err := client.Organizations.GetCustomProperty(ctx, orgName, d.Get("property_name").(string))
 	if err != nil {
-		return fmt.Errorf("error querying GitHub custom properties %s: %w", orgName, err)
+		return diag.Errorf("error querying GitHub custom properties %s: %v", orgName, err)
 	}
 
 	// TODO: Add support for other types of default values
