@@ -939,6 +939,64 @@ resource "github_repository" "test" {
 		})
 	})
 
+	t.Run("updates repository pages from legacy to workflow", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%spages-2087-%s", testResourcePrefix, randomID)
+		testVisibility := "private"
+		if testAccConf.authMode == individual {
+			testVisibility = "public"
+		}
+
+		configs := map[string]string{
+			"legacy": fmt.Sprintf(`
+				resource "github_repository" "test" {
+					name       = "%s"
+					visibility = "%s"
+					auto_init  = true
+
+					pages {
+						build_type = "legacy"
+
+						source {
+							branch = "main"
+							path   = "/"
+						}
+					}
+				}
+			`, testRepoName, testVisibility),
+			"workflow": fmt.Sprintf(`
+				resource "github_repository" "test" {
+					name       = "%s"
+					visibility = "%s"
+					auto_init  = true
+
+					pages {
+						build_type = "workflow"
+					}
+				}
+			`, testRepoName, testVisibility),
+		}
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: configs["legacy"],
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "pages.0.source.0.branch", "main"),
+						resource.TestCheckResourceAttr("github_repository.test", "pages.0.source.0.path", "/"),
+					),
+				},
+				{
+					Config: configs["workflow"],
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckNoResourceAttr("github_repository.test", "pages.0.source.#"),
+					),
+				},
+			},
+		})
+	})
+
 	t.Run("manages the security feature for a private repository", func(t *testing.T) {
 		if !testAccConf.testAdvancedSecurity {
 			t.Skip("Advanced Security is not enabled for this account")
