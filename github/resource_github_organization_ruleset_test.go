@@ -163,7 +163,7 @@ resource "github_organization_ruleset" "test" {
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "target", "branch"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "enforcement", "active"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.#", "3"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.#", "4"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.0.actor_type", "DeployKey"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.0.bypass_mode", "always"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.1.actor_id", "5"),
