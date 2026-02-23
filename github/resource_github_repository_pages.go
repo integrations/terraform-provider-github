@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v83/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -158,36 +159,46 @@ func resourceGithubRepositoryPagesCreate(ctx context.Context, d *schema.Resource
 		return diag.FromErr(err)
 	}
 
-	// Determine if we need to update the page with CNAME or public flag
-	shouldUpdatePage := false
-	update := &github.PagesUpdate{}
-	cname, cnameExists := d.GetOk("cname")
-	if cnameExists && cname.(string) != "" {
-		shouldUpdatePage = true
-		update.CNAME = github.Ptr(cname.(string))
+	// Check if we have values set that can't be configured as part of the create logic
+	cname, cnameOK := d.GetOk("cname")
+	public, publicOKExists := d.GetOkExists("public")                     //nolint:staticcheck // SA1019: d.GetOkExists is deprecated but necessary for bool fields
+	httpsEnforced, httpsEnforcedExists := d.GetOkExists("https_enforced") //nolint:staticcheck // SA1019: d.GetOkExists is deprecated but necessary for bool fields
+	tflog.Debug(ctx, "Do we have values set that need the update logic?", map[string]any{
+		"public":                public,
+		"public_ok_exists":      publicOKExists,
+		"https_enforced":        httpsEnforced,
+		"https_enforced_exists": httpsEnforcedExists,
+		"cname":                 cname,
+		"cname_ok":              cnameOK,
+	})
+
+	if cnameOK || publicOKExists || httpsEnforcedExists {
+		update := &github.PagesUpdate{}
+
+		if cnameOK {
+			update.CNAME = github.Ptr(cname.(string))
+		}
+
+		if publicOKExists {
+			update.Public = github.Ptr(public.(bool))
+		}
+
+		if httpsEnforcedExists {
+			update.HTTPSEnforced = github.Ptr(httpsEnforced.(bool))
+		}
+
+		_, err = client.Repositories.UpdatePages(ctx, owner, repoName, update)
+		if err != nil {
+			return diag.FromErr(err)
+		}
 	}
-	public, publicExists := d.GetOkExists("public") // nolint:staticcheck // SA1019: There is no better alternative for checking if boolean value is set
-	if publicExists && public != nil {
-		shouldUpdatePage = true
-		update.Public = github.Ptr(public.(bool))
-	} else {
+	if !publicOKExists {
 		if err := d.Set("public", pages.GetPublic()); err != nil {
 			return diag.FromErr(err)
 		}
 	}
-	httpsEnforced, httpsEnforcedExists := d.GetOkExists("https_enforced") // nolint:staticcheck // SA1019: There is no better alternative for checking if boolean value is set
-	if httpsEnforcedExists && httpsEnforced != nil {
-		shouldUpdatePage = true
-		update.HTTPSEnforced = github.Ptr(httpsEnforced.(bool))
-	} else {
+	if !httpsEnforcedExists {
 		if err := d.Set("https_enforced", pages.GetHTTPSEnforced()); err != nil {
-			return diag.FromErr(err)
-		}
-	}
-
-	if shouldUpdatePage {
-		_, err = client.Repositories.UpdatePages(ctx, owner, repoName, update)
-		if err != nil {
 			return diag.FromErr(err)
 		}
 	}
