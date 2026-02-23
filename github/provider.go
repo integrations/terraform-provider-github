@@ -498,6 +498,19 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 	}
 }
 
+// ghCLIHostFromAPIHost maps an API hostname to the corresponding
+// gh-CLI --hostname value.  For example api.github.com -> github.com
+// and api.<slug>.ghe.com -> <slug>.ghe.com.
+// for unrecognized hostnames, input is returned unmodified.
+func ghCLIHostFromAPIHost(host string) string {
+	if host == DotComAPIHost {
+		return DotComHost
+	} else if GHECAPIHostMatch.MatchString(host) {
+		return strings.TrimPrefix(host, "api.")
+	}
+	return host
+}
+
 // See https://github.com/integrations/terraform-provider-github/issues/1822
 func tokenFromGHCLI(u *url.URL) string {
 	ghCliPath := os.Getenv("GH_PATH")
@@ -505,10 +518,7 @@ func tokenFromGHCLI(u *url.URL) string {
 		ghCliPath = "gh"
 	}
 
-	host := u.Host
-	if host == DotComAPIHost {
-		host = DotComHost
-	}
+	host := ghCLIHostFromAPIHost(u.Host)
 
 	out, err := exec.Command(ghCliPath, "auth", "token", "--hostname", host).Output()
 	if err != nil {

@@ -259,3 +259,46 @@ data "github_ip_ranges" "test" {}
 		})
 	})
 }
+
+func Test_ghCLIHostFromAPIHost(t *testing.T) {
+	testCases := []struct {
+		name         string
+		host         string
+		expectedHost string
+	}{
+		{
+			name:         "dotcom API host is mapped to dotcom host",
+			host:         "api.github.com",
+			expectedHost: "github.com",
+		},
+		{
+			name:         "ghec API host has api. prefix stripped",
+			host:         "api.my-enterprise.ghe.com",
+			expectedHost: "my-enterprise.ghe.com",
+		},
+		{
+			name:         "ghec API host with numbers has api. prefix stripped",
+			host:         "api.customer-123.ghe.com",
+			expectedHost: "customer-123.ghe.com",
+		},
+		{
+			name:         "ghes host is passed through unchanged",
+			host:         "github.example.com",
+			expectedHost: "github.example.com",
+		},
+		{
+			name:         "ghes host with port is passed through unchanged",
+			host:         "github.example.com:8443",
+			expectedHost: "github.example.com:8443",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := ghCLIHostFromAPIHost(tc.host)
+			if got != tc.expectedHost {
+				t.Errorf("ghCLIHostFromAPIHost(%q) = %q, want %q", tc.host, got, tc.expectedHost)
+			}
+		})
+	}
+}
