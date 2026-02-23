@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/shurcooL/githubv4"
@@ -12,10 +13,10 @@ import (
 
 func resourceGithubTeamSettings() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubTeamSettingsCreate,
-		Read:   resourceGithubTeamSettingsRead,
-		Update: resourceGithubTeamSettingsUpdate,
-		Delete: resourceGithubTeamSettingsDelete,
+		CreateContext: resourceGithubTeamSettingsCreate,
+		ReadContext:   resourceGithubTeamSettingsRead,
+		UpdateContext: resourceGithubTeamSettingsUpdate,
+		DeleteContext: resourceGithubTeamSettingsDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceGithubTeamSettingsImport,
 		},
@@ -72,36 +73,32 @@ func resourceGithubTeamSettings() *schema.Resource {
 	}
 }
 
-func resourceGithubTeamSettingsCreate(d *schema.ResourceData, meta any) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
+func resourceGithubTeamSettingsCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	if err := checkOrganization(meta); err != nil {
+		return diag.FromErr(err)
 	}
+
+	teamIDString := d.Get("team_id").(string)
 
 	// Given a string that is either a team id or team slug, return the
 	// get the basic details of the team including node_id and slug
-	ctx := context.Background()
-
-	teamIDString, _ := d.Get("team_id").(string)
-
 	nodeId, slug, err := resolveTeamIDs(teamIDString, meta.(*Owner), ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	d.SetId(nodeId)
 	if err = d.Set("team_slug", slug); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("team_uid", nodeId); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	return resourceGithubTeamSettingsUpdate(d, meta)
+	return resourceGithubTeamSettingsUpdate(ctx, d, meta)
 }
 
-func resourceGithubTeamSettingsRead(d *schema.ResourceData, meta any) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
+func resourceGithubTeamSettingsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	if err := checkOrganization(meta); err != nil {
+		return diag.FromErr(err)
 	}
 
 	graphql := meta.(*Owner).v4client
@@ -115,9 +112,9 @@ func resourceGithubTeamSettingsRead(d *schema.ResourceData, meta any) error {
 		"login": githubv4.String(orgName),
 	}
 
-	e := graphql.Query(meta.(*Owner).StopContext, &query, variables)
-	if e != nil {
-		return e
+	err := graphql.Query(ctx, &query, variables)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	if query.Organization.Team.ReviewRequestDelegation {
@@ -126,21 +123,19 @@ func resourceGithubTeamSettingsRead(d *schema.ResourceData, meta any) error {
 		reviewRequestDelegation["member_count"] = query.Organization.Team.ReviewRequestDelegationCount
 		reviewRequestDelegation["notify"] = query.Organization.Team.ReviewRequestDelegationNotifyAll
 		if err = d.Set("review_request_delegation", []any{reviewRequestDelegation}); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	} else {
 		if err = d.Set("review_request_delegation", []any{}); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	return nil
 }
 
-func resourceGithubTeamSettingsUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubTeamSettingsUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	if d.HasChange("review_request_delegation") || d.IsNewResource() {
-
-		ctx := context.WithValue(context.Background(), ctxId, d.Id())
 		graphql := meta.(*Owner).v4client
 		if setting := d.Get("review_request_delegation").([]any); len(setting) == 0 {
 			var mutation struct {
@@ -149,7 +144,11 @@ func resourceGithubTeamSettingsUpdate(d *schema.ResourceData, meta any) error {
 				} `graphql:"updateTeamReviewAssignment(input:$input)"`
 			}
 
-			return graphql.Mutate(ctx, &mutation, defaultTeamReviewAssignmentSettings(d.Id()), nil)
+			err := graphql.Mutate(ctx, &mutation, defaultTeamReviewAssignmentSettings(d.Id()), nil)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			return nil
 		} else {
 			settings := d.Get("review_request_delegation").([]any)[0].(map[string]any)
 
@@ -160,21 +159,25 @@ func resourceGithubTeamSettingsUpdate(d *schema.ResourceData, meta any) error {
 			}
 
 			teamReviewAlgorithm := githubv4.TeamReviewAssignmentAlgorithm(settings["algorithm"].(string))
-			return graphql.Mutate(ctx, &mutation, githubv4.UpdateTeamReviewAssignmentInput{
+			updateTeamReviewAssignmentInput := githubv4.UpdateTeamReviewAssignmentInput{
 				ID:              d.Id(),
 				Enabled:         githubv4.Boolean(true),
 				Algorithm:       &teamReviewAlgorithm,
 				TeamMemberCount: githubv4.NewInt(githubv4.Int(settings["member_count"].(int))),
 				NotifyTeam:      githubv4.NewBoolean(githubv4.Boolean(settings["notify"].(bool))),
-			}, nil)
+			}
+			err := graphql.Mutate(ctx, &mutation, updateTeamReviewAssignmentInput, nil)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			return nil
 		}
 	}
 
-	return resourceGithubTeamSettingsRead(d, meta)
+	return resourceGithubTeamSettingsRead(ctx, d, meta)
 }
 
-func resourceGithubTeamSettingsDelete(d *schema.ResourceData, meta any) error {
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+func resourceGithubTeamSettingsDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	graphql := meta.(*Owner).v4client
 
 	var mutation struct {
@@ -183,7 +186,11 @@ func resourceGithubTeamSettingsDelete(d *schema.ResourceData, meta any) error {
 		} `graphql:"updateTeamReviewAssignment(input:$input)"`
 	}
 
-	return graphql.Mutate(ctx, &mutation, defaultTeamReviewAssignmentSettings(d.Id()), nil)
+	err := graphql.Mutate(ctx, &mutation, defaultTeamReviewAssignmentSettings(d.Id()), nil)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	return nil
 }
 
 func resourceGithubTeamSettingsImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
