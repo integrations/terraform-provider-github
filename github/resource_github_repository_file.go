@@ -1,10 +1,10 @@
 package github
 
 import (
-	"io"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -315,11 +315,11 @@ func resourceGithubRepositoryFileRead(d *schema.ResourceData, meta any) error {
 		return nil
 	}
 
-	encoding := fc.GetEncoding()
+	size := fc.GetSize()
 
 	var content string
 
-	if encoding == "" || encoding == "none" {
+	if size > 1024*1024 {
 
 		reader, _, err := client.Repositories.DownloadContents(ctx, owner, repo, file, opts)
 		if err != nil {
