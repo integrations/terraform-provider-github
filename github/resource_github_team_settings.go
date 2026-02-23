@@ -174,7 +174,7 @@ func resourceGithubTeamSettingsUpdate(ctx context.Context, d *schema.ResourceDat
 		}
 	}
 
-	return resourceGithubTeamSettingsRead(ctx, d, meta)
+	return nil
 }
 
 func resourceGithubTeamSettingsDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
