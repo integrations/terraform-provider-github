@@ -185,7 +185,7 @@ resource "github_organization_ruleset" "test" {
 	t.Run("create_ruleset_with_repository_property", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		rulesetName := fmt.Sprintf("%s-repo-prop-ruleset-%s", testResourcePrefix, randomID)
-		propName := fmt.Sprintf("e2e_test_team_%s", randomID)
+		propName := fmt.Sprintf("%s_team_%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 resource "github_organization_custom_properties" "team" {
@@ -203,7 +203,7 @@ resource "github_organization_ruleset" "test" {
 	conditions {
 		repository_property {
 			include = [{
-				name            = "%[2]s"
+				name            = github_organization_custom_properties.team.property_name
 				source          = "custom"
 				property_values = ["blue"]
 			}]
@@ -222,8 +222,6 @@ resource "github_organization_ruleset" "test" {
 		deletion                = true
 		required_linear_history = true
 	}
-
-	depends_on = [github_organization_custom_properties.team]
 }
 `, rulesetName, propName)
 
@@ -251,7 +249,7 @@ resource "github_organization_ruleset" "test" {
 	t.Run("create_ruleset_with_repository_property_exclude", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		rulesetName := fmt.Sprintf("%s-repo-prop-exclude-ruleset-%s", testResourcePrefix, randomID)
-		propName := fmt.Sprintf("e2e_test_team_%s", randomID)
+		propName := fmt.Sprintf("%s_team_%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 resource "github_organization_custom_properties" "team" {
@@ -270,7 +268,7 @@ resource "github_organization_ruleset" "test" {
 		repository_property {
 			include = []
 			exclude = [{
-				name            = "%[2]s"
+				name            = github_organization_custom_properties.team.property_name
 				source          = "custom"
 				property_values = ["red"]
 			}]
@@ -285,8 +283,6 @@ resource "github_organization_ruleset" "test" {
 	rules {
 		required_linear_history = true
 	}
-
-	depends_on = [github_organization_custom_properties.team]
 }
 `, rulesetName, propName)
 
@@ -312,8 +308,8 @@ resource "github_organization_ruleset" "test" {
 	t.Run("create_ruleset_with_multiple_repository_properties", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		rulesetName := fmt.Sprintf("%s-repo-prop-multiple-%s", testResourcePrefix, randomID)
-		propEnvironmentName := fmt.Sprintf("e2e_test_environment_%s", randomID)
-		propTierName := fmt.Sprintf("e2e_test_tier_%s", randomID)
+		propEnvironmentName := fmt.Sprintf("%s_environment_%s", testResourcePrefix, randomID)
+		propTierName := fmt.Sprintf("%s_tier_%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 resource "github_organization_custom_properties" "environment" {
@@ -339,12 +335,12 @@ resource "github_organization_ruleset" "test" {
 		repository_property {
 			include = [
 				{
-					name            = "%[2]s"
+					name            = github_organization_custom_properties.environment.property_name
 					source          = "custom"
 					property_values = ["production"]
 				},
 				{
-					name            = "%[3]s"
+					name            = github_organization_custom_properties.tier.property_name
 					source          = "custom"
 					property_values = ["premium", "enterprise"]
 				}
@@ -361,11 +357,6 @@ resource "github_organization_ruleset" "test" {
 	rules {
 		required_signatures = true
 	}
-
-	depends_on = [
-		github_organization_custom_properties.environment,
-		github_organization_custom_properties.tier,
-	]
 }
 `, rulesetName, propEnvironmentName, propTierName)
 
@@ -396,7 +387,7 @@ resource "github_organization_ruleset" "test" {
 	t.Run("update_repository_property", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		rulesetName := fmt.Sprintf("%s-repo-prop-update-%s", testResourcePrefix, randomID)
-		propName := fmt.Sprintf("e2e_test_team_%s", randomID)
+		propName := fmt.Sprintf("%s_team_%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 resource "github_organization_custom_properties" "team" {
@@ -414,7 +405,7 @@ resource "github_organization_ruleset" "test" {
 	conditions {
 		repository_property {
 			include = [{
-				name            = "%[2]s"
+				name            = github_organization_custom_properties.team.property_name
 				source          = "custom"
 				property_values = ["blue"]
 			}]
@@ -430,8 +421,6 @@ resource "github_organization_ruleset" "test" {
 	rules {
 		creation = true
 	}
-
-	depends_on = [github_organization_custom_properties.team]
 }
 `, rulesetName, propName)
 
@@ -451,7 +440,7 @@ resource "github_organization_ruleset" "test" {
 	conditions {
 		repository_property {
 			include = [{
-				name            = "%[2]s"
+				name            = github_organization_custom_properties.team.property_name
 				source          = "custom"
 				property_values = ["backend", "platform"]
 			}]
@@ -468,8 +457,6 @@ resource "github_organization_ruleset" "test" {
 		creation = true
 		update   = true
 	}
-
-	depends_on = [github_organization_custom_properties.team]
 }
 `, rulesetName, propName)
 
