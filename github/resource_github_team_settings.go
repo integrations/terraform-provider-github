@@ -53,10 +53,10 @@ func resourceGithubTeamSettings() *schema.Resource {
 							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{string(githubv4.TeamReviewAssignmentAlgorithmRoundRobin), string(githubv4.TeamReviewAssignmentAlgorithmLoadBalance)}, false)),
 						},
 						"member_count": {
-							Type:         schema.TypeInt,
-							Optional:     true,
-							RequiredWith: []string{"review_request_delegation"},
-							Description:  "The number of team members to assign to a pull request.",
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     1,
+							Description: "The number of team members to assign to a pull request.",
 							ValidateDiagFunc: validation.ToDiagFunc(validation.All(
 								validation.IntAtLeast(1),
 							)),
@@ -112,6 +112,13 @@ func resourceGithubTeamSettingsCreate(ctx context.Context, d *schema.ResourceDat
 		} `graphql:"updateTeamReviewAssignment(input:$input)"`
 	}
 
+	tflog.Debug(ctx, "Review request delegation settings", map[string]any{
+		"team_id":                   d.Id(),
+		"team_slug":                 slug,
+		"review_request_delegation": reviewRequestDelegation,
+		"length_of_settings":        len(reviewRequestDelegation),
+	})
+
 	if len(reviewRequestDelegation) == 0 {
 		tflog.Debug(ctx, "No review request delegation settings provided, disabling review request delegation", map[string]any{
 			"team_id":   d.Id(),
@@ -123,6 +130,11 @@ func resourceGithubTeamSettingsCreate(ctx context.Context, d *schema.ResourceDat
 			return diag.FromErr(err)
 		}
 	} else {
+		tflog.Debug(ctx, "Review request delegation settings provided, setting according to provided configuration", map[string]any{
+			"team_id":                   d.Id(),
+			"team_slug":                 slug,
+			"review_request_delegation": reviewRequestDelegation,
+		})
 		settings := reviewRequestDelegation[0].(map[string]any)
 
 		teamReviewAlgorithm := githubv4.TeamReviewAssignmentAlgorithm(settings["algorithm"].(string))
@@ -133,6 +145,7 @@ func resourceGithubTeamSettingsCreate(ctx context.Context, d *schema.ResourceDat
 			TeamMemberCount: githubv4.NewInt(githubv4.Int(settings["member_count"].(int))),
 			NotifyTeam:      githubv4.NewBoolean(githubv4.Boolean(settings["notify"].(bool))),
 		}
+
 		err := graphql.Mutate(ctx, &mutation, updateTeamReviewAssignmentInput, nil)
 		if err != nil {
 			return diag.FromErr(err)
