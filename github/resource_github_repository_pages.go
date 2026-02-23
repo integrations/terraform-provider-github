@@ -346,12 +346,6 @@ func resourceGithubRepositoryPagesImport(ctx context.Context, d *schema.Resource
 	if strings.Contains(repoName, " ") {
 		return nil, fmt.Errorf("invalid ID specified: supplied ID must be the slug of the repository name")
 	}
-	// if err := d.Set("owner", owner); err != nil { // TODO: Add owner support
-	// 	return nil, err
-	// }
-	if err := d.Set("repository", repoName); err != nil {
-		return nil, err
-	}
 
 	meta := m.(*Owner)
 	owner := meta.name
@@ -361,11 +355,17 @@ func resourceGithubRepositoryPagesImport(ctx context.Context, d *schema.Resource
 	if err != nil {
 		return nil, err
 	}
+
+	d.SetId(strconv.Itoa(int(repo.GetID())))
+	// if err := d.Set("owner", owner); err != nil { // TODO: Add owner support
+	// 	return nil, err
+	// }
+	if err := d.Set("repository", repoName); err != nil {
+		return nil, err
+	}
 	if err = d.Set("repository_id", int(repo.GetID())); err != nil {
 		return nil, err
 	}
-
-	d.SetId(strconv.Itoa(int(repo.GetID())))
 
 	return []*schema.ResourceData{d}, nil
 }
