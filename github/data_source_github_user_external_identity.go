@@ -1,15 +1,17 @@
 package github
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
 
 func dataSourceGithubUserExternalIdentity() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubUserExternalIdentityRead,
+		ReadContext: dataSourceGithubUserExternalIdentityRead,
 
 		Schema: map[string]*schema.Schema{
 			"username": {
@@ -38,7 +40,7 @@ func dataSourceGithubUserExternalIdentity() *schema.Resource {
 	}
 }
 
-func dataSourceGithubUserExternalIdentityRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubUserExternalIdentityRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	username := d.Get("username").(string)
 
 	client := meta.(*Owner).v4client
@@ -59,10 +61,10 @@ func dataSourceGithubUserExternalIdentityRead(d *schema.ResourceData, meta any) 
 
 	err := client.Query(meta.(*Owner).StopContext, &query, variables)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if len(query.Organization.SamlIdentityProvider.Edges) == 0 {
-		return fmt.Errorf("there was no external identity found for username %q in Organization %q", username, orgName)
+		return diag.Errorf("there was no external identity found for username %q in Organization %q", username, orgName)
 	}
 
 	externalIdentityNode := query.Organization.SamlIdentityProvider.ExternalIdentities.Edges[0].Node // There should only be one user in this list

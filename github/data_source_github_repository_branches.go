@@ -5,12 +5,13 @@ import (
 	"fmt"
 
 	"github.com/google/go-github/v83/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRepositoryBranches() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoryBranchesRead,
+		ReadContext: dataSourceGithubRepositoryBranchesRead,
 		Schema: map[string]*schema.Schema{
 			"repository": {
 				Type:     schema.TypeString,
@@ -64,8 +65,7 @@ func flattenBranches(branches []*github.Branch) []map[string]any {
 	return results
 }
 
-func dataSourceGithubRepositoryBranchesRead(d *schema.ResourceData, meta any) error {
-	ctx := context.Background()
+func dataSourceGithubRepositoryBranchesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
@@ -89,7 +89,7 @@ func dataSourceGithubRepositoryBranchesRead(d *schema.ResourceData, meta any) er
 	for {
 		branches, resp, err := client.Repositories.ListBranches(ctx, orgName, repoName, listBranchOptions)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		results = append(results, flattenBranches(branches)...)
 
@@ -103,11 +103,11 @@ func dataSourceGithubRepositoryBranchesRead(d *schema.ResourceData, meta any) er
 	d.SetId(fmt.Sprintf("%s/%s", orgName, repoName))
 	err := d.Set("repository", repoName)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	err = d.Set("branches", results)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
