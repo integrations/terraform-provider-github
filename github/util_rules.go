@@ -250,10 +250,59 @@ func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions
 			}
 
 			rulesetConditions.RepositoryID = &github.RepositoryRulesetRepositoryIDsConditionParameters{RepositoryIDs: repositoryIDs}
+		} else if v, ok := inputConditions["repository_property"].([]any); ok && v != nil && len(v) != 0 {
+			rulesetConditions.RepositoryProperty = expandRepositoryPropertyConditions(v)
 		}
 	}
 
 	return rulesetConditions
+}
+
+func expandRepositoryPropertyConditions(v []any) *github.RepositoryRulesetRepositoryPropertyConditionParameters {
+	repositoryProperties := v[0].(map[string]any)
+	include := make([]*github.RepositoryRulesetRepositoryPropertyTargetParameters, 0)
+	exclude := make([]*github.RepositoryRulesetRepositoryPropertyTargetParameters, 0)
+
+	for _, v := range repositoryProperties["include"].([]any) {
+		if v != nil {
+			propertyMap := v.(map[string]any)
+			propertyValues := make([]string, 0)
+			for _, pv := range propertyMap["property_values"].([]any) {
+				if pv != nil {
+					propertyValues = append(propertyValues, pv.(string))
+				}
+			}
+			property := &github.RepositoryRulesetRepositoryPropertyTargetParameters{
+				Name:           propertyMap["name"].(string),
+				Source:         github.Ptr(propertyMap["source"].(string)),
+				PropertyValues: propertyValues,
+			}
+			include = append(include, property)
+		}
+	}
+
+	for _, v := range repositoryProperties["exclude"].([]any) {
+		if v != nil {
+			propertyMap := v.(map[string]any)
+			propertyValues := make([]string, 0)
+			for _, pv := range propertyMap["property_values"].([]any) {
+				if pv != nil {
+					propertyValues = append(propertyValues, pv.(string))
+				}
+			}
+			property := &github.RepositoryRulesetRepositoryPropertyTargetParameters{
+				Name:           propertyMap["name"].(string),
+				Source:         github.Ptr(propertyMap["source"].(string)),
+				PropertyValues: propertyValues,
+			}
+			exclude = append(exclude, property)
+		}
+	}
+
+	return &github.RepositoryRulesetRepositoryPropertyConditionParameters{
+		Include: include,
+		Exclude: exclude,
+	}
 }
 
 func flattenConditions(ctx context.Context, conditions *github.RepositoryRulesetConditions, org bool) []any {
@@ -296,9 +345,37 @@ func flattenConditions(ctx context.Context, conditions *github.RepositoryRuleset
 		if conditions.RepositoryID != nil {
 			conditionsMap["repository_id"] = conditions.RepositoryID.RepositoryIDs
 		}
+
+		if conditions.RepositoryProperty != nil {
+			repositoryPropertySlice := make([]map[string]any, 0)
+
+			repositoryPropertySlice = append(repositoryPropertySlice, map[string]any{
+				"include": flattenRulesetRepositoryPropertyTargetParameters(conditions.RepositoryProperty.Include),
+				"exclude": flattenRulesetRepositoryPropertyTargetParameters(conditions.RepositoryProperty.Exclude),
+			})
+			conditionsMap["repository_property"] = repositoryPropertySlice
+		}
 	}
 
 	return []any{conditionsMap}
+}
+
+func flattenRulesetRepositoryPropertyTargetParameters(input []*github.RepositoryRulesetRepositoryPropertyTargetParameters) []map[string]any {
+	result := make([]map[string]any, 0)
+
+	for _, v := range input {
+		propertyMap := make(map[string]any)
+		propertyMap["name"] = v.Name
+		source := v.GetSource()
+		if source == "" {
+			source = "custom"
+		}
+		propertyMap["source"] = source
+		propertyMap["property_values"] = v.PropertyValues
+		result = append(result, propertyMap)
+	}
+
+	return result
 }
 
 func expandRules(input []any, org bool) *github.RepositoryRulesetRules {

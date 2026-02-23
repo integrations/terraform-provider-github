@@ -8,6 +8,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubOrganizationRuleset(t *testing.T) {
@@ -177,6 +180,300 @@ resource "github_organization_ruleset" "test" {
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.copilot_code_review.0.review_on_push", "true"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.copilot_code_review.0.review_draft_pull_requests", "false"),
 					),
+				},
+			},
+		})
+	})
+
+	t.Run("create_ruleset_with_repository_property", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		rulesetName := fmt.Sprintf("%s-repo-prop-ruleset-%s", testResourcePrefix, randomID)
+		propName := fmt.Sprintf("%s_team_%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_organization_custom_properties" "team" {
+	property_name  = "%[2]s"
+	value_type     = "single_select"
+	required       = false
+	allowed_values = ["blue", "red", "backend", "platform"]
+}
+
+resource "github_organization_ruleset" "test" {
+	name        = "%[1]s"
+	target      = "branch"
+	enforcement = "active"
+
+	conditions {
+		repository_property {
+			include = [{
+				name            = github_organization_custom_properties.team.property_name
+				source          = "custom"
+				property_values = ["blue"]
+			}]
+			exclude = []
+		}
+
+		ref_name {
+			include = ["~DEFAULT_BRANCH"]
+			exclude = []
+		}
+	}
+
+	rules {
+		creation                = true
+		update                  = true
+		deletion                = true
+		required_linear_history = true
+	}
+}
+`, rulesetName, propName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(rulesetName)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("target"), knownvalue.StringExact("branch")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("enforcement"), knownvalue.StringExact("active")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(0).AtMapKey("name"), knownvalue.StringExact(propName)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(0).AtMapKey("source"), knownvalue.StringExact("custom")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(0).AtMapKey("property_values").AtSliceIndex(0), knownvalue.StringExact("blue")),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("create_ruleset_with_repository_property_exclude", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		rulesetName := fmt.Sprintf("%s-repo-prop-exclude-ruleset-%s", testResourcePrefix, randomID)
+		propName := fmt.Sprintf("%s_team_%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_organization_custom_properties" "team" {
+	property_name  = "%[2]s"
+	value_type     = "single_select"
+	required       = false
+	allowed_values = ["blue", "red", "backend", "platform"]
+}
+
+resource "github_organization_ruleset" "test" {
+	name        = "%[1]s"
+	target      = "branch"
+	enforcement = "active"
+
+	conditions {
+		repository_property {
+			include = []
+			exclude = [{
+				name            = github_organization_custom_properties.team.property_name
+				source          = "custom"
+				property_values = ["red"]
+			}]
+		}
+
+		ref_name {
+			include = ["~DEFAULT_BRANCH"]
+			exclude = []
+		}
+	}
+
+	rules {
+		required_linear_history = true
+	}
+}
+`, rulesetName, propName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(rulesetName)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("exclude").AtSliceIndex(0).AtMapKey("name"), knownvalue.StringExact(propName)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("exclude").AtSliceIndex(0).AtMapKey("source"), knownvalue.StringExact("custom")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("exclude").AtSliceIndex(0).AtMapKey("property_values").AtSliceIndex(0), knownvalue.StringExact("red")),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("create_ruleset_with_multiple_repository_properties", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		rulesetName := fmt.Sprintf("%s-repo-prop-multiple-%s", testResourcePrefix, randomID)
+		propEnvironmentName := fmt.Sprintf("%s_environment_%s", testResourcePrefix, randomID)
+		propTierName := fmt.Sprintf("%s_tier_%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_organization_custom_properties" "environment" {
+	property_name  = "%[2]s"
+	value_type     = "single_select"
+	required       = false
+	allowed_values = ["production", "staging"]
+}
+
+resource "github_organization_custom_properties" "tier" {
+	property_name  = "%[3]s"
+	value_type     = "single_select"
+	required       = false
+	allowed_values = ["premium", "enterprise"]
+}
+
+resource "github_organization_ruleset" "test" {
+	name        = "%[1]s"
+	target      = "branch"
+	enforcement = "active"
+
+	conditions {
+		repository_property {
+			include = [
+				{
+					name            = github_organization_custom_properties.environment.property_name
+					source          = "custom"
+					property_values = ["production"]
+				},
+				{
+					name            = github_organization_custom_properties.tier.property_name
+					source          = "custom"
+					property_values = ["premium", "enterprise"]
+				}
+			]
+			exclude = []
+		}
+
+		ref_name {
+			include = ["~DEFAULT_BRANCH"]
+			exclude = []
+		}
+	}
+
+	rules {
+		required_signatures = true
+	}
+}
+`, rulesetName, propEnvironmentName, propTierName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(rulesetName)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(0).AtMapKey("name"), knownvalue.StringExact(propEnvironmentName)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(0).AtMapKey("source"), knownvalue.StringExact("custom")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(0).AtMapKey("property_values").AtSliceIndex(0), knownvalue.StringExact("production")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(1).AtMapKey("name"), knownvalue.StringExact(propTierName)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(1).AtMapKey("source"), knownvalue.StringExact("custom")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(1).AtMapKey("property_values").AtSliceIndex(0), knownvalue.StringExact("premium")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(1).AtMapKey("property_values").AtSliceIndex(1), knownvalue.StringExact("enterprise")),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("update_repository_property", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		rulesetName := fmt.Sprintf("%s-repo-prop-update-%s", testResourcePrefix, randomID)
+		propName := fmt.Sprintf("%s_team_%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_organization_custom_properties" "team" {
+	property_name  = "%[2]s"
+	value_type     = "single_select"
+	required       = false
+	allowed_values = ["blue", "red", "backend", "platform"]
+}
+
+resource "github_organization_ruleset" "test" {
+	name        = "%[1]s"
+	target      = "branch"
+	enforcement = "active"
+
+	conditions {
+		repository_property {
+			include = [{
+				name            = github_organization_custom_properties.team.property_name
+				source          = "custom"
+				property_values = ["blue"]
+			}]
+			exclude = []
+		}
+
+		ref_name {
+			include = ["~DEFAULT_BRANCH"]
+			exclude = []
+		}
+	}
+
+	rules {
+		creation = true
+	}
+}
+`, rulesetName, propName)
+
+		configUpdated := fmt.Sprintf(`
+resource "github_organization_custom_properties" "team" {
+	property_name  = "%[2]s"
+	value_type     = "single_select"
+	required       = false
+	allowed_values = ["blue", "red", "backend", "platform"]
+}
+
+resource "github_organization_ruleset" "test" {
+	name        = "%[1]s"
+	target      = "branch"
+	enforcement = "active"
+
+	conditions {
+		repository_property {
+			include = [{
+				name            = github_organization_custom_properties.team.property_name
+				source          = "custom"
+				property_values = ["backend", "platform"]
+			}]
+			exclude = []
+		}
+
+		ref_name {
+			include = ["~DEFAULT_BRANCH"]
+			exclude = []
+		}
+	}
+
+	rules {
+		creation = true
+		update   = true
+	}
+}
+`, rulesetName, propName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(rulesetName)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(0).AtMapKey("property_values").AtSliceIndex(0), knownvalue.StringExact("blue")),
+					},
+				},
+				{
+					Config: configUpdated,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(rulesetName)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(0).AtMapKey("property_values").AtSliceIndex(0), knownvalue.StringExact("backend")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(0).AtMapKey("property_values").AtSliceIndex(1), knownvalue.StringExact("platform")),
+					},
 				},
 			},
 		})
@@ -677,6 +974,142 @@ resource "github_organization_ruleset" "test" {
 				{
 					Config:      config,
 					ExpectError: regexp.MustCompile("rule .* is not valid for branch target"),
+				},
+			},
+		})
+	})
+
+	t.Run("validates_conditions_require_exactly_one_repository_targeting", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		resourceName := "test-multiple-repo-targeting"
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "%s" {
+				name        = "test-multiple-targeting-%s"
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+					repository_id = [123]
+				}
+
+				rules {
+					creation = true
+				}
+			}
+		`, resourceName, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile(`(?s)only one of.*conditions\.0\.repository_id.*conditions\.0\.repository_name.*conditions\.0\.repository_property.*can be specified`),
+				},
+			},
+		})
+	})
+
+	t.Run("validates_conditions_require_at_least_one_repository_targeting", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		resourceName := "test-no-repo-targeting"
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "%s" {
+				name        = "test-no-targeting-%s"
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					creation = true
+				}
+			}
+		`, resourceName, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile(`(?s)one of.*conditions\.0\.repository_id.*conditions\.0\.repository_name.*conditions\.0\.repository_property.*must be specified`),
+				},
+			},
+		})
+	})
+
+	t.Run("validates_repository_property_works_as_single_targeting_option", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		rulesetName := fmt.Sprintf("%s-repo-prop-only-%s", testResourcePrefix, randomID)
+		propName := fmt.Sprintf("%s_environment_%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_organization_custom_properties" "environment" {
+	property_name  = "%[2]s"
+	value_type     = "single_select"
+	required       = false
+	allowed_values = ["production", "staging"]
+}
+
+resource "github_organization_ruleset" "test" {
+	name        = "%[1]s"
+	target      = "branch"
+	enforcement = "active"
+
+	conditions {
+		repository_property {
+			include = [{
+				name            = "%[2]s"
+				source          = "custom"
+				property_values = ["production", "staging"]
+			}]
+			exclude = []
+		}
+
+		ref_name {
+			include = ["~DEFAULT_BRANCH"]
+			exclude = []
+		}
+	}
+
+	rules {
+		creation = true
+		update   = true
+	}
+
+	depends_on = [github_organization_custom_properties.environment]
+}
+`, rulesetName, propName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(rulesetName)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("target"), knownvalue.StringExact("branch")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("enforcement"), knownvalue.StringExact("active")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(0).AtMapKey("name"), knownvalue.StringExact(propName)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(0).AtMapKey("source"), knownvalue.StringExact("custom")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(0).AtMapKey("property_values").AtSliceIndex(0), knownvalue.StringExact("production")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(0).AtMapKey("property_values").AtSliceIndex(1), knownvalue.StringExact("staging")),
+					},
 				},
 			},
 		})
