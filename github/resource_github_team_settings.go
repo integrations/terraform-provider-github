@@ -38,6 +38,13 @@ func resourceGithubTeamSettings() *schema.Resource {
 				Computed:    true,
 				Description: "The unique ID of the Team on GitHub. Corresponds to the ID of the 'github_team_settings' resource.",
 			},
+			"notify": {
+				Type:          schema.TypeBool,
+				Optional:      true,
+				Default:       false,
+				Description:   "Whether to notify the entire team when at least one member is also assigned to the pull request.",
+				ConflictsWith: []string{"review_request_delegation.0.notify"},
+			},
 			"review_request_delegation": {
 				Type:        schema.TypeList,
 				MaxItems:    1,
@@ -62,10 +69,12 @@ func resourceGithubTeamSettings() *schema.Resource {
 							)),
 						},
 						"notify": {
-							Type:        schema.TypeBool,
-							Optional:    true,
-							Default:     false,
-							Description: "whether to notify the entire team when at least one member is also assigned to the pull request.",
+							Type:          schema.TypeBool,
+							Optional:      true,
+							Default:       false,
+							Description:   "whether to notify the entire team when at least one member is also assigned to the pull request.",
+							Deprecated:    "Use the top-level notify attribute instead.",
+							ConflictsWith: []string{"notify"},
 						},
 					},
 				},
@@ -119,13 +128,19 @@ func resourceGithubTeamSettingsCreate(ctx context.Context, d *schema.ResourceDat
 		"length_of_settings":        len(reviewRequestDelegation),
 	})
 
+	notify := resolveNotify(ctx, d)
+
 	if len(reviewRequestDelegation) == 0 {
 		tflog.Debug(ctx, "No review request delegation settings provided, disabling review request delegation", map[string]any{
 			"team_id":   d.Id(),
 			"team_slug": slug,
+			"notify":    notify,
 		})
 
-		err := graphql.Mutate(ctx, &mutation, defaultTeamReviewAssignmentSettings(d.Id()), nil)
+		input := defaultTeamReviewAssignmentSettings(d.Id())
+		input.NotifyTeam = githubv4.NewBoolean(githubv4.Boolean(notify))
+
+		err := graphql.Mutate(ctx, &mutation, input, nil)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -134,6 +149,7 @@ func resourceGithubTeamSettingsCreate(ctx context.Context, d *schema.ResourceDat
 			"team_id":                   d.Id(),
 			"team_slug":                 slug,
 			"review_request_delegation": reviewRequestDelegation,
+			"notify":                    notify,
 		})
 		settings := reviewRequestDelegation[0].(map[string]any)
 
@@ -143,7 +159,7 @@ func resourceGithubTeamSettingsCreate(ctx context.Context, d *schema.ResourceDat
 			Enabled:         githubv4.Boolean(true),
 			Algorithm:       &teamReviewAlgorithm,
 			TeamMemberCount: githubv4.NewInt(githubv4.Int(settings["member_count"].(int))),
-			NotifyTeam:      githubv4.NewBoolean(githubv4.Boolean(settings["notify"].(bool))),
+			NotifyTeam:      githubv4.NewBoolean(githubv4.Boolean(notify)),
 		}
 
 		err := graphql.Mutate(ctx, &mutation, updateTeamReviewAssignmentInput, nil)
@@ -175,11 +191,29 @@ func resourceGithubTeamSettingsRead(ctx context.Context, d *schema.ResourceData,
 		return diag.FromErr(err)
 	}
 
+	notifyValue := query.Organization.Team.ReviewRequestDelegationNotifyAll
+
+	// Set notify in the location matching the user's config: top-level or
+	// deprecated nested field inside review_request_delegation.
+	_, usesDeprecatedNotify := d.GetOk("review_request_delegation.0.notify")
+	tflog.Debug(ctx, "Uses deprecated notify", map[string]any{
+		"uses_deprecated_notify": usesDeprecatedNotify,
+		"notify_value":           notifyValue,
+	})
+
+	if !usesDeprecatedNotify {
+		if err = d.Set("notify", notifyValue); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
 	if query.Organization.Team.ReviewRequestDelegation {
 		reviewRequestDelegation := make(map[string]any)
 		reviewRequestDelegation["algorithm"] = query.Organization.Team.ReviewRequestDelegationAlgorithm
 		reviewRequestDelegation["member_count"] = query.Organization.Team.ReviewRequestDelegationCount
-		reviewRequestDelegation["notify"] = query.Organization.Team.ReviewRequestDelegationNotifyAll
+		if usesDeprecatedNotify {
+			reviewRequestDelegation["notify"] = notifyValue
+		}
 		if err = d.Set("review_request_delegation", []any{reviewRequestDelegation}); err != nil {
 			return diag.FromErr(err)
 		}
@@ -193,10 +227,11 @@ func resourceGithubTeamSettingsRead(ctx context.Context, d *schema.ResourceData,
 }
 
 func resourceGithubTeamSettingsUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	if d.HasChange("review_request_delegation") {
+	if d.HasChange("review_request_delegation") || d.HasChange("notify") {
 		meta := m.(*Owner)
 		graphql := meta.v4client
 		reviewRequestDelegation := d.Get("review_request_delegation").([]any)
+		notify := resolveNotify(ctx, d)
 
 		var mutation struct {
 			UpdateTeamReviewAssignment struct {
@@ -208,9 +243,13 @@ func resourceGithubTeamSettingsUpdate(ctx context.Context, d *schema.ResourceDat
 			tflog.Debug(ctx, "No review request delegation settings provided, disabling review request delegation", map[string]any{
 				"team_id":   d.Id(),
 				"team_slug": d.Get("team_slug").(string),
+				"notify":    notify,
 			})
 
-			err := graphql.Mutate(ctx, &mutation, defaultTeamReviewAssignmentSettings(d.Id()), nil)
+			input := defaultTeamReviewAssignmentSettings(d.Id())
+			input.NotifyTeam = githubv4.NewBoolean(githubv4.Boolean(notify))
+
+			err := graphql.Mutate(ctx, &mutation, input, nil)
 			if err != nil {
 				return diag.FromErr(err)
 			}
@@ -223,7 +262,7 @@ func resourceGithubTeamSettingsUpdate(ctx context.Context, d *schema.ResourceDat
 				Enabled:         githubv4.Boolean(true),
 				Algorithm:       &teamReviewAlgorithm,
 				TeamMemberCount: githubv4.NewInt(githubv4.Int(settings["member_count"].(int))),
-				NotifyTeam:      githubv4.NewBoolean(githubv4.Boolean(settings["notify"].(bool))),
+				NotifyTeam:      githubv4.NewBoolean(githubv4.Boolean(notify)),
 			}
 			err := graphql.Mutate(ctx, &mutation, updateTeamReviewAssignmentInput, nil)
 			if err != nil {
@@ -297,6 +336,30 @@ func resolveTeamIDs(idOrSlug string, meta *Owner, ctx context.Context) (nodeId, 
 
 		return team.GetNodeID(), team.GetSlug(), nil
 	}
+}
+
+// resolveNotify returns the notify value from the top-level attribute or the
+// deprecated nested attribute inside review_request_delegation. The top-level
+// attribute takes precedence. Since ConflictsWith prevents both from being set,
+// only one source can be active at a time.
+func resolveNotify(ctx context.Context, d *schema.ResourceData) bool {
+	// Check if top-level notify is explicitly configured.
+	if v, ok := d.GetOk("notify"); ok {
+		tflog.Debug(ctx, "Top-level notify is explicitly configured", map[string]any{
+			"notify": v,
+		})
+		return v.(bool)
+	}
+
+	// Fall back to deprecated nested field
+	if v, ok := d.GetOk("review_request_delegation.0.notify"); ok {
+		tflog.Debug(ctx, "Deprecated nested notify is explicitly configured", map[string]any{
+			"notify": v,
+		})
+		return v.(bool)
+	}
+
+	return false
 }
 
 func defaultTeamReviewAssignmentSettings(id string) githubv4.UpdateTeamReviewAssignmentInput {
