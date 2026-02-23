@@ -1,12 +1,10 @@
 package github
 
 import (
-	"context"
 	"fmt"
 	"regexp"
 	"testing"
 
-	"github.com/google/go-github/v82/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -187,17 +185,25 @@ resource "github_organization_ruleset" "test" {
 	t.Run("create_ruleset_with_repository_property", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		rulesetName := fmt.Sprintf("%s-repo-prop-ruleset-%s", testResourcePrefix, randomID)
+		propName := fmt.Sprintf("e2e_test_team_%s", randomID)
 
 		config := fmt.Sprintf(`
+resource "github_organization_custom_properties" "team" {
+	property_name  = "%[2]s"
+	value_type     = "single_select"
+	required       = false
+	allowed_values = ["blue", "red", "backend", "platform"]
+}
+
 resource "github_organization_ruleset" "test" {
-	name        = "%s"
+	name        = "%[1]s"
 	target      = "branch"
 	enforcement = "active"
 
 	conditions {
 		repository_property {
 			include = [{
-				name            = "team"
+				name            = "%[2]s"
 				source          = "custom"
 				property_values = ["blue"]
 			}]
@@ -216,8 +222,10 @@ resource "github_organization_ruleset" "test" {
 		deletion                = true
 		required_linear_history = true
 	}
+
+	depends_on = [github_organization_custom_properties.team]
 }
-`, rulesetName)
+`, rulesetName, propName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
@@ -230,7 +238,7 @@ resource "github_organization_ruleset" "test" {
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "target", "branch"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "enforcement", "active"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.#", "1"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.name", "team"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.name", propName),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.source", "custom"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.#", "1"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.0", "blue"),
@@ -243,10 +251,18 @@ resource "github_organization_ruleset" "test" {
 	t.Run("create_ruleset_with_repository_property_exclude", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		rulesetName := fmt.Sprintf("%s-repo-prop-exclude-ruleset-%s", testResourcePrefix, randomID)
+		propName := fmt.Sprintf("e2e_test_team_%s", randomID)
 
 		config := fmt.Sprintf(`
+resource "github_organization_custom_properties" "team" {
+	property_name  = "%[2]s"
+	value_type     = "single_select"
+	required       = false
+	allowed_values = ["blue", "red", "backend", "platform"]
+}
+
 resource "github_organization_ruleset" "test" {
-	name        = "%s"
+	name        = "%[1]s"
 	target      = "branch"
 	enforcement = "active"
 
@@ -254,7 +270,7 @@ resource "github_organization_ruleset" "test" {
 		repository_property {
 			include = []
 			exclude = [{
-				name            = "team"
+				name            = "%[2]s"
 				source          = "custom"
 				property_values = ["red"]
 			}]
@@ -269,8 +285,10 @@ resource "github_organization_ruleset" "test" {
 	rules {
 		required_linear_history = true
 	}
+
+	depends_on = [github_organization_custom_properties.team]
 }
-`, rulesetName)
+`, rulesetName, propName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
@@ -282,7 +300,7 @@ resource "github_organization_ruleset" "test" {
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.#", "0"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.#", "1"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.0.name", "team"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.0.name", propName),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.0.source", "custom"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.0.property_values.0", "red"),
 					),
@@ -294,49 +312,26 @@ resource "github_organization_ruleset" "test" {
 	t.Run("create_ruleset_with_multiple_repository_properties", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		rulesetName := fmt.Sprintf("%s-repo-prop-multiple-%s", testResourcePrefix, randomID)
-
-		// Setup: Create custom properties for testing
-		meta, err := getTestMeta()
-		if err != nil {
-			t.Fatalf("Error getting test meta: %v", err)
-		}
-
-		ctx := t.Context()
-		org := testAccConf.owner
-
-		// Create test properties
-		properties := []struct {
-			name   string
-			values []string
-		}{
-			{name: "e2e_test_environment", values: []string{"production", "staging"}},
-			{name: "e2e_test_tier", values: []string{"premium", "enterprise"}},
-		}
-
-		for _, prop := range properties {
-			_, _, err := meta.v3client.Organizations.CreateOrUpdateCustomProperty(ctx, org, prop.name, &github.CustomProperty{
-				ValueType:     github.PropertyValueTypeSingleSelect,
-				Required:      github.Ptr(false),
-				AllowedValues: prop.values,
-			})
-			if err != nil {
-				t.Logf("Warning: Could not create custom property %s (may already exist): %v", prop.name, err)
-			}
-		}
-
-		// Cleanup: Remove custom properties after test
-		defer func() {
-			for _, prop := range properties {
-				_, err := meta.v3client.Organizations.RemoveCustomProperty(ctx, org, prop.name)
-				if err != nil {
-					t.Logf("Warning: Could not remove custom property %s: %v", prop.name, err)
-				}
-			}
-		}()
+		propEnvironmentName := fmt.Sprintf("e2e_test_environment_%s", randomID)
+		propTierName := fmt.Sprintf("e2e_test_tier_%s", randomID)
 
 		config := fmt.Sprintf(`
+resource "github_organization_custom_properties" "environment" {
+	property_name  = "%[2]s"
+	value_type     = "single_select"
+	required       = false
+	allowed_values = ["production", "staging"]
+}
+
+resource "github_organization_custom_properties" "tier" {
+	property_name  = "%[3]s"
+	value_type     = "single_select"
+	required       = false
+	allowed_values = ["premium", "enterprise"]
+}
+
 resource "github_organization_ruleset" "test" {
-	name        = "%s"
+	name        = "%[1]s"
 	target      = "branch"
 	enforcement = "active"
 
@@ -344,12 +339,12 @@ resource "github_organization_ruleset" "test" {
 		repository_property {
 			include = [
 				{
-					name            = "e2e_test_environment"
+					name            = "%[2]s"
 					source          = "custom"
 					property_values = ["production"]
 				},
 				{
-					name            = "e2e_test_tier"
+					name            = "%[3]s"
 					source          = "custom"
 					property_values = ["premium", "enterprise"]
 				}
@@ -366,8 +361,13 @@ resource "github_organization_ruleset" "test" {
 	rules {
 		required_signatures = true
 	}
+
+	depends_on = [
+		github_organization_custom_properties.environment,
+		github_organization_custom_properties.tier,
+	]
 }
-`, rulesetName)
+`, rulesetName, propEnvironmentName, propTierName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
@@ -378,11 +378,11 @@ resource "github_organization_ruleset" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.#", "2"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.name", "e2e_test_environment"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.name", propEnvironmentName),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.source", "custom"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.#", "1"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.0", "production"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.1.name", "e2e_test_tier"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.1.name", propTierName),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.1.source", "custom"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.1.property_values.#", "2"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.1.property_values.0", "premium"),
@@ -396,17 +396,25 @@ resource "github_organization_ruleset" "test" {
 	t.Run("update_repository_property", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		rulesetName := fmt.Sprintf("%s-repo-prop-update-%s", testResourcePrefix, randomID)
+		propName := fmt.Sprintf("e2e_test_team_%s", randomID)
 
 		config := fmt.Sprintf(`
+resource "github_organization_custom_properties" "team" {
+	property_name  = "%[2]s"
+	value_type     = "single_select"
+	required       = false
+	allowed_values = ["blue", "red", "backend", "platform"]
+}
+
 resource "github_organization_ruleset" "test" {
-	name        = "%s"
+	name        = "%[1]s"
 	target      = "branch"
 	enforcement = "active"
 
 	conditions {
 		repository_property {
 			include = [{
-				name            = "team"
+				name            = "%[2]s"
 				source          = "custom"
 				property_values = ["blue"]
 			}]
@@ -422,19 +430,28 @@ resource "github_organization_ruleset" "test" {
 	rules {
 		creation = true
 	}
+
+	depends_on = [github_organization_custom_properties.team]
 }
-`, rulesetName)
+`, rulesetName, propName)
 
 		configUpdated := fmt.Sprintf(`
+resource "github_organization_custom_properties" "team" {
+	property_name  = "%[2]s"
+	value_type     = "single_select"
+	required       = false
+	allowed_values = ["blue", "red", "backend", "platform"]
+}
+
 resource "github_organization_ruleset" "test" {
-	name        = "%s"
+	name        = "%[1]s"
 	target      = "branch"
 	enforcement = "active"
 
 	conditions {
 		repository_property {
 			include = [{
-				name            = "team"
+				name            = "%[2]s"
 				source          = "custom"
 				property_values = ["backend", "platform"]
 			}]
@@ -451,8 +468,10 @@ resource "github_organization_ruleset" "test" {
 		creation = true
 		update   = true
 	}
+
+	depends_on = [github_organization_custom_properties.team]
 }
-`, rulesetName)
+`, rulesetName, propName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
@@ -1057,45 +1076,25 @@ resource "github_organization_ruleset" "test" {
 	t.Run("validates_repository_property_works_as_single_targeting_option", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		rulesetName := fmt.Sprintf("%s-repo-prop-only-%s", testResourcePrefix, randomID)
-
-		// Setup: Create custom property for testing
-		meta, err := getTestMeta()
-		if err != nil {
-			t.Fatalf("Error getting test meta: %v", err)
-		}
-
-		ctx := context.Background()
-		org := testAccConf.owner
-		propName := "e2e_test_environment"
-		propValues := []string{"production", "staging"}
-
-		_, _, err = meta.v3client.Organizations.CreateOrUpdateCustomProperty(ctx, org, propName, &github.CustomProperty{
-			ValueType:     github.PropertyValueTypeSingleSelect,
-			Required:      github.Ptr(false),
-			AllowedValues: propValues,
-		})
-		if err != nil {
-			t.Logf("Warning: Could not create custom property %s (may already exist): %v", propName, err)
-		}
-
-		// Cleanup: Remove custom property after test
-		defer func() {
-			_, err := meta.v3client.Organizations.RemoveCustomProperty(ctx, org, propName)
-			if err != nil {
-				t.Logf("Warning: Could not remove custom property %s: %v", propName, err)
-			}
-		}()
+		propName := fmt.Sprintf("e2e_test_environment_%s", randomID)
 
 		config := fmt.Sprintf(`
+resource "github_organization_custom_properties" "environment" {
+	property_name  = "%[2]s"
+	value_type     = "single_select"
+	required       = false
+	allowed_values = ["production", "staging"]
+}
+
 resource "github_organization_ruleset" "test" {
-	name        = "%s"
+	name        = "%[1]s"
 	target      = "branch"
 	enforcement = "active"
 
 	conditions {
 		repository_property {
 			include = [{
-				name            = "e2e_test_environment"
+				name            = "%[2]s"
 				source          = "custom"
 				property_values = ["production", "staging"]
 			}]
@@ -1112,8 +1111,10 @@ resource "github_organization_ruleset" "test" {
 		creation = true
 		update   = true
 	}
+
+	depends_on = [github_organization_custom_properties.environment]
 }
-`, rulesetName)
+`, rulesetName, propName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
@@ -1126,7 +1127,7 @@ resource "github_organization_ruleset" "test" {
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "target", "branch"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "enforcement", "active"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.#", "1"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.name", "e2e_test_environment"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.name", propName),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.source", "custom"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.#", "2"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.0", "production"),
