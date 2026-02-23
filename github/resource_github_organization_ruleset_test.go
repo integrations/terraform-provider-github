@@ -8,6 +8,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubOrganizationRuleset(t *testing.T) {
@@ -231,16 +234,14 @@ resource "github_organization_ruleset" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "target", "branch"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "enforcement", "active"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.#", "1"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.name", propName),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.source", "custom"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.#", "1"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.0", "blue"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(rulesetName)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("target"), knownvalue.StringExact("branch")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("enforcement"), knownvalue.StringExact("active")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(0).AtMapKey("name"), knownvalue.StringExact(propName)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(0).AtMapKey("source"), knownvalue.StringExact("custom")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(0).AtMapKey("property_values").AtSliceIndex(0), knownvalue.StringExact("blue")),
+					},
 				},
 			},
 		})
@@ -292,14 +293,12 @@ resource "github_organization_ruleset" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.#", "0"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.#", "1"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.0.name", propName),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.0.source", "custom"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.0.property_values.0", "red"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(rulesetName)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("exclude").AtSliceIndex(0).AtMapKey("name"), knownvalue.StringExact(propName)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("exclude").AtSliceIndex(0).AtMapKey("source"), knownvalue.StringExact("custom")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("exclude").AtSliceIndex(0).AtMapKey("property_values").AtSliceIndex(0), knownvalue.StringExact("red")),
+					},
 				},
 			},
 		})
@@ -366,19 +365,16 @@ resource "github_organization_ruleset" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.#", "2"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.name", propEnvironmentName),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.source", "custom"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.#", "1"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.0", "production"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.1.name", propTierName),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.1.source", "custom"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.1.property_values.#", "2"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.1.property_values.0", "premium"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.1.property_values.1", "enterprise"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(rulesetName)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(0).AtMapKey("name"), knownvalue.StringExact(propEnvironmentName)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(0).AtMapKey("source"), knownvalue.StringExact("custom")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(0).AtMapKey("property_values").AtSliceIndex(0), knownvalue.StringExact("production")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(1).AtMapKey("name"), knownvalue.StringExact(propTierName)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(1).AtMapKey("source"), knownvalue.StringExact("custom")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(1).AtMapKey("property_values").AtSliceIndex(0), knownvalue.StringExact("premium")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(1).AtMapKey("property_values").AtSliceIndex(1), knownvalue.StringExact("enterprise")),
+					},
 				},
 			},
 		})
@@ -466,22 +462,18 @@ resource "github_organization_ruleset" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.#", "1"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.0", "blue"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.#", "0"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(rulesetName)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(0).AtMapKey("property_values").AtSliceIndex(0), knownvalue.StringExact("blue")),
+					},
 				},
 				{
 					Config: configUpdated,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.#", "2"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.0", "backend"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.1", "platform"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.exclude.#", "0"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(rulesetName)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(0).AtMapKey("property_values").AtSliceIndex(0), knownvalue.StringExact("backend")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(0).AtMapKey("property_values").AtSliceIndex(1), knownvalue.StringExact("platform")),
+					},
 				},
 			},
 		})
@@ -1063,7 +1055,7 @@ resource "github_organization_ruleset" "test" {
 	t.Run("validates_repository_property_works_as_single_targeting_option", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		rulesetName := fmt.Sprintf("%s-repo-prop-only-%s", testResourcePrefix, randomID)
-		propName := fmt.Sprintf("e2e_test_environment_%s", randomID)
+		propName := fmt.Sprintf("%s_environment_%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 resource "github_organization_custom_properties" "environment" {
@@ -1109,17 +1101,15 @@ resource "github_organization_ruleset" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "target", "branch"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "enforcement", "active"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.#", "1"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.name", propName),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.source", "custom"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.#", "2"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.0", "production"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "conditions.0.repository_property.0.include.0.property_values.1", "staging"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(rulesetName)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("target"), knownvalue.StringExact("branch")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("enforcement"), knownvalue.StringExact("active")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(0).AtMapKey("name"), knownvalue.StringExact(propName)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(0).AtMapKey("source"), knownvalue.StringExact("custom")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(0).AtMapKey("property_values").AtSliceIndex(0), knownvalue.StringExact("production")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("conditions").AtSliceIndex(0).AtMapKey("repository_property").AtSliceIndex(0).AtMapKey("include").AtSliceIndex(0).AtMapKey("property_values").AtSliceIndex(1), knownvalue.StringExact("staging")),
+					},
 				},
 			},
 		})
