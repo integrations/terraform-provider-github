@@ -5,12 +5,13 @@ import (
 	"fmt"
 
 	"github.com/google/go-github/v83/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRepositoryDeployKeys() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoryDeployKeysRead,
+		ReadContext: dataSourceGithubRepositoryDeployKeysRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -45,12 +46,11 @@ func dataSourceGithubRepositoryDeployKeys() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryDeployKeysRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubRepositoryDeployKeysRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	repository := d.Get("repository").(string)
 	owner := meta.(*Owner).name
 
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 
 	options := &github.ListOptions{
 		PerPage: 100,
@@ -60,7 +60,7 @@ func dataSourceGithubRepositoryDeployKeysRead(d *schema.ResourceData, meta any) 
 	for {
 		keys, resp, err := client.Repositories.ListKeys(ctx, owner, repository, options)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		results = append(results, flattenGitHubDeployKeys(keys)...)
@@ -75,7 +75,7 @@ func dataSourceGithubRepositoryDeployKeysRead(d *schema.ResourceData, meta any) 
 	d.SetId(fmt.Sprintf("%s/%s", owner, repository))
 	err := d.Set("keys", results)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

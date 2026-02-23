@@ -85,13 +85,13 @@ func testAccGithubIssueLabelsConfig(repoName string, labels []map[string]any) st
 	if labels != nil {
 		var dynamic strings.Builder
 		for _, label := range labels {
-			dynamic.WriteString(fmt.Sprintf(`
+			fmt.Fprintf(&dynamic, `
 				label {
 					name = "%s"
 					color = "%s"
 					description = "%s"
 				}
-			`, label["name"], label["color"], label["description"]))
+			`, label["name"], label["color"], label["description"])
 		}
 
 		resource = fmt.Sprintf(`
