@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -73,19 +74,28 @@ func resourceGithubTeamSettings() *schema.Resource {
 	}
 }
 
-func resourceGithubTeamSettingsCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	if err := checkOrganization(meta); err != nil {
+func resourceGithubTeamSettingsCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	if err := checkOrganization(m); err != nil {
 		return diag.FromErr(err)
 	}
+	graphql := meta.v4client
 
 	teamIDString := d.Get("team_id").(string)
 
+	tflog.Debug(ctx, "Resolving team_id to Team node_id and slug", map[string]any{
+		"team_id": teamIDString,
+	})
 	// Given a string that is either a team id or team slug, return the
 	// get the basic details of the team including node_id and slug
-	nodeId, slug, err := resolveTeamIDs(teamIDString, meta.(*Owner), ctx)
+	nodeId, slug, err := resolveTeamIDs(teamIDString, meta, ctx)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	tflog.Trace(ctx, "Resolved team_id to Team node_id and slug", map[string]any{
+		"node_id": nodeId,
+		"slug":    slug,
+	})
 	d.SetId(nodeId)
 	if err = d.Set("team_slug", slug); err != nil {
 		return diag.FromErr(err)
@@ -93,7 +103,42 @@ func resourceGithubTeamSettingsCreate(ctx context.Context, d *schema.ResourceDat
 	if err = d.Set("team_uid", nodeId); err != nil {
 		return diag.FromErr(err)
 	}
-	return resourceGithubTeamSettingsUpdate(ctx, d, meta)
+
+	reviewRequestDelegation := d.Get("review_request_delegation").([]any)
+
+	var mutation struct {
+		UpdateTeamReviewAssignment struct {
+			ClientMutationId githubv4.ID `graphql:"clientMutationId"`
+		} `graphql:"updateTeamReviewAssignment(input:$input)"`
+	}
+
+	if len(reviewRequestDelegation) == 0 {
+		tflog.Debug(ctx, "No review request delegation settings provided, disabling review request delegation", map[string]any{
+			"team_id":   d.Id(),
+			"team_slug": slug,
+		})
+
+		err := graphql.Mutate(ctx, &mutation, defaultTeamReviewAssignmentSettings(d.Id()), nil)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	} else {
+		settings := reviewRequestDelegation[0].(map[string]any)
+
+		teamReviewAlgorithm := githubv4.TeamReviewAssignmentAlgorithm(settings["algorithm"].(string))
+		updateTeamReviewAssignmentInput := githubv4.UpdateTeamReviewAssignmentInput{
+			ID:              d.Id(),
+			Enabled:         githubv4.Boolean(true),
+			Algorithm:       &teamReviewAlgorithm,
+			TeamMemberCount: githubv4.NewInt(githubv4.Int(settings["member_count"].(int))),
+			NotifyTeam:      githubv4.NewBoolean(githubv4.Boolean(settings["notify"].(bool))),
+		}
+		err := graphql.Mutate(ctx, &mutation, updateTeamReviewAssignmentInput, nil)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+	return nil
 }
 
 func resourceGithubTeamSettingsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
@@ -134,29 +179,30 @@ func resourceGithubTeamSettingsRead(ctx context.Context, d *schema.ResourceData,
 	return nil
 }
 
-func resourceGithubTeamSettingsUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	if d.HasChange("review_request_delegation") || d.IsNewResource() {
-		graphql := meta.(*Owner).v4client
-		if setting := d.Get("review_request_delegation").([]any); len(setting) == 0 {
-			var mutation struct {
-				UpdateTeamReviewAssignment struct {
-					ClientMutationId githubv4.ID `graphql:"clientMutationId"`
-				} `graphql:"updateTeamReviewAssignment(input:$input)"`
-			}
+func resourceGithubTeamSettingsUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	if d.HasChange("review_request_delegation") {
+		meta := m.(*Owner)
+		graphql := meta.v4client
+		reviewRequestDelegation := d.Get("review_request_delegation").([]any)
+
+		var mutation struct {
+			UpdateTeamReviewAssignment struct {
+				ClientMutationId githubv4.ID `graphql:"clientMutationId"`
+			} `graphql:"updateTeamReviewAssignment(input:$input)"`
+		}
+
+		if len(reviewRequestDelegation) == 0 {
+			tflog.Debug(ctx, "No review request delegation settings provided, disabling review request delegation", map[string]any{
+				"team_id":   d.Id(),
+				"team_slug": d.Get("team_slug").(string),
+			})
 
 			err := graphql.Mutate(ctx, &mutation, defaultTeamReviewAssignmentSettings(d.Id()), nil)
 			if err != nil {
 				return diag.FromErr(err)
 			}
-			return nil
 		} else {
-			settings := d.Get("review_request_delegation").([]any)[0].(map[string]any)
-
-			var mutation struct {
-				UpdateTeamReviewAssignment struct {
-					ClientMutationId githubv4.ID `graphql:"clientMutationId"`
-				} `graphql:"updateTeamReviewAssignment(input:$input)"`
-			}
+			settings := reviewRequestDelegation[0].(map[string]any)
 
 			teamReviewAlgorithm := githubv4.TeamReviewAssignmentAlgorithm(settings["algorithm"].(string))
 			updateTeamReviewAssignmentInput := githubv4.UpdateTeamReviewAssignmentInput{
@@ -170,7 +216,6 @@ func resourceGithubTeamSettingsUpdate(ctx context.Context, d *schema.ResourceDat
 			if err != nil {
 				return diag.FromErr(err)
 			}
-			return nil
 		}
 	}
 
