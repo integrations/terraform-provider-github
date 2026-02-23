@@ -5,12 +5,13 @@ import (
 	"fmt"
 
 	"github.com/google/go-github/v83/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRepositoryCustomProperties() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubOrgaRepositoryCustomProperties,
+		ReadContext: dataSourceGithubOrgaRepositoryCustomProperties,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -44,9 +45,8 @@ func dataSourceGithubRepositoryCustomProperties() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrgaRepositoryCustomProperties(d *schema.ResourceData, meta any) error {
+func dataSourceGithubOrgaRepositoryCustomProperties(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 
 	owner := meta.(*Owner).name
 
@@ -54,12 +54,12 @@ func dataSourceGithubOrgaRepositoryCustomProperties(d *schema.ResourceData, meta
 
 	allCustomProperties, _, err := client.Repositories.GetAllCustomPropertyValues(ctx, owner, repoName)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	results, err := flattenRepositoryCustomProperties(allCustomProperties)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(buildTwoPartID(owner, repoName))

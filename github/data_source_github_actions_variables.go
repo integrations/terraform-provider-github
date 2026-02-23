@@ -2,16 +2,16 @@ package github
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/google/go-github/v83/github"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubActionsVariables() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubActionsVariablesRead,
+		ReadContext: dataSourceGithubActionsVariablesRead,
 
 		Schema: map[string]*schema.Schema{
 			"full_name": {
@@ -54,8 +54,7 @@ func dataSourceGithubActionsVariables() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsVariablesRead(d *schema.ResourceData, meta any) error {
-	ctx := context.Background()
+func dataSourceGithubActionsVariablesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	var repoName string
@@ -64,7 +63,7 @@ func dataSourceGithubActionsVariablesRead(d *schema.ResourceData, meta any) erro
 		var err error
 		owner, repoName, err = splitRepoFullName(fullName.(string))
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
@@ -73,7 +72,7 @@ func dataSourceGithubActionsVariablesRead(d *schema.ResourceData, meta any) erro
 	}
 
 	if repoName == "" {
-		return fmt.Errorf("one of %q or %q has to be provided", "full_name", "name")
+		return diag.Errorf("one of %q or %q has to be provided", "full_name", "name")
 	}
 
 	options := github.ListOptions{
@@ -84,7 +83,7 @@ func dataSourceGithubActionsVariablesRead(d *schema.ResourceData, meta any) erro
 	for {
 		variables, resp, err := client.Actions.ListRepoVariables(ctx, owner, repoName, &options)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		for _, variable := range variables.Variables {
 			new_variable := map[string]string{
@@ -104,7 +103,7 @@ func dataSourceGithubActionsVariablesRead(d *schema.ResourceData, meta any) erro
 	d.SetId(repoName)
 	err := d.Set("variables", all_variables)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

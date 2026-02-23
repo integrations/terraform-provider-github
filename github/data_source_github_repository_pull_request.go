@@ -4,12 +4,13 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRepositoryPullRequest() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoryPullRequestRead,
+		ReadContext: dataSourceGithubRepositoryPullRequestRead,
 		Schema: map[string]*schema.Schema{
 			"owner": {
 				Type:     schema.TypeString,
@@ -90,8 +91,7 @@ func dataSourceGithubRepositoryPullRequest() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryPullRequestRead(d *schema.ResourceData, meta any) error {
-	ctx := context.Background()
+func dataSourceGithubRepositoryPullRequestRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -104,67 +104,67 @@ func dataSourceGithubRepositoryPullRequestRead(d *schema.ResourceData, meta any)
 
 	pullRequest, _, err := client.PullRequests.Get(ctx, owner, repository, number)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if head := pullRequest.GetHead(); head != nil {
 		if err = d.Set("head_ref", head.GetRef()); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		if err = d.Set("head_sha", head.GetSHA()); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		if headRepo := head.Repo; headRepo != nil {
 			if err = d.Set("head_repository", headRepo.GetName()); err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 		}
 
 		if headUser := head.User; headUser != nil {
 			if err = d.Set("head_owner", headUser.GetLogin()); err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 		}
 	}
 
 	if base := pullRequest.GetBase(); base != nil {
 		if err = d.Set("base_ref", base.GetRef()); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		if err = d.Set("base_sha", base.GetSHA()); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	if err = d.Set("body", pullRequest.GetBody()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("draft", pullRequest.GetDraft()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("maintainer_can_modify", pullRequest.GetMaintainerCanModify()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("number", pullRequest.GetNumber()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("opened_at", pullRequest.GetCreatedAt().Unix()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("state", pullRequest.GetState()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("title", pullRequest.GetTitle()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("updated_at", pullRequest.GetUpdatedAt().Unix()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if user := pullRequest.GetUser(); user != nil {
 		if err = d.Set("opened_by", user.GetLogin()); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
@@ -173,7 +173,7 @@ func dataSourceGithubRepositoryPullRequestRead(d *schema.ResourceData, meta any)
 		labels = append(labels, label.GetName())
 	}
 	if err = d.Set("labels", labels); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(buildThreePartID(owner, repository, strconv.Itoa(number)))

@@ -7,12 +7,13 @@ import (
 	"net/http"
 
 	"github.com/google/go-github/v83/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRef() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRefRead,
+		ReadContext: dataSourceGithubRefRead,
 
 		Schema: map[string]*schema.Schema{
 			"ref": {
@@ -41,8 +42,7 @@ func dataSourceGithubRef() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRefRead(d *schema.ResourceData, meta any) error {
-	ctx := context.Background()
+func dataSourceGithubRefRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner, ok := d.Get("owner").(string)
 	if !ok {
@@ -61,17 +61,17 @@ func dataSourceGithubRefRead(d *schema.ResourceData, meta any) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(buildTwoPartID(repoName, ref))
 	err = d.Set("etag", resp.Header.Get("ETag"))
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	err = d.Set("sha", *refData.Object.SHA)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
