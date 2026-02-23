@@ -3,22 +3,25 @@ package github
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 
 	"github.com/google/go-github/v83/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubBranchDefault() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubBranchDefaultCreate,
-		Read:   resourceGithubBranchDefaultRead,
-		Delete: resourceGithubBranchDefaultDelete,
-		Update: resourceGithubBranchDefaultUpdate,
+		CreateContext: resourceGithubBranchDefaultCreate,
+		ReadContext:   resourceGithubBranchDefaultRead,
+		UpdateContext: resourceGithubBranchDefaultUpdate,
+		DeleteContext: resourceGithubBranchDefaultDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: resourceGithubBranchDefaultImport,
 		},
+
+		CustomizeDiff: diffRepository,
 
 		Schema: map[string]*schema.Schema{
 			"branch": {
@@ -29,8 +32,12 @@ func resourceGithubBranchDefault() *schema.Resource {
 			"repository": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "The GitHub repository.",
+			},
+			"repository_id": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The GitHub repository ID.",
 			},
 			"rename": {
 				Type:        schema.TypeBool,
@@ -51,47 +58,80 @@ func resourceGithubBranchDefault() *schema.Resource {
 	}
 }
 
-func resourceGithubBranchDefaultCreate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubBranchDefaultCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
 	repoName := d.Get("repository").(string)
 	defaultBranch := d.Get("branch").(string)
 	rename := d.Get("rename").(bool)
 
-	ctx := context.Background()
+	tflog.Trace(ctx, "Creating default branch resource", map[string]any{
+		"owner":      owner,
+		"repository": repoName,
+		"branch":     defaultBranch,
+		"rename":     rename,
+	})
 
-	repository, _, err := client.Repositories.Get(ctx, owner, repoName)
+	repository, resp, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	if *repository.DefaultBranch != defaultBranch {
+	tflog.Debug(ctx, "Fetched repository", map[string]any{
+		"current_default_branch": repository.GetDefaultBranch(),
+	})
+
+	if repository.GetDefaultBranch() != defaultBranch {
 		if rename {
-			if _, _, err := client.Repositories.RenameBranch(ctx, owner, repoName, *repository.DefaultBranch, defaultBranch); err != nil {
-				return err
+			tflog.Debug(ctx, "Renaming branch to new default")
+			if _, _, err := client.Repositories.RenameBranch(ctx, owner, repoName, repository.GetDefaultBranch(), defaultBranch); err != nil {
+				return diag.FromErr(err)
 			}
 		} else {
+			tflog.Debug(ctx, "Setting new default branch")
 			repository := &github.Repository{
-				DefaultBranch: &defaultBranch,
+				DefaultBranch: github.Ptr(defaultBranch),
 			}
 
 			if _, _, err := client.Repositories.Edit(ctx, owner, repoName, repository); err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 		}
+	} else {
+		tflog.Debug(ctx, "Default branch already set to desired branch, skipping update")
 	}
 
 	d.SetId(repoName)
 
-	return resourceGithubBranchDefaultRead(d, meta)
+	if err := d.Set("repository_id", int(repository.GetID())); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
+	}
+
+	tflog.Trace(ctx, "Finished creating default branch resource", map[string]any{
+		"resource_id": d.Id(),
+	})
+
+	return nil
 }
 
-func resourceGithubBranchDefaultRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	repoName := d.Id()
+func resourceGithubBranchDefaultRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	ctx = tflog.SetField(ctx, "resource_id", d.Id())
+	meta := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	repoName := d.Get("repository").(string)
+
+	tflog.Trace(ctx, "Reading default branch resource", map[string]any{
+		"owner":      owner,
+		"repository": repoName,
+	})
+
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
@@ -101,70 +141,123 @@ func resourceGithubBranchDefaultRead(d *schema.ResourceData, meta any) error {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
+				tflog.Debug(ctx, "Repository not modified, skipping read")
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing repository %s/%s from state because it no longer exists in GitHub",
-					owner, repoName)
+				tflog.Info(ctx, "Removing repository from state because it no longer exists in GitHub", map[string]any{
+					"owner":      owner,
+					"repository": repoName,
+				})
 				d.SetId("")
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if repository.DefaultBranch == nil {
+		tflog.Warn(ctx, "Default branch is nil, removing resource from state")
 		d.SetId("")
 		return nil
 	}
 
-	_ = d.Set("etag", resp.Header.Get("ETag"))
-	_ = d.Set("branch", *repository.DefaultBranch)
-	_ = d.Set("repository", *repository.Name)
+	if err := d.Set("repository_id", int(repository.GetID())); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := d.Set("branch", repository.GetDefaultBranch()); err != nil {
+		return diag.FromErr(err)
+	}
+
+	tflog.Trace(ctx, "Finished reading default branch resource")
 	return nil
 }
 
-func resourceGithubBranchDefaultDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	repoName := d.Id()
+func resourceGithubBranchDefaultUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	ctx = tflog.SetField(ctx, "resource_id", d.Id())
+	meta := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
+	repoName := d.Get("repository").(string)
+	defaultBranch := d.Get("branch").(string)
+	rename := d.Get("rename").(bool)
+
+	tflog.Trace(ctx, "Updating default branch resource", map[string]any{
+		"owner":      owner,
+		"repository": repoName,
+		"branch":     defaultBranch,
+		"rename":     rename,
+	})
+
+	var etag string
+
+	if rename {
+		tflog.Debug(ctx, "Renaming branch to new default")
+		repository, resp, err := client.Repositories.Get(ctx, owner, repoName)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		etag = resp.Header.Get("ETag")
+		if _, _, err := client.Repositories.RenameBranch(ctx, owner, repoName, repository.GetDefaultBranch(), defaultBranch); err != nil {
+			return diag.FromErr(err)
+		}
+	} else {
+		tflog.Debug(ctx, "Setting new default branch")
+		repository := &github.Repository{
+			DefaultBranch: github.Ptr(defaultBranch),
+		}
+
+		if _, resp, err := client.Repositories.Edit(ctx, owner, repoName, repository); err != nil {
+			return diag.FromErr(err)
+		} else {
+			etag = resp.Header.Get("ETag")
+		}
+	}
+	if err := d.Set("etag", etag); err != nil {
+		return diag.FromErr(err)
+	}
+
+	tflog.Trace(ctx, "Finished updating default branch resource")
+	return nil
+}
+
+func resourceGithubBranchDefaultDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	ctx = tflog.SetField(ctx, "resource_id", d.Id())
+	meta := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+	repoName := d.Get("repository").(string)
+
+	tflog.Trace(ctx, "Deleting default branch resource", map[string]any{
+		"owner":      owner,
+		"repository": repoName,
+	})
 
 	repository := &github.Repository{
 		DefaultBranch: nil,
 	}
 
-	ctx := context.Background()
-
 	_, _, err := client.Repositories.Edit(ctx, owner, repoName, repository)
-	return err
-}
-
-func resourceGithubBranchDefaultUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	repoName := d.Id()
-	defaultBranch := d.Get("branch").(string)
-	rename := d.Get("rename").(bool)
-
-	ctx := context.Background()
-
-	if rename {
-		repository, _, err := client.Repositories.Get(ctx, owner, repoName)
-		if err != nil {
-			return err
-		}
-		if _, _, err := client.Repositories.RenameBranch(ctx, owner, repoName, *repository.DefaultBranch, defaultBranch); err != nil {
-			return err
-		}
-	} else {
-		repository := &github.Repository{
-			DefaultBranch: &defaultBranch,
-		}
-
-		if _, _, err := client.Repositories.Edit(ctx, owner, repoName, repository); err != nil {
-			return err
-		}
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
-	return resourceGithubBranchDefaultRead(d, meta)
+	tflog.Trace(ctx, "Finished deleting default branch resource")
+	return nil
+}
+
+func resourceGithubBranchDefaultImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+	repoName := d.Id()
+
+	if err := d.Set("repository", repoName); err != nil {
+		return nil, err
+	}
+
+	return []*schema.ResourceData{d}, nil
 }
