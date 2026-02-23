@@ -3,13 +3,14 @@ package github
 import (
 	"context"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
 
 func dataSourceGithubOrganizationIpAllowList() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubOrganizationIpAllowListRead,
+		ReadContext: dataSourceGithubOrganizationIpAllowListRead,
 
 		Schema: map[string]*schema.Schema{
 			"ip_allow_list": {
@@ -48,13 +49,12 @@ func dataSourceGithubOrganizationIpAllowList() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationIpAllowListRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubOrganizationIpAllowListRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	ctx := context.Background()
 	client := meta.(*Owner).v4client
 	orgName := meta.(*Owner).name
 
@@ -91,7 +91,7 @@ func dataSourceGithubOrganizationIpAllowListRead(d *schema.ResourceData, meta an
 	for {
 		err := client.Query(ctx, &query, variables)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		ipAllowListEntries = append(ipAllowListEntries, query.Organization.IpAllowListEntries.Nodes...)
@@ -114,7 +114,7 @@ func dataSourceGithubOrganizationIpAllowListRead(d *schema.ResourceData, meta an
 	d.SetId(string(query.Organization.ID))
 	err = d.Set("ip_allow_list", ipAllowList)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

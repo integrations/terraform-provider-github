@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/google/go-github/v83/github"
@@ -19,10 +18,20 @@ func diffRepository(ctx context.Context, diff *schema.ResourceDiff, m any) error
 		return nil
 	}
 
+	ctx = tflog.SetField(ctx, "id", diff.Id())
+
 	if diff.HasChange("repository") {
 		meta := m.(*Owner)
 		client := meta.v3client
 		owner := meta.name
+
+		var repoName string
+		old, n := diff.GetChange("repository")
+		if v, ok := n.(string); ok {
+			repoName = v
+		} else {
+			return fmt.Errorf("repository is not a string")
+		}
 
 		var repoID int
 		if o, ok := diff.GetOk("repository_id"); ok {
@@ -32,18 +41,11 @@ func diffRepository(ctx context.Context, diff *schema.ResourceDiff, m any) error
 				return fmt.Errorf("repository_id is not an int")
 			}
 		} else {
-			return fmt.Errorf("repository_id is not set")
-		}
-
-		var repoName string
-		if o, ok := diff.GetOk("repository"); ok {
-			if v, ok := o.(string); ok {
-				repoName = v
-			} else {
-				return fmt.Errorf("repository is not a string")
-			}
-		} else {
-			return fmt.Errorf("repository is not set")
+			tflog.Info(ctx, "No repository_id in schema, cannot verify if repository change is a rename or a new repository. Forcing new resource.", map[string]any{
+				"old_repository": old,
+				"new_repository": repoName,
+			})
+			return diff.ForceNew("repository")
 		}
 
 		repo, _, err := client.Repositories.Get(ctx, owner, repoName)
@@ -54,14 +56,20 @@ func diffRepository(ctx context.Context, diff *schema.ResourceDiff, m any) error
 					return ghErr
 				}
 
-				log.Printf("[INFO] Repository %s not found when checking repository change diff %s", repoName, diff.Id())
+				tflog.Info(ctx, "Repository not found, assuming it was deleted and will be recreated. Forcing new resource.", map[string]any{"repository": repoName})
 			} else {
 				return err
 			}
 		} else {
-			log.Printf("[INFO] Repository %s found when checking repository change diff %s", repoName, diff.Id())
+			tflog.Debug(ctx, "Repository found when checking repository change.", map[string]any{"repository": repoName})
 
 			if repoID != int(repo.GetID()) {
+				tflog.Info(ctx, "Repository ID changed, forcing new resource.", map[string]any{
+					"old_repository":    old,
+					"old_repository_id": repoID,
+					"new_repository":    repoName,
+					"new_repository_id": repo.GetID(),
+				})
 				return diff.ForceNew("repository")
 			}
 		}
@@ -117,6 +125,8 @@ func diffTeam(ctx context.Context, diff *schema.ResourceDiff, m any) error {
 	if len(diff.Id()) == 0 {
 		return nil
 	}
+
+	ctx = tflog.SetField(ctx, "id", diff.Id())
 
 	if diff.HasChange("team_slug") {
 		if isNewTeamID(ctx, diff, m) {
