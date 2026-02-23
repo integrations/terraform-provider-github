@@ -32,7 +32,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 			}
 		`, teamName)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
@@ -81,7 +81,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 			}
 		`
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
@@ -141,7 +141,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 			}
 		`, teamName)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
@@ -185,7 +185,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 			}
 		`, teamName)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
@@ -234,7 +234,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 			}
 		`, teamName)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
@@ -266,7 +266,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 			}
 		`, teamName)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
@@ -294,7 +294,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 			}
 		`, teamName)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
@@ -335,7 +335,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 			}
 		`, teamName)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
@@ -382,7 +382,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 			}
 		`, teamName)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
@@ -448,7 +448,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 			}
 		`, teamName)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
@@ -499,7 +499,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 			}
 		`
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
