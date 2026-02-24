@@ -114,7 +114,7 @@ func Test_validateRepositoryRulesetConditionsFieldForBranchAndTagTargets(t *test
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateConditionsFieldForBranchAndTagTargets(t.Context(), tt.target, tt.conditions, false)
+			err := validateConditionsFieldForBranchAndTagTargets(t.Context(), tt.target, tt.conditions)
 			if tt.expectError {
 				if err == nil {
 					t.Errorf("expected error but got nil")
@@ -130,7 +130,7 @@ func Test_validateRepositoryRulesetConditionsFieldForBranchAndTagTargets(t *test
 	}
 }
 
-func Test_validateConditionsFieldForBranchAndTagTargets(t *testing.T) {
+func Test_validateConditionsFieldForBranchAndTagTargets_OrgLevel(t *testing.T) {
 	tests := []struct {
 		name        string
 		target      github.RulesetTarget
@@ -165,42 +165,11 @@ func Test_validateConditionsFieldForBranchAndTagTargets(t *testing.T) {
 			expectError: true,
 			errorMsg:    "ref_name must be set for branch target",
 		},
-		{
-			name:   "invalid branch target without repository_name or repository_id",
-			target: github.RulesetTargetBranch,
-			conditions: map[string]any{
-				"ref_name": []any{map[string]any{"include": []any{"~DEFAULT_BRANCH"}, "exclude": []any{}}},
-			},
-			expectError: true,
-			errorMsg:    "either repository_name or repository_id must be set for branch target",
-		},
-		{
-			name:   "invalid tag target with nil repository_name and repository_id",
-			target: github.RulesetTargetTag,
-			conditions: map[string]any{
-				"ref_name":        []any{map[string]any{"include": []any{"v*"}, "exclude": []any{}}},
-				"repository_name": nil,
-				"repository_id":   nil,
-			},
-			expectError: true,
-			errorMsg:    "either repository_name or repository_id must be set for tag target",
-		},
-		{
-			name:   "invalid branch target with empty repository_name and repository_id slices",
-			target: github.RulesetTargetBranch,
-			conditions: map[string]any{
-				"ref_name":        []any{map[string]any{"include": []any{"~DEFAULT_BRANCH"}, "exclude": []any{}}},
-				"repository_name": []any{},
-				"repository_id":   []any{},
-			},
-			expectError: true,
-			errorMsg:    "either repository_name or repository_id must be set for branch target",
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateConditionsFieldForBranchAndTagTargets(t.Context(), tt.target, tt.conditions, true)
+			err := validateConditionsFieldForBranchAndTagTargets(t.Context(), tt.target, tt.conditions)
 			if tt.expectError {
 				if err == nil {
 					t.Errorf("expected error but got nil")
