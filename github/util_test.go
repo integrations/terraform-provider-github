@@ -1,9 +1,12 @@
 package github
 
 import (
+	"fmt"
+	"net/http"
 	"testing"
 	"unicode"
 
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/go-cty/cty"
 )
 
@@ -513,5 +516,196 @@ func TestGithubUtilValidateSecretName(t *testing.T) {
 				t.Fatalf("unexpected error(s): %v (%s)", diags, tc.Name)
 			}
 		}
+	}
+}
+
+func ghErrorResponse(statusCode int) *github.ErrorResponse {
+	return &github.ErrorResponse{
+		Response: &http.Response{StatusCode: statusCode},
+	}
+}
+
+func Test_errIs404(t *testing.T) {
+	t.Parallel()
+
+	for _, d := range []struct {
+		testName string
+		err      error
+		expected bool
+	}{
+		{
+			testName: "nil_error",
+			err:      nil,
+			expected: false,
+		},
+		{
+			testName: "plain_error",
+			err:      fmt.Errorf("some error"),
+			expected: false,
+		},
+		{
+			testName: "github_404",
+			err:      ghErrorResponse(http.StatusNotFound),
+			expected: true,
+		},
+		{
+			testName: "github_403",
+			err:      ghErrorResponse(http.StatusForbidden),
+			expected: false,
+		},
+		{
+			testName: "github_500",
+			err:      ghErrorResponse(http.StatusInternalServerError),
+			expected: false,
+		},
+	} {
+		t.Run(d.testName, func(t *testing.T) {
+			t.Parallel()
+
+			got := errIs404(d.err)
+			if got != d.expected {
+				t.Fatalf("expected errIs404 %v but got %v", d.expected, got)
+			}
+		})
+	}
+}
+
+func Test_errIsRetryable(t *testing.T) {
+	t.Parallel()
+
+	for _, d := range []struct {
+		testName string
+		err      error
+		expected bool
+	}{
+		{
+			testName: "nil_error",
+			err:      nil,
+			expected: false,
+		},
+		{
+			testName: "plain_error",
+			err:      fmt.Errorf("some error"),
+			expected: false,
+		},
+		{
+			testName: "github_404_not_retryable",
+			err:      ghErrorResponse(http.StatusNotFound),
+			expected: false,
+		},
+		{
+			testName: "github_409_conflict",
+			err:      ghErrorResponse(http.StatusConflict),
+			expected: true,
+		},
+		{
+			testName: "github_500_internal_server_error",
+			err:      ghErrorResponse(http.StatusInternalServerError),
+			expected: true,
+		},
+		{
+			testName: "github_502_bad_gateway",
+			err:      ghErrorResponse(http.StatusBadGateway),
+			expected: true,
+		},
+		{
+			testName: "github_503_service_unavailable",
+			err:      ghErrorResponse(http.StatusServiceUnavailable),
+			expected: true,
+		},
+		{
+			testName: "github_504_gateway_timeout",
+			err:      ghErrorResponse(http.StatusGatewayTimeout),
+			expected: true,
+		},
+		{
+			testName: "github_400_bad_request",
+			err:      ghErrorResponse(http.StatusBadRequest),
+			expected: false,
+		},
+	} {
+		t.Run(d.testName, func(t *testing.T) {
+			t.Parallel()
+
+			got := errIsRetryable(d.err)
+			if got != d.expected {
+				t.Fatalf("expected errIsRetryable %v but got %v", d.expected, got)
+			}
+		})
+	}
+}
+
+func Test_chunkStringSlice(t *testing.T) {
+	t.Parallel()
+
+	for _, d := range []struct {
+		testName string
+		items    []string
+		maxSize  int
+		expected [][]string
+	}{
+		{
+			testName: "nil_slice",
+			items:    nil,
+			maxSize:  3,
+			expected: nil,
+		},
+		{
+			testName: "empty_slice",
+			items:    []string{},
+			maxSize:  3,
+			expected: nil,
+		},
+		{
+			testName: "single_item",
+			items:    []string{"a"},
+			maxSize:  3,
+			expected: [][]string{{"a"}},
+		},
+		{
+			testName: "exact_fit",
+			items:    []string{"a", "b", "c"},
+			maxSize:  3,
+			expected: [][]string{{"a", "b", "c"}},
+		},
+		{
+			testName: "with_remainder",
+			items:    []string{"a", "b", "c", "d", "e"},
+			maxSize:  2,
+			expected: [][]string{{"a", "b"}, {"c", "d"}, {"e"}},
+		},
+		{
+			testName: "chunk_size_one",
+			items:    []string{"a", "b", "c"},
+			maxSize:  1,
+			expected: [][]string{{"a"}, {"b"}, {"c"}},
+		},
+		{
+			testName: "chunk_size_larger_than_slice",
+			items:    []string{"a", "b"},
+			maxSize:  10,
+			expected: [][]string{{"a", "b"}},
+		},
+	} {
+		t.Run(d.testName, func(t *testing.T) {
+			t.Parallel()
+
+			got := chunkStringSlice(d.items, d.maxSize)
+
+			if len(got) != len(d.expected) {
+				t.Fatalf("expected %d chunks but got %d", len(d.expected), len(got))
+			}
+
+			for i := range got {
+				if len(got[i]) != len(d.expected[i]) {
+					t.Fatalf("expected chunk[%d] to have %d items but got %d", i, len(d.expected[i]), len(got[i]))
+				}
+				for j := range got[i] {
+					if got[i][j] != d.expected[i][j] {
+						t.Fatalf("expected chunk[%d][%d] %q but got %q", i, j, d.expected[i][j], got[i][j])
+					}
+				}
+			}
+		})
 	}
 }

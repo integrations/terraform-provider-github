@@ -270,6 +270,42 @@ func getTeamSlugContext(ctx context.Context, teamIDString string, meta any) (str
 	return team.GetSlug(), nil
 }
 
+// errIs404 checks if the error is a GitHub 404 Not Found response.
+func errIs404(err error) bool {
+	var ghErr *github.ErrorResponse
+	if errors.As(err, &ghErr) && ghErr.Response != nil {
+		return ghErr.Response.StatusCode == http.StatusNotFound
+	}
+	return false
+}
+
+// errIsRetryable checks if the error is a retryable GitHub API error.
+func errIsRetryable(err error) bool {
+	var ghErr *github.ErrorResponse
+	if errors.As(err, &ghErr) && ghErr.Response != nil {
+		switch ghErr.Response.StatusCode {
+		case http.StatusConflict, http.StatusInternalServerError, http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
+			return true
+		default:
+			return false
+		}
+	}
+	return false
+}
+
+// chunkStringSlice splits a slice into chunks of the specified max size.
+func chunkStringSlice(items []string, maxSize int) [][]string {
+	if len(items) == 0 {
+		return nil
+	}
+	chunks := make([][]string, 0, (len(items)+maxSize-1)/maxSize)
+	for start := 0; start < len(items); start += maxSize {
+		end := min(start+maxSize, len(items))
+		chunks = append(chunks, items[start:end])
+	}
+	return chunks
+}
+
 // https://docs.github.com/en/actions/reference/encrypted-secrets#naming-your-secrets
 var secretNameRegexp = regexp.MustCompile("^[a-zA-Z_][a-zA-Z0-9_]*$")
 
