@@ -883,10 +883,10 @@ func resourceGithubEnterpriseRulesetRead(ctx context.Context, d *schema.Resource
 	if err := d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors)); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("conditions", flattenConditions(ctx, ruleset.GetConditions(), true)); err != nil {
+	if err := d.Set("conditions", flattenConditions(ctx, ruleset.GetConditions(), RulesetLevelEnterprise)); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("rules", flattenRules(ctx, ruleset.Rules, true)); err != nil {
+	if err := d.Set("rules", flattenRules(ctx, ruleset.Rules, RulesetLevelEnterprise)); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
@@ -1029,7 +1029,7 @@ func resourceGithubEnterpriseRulesetObject(d *schema.ResourceData) github.Reposi
 		SourceType:   github.Ptr(github.RulesetSourceType("Enterprise")),
 		Enforcement:  github.RulesetEnforcement(d.Get("enforcement").(string)),
 		BypassActors: expandBypassActors(d.Get("bypass_actors").([]any)),
-		Conditions:   expandConditions(d.Get("conditions").([]any), true),
-		Rules:        expandRules(d.Get("rules").([]any), true),
+		Conditions:   expandConditions(d.Get("conditions").([]any), RulesetLevelEnterprise),
+		Rules:        expandRules(d.Get("rules").([]any), RulesetLevelEnterprise),
 	}
 }
