@@ -50,6 +50,16 @@ func resourceGithubEnterpriseCostCenterRepositoriesCreate(ctx context.Context, d
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 	costCenterID := d.Get("cost_center_id").(string)
 
+	cc, _, err := client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	for _, ccResource := range cc.Resources {
+		if ccResource != nil && ccResource.Type == CostCenterResourceTypeRepo {
+			return diag.Errorf("cost center %q already has repositories assigned; import the existing assignments first or remove them manually", costCenterID)
+		}
+	}
+
 	desiredReposSet := d.Get("repository_names").(*schema.Set)
 	toAdd := expandStringList(desiredReposSet.List())
 
