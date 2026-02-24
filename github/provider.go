@@ -294,6 +294,9 @@ func Provider() *schema.Provider {
 			"github_user_external_identity":                                         dataSourceGithubUserExternalIdentity(),
 			"github_users":                                                          dataSourceGithubUsers(),
 			"github_enterprise":                                                     dataSourceGithubEnterprise(),
+			"github_enterprise_billing_premium_request_usage":                       dataSourceGithubEnterpriseBillingPremiumRequestUsage(),
+			"github_enterprise_billing_usage":                                       dataSourceGithubEnterpriseBillingUsage(),
+			"github_enterprise_billing_usage_summary":                               dataSourceGithubEnterpriseBillingUsageSummary(),
 			"github_repository_environment_deployment_policies":                     dataSourceGithubRepositoryEnvironmentDeploymentPolicies(),
 		},
 	}
