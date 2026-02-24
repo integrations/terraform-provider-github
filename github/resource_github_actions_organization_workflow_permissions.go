@@ -2,11 +2,6 @@ package github
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
-	"fmt"
-	"io"
-	"net/http"
 
 	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -15,22 +10,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-type GithubActionsOrganizationWorkflowPermissionsErrorResponse struct {
-	Message          string `json:"message"`
-	Errors           string `json:"errors"`
-	DocumentationURL string `json:"documentation_url"`
-	Status           string `json:"status"`
-}
-
 func resourceGithubActionsOrganizationWorkflowPermissions() *schema.Resource {
 	return &schema.Resource{
 		Description:   "This resource allows you to manage GitHub Actions workflow permissions for a GitHub Organization account. This controls the default permissions granted to the GITHUB_TOKEN when running workflows and whether GitHub Actions can approve pull request reviews.\n\nYou must have organization admin access to use this resource.",
-		CreateContext: resourceGithubActionsOrganizationWorkflowPermissionsCreateOrUpdate,
+		CreateContext: resourceGithubActionsOrganizationWorkflowPermissionsCreate,
 		ReadContext:   resourceGithubActionsOrganizationWorkflowPermissionsRead,
-		UpdateContext: resourceGithubActionsOrganizationWorkflowPermissionsCreateOrUpdate,
+		UpdateContext: resourceGithubActionsOrganizationWorkflowPermissionsUpdate,
 		DeleteContext: resourceGithubActionsOrganizationWorkflowPermissionsDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: resourceGithubActionsOrganizationWorkflowPermissionsImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -57,100 +45,47 @@ func resourceGithubActionsOrganizationWorkflowPermissions() *schema.Resource {
 	}
 }
 
-func handleEditWorkflowPermissionsError(ctx context.Context, err error, resp *github.Response) diag.Diagnostics {
-	var ghErr *github.ErrorResponse
-	if errors.As(err, &ghErr) {
-		if ghErr.Response.StatusCode == http.StatusConflict {
-			tflog.Info(ctx, "Detected conflict with workflow permissions", map[string]any{
-				"status_code": ghErr.Response.StatusCode,
-			})
-
-			errorResponse := &GithubActionsOrganizationWorkflowPermissionsErrorResponse{}
-			data, readError := io.ReadAll(resp.Body)
-			if readError == nil && data != nil {
-				unmarshalError := json.Unmarshal(data, errorResponse)
-				if unmarshalError != nil {
-					tflog.Error(ctx, "Failed to unmarshal error response", map[string]any{
-						"error": unmarshalError.Error(),
-					})
-					return diag.FromErr(unmarshalError)
-				}
-
-				tflog.Debug(ctx, "Parsed workflow permissions conflict error", map[string]any{
-					"message":           errorResponse.Message,
-					"errors":            errorResponse.Errors,
-					"documentation_url": errorResponse.DocumentationURL,
-					"status":            errorResponse.Status,
-				})
-			}
-			return diag.FromErr(fmt.Errorf("you are trying to modify a value restricted by the Enterprise's settings.\n Message: %s\n Errors: %s\n Documentation URL: %s\n Status: %s\nerr: %w", errorResponse.Message, errorResponse.Errors, errorResponse.DocumentationURL, errorResponse.Status, err))
-		}
-	}
-
-	tflog.Trace(ctx, "Returning generic error", map[string]any{
-		"error": err.Error(),
-	})
-
-	return diag.FromErr(err)
-}
-
-func resourceGithubActionsOrganizationWorkflowPermissionsCreateOrUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	tflog.Trace(ctx, "Entering Create/Update workflow permissions", map[string]any{
-		"organization_slug": d.Get("organization_slug").(string),
-	})
-
-	client := meta.(*Owner).v3client
+func resourceGithubActionsOrganizationWorkflowPermissionsCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
 
 	organizationSlug := d.Get("organization_slug").(string)
+	defaultPermissions := d.Get("default_workflow_permissions").(string)
+	canApprovePRReviews := d.Get("can_approve_pull_request_reviews").(bool)
+
+	ctx = tflog.SetField(ctx, "organization_slug", organizationSlug)
+	tflog.Info(ctx, "Creating workflow permissions")
+
+	workflowPerms := github.DefaultWorkflowPermissionOrganization{
+		DefaultWorkflowPermissions:   github.Ptr(defaultPermissions),
+		CanApprovePullRequestReviews: github.Ptr(canApprovePRReviews),
+	}
+
+	tflog.Debug(ctx, "Calling GitHub API to create workflow permissions", map[string]any{
+		"default_workflow_permissions":     defaultPermissions,
+		"can_approve_pull_request_reviews": canApprovePRReviews,
+	})
+	_, _, err := client.Actions.UpdateDefaultWorkflowPermissionsInOrganization(ctx, organizationSlug, workflowPerms)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	d.SetId(organizationSlug)
 
-	if d.IsNewResource() {
-		tflog.Info(ctx, "Creating organization workflow permissions", map[string]any{
-			"organization_slug": organizationSlug,
-		})
-	} else {
-		tflog.Info(ctx, "Updating organization workflow permissions", map[string]any{
-			"organization_slug": organizationSlug,
-		})
-	}
+	tflog.Trace(ctx, "Created workflow permissions successfully")
 
-	workflowPerms := github.DefaultWorkflowPermissionOrganization{}
-
-	if v, ok := d.GetOk("default_workflow_permissions"); ok {
-		workflowPerms.DefaultWorkflowPermissions = github.Ptr(v.(string))
-	}
-
-	if v, ok := d.GetOk("can_approve_pull_request_reviews"); ok {
-		workflowPerms.CanApprovePullRequestReviews = github.Ptr(v.(bool))
-	}
-
-	tflog.Debug(ctx, "Calling GitHub API to update workflow permissions", map[string]any{
-		"organization_slug":                organizationSlug,
-		"default_workflow_permissions":     workflowPerms.DefaultWorkflowPermissions,
-		"can_approve_pull_request_reviews": workflowPerms.CanApprovePullRequestReviews,
-	})
-	_, resp, err := client.Actions.UpdateDefaultWorkflowPermissionsInOrganization(ctx, organizationSlug, workflowPerms)
-	if err != nil {
-		return handleEditWorkflowPermissionsError(ctx, err, resp)
-	}
-
-	tflog.Trace(ctx, "Exiting Create/Update workflow permissions successfully", map[string]any{
-		"organization_slug": organizationSlug,
-	})
 	return nil
 }
 
-func resourceGithubActionsOrganizationWorkflowPermissionsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	tflog.Trace(ctx, "Entering Read workflow permissions", map[string]any{
-		"organization_slug": d.Id(),
-	})
+func resourceGithubActionsOrganizationWorkflowPermissionsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
 
-	client := meta.(*Owner).v3client
+	organizationSlug := d.Get("organization_slug").(string)
 
-	organizationSlug := d.Id()
-	tflog.Debug(ctx, "Calling GitHub API to read workflow permissions", map[string]any{
-		"organization_slug": organizationSlug,
-	})
+	ctx = tflog.SetField(ctx, "id", d.Id())
+	ctx = tflog.SetField(ctx, "organization_slug", organizationSlug)
+	tflog.Info(ctx, "Reading workflow permissions")
 
 	workflowPerms, _, err := client.Actions.GetDefaultWorkflowPermissionsInOrganization(ctx, organizationSlug)
 	if err != nil {
@@ -158,14 +93,10 @@ func resourceGithubActionsOrganizationWorkflowPermissionsRead(ctx context.Contex
 	}
 
 	tflog.Debug(ctx, "Retrieved workflow permissions from API", map[string]any{
-		"organization_slug":                organizationSlug,
 		"default_workflow_permissions":     workflowPerms.DefaultWorkflowPermissions,
 		"can_approve_pull_request_reviews": workflowPerms.CanApprovePullRequestReviews,
 	})
 
-	if err := d.Set("organization_slug", organizationSlug); err != nil {
-		return diag.FromErr(err)
-	}
 	if err := d.Set("default_workflow_permissions", workflowPerms.DefaultWorkflowPermissions); err != nil {
 		return diag.FromErr(err)
 	}
@@ -173,24 +104,53 @@ func resourceGithubActionsOrganizationWorkflowPermissionsRead(ctx context.Contex
 		return diag.FromErr(err)
 	}
 
-	tflog.Trace(ctx, "Exiting Read workflow permissions successfully", map[string]any{
-		"organization_slug": organizationSlug,
-	})
+	tflog.Trace(ctx, "Read workflow permissions successfully")
 
 	return nil
 }
 
-func resourceGithubActionsOrganizationWorkflowPermissionsDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	tflog.Trace(ctx, "Entering Delete workflow permissions", map[string]any{
-		"organization_slug": d.Id(),
-	})
+func resourceGithubActionsOrganizationWorkflowPermissionsUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
 
-	client := meta.(*Owner).v3client
+	organizationSlug := d.Get("organization_slug").(string)
+	defaultPermissions := d.Get("default_workflow_permissions").(string)
+	canApprovePRReviews := d.Get("can_approve_pull_request_reviews").(bool)
 
-	organizationSlug := d.Id()
-	tflog.Info(ctx, "Deleting organization workflow permissions (resetting to defaults)", map[string]any{
-		"organization_slug": organizationSlug,
+	ctx = tflog.SetField(ctx, "id", d.Id())
+	ctx = tflog.SetField(ctx, "organization_slug", organizationSlug)
+	tflog.Info(ctx, "Updating workflow permissions")
+
+	workflowPerms := github.DefaultWorkflowPermissionOrganization{
+		DefaultWorkflowPermissions:   github.Ptr(defaultPermissions),
+		CanApprovePullRequestReviews: github.Ptr(canApprovePRReviews),
+	}
+
+	tflog.Debug(ctx, "Calling GitHub API to update workflow permissions", map[string]any{
+		"default_workflow_permissions":     defaultPermissions,
+		"can_approve_pull_request_reviews": canApprovePRReviews,
 	})
+	_, _, err := client.Actions.UpdateDefaultWorkflowPermissionsInOrganization(ctx, organizationSlug, workflowPerms)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	d.SetId(organizationSlug)
+
+	tflog.Trace(ctx, "Updated workflow permissions successfully")
+
+	return nil
+}
+
+func resourceGithubActionsOrganizationWorkflowPermissionsDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
+
+	organizationSlug := d.Get("organization_slug").(string)
+
+	ctx = tflog.SetField(ctx, "id", d.Id())
+	ctx = tflog.SetField(ctx, "organization_slug", organizationSlug)
+	tflog.Info(ctx, "Deleting organization workflow permissions (resetting to defaults)")
 
 	// Reset to safe defaults
 	workflowPerms := github.DefaultWorkflowPermissionOrganization{
@@ -198,24 +158,45 @@ func resourceGithubActionsOrganizationWorkflowPermissionsDelete(ctx context.Cont
 		CanApprovePullRequestReviews: github.Ptr(false),
 	}
 
-	tflog.Debug(ctx, "Using safe default values", map[string]any{
-		"default_workflow_permissions":     "read",
-		"can_approve_pull_request_reviews": false,
-	})
-
 	tflog.Debug(ctx, "Calling GitHub API to reset workflow permissions", map[string]any{
-		"organization_slug":    organizationSlug,
 		"workflow_permissions": workflowPerms,
 	})
 
-	_, resp, err := client.Actions.UpdateDefaultWorkflowPermissionsInOrganization(ctx, organizationSlug, workflowPerms)
+	_, _, err := client.Actions.UpdateDefaultWorkflowPermissionsInOrganization(ctx, organizationSlug, workflowPerms)
 	if err != nil {
-		return handleEditWorkflowPermissionsError(ctx, err, resp)
+		return diag.FromErr(err)
 	}
 
-	tflog.Trace(ctx, "Exiting Delete workflow permissions successfully", map[string]any{
-		"organization_slug": organizationSlug,
-	})
+	tflog.Trace(ctx, "Deleted workflow permissions successfully")
 
 	return nil
+}
+
+func resourceGithubActionsOrganizationWorkflowPermissionsImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+	meta := m.(*Owner)
+	client := meta.v3client
+
+	organizationSlug := d.Id()
+
+	ctx = tflog.SetField(ctx, "id", d.Id())
+	tflog.Info(ctx, "Importing organization workflow permissions")
+
+	workflowPerms, _, err := client.Actions.GetDefaultWorkflowPermissionsInOrganization(ctx, organizationSlug)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := d.Set("organization_slug", organizationSlug); err != nil {
+		return nil, err
+	}
+	if err := d.Set("default_workflow_permissions", workflowPerms.DefaultWorkflowPermissions); err != nil {
+		return nil, err
+	}
+	if err := d.Set("can_approve_pull_request_reviews", workflowPerms.CanApprovePullRequestReviews); err != nil {
+		return nil, err
+	}
+
+	tflog.Trace(ctx, "Imported workflow permissions successfully")
+
+	return []*schema.ResourceData{d}, nil
 }
