@@ -89,28 +89,27 @@ func resourceGithubEnterpriseCostCenterUsersUpdate(ctx context.Context, d *schem
 		return diag.FromErr(err)
 	}
 
-	currentUsers := make(map[string]bool)
+	diff := make(map[string]bool)
 	for _, ccResource := range cc.Resources {
 		if ccResource != nil && ccResource.Type == CostCenterResourceTypeUser {
-			currentUsers[ccResource.Name] = true
+			diff[ccResource.Name] = false
 		}
 	}
 
-	desiredUsersSet := d.Get("usernames").(*schema.Set)
-	desiredUsers := make(map[string]bool)
-	for _, username := range desiredUsersSet.List() {
-		desiredUsers[username.(string)] = true
-	}
-
-	var toAdd, toRemove []string
-	for user := range desiredUsers {
-		if !currentUsers[user] {
-			toAdd = append(toAdd, user)
+	var toAdd []string
+	for _, user := range d.Get("usernames").(*schema.Set).List() {
+		name := user.(string)
+		if _, exists := diff[name]; exists {
+			diff[name] = true
+		} else {
+			toAdd = append(toAdd, name)
 		}
 	}
-	for user := range currentUsers {
-		if !desiredUsers[user] {
-			toRemove = append(toRemove, user)
+
+	var toRemove []string
+	for name, keep := range diff {
+		if !keep {
+			toRemove = append(toRemove, name)
 		}
 	}
 
