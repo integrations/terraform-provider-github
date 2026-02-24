@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -298,11 +299,11 @@ func resourceGithubEMUGroupMappingImport(ctx context.Context, d *schema.Resource
 	// <group-id>:<team-slug>
 	groupIDString, teamSlug, err := parseID2(d.Id())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not parse import ID (%s), expected format: <group-id>:<team-slug>. Parse error: %w", importID, err)
 	}
 	groupID, err := strconv.Atoi(groupIDString)
 	if err != nil {
-		return nil, err
+		return nil, unconvertibleIdErr(groupIDString, err)
 	}
 
 	tflog.Debug(ctx, "Parsed two-part import ID", map[string]any{
