@@ -89,28 +89,27 @@ func resourceGithubEnterpriseCostCenterRepositoriesUpdate(ctx context.Context, d
 		return diag.FromErr(err)
 	}
 
-	currentRepos := make(map[string]bool)
+	diff := make(map[string]bool)
 	for _, ccResource := range cc.Resources {
 		if ccResource != nil && ccResource.Type == CostCenterResourceTypeRepo {
-			currentRepos[ccResource.Name] = true
+			diff[ccResource.Name] = false
 		}
 	}
 
-	desiredReposSet := d.Get("repository_names").(*schema.Set)
-	desiredRepos := make(map[string]bool)
-	for _, repo := range desiredReposSet.List() {
-		desiredRepos[repo.(string)] = true
-	}
-
-	var toAdd, toRemove []string
-	for repo := range desiredRepos {
-		if !currentRepos[repo] {
-			toAdd = append(toAdd, repo)
+	var toAdd []string
+	for _, repo := range d.Get("repository_names").(*schema.Set).List() {
+		name := repo.(string)
+		if _, exists := diff[name]; exists {
+			diff[name] = true
+		} else {
+			toAdd = append(toAdd, name)
 		}
 	}
-	for repo := range currentRepos {
-		if !desiredRepos[repo] {
-			toRemove = append(toRemove, repo)
+
+	var toRemove []string
+	for name, keep := range diff {
+		if !keep {
+			toRemove = append(toRemove, name)
 		}
 	}
 
