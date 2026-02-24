@@ -220,7 +220,8 @@ func resourceGithubEnterpriseIpAllowListEntryDelete(ctx context.Context, d *sche
 	}
 
 	err := client.Mutate(ctx, &mutation, input, nil)
-	if err != nil {
+	// GraphQL will return a 200 OK if it couldn't find the global ID
+	if err != nil && !strings.Contains(err.Error(), "Could not resolve to a node with the global id") {
 		return diag.FromErr(err)
 	}
 
