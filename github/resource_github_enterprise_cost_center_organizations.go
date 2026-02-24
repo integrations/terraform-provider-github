@@ -181,8 +181,20 @@ func resourceGithubEnterpriseCostCenterOrganizationsDelete(ctx context.Context, 
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 	costCenterID := d.Get("cost_center_id").(string)
 
-	organizationsSet := d.Get("organization_logins").(*schema.Set)
-	organizations := expandStringList(organizationsSet.List())
+	cc, _, err := client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
+	if err != nil {
+		if errIs404(err) {
+			return nil
+		}
+		return diag.FromErr(err)
+	}
+
+	var organizations []string
+	for _, ccResource := range cc.Resources {
+		if ccResource != nil && ccResource.Type == CostCenterResourceTypeOrg {
+			organizations = append(organizations, ccResource.Name)
+		}
+	}
 
 	if len(organizations) > 0 {
 		tflog.Info(ctx, "Removing all organizations from cost center", map[string]any{

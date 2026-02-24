@@ -181,8 +181,20 @@ func resourceGithubEnterpriseCostCenterUsersDelete(ctx context.Context, d *schem
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 	costCenterID := d.Get("cost_center_id").(string)
 
-	usernamesSet := d.Get("usernames").(*schema.Set)
-	usernames := expandStringList(usernamesSet.List())
+	cc, _, err := client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
+	if err != nil {
+		if errIs404(err) {
+			return nil
+		}
+		return diag.FromErr(err)
+	}
+
+	var usernames []string
+	for _, ccResource := range cc.Resources {
+		if ccResource != nil && ccResource.Type == CostCenterResourceTypeUser {
+			usernames = append(usernames, ccResource.Name)
+		}
+	}
 
 	if len(usernames) > 0 {
 		tflog.Info(ctx, "Removing all users from cost center", map[string]any{
