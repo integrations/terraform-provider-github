@@ -77,6 +77,15 @@ func resourceGithubEnterpriseTeamOrganizationsCreate(ctx context.Context, d *sch
 		return diag.Errorf("enterprise team not found")
 	}
 
+	// Verify no organizations are already assigned (authoritative resource)
+	existing, err := listAllEnterpriseTeamOrganizations(ctx, client, enterpriseSlug, team.Slug)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	if len(existing) > 0 {
+		return diag.Errorf("%q already has organizations assigned; import first or remove manually", team.Slug)
+	}
+
 	orgSlugsSet := d.Get("organization_slugs").(*schema.Set)
 	orgSlugs := make([]string, 0, orgSlugsSet.Len())
 	for _, item := range orgSlugsSet.List() {
@@ -193,12 +202,23 @@ func resourceGithubEnterpriseTeamOrganizationsDelete(ctx context.Context, d *sch
 		return diag.FromErr(err)
 	}
 
-	orgSlugsSet := d.Get("organization_slugs").(*schema.Set)
-	if orgSlugsSet.Len() > 0 {
-		removeSlugs := make([]string, 0, orgSlugsSet.Len())
-		for _, item := range orgSlugsSet.List() {
-			removeSlugs = append(removeSlugs, item.(string))
+	orgs, err := listAllEnterpriseTeamOrganizations(ctx, client, enterpriseSlug, teamSlug)
+	if err != nil {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
+			return nil
 		}
+		return diag.FromErr(err)
+	}
+
+	removeSlugs := make([]string, 0, len(orgs))
+	for _, org := range orgs {
+		if org.Login != nil && *org.Login != "" {
+			removeSlugs = append(removeSlugs, *org.Login)
+		}
+	}
+
+	if len(removeSlugs) > 0 {
 		_, resp, err := client.Enterprise.RemoveMultipleAssignments(ctx, enterpriseSlug, teamSlug, removeSlugs)
 		if err != nil {
 			var ghErr *github.ErrorResponse
