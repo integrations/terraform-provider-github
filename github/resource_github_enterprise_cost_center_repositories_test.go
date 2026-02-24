@@ -54,9 +54,10 @@ func TestAccGithubEnterpriseCostCenterRepositories(t *testing.T) {
 					},
 				},
 				{
-					ResourceName:      "github_enterprise_cost_center_repositories.test",
-					ImportState:       true,
-					ImportStateVerify: true,
+					ResourceName:        "github_enterprise_cost_center_repositories.test",
+					ImportState:         true,
+					ImportStateVerify:   true,
+					ImportStateIdPrefix: testAccConf.enterpriseSlug + ":",
 				},
 			},
 		})
@@ -75,10 +76,8 @@ func testAccCheckGithubEnterpriseCostCenterRepositoriesDestroy(s *terraform.Stat
 			continue
 		}
 
-		enterpriseSlug, costCenterID, err := parseID2(rs.Primary.ID)
-		if err != nil {
-			return err
-		}
+		enterpriseSlug := rs.Primary.Attributes["enterprise_slug"]
+		costCenterID := rs.Primary.Attributes["cost_center_id"]
 
 		cc, _, err := client.Enterprise.GetCostCenter(context.Background(), enterpriseSlug, costCenterID)
 		if errIs404(err) {
