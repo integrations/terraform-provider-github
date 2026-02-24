@@ -45,6 +45,7 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 			"target": {
 				Type:             schema.TypeString,
 				Required:         true,
+				ForceNew:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice(supportedEnterpriseRulesetTargetTypes, false)),
 				Description:      "Possible values are `branch`, `tag`, `push` and `repository`. Note: The `repository` target is in preview and is subject to change.",
 			},
@@ -811,7 +812,7 @@ func resourceGithubEnterpriseRulesetCreate(ctx context.Context, d *schema.Resour
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(*ruleset.ID, 10))
+	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
 	if err := d.Set("ruleset_id", ruleset.ID); err != nil {
 		return diag.FromErr(err)
 	}
@@ -825,7 +826,7 @@ func resourceGithubEnterpriseRulesetCreate(ctx context.Context, d *schema.Resour
 	tflog.Info(ctx, "Created enterprise ruleset", map[string]any{
 		"enterprise_slug": enterpriseSlug,
 		"name":            name,
-		"ruleset_id":      *ruleset.ID,
+		"ruleset_id":      ruleset.GetID(),
 	})
 
 	return nil

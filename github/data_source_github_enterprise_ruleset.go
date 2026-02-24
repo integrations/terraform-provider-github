@@ -382,9 +382,6 @@ func dataSourceGithubEnterpriseRulesetRead(ctx context.Context, d *schema.Resour
 	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
 
 	// Set all computed attributes
-	if err := d.Set("ruleset_id", ruleset.ID); err != nil {
-		return diag.FromErr(err)
-	}
 	if err := d.Set("name", ruleset.Name); err != nil {
 		return diag.FromErr(err)
 	}
