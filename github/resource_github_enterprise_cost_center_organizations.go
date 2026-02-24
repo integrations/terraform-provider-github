@@ -50,6 +50,16 @@ func resourceGithubEnterpriseCostCenterOrganizationsCreate(ctx context.Context, 
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 	costCenterID := d.Get("cost_center_id").(string)
 
+	cc, _, err := client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	for _, ccResource := range cc.Resources {
+		if ccResource != nil && ccResource.Type == CostCenterResourceTypeOrg {
+			return diag.Errorf("cost center %q already has organizations assigned; import the existing assignments first or remove them manually", costCenterID)
+		}
+	}
+
 	desiredOrgsSet := d.Get("organization_logins").(*schema.Set)
 	toAdd := expandStringList(desiredOrgsSet.List())
 
