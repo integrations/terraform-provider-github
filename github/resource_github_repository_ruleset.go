@@ -717,7 +717,7 @@ func resourceGithubRepositoryRulesetCreate(ctx context.Context, d *schema.Resour
 	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("rules", flattenRules(ctx, ruleset.Rules, false)); err != nil {
+	if err := d.Set("rules", flattenRules(ctx, ruleset.Rules, RulesetLevelRepository)); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -776,10 +776,10 @@ func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.Resource
 	if err := d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors)); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("conditions", flattenConditions(ctx, ruleset.GetConditions(), false)); err != nil {
+	if err := d.Set("conditions", flattenConditions(ctx, ruleset.GetConditions(), RulesetLevelRepository)); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("rules", flattenRules(ctx, ruleset.GetRules(), false)); err != nil {
+	if err := d.Set("rules", flattenRules(ctx, ruleset.GetRules(), RulesetLevelRepository)); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
