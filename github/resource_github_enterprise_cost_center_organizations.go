@@ -89,28 +89,27 @@ func resourceGithubEnterpriseCostCenterOrganizationsUpdate(ctx context.Context, 
 		return diag.FromErr(err)
 	}
 
-	currentOrgs := make(map[string]bool)
+	diff := make(map[string]bool)
 	for _, ccResource := range cc.Resources {
 		if ccResource != nil && ccResource.Type == CostCenterResourceTypeOrg {
-			currentOrgs[ccResource.Name] = true
+			diff[ccResource.Name] = false
 		}
 	}
 
-	desiredOrgsSet := d.Get("organization_logins").(*schema.Set)
-	desiredOrgs := make(map[string]bool)
-	for _, org := range desiredOrgsSet.List() {
-		desiredOrgs[org.(string)] = true
-	}
-
-	var toAdd, toRemove []string
-	for org := range desiredOrgs {
-		if !currentOrgs[org] {
-			toAdd = append(toAdd, org)
+	var toAdd []string
+	for _, org := range d.Get("organization_logins").(*schema.Set).List() {
+		name := org.(string)
+		if _, exists := diff[name]; exists {
+			diff[name] = true
+		} else {
+			toAdd = append(toAdd, name)
 		}
 	}
-	for org := range currentOrgs {
-		if !desiredOrgs[org] {
-			toRemove = append(toRemove, org)
+
+	var toRemove []string
+	for name, keep := range diff {
+		if !keep {
+			toRemove = append(toRemove, name)
 		}
 	}
 
