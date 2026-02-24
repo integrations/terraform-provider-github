@@ -168,8 +168,17 @@ func resourceGithubEnterpriseCostCenterImport(ctx context.Context, d *schema.Res
 		return nil, fmt.Errorf("invalid import ID %q: expected format <enterprise_slug>:<cost_center_id>", d.Id())
 	}
 
+	client := meta.(*Owner).v3client
+	cc, _, err := client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
+	if err != nil {
+		return nil, fmt.Errorf("error reading cost center %q in enterprise %q: %w", costCenterID, enterpriseSlug, err)
+	}
+
 	d.SetId(costCenterID)
 	if err := d.Set("enterprise_slug", enterpriseSlug); err != nil {
+		return nil, err
+	}
+	if err := d.Set("name", cc.Name); err != nil {
 		return nil, err
 	}
 
