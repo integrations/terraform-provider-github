@@ -181,8 +181,20 @@ func resourceGithubEnterpriseCostCenterRepositoriesDelete(ctx context.Context, d
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 	costCenterID := d.Get("cost_center_id").(string)
 
-	repositoriesSet := d.Get("repository_names").(*schema.Set)
-	repositories := expandStringList(repositoriesSet.List())
+	cc, _, err := client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
+	if err != nil {
+		if errIs404(err) {
+			return nil
+		}
+		return diag.FromErr(err)
+	}
+
+	var repositories []string
+	for _, ccResource := range cc.Resources {
+		if ccResource != nil && ccResource.Type == CostCenterResourceTypeRepo {
+			repositories = append(repositories, ccResource.Name)
+		}
+	}
 
 	if len(repositories) > 0 {
 		tflog.Info(ctx, "Removing all repositories from cost center", map[string]any{
