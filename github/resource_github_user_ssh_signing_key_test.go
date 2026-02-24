@@ -13,22 +13,22 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func TestAccGithubUserSshKey(t *testing.T) {
-	t.Run("creates and destroys a user SSH key without error", func(t *testing.T) {
+func TestAccGithubUserSshSigningKey(t *testing.T) {
+	t.Run("creates and destroys a user SSH signing key without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		name := fmt.Sprintf(`%s-%s`, testResourcePrefix, randomID)
-		testKey := newTestKey()
+		testKey := newTestSigningKey()
 
 		config := fmt.Sprintf(`
-			resource "github_user_ssh_key" "test" {
+			resource "github_user_ssh_signing_key" "test" {
 				title = "%[1]s"
 				key   = "%[2]s"
 			}
 		`, name, testKey)
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestMatchResourceAttr("github_user_ssh_key.test", "title", regexp.MustCompile(randomID)),
-			resource.TestMatchResourceAttr("github_user_ssh_key.test", "key", regexp.MustCompile("^ssh-rsa ")),
+			resource.TestMatchResourceAttr("github_user_ssh_signing_key.test", "title", regexp.MustCompile(randomID)),
+			resource.TestMatchResourceAttr("github_user_ssh_signing_key.test", "key", regexp.MustCompile("^ssh-rsa ")),
 		)
 
 		resource.Test(t, resource.TestCase{
@@ -43,21 +43,21 @@ func TestAccGithubUserSshKey(t *testing.T) {
 		})
 	})
 
-	t.Run("imports an individual account SSH key without error", func(t *testing.T) {
+	t.Run("imports an individual account SSH signing key without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		name := fmt.Sprintf(`%s-%s`, testResourcePrefix, randomID)
-		testKey := newTestKey()
+		testKey := newTestSigningKey()
 
 		config := fmt.Sprintf(`
-			resource "github_user_ssh_key" "test" {
+			resource "github_user_ssh_signing_key" "test" {
 				title = "%[1]s"
 				key   = "%[2]s"
 			}
 		`, name, testKey)
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet("github_user_ssh_key.test", "title"),
-			resource.TestCheckResourceAttrSet("github_user_ssh_key.test", "key"),
+			resource.TestCheckResourceAttrSet("github_user_ssh_signing_key.test", "title"),
+			resource.TestCheckResourceAttrSet("github_user_ssh_signing_key.test", "key"),
 		)
 
 		resource.Test(t, resource.TestCase{
@@ -69,7 +69,7 @@ func TestAccGithubUserSshKey(t *testing.T) {
 					Check:  check,
 				},
 				{
-					ResourceName:      "github_user_ssh_key.test",
+					ResourceName:      "github_user_ssh_signing_key.test",
 					ImportState:       true,
 					ImportStateVerify: true,
 				},
@@ -78,7 +78,7 @@ func TestAccGithubUserSshKey(t *testing.T) {
 	})
 }
 
-func newTestKey() string {
+func newTestSigningKey() string {
 	privateKey, _ := rsa.GenerateKey(rand.Reader, 1024)
 	publicKey, _ := ssh.NewPublicKey(&privateKey.PublicKey)
 	return strings.TrimRight(string(ssh.MarshalAuthorizedKey(publicKey)), "\n")
