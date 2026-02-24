@@ -240,34 +240,44 @@ func getTeamSlug(teamIDString string, meta any) (string, error) {
 	return getTeamSlugContext(ctx, teamIDString, meta)
 }
 
-func getTeamSlugContext(ctx context.Context, teamIDString string, meta any) (string, error) {
+func getTeamSlugContext(ctx context.Context, teamIDString string, m any) (string, error) {
 	// Given a string that is either a team id or team slug, return the
 	// team slug it is referring to.
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
-	orgId := meta.(*Owner).id
+	meta := m.(*Owner)
 
-	teamId, parseIntErr := strconv.ParseInt(teamIDString, 10, 64)
+	team, err := getTeam(ctx, meta, teamIDString)
+	if err != nil {
+		return "", err
+	}
+	return team.GetSlug(), nil
+}
+
+func getTeam(ctx context.Context, meta *Owner, idOrSlug string) (*github.Team, error) {
+	client := meta.v3client
+	orgName := meta.name
+	orgId := meta.id
+
+	teamId, parseIntErr := strconv.ParseInt(idOrSlug, 10, 64)
 	if parseIntErr != nil {
 		// The given id not an integer, assume it is a team slug
-		team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
+		team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, idOrSlug)
 		if slugErr != nil {
-			return "", errors.New(parseIntErr.Error() + slugErr.Error())
+			return nil, errors.New(parseIntErr.Error() + slugErr.Error())
 		}
-		return team.GetSlug(), nil
+		return team, nil
 	}
 
 	// The given id is an integer, assume it is a team id
 	team, _, teamIdErr := client.Teams.GetTeamByID(ctx, orgId, teamId)
 	if teamIdErr != nil {
 		// There isn't a team with the given ID, assume it is a teamslug
-		team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
+		team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, idOrSlug)
 		if slugErr != nil {
-			return "", errors.New(teamIdErr.Error() + slugErr.Error())
+			return nil, errors.New(teamIdErr.Error() + slugErr.Error())
 		}
-		return team.GetSlug(), nil
+		return team, nil
 	}
-	return team.GetSlug(), nil
+	return team, nil
 }
 
 // https://docs.github.com/en/actions/reference/encrypted-secrets#naming-your-secrets
