@@ -50,29 +50,22 @@ func resourceGithubEnterpriseCostCenterOrganizationsCreate(ctx context.Context, 
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 	costCenterID := d.Get("cost_center_id").(string)
 
-	id, err := buildID(enterpriseSlug, costCenterID)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	d.SetId(id)
-
 	desiredOrgsSet := d.Get("organization_logins").(*schema.Set)
 	toAdd := expandStringList(desiredOrgsSet.List())
 
-	if len(toAdd) > 0 {
-		tflog.Info(ctx, "Adding organizations to cost center", map[string]any{
-			"enterprise_slug": enterpriseSlug,
-			"cost_center_id":  costCenterID,
-			"count":           len(toAdd),
-		})
+	tflog.Info(ctx, "Adding organizations to cost center", map[string]any{
+		"enterprise_slug": enterpriseSlug,
+		"cost_center_id":  costCenterID,
+		"count":           len(toAdd),
+	})
 
-		for _, batch := range chunkStringSlice(toAdd, maxCostCenterResourcesPerRequest) {
-			if diags := retryCostCenterAddResources(ctx, client, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Organizations: batch}); diags.HasError() {
-				return diags
-			}
+	for _, batch := range chunkStringSlice(toAdd, maxCostCenterResourcesPerRequest) {
+		if diags := retryCostCenterAddResources(ctx, client, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Organizations: batch}); diags.HasError() {
+			return diags
 		}
 	}
 
+	d.SetId(costCenterID)
 	return nil
 }
 
@@ -205,6 +198,7 @@ func resourceGithubEnterpriseCostCenterOrganizationsImport(ctx context.Context, 
 		return nil, fmt.Errorf("invalid import ID %q: expected format <enterprise_slug>:<cost_center_id>", d.Id())
 	}
 
+	d.SetId(costCenterID)
 	if err := d.Set("enterprise_slug", enterpriseSlug); err != nil {
 		return nil, err
 	}
