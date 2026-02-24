@@ -13,11 +13,6 @@ import (
 )
 
 func TestAccGithubRepositoryPagesDataSource(t *testing.T) {
-	baseRepoVisibility := "public"
-	if testAccConf.authMode == enterprise {
-		baseRepoVisibility = "private"
-	}
-
 	t.Run("reads_pages_configuration", func(t *testing.T) {
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%spages-ds-%s", testResourcePrefix, randomID)
@@ -43,7 +38,7 @@ func TestAccGithubRepositoryPagesDataSource(t *testing.T) {
 
 				depends_on = [github_repository_pages.test]
 			}
-		`, repoName, baseRepoVisibility)
+		`, repoName, testAccConf.testRepositoryVisibility)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() {
@@ -95,7 +90,7 @@ func TestAccGithubRepositoryPagesDataSource(t *testing.T) {
 
 				depends_on = [github_repository_pages.test]
 			}
-		`, repoName, baseRepoVisibility)
+		`, repoName, testAccConf.testRepositoryVisibility)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },

@@ -15,11 +15,6 @@ import (
 )
 
 func TestAccGithubRepositoryPages(t *testing.T) {
-	baseRepoVisibility := "public"
-	if testAccConf.authMode == enterprise {
-		baseRepoVisibility = "private"
-	}
-
 	t.Run("creates_pages_with_legacy_build_type", func(t *testing.T) {
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%spages-%s", testResourcePrefix, randomID)
@@ -40,7 +35,7 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 					path   = "/"
 				}
 			}
-		`, repoName, baseRepoVisibility)
+		`, repoName, testAccConf.testRepositoryVisibility)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -75,7 +70,7 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 				repository = github_repository.test.name
 				build_type = "workflow"
 			}
-		`, repoName, baseRepoVisibility)
+		`, repoName, testAccConf.testRepositoryVisibility)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -121,13 +116,13 @@ source {
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: fmt.Sprintf(config, repoName, baseRepoVisibility, "legacy", sourceConfig),
+					Config: fmt.Sprintf(config, repoName, testAccConf.testRepositoryVisibility, "legacy", sourceConfig),
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_repository_pages.test", tfjsonpath.New("build_type"), knownvalue.StringExact("legacy")),
 					},
 				},
 				{
-					Config: fmt.Sprintf(config, repoName, baseRepoVisibility, "workflow", ""),
+					Config: fmt.Sprintf(config, repoName, testAccConf.testRepositoryVisibility, "workflow", ""),
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_repository_pages.test", tfjsonpath.New("build_type"), knownvalue.StringExact("workflow")),
 					},
@@ -163,7 +158,7 @@ source {
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: fmt.Sprintf(config, repoName, baseRepoVisibility),
+					Config: fmt.Sprintf(config, repoName, testAccConf.testRepositoryVisibility),
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_repository_pages.test", tfjsonpath.New("public"), knownvalue.Bool(false)),
 					},
@@ -203,13 +198,13 @@ source {
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: fmt.Sprintf(config, repoName, baseRepoVisibility, true),
+					Config: fmt.Sprintf(config, repoName, testAccConf.testRepositoryVisibility, true),
 					ConfigStateChecks: []statecheck.StateCheck{
 						publicValuesDiffer.AddStateValue("github_repository_pages.test", tfjsonpath.New("public")),
 					},
 				},
 				{
-					Config: fmt.Sprintf(config, repoName, baseRepoVisibility, false),
+					Config: fmt.Sprintf(config, repoName, testAccConf.testRepositoryVisibility, false),
 					ConfigStateChecks: []statecheck.StateCheck{
 						publicValuesDiffer.AddStateValue("github_repository_pages.test", tfjsonpath.New("public")),
 					},
@@ -234,7 +229,7 @@ source {
 				build_type     = "workflow"
 				https_enforced = true
 			}
-		`, repoName, baseRepoVisibility)
+		`, repoName, testAccConf.testRepositoryVisibility)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -268,7 +263,7 @@ source {
 					path   = "/"
 				}
 			}
-		`, repoName, baseRepoVisibility)
+		`, repoName, testAccConf.testRepositoryVisibility)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
