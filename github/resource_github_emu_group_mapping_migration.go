@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -60,6 +61,59 @@ func resourceGithubEMUGroupMappingStateUpgradeV0(ctx context.Context, rawState m
 	resourceID, err := buildID(strconv.FormatInt(teamID, 10), teamSlug, strconv.FormatInt(group.GetGroupID(), 10))
 	if err != nil {
 		return nil, err
+	}
+	rawState["id"] = resourceID
+
+	tflog.Trace(ctx, "GitHub EMU Group Mapping State after migration", map[string]any{"state": rawState})
+	return rawState, nil
+}
+
+func resourceGithubEMUGroupMappingV1() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"team_id": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "ID of the GitHub team.",
+			},
+			"team_slug": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Slug of the GitHub team.",
+			},
+			"group_id": {
+				Type:        schema.TypeInt,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Integer corresponding to the external group ID to be linked.",
+			},
+			"group_name": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Name of the external group.",
+			},
+			"etag": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+		},
+	}
+}
+
+func resourceGithubEMUGroupMappingStateUpgradeV1(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
+	tflog.Trace(ctx, "GitHub EMU Group Mapping State before migration v1 => v2", map[string]any{"state": rawState})
+
+	oldResourceID, ok := rawState["id"].(string)
+	if !ok {
+		return nil, fmt.Errorf("id is not a string")
+	}
+	teamID, _, groupID, err := parseID3(oldResourceID)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse ID: %w", err)
+	}
+	resourceID, err := buildID(groupID, teamID)
+	if err != nil {
+		return nil, fmt.Errorf("could not build ID: %w", err)
 	}
 	rawState["id"] = resourceID
 
