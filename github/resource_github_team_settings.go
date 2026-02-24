@@ -2,8 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
-	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -97,7 +95,7 @@ func resourceGithubTeamSettingsCreate(ctx context.Context, d *schema.ResourceDat
 	})
 	// Given a string that is either a team id or team slug, return the
 	// get the basic details of the team including node_id and slug
-	nodeId, slug, err := resolveTeamIDs(teamIDString, meta, ctx)
+	nodeId, slug, err := resolveTeamIDs(ctx, meta, teamIDString)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -291,7 +289,7 @@ func resourceGithubTeamSettingsDelete(ctx context.Context, d *schema.ResourceDat
 }
 
 func resourceGithubTeamSettingsImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	nodeId, slug, err := resolveTeamIDs(d.Id(), meta.(*Owner), ctx)
+	nodeId, slug, err := resolveTeamIDs(ctx, meta.(*Owner), d.Id())
 	if err != nil {
 		return nil, err
 	}
@@ -308,34 +306,12 @@ func resourceGithubTeamSettingsImport(ctx context.Context, d *schema.ResourceDat
 	return []*schema.ResourceData{d}, nil
 }
 
-func resolveTeamIDs(idOrSlug string, meta *Owner, ctx context.Context) (nodeId, slug string, err error) {
-	client := meta.v3client
-	orgName := meta.name
-	orgId := meta.id
-
-	teamId, parseIntErr := strconv.ParseInt(idOrSlug, 10, 64)
-	if parseIntErr != nil {
-		// The given id not an integer, assume it is a team slug
-		team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, idOrSlug)
-		if slugErr != nil {
-			return "", "", errors.New(parseIntErr.Error() + slugErr.Error())
-		}
-		return team.GetNodeID(), team.GetSlug(), nil
-	} else {
-		// The given id is an integer, assume it is a team id
-		team, _, teamIdErr := client.Teams.GetTeamByID(ctx, orgId, teamId)
-		if teamIdErr != nil {
-			// There isn't a team with the given ID, assume it is a teamslug
-			team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, idOrSlug)
-			if slugErr != nil {
-				return "", "", errors.New(teamIdErr.Error() + slugErr.Error())
-			}
-
-			return team.GetNodeID(), team.GetSlug(), nil
-		}
-
-		return team.GetNodeID(), team.GetSlug(), nil
+func resolveTeamIDs(ctx context.Context, meta *Owner, idOrSlug string) (nodeId, slug string, err error) {
+	team, err := getTeam(ctx, meta, idOrSlug)
+	if err != nil {
+		return "", "", err
 	}
+	return team.GetNodeID(), team.GetSlug(), nil
 }
 
 // resolveNotify returns the notify value from the top-level attribute or the
