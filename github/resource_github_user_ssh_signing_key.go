@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -82,7 +83,8 @@ func resourceGithubUserSshSigningKeyRead(ctx context.Context, d *schema.Resource
 	keyID := d.Get("key_id").(int64)
 	_, _, err := client.Users.GetSSHSigningKey(ctx, keyID)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -114,12 +116,13 @@ func resourceGithubUserSshSigningKeyImport(ctx context.Context, d *schema.Resour
 
 	keyID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return nil, fmt.Errorf("invalid SSH signing key ID format: %v", err)
+		return nil, fmt.Errorf("invalid SSH signing key ID format: %w", err)
 	}
 
 	key, resp, err := client.Users.GetSSHSigningKey(ctx, keyID)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				return nil, fmt.Errorf("SSH signing key with ID %d not found", keyID)
 			}
