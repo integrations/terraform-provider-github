@@ -13,3 +13,11 @@ data "github_app_token" "this" {
   installation_id = var.installation_id
   pem_file        = file(var.pem_file_path)
 }
+
+data "github_app_token" "scoped" {
+  count           = length(var.repositories) > 0 ? 1 : 0
+  app_id          = var.app_id
+  installation_id = var.installation_id
+  pem_file        = file(var.pem_file_path)
+  repositories    = var.repositories
+}
