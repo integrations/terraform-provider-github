@@ -1471,6 +1471,39 @@ func Test_expandPages(t *testing.T) {
 		}
 	})
 
+	t.Run("manages private pages feature for a repository", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%sprivate-pages-%s", testResourcePrefix, randomID)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name         = "%s"
+				auto_init    = true
+				pages {
+					source {
+						branch = "main"
+					}
+					public = false
+				}
+			}
+		`, testRepoName)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr("github_repository.test", "pages.0.public", "false"),
+		)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
+				},
+			},
+		})
+	})
+}
+
 	t.Run("forks a repository without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%sfork-%s", testResourcePrefix, randomID)
