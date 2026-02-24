@@ -153,10 +153,7 @@ func resourceGithubEMUGroupMappingRead(ctx context.Context, d *schema.ResourceDa
 	groupID := toInt64(d.Get("group_id"))
 	teamSlug := d.Get("team_slug").(string)
 
-	tflog.Debug(ctx, "Querying external groups linked to team from GitHub API", map[string]any{
-		"org_name":  orgName,
-		"team_slug": teamSlug,
-	})
+	tflog.Debug(ctx, "Querying external groups linked to team from GitHub API")
 
 	groupsList, resp, err := client.Teams.ListExternalGroupsForTeamBySlug(ctx, orgName, teamSlug)
 	if err != nil {
@@ -184,9 +181,7 @@ func resourceGithubEMUGroupMappingRead(ctx context.Context, d *schema.ResourceDa
 	group := groupsList.Groups[0]
 
 	tflog.Debug(ctx, "Successfully retrieved external group from GitHub API", map[string]any{
-		"configured_group_id": groupID,
-		"upstream_group_id":   group.GetGroupID(),
-		"group_name":          group.GetGroupName(),
+		"group_name": group.GetGroupName(),
 	})
 
 	if group.GetGroupID() != groupID {
@@ -229,11 +224,7 @@ func resourceGithubEMUGroupMappingUpdate(ctx context.Context, d *schema.Resource
 
 	if d.HasChange("team_slug") {
 
-		tflog.Debug(ctx, "Updating connected external group via GitHub API", map[string]any{
-			"org_name":  orgName,
-			"team_slug": teamSlug,
-			"group_id":  groupID,
-		})
+		tflog.Debug(ctx, "Updating connected external group via GitHub API")
 
 		group, resp, err := client.Teams.UpdateConnectedExternalGroup(ctx, orgName, teamSlug, eg)
 		if err != nil {
