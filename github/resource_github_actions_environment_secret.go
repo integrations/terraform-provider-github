@@ -54,22 +54,41 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
-				ConflictsWith: []string{"plaintext_value"},
+				RequiredWith:  []string{"value_encrypted"},
+				ConflictsWith: []string{"value", "plaintext_value"},
 				Description:   "ID of the public key used to encrypt the secret.",
+			},
+			"value": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Sensitive:    true,
+				ExactlyOneOf: []string{"value", "value_encrypted", "encrypted_value", "plaintext_value"},
+				Description:  "Plaintext value to be encrypted.",
+			},
+			"value_encrypted": {
+				Type:             schema.TypeString,
+				Optional:         true,
+				Sensitive:        true,
+				ExactlyOneOf:     []string{"value", "value_encrypted", "encrypted_value", "plaintext_value"},
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsBase64),
+				Description:      "Value encrypted with the GitHub public key, defined by key_id, in Base64 format.",
 			},
 			"encrypted_value": {
 				Type:             schema.TypeString,
 				Optional:         true,
-				ExactlyOneOf:     []string{"encrypted_value", "plaintext_value"},
+				Sensitive:        true,
+				ExactlyOneOf:     []string{"value", "value_encrypted", "encrypted_value", "plaintext_value"},
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsBase64),
 				Description:      "Encrypted value of the secret using the GitHub public key in Base64 format.",
+				Deprecated:       "Use value_encrypted and key_id.",
 			},
 			"plaintext_value": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Sensitive:    true,
-				ExactlyOneOf: []string{"encrypted_value", "plaintext_value"},
+				ExactlyOneOf: []string{"value", "value_encrypted", "encrypted_value", "plaintext_value"},
 				Description:  "Plaintext value of the secret to be encrypted.",
+				Deprecated:   "Use value.",
 			},
 			"created_at": {
 				Type:        schema.TypeString,
@@ -112,7 +131,7 @@ func resourceGithubActionsEnvironmentSecretCreate(ctx context.Context, d *schema
 	envName := d.Get("environment").(string)
 	secretName := d.Get("secret_name").(string)
 	keyID := d.Get("key_id").(string)
-	encryptedValue := d.Get("encrypted_value").(string)
+	encryptedValue, _ := resourceKeysGetOk[string](d, "value_encrypted", "encrypted_value")
 
 	escapedEnvName := url.PathEscape(envName)
 
@@ -134,7 +153,7 @@ func resourceGithubActionsEnvironmentSecretCreate(ctx context.Context, d *schema
 	}
 
 	if len(encryptedValue) == 0 {
-		plaintextValue := d.Get("plaintext_value").(string)
+		plaintextValue, _ := resourceKeysGetOk[string](d, "value", "plaintext_value")
 
 		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
 		if err != nil {
@@ -239,7 +258,7 @@ func resourceGithubActionsEnvironmentSecretUpdate(ctx context.Context, d *schema
 	envName := d.Get("environment").(string)
 	secretName := d.Get("secret_name").(string)
 	keyID := d.Get("key_id").(string)
-	encryptedValue := d.Get("encrypted_value").(string)
+	encryptedValue, _ := resourceKeysGetOk[string](d, "value_encrypted", "encrypted_value")
 
 	escapedEnvName := url.PathEscape(envName)
 
@@ -255,7 +274,7 @@ func resourceGithubActionsEnvironmentSecretUpdate(ctx context.Context, d *schema
 	}
 
 	if len(encryptedValue) == 0 {
-		plaintextValue := d.Get("plaintext_value").(string)
+		plaintextValue, _ := resourceKeysGetOk[string](d, "value", "plaintext_value")
 
 		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
 		if err != nil {
