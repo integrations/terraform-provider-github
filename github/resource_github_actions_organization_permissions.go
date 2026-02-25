@@ -12,9 +12,9 @@ import (
 
 func resourceGithubActionsOrganizationPermissions() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsOrganizationPermissionsCreateOrUpdate,
+		Create: resourceGithubActionsOrganizationPermissionsCreate,
 		Read:   resourceGithubActionsOrganizationPermissionsRead,
-		Update: resourceGithubActionsOrganizationPermissionsCreateOrUpdate,
+		Update: resourceGithubActionsOrganizationPermissionsUpdate,
 		Delete: resourceGithubActionsOrganizationPermissionsDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -137,13 +137,10 @@ func resourceGithubActionsEnabledRepositoriesObject(d *schema.ResourceData) ([]i
 	return enabled, nil
 }
 
-func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsOrganizationPermissionsCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	ctx := context.Background()
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxId, d.Id())
-	}
 
 	err := checkOrganization(meta)
 	if err != nil {
@@ -158,7 +155,7 @@ func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.Resour
 		EnabledRepositories: &enabledRepositories,
 	}
 
-	if v, ok := d.GetOk("sha_pinning_required"); ok {
+	if v, ok := d.GetOkExists("sha_pinning_required"); ok { //nolint:staticcheck,SA1019 // Use `GetOkExists` to detect explicit false for booleans.
 		actionsPermissions.SHAPinningRequired = github.Ptr(v.(bool))
 	}
 
@@ -181,6 +178,67 @@ func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.Resour
 			}
 		} else {
 			log.Printf("[DEBUG] Allowed actions config not set, skipping")
+		}
+	}
+
+	if enabledRepositories == "selected" {
+		enabledReposData, err := resourceGithubActionsEnabledRepositoriesObject(d)
+		if err != nil {
+			return err
+		}
+		_, err = client.Actions.SetEnabledReposInOrg(ctx,
+			orgName,
+			enabledReposData)
+		if err != nil {
+			return err
+		}
+	}
+
+	d.SetId(orgName)
+	return resourceGithubActionsOrganizationPermissionsRead(d, meta)
+}
+
+func resourceGithubActionsOrganizationPermissionsUpdate(d *schema.ResourceData, meta any) error {
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
+	allowedActions := d.Get("allowed_actions").(string)
+	enabledRepositories := d.Get("enabled_repositories").(string)
+
+	actionsPermissions := github.ActionsPermissions{
+		AllowedActions:      &allowedActions,
+		EnabledRepositories: &enabledRepositories,
+	}
+
+	if d.HasChange("sha_pinning_required") {
+		actionsPermissions.SHAPinningRequired = github.Ptr(d.Get("sha_pinning_required").(bool))
+	}
+
+	_, _, err = client.Actions.UpdateActionsPermissions(ctx,
+		orgName,
+		actionsPermissions)
+	if err != nil {
+		return err
+	}
+
+	if allowedActions == "selected" {
+		actionsAllowedData := resourceGithubActionsOrganizationAllowedObject(d)
+		if actionsAllowedData != nil {
+			log.Printf("[DEBUG] Update `actionsAllowedData` configuration.")
+			_, _, err = client.Actions.UpdateActionsAllowed(ctx,
+				orgName,
+				*actionsAllowedData)
+			if err != nil {
+				return err
+			}
+		} else {
+			log.Printf("[DEBUG] Skip updating `actionsAllowedData` because no configuration is set.")
 		}
 	}
 

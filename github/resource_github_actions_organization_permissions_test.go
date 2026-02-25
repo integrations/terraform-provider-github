@@ -6,6 +6,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
@@ -99,6 +102,62 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 					ResourceName:      "github_actions_organization_permissions.test",
 					ImportState:       true,
 					ImportStateVerify: true,
+				},
+			},
+		})
+	})
+
+	t.Run("test setting sha_pinning_required to true", func(t *testing.T) {
+		enabledRepositories := "all"
+
+		config := fmt.Sprintf(`
+			resource "github_actions_organization_permissions" "test" {
+				allowed_actions      = "all"
+				enabled_repositories = "%s"
+				sha_pinning_required = true
+			}
+		`, enabledRepositories)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_organization_permissions.test", tfjsonpath.New("sha_pinning_required"), knownvalue.Bool(true)),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("test setting sha_pinning_required to false", func(t *testing.T) {
+		enabledRepositories := "all"
+
+		configTmpl := `
+			resource "github_actions_organization_permissions" "test" {
+				allowed_actions      = "all"
+				enabled_repositories = "%s"
+				sha_pinning_required = %t
+			}
+		`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(configTmpl, enabledRepositories, true),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_organization_permissions.test", tfjsonpath.New("sha_pinning_required"), knownvalue.Bool(true)),
+					},
+				},
+				{
+					Config: fmt.Sprintf(configTmpl, enabledRepositories, false),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_organization_permissions.test", tfjsonpath.New("sha_pinning_required"), knownvalue.Bool(false)),
+					},
 				},
 			},
 		})
