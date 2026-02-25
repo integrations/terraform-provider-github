@@ -1,0 +1,1 @@
+terraform import github_organization_immutable_releases.example github_organization_name

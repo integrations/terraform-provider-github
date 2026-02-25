@@ -219,6 +219,7 @@ func NewProvider(version, commit string) func() *schema.Provider {
 				"github_organization_role_user":                                         resourceGithubOrganizationRoleUser(),
 				"github_organization_role_team_assignment":                              resourceGithubOrganizationRoleTeamAssignment(),
 				"github_organization_ruleset":                                           resourceGithubOrganizationRuleset(),
+				"github_organization_immutable_releases":                                resourceGithubOrganizationImmutableReleases(),
 				"github_organization_security_manager":                                  resourceGithubOrganizationSecurityManager(),
 				"github_organization_settings":                                          resourceGithubOrganizationSettings(),
 				"github_organization_webhook":                                           resourceGithubOrganizationWebhook(),
