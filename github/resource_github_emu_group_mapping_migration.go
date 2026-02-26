@@ -31,10 +31,9 @@ func resourceGithubEMUGroupMappingV0() *schema.Resource {
 }
 
 func resourceGithubEMUGroupMappingStateUpgradeV0(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
+	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	tflog.Trace(ctx, "GitHub EMU Group Mapping State before migration", map[string]any{"state": rawState, "owner": orgName})
-
-	client := meta.(*Owner).v3client
 
 	teamSlug := rawState["team_slug"].(string)
 	// We need to bypass the etag because we need to get the latest group
@@ -52,7 +51,7 @@ func resourceGithubEMUGroupMappingStateUpgradeV0(ctx context.Context, rawState m
 	}
 
 	group := groupsList.Groups[0]
-	teamID, err := lookupTeamID(ctx, meta.(*Owner), teamSlug)
+	teamID, err := lookupTeamID(ctx, client, orgName, teamSlug)
 	if err != nil {
 		return nil, err
 	}

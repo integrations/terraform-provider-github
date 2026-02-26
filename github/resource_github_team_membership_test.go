@@ -102,7 +102,7 @@ func testAccCheckGithubTeamMembershipDestroy(s *terraform.State) error {
 			return err
 		}
 
-		teamId, err := getTeamID(teamIdString, meta)
+		teamId, err := getTeamID(context.Background(), meta, teamIdString)
 		if err != nil {
 			return unconvertibleIdErr(teamIdString, err)
 		}
@@ -144,7 +144,7 @@ func testAccCheckGithubTeamMembershipExists(ctx context.Context, n string, membe
 			return err
 		}
 
-		teamId, err := getTeamID(teamIdString, meta)
+		teamId, err := getTeamID(context.Background(), meta, teamIdString)
 		if err != nil {
 			return unconvertibleIdErr(teamIdString, err)
 		}
@@ -179,7 +179,7 @@ func testAccCheckGithubTeamMembershipRoleState(ctx context.Context, n, expected 
 		if err != nil {
 			return err
 		}
-		teamId, err := getTeamID(teamIdString, meta)
+		teamId, err := getTeamID(context.Background(), meta, teamIdString)
 		if err != nil {
 			return unconvertibleIdErr(teamIdString, err)
 		}
