@@ -1,0 +1,29 @@
+---
+page_title: "GitHub: github_repository_teams"
+description: |-
+  Get teams which have permission on the given repo.
+---
+
+{{/* This template serves as a starting point for documentation generation, and can be customized with hardcoded values and/or doc gen templates.
+
+For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
+
+# github\_repository\_teams
+
+Use this data source to retrieve the list of teams which have access to a GitHub repository.
+
+## Example Usage
+
+{{tffile "examples/data-sources/repository_teams/example_1.tf"}}
+
+## Argument Reference
+
+* `name` - (Optional) The name of the repository.
+* `full_name` - (Optional) Full name of the repository (in `org/name` format).
+
+## Attributes Reference
+
+* `teams` - List of teams which have access to the repository
+  * `name` - Team name
+  * `slug` - Team slug
+  * `permission` - Team permission
