@@ -1,0 +1,45 @@
+---
+page_title: "GitHub: github_user"
+description: |-
+  Get information on a GitHub user.
+---
+
+{{/* This template serves as a starting point for documentation generation, and can be customized with hardcoded values and/or doc gen templates.
+
+For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
+
+# github\_user
+
+Use this data source to retrieve information about a GitHub user.
+
+## Example Usage
+
+{{tffile "examples/data-sources/user/example_1.tf"}}
+
+## Argument Reference
+
+* `username` - (Required) The username. Use an empty string `""` to retrieve information about the currently authenticated user.
+
+## Attributes Reference
+
+* `id` - the ID of the user.
+* `node_id` - the Node ID of the user.
+* `login` - the user's login.
+* `avatar_url` - the user's avatar URL.
+* `gravatar_id` - the user's gravatar ID.
+* `site_admin` - whether the user is a GitHub admin.
+* `name` - the user's full name.
+* `company` - the user's company name.
+* `blog` - the user's blog location.
+* `location` - the user's location.
+* `email` - the user's email.
+* `gpg_keys` - list of user's GPG keys.
+* `ssh_keys` - list of user's SSH keys.
+* `bio` - the user's bio.
+* `public_repos` - the number of public repositories.
+* `public_gists` - the number of public gists.
+* `followers` - the number of followers.
+* `following` - the number of following users.
+* `created_at` - the creation date.
+* `updated_at` - the update date.
+* `suspended_at` - the suspended date if the user is suspended.

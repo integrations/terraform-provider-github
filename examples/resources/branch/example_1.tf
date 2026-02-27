@@ -1,0 +1,4 @@
+resource "github_branch" "development" {
+  repository = "example"
+  branch     = "development"
+}

@@ -1,0 +1,27 @@
+---
+page_title: "GitHub: github_project_column"
+description: |-
+  Creates and manages project columns for GitHub projects
+---
+
+{{/* This template serves as a starting point for documentation generation, and can be customized with hardcoded values and/or doc gen templates.
+
+For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
+
+# github_project_column
+
+!> **Warning:** This resource no longer works as the [Projects (classic) REST API](https://docs.github.com/en/rest/projects/projects?apiVersion=2022-11-28) has been [removed](https://github.blog/changelog/2024-05-23-sunset-notice-projects-classic/) and as such has been deprecated. It will be removed in a future release.
+
+This resource allows you to create and manage columns for GitHub projects.
+
+## Example Usage
+
+{{tffile "examples/resources/project_column/example_1.tf"}}
+
+## Argument Reference
+
+The following arguments are supported:
+
+* `project_id` - (Required) The ID of an existing project that the column will be created in.
+
+* `name` - (Required) The name of the column.

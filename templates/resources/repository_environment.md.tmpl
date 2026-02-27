@@ -1,0 +1,69 @@
+---
+page_title: "GitHub: github_repository_environment"
+description: |-
+  Creates and manages environments for GitHub repositories
+---
+
+{{/* This template serves as a starting point for documentation generation, and can be customized with hardcoded values and/or doc gen templates.
+
+For example, the {{ .SchemaMarkdown }} template can be used to replace manual schema documentation if descriptions of schema attributes are added in the provider source code. */ -}}
+
+# github_repository_environment
+
+This resource allows you to create and manage environments for a GitHub repository.
+
+## Example Usage
+
+{{tffile "examples/resources/repository_environment/example_1.tf"}}
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `environment` - (Required) The name of the environment.
+
+- `repository` - (Required) The repository of the environment.
+
+- `wait_timer` - (Optional) Amount of time to delay a job after the job is initially triggered.
+
+- `can_admins_bypass` - (Optional) Can repository admins bypass the environment protections. Defaults to `true`.
+
+- `prevent_self_review` - (Optional) Whether or not a user who created the job is prevented from approving their own job. Defaults to `false`.
+
+### Reviewers
+
+The `reviewers` block supports the following:
+
+- `teams` - (Optional) Up to 6 IDs for teams who may review jobs that reference the environment. Reviewers must have at least read access to the repository. Only one of the required reviewers needs to approve the job for it to proceed.
+
+- `users` - (Optional) Up to 6 IDs for users who may review jobs that reference the environment. Reviewers must have at least read access to the repository. Only one of the required reviewers needs to approve the job for it to proceed.
+
+#### Deployment Branch Policy
+
+The `deployment_branch_policy` block supports the following:
+
+- `protected_branches` - (Required) Whether only branches with branch protection rules can deploy to this environment.
+
+- `custom_branch_policies` - (Required) Whether only branches that match the specified name patterns can deploy to this environment.
+
+## Attributes Reference
+
+- `repository_id` - The ID of the repository.
+
+## Import
+
+This resource can be imported using an ID made of the repository name and environment name (any `:` in the environment name need to be escaped as `??`) separated by a `:`.
+
+### Import Block
+
+The following import block imports an environment called `myenv` for the repo `myrepo` to a `github_repository_environment` resource named `example`.
+
+{{tffile "examples/resources/repository_environment/example_2.tf"}}
+
+### Import Command
+
+The following command imports an environment called `myenv` for the repo `myrepo` to a `github_repository_environment` resource named `example`.
+
+```shell
+terraform import github_repository_environment.example myrepo:myenv
+```
