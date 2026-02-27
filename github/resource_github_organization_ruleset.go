@@ -94,7 +94,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Parameters for an organization ruleset condition. `ref_name` is required for `branch` and `tag` targets, but must not be set for `push` targets. One of `repository_name` or `repository_id` is always required.",
+				Description: "Parameters for an organization ruleset condition. `ref_name` is required alongside one of `repository_name`, `repository_id` or `repository_property` for branch and tag rulesets. The push rulesets conditions object does not require the ref_name property.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ref_name": {
@@ -124,12 +124,12 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							},
 						},
 						"repository_name": {
-							Type:         schema.TypeList,
-							Optional:     true,
-							MaxItems:     1,
-							Description:  "Targets repositories that match the specified name patterns.",
-							ExactlyOneOf: []string{"conditions.0.repository_id"},
-							AtLeastOneOf: []string{"conditions.0.repository_id"},
+							Type:          schema.TypeList,
+							Optional:      true,
+							MaxItems:      1,
+							Description:   "Targets repositories that match the specified name patterns.",
+							ConflictsWith: []string{"conditions.0.repository_id", "conditions.0.repository_property"},
+							AtLeastOneOf:  []string{"conditions.0.repository_name", "conditions.0.repository_id", "conditions.0.repository_property"},
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -158,11 +158,83 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							},
 						},
 						"repository_id": {
-							Type:        schema.TypeList,
-							Optional:    true,
-							Description: "The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass.",
+							Type:          schema.TypeList,
+							Optional:      true,
+							Description:   "The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass.",
+							ConflictsWith: []string{"conditions.0.repository_name", "conditions.0.repository_property"},
+							AtLeastOneOf:  []string{"conditions.0.repository_name", "conditions.0.repository_id", "conditions.0.repository_property"},
 							Elem: &schema.Schema{
 								Type: schema.TypeInt,
+							},
+						},
+						"repository_property": {
+							Type:          schema.TypeList,
+							Optional:      true,
+							MaxItems:      1,
+							ConflictsWith: []string{"conditions.0.repository_name", "conditions.0.repository_id"},
+							AtLeastOneOf:  []string{"conditions.0.repository_name", "conditions.0.repository_id", "conditions.0.repository_property"},
+							Description:   "Condition to target repositories by property.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"include": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										Description: "The repository properties and values to include. All of these properties must match for the condition to pass.",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"property_name": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The name of the repository property to target.",
+												},
+												"property_value": {
+													Type:        schema.TypeList,
+													Required:    true,
+													Description: "The values to match for the repository property.",
+													Elem: &schema.Schema{
+														Type: schema.TypeString,
+													},
+												},
+												"source": {
+													Type:         schema.TypeString,
+													Optional:     true,
+													Default:      "custom",
+													Description:  "The source of the repository property. Defaults to `custom` if not specified. Can be one of: `custom`, `system`.",
+													ValidateFunc: validation.StringInSlice([]string{"custom", "system"}, false),
+												},
+											},
+										},
+									},
+									"exclude": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										Description: "The repository properties and values to exclude. The condition will not pass if any of these properties match.",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"property_name": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The name of the repository property to target.",
+												},
+												"property_value": {
+													Type:        schema.TypeList,
+													Required:    true,
+													Description: "The values to match for the repository property.",
+													Elem: &schema.Schema{
+														Type: schema.TypeString,
+													},
+												},
+												"source": {
+													Type:         schema.TypeString,
+													Optional:     true,
+													Default:      "custom",
+													Description:  "The source of the repository property. Defaults to `custom` if not specified. Can be one of: `custom`, `system`.",
+													ValidateFunc: validation.StringInSlice([]string{"custom", "system"}, false),
+												},
+											},
+										},
+									},
+								},
 							},
 						},
 					},

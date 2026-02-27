@@ -250,6 +250,53 @@ func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions
 			}
 
 			rulesetConditions.RepositoryID = &github.RepositoryRulesetRepositoryIDsConditionParameters{RepositoryIDs: repositoryIDs}
+		} else if v, ok := inputConditions["repository_property"].([]any); ok && v != nil && len(v) != 0 {
+			repositoryPropertyInput := v[0].(map[string]any)
+
+			buildTargets := func(items []any) []*github.RepositoryRulesetRepositoryPropertyTargetParameters {
+				targets := make([]*github.RepositoryRulesetRepositoryPropertyTargetParameters, 0)
+				for _, item := range items {
+					if item == nil {
+						continue
+					}
+					itemMap := item.(map[string]any)
+
+					propertyValues := make([]string, 0)
+					if values, ok := itemMap["property_value"].([]any); ok {
+						for _, value := range values {
+							if value != nil {
+								propertyValues = append(propertyValues, value.(string))
+							}
+						}
+					}
+
+					sourceValue := itemMap["source"].(string)
+
+					targets = append(targets, &github.RepositoryRulesetRepositoryPropertyTargetParameters{
+						Name:           itemMap["property_name"].(string),
+						PropertyValues: propertyValues,
+						Source:         &sourceValue,
+					})
+				}
+				return targets
+			}
+
+			includeTargets := make([]*github.RepositoryRulesetRepositoryPropertyTargetParameters, 0)
+			if includes, ok := repositoryPropertyInput["include"].([]any); ok {
+				includeTargets = buildTargets(includes)
+			}
+
+			excludeTargets := make([]*github.RepositoryRulesetRepositoryPropertyTargetParameters, 0)
+			if excludes, ok := repositoryPropertyInput["exclude"].([]any); ok {
+				excludeTargets = buildTargets(excludes)
+			}
+
+			if len(includeTargets) > 0 || len(excludeTargets) > 0 {
+				rulesetConditions.RepositoryProperty = &github.RepositoryRulesetRepositoryPropertyConditionParameters{
+					Include: includeTargets,
+					Exclude: excludeTargets,
+				}
+			}
 		}
 	}
 
@@ -295,6 +342,48 @@ func flattenConditions(ctx context.Context, conditions *github.RepositoryRuleset
 
 		if conditions.RepositoryID != nil {
 			conditionsMap["repository_id"] = conditions.RepositoryID.RepositoryIDs
+		}
+
+		if conditions.RepositoryProperty != nil {
+			repositoryPropertyMap := make(map[string]any)
+
+			// Flatten include
+			includeSlice := make([]map[string]any, 0)
+			for _, item := range conditions.RepositoryProperty.Include {
+				if item != nil {
+					itemMap := map[string]any{
+						"property_name":  item.Name,
+						"property_value": item.PropertyValues,
+					}
+					if item.Source != nil {
+						itemMap["source"] = *item.Source
+					} else {
+						itemMap["source"] = "custom"
+					}
+					includeSlice = append(includeSlice, itemMap)
+				}
+			}
+			repositoryPropertyMap["include"] = includeSlice
+
+			// Flatten exclude
+			excludeSlice := make([]map[string]any, 0)
+			for _, item := range conditions.RepositoryProperty.Exclude {
+				if item != nil {
+					itemMap := map[string]any{
+						"property_name":  item.Name,
+						"property_value": item.PropertyValues,
+					}
+					if item.Source != nil {
+						itemMap["source"] = *item.Source
+					} else {
+						itemMap["source"] = "custom"
+					}
+					excludeSlice = append(excludeSlice, itemMap)
+				}
+			}
+			repositoryPropertyMap["exclude"] = excludeSlice
+
+			conditionsMap["repository_property"] = []any{repositoryPropertyMap}
 		}
 	}
 
