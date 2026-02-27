@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	github_ratelimit "github.com/gofri/go-github-ratelimit/v2/github_ratelimit"
 	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	"github.com/shurcooL/githubv4"
@@ -27,6 +28,7 @@ type Config struct {
 	RetryableErrors  map[int]bool
 	MaxRetries       int
 	ParallelRequests bool
+	RateLimiter      string // "modern" or "legacy"
 }
 
 type Owner struct {
@@ -72,6 +74,21 @@ func RateLimitedHTTPClient(client *http.Client, writeDelay, readDelay, retryDela
 	return client
 }
 
+// ModernRateLimitedHTTPClient creates an HTTP client that uses go-github-ratelimit
+// for automatic GitHub API rate limit handling. When using this client, the
+// read_delay_ms, write_delay_ms, and parallel_requests settings are ignored
+// because rate limiting is handled automatically by the library.
+func ModernRateLimitedHTTPClient(client *http.Client, retryDelay time.Duration, retryableErrors map[int]bool, maxRetries int) *http.Client {
+	client.Transport = NewEtagTransport(client.Transport)
+	rateLimitClient := github_ratelimit.NewClient(client.Transport)
+
+	if maxRetries > 0 {
+		rateLimitClient.Transport = NewRetryTransport(rateLimitClient.Transport, WithRetryDelay(retryDelay), WithRetryableErrors(retryableErrors), WithMaxRetries(maxRetries))
+	}
+
+	return rateLimitClient
+}
+
 func (c *Config) AuthenticatedHTTPClient() *http.Client {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
@@ -79,6 +96,9 @@ func (c *Config) AuthenticatedHTTPClient() *http.Client {
 	)
 	client := oauth2.NewClient(ctx, ts)
 
+	if c.RateLimiter == "modern" {
+		return ModernRateLimitedHTTPClient(client, c.RetryDelay, c.RetryableErrors, c.MaxRetries)
+	}
 	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay, c.RetryDelay, c.ParallelRequests, c.RetryableErrors, c.MaxRetries)
 }
 
@@ -88,6 +108,9 @@ func (c *Config) Anonymous() bool {
 
 func (c *Config) AnonymousHTTPClient() *http.Client {
 	client := &http.Client{Transport: &http.Transport{}}
+	if c.RateLimiter == "modern" {
+		return ModernRateLimitedHTTPClient(client, c.RetryDelay, c.RetryableErrors, c.MaxRetries)
+	}
 	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay, c.RetryDelay, c.ParallelRequests, c.RetryableErrors, c.MaxRetries)
 }
 
