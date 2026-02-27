@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v83/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
@@ -18,12 +19,12 @@ type MemberChange struct {
 
 func resourceGithubTeamMembers() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubTeamMembersCreate,
-		Read:   resourceGithubTeamMembersRead,
-		Update: resourceGithubTeamMembersUpdate,
-		Delete: resourceGithubTeamMembersDelete,
+		CreateContext: resourceGithubTeamMembersCreate,
+		ReadContext:   resourceGithubTeamMembersRead,
+		UpdateContext: resourceGithubTeamMembersUpdate,
+		DeleteContext: resourceGithubTeamMembersDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourceGithubTeamMembersImport,
+			StateContext: resourceGithubTeamMembersImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -59,16 +60,16 @@ func resourceGithubTeamMembers() *schema.Resource {
 	}
 }
 
-func resourceGithubTeamMembersCreate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
+func resourceGithubTeamMembersCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
+	orgId := meta.id
 
 	teamIdString := d.Get("team_id").(string)
-	teamId, err := getTeamID(teamIdString, meta)
+	teamId, err := getTeamID(ctx, meta, teamIdString)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	ctx := context.Background()
 
 	members := d.Get("members").(*schema.Set)
 	for _, mMap := range members.List() {
@@ -86,25 +87,25 @@ func resourceGithubTeamMembersCreate(d *schema.ResourceData, meta any) error {
 			},
 		)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	d.SetId(teamIdString)
 
-	return resourceGithubTeamMembersRead(d, meta)
+	return resourceGithubTeamMembersRead(ctx, d, meta)
 }
 
-func resourceGithubTeamMembersUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
+func resourceGithubTeamMembersUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
+	orgId := meta.id
 
 	teamIdString := d.Get("team_id").(string)
-	teamId, err := getTeamID(teamIdString, meta)
+	teamId, err := getTeamID(ctx, meta, teamIdString)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	ctx := context.Background()
 
 	o, n := d.GetChange("members")
 	vals := make(map[string]*MemberChange)
@@ -146,7 +147,7 @@ func resourceGithubTeamMembersUpdate(d *schema.ResourceData, meta any) error {
 
 			_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgId, teamId, username)
 			if err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 		}
 
@@ -163,38 +164,38 @@ func resourceGithubTeamMembersUpdate(d *schema.ResourceData, meta any) error {
 				},
 			)
 			if err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 		}
 	}
 
 	d.SetId(teamIdString)
 
-	return resourceGithubTeamMembersRead(d, meta)
+	return resourceGithubTeamMembersRead(ctx, d, meta)
 }
 
-func resourceGithubTeamMembersRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v4client
-	orgName := meta.(*Owner).name
+func resourceGithubTeamMembersRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v4client
+	orgName := meta.name
+
 	teamIdString := d.Get("team_id").(string)
 	if teamIdString == "" && !d.IsNewResource() {
 		log.Printf("[DEBUG] Importing team with id %q", d.Id())
 		teamIdString = d.Id()
 	}
 
-	teamSlug, err := getTeamSlug(teamIdString, meta)
+	teamSlug, err := getTeamSlug(ctx, meta, teamIdString)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// We intentionally set these early to allow reconciliation
 	// from an upstream bug which emptied team_id in state
 	// See https://github.com/integrations/terraform-provider-github/issues/323
 	if err := d.Set("team_id", teamIdString); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Reading team members: %s", teamIdString)
 	var q struct {
@@ -225,7 +226,7 @@ func resourceGithubTeamMembersRead(d *schema.ResourceData, meta any) error {
 	var teamMembersAndMaintainers []any
 	for {
 		if err := client.Query(ctx, &q, variables); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		// Add all members to the list
@@ -242,23 +243,24 @@ func resourceGithubTeamMembersRead(d *schema.ResourceData, meta any) error {
 	}
 
 	if err := d.Set("members", teamMembersAndMaintainers); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubTeamMembersDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
+func resourceGithubTeamMembersDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
+	orgId := meta.id
+
 	teamIdString := d.Get("team_id").(string)
-	teamId, err := getTeamID(teamIdString, meta)
+	teamId, err := getTeamID(ctx, meta, teamIdString)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	members := d.Get("members").(*schema.Set)
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	for _, member := range members.List() {
 		mem := member.(map[string]any)
@@ -268,15 +270,17 @@ func resourceGithubTeamMembersDelete(d *schema.ResourceData, meta any) error {
 
 		_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgId, teamId, username)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	return nil
 }
 
-func resourceGithubTeamMembersImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	teamId, err := getTeamID(d.Id(), meta)
+func resourceGithubTeamMembersImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+	meta := m.(*Owner)
+
+	teamId, err := getTeamID(ctx, meta, d.Id())
 	if err != nil {
 		return nil, err
 	}
