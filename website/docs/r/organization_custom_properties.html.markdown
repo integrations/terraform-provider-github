@@ -65,13 +65,26 @@ resource "github_organization_custom_properties" "archived" {
 }
 ```
 
+~> **Note:** This resource requires the provider to be configured with an organization owner. Individual user accounts are not supported.
+
+## Argument Reference
+
+```hcl
+resource "github_organization_custom_properties" "docs_link" {
+  property_name = "docs_link"
+  value_type    = "url"
+  required      = false
+  description   = "Link to the documentation for this repository"
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
 
-* `property_name` - (Required) The name of the custom property.
+* `property_name` - (Required) The name of the custom property. Changing this will force the resource to be recreated.
 
-* `value_type` - (Optional) The type of the custom property. Can be one of `string`, `single_select`, `multi_select`, or `true_false`. Defaults to `string`.
+* `value_type` - (Required) The type of the custom property. Can be one of `string`, `single_select`, `multi_select`, `true_false`, or `url`. Changing this will force the resource to be recreated.
 
 * `required` - (Optional) Whether the custom property is required. Defaults to `false`.
 
@@ -79,7 +92,7 @@ The following arguments are supported:
 
 * `default_value` - (Optional) The default value of the custom property.
 
-* `allowed_values` - (Optional) List of allowed values for the custom property. Only applicable when `value_type` is `single_select` or `multi_select`.
+* `allowed_values` - (Optional) List of allowed values for the custom property. Required when `value_type` is `single_select` or `multi_select`, and must not be set for other value types.
 
 * `values_editable_by` - (Optional) Who can edit the values of the custom property. Can be one of `org_actors` or `org_and_repo_actors`. When set to `org_actors` (the default), only organization owners can edit the property values on repositories. When set to `org_and_repo_actors`, both organization owners and repository administrators with the custom properties permission can edit the values.
 
