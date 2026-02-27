@@ -20,9 +20,9 @@ func TestAccGithubActionsSecretsDataSource(t *testing.T) {
 			}
 
 			resource "github_actions_secret" "test" {
-				secret_name 		= "secret_1"
-				repository  		= github_repository.test.name
-				plaintext_value = "foo"
+				secret_name = "secret_1"
+				repository  = github_repository.test.name
+				value       = "foo"
 			}
 		`, repoName)
 
