@@ -6,7 +6,7 @@ package github
 // 	"strconv"
 // 	"testing"
 
-// 	"github.com/google/go-github/v83/github"
+// 	"github.com/google/go-github/v84/github"
 // 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 // 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 // )

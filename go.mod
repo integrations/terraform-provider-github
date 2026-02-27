@@ -1,10 +1,10 @@
 module github.com/integrations/terraform-provider-github/v6
 
-go 1.24.4
+go 1.25.0
 
 require (
 	github.com/go-jose/go-jose/v3 v3.0.4
-	github.com/google/go-github/v83 v83.0.0
+	github.com/google/go-github/v84 v84.0.0
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-cty v1.5.0
 	github.com/hashicorp/terraform-plugin-log v0.10.0
