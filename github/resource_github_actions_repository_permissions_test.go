@@ -6,6 +6,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
@@ -93,6 +96,76 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 					ResourceName:      "github_actions_repository_permissions.test",
 					ImportState:       true,
 					ImportStateVerify: true,
+				},
+			},
+		})
+	})
+
+	t.Run("test setting sha_pinning_required to true", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-perms-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name        = "%[1]s"
+				description = "Set sha_pinning_required to true for github_repository, %[1]s."
+				topics		= ["terraform", "testing"]
+			}
+
+			resource "github_actions_repository_permissions" "test" {
+				allowed_actions      = "all"
+				repository           = github_repository.test.name
+				sha_pinning_required = true
+			}
+		`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_repository_permissions.test", tfjsonpath.New("sha_pinning_required"), knownvalue.Bool(true)),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("test setting sha_pinning_required to false", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-perms-%s", testResourcePrefix, randomID)
+
+		configTmpl := `
+			resource "github_repository" "test" {
+				name        = "%[1]s"
+				description = "Set sha_pinning_required to false for github_repository, %[1]s."
+				topics		= ["terraform", "testing"]
+			}
+
+			resource "github_actions_repository_permissions" "test" {
+				allowed_actions      = "all"
+				repository           = github_repository.test.name
+				sha_pinning_required = %[2]t
+			}
+		`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(configTmpl, repoName, true),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_repository_permissions.test", tfjsonpath.New("sha_pinning_required"), knownvalue.Bool(true)),
+					},
+				},
+				{
+					Config: fmt.Sprintf(configTmpl, repoName, false),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_repository_permissions.test", tfjsonpath.New("sha_pinning_required"), knownvalue.Bool(false)),
+					},
 				},
 			},
 		})

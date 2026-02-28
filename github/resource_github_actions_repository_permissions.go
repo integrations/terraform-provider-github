@@ -11,9 +11,9 @@ import (
 
 func resourceGithubActionsRepositoryPermissions() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsRepositoryPermissionsCreateOrUpdate,
+		Create: resourceGithubActionsRepositoryPermissionsCreate,
 		Read:   resourceGithubActionsRepositoryPermissionsRead,
-		Update: resourceGithubActionsRepositoryPermissionsCreateOrUpdate,
+		Update: resourceGithubActionsRepositoryPermissionsUpdate,
 		Delete: resourceGithubActionsRepositoryPermissionsDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -108,15 +108,12 @@ func resourceGithubActionsRepositoryAllowedObject(d *schema.ResourceData) *githu
 	return allowed
 }
 
-func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsRepositoryPermissionsCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	ctx := context.Background()
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxId, d.Id())
-	}
 
 	allowedActions := d.Get("allowed_actions").(string)
 	enabled := d.Get("enabled").(bool)
@@ -131,7 +128,7 @@ func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.Resource
 		repoActionPermissions.AllowedActions = &allowedActions
 	}
 
-	if v, ok := d.GetOk("sha_pinning_required"); ok {
+	if v, ok := d.GetOkExists("sha_pinning_required"); ok { //nolint:staticcheck,SA1019 // Use `GetOkExists` to detect explicit false for booleans.
 		repoActionPermissions.SHAPinningRequired = github.Ptr(v.(bool))
 	}
 
@@ -157,6 +154,59 @@ func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.Resource
 			}
 		} else {
 			log.Printf("[DEBUG] Allowed actions config not set, skipping")
+		}
+	}
+
+	d.SetId(repoName)
+	return resourceGithubActionsRepositoryPermissionsRead(d, meta)
+}
+
+func resourceGithubActionsRepositoryPermissionsUpdate(d *schema.ResourceData, meta any) error {
+	client := meta.(*Owner).v3client
+
+	owner := meta.(*Owner).name
+	repoName := d.Get("repository").(string)
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	allowedActions := d.Get("allowed_actions").(string)
+	enabled := d.Get("enabled").(bool)
+	log.Printf("[DEBUG] The `enabled` value of `allowedActions` is %t.", enabled)
+
+	repoActionPermissions := github.ActionsPermissionsRepository{
+		Enabled: &enabled,
+	}
+
+	// Specify `allowed_actions` only if actions are enabled.
+	if enabled {
+		repoActionPermissions.AllowedActions = &allowedActions
+	}
+
+	if d.HasChange("sha_pinning_required") {
+		repoActionPermissions.SHAPinningRequired = github.Ptr(d.Get("sha_pinning_required").(bool))
+	}
+
+	_, _, err := client.Repositories.UpdateActionsPermissions(ctx,
+		owner,
+		repoName,
+		repoActionPermissions,
+	)
+	if err != nil {
+		return err
+	}
+
+	if allowedActions == "selected" {
+		actionsAllowedData := resourceGithubActionsRepositoryAllowedObject(d)
+		if actionsAllowedData != nil {
+			log.Printf("[DEBUG] Update `actionsAllowedData` configuration.")
+			_, _, err = client.Repositories.EditActionsAllowed(ctx,
+				owner,
+				repoName,
+				*actionsAllowedData)
+			if err != nil {
+				return err
+			}
+		} else {
+			log.Printf("[DEBUG] Skip updating `actionsAllowedData` because no configuration is set.")
 		}
 	}
 
