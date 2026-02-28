@@ -2,11 +2,12 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -46,7 +47,7 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 							Optional:   true,
 							Default:    false,
 							Deprecated: "Use enforce_admins instead",
-							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+							DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
 								return true
 							},
 						},
@@ -59,6 +60,7 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 						"contexts": {
 							Type:       schema.TypeSet,
 							Optional:   true,
+							Computed:   true,
 							Deprecated: "GitHub is deprecating the use of `contexts`. Use a `checks` array instead.",
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
@@ -67,10 +69,12 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 						"checks": {
 							Type:        schema.TypeSet,
 							Optional:    true,
+							Computed:    true,
 							Description: "The list of status checks to require in order to merge into this branch. No status checks are required by default. Checks should be strings containing the 'context' and 'app_id' like so 'context:app_id'",
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},
+							ConflictsWith: []string{"required_status_checks.0.contexts"},
 						},
 					},
 				},
@@ -88,7 +92,7 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 							Optional:   true,
 							Default:    false,
 							Deprecated: "Use enforce_admins instead",
-							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+							DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
 								return true
 							},
 						},
@@ -126,7 +130,7 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 							Optional:         true,
 							Default:          1,
 							Description:      "Require 'x' number of approvals to satisfy branch protection requirements. If this is specified it must be a number between 0-6.",
-							ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 6), "required_approving_review_count"),
+							ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 6)),
 						},
 						"require_last_push_approval": {
 							Type:        schema.TypeBool,
@@ -215,7 +219,7 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 	}
 }
 
-func resourceGithubBranchProtectionV3Create(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubBranchProtectionV3Create(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -256,7 +260,7 @@ func resourceGithubBranchProtectionV3Create(d *schema.ResourceData, meta interfa
 	return resourceGithubBranchProtectionV3Read(d, meta)
 }
 
-func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -278,10 +282,11 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta interface
 	githubProtection, resp, err := client.Repositories.GetBranchProtection(ctx,
 		orgName, repoName, branch)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				if err := requireSignedCommitsRead(d, meta); err != nil {
-					return fmt.Errorf("error setting signed commit restriction: %v", err)
+					return fmt.Errorf("error setting signed commit restriction: %w", err)
 				}
 				return nil
 			}
@@ -315,25 +320,25 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta interface
 	}
 
 	if err := flattenAndSetRequiredStatusChecks(d, githubProtection); err != nil {
-		return fmt.Errorf("error setting required_status_checks: %v", err)
+		return fmt.Errorf("error setting required_status_checks: %w", err)
 	}
 
 	if err := flattenAndSetRequiredPullRequestReviews(d, githubProtection); err != nil {
-		return fmt.Errorf("error setting required_pull_request_reviews: %v", err)
+		return fmt.Errorf("error setting required_pull_request_reviews: %w", err)
 	}
 
 	if err := flattenAndSetRestrictions(d, githubProtection); err != nil {
-		return fmt.Errorf("error setting restrictions: %v", err)
+		return fmt.Errorf("error setting restrictions: %w", err)
 	}
 
 	if err := requireSignedCommitsRead(d, meta); err != nil {
-		return fmt.Errorf("error setting signed commit restriction: %v", err)
+		return fmt.Errorf("error setting signed commit restriction: %w", err)
 	}
 
 	return nil
 }
 
-func resourceGithubBranchProtectionV3Update(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubBranchProtectionV3Update(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
@@ -387,7 +392,7 @@ func resourceGithubBranchProtectionV3Update(d *schema.ResourceData, meta interfa
 	return resourceGithubBranchProtectionV3Read(d, meta)
 }
 
-func resourceGithubBranchProtectionV3Delete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubBranchProtectionV3Delete(d *schema.ResourceData, meta any) error {
 	err := checkOrganization(meta)
 	if err != nil {
 		return err

@@ -1,22 +1,15 @@
 package github
 
 import (
+	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubUserExternalIdentity(t *testing.T) {
-	if isEnterprise != "true" {
-		t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
-	}
-
 	t.Run("queries without error", func(t *testing.T) {
-		config := `
-		data "github_user_external_identity" "test" {
-
-
-		}`
+		config := `data "github_user_external_identity" "test" { username = "%s" }`
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttrSet("data.github_user_external_identity.test", "login"),
@@ -24,28 +17,15 @@ func TestAccGithubUserExternalIdentity(t *testing.T) {
 			resource.TestCheckResourceAttrSet("data.github_user_external_identity.test", "scim_identity.username"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, testAccConf.testExternalUser),
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an user accoy", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 }

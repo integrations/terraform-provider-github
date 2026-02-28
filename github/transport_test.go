@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -11,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v83/github"
 )
 
 func TestEtagTransport(t *testing.T) {
@@ -47,7 +48,7 @@ func TestEtagTransport(t *testing.T) {
 }
 
 func githubApiMock(responseSequence []*mockResponse) *httptest.Server {
-	position := github.Int(0)
+	position := github.Ptr(0)
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.Header().Set("Server", "GitHub.com")
@@ -105,7 +106,7 @@ func githubApiMock(responseSequence []*mockResponse) *httptest.Server {
 		fmt.Fprintln(w, tc.ResponseBody)
 
 		// Treat response as disposable
-		position = github.Int(i + 1)
+		position = github.Ptr(i + 1)
 	}))
 }
 
@@ -159,6 +160,42 @@ func TestRateLimitTransport_abuseLimit_get(t *testing.T) {
 	}
 }
 
+func TestRateLimitTransport_abuseLimit_get_cancelled(t *testing.T) {
+	ts := githubApiMock([]*mockResponse{
+		{
+			ExpectedUri: "/repos/test/blah",
+			ResponseBody: `{
+  "message": "You have triggered an abuse detection mechanism and have been temporarily blocked from content creation. Please retry your request again later.",
+  "documentation_url": "https://developer.github.com/v3/#abuse-rate-limits"
+}`,
+			StatusCode: 403,
+			ResponseHeaders: map[string]string{
+				"Retry-After": "10",
+			},
+		},
+	})
+	defer ts.Close()
+
+	httpClient := http.DefaultClient
+	httpClient.Transport = NewRateLimitTransport(http.DefaultTransport)
+
+	client := github.NewClient(httpClient)
+	u, _ := url.Parse(ts.URL + "/")
+	client.BaseURL = u
+
+	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
+	defer cancel()
+
+	start := time.Now()
+	_, _, err := client.Repositories.Get(ctx, "test", "blah")
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("Expected context deadline exceeded, got: %v", err)
+	}
+	if time.Since(start) > time.Second {
+		t.Fatalf("Waited for longer than expected: %s", time.Since(start))
+	}
+}
+
 func TestRateLimitTransport_abuseLimit_post(t *testing.T) {
 	ts := githubApiMock([]*mockResponse{
 		{
@@ -195,8 +232,8 @@ func TestRateLimitTransport_abuseLimit_post(t *testing.T) {
 
 	ctx := context.WithValue(context.Background(), ctxId, t.Name())
 	r, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
-		Name:        github.String("radek-example-48"),
-		Description: github.String(""),
+		Name:        github.Ptr("radek-example-48"),
+		Description: github.Ptr(""),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -255,14 +292,15 @@ func TestRateLimitTransport_abuseLimit_post_error(t *testing.T) {
 
 	ctx := context.WithValue(context.Background(), ctxId, t.Name())
 	_, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
-		Name:        github.String("radek-example-48"),
-		Description: github.String(""),
+		Name:        github.Ptr("radek-example-48"),
+		Description: github.Ptr(""),
 	})
 	if err == nil {
 		t.Fatal("Expected 422 error, got nil")
 	}
 
-	ghErr, ok := err.(*github.ErrorResponse)
+	var ghErr *github.ErrorResponse
+	ok := errors.As(err, &ghErr)
 	if !ok {
 		t.Fatalf("Expected github.ErrorResponse, got: %#v", err)
 	}
@@ -272,6 +310,7 @@ func TestRateLimitTransport_abuseLimit_post_error(t *testing.T) {
 		t.Fatalf("Expected message %q, got: %q", expectedMessage, ghErr.Message)
 	}
 }
+
 func TestRateLimitTransport_smart_lock(t *testing.T) {
 	t.Run("With parallelRequests true it does not lock the rate limit transport", func(t *testing.T) {
 		rlt := NewRateLimitTransport(http.DefaultTransport, WithParallelRequests(true))
@@ -386,14 +425,15 @@ func TestRetryTransport_retry_post_error(t *testing.T) {
 
 	ctx := context.WithValue(context.Background(), ctxId, t.Name())
 	_, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
-		Name:        github.String("radek-example-48"),
-		Description: github.String(""),
+		Name:        github.Ptr("radek-example-48"),
+		Description: github.Ptr(""),
 	})
 	if err == nil {
 		t.Fatal("Expected error not to be nil")
 	}
 
-	ghErr, ok := err.(*github.ErrorResponse)
+	var ghErr *github.ErrorResponse
+	ok := errors.As(err, &ghErr)
 	if !ok {
 		t.Fatalf("Expected github.ErrorResponse, got: %#v", err)
 	}
@@ -448,15 +488,16 @@ func TestRetryTransport_retry_post_success(t *testing.T) {
 
 	ctx := context.WithValue(context.Background(), ctxId, t.Name())
 	_, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
-		Name:        github.String("radek-example-48"),
-		Description: github.String(""),
+		Name:        github.Ptr("radek-example-48"),
+		Description: github.Ptr(""),
 	})
 	if err != nil {
 		t.Fatalf("Expected error to be nil, got %v", err)
 	}
 
-	ghErr, _ := err.(*github.ErrorResponse)
-	if ghErr != nil {
+	var ghErr *github.ErrorResponse
+	ok := errors.As(err, &ghErr)
+	if ok {
 		t.Fatalf("Expected successful github call, got: %q", ghErr.Message)
 	}
 }

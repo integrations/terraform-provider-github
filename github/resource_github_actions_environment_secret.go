@@ -3,27 +3,39 @@ package github
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"log"
 	"net/http"
 	"net/url"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v83/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsEnvironmentSecretCreateOrUpdate,
-		Read:   resourceGithubActionsEnvironmentSecretRead,
-		Delete: resourceGithubActionsEnvironmentSecretDelete,
+		SchemaVersion: 1,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceGithubActionsEnvironmentSecretV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceGithubActionsEnvironmentSecretStateUpgradeV0,
+				Version: 0,
+			},
+		},
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "Name of the repository.",
+			},
+			"repository_id": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "ID of the repository.",
 			},
 			"environment": {
 				Type:        schema.TypeString,
@@ -38,22 +50,26 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 				Description:      "Name of the secret.",
 				ValidateDiagFunc: validateSecretNameFunc,
 			},
+			"key_id": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"plaintext_value"},
+				Description:   "ID of the public key used to encrypt the secret.",
+			},
 			"encrypted_value": {
 				Type:             schema.TypeString,
 				Optional:         true,
-				ForceNew:         true,
-				Sensitive:        true,
+				ExactlyOneOf:     []string{"encrypted_value", "plaintext_value"},
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsBase64),
 				Description:      "Encrypted value of the secret using the GitHub public key in Base64 format.",
-				ConflictsWith:    []string{"plaintext_value"},
-				ValidateDiagFunc: toDiagFunc(validation.StringIsBase64, "encrypted_value"),
 			},
 			"plaintext_value": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				Sensitive:     true,
-				Description:   "Plaintext value of the secret to be encrypted.",
-				ConflictsWith: []string{"encrypted_value"},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Sensitive:    true,
+				ExactlyOneOf: []string{"encrypted_value", "plaintext_value"},
+				Description:  "Plaintext value of the secret to be encrypted.",
 			},
 			"created_at": {
 				Type:        schema.TypeString,
@@ -65,160 +81,305 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 				Computed:    true,
 				Description: "Date of 'actions_environment_secret' update.",
 			},
+			"remote_updated_at": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Date of remote 'actions_environment_secret' update.",
+			},
+		},
+
+		CustomizeDiff: customdiff.All(
+			diffRepository,
+			diffSecret,
+		),
+
+		CreateContext: resourceGithubActionsEnvironmentSecretCreate,
+		ReadContext:   resourceGithubActionsEnvironmentSecretRead,
+		UpdateContext: resourceGithubActionsEnvironmentSecretUpdate,
+		DeleteContext: resourceGithubActionsEnvironmentSecretDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: resourceGithubActionsEnvironmentSecretImport,
 		},
 	}
 }
 
-func resourceGithubActionsEnvironmentSecretCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	ctx := context.Background()
+func resourceGithubActionsEnvironmentSecretCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
 	repoName := d.Get("repository").(string)
 	envName := d.Get("environment").(string)
-	escapedEnvName := url.PathEscape(envName)
 	secretName := d.Get("secret_name").(string)
-	plaintextValue := d.Get("plaintext_value").(string)
-	var encryptedValue string
+	keyID := d.Get("key_id").(string)
+	encryptedValue := d.Get("encrypted_value").(string)
+
+	escapedEnvName := url.PathEscape(envName)
 
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
+	}
+	repoID := int(repo.GetID())
+
+	var publicKey string
+	if len(keyID) == 0 || len(encryptedValue) == 0 {
+		ki, pk, err := getEnvironmentPublicKeyDetails(ctx, meta, repoID, escapedEnvName)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		keyID = ki
+		publicKey = pk
 	}
 
-	keyId, publicKey, err := getEnvironmentPublicKeyDetails(repo.GetID(), escapedEnvName, meta)
-	if err != nil {
-		return err
-	}
+	if len(encryptedValue) == 0 {
+		plaintextValue := d.Get("plaintext_value").(string)
 
-	if encryptedText, ok := d.GetOk("encrypted_value"); ok {
-		encryptedValue = encryptedText.(string)
-	} else {
 		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		encryptedValue = base64.StdEncoding.EncodeToString(encryptedBytes)
 	}
 
-	// Create an EncryptedSecret and encrypt the plaintext value into it
-	eSecret := &github.EncryptedSecret{
+	secret := github.EncryptedSecret{
 		Name:           secretName,
-		KeyID:          keyId,
+		KeyID:          keyID,
 		EncryptedValue: encryptedValue,
 	}
 
-	_, err = client.Actions.CreateOrUpdateEnvSecret(ctx, int(repo.GetID()), escapedEnvName, eSecret)
+	_, err = client.Actions.CreateOrUpdateEnvSecret(ctx, repoID, escapedEnvName, &secret)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	d.SetId(buildThreePartID(repoName, envName, secretName))
-	return resourceGithubActionsEnvironmentSecretRead(d, meta)
-}
-
-func resourceGithubActionsEnvironmentSecretRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	ctx := context.Background()
-
-	repoName, envName, secretName, err := parseThreePartID(d.Id(), "repository", "environment", "secret_name")
+	id, err := buildID(repoName, escapeIDPart(envName), secretName)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	escapedEnvName := url.PathEscape(envName)
+	d.SetId(id)
 
-	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
-	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing environment secret %s from state because it no longer exists in GitHub",
-					d.Id())
-				d.SetId("")
-				return nil
-			}
+	if err := d.Set("repository_id", repoID); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("key_id", keyID); err != nil {
+		return diag.FromErr(err)
+	}
+
+	// GitHub API does not return on create so we have to lookup the secret to get timestamps
+	if secret, _, err := client.Actions.GetEnvSecret(ctx, repoID, escapedEnvName, secretName); err == nil {
+		if err := d.Set("created_at", secret.CreatedAt.String()); err != nil {
+			return diag.FromErr(err)
 		}
-		return err
-	}
-
-	secret, _, err := client.Actions.GetEnvSecret(ctx, int(repo.GetID()), escapedEnvName, secretName)
-	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing environment secret %s from state because it no longer exists in GitHub",
-					d.Id())
-				d.SetId("")
-				return nil
-			}
+		if err := d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
+			return diag.FromErr(err)
 		}
-		return err
-	}
-
-	if err = d.Set("encrypted_value", d.Get("encrypted_value")); err != nil {
-		return err
-	}
-	if err = d.Set("plaintext_value", d.Get("plaintext_value")); err != nil {
-		return err
-	}
-	if err = d.Set("created_at", secret.CreatedAt.String()); err != nil {
-		return err
-	}
-
-	// This is a drift detection mechanism based on timestamps.
-	//
-	// If we do not currently store the "updated_at" field, it means we've only
-	// just created the resource and the value is most likely what we want it to
-	// be.
-	//
-	// If the resource is changed externally in the meantime then reading back
-	// the last update timestamp will return a result different than the
-	// timestamp we've persisted in the state. In that case, we can no longer
-	// trust that the value (which we don't see) is equal to what we've declared
-	// previously.
-	//
-	// The only solution to enforce consistency between is to mark the resource
-	// as deleted (unset the ID) in order to fix potential drift by recreating
-	// the resource.
-	if updatedAt, ok := d.GetOk("updated_at"); ok && updatedAt != secret.UpdatedAt.String() {
-		log.Printf("[INFO] The environment secret %s has been externally updated in GitHub", d.Id())
-		d.SetId("")
-	} else if !ok {
-		if err = d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
-			return err
+		if err := d.Set("remote_updated_at", secret.UpdatedAt.String()); err != nil {
+			return diag.FromErr(err)
 		}
 	}
 
 	return nil
 }
 
-func resourceGithubActionsEnvironmentSecretDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+func resourceGithubActionsEnvironmentSecretRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
 
-	repoName, envName, secretName, err := parseThreePartID(d.Id(), "repository", "environment", "secret_name")
-	if err != nil {
-		return err
-	}
-	escapedEnvName := url.PathEscape(envName)
-	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
-	if err != nil {
-		return err
-	}
-	log.Printf("[INFO] Deleting environment secret: %s", d.Id())
-	_, err = client.Actions.DeleteEnvSecret(ctx, int(repo.GetID()), escapedEnvName, secretName)
+	repoName := d.Get("repository").(string)
+	repoID := d.Get("repository_id").(int)
+	envName := d.Get("environment").(string)
+	secretName := d.Get("secret_name").(string)
 
-	return err
+	secret, _, err := client.Actions.GetEnvSecret(ctx, repoID, url.PathEscape(envName), secretName)
+	if err != nil {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) {
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[INFO] Removing environment secret %s from state because it no longer exists in GitHub", d.Id())
+				d.SetId("")
+				return nil
+			}
+		}
+		return diag.FromErr(err)
+	}
+
+	id, err := buildID(repoName, escapeIDPart(envName), secretName)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	d.SetId(id)
+
+	// Due to the eventually consistent behavior of this API we may not get created_at/updated_at
+	// values on the first read after creation, so we only set them here if they are not already set.
+	if len(d.Get("created_at").(string)) == 0 {
+		if err = d.Set("created_at", secret.CreatedAt.String()); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+	if len(d.Get("updated_at").(string)) == 0 {
+		if err = d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+	if err = d.Set("remote_updated_at", secret.UpdatedAt.String()); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
 }
 
-func getEnvironmentPublicKeyDetails(repoID int64, envName string, meta interface{}) (keyId, pkValue string, err error) {
-	client := meta.(*Owner).v3client
-	ctx := context.Background()
+func resourceGithubActionsEnvironmentSecretUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
 
-	publicKey, _, err := client.Actions.GetEnvPublicKey(ctx, int(repoID), envName)
-	if err != nil {
-		return keyId, pkValue, err
+	repoName := d.Get("repository").(string)
+	repoID := d.Get("repository_id").(int)
+	envName := d.Get("environment").(string)
+	secretName := d.Get("secret_name").(string)
+	keyID := d.Get("key_id").(string)
+	encryptedValue := d.Get("encrypted_value").(string)
+
+	escapedEnvName := url.PathEscape(envName)
+
+	var publicKey string
+	if len(keyID) == 0 || len(encryptedValue) == 0 {
+		ki, pk, err := getEnvironmentPublicKeyDetails(ctx, meta, repoID, escapedEnvName)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		keyID = ki
+		publicKey = pk
 	}
 
-	return publicKey.GetKeyID(), publicKey.GetKey(), err
+	if len(encryptedValue) == 0 {
+		plaintextValue := d.Get("plaintext_value").(string)
+
+		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		encryptedValue = base64.StdEncoding.EncodeToString(encryptedBytes)
+	}
+
+	secret := github.EncryptedSecret{
+		Name:           secretName,
+		KeyID:          keyID,
+		EncryptedValue: encryptedValue,
+	}
+
+	_, err := client.Actions.CreateOrUpdateEnvSecret(ctx, repoID, escapedEnvName, &secret)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	id, err := buildID(repoName, escapeIDPart(envName), secretName)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	d.SetId(id)
+
+	if err := d.Set("key_id", keyID); err != nil {
+		return diag.FromErr(err)
+	}
+
+	// GitHub API does not return on update so we have to lookup the secret to get timestamps
+	if secret, _, err := client.Actions.GetEnvSecret(ctx, repoID, escapedEnvName, secretName); err == nil {
+		if err := d.Set("created_at", secret.CreatedAt.String()); err != nil {
+			return diag.FromErr(err)
+		}
+		if err := d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
+			return diag.FromErr(err)
+		}
+		if err := d.Set("remote_updated_at", secret.UpdatedAt.String()); err != nil {
+			return diag.FromErr(err)
+		}
+	} else {
+		if err := d.Set("updated_at", nil); err != nil {
+			return diag.FromErr(err)
+		}
+		if err := d.Set("remote_updated_at", nil); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	return nil
+}
+
+func resourceGithubActionsEnvironmentSecretDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
+
+	repoID := d.Get("repository_id").(int)
+	envName := d.Get("environment").(string)
+	secretName := d.Get("secret_name").(string)
+
+	log.Printf("[INFO] Deleting actions environment secret: %s", d.Id())
+	_, err := client.Actions.DeleteEnvSecret(ctx, repoID, url.PathEscape(envName), secretName)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
+}
+
+func resourceGithubActionsEnvironmentSecretImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+	meta := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
+	repoName, envNamePart, secretName, err := parseID3(d.Id())
+	if err != nil {
+		return nil, err
+	}
+
+	envName := unescapeIDPart(envNamePart)
+
+	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
+	if err != nil {
+		return nil, err
+	}
+	repoID := int(repo.GetID())
+
+	secret, _, err := client.Actions.GetEnvSecret(ctx, repoID, url.PathEscape(envName), secretName)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := d.Set("repository", repoName); err != nil {
+		return nil, err
+	}
+	if err := d.Set("repository_id", repoID); err != nil {
+		return nil, err
+	}
+	if err := d.Set("environment", envName); err != nil {
+		return nil, err
+	}
+	if err := d.Set("secret_name", secretName); err != nil {
+		return nil, err
+	}
+	if err := d.Set("created_at", secret.CreatedAt.String()); err != nil {
+		return nil, err
+	}
+	if err := d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
+		return nil, err
+	}
+	if err := d.Set("remote_updated_at", secret.UpdatedAt.String()); err != nil {
+		return nil, err
+	}
+
+	return []*schema.ResourceData{d}, nil
+}
+
+func getEnvironmentPublicKeyDetails(ctx context.Context, meta *Owner, repoID int, envNameEscaped string) (string, string, error) {
+	client := meta.v3client
+
+	publicKey, _, err := client.Actions.GetEnvPublicKey(ctx, repoID, envNameEscaped)
+	if err != nil {
+		return "", "", err
+	}
+
+	return publicKey.GetKeyID(), publicKey.GetKey(), nil
 }

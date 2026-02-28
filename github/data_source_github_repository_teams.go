@@ -2,16 +2,16 @@ package github
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v83/github"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRepositoryTeams() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubTeamsRead,
+		ReadContext: dataSourceGithubTeamsRead,
 
 		Schema: map[string]*schema.Schema{
 			"full_name": {
@@ -50,7 +50,7 @@ func dataSourceGithubRepositoryTeams() *schema.Resource {
 	}
 }
 
-func dataSourceGithubTeamsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubTeamsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	var repoName string
@@ -59,7 +59,7 @@ func dataSourceGithubTeamsRead(d *schema.ResourceData, meta interface{}) error {
 		var err error
 		owner, repoName, err = splitRepoFullName(fullName.(string))
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
@@ -68,7 +68,7 @@ func dataSourceGithubTeamsRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if repoName == "" {
-		return fmt.Errorf("one of %q or %q has to be provided", "full_name", "name")
+		return diag.Errorf("one of %q or %q has to be provided", "full_name", "name")
 	}
 
 	options := github.ListOptions{
@@ -77,9 +77,9 @@ func dataSourceGithubTeamsRead(d *schema.ResourceData, meta interface{}) error {
 
 	var all_teams []map[string]string
 	for {
-		teams, resp, err := client.Repositories.ListTeams(context.TODO(), owner, repoName, &options)
+		teams, resp, err := client.Repositories.ListTeams(ctx, owner, repoName, &options)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		for _, team := range teams {
 			new_team := map[string]string{
@@ -97,7 +97,7 @@ func dataSourceGithubTeamsRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(repoName)
 	if err := d.Set("teams", all_teams); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

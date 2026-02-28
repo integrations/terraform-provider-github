@@ -74,24 +74,42 @@ resource "github_repository_environment_deployment_policy" "test" {
 }
 ```
 
-
 ## Argument Reference
 
 The following arguments are supported:
 
-* `environment` - (Required) The name of the environment.
+- `environment` - (Required) The name of the environment.
 
-* `repository` - (Required) The repository of the environment.
+- `repository` - (Required) The repository of the environment.
 
-* `branch_pattern` - (Optional) The name pattern that branches must match in order to deploy to the environment. If not specified, `tag_pattern` must be specified.
+- `branch_pattern` - (Optional) The name pattern that branches must match in order to deploy to the environment. If not specified, `tag_pattern` must be specified.
 
-* `tag_pattern` - (Optional) The name pattern that tags must match in order to deploy to the environment. If not specified, `branch_pattern` must be specified.
+- `tag_pattern` - (Optional) The name pattern that tags must match in order to deploy to the environment. If not specified, `branch_pattern` must be specified.
 
+## Attributes Reference
+
+- `repository_id` - The ID of the repository.
+- `policy_id` - The ID of the deployment policy.
 
 ## Import
 
-GitHub Repository Environment Deployment Policy can be imported using an ID made up of `name` of the repository combined with the `environment` name of the environment with the `Id` of the deployment policy, separated by a `:` character, e.g.
+This resource can be imported using an ID made of the repository name, environment name (any `:` in the environment name need to be escaped as `??`), and deployment policy ID name all separated by a `:`.
 
+### Import Block
+
+The following import block imports a deployment policy with the ID `123456` for the repo `myrepo` and environment `myenv` to a `github_repository_environment_deployment_policy` resource named `example`.
+
+```hcl
+import {
+  to = github_repository_environment_deployment_policy.example
+  id = "myrepo:myenv:123456"
+}
 ```
-$ terraform import github_repository_environment.daily terraform:daily:123456
+
+### Import Command
+
+The following command imports a deployment policy with the ID `123456` for the repo `myrepo` and environment `myenv` to a `github_repository_environment_deployment_policy` resource named `example`.
+
+```shell
+terraform import github_repository_environment_deployment_policy.example myrepo:myenv:123456
 ```

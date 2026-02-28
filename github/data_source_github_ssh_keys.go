@@ -1,10 +1,15 @@
 package github
 
-import "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+import (
+	"context"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+)
 
 func dataSourceGithubSshKeys() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubSshKeysRead,
+		ReadContext: dataSourceGithubSshKeysRead,
 
 		Schema: map[string]*schema.Schema{
 			"keys": {
@@ -16,17 +21,17 @@ func dataSourceGithubSshKeys() *schema.Resource {
 	}
 }
 
-func dataSourceGithubSshKeysRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubSshKeysRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	owner := meta.(*Owner)
 
 	api, _, err := owner.v3client.Meta.Get(owner.StopContext)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId("github-ssh-keys")
 	if err = d.Set("keys", api.SSHKeys); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

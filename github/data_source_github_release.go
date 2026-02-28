@@ -2,45 +2,50 @@ package github
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRelease() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubReleaseRead,
-
+		ReadContext: dataSourceGithubReleaseRead,
+		Description: "Use this data source to retrieve information about a GitHub release in a specific repository.",
 		Schema: map[string]*schema.Schema{
 			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Name of the repository to retrieve the release from.",
 			},
 			"owner": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Owner of the repository.",
 			},
 			"retrieve_by": {
-				Type:     schema.TypeString,
-				Required: true,
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Describes how to fetch the release. Valid values are `id`, `tag`, `latest`.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"latest",
 					"id",
 					"tag",
-				}, false), "retrieve_by"),
+				}, false)),
 			},
 			"release_tag": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "ID of the release to retrieve. Must be specified when `retrieve_by` = `tag`.",
 			},
 			"release_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "ID of the release to retrieve. Must be specified when `retrieve_by` = `id`.",
 			},
 			"target_commitish": {
 				Type:     schema.TypeString,
@@ -151,12 +156,11 @@ func dataSourceGithubRelease() *schema.Resource {
 	}
 }
 
-func dataSourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubReleaseRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	repository := d.Get("repository").(string)
 	owner := d.Get("owner").(string)
 
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 
 	var err error
 	var release *github.RepositoryRelease
@@ -167,94 +171,79 @@ func dataSourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error
 	case "id":
 		releaseID := int64(d.Get("release_id").(int))
 		if releaseID == 0 {
-			return fmt.Errorf("`release_id` must be set when `retrieve_by` = `id`")
+			return diag.Errorf("`release_id` must be set when `retrieve_by` = `id`")
 		}
 
 		release, _, err = client.Repositories.GetRelease(ctx, owner, repository, releaseID)
 	case "tag":
 		tag := d.Get("release_tag").(string)
 		if tag == "" {
-			return fmt.Errorf("`release_tag` must be set when `retrieve_by` = `tag`")
+			return diag.Errorf("`release_tag` must be set when `retrieve_by` = `tag`")
 		}
 
 		release, _, err = client.Repositories.GetReleaseByTag(ctx, owner, repository, tag)
 	default:
-		return fmt.Errorf("one of: `latest`, `id`, `tag` must be set for `retrieve_by`")
+		return diag.Errorf("one of: `latest`, `id`, `tag` must be set for `retrieve_by`")
 	}
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(release.GetID(), 10))
-	err = d.Set("release_tag", release.GetTagName())
-	if err != nil {
-		return err
+	if err = d.Set("release_tag", release.GetTagName()); err != nil {
+		return diag.FromErr(err)
 	}
-	err = d.Set("target_commitish", release.GetTargetCommitish())
-	if err != nil {
-		return err
+	if err = d.Set("target_commitish", release.GetTargetCommitish()); err != nil {
+		return diag.FromErr(err)
 	}
-	err = d.Set("name", release.GetName())
-	if err != nil {
-		return err
+	if err = d.Set("name", release.GetName()); err != nil {
+		return diag.FromErr(err)
 	}
-	err = d.Set("body", release.GetBody())
-	if err != nil {
-		return err
+	if err = d.Set("body", release.GetBody()); err != nil {
+		return diag.FromErr(err)
 	}
-	err = d.Set("draft", release.GetDraft())
-	if err != nil {
-		return err
+	if err = d.Set("draft", release.GetDraft()); err != nil {
+		return diag.FromErr(err)
 	}
-	err = d.Set("prerelease", release.GetPrerelease())
-	if err != nil {
-		return err
+	if err = d.Set("prerelease", release.GetPrerelease()); err != nil {
+		return diag.FromErr(err)
 	}
-	err = d.Set("created_at", release.GetCreatedAt().String())
-	if err != nil {
-		return err
+	if err = d.Set("created_at", release.GetCreatedAt().String()); err != nil {
+		return diag.FromErr(err)
 	}
-	err = d.Set("published_at", release.GetPublishedAt().String())
-	if err != nil {
-		return err
+	if err = d.Set("published_at", release.GetPublishedAt().String()); err != nil {
+		return diag.FromErr(err)
 	}
-	err = d.Set("url", release.GetURL())
-	if err != nil {
-		return err
+	if err = d.Set("url", release.GetURL()); err != nil {
+		return diag.FromErr(err)
 	}
-	err = d.Set("html_url", release.GetHTMLURL())
-	if err != nil {
-		return err
+	if err = d.Set("html_url", release.GetHTMLURL()); err != nil {
+		return diag.FromErr(err)
 	}
-	err = d.Set("assets_url", release.GetAssetsURL())
-	if err != nil {
-		return err
+	if err = d.Set("assets_url", release.GetAssetsURL()); err != nil {
+		return diag.FromErr(err)
 	}
-	err = d.Set("asserts_url", release.GetAssetsURL()) // Deprecated, original version of assets_url
-	if err != nil {
-		return err
+	if err = d.Set("asserts_url", release.GetAssetsURL()); err != nil { // Deprecated, original version of assets_url
+		return diag.FromErr(err)
 	}
-	err = d.Set("upload_url", release.GetUploadURL())
-	if err != nil {
-		return err
+	if err = d.Set("upload_url", release.GetUploadURL()); err != nil {
+		return diag.FromErr(err)
 	}
-	err = d.Set("zipball_url", release.GetZipballURL())
-	if err != nil {
-		return err
+	if err = d.Set("zipball_url", release.GetZipballURL()); err != nil {
+		return diag.FromErr(err)
 	}
-	err = d.Set("tarball_url", release.GetTarballURL())
-	if err != nil {
-		return err
+	if err = d.Set("tarball_url", release.GetTarballURL()); err != nil {
+		return diag.FromErr(err)
 	}
 
-	assets := make([]interface{}, 0, len(release.Assets))
+	assets := make([]any, 0, len(release.Assets))
 	for _, releaseAsset := range release.Assets {
 		if releaseAsset == nil {
 			continue
 		}
 
-		assets = append(assets, map[string]interface{}{
+		assets = append(assets, map[string]any{
 			"id":                   releaseAsset.GetID(),
 			"url":                  releaseAsset.GetURL(),
 			"node_id":              releaseAsset.GetNodeID(),
@@ -268,9 +257,8 @@ func dataSourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error
 		})
 	}
 
-	err = d.Set("assets", assets)
-	if err != nil {
-		return err
+	if err = d.Set("assets", assets); err != nil {
+		return diag.FromErr(err)
 	}
 
 	return nil

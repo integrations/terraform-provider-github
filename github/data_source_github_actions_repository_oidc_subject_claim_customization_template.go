@@ -1,10 +1,15 @@
 package github
 
-import "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+import (
+	"context"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+)
 
 func dataSourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead,
+		ReadContext: dataSourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -26,27 +31,25 @@ func dataSourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate() *s
 	}
 }
 
-func dataSourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	repository := d.Get("name").(string)
 	owner := meta.(*Owner).name
-	ctx := meta.(*Owner).StopContext
 
 	template, _, err := client.Actions.GetRepoOIDCSubjectClaimCustomTemplate(ctx, owner, repository)
-
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(repository)
 	err = d.Set("use_default", template.UseDefault)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	err = d.Set("include_claim_keys", template.IncludeClaimKeys)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

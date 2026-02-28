@@ -3,14 +3,15 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v83/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func dataSourceGithubRepositories() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoriesRead,
+		ReadContext: dataSourceGithubRepositoriesRead,
 
 		Schema: map[string]*schema.Schema{
 			"query": {
@@ -21,7 +22,7 @@ func dataSourceGithubRepositories() *schema.Resource {
 				Type:             schema.TypeString,
 				Default:          "updated",
 				Optional:         true,
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"stars", "fork", "updated"}, false), "sort"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"stars", "fork", "updated"}, false)),
 			},
 			"include_repo_id": {
 				Type:     schema.TypeBool,
@@ -32,7 +33,7 @@ func dataSourceGithubRepositories() *schema.Resource {
 				Type:             schema.TypeInt,
 				Optional:         true,
 				Default:          100,
-				ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 1000), "results_per_page"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 1000)),
 			},
 			"full_names": {
 				Type: schema.TypeList,
@@ -59,7 +60,7 @@ func dataSourceGithubRepositories() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoriesRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubRepositoriesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	includeRepoId := d.Get("include_repo_id").(bool)
@@ -73,31 +74,31 @@ func dataSourceGithubRepositoriesRead(d *schema.ResourceData, meta interface{}) 
 		},
 	}
 
-	fullNames, names, repoIDs, err := searchGithubRepositories(client, query, opt)
+	fullNames, names, repoIDs, err := searchGithubRepositories(ctx, client, query, opt)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(query)
 	err = d.Set("full_names", fullNames)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	err = d.Set("names", names)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if includeRepoId {
 		err = d.Set("repo_ids", repoIDs)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	return nil
 }
 
-func searchGithubRepositories(client *github.Client, query string, opt *github.SearchOptions) ([]string, []string, []int64, error) {
+func searchGithubRepositories(ctx context.Context, client *github.Client, query string, opt *github.SearchOptions) ([]string, []string, []int64, error) {
 	fullNames := make([]string, 0)
 
 	names := make([]string, 0)
@@ -105,7 +106,7 @@ func searchGithubRepositories(client *github.Client, query string, opt *github.S
 	repoIDs := make([]int64, 0)
 
 	for {
-		results, resp, err := client.Search.Repositories(context.TODO(), query, opt)
+		results, resp, err := client.Search.Repositories(ctx, query, opt)
 		if err != nil {
 			return fullNames, names, repoIDs, err
 		}

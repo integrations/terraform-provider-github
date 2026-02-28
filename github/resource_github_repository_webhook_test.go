@@ -4,25 +4,23 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubRepositoryWebhook(t *testing.T) {
-
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
 	t.Run("creates repository webhooks without error", func(t *testing.T) {
-
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-webhook-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name         = "test-%[1]s"
+			  name         = "%[1]s"
 			  description  = "Terraform acceptance tests"
 			}
 
 			resource "github_repository_webhook" "test" {
-			  depends_on = ["github_repository.test"]
-			  repository = "test-%[1]s"
+			  depends_on = [github_repository.test]
+			  repository = "%[1]s"
 
 			  configuration {
 			    url          = "https://google.de/webhook"
@@ -32,7 +30,7 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 
 			  events = ["pull_request"]
 			}
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -43,44 +41,30 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+			},
 		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
 
 	t.Run("imports repository webhooks without error", func(t *testing.T) {
-
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-webhook-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name         = "test-%[1]s"
+				name         = "%[1]s"
 				description  = "Terraform acceptance tests"
 			}
 
 			resource "github_repository_webhook" "test" {
-				depends_on = ["github_repository.test"]
-				repository = "test-%[1]s"
+				depends_on = [github_repository.test]
+				repository = "%[1]s"
 				configuration {
 					url          = "https://google.de/webhook"
 					content_type = "json"
@@ -88,55 +72,41 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 				}
 				events = ["pull_request"]
 			}
-			`, randomID)
+			`, repoName)
 
 		check := resource.ComposeTestCheckFunc()
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:        "github_repository_webhook.test",
-						ImportState:         true,
-						ImportStateVerify:   true,
-						ImportStateIdPrefix: fmt.Sprintf("test-%s/", randomID),
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+				{
+					ResourceName:        "github_repository_webhook.test",
+					ImportState:         true,
+					ImportStateVerify:   true,
+					ImportStateIdPrefix: fmt.Sprintf("%s/", repoName),
+				},
+			},
 		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
 
 	t.Run("updates repository webhooks without error", func(t *testing.T) {
-
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-webhook-%s", testResourcePrefix, randomID)
 		configs := map[string]string{
 			"before": fmt.Sprintf(`
 				resource "github_repository" "test" {
-				  name         = "test-%[1]s"
+				  name         = "%[1]s"
 				  description  = "Terraform acceptance tests"
 				}
 
 				resource "github_repository_webhook" "test" {
-				  depends_on = ["github_repository.test"]
-				  repository = "test-%[1]s"
+				  depends_on = [github_repository.test]
+				  repository = "%[1]s"
 
 				  configuration {
 				    url          = "https://google.de/webhook"
@@ -146,16 +116,16 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 
 				  events = ["pull_request"]
 				}
-			`, randomID),
+			`, repoName),
 			"after": fmt.Sprintf(`
 				resource "github_repository" "test" {
-				  name         = "test-%[1]s"
+				  name         = "%[1]s"
 				  description  = "Terraform acceptance tests"
 				}
 
 				resource "github_repository_webhook" "test" {
-				  depends_on = ["github_repository.test"]
-				  repository = "test-%[1]s"
+				  depends_on = [github_repository.test]
+				  repository = "%[1]s"
 
 				  configuration {
 				    secret       = "secret"
@@ -166,7 +136,7 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 
 				  events = ["pull_request"]
 				}
-			`, randomID),
+			`, repoName),
 		}
 
 		checks := map[string]resource.TestCheckFunc{
@@ -178,33 +148,19 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 			),
 		}
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: configs["before"],
-						Check:  checks["before"],
-					},
-					{
-						Config: configs["after"],
-						Check:  checks["after"],
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: configs["before"],
+					Check:  checks["before"],
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: configs["after"],
+					Check:  checks["after"],
+				},
+			},
 		})
 	})
 }

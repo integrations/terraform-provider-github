@@ -3,12 +3,13 @@ package github
 import (
 	"context"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubActionsPublicKey() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubActionsPublicKeyRead,
+		ReadContext: dataSourceGithubActionsPublicKeyRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -27,26 +28,25 @@ func dataSourceGithubActionsPublicKey() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsPublicKeyRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubActionsPublicKeyRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	repository := d.Get("repository").(string)
 	owner := meta.(*Owner).name
 
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 
 	publicKey, _, err := client.Actions.GetRepoPublicKey(ctx, owner, repository)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(publicKey.GetKeyID())
 	err = d.Set("key_id", publicKey.GetKeyID())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	err = d.Set("key", publicKey.GetKey())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

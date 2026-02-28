@@ -4,18 +4,18 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubTreeDataSource(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
 	t.Run("get tree", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-tree-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "this" {
 				auto_init = true
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 			}
 
 			data "github_branch" "this" {
@@ -28,7 +28,7 @@ func TestAccGithubTreeDataSource(t *testing.T) {
 				repository = github_repository.this.name
 				tree_sha   = data.github_branch.this.sha
 			}
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet(
@@ -44,29 +44,15 @@ func TestAccGithubTreeDataSource(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 }

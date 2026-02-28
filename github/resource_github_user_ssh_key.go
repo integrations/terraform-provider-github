@@ -2,12 +2,13 @@ package github
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -50,7 +51,7 @@ func resourceGithubUserSshKey() *schema.Resource {
 	}
 }
 
-func resourceGithubUserSshKeyCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubUserSshKeyCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	title := d.Get("title").(string)
@@ -58,8 +59,8 @@ func resourceGithubUserSshKeyCreate(d *schema.ResourceData, meta interface{}) er
 	ctx := context.Background()
 
 	userKey, _, err := client.Users.CreateKey(ctx, &github.Key{
-		Title: github.String(title),
-		Key:   github.String(key),
+		Title: github.Ptr(title),
+		Key:   github.Ptr(key),
 	})
 	if err != nil {
 		return err
@@ -70,7 +71,7 @@ func resourceGithubUserSshKeyCreate(d *schema.ResourceData, meta interface{}) er
 	return resourceGithubUserSshKeyRead(d, meta)
 }
 
-func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -84,7 +85,8 @@ func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta interface{}) erro
 
 	key, resp, err := client.Users.GetKey(ctx, id)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -95,6 +97,7 @@ func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta interface{}) erro
 				return nil
 			}
 		}
+		return err
 	}
 
 	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
@@ -113,7 +116,7 @@ func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func resourceGithubUserSshKeyDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubUserSshKeyDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)

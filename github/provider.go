@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"regexp"
 	"strings"
 	"time"
 
@@ -23,6 +22,7 @@ func Provider() *schema.Provider {
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("GITHUB_TOKEN", nil),
 				Description: descriptions["token"],
+				// ConflictsWith: []string{"app_auth"}, // TODO: Enable as part of v7.
 			},
 			"owner": {
 				Type:        schema.TypeString,
@@ -34,9 +34,9 @@ func Provider() *schema.Provider {
 				Type:     schema.TypeList,
 				Elem:     &schema.Schema{Type: schema.TypeInt},
 				Optional: true,
-				DefaultFunc: func() (interface{}, error) {
+				DefaultFunc: func() (any, error) {
 					defaultErrors := []int{500, 502, 503, 504}
-					errorInterfaces := make([]interface{}, len(defaultErrors))
+					errorInterfaces := make([]any, len(defaultErrors))
 					for i, v := range defaultErrors {
 						errorInterfaces[i] = v
 					}
@@ -98,6 +98,7 @@ func Provider() *schema.Provider {
 				Optional:    true,
 				MaxItems:    1,
 				Description: descriptions["app_auth"],
+				// ConflictsWith: []string{"token"}, // TODO: Enable as part of v7.
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
@@ -122,6 +123,13 @@ func Provider() *schema.Provider {
 					},
 				},
 			},
+			// https://developer.github.com/guides/traversing-with-pagination/#basics-of-pagination
+			"max_per_page": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("GITHUB_MAX_PER_PAGE", "100"),
+				Description: descriptions["max_per_page"],
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -131,12 +139,16 @@ func Provider() *schema.Provider {
 			"github_actions_organization_oidc_subject_claim_customization_template": resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate(),
 			"github_actions_organization_permissions":                               resourceGithubActionsOrganizationPermissions(),
 			"github_actions_organization_secret":                                    resourceGithubActionsOrganizationSecret(),
-			"github_actions_organization_variable":                                  resourceGithubActionsOrganizationVariable(),
 			"github_actions_organization_secret_repositories":                       resourceGithubActionsOrganizationSecretRepositories(),
+			"github_actions_organization_secret_repository":                         resourceGithubActionsOrganizationSecretRepository(),
+			"github_actions_organization_variable":                                  resourceGithubActionsOrganizationVariable(),
+			"github_actions_organization_variable_repositories":                     resourceGithubActionsOrganizationVariableRepositories(),
+			"github_actions_organization_variable_repository":                       resourceGithubActionsOrganizationVariableRepository(),
 			"github_actions_repository_access_level":                                resourceGithubActionsRepositoryAccessLevel(),
 			"github_actions_repository_oidc_subject_claim_customization_template":   resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(),
 			"github_actions_repository_permissions":                                 resourceGithubActionsRepositoryPermissions(),
 			"github_actions_runner_group":                                           resourceGithubActionsRunnerGroup(),
+			"github_actions_hosted_runner":                                          resourceGithubActionsHostedRunner(),
 			"github_actions_secret":                                                 resourceGithubActionsSecret(),
 			"github_actions_variable":                                               resourceGithubActionsVariable(),
 			"github_app_installation_repositories":                                  resourceGithubAppInstallationRepositories(),
@@ -151,6 +163,7 @@ func Provider() *schema.Provider {
 			"github_codespaces_user_secret":                                         resourceGithubCodespacesUserSecret(),
 			"github_dependabot_organization_secret":                                 resourceGithubDependabotOrganizationSecret(),
 			"github_dependabot_organization_secret_repositories":                    resourceGithubDependabotOrganizationSecretRepositories(),
+			"github_dependabot_organization_secret_repository":                      resourceGithubDependabotOrganizationSecretRepository(),
 			"github_dependabot_secret":                                              resourceGithubDependabotSecret(),
 			"github_emu_group_mapping":                                              resourceGithubEMUGroupMapping(),
 			"github_issue":                                                          resourceGithubIssue(),
@@ -159,9 +172,15 @@ func Provider() *schema.Provider {
 			"github_membership":                                                     resourceGithubMembership(),
 			"github_organization_block":                                             resourceOrganizationBlock(),
 			"github_organization_custom_role":                                       resourceGithubOrganizationCustomRole(),
+			"github_organization_custom_properties":                                 resourceGithubOrganizationCustomProperties(),
 			"github_organization_project":                                           resourceGithubOrganizationProject(),
-			"github_organization_security_manager":                                  resourceGithubOrganizationSecurityManager(),
+			"github_organization_repository_role":                                   resourceGithubOrganizationRepositoryRole(),
+			"github_organization_role":                                              resourceGithubOrganizationRole(),
+			"github_organization_role_team":                                         resourceGithubOrganizationRoleTeam(),
+			"github_organization_role_user":                                         resourceGithubOrganizationRoleUser(),
+			"github_organization_role_team_assignment":                              resourceGithubOrganizationRoleTeamAssignment(),
 			"github_organization_ruleset":                                           resourceGithubOrganizationRuleset(),
+			"github_organization_security_manager":                                  resourceGithubOrganizationSecurityManager(),
 			"github_organization_settings":                                          resourceGithubOrganizationSettings(),
 			"github_organization_webhook":                                           resourceGithubOrganizationWebhook(),
 			"github_project_card":                                                   resourceGithubProjectCard(),
@@ -172,6 +191,7 @@ func Provider() *schema.Provider {
 			"github_repository_dependabot_security_updates":                         resourceGithubRepositoryDependabotSecurityUpdates(),
 			"github_repository_collaborator":                                        resourceGithubRepositoryCollaborator(),
 			"github_repository_collaborators":                                       resourceGithubRepositoryCollaborators(),
+			"github_repository_custom_property":                                     resourceGithubRepositoryCustomProperty(),
 			"github_repository_deploy_key":                                          resourceGithubRepositoryDeployKey(),
 			"github_repository_deployment_branch_policy":                            resourceGithubRepositoryDeploymentBranchPolicy(),
 			"github_repository_environment":                                         resourceGithubRepositoryEnvironment(),
@@ -194,9 +214,14 @@ func Provider() *schema.Provider {
 			"github_user_ssh_key":                                                   resourceGithubUserSshKey(),
 			"github_enterprise_organization":                                        resourceGithubEnterpriseOrganization(),
 			"github_enterprise_actions_runner_group":                                resourceGithubActionsEnterpriseRunnerGroup(),
+			"github_enterprise_actions_workflow_permissions":                        resourceGithubEnterpriseActionsWorkflowPermissions(),
+			"github_actions_organization_workflow_permissions":                      resourceGithubActionsOrganizationWorkflowPermissions(),
+			"github_enterprise_security_analysis_settings":                          resourceGithubEnterpriseSecurityAnalysisSettings(),
+			"github_workflow_repository_permissions":                                resourceGithubWorkflowRepositoryPermissions(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
+			"github_actions_environment_public_key":                                 dataSourceGithubActionsEnvironmentPublicKey(),
 			"github_actions_environment_secrets":                                    dataSourceGithubActionsEnvironmentSecrets(),
 			"github_actions_environment_variables":                                  dataSourceGithubActionsEnvironmentVariables(),
 			"github_actions_organization_oidc_subject_claim_customization_template": dataSourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate(),
@@ -213,52 +238,64 @@ func Provider() *schema.Provider {
 			"github_app_token":                                                      dataSourceGithubAppToken(),
 			"github_branch":                                                         dataSourceGithubBranch(),
 			"github_branch_protection_rules":                                        dataSourceGithubBranchProtectionRules(),
-			"github_collaborators":                                                  dataSourceGithubCollaborators(),
 			"github_codespaces_organization_public_key":                             dataSourceGithubCodespacesOrganizationPublicKey(),
 			"github_codespaces_organization_secrets":                                dataSourceGithubCodespacesOrganizationSecrets(),
 			"github_codespaces_public_key":                                          dataSourceGithubCodespacesPublicKey(),
 			"github_codespaces_secrets":                                             dataSourceGithubCodespacesSecrets(),
 			"github_codespaces_user_public_key":                                     dataSourceGithubCodespacesUserPublicKey(),
 			"github_codespaces_user_secrets":                                        dataSourceGithubCodespacesUserSecrets(),
+			"github_collaborators":                                                  dataSourceGithubCollaborators(),
 			"github_dependabot_organization_public_key":                             dataSourceGithubDependabotOrganizationPublicKey(),
 			"github_dependabot_organization_secrets":                                dataSourceGithubDependabotOrganizationSecrets(),
 			"github_dependabot_public_key":                                          dataSourceGithubDependabotPublicKey(),
 			"github_dependabot_secrets":                                             dataSourceGithubDependabotSecrets(),
+			"github_enterprise":                                                     dataSourceGithubEnterprise(),
 			"github_external_groups":                                                dataSourceGithubExternalGroups(),
 			"github_ip_ranges":                                                      dataSourceGithubIpRanges(),
 			"github_issue_labels":                                                   dataSourceGithubIssueLabels(),
 			"github_membership":                                                     dataSourceGithubMembership(),
-			"github_organization":                                                   dataSourceGithubOrganization(),
+			"github_organization_app_installations":                                 dataSourceGithubOrganizationAppInstallations(),
+			"github_organization_custom_properties":                                 dataSourceGithubOrganizationCustomProperties(),
 			"github_organization_custom_role":                                       dataSourceGithubOrganizationCustomRole(),
 			"github_organization_external_identities":                               dataSourceGithubOrganizationExternalIdentities(),
 			"github_organization_ip_allow_list":                                     dataSourceGithubOrganizationIpAllowList(),
 			"github_organization_repositories":                                      dataSourceGithubOrganizationRepositories(),
+			"github_organization_repository_role":                                   dataSourceGithubOrganizationRepositoryRole(),
+			"github_organization_repository_roles":                                  dataSourceGithubOrganizationRepositoryRoles(),
+			"github_organization_role_teams":                                        dataSourceGithubOrganizationRoleTeams(),
+			"github_organization_role_users":                                        dataSourceGithubOrganizationRoleUsers(),
+			"github_organization_role":                                              dataSourceGithubOrganizationRole(),
+			"github_organization_roles":                                             dataSourceGithubOrganizationRoles(),
+			"github_organization_security_managers":                                 dataSourceGithubOrganizationSecurityManagers(),
 			"github_organization_team_sync_groups":                                  dataSourceGithubOrganizationTeamSyncGroups(),
 			"github_organization_teams":                                             dataSourceGithubOrganizationTeams(),
 			"github_organization_webhooks":                                          dataSourceGithubOrganizationWebhooks(),
+			"github_organization":                                                   dataSourceGithubOrganization(),
 			"github_ref":                                                            dataSourceGithubRef(),
+			"github_release_asset":                                                  dataSourceGithubReleaseAsset(),
 			"github_release":                                                        dataSourceGithubRelease(),
 			"github_repositories":                                                   dataSourceGithubRepositories(),
-			"github_repository":                                                     dataSourceGithubRepository(),
 			"github_repository_autolink_references":                                 dataSourceGithubRepositoryAutolinkReferences(),
 			"github_repository_branches":                                            dataSourceGithubRepositoryBranches(),
-			"github_repository_environments":                                        dataSourceGithubRepositoryEnvironments(),
+			"github_repository_custom_properties":                                   dataSourceGithubRepositoryCustomProperties(),
 			"github_repository_deploy_keys":                                         dataSourceGithubRepositoryDeployKeys(),
 			"github_repository_deployment_branch_policies":                          dataSourceGithubRepositoryDeploymentBranchPolicies(),
+			"github_repository_environment_deployment_policies":                     dataSourceGithubRepositoryEnvironmentDeploymentPolicies(),
+			"github_repository_environments":                                        dataSourceGithubRepositoryEnvironments(),
 			"github_repository_file":                                                dataSourceGithubRepositoryFile(),
 			"github_repository_milestone":                                           dataSourceGithubRepositoryMilestone(),
 			"github_repository_pull_request":                                        dataSourceGithubRepositoryPullRequest(),
 			"github_repository_pull_requests":                                       dataSourceGithubRepositoryPullRequests(),
 			"github_repository_teams":                                               dataSourceGithubRepositoryTeams(),
 			"github_repository_webhooks":                                            dataSourceGithubRepositoryWebhooks(),
+			"github_repository":                                                     dataSourceGithubRepository(),
 			"github_rest_api":                                                       dataSourceGithubRestApi(),
 			"github_ssh_keys":                                                       dataSourceGithubSshKeys(),
 			"github_team":                                                           dataSourceGithubTeam(),
 			"github_tree":                                                           dataSourceGithubTree(),
-			"github_user":                                                           dataSourceGithubUser(),
 			"github_user_external_identity":                                         dataSourceGithubUserExternalIdentity(),
+			"github_user":                                                           dataSourceGithubUser(),
 			"github_users":                                                          dataSourceGithubUsers(),
-			"github_enterprise":                                                     dataSourceGithubEnterprise(),
 		},
 	}
 
@@ -297,20 +334,21 @@ func init() {
 			"Defaults to 1000ms or 1s if not set, the max_retries must be set to greater than zero.",
 		"parallel_requests": "Allow the provider to make parallel API calls to GitHub. " +
 			"You may want to set it to true when you have a private Github Enterprise without strict rate limits. " +
-			"Although, it is not possible to enable this setting on github.com " +
-			"because we enforce the respect of github.com's best practices to avoid hitting abuse rate limits" +
+			"While it is possible to enable this setting on github.com, " +
+			"github.com's best practices recommend using serialization to avoid hitting abuse rate limits" +
 			"Defaults to false if not set",
 		"retryable_errors": "Allow the provider to retry after receiving an error status code, the max_retries should be set for this to work" +
 			"Defaults to [500, 502, 503, 504]",
 		"max_retries": "Number of times to retry a request after receiving an error status code" +
 			"Defaults to 3",
+		"max_per_page": "Number of items per page for pagination" +
+			"Defaults to 100",
 	}
 }
 
 func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
-	return func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
+	return func(ctx context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
 		owner := d.Get("owner").(string)
-		baseURL := d.Get("base_url").(string)
 		token := d.Get("token").(string)
 		insecure := d.Get("insecure").(bool)
 
@@ -324,11 +362,16 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 		// an explicitly set value in a provider block), but is necessary
 		// for backwards compatibility. We could remove this backwards compatibility
 		// code in a future major release.
-		env, _ := OwnerOrOrgEnvDefaultFunc()
+		env := ownerOrOrgEnvDefaultFunc()
 		if env.(string) != "" {
 			owner = env.(string)
 		}
 		// END backwards compatibility
+
+		baseURL, isGHES, err := getBaseURL(d.Get("base_url").(string))
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
 
 		org := d.Get("organization").(string)
 		if org != "" {
@@ -336,8 +379,8 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 			owner = org
 		}
 
-		if appAuth, ok := d.Get("app_auth").([]interface{}); ok && len(appAuth) > 0 && appAuth[0] != nil {
-			appAuthAttr := appAuth[0].(map[string]interface{})
+		if appAuth, ok := d.Get("app_auth").([]any); ok && len(appAuth) > 0 && appAuth[0] != nil {
+			appAuthAttr := appAuth[0].(map[string]any)
 
 			var appID, appInstallationID, appPemFile string
 
@@ -361,12 +404,17 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 				// (explicit value, or default value taken from
 				// GITHUB_APP_PEM_FILE Environment Variable) is replaced with an
 				// actual new line character before decoding.
-				appPemFile = strings.Replace(v, `\n`, "\n", -1)
+				appPemFile = strings.ReplaceAll(v, `\n`, "\n")
 			} else {
 				return nil, wrapErrors([]error{fmt.Errorf("app_auth.pem_file must be set and contain a non-empty value")})
 			}
 
-			appToken, err := GenerateOAuthTokenFromApp(baseURL, appID, appInstallationID, appPemFile)
+			apiPath := ""
+			if isGHES {
+				apiPath = GHESRESTAPIPath
+			}
+
+			appToken, err := GenerateOAuthTokenFromApp(baseURL.JoinPath(apiPath), appID, appInstallationID, appPemFile)
 			if err != nil {
 				return nil, wrapErrors([]error{err})
 			}
@@ -374,17 +422,9 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 			token = appToken
 		}
 
-		isGithubDotCom, err := regexp.MatchString("^"+regexp.QuoteMeta("https://api.github.com"), baseURL)
-		if err != nil {
-			return nil, diag.FromErr(err)
-		}
-
 		if token == "" {
-			ghAuthToken, err := tokenFromGhCli(baseURL, isGithubDotCom)
-			if err != nil {
-				return nil, diag.FromErr(fmt.Errorf("gh auth token: %w", err))
-			}
-			token = ghAuthToken
+			log.Printf("[INFO] No token found, using GitHub CLI to get token from hostname %s", baseURL.Host)
+			token = tokenFromGHCLI(baseURL)
 		}
 
 		writeDelay := d.Get("write_delay_ms").(int)
@@ -412,7 +452,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 		log.Printf("[DEBUG] Setting max_retries to %d", maxRetries)
 		retryableErrors := make(map[int]bool)
 		if maxRetries > 0 {
-			reParam := d.Get("retryable_errors").([]interface{})
+			reParam := d.Get("retryable_errors").([]any)
 			if len(reParam) == 0 {
 				retryableErrors = getDefaultRetriableErrors()
 			} else {
@@ -424,11 +464,15 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 			log.Printf("[DEBUG] Setting retriableErrors to %v", retryableErrors)
 		}
 
+		_maxPerPage := d.Get("max_per_page").(int)
+		if _maxPerPage <= 0 {
+			return nil, diag.FromErr(fmt.Errorf("max_per_page must be greater than than 0"))
+		}
+		log.Printf("[DEBUG] Setting max_per_page to %d", _maxPerPage)
+		maxPerPage = _maxPerPage
+
 		parallelRequests := d.Get("parallel_requests").(bool)
 
-		if parallelRequests && isGithubDotCom {
-			return nil, wrapErrors([]error{fmt.Errorf("parallel_requests cannot be true when connecting to public github")})
-		}
 		log.Printf("[DEBUG] Setting parallel_requests to %t", parallelRequests)
 
 		config := Config{
@@ -442,6 +486,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 			RetryableErrors:  retryableErrors,
 			MaxRetries:       maxRetries,
 			ParallelRequests: parallelRequests,
+			IsGHES:           isGHES,
 		}
 
 		meta, err := config.Meta()
@@ -453,41 +498,46 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 	}
 }
 
+// ghCLIHostFromAPIHost maps an API hostname to the corresponding
+// gh-CLI --hostname value.  For example api.github.com -> github.com
+// and api.<slug>.ghe.com -> <slug>.ghe.com.
+// for unrecognized hostnames, input is returned unmodified.
+func ghCLIHostFromAPIHost(host string) string {
+	if host == DotComAPIHost {
+		return DotComHost
+	} else if GHECAPIHostMatch.MatchString(host) {
+		return strings.TrimPrefix(host, "api.")
+	}
+	return host
+}
+
 // See https://github.com/integrations/terraform-provider-github/issues/1822
-func tokenFromGhCli(baseURL string, isGithubDotCom bool) (string, error) {
+func tokenFromGHCLI(u *url.URL) string {
 	ghCliPath := os.Getenv("GH_PATH")
 	if ghCliPath == "" {
 		ghCliPath = "gh"
 	}
-	hostname := ""
-	if isGithubDotCom {
-		hostname = "github.com"
-	} else {
-		parsedURL, err := url.Parse(baseURL)
-		if err != nil {
-			return "", fmt.Errorf("parse %s: %w", baseURL, err)
-		}
-		hostname = parsedURL.Host
-	}
-	// GitHub CLI uses different base URLs in ~/.config/gh/hosts.yml, so when
-	// we're using the standard base path of this provider, it doesn't align
-	// with the way `gh` CLI stores the credentials. The following doesn't work:
-	//
-	// $ gh auth token --hostname api.github.com
-	// > no oauth token
-	//
-	// ... but the following does work correctly
-	//
-	// $ gh auth token --hostname github.com
-	// > gh..<valid token>
-	hostname = strings.TrimPrefix(hostname, "api.")
-	out, err := exec.Command(ghCliPath, "auth", "token", "--hostname", hostname).Output()
+
+	host := ghCLIHostFromAPIHost(u.Host)
+
+	out, err := exec.Command(ghCliPath, "auth", "token", "--hostname", host).Output()
 	if err != nil {
+		log.Printf("[DEBUG] Error getting token from GitHub CLI: %s", err.Error())
 		// GH CLI is either not installed or there was no `gh auth login` command issued,
 		// which is fine. don't return the error to keep the flow going
-		return "", nil
+		return ""
 	}
 
 	log.Printf("[INFO] Using the token from GitHub CLI")
-	return strings.TrimSpace(string(out)), nil
+	return strings.TrimSpace(string(out))
+}
+
+func ownerOrOrgEnvDefaultFunc() any {
+	if organization := os.Getenv("GITHUB_ORGANIZATION"); organization != "" {
+		log.Printf("[INFO] Selecting owner %s from GITHUB_ORGANIZATION environment variable", organization)
+		return organization
+	}
+	owner := os.Getenv("GITHUB_OWNER")
+	log.Printf("[INFO] Selecting owner %s from GITHUB_OWNER environment variable", owner)
+	return owner
 }

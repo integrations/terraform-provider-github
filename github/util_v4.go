@@ -6,11 +6,13 @@ import (
 )
 
 type PageInfo struct {
-	EndCursor   githubv4.String
-	HasNextPage bool
+	StartCursor     githubv4.String
+	EndCursor       githubv4.String
+	HasNextPage     githubv4.Boolean
+	HasPreviousPage githubv4.Boolean
 }
 
-func expandNestedSet(m map[string]interface{}, target string) []string {
+func expandNestedSet(m map[string]any, target string) []string {
 	res := make([]string, 0)
 	if v, ok := m[target]; ok {
 		vL := v.(*schema.Set).List()

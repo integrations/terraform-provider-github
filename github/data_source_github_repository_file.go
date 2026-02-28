@@ -2,13 +2,14 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -71,7 +72,7 @@ func dataSourceGithubRepositoryFile() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func dataSourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -98,8 +99,9 @@ func dataSourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceD
 
 	fc, dc, _, err := client.Repositories.GetContents(ctx, owner, repo, file, opts)
 	if err != nil {
-		if err, ok := err.(*github.ErrorResponse); ok {
-			if err.Response.StatusCode == http.StatusNotFound {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) {
+			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[DEBUG] Missing GitHub repository file %s/%s/%s", owner, repo, file)
 				d.SetId("")
 				return nil
@@ -108,9 +110,9 @@ func dataSourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceD
 		return diag.FromErr(err)
 	}
 
-	d.Set("repository", repo)
+	_ = d.Set("repository", repo)
 	d.SetId(fmt.Sprintf("%s/%s", repo, file))
-	d.Set("file", file)
+	_ = d.Set("file", file)
 
 	// If the repo is a directory, then there is nothing else we can include in
 	// the schema.
@@ -123,8 +125,8 @@ func dataSourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceD
 		return diag.FromErr(err)
 	}
 
-	d.Set("content", content)
-	d.Set("sha", fc.GetSHA())
+	_ = d.Set("content", content)
+	_ = d.Set("sha", fc.GetSHA())
 
 	parsedUrl, err := url.Parse(fc.GetURL())
 	if err != nil {
@@ -144,11 +146,11 @@ func dataSourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceD
 	}
 
 	log.Printf("[DEBUG] Data Source fetching commit info for repository file: %s/%s/%s", owner, repo, file)
-	commit, err := getFileCommit(client, owner, repo, file, ref)
-	log.Printf("[DEBUG] Found file: %s/%s/%s, in commit SHA: %s ", owner, repo, file, commit.GetSHA())
+	commit, err := getFileCommit(ctx, client, owner, repo, file, ref)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	log.Printf("[DEBUG] Found file: %s/%s/%s, in commit SHA: %s ", owner, repo, file, commit.GetSHA())
 
 	if err = d.Set("commit_sha", commit.GetSHA()); err != nil {
 		return diag.FromErr(err)

@@ -3,14 +3,15 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v83/github"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubActionsOrganizationSecrets() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubActionsOrganizationSecretsRead,
+		ReadContext: dataSourceGithubActionsOrganizationSecretsRead,
 
 		Schema: map[string]*schema.Schema{
 			"secrets": {
@@ -41,7 +42,7 @@ func dataSourceGithubActionsOrganizationSecrets() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsOrganizationSecretsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubActionsOrganizationSecretsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 
@@ -49,11 +50,11 @@ func dataSourceGithubActionsOrganizationSecretsRead(d *schema.ResourceData, meta
 		PerPage: 100,
 	}
 
-	var all_secrets []map[string]string
+	var allSecrets []map[string]string
 	for {
-		secrets, resp, err := client.Actions.ListOrgSecrets(context.TODO(), owner, &options)
+		secrets, resp, err := client.Actions.ListOrgSecrets(ctx, owner, &options)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		for _, secret := range secrets.Secrets {
 			new_secret := map[string]string{
@@ -62,7 +63,7 @@ func dataSourceGithubActionsOrganizationSecretsRead(d *schema.ResourceData, meta
 				"updated_at": secret.UpdatedAt.String(),
 				"visibility": secret.Visibility,
 			}
-			all_secrets = append(all_secrets, new_secret)
+			allSecrets = append(allSecrets, new_secret)
 
 		}
 		if resp.NextPage == 0 {
@@ -72,9 +73,9 @@ func dataSourceGithubActionsOrganizationSecretsRead(d *schema.ResourceData, meta
 	}
 
 	d.SetId(owner)
-	err := d.Set("secrets", all_secrets)
+	err := d.Set("secrets", allSecrets)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

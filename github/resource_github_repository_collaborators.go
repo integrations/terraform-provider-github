@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -32,7 +32,7 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 			"user": {
 				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: "List of users",
+				Description: "List of users.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"permission": {
@@ -52,7 +52,7 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 			"team": {
 				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: "List of teams",
+				Description: "List of teams.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"permission": {
@@ -76,12 +76,26 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 				},
 				Computed: true,
 			},
+			"ignore_team": {
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Description: "List of teams to ignore.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"team_id": {
+							Type:        schema.TypeString,
+							Description: "ID or slug of the team to ignore.",
+							Required:    true,
+						},
+					},
+				},
+			},
 		},
 
 		CustomizeDiff: customdiff.Sequence(
 			// If there was a new user added to the list of collaborators,
 			// it's possible a new invitation id will be created in GitHub.
-			customdiff.ComputedIf("invitation_ids", func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) bool {
+			customdiff.ComputedIf("invitation_ids", func(ctx context.Context, d *schema.ResourceDiff, meta any) bool {
 				return d.HasChange("user")
 			}),
 		),
@@ -102,11 +116,11 @@ type invitedCollaborator struct {
 	invitationID int64
 }
 
-func flattenUserCollaborator(obj userCollaborator) interface{} {
+func flattenUserCollaborator(obj userCollaborator) any {
 	if obj.Empty() {
 		return nil
 	}
-	transformed := map[string]interface{}{
+	transformed := map[string]any{
 		"permission": obj.permission,
 		"username":   obj.username,
 	}
@@ -114,7 +128,7 @@ func flattenUserCollaborator(obj userCollaborator) interface{} {
 	return transformed
 }
 
-func flattenUserCollaborators(objs []userCollaborator, invites []invitedCollaborator) []interface{} {
+func flattenUserCollaborators(objs []userCollaborator, invites []invitedCollaborator) []any {
 	if objs == nil && invites == nil {
 		return nil
 	}
@@ -127,7 +141,7 @@ func flattenUserCollaborators(objs []userCollaborator, invites []invitedCollabor
 		return objs[i].username < objs[j].username
 	})
 
-	items := make([]interface{}, len(objs))
+	items := make([]any, len(objs))
 	for i, obj := range objs {
 		items[i] = flattenUserCollaborator(obj)
 	}
@@ -145,19 +159,19 @@ func (c teamCollaborator) Empty() bool {
 	return c == teamCollaborator{}
 }
 
-func flattenTeamCollaborator(obj teamCollaborator, teamIDs []int64) interface{} {
+func flattenTeamCollaborator(obj teamCollaborator, teamSlugs []string) any {
 	if obj.Empty() {
 		return nil
 	}
 
 	var teamIDString string
-	if slices.Contains(teamIDs, obj.teamID) {
-		teamIDString = strconv.FormatInt(obj.teamID, 10)
-	} else {
+	if slices.Contains(teamSlugs, obj.teamSlug) {
 		teamIDString = obj.teamSlug
+	} else {
+		teamIDString = strconv.FormatInt(obj.teamID, 10)
 	}
 
-	transformed := map[string]interface{}{
+	transformed := map[string]any{
 		"permission": obj.permission,
 		"team_id":    teamIDString,
 	}
@@ -165,7 +179,7 @@ func flattenTeamCollaborator(obj teamCollaborator, teamIDs []int64) interface{} 
 	return transformed
 }
 
-func flattenTeamCollaborators(objs []teamCollaborator, teamIDs []int64) []interface{} {
+func flattenTeamCollaborators(objs []teamCollaborator, teamSlugs []string) []any {
 	if objs == nil {
 		return nil
 	}
@@ -174,16 +188,16 @@ func flattenTeamCollaborators(objs []teamCollaborator, teamIDs []int64) []interf
 		return objs[i].teamID < objs[j].teamID
 	})
 
-	items := make([]interface{}, len(objs))
+	items := make([]any, len(objs))
 	for i, obj := range objs {
-		items[i] = flattenTeamCollaborator(obj, teamIDs)
+		items[i] = flattenTeamCollaborator(obj, teamSlugs)
 	}
 
 	return items
 }
 
 func listUserCollaborators(client *github.Client, isOrg bool, ctx context.Context, owner, repoName string) ([]userCollaborator, error) {
-	var userCollaborators []userCollaborator
+	userCollaborators := make([]userCollaborator, 0)
 	affiliations := []string{"direct", "outside"}
 	for _, affiliation := range affiliations {
 		opt := &github.ListCollaboratorsOptions{ListOptions: github.ListOptions{
@@ -217,7 +231,7 @@ func listUserCollaborators(client *github.Client, isOrg bool, ctx context.Contex
 }
 
 func listInvitations(client *github.Client, ctx context.Context, owner, repoName string) ([]invitedCollaborator, error) {
-	var invitedCollaborators []invitedCollaborator
+	invitedCollaborators := make([]invitedCollaborator, 0)
 
 	opt := &github.ListOptions{PerPage: maxPerPage}
 	for {
@@ -230,7 +244,8 @@ func listInvitations(client *github.Client, ctx context.Context, owner, repoName
 			permissionName := getPermission(i.GetPermissions())
 
 			invitedCollaborators = append(invitedCollaborators, invitedCollaborator{
-				userCollaborator{permissionName, i.GetInvitee().GetLogin()}, i.GetID()})
+				userCollaborator{permissionName, i.GetInvitee().GetLogin()}, i.GetID(),
+			})
 		}
 
 		if resp.NextPage == 0 {
@@ -241,11 +256,11 @@ func listInvitations(client *github.Client, ctx context.Context, owner, repoName
 	return invitedCollaborators, nil
 }
 
-func listTeams(client *github.Client, isOrg bool, ctx context.Context, owner, repoName string) ([]teamCollaborator, error) {
-	var teamCollaborators []teamCollaborator
+func listTeams(client *github.Client, isOrg bool, ctx context.Context, owner, repoName string, ignoreTeamIds []int64) ([]teamCollaborator, error) {
+	allTeams := make([]teamCollaborator, 0)
 
 	if !isOrg {
-		return teamCollaborators, nil
+		return allTeams, nil
 	}
 
 	opt := &github.ListOptions{PerPage: maxPerPage}
@@ -256,9 +271,11 @@ func listTeams(client *github.Client, isOrg bool, ctx context.Context, owner, re
 		}
 
 		for _, t := range repoTeams {
-			permissionName := getPermission(t.GetPermission())
+			if slices.Contains(ignoreTeamIds, t.GetID()) {
+				continue
+			}
 
-			teamCollaborators = append(teamCollaborators, teamCollaborator{permissionName, t.GetID(), t.GetSlug()})
+			allTeams = append(allTeams, teamCollaborator{permission: getPermission(t.GetPermission()), teamID: t.GetID(), teamSlug: t.GetSlug()})
 		}
 
 		if resp.NextPage == 0 {
@@ -266,10 +283,11 @@ func listTeams(client *github.Client, isOrg bool, ctx context.Context, owner, re
 		}
 		opt.Page = resp.NextPage
 	}
-	return teamCollaborators, nil
+
+	return allTeams, nil
 }
 
-func listAllCollaborators(client *github.Client, isOrg bool, ctx context.Context, owner, repoName string) ([]userCollaborator, []invitedCollaborator, []teamCollaborator, error) {
+func listAllCollaborators(client *github.Client, isOrg bool, ctx context.Context, owner, repoName string, ignoreTeamIds []int64) ([]userCollaborator, []invitedCollaborator, []teamCollaborator, error) {
 	userCollaborators, err := listUserCollaborators(client, isOrg, ctx, owner, repoName)
 	if err != nil {
 		return nil, nil, nil, err
@@ -278,16 +296,14 @@ func listAllCollaborators(client *github.Client, isOrg bool, ctx context.Context
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	teamCollaborators, err := listTeams(client, isOrg, ctx, owner, repoName)
+	teamCollaborators, err := listTeams(client, isOrg, ctx, owner, repoName, ignoreTeamIds)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 	return userCollaborators, invitations, teamCollaborators, err
 }
 
-func matchUserCollaboratorsAndInvites(
-	repoName string, want []interface{}, hasUsers []userCollaborator, hasInvites []invitedCollaborator,
-	meta interface{}) error {
+func matchUserCollaboratorsAndInvites(repoName string, want []any, hasUsers []userCollaborator, hasInvites []invitedCollaborator, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -296,7 +312,7 @@ func matchUserCollaboratorsAndInvites(
 	for _, has := range hasUsers {
 		var wantPermission string
 		for _, w := range want {
-			userData := w.(map[string]interface{})
+			userData := w.(map[string]any)
 			if userData["username"] == has.username {
 				wantPermission = userData["permission"].(string)
 				break
@@ -306,7 +322,10 @@ func matchUserCollaboratorsAndInvites(
 			log.Printf("[DEBUG] Removing user %s from repo: %s.", has.username, repoName)
 			_, err := client.Repositories.RemoveCollaborator(ctx, owner, repoName, has.username)
 			if err != nil {
-				return err
+				err = handleArchivedRepoDelete(err, "repository collaborator", has.username, owner, repoName)
+				if err != nil {
+					return err
+				}
 			}
 		} else if wantPermission != has.permission { // permission should be updated
 			log.Printf("[DEBUG] Updating user %s permission from %s to %s for repo: %s.", has.username, has.permission, wantPermission, repoName)
@@ -324,7 +343,7 @@ func matchUserCollaboratorsAndInvites(
 	for _, has := range hasInvites {
 		var wantPermission string
 		for _, u := range want {
-			userData := u.(map[string]interface{})
+			userData := u.(map[string]any)
 			if userData["username"] == has.username {
 				wantPermission = userData["permission"].(string)
 				break
@@ -334,7 +353,10 @@ func matchUserCollaboratorsAndInvites(
 			log.Printf("[DEBUG] Deleting invite for user %s from repo: %s.", has.username, repoName)
 			_, err := client.Repositories.DeleteInvitation(ctx, owner, repoName, has.invitationID)
 			if err != nil {
-				return err
+				err = handleArchivedRepoDelete(err, "repository collaborator invitation", has.username, owner, repoName)
+				if err != nil {
+					return err
+				}
 			}
 		} else if wantPermission != has.permission { // permission should be updated
 			log.Printf("[DEBUG] Updating invite for user %s permission from %s to %s for repo: %s.", has.username, has.permission, wantPermission, repoName)
@@ -346,7 +368,7 @@ func matchUserCollaboratorsAndInvites(
 	}
 
 	for _, w := range want {
-		userData := w.(map[string]interface{})
+		userData := w.(map[string]any)
 		username := userData["username"].(string)
 		permission := userData["permission"].(string)
 		var found bool
@@ -383,8 +405,7 @@ func matchUserCollaboratorsAndInvites(
 	return nil
 }
 
-func matchTeamCollaborators(
-	repoName string, want []interface{}, has []teamCollaborator, meta interface{}) error {
+func matchTeamCollaborators(repoName string, want []any, has []teamCollaborator, meta any) error {
 	client := meta.(*Owner).v3client
 	orgID := meta.(*Owner).id
 	owner := meta.(*Owner).name
@@ -394,7 +415,7 @@ func matchTeamCollaborators(
 	for _, hasTeam := range has {
 		var wantPerm string
 		for _, w := range want {
-			teamData := w.(map[string]interface{})
+			teamData := w.(map[string]any)
 			teamIDString := teamData["team_id"].(string)
 			teamID, err := getTeamID(teamIDString, meta)
 			if err != nil {
@@ -421,7 +442,7 @@ func matchTeamCollaborators(
 	}
 
 	for _, t := range want {
-		teamData := t.(map[string]interface{})
+		teamData := t.(map[string]any)
 		teamIDString := teamData["team_id"].(string)
 		teamID, err := getTeamID(teamIDString, meta)
 		if err != nil {
@@ -454,14 +475,17 @@ func matchTeamCollaborators(
 		log.Printf("[DEBUG] Removing team %d from repo: %s.", team.teamID, repoName)
 		_, err := client.Teams.RemoveTeamRepoByID(ctx, orgID, team.teamID, owner, repoName)
 		if err != nil {
-			return err
+			err = handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %d", team.teamID), owner, repoName)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	return nil
 }
 
-func resourceGithubRepositoryCollaboratorsCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryCollaboratorsCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -471,24 +495,29 @@ func resourceGithubRepositoryCollaboratorsCreate(d *schema.ResourceData, meta in
 	repoName := d.Get("repository").(string)
 	ctx := context.Background()
 
-	teamsMap := make(map[string]struct{})
+	teamsMap := make(map[string]struct{}, len(teams))
 	for _, team := range teams {
-		teamIDString := team.(map[string]interface{})["team_id"].(string)
+		teamIDString := team.(map[string]any)["team_id"].(string)
 		if _, found := teamsMap[teamIDString]; found {
 			return fmt.Errorf("duplicate set member: %s", teamIDString)
 		}
 		teamsMap[teamIDString] = struct{}{}
 	}
-	usersMap := make(map[string]struct{})
+	usersMap := make(map[string]struct{}, len(users))
 	for _, user := range users {
-		username := user.(map[string]interface{})["username"].(string)
+		username := user.(map[string]any)["username"].(string)
 		if _, found := usersMap[username]; found {
 			return fmt.Errorf("duplicate set member found: %s", username)
 		}
 		usersMap[username] = struct{}{}
 	}
 
-	userCollaborators, invitations, teamCollaborators, err := listAllCollaborators(client, isOrg, ctx, owner, repoName)
+	ignoreTeamIds, err := getIgnoreTeamIds(d, meta)
+	if err != nil {
+		return err
+	}
+
+	userCollaborators, invitations, teamCollaborators, err := listAllCollaborators(client, isOrg, ctx, owner, repoName, ignoreTeamIds)
 	if err != nil {
 		return deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "repository collaborators (%s/%s)", owner, repoName)
 	}
@@ -508,7 +537,7 @@ func resourceGithubRepositoryCollaboratorsCreate(d *schema.ResourceData, meta in
 	return resourceGithubRepositoryCollaboratorsRead(d, meta)
 }
 
-func resourceGithubRepositoryCollaboratorsRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryCollaboratorsRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -516,7 +545,12 @@ func resourceGithubRepositoryCollaboratorsRead(d *schema.ResourceData, meta inte
 	repoName := d.Id()
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	userCollaborators, invitedCollaborators, teamCollaborators, err := listAllCollaborators(client, isOrg, ctx, owner, repoName)
+	ignoreTeamIds, err := getIgnoreTeamIds(d, meta)
+	if err != nil {
+		return err
+	}
+
+	userCollaborators, invitedCollaborators, teamCollaborators, err := listAllCollaborators(client, isOrg, ctx, owner, repoName, ignoreTeamIds)
 	if err != nil {
 		return deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "repository collaborators (%s/%s)", owner, repoName)
 	}
@@ -526,9 +560,14 @@ func resourceGithubRepositoryCollaboratorsRead(d *schema.ResourceData, meta inte
 		invitationIds[i.username] = strconv.FormatInt(i.invitationID, 10)
 	}
 
-	teamIDs := make([]int64, len(teamCollaborators))
-	for i, t := range teamCollaborators {
-		teamIDs[i] = t.teamID
+	sourceTeams := d.Get("team").(*schema.Set).List()
+	teamSlugs := make([]string, len(sourceTeams))
+	for i, t := range sourceTeams {
+		teamIdString := t.(map[string]any)["team_id"].(string)
+		_, parseIntErr := strconv.ParseInt(teamIdString, 10, 64)
+		if parseIntErr != nil {
+			teamSlugs[i] = teamIdString
+		}
 	}
 
 	err = d.Set("repository", repoName)
@@ -539,7 +578,7 @@ func resourceGithubRepositoryCollaboratorsRead(d *schema.ResourceData, meta inte
 	if err != nil {
 		return err
 	}
-	err = d.Set("team", flattenTeamCollaborators(teamCollaborators, teamIDs))
+	err = d.Set("team", flattenTeamCollaborators(teamCollaborators, teamSlugs))
 	if err != nil {
 		return err
 	}
@@ -551,11 +590,11 @@ func resourceGithubRepositoryCollaboratorsRead(d *schema.ResourceData, meta inte
 	return nil
 }
 
-func resourceGithubRepositoryCollaboratorsUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryCollaboratorsUpdate(d *schema.ResourceData, meta any) error {
 	return resourceGithubRepositoryCollaboratorsCreate(d, meta)
 }
 
-func resourceGithubRepositoryCollaboratorsDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryCollaboratorsDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -563,7 +602,12 @@ func resourceGithubRepositoryCollaboratorsDelete(d *schema.ResourceData, meta in
 	repoName := d.Get("repository").(string)
 	ctx := context.Background()
 
-	userCollaborators, invitations, teamCollaborators, err := listAllCollaborators(client, isOrg, ctx, owner, repoName)
+	ignoreTeamIds, err := getIgnoreTeamIds(d, meta)
+	if err != nil {
+		return err
+	}
+
+	userCollaborators, invitations, teamCollaborators, err := listAllCollaborators(client, isOrg, ctx, owner, repoName, ignoreTeamIds)
 	if err != nil {
 		return deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "repository collaborators (%s/%s)", owner, repoName)
 	}
@@ -579,4 +623,20 @@ func resourceGithubRepositoryCollaboratorsDelete(d *schema.ResourceData, meta in
 	// delete all teams
 	err = matchTeamCollaborators(repoName, nil, teamCollaborators, meta)
 	return err
+}
+
+func getIgnoreTeamIds(d *schema.ResourceData, meta any) ([]int64, error) {
+	ignoreTeams := d.Get("ignore_team").(*schema.Set).List()
+	ignoreTeamIds := make([]int64, len(ignoreTeams))
+
+	for i, t := range ignoreTeams {
+		s := t.(map[string]any)["team_id"].(string)
+		id, err := getTeamID(s, meta)
+		if err != nil {
+			return nil, err
+		}
+		ignoreTeamIds[i] = id
+	}
+
+	return ignoreTeamIds, nil
 }

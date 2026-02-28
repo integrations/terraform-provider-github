@@ -1,0 +1,28 @@
+package github
+
+import (
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+)
+
+func TestAccDataSourceGithubOrganizationRoles(t *testing.T) {
+	t.Run("get the organization roles without error", func(t *testing.T) {
+		config := `
+			data "github_organization_roles" "test" {}
+		`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrSet("data.github_organization_roles.test", "roles.#"),
+					),
+				},
+			},
+		})
+	})
+}

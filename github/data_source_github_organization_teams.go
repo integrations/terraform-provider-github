@@ -1,6 +1,11 @@
 package github
 
 import (
+	"context"
+	"strconv"
+
+	"github.com/google/go-github/v83/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/shurcooL/githubv4"
@@ -8,7 +13,7 @@ import (
 
 func dataSourceGithubOrganizationTeams() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubOrganizationTeamsRead,
+		ReadContext: dataSourceGithubOrganizationTeamsRead,
 
 		Schema: map[string]*schema.Schema{
 			"root_teams_only": {
@@ -25,7 +30,7 @@ func dataSourceGithubOrganizationTeams() *schema.Resource {
 				Type:             schema.TypeInt,
 				Optional:         true,
 				Default:          100,
-				ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 100), "results_per_page"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 100)),
 			},
 			"teams": {
 				Type:     schema.TypeList,
@@ -67,9 +72,18 @@ func dataSourceGithubOrganizationTeams() *schema.Resource {
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 						"parent": {
-							Type:     schema.TypeMap,
+							Deprecated: "Use parent_team_id and parent_team_slug instead.",
+							Type:       schema.TypeMap,
+							Computed:   true,
+							Elem:       &schema.Schema{Type: schema.TypeString},
+						},
+						"parent_team_id": {
+							Type:     schema.TypeString,
 							Computed: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+						"parent_team_slug": {
+							Type:     schema.TypeString,
+							Computed: true,
 						},
 					},
 				},
@@ -78,12 +92,13 @@ func dataSourceGithubOrganizationTeams() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationTeamsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubOrganizationTeamsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
+	clientv3 := meta.(*Owner).v3client
 	client := meta.(*Owner).v4client
 	orgName := meta.(*Owner).name
 	rootTeamsOnly := d.Get("root_teams_only").(bool)
@@ -92,7 +107,7 @@ func dataSourceGithubOrganizationTeamsRead(d *schema.ResourceData, meta interfac
 
 	var query TeamsQuery
 
-	variables := map[string]interface{}{
+	variables := map[string]any{
 		"first":         githubv4.Int(resultsPerPage),
 		"login":         githubv4.String(orgName),
 		"cursor":        (*githubv4.String)(nil),
@@ -100,14 +115,17 @@ func dataSourceGithubOrganizationTeamsRead(d *schema.ResourceData, meta interfac
 		"summaryOnly":   githubv4.Boolean(summaryOnly),
 	}
 
-	var teams []interface{}
+	var teams []any
 	for {
 		err = client.Query(meta.(*Owner).StopContext, &query, variables)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
-		additionalTeams := flattenGitHubTeams(query)
+		additionalTeams, err := flattenGitHubTeams(clientv3, meta.(*Owner).StopContext, orgName, query)
+		if err != nil {
+			return diag.FromErr(err)
+		}
 		teams = append(teams, additionalTeams...)
 
 		if !query.Organization.Teams.PageInfo.HasNextPage {
@@ -119,23 +137,23 @@ func dataSourceGithubOrganizationTeamsRead(d *schema.ResourceData, meta interfac
 	d.SetId(string(query.Organization.ID))
 	err = d.Set("teams", teams)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func flattenGitHubTeams(tq TeamsQuery) []interface{} {
+func flattenGitHubTeams(client *github.Client, ctx context.Context, org string, tq TeamsQuery) ([]any, error) {
 	teams := tq.Organization.Teams.Nodes
 
 	if len(teams) == 0 {
-		return make([]interface{}, 0)
+		return make([]any, 0), nil
 	}
 
-	flatTeams := make([]interface{}, len(teams))
+	flatTeams := make([]any, len(teams))
 
 	for i, team := range teams {
-		t := make(map[string]interface{})
+		t := make(map[string]any)
 
 		t["id"] = team.DatabaseID
 		t["node_id"] = team.ID
@@ -152,7 +170,19 @@ func flattenGitHubTeams(tq TeamsQuery) []interface{} {
 
 		t["members"] = flatMembers
 
-		parentTeam := make(map[string]interface{})
+		var parentTeamId string
+		if len(team.Parent.Slug) != 0 {
+			parentTeam, _, err := client.Teams.GetTeamBySlug(ctx, org, string(team.Parent.Slug))
+			if err != nil {
+				return nil, err
+			}
+			parentTeamId = strconv.FormatInt(parentTeam.GetID(), 10)
+		}
+
+		t["parent_team_id"] = parentTeamId
+		t["parent_team_slug"] = team.Parent.Slug
+
+		parentTeam := make(map[string]any)
 		parentTeam["id"] = team.Parent.ID
 		parentTeam["slug"] = team.Parent.Slug
 		parentTeam["name"] = team.Parent.Name
@@ -171,5 +201,5 @@ func flattenGitHubTeams(tq TeamsQuery) []interface{} {
 		flatTeams[i] = t
 	}
 
-	return flatTeams
+	return flatTeams, nil
 }

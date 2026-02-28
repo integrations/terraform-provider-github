@@ -3,13 +3,14 @@ package github
 import (
 	"context"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
 
 func dataSourceGithubOrganizationIpAllowList() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubOrganizationIpAllowListRead,
+		ReadContext: dataSourceGithubOrganizationIpAllowListRead,
 
 		Schema: map[string]*schema.Schema{
 			"ip_allow_list": {
@@ -48,22 +49,14 @@ func dataSourceGithubOrganizationIpAllowList() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationIpAllowListRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubOrganizationIpAllowListRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	ctx := context.Background()
 	client := meta.(*Owner).v4client
 	orgName := meta.(*Owner).name
-
-	type PageInfo struct {
-		StartCursor     githubv4.String
-		EndCursor       githubv4.String
-		HasNextPage     githubv4.Boolean
-		HasPreviousPage githubv4.Boolean
-	}
 
 	type IpAllowListEntry struct {
 		ID             githubv4.String
@@ -87,18 +80,18 @@ func dataSourceGithubOrganizationIpAllowListRead(d *schema.ResourceData, meta in
 		} `graphql:"organization(login: $login)"`
 	}
 
-	variables := map[string]interface{}{
+	variables := map[string]any{
 		"login":         githubv4.String(orgName),
 		"entriesCursor": (*githubv4.String)(nil),
 	}
 
-	var ipAllowList []interface{}
+	var ipAllowList []any
 	var ipAllowListEntries []IpAllowListEntry
 
 	for {
 		err := client.Query(ctx, &query, variables)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		ipAllowListEntries = append(ipAllowListEntries, query.Organization.IpAllowListEntries.Nodes...)
@@ -108,7 +101,7 @@ func dataSourceGithubOrganizationIpAllowListRead(d *schema.ResourceData, meta in
 		variables["entriesCursor"] = githubv4.NewString(query.Organization.IpAllowListEntries.PageInfo.EndCursor)
 	}
 	for index := range ipAllowListEntries {
-		ipAllowList = append(ipAllowList, map[string]interface{}{
+		ipAllowList = append(ipAllowList, map[string]any{
 			"id":               ipAllowListEntries[index].ID,
 			"name":             ipAllowListEntries[index].Name,
 			"allow_list_value": ipAllowListEntries[index].AllowListValue,
@@ -121,7 +114,7 @@ func dataSourceGithubOrganizationIpAllowListRead(d *schema.ResourceData, meta in
 	d.SetId(string(query.Organization.ID))
 	err = d.Set("ip_allow_list", ipAllowList)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

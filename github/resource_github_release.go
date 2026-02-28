@@ -2,21 +2,23 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v83/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubRelease() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubReleaseCreateUpdate,
-		Update: resourceGithubReleaseCreateUpdate,
-		Read:   resourceGithubReleaseRead,
-		Delete: resourceGithubReleaseDelete,
+		CreateContext: resourceGithubReleaseCreateUpdate,
+		UpdateContext: resourceGithubReleaseCreateUpdate,
+		ReadContext:   resourceGithubReleaseRead,
+		DeleteContext: resourceGithubReleaseDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubReleaseImport,
 		},
@@ -136,12 +138,7 @@ func resourceGithubRelease() *schema.Resource {
 	}
 }
 
-func resourceGithubReleaseCreateUpdate(d *schema.ResourceData, meta interface{}) error {
-	ctx := context.Background()
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxId, d.Id())
-	}
-
+func resourceGithubReleaseCreateUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
@@ -152,23 +149,23 @@ func resourceGithubReleaseCreateUpdate(d *schema.ResourceData, meta interface{})
 	generateReleaseNotes := d.Get("generate_release_notes").(bool)
 
 	req := &github.RepositoryRelease{
-		TagName:              github.String(tagName),
-		TargetCommitish:      github.String(targetCommitish),
-		Draft:                github.Bool(draft),
-		Prerelease:           github.Bool(prerelease),
-		GenerateReleaseNotes: github.Bool(generateReleaseNotes),
+		TagName:              github.Ptr(tagName),
+		TargetCommitish:      github.Ptr(targetCommitish),
+		Draft:                github.Ptr(draft),
+		Prerelease:           github.Ptr(prerelease),
+		GenerateReleaseNotes: github.Ptr(generateReleaseNotes),
 	}
 
 	if v, ok := d.GetOk("body"); ok {
-		req.Body = github.String(v.(string))
+		req.Body = github.Ptr(v.(string))
 	}
 
 	if v, ok := d.GetOk("name"); ok {
-		req.Name = github.String(v.(string))
+		req.Name = github.Ptr(v.(string))
 	}
 
 	if v, ok := d.GetOk("discussion_category_name"); ok {
-		req.DiscussionCategoryName = github.String(v.(string))
+		req.DiscussionCategoryName = github.Ptr(v.(string))
 	}
 
 	var release *github.RepositoryRelease
@@ -181,53 +178,58 @@ func resourceGithubReleaseCreateUpdate(d *schema.ResourceData, meta interface{})
 		if resp != nil {
 			log.Printf("[DEBUG] Response from creating release: %#v", *resp)
 		}
+		if err != nil {
+			return diag.FromErr(err)
+		}
 	} else {
-		number := d.Get("number").(int64)
+		id, err := strconv.ParseInt(d.Id(), 10, 64)
+		if err != nil {
+			return diag.FromErr(err)
+		}
 		log.Printf("[DEBUG] Updating release: %d:%s (%s/%s)",
-			number, targetCommitish, owner, repoName)
-		release, resp, err = client.Repositories.EditRelease(ctx, owner, repoName, number, req)
+			id, targetCommitish, owner, repoName)
+		release, resp, err = client.Repositories.EditRelease(ctx, owner, repoName, id, req)
 		if resp != nil {
 			log.Printf("[DEBUG] Response from updating release: %#v", *resp)
 		}
+		if err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
-	if err != nil {
-		return err
-	}
 	transformResponseToResourceData(d, release, repoName)
 	return nil
 }
 
-func resourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubReleaseRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	repository := d.Get("repository").(string)
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	releaseID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if releaseID == 0 {
-		return fmt.Errorf("`release_id` must be present")
+		return diag.Errorf("`release_id` must be present")
 	}
 
 	release, _, err := client.Repositories.GetRelease(ctx, owner, repository, releaseID)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing release ID %d for repository %s from state, because it no longer exists on GitHub", releaseID, repository)
 				d.SetId("")
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 	transformResponseToResourceData(d, release, repository)
 	return nil
 }
 
-func resourceGithubReleaseDelete(d *schema.ResourceData, meta interface{}) error {
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+func resourceGithubReleaseDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	repository := d.Get("repository").(string)
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
@@ -235,21 +237,21 @@ func resourceGithubReleaseDelete(d *schema.ResourceData, meta interface{}) error
 	releaseIDStr := d.Id()
 	releaseID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(releaseIDStr, err)
+		return diag.FromErr(unconvertibleIdErr(releaseIDStr, err))
 	}
 	if releaseID == 0 {
-		return fmt.Errorf("`release_id` must be present")
+		return diag.Errorf("`release_id` must be present")
 	}
 
 	_, err = client.Repositories.DeleteRelease(ctx, owner, repository, releaseID)
 	if err != nil {
-		return fmt.Errorf("error deleting GitHub release reference %s/%s (%s): %s",
+		return diag.Errorf("error deleting GitHub release reference %s/%s (%s): %v",
 			fmt.Sprint(releaseID), repository, owner, err)
 	}
 	return nil
 }
 
-func resourceGithubReleaseImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceGithubReleaseImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	repoName, releaseIDStr, err := parseTwoPartID(d.Id(), "repository", "release")
 	if err != nil {
 		return []*schema.ResourceData{d}, err

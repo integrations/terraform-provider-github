@@ -2,24 +2,26 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v83/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubRepositoryWebhook() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryWebhookCreate,
-		Read:   resourceGithubRepositoryWebhookRead,
-		Update: resourceGithubRepositoryWebhookUpdate,
-		Delete: resourceGithubRepositoryWebhookDelete,
+		CreateContext: resourceGithubRepositoryWebhookCreate,
+		ReadContext:   resourceGithubRepositoryWebhookRead,
+		UpdateContext: resourceGithubRepositoryWebhookUpdate,
+		DeleteContext: resourceGithubRepositoryWebhookDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+			StateContext: func(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")
 				if len(parts) != 2 {
 					return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository>/<webhook_id>")
@@ -33,14 +35,20 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 		},
 
 		SchemaVersion: 1,
-		MigrateState:  resourceGithubWebhookMigrateState,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceGithubRepositoryWebhookResourceV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceGithubRepositoryWebhookInstanceStateUpgradeV0,
+				Version: 0,
+			},
+		},
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "The repository of the webhook.",
+				Description: "The repository name of the webhook, not including the organization, which will be inferred.",
 			},
 			"events": {
 				Type:        schema.TypeSet,
@@ -63,7 +71,12 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 			},
 			"etag": {
 				Type:     schema.TypeString,
+				Optional: true,
 				Computed: true,
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -84,7 +97,7 @@ func resourceGithubRepositoryWebhookObject(d *schema.ResourceData) *github.Hook 
 		Active: &active,
 	}
 
-	config := d.Get("configuration").([]interface{})[0].(map[string]interface{})
+	config := d.Get("configuration").([]any)[0].(map[string]any)
 	if len(config) > 0 {
 		hook.Config = webhookConfigFromInterface(config)
 	}
@@ -92,17 +105,16 @@ func resourceGithubRepositoryWebhookObject(d *schema.ResourceData) *github.Hook 
 	return hook
 }
 
-func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryWebhookCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	hk := resourceGithubRepositoryWebhookObject(d)
-	ctx := context.Background()
 
 	hook, _, err := client.Repositories.CreateHook(ctx, owner, repoName, hk)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	d.SetId(strconv.FormatInt(hook.GetID(), 10))
 
@@ -114,29 +126,30 @@ func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interfac
 	}
 
 	if err = d.Set("configuration", interfaceFromWebhookConfig(hook.Config)); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceGithubRepositoryWebhookRead(d, meta)
+	return resourceGithubRepositoryWebhookRead(ctx, d, meta)
 }
 
-func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryWebhookRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
+		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
 	hook, _, err := client.Repositories.GetHook(ctx, owner, repoName, hookID)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -147,38 +160,38 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("url", hook.GetURL()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("active", hook.GetActive()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("events", hook.Events); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// GitHub returns the secret as a string of 8 astrisks "********"
 	// We would prefer to store the real secret in state, so we'll
 	// write the configuration secret in state from what we get from
 	// ResourceData
-	if len(d.Get("configuration").([]interface{})) > 0 {
-		currentSecret := d.Get("configuration").([]interface{})[0].(map[string]interface{})["secret"]
+	if len(d.Get("configuration").([]any)) > 0 {
+		currentSecret := d.Get("configuration").([]any)[0].(map[string]any)["secret"]
 
 		if hook.Config.Secret != nil {
-			hook.Config.Secret = github.String(currentSecret.(string))
+			hook.Config.Secret = github.Ptr(currentSecret.(string))
 		}
 	}
 
 	if err = d.Set("configuration", interfaceFromWebhookConfig(hook.Config)); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubRepositoryWebhookUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryWebhookUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -186,29 +199,29 @@ func resourceGithubRepositoryWebhookUpdate(d *schema.ResourceData, meta interfac
 	hk := resourceGithubRepositoryWebhookObject(d)
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
+		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	_, _, err = client.Repositories.EditHook(ctx, owner, repoName, hookID, hk)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceGithubRepositoryWebhookRead(d, meta)
+	return resourceGithubRepositoryWebhookRead(ctx, d, meta)
 }
 
-func resourceGithubRepositoryWebhookDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryWebhookDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
+		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	_, err = client.Repositories.DeleteHook(ctx, owner, repoName, hookID)
-	return err
+	return diag.FromErr(handleArchivedRepoDelete(err, "repository webhook", d.Id(), owner, repoName))
 }

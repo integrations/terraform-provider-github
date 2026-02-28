@@ -3,12 +3,13 @@ package github
 import (
 	"context"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubTree() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubTreeRead,
+		ReadContext: dataSourceGithubTreeRead,
 		Schema: map[string]*schema.Schema{
 			"recursive": {
 				Type:     schema.TypeBool,
@@ -55,25 +56,23 @@ func dataSourceGithubTree() *schema.Resource {
 	}
 }
 
-func dataSourceGithubTreeRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubTreeRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	owner := meta.(*Owner).name
 	repository := d.Get("repository").(string)
 	sha := d.Get("tree_sha").(string)
 	recursive := d.Get("recursive").(bool)
 
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 
 	tree, _, err := client.Git.GetTree(ctx, owner, repository, sha, recursive)
-
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	entries := make([]interface{}, 0, len(tree.Entries))
+	entries := make([]any, 0, len(tree.Entries))
 
 	for _, entry := range tree.Entries {
-		entries = append(entries, map[string]interface{}{
+		entries = append(entries, map[string]any{
 			"path": entry.Path,
 			"mode": entry.Mode,
 			"type": entry.Type,
@@ -84,7 +83,7 @@ func dataSourceGithubTreeRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(tree.GetSHA())
 	if err = d.Set("entries", entries); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

@@ -3,14 +3,15 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v83/github"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubDependabotOrganizationSecrets() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubDependabotOrganizationSecretsRead,
+		ReadContext: dataSourceGithubDependabotOrganizationSecretsRead,
 
 		Schema: map[string]*schema.Schema{
 			"secrets": {
@@ -41,7 +42,7 @@ func dataSourceGithubDependabotOrganizationSecrets() *schema.Resource {
 	}
 }
 
-func dataSourceGithubDependabotOrganizationSecretsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubDependabotOrganizationSecretsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 
@@ -51,9 +52,9 @@ func dataSourceGithubDependabotOrganizationSecretsRead(d *schema.ResourceData, m
 
 	var all_secrets []map[string]string
 	for {
-		secrets, resp, err := client.Dependabot.ListOrgSecrets(context.TODO(), owner, &options)
+		secrets, resp, err := client.Dependabot.ListOrgSecrets(ctx, owner, &options)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		for _, secret := range secrets.Secrets {
 			new_secret := map[string]string{
@@ -74,7 +75,7 @@ func dataSourceGithubDependabotOrganizationSecretsRead(d *schema.ResourceData, m
 	d.SetId(owner)
 	err := d.Set("secrets", all_secrets)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

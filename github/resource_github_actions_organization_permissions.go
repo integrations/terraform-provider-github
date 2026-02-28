@@ -5,7 +5,7 @@ import (
 	"errors"
 	"log"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -25,13 +25,13 @@ func resourceGithubActionsOrganizationPermissions() *schema.Resource {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Description:      "The permissions policy that controls the actions that are allowed to run. Can be one of: 'all', 'local_only', or 'selected'.",
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"all", "local_only", "selected"}, false), "allowed_actions"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"all", "local_only", "selected"}, false)),
 			},
 			"enabled_repositories": {
 				Type:             schema.TypeString,
 				Required:         true,
 				Description:      "The policy that controls the repositories in the organization that are allowed to run GitHub Actions. Can be one of: 'all', 'none', or 'selected'.",
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"all", "none", "selected"}, false), "enabled_repositories"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"all", "none", "selected"}, false)),
 			},
 			"allowed_actions_config": {
 				Type:        schema.TypeList,
@@ -76,16 +76,22 @@ func resourceGithubActionsOrganizationPermissions() *schema.Resource {
 					},
 				},
 			},
+			"sha_pinning_required": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether pinning to a specific SHA is required for all actions and reusable workflows in an organization.",
+			},
 		},
 	}
 }
 
-func resourceGithubActionsOrganizationAllowedObject(d *schema.ResourceData) (*github.ActionsAllowed, error) {
+func resourceGithubActionsOrganizationAllowedObject(d *schema.ResourceData) *github.ActionsAllowed {
 	allowed := &github.ActionsAllowed{}
 
-	config := d.Get("allowed_actions_config").([]interface{})
+	config := d.Get("allowed_actions_config").([]any)
 	if len(config) > 0 {
-		data := config[0].(map[string]interface{})
+		data := config[0].(map[string]any)
 		switch x := data["github_owned_allowed"].(type) {
 		case bool:
 			allowed.GithubOwnedAllowed = &x
@@ -107,18 +113,18 @@ func resourceGithubActionsOrganizationAllowedObject(d *schema.ResourceData) (*gi
 
 		allowed.PatternsAllowed = patternsAllowed
 	} else {
-		return nil, nil
+		return nil
 	}
 
-	return allowed, nil
+	return allowed
 }
 
 func resourceGithubActionsEnabledRepositoriesObject(d *schema.ResourceData) ([]int64, error) {
 	var enabled []int64
 
-	config := d.Get("enabled_repositories_config").([]interface{})
+	config := d.Get("enabled_repositories_config").([]any)
 	if len(config) > 0 {
-		data := config[0].(map[string]interface{})
+		data := config[0].(map[string]any)
 		switch x := data["repository_ids"].(type) {
 		case *schema.Set:
 			for _, value := range x.List() {
@@ -131,7 +137,7 @@ func resourceGithubActionsEnabledRepositoriesObject(d *schema.ResourceData) ([]i
 	return enabled, nil
 }
 
-func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	ctx := context.Background()
@@ -147,24 +153,27 @@ func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.Resour
 	allowedActions := d.Get("allowed_actions").(string)
 	enabledRepositories := d.Get("enabled_repositories").(string)
 
-	_, _, err = client.Actions.EditActionsPermissions(ctx,
+	actionsPermissions := github.ActionsPermissions{
+		AllowedActions:      &allowedActions,
+		EnabledRepositories: &enabledRepositories,
+	}
+
+	if v, ok := d.GetOk("sha_pinning_required"); ok {
+		actionsPermissions.SHAPinningRequired = github.Ptr(v.(bool))
+	}
+
+	_, _, err = client.Actions.UpdateActionsPermissions(ctx,
 		orgName,
-		github.ActionsPermissions{
-			AllowedActions:      &allowedActions,
-			EnabledRepositories: &enabledRepositories,
-		})
+		actionsPermissions)
 	if err != nil {
 		return err
 	}
 
 	if allowedActions == "selected" {
-		actionsAllowedData, err := resourceGithubActionsOrganizationAllowedObject(d)
-		if err != nil {
-			return err
-		}
+		actionsAllowedData := resourceGithubActionsOrganizationAllowedObject(d)
 		if actionsAllowedData != nil {
 			log.Printf("[DEBUG] Allowed actions config is set")
-			_, _, err = client.Actions.EditActionsAllowed(ctx,
+			_, _, err = client.Actions.UpdateActionsAllowed(ctx,
 				orgName,
 				*actionsAllowedData)
 			if err != nil {
@@ -192,7 +201,7 @@ func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.Resour
 	return resourceGithubActionsOrganizationPermissionsRead(d, meta)
 }
 
-func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
@@ -211,7 +220,7 @@ func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, me
 	// on initial import there might not be any value in the state, then we have to import the data
 	// -> but we can only load an existing state if the current config is set to "selected" (see #2182)
 	allowedActions := d.Get("allowed_actions").(string)
-	allowedActionsConfig := d.Get("allowed_actions_config").([]interface{})
+	allowedActionsConfig := d.Get("allowed_actions_config").([]any)
 
 	serverHasAllowedActionsConfig := actionsPermissions.GetAllowedActions() == "selected"
 	userWantsAllowedActionsConfig := (allowedActions == "selected" && len(allowedActionsConfig) > 0) || allowedActions == ""
@@ -224,8 +233,8 @@ func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, me
 
 		// If actionsAllowed set to local/all by removing all actions config settings, the response will be empty
 		if actionsAllowed != nil {
-			if err = d.Set("allowed_actions_config", []interface{}{
-				map[string]interface{}{
+			if err = d.Set("allowed_actions_config", []any{
+				map[string]any{
 					"github_owned_allowed": actionsAllowed.GetGithubOwnedAllowed(),
 					"patterns_allowed":     actionsAllowed.PatternsAllowed,
 					"verified_allowed":     actionsAllowed.GetVerifiedAllowed(),
@@ -235,7 +244,7 @@ func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, me
 			}
 		}
 	} else {
-		if err = d.Set("allowed_actions_config", []interface{}{}); err != nil {
+		if err = d.Set("allowed_actions_config", []any{}); err != nil {
 			return err
 		}
 	}
@@ -262,15 +271,15 @@ func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, me
 			repoList = append(repoList, *allRepos[index].ID)
 		}
 		if allRepos != nil {
-			if err = d.Set("enabled_repositories_config", []interface{}{
-				map[string]interface{}{
+			if err = d.Set("enabled_repositories_config", []any{
+				map[string]any{
 					"repository_ids": repoList,
 				},
 			}); err != nil {
 				return err
 			}
 		} else {
-			if err = d.Set("enabled_repositories_config", []interface{}{}); err != nil {
+			if err = d.Set("enabled_repositories_config", []any{}); err != nil {
 				return err
 			}
 		}
@@ -283,10 +292,14 @@ func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, me
 		return err
 	}
 
+	if err = d.Set("sha_pinning_required", actionsPermissions.GetSHAPinningRequired()); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func resourceGithubActionsOrganizationPermissionsDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubActionsOrganizationPermissionsDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
@@ -297,11 +310,11 @@ func resourceGithubActionsOrganizationPermissionsDelete(d *schema.ResourceData, 
 	}
 
 	// This will nullify any allowedActions elements
-	_, _, err = client.Actions.EditActionsPermissions(ctx,
+	_, _, err = client.Actions.UpdateActionsPermissions(ctx,
 		orgName,
 		github.ActionsPermissions{
-			AllowedActions:      github.String("all"),
-			EnabledRepositories: github.String("all"),
+			AllowedActions:      github.Ptr("all"),
+			EnabledRepositories: github.Ptr("all"),
 		})
 	if err != nil {
 		return err

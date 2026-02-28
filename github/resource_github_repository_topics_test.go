@@ -4,17 +4,18 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubRepositoryTopics(t *testing.T) {
 	t.Run("create repository topics and import them", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-topics-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 				auto_init = true
 			}
 
@@ -22,7 +23,7 @@ func TestAccGithubRepositoryTopics(t *testing.T) {
 				repository    = github_repository.test.name
 				topics        = ["test", "test-2"]
 			}
-		`, randomID)
+		`, repoName)
 
 		const resourceName = "github_repository_topics.test"
 
@@ -30,43 +31,30 @@ func TestAccGithubRepositoryTopics(t *testing.T) {
 			resource.TestCheckResourceAttr(resourceName, "topics.#", "2"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:      resourceName,
-						ImportState:       true,
-						ImportStateVerify: true,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					ResourceName:      resourceName,
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
 		})
 	})
 
 	t.Run("create repository topics and update them", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-topics-%s", testResourcePrefix, randomID)
 
 		configBefore := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 				auto_init = true
 			}
 
@@ -74,11 +62,11 @@ func TestAccGithubRepositoryTopics(t *testing.T) {
 				repository    = github_repository.test.name
 				topics        = ["test", "test-2"]
 			}
-		`, randomID)
+		`, repoName)
 
 		configAfter := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+				name      = "%s"
 				auto_init = true
 			}
 
@@ -86,7 +74,7 @@ func TestAccGithubRepositoryTopics(t *testing.T) {
 				repository    = github_repository.test.name
 				topics        = ["test", "test-2", "extra-topic"]
 			}
-		`, randomID)
+		`, repoName)
 
 		const resourceName = "github_repository_topics.test"
 
@@ -97,33 +85,19 @@ func TestAccGithubRepositoryTopics(t *testing.T) {
 			resource.TestCheckResourceAttr(resourceName, "topics.#", "3"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: configBefore,
-						Check:  checkBefore,
-					},
-					{
-						Config: configAfter,
-						Check:  checkAfter,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: configBefore,
+					Check:  checkBefore,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: configAfter,
+					Check:  checkAfter,
+				},
+			},
 		})
 	})
 }
