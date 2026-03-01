@@ -14,7 +14,7 @@ func TestAccGithubOrganizationRepositoriesDataSource(t *testing.T) {
 		repo1Name := fmt.Sprintf("%srepo-%s-1", testResourcePrefix, randomID)
 		repo2Name := fmt.Sprintf("%srepo-%s-2", testResourcePrefix, randomID)
 
-		config1 := fmt.Sprintf(`
+		config := `
 			resource "github_repository" "test1" {
 			  name       = "%s"
 			  visibility = "private"
@@ -23,35 +23,16 @@ func TestAccGithubOrganizationRepositoriesDataSource(t *testing.T) {
 			resource "github_repository" "test2" {
 			  name       = "%s"
 			  visibility = "public"
+			  archived   = %t
 			  depends_on = [github_repository.test1]
 			}
-		`, repo1Name, repo2Name)
-
-		config2 := fmt.Sprintf(`
-			resource "github_repository" "test1" {
-			  name       = "%s"
-			  visibility = "private"
-			}
-
-			resource "github_repository" "test2" {
-			  name       = "%s"
-			  archived   = true
-			  visibility = "public"
-			  depends_on = [github_repository.test1]
-			}
-		`, repo1Name, repo2Name)
-
-		configAll := config2 + `
-			data "github_organization_repositories" "all" {}
 		`
-
-		configSkipArchived := config2 + `
-			data "github_organization_repositories" "skip_archived" {
-			  ignore_archived_repositories = true
-			  depends_on = [github_repository.test2]
+		configWithDS := config + `
+			data "github_organization_repositories" "all" {
+				ignore_archived_repositories = %t
+				depends_on = [github_repository.test2]
 			}
 		`
-
 		const resourceAll = "data.github_organization_repositories.all"
 		const resourceSkipArchived = "data.github_organization_repositories.skip_archived"
 
@@ -60,19 +41,19 @@ func TestAccGithubOrganizationRepositoriesDataSource(t *testing.T) {
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: config1,
+					Config: fmt.Sprintf(config, repo1Name, repo2Name, false),
 				},
 				{
-					Config: config2,
+					Config: fmt.Sprintf(config, repo1Name, repo2Name, true),
 				},
 				{
-					Config: configAll,
+					Config: fmt.Sprintf(configWithDS, repo1Name, repo2Name, false),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttrSet(resourceAll, "repositories.#"),
 					),
 				},
 				{
-					Config: configSkipArchived,
+					Config: fmt.Sprintf(configWithDS, repo1Name, repo2Name, true),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttrSet(resourceSkipArchived, "repositories.#"),
 					),
