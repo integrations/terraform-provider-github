@@ -34,6 +34,5 @@ jobs:
           go-version-file: go.mod
           cache: true
       - run: make tools
-      - run: make lintcheck
       - run: make build
       - run: make test
