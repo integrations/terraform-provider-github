@@ -14,7 +14,20 @@ func TestAccGithubOrganizationRepositoriesDataSource(t *testing.T) {
 		repo1Name := fmt.Sprintf("%srepo-%s-1", testResourcePrefix, randomID)
 		repo2Name := fmt.Sprintf("%srepo-%s-2", testResourcePrefix, randomID)
 
-		config := fmt.Sprintf(`
+		config1 := fmt.Sprintf(`
+			resource "github_repository" "test1" {
+			  name       = "%s"
+			  visibility = "private"
+			}
+
+			resource "github_repository" "test2" {
+			  name       = "%s"
+			  visibility = "public"
+			  depends_on = [github_repository.test1]
+			}
+		`, repo1Name, repo2Name)
+
+		config2 := fmt.Sprintf(`
 			resource "github_repository" "test1" {
 			  name       = "%s"
 			  visibility = "private"
@@ -28,11 +41,11 @@ func TestAccGithubOrganizationRepositoriesDataSource(t *testing.T) {
 			}
 		`, repo1Name, repo2Name)
 
-		configAll := config + `
+		configAll := config2 + `
 			data "github_organization_repositories" "all" {}
 		`
 
-		configSkipArchived := config + `
+		configSkipArchived := config2 + `
 			data "github_organization_repositories" "skip_archived" {
 			  ignore_archived_repositories = true
 			  depends_on = [github_repository.test2]
@@ -42,41 +55,29 @@ func TestAccGithubOrganizationRepositoriesDataSource(t *testing.T) {
 		const resourceAll = "data.github_organization_repositories.all"
 		const resourceSkipArchived = "data.github_organization_repositories.skip_archived"
 
-		testCase := func(t *testing.T, mode testMode) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:          func() { skipUnlessMode(t, mode) },
-				ProviderFactories: providerFactories,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  resource.ComposeTestCheckFunc(),
-					},
-					{
-						Config: configAll,
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttrSet(resourceAll, "repositories.#"),
-						),
-					},
-					{
-						Config: configSkipArchived,
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttrSet(resourceSkipArchived, "repositories.#"),
-						),
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config1,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: config2,
+				},
+				{
+					Config: configAll,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrSet(resourceAll, "repositories.#"),
+					),
+				},
+				{
+					Config: configSkipArchived,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrSet(resourceSkipArchived, "repositories.#"),
+					),
+				},
+			},
 		})
 	})
 }
