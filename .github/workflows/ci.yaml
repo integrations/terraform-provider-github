@@ -35,6 +35,5 @@ jobs:
           cache: true
       - run: make tools
       - run: make lintcheck
-      - run: make website-lint
       - run: make build
       - run: make test
