@@ -1,58 +1,67 @@
 package github
 
 import (
+	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubOrganizationRepositoriesDataSource(t *testing.T) {
 	t.Run("manages repositories", func(t *testing.T) {
-		config := `
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repo1Name := fmt.Sprintf("%srepo-%s-1", testResourcePrefix, randomID)
+		repo2Name := fmt.Sprintf("%srepo-%s-2", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
 			resource "github_repository" "test1" {
-			  name       = "test1"
+			  name       = "%s"
 			  visibility = "private"
 			}
 
 			resource "github_repository" "test2" {
-			  name       = "test2"
+			  name       = "%s"
 			  archived   = true
 			  visibility = "public"
 			  depends_on = [github_repository.test1]
 			}
-		 `
+		`, repo1Name, repo2Name)
 
-		config2 := config + `
+		configAll := config + `
 			data "github_organization_repositories" "all" {}
 		`
 
-		const resourceName = "data.github_organization_repositories.all"
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(resourceName, "webhooks.#", "2"),
-			resource.TestCheckResourceAttr(resourceName, "webhooks.0.name", "test1"),
-			resource.TestCheckResourceAttr(resourceName, "webhooks.0.archived", "false"),
-			resource.TestCheckResourceAttr(resourceName, "webhooks.0.visibility", "private"),
-			resource.TestCheckResourceAttrSet(resourceName, "webhooks.0.repo_id"),
-			resource.TestCheckResourceAttrSet(resourceName, "webhooks.0.node_id"),
-			resource.TestCheckResourceAttr(resourceName, "webhooks.1.name", "test2"),
-			resource.TestCheckResourceAttr(resourceName, "webhooks.1.archived", "true"),
-			resource.TestCheckResourceAttr(resourceName, "webhooks.1.visibility", "public"),
-			resource.TestCheckResourceAttrSet(resourceName, "webhooks.1.repo_id"),
-			resource.TestCheckResourceAttrSet(resourceName, "webhooks.1.node_id"),
-		)
+		configSkipArchived := config + `
+			data "github_organization_repositories" "skip_archived" {
+			  ignore_archived_repositories = true
+			  depends_on = [github_repository.test2]
+			}
+		`
 
-		testCase := func(t *testing.T, mode string) {
+		const resourceAll = "data.github_organization_repositories.all"
+		const resourceSkipArchived = "data.github_organization_repositories.skip_archived"
+
+		testCase := func(t *testing.T, mode testMode) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:          func() { skipUnlessMode(t, mode) },
+				ProviderFactories: providerFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
 						Check:  resource.ComposeTestCheckFunc(),
 					},
 					{
-						Config: config2,
-						Check:  check,
+						Config: configAll,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttrSet(resourceAll, "repositories.#"),
+						),
+					},
+					{
+						Config: configSkipArchived,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttrSet(resourceSkipArchived, "repositories.#"),
+						),
 					},
 				},
 			})

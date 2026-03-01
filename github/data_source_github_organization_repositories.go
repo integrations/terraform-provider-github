@@ -1,14 +1,22 @@
 package github
 
 import (
-	"github.com/google/go-github/v66/github"
+	"context"
+
+	"github.com/google/go-github/v83/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubOrganizationRepositories() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubOrganizationRepositoriesRead,
+		ReadContext: dataSourceGithubOrganizationRepositoriesRead,
 		Schema: map[string]*schema.Schema{
+			"ignore_archived_repositories": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 			"repositories": {
 				Type:     schema.TypeList,
 				Computed: true,
@@ -41,21 +49,24 @@ func dataSourceGithubOrganizationRepositories() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationRepositoriesRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGithubOrganizationRepositoriesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	org := meta.(*Owner).name
 	client3 := meta.(*Owner).v3client
-	ctx := meta.(*Owner).StopContext
 
 	options := github.RepositoryListByOrgOptions{
 		ListOptions: github.ListOptions{PerPage: 100},
 	}
+	ignoreArchived := d.Get("ignore_archived_repositories").(bool)
 	var allRepositories []map[string]interface{}
 	for {
 		repositories, resp, err := client3.Repositories.ListByOrg(ctx, org, &options)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		for _, repository := range repositories {
+			if ignoreArchived && repository.GetArchived() {
+				continue
+			}
 			repo := make(map[string]interface{})
 			repo["repo_id"] = repository.GetID()
 			repo["node_id"] = repository.GetNodeID()
