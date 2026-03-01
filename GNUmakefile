@@ -28,7 +28,7 @@ endif
 default: build
 
 tools:
-	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.0
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.10.1
 
 build: lintcheck
 	CGO_ENABLED=0 go build -ldflags="-s -w" ./...
