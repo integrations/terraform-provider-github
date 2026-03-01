@@ -28,8 +28,7 @@ endif
 default: build
 
 tools:
-	go install github.com/client9/misspell/cmd/misspell@v0.3.4
-	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.0
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.10.1
 
 build: lintcheck
 	CGO_ENABLED=0 go build -ldflags="-s -w" ./...
@@ -73,10 +72,6 @@ ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
 endif
 	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
 
-website-lint:
-	@echo "==> Checking website against linters..."
-	@misspell -error -source=text website/
-
 website-test:
 ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
 	echo "$(WEBSITE_REPO) not found in your GOPATH (necessary for layouts and assets), get-ting..."
@@ -84,4 +79,4 @@ ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
 endif
 	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider-test PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
 
-.PHONY: build test testacc fmt lint lintcheck tools website website-lint website-test sweep
+.PHONY: build test testacc fmt lint lintcheck tools website website-test sweep
