@@ -27,6 +27,32 @@ linters:
     - unparam
     - unused
     - usetesting
+    - tfproviderlint
+
+  settings:
+    custom:
+      tfproviderlint:
+        type: module
+        description: Reports Terraform provider linting issues.
+        original-url: github.com/bflad/tfproviderlint/cmd/tfproviderlintx
+        settings:
+          # https://github.com/bflad/tfproviderlint/tree/main?tab=readme-ov-file#standard-acceptance-test-checks
+          enabled-checks:
+            - AT005 # https://github.com/bflad/tfproviderlint/tree/main/passes/AT005
+            - AT008 # https://github.com/bflad/tfproviderlint/tree/main/passes/AT008
+            # - AT009 # https://github.com/bflad/tfproviderlint/tree/main/passes/AT009
+            # - R002 # https://github.com/bflad/tfproviderlint/tree/main/passes/R002
+            # - R004 # https://github.com/bflad/tfproviderlint/tree/main/passes/R004
+            - R005 # https://github.com/bflad/tfproviderlint/tree/main/passes/R005
+            - R006 # https://github.com/bflad/tfproviderlint/tree/main/passes/R006
+            # - R009 # https://github.com/bflad/tfproviderlint/tree/main/passes/R009
+            # - R010 # https://github.com/bflad/tfproviderlint/tree/main/passes/R010
+            - R011 # https://github.com/bflad/tfproviderlint/tree/main/passes/R011
+            - R012 # https://github.com/bflad/tfproviderlint/tree/main/passes/R012
+            - R013 # https://github.com/bflad/tfproviderlint/tree/main/passes/R013
+            - R015 # https://github.com/bflad/tfproviderlint/tree/main/passes/R015
+            - R016 # https://github.com/bflad/tfproviderlint/tree/main/passes/R016
+            - R017 # https://github.com/bflad/tfproviderlint/tree/main/passes/R017
 
   exclusions:
     generated: lax
