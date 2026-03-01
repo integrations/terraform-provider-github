@@ -1,0 +1,5 @@
+version: v2.10.1 # should be in sync with GNUmakefile
+
+plugins:
+  - module: "github.com/integrations/terraform-provider-github/tools/tfproviderlint"
+    path: ./tools/tfproviderlint
