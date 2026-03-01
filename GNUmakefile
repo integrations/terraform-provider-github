@@ -3,6 +3,7 @@ PKG_NAME=github
 TEST?=./$(PKG_NAME)/...
 
 COVERAGEARGS?=-race -coverprofile=coverage.txt -covermode=atomic
+BIN="$$(pwd -P)"/bin
 
 RUMDL_ARGS?=--output-format text
 
@@ -28,23 +29,29 @@ endif
 
 default: build
 
-tools:
-	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+bin/golangci-lint:
+	mkdir -p $(BIN)
+	GOBIN=$(BIN) go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 # This version needs to be in sync with .custom-gcl.yml
+
+bin/custom-gcl: bin/golangci-lint tools/tfproviderlint/tfproviderlint.go
+	$(BIN)/golangci-lint custom --name custom-gcl --destination $(BIN)
+
+tools: bin/custom-gcl
 
 build: lintcheck
 	CGO_ENABLED=0 go build -ldflags="-s -w" ./...
 
-fmt:
+fmt: tools
 	@echo "==> Fixing source code formatting..."
-	golangci-lint fmt ./...
+	$(BIN)/custom-gcl fmt ./...
 
-lint:
+lint: tools
 	@echo "==> Checking source code against linters and fixing..."
-	golangci-lint run --fix ./...
+	$(BIN)/custom-gcl run --fix ./...
 
-lintcheck:
+lintcheck: tools
 	@echo "==> Checking source code against linters..."
-	golangci-lint run ./...
+	$(BIN)/custom-gcl run ./...
 
 test:
 	@branch=$$(git rev-parse --abbrev-ref HEAD); \
