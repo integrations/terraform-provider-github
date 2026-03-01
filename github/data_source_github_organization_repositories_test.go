@@ -47,7 +47,7 @@ func TestAccGithubOrganizationRepositoriesDataSource(t *testing.T) {
 					Config: fmt.Sprintf(config, repo1Name, repo2Name, true),
 				},
 				{
-					Config: fmt.Sprintf(configWithDS, repo1Name, repo2Name, false),
+					Config: fmt.Sprintf(configWithDS, repo1Name, repo2Name, true, false),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttrSet(resourceAll, "repositories.#"),
 					),
