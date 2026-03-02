@@ -74,7 +74,11 @@ func dataSourceGithubOrganizationTeamSyncGroupsRead(ctx context.Context, d *sche
 		options.Page = resp.NextPageToken
 	}
 
-	d.SetId(fmt.Sprintf("%s/github-org-team-sync-groups/%s", orgName, query))
+	if options.Query != "" {
+		d.SetId(fmt.Sprintf("%s/github-org-team-sync-groups/%s", orgName, options.Query))
+	} else {
+		d.SetId(fmt.Sprintf("%s/github-org-team-sync-groups", orgName))
+	}
 	if err := d.Set("groups", groups); err != nil {
 		return diag.Errorf("error setting groups: %v", err)
 	}
