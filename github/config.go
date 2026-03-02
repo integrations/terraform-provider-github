@@ -80,6 +80,11 @@ func RateLimitedHTTPClient(client *http.Client, writeDelay, readDelay, retryDela
 // because rate limiting is handled automatically by the library.
 func ModernRateLimitedHTTPClient(client *http.Client, retryDelay time.Duration, retryableErrors map[int]bool, maxRetries int) *http.Client {
 	client.Transport = NewEtagTransport(client.Transport)
+	client.Transport = logging.NewLoggingHTTPTransport(client.Transport)
+	client.Transport = newPreviewHeaderInjectorTransport(map[string]string{
+		// TODO: remove when Stone Crop preview is moved to general availability in the GraphQL API
+		"Accept": "application/vnd.github.stone-crop-preview+json",
+	}, client.Transport)
 	rateLimitClient := github_ratelimit.NewClient(client.Transport)
 
 	if maxRetries > 0 {

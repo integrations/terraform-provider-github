@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func Provider() *schema.Provider {
@@ -94,17 +95,11 @@ func Provider() *schema.Provider {
 				Description: descriptions["parallel_requests"],
 			},
 			"rate_limiter": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "legacy",
-				Description: descriptions["rate_limiter"],
-				ValidateFunc: func(val any, key string) (warns []string, errs []error) {
-					v := val.(string)
-					if v != "legacy" && v != "modern" {
-						errs = append(errs, fmt.Errorf("%q must be either 'legacy' or 'modern', got: %s", key, v))
-					}
-					return
-				},
+				Type:             schema.TypeString,
+				Optional:         true,
+				Default:          "legacy",
+				Description:      descriptions["rate_limiter"],
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"legacy", "modern"}, false)),
 			},
 			"app_auth": {
 				Type:        schema.TypeList,
