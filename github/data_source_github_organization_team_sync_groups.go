@@ -17,7 +17,6 @@ func dataSourceGithubOrganizationTeamSyncGroups() *schema.Resource {
 			"prefix_filter": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     "",
 				Description: "Filters the results to return only those that begin with the specified value.",
 			},
 			"groups": {
@@ -48,12 +47,14 @@ func dataSourceGithubOrganizationTeamSyncGroupsRead(ctx context.Context, d *sche
 	client := meta.(*Owner).v3client
 
 	orgName := meta.(*Owner).name
-	query := d.Get("q").(string)
 	options := &github.ListIDPGroupsOptions{
-		Query: query,
 		ListCursorOptions: github.ListCursorOptions{
 			PerPage: maxPerPage,
 		},
+	}
+
+	if v, ok := d.GetOk("prefix_filter"); ok {
+		options.Query = v.(string)
 	}
 
 	groups := make([]any, 0)
