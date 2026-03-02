@@ -14,6 +14,12 @@ func dataSourceGithubOrganizationTeamSyncGroups() *schema.Resource {
 		ReadContext: dataSourceGithubOrganizationTeamSyncGroupsRead,
 
 		Schema: map[string]*schema.Schema{
+			"q": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Description: "Filters the results to return only those that begin with the specified value.",
+			},
 			"groups": {
 				Type:     schema.TypeList,
 				Computed: true,
@@ -42,7 +48,9 @@ func dataSourceGithubOrganizationTeamSyncGroupsRead(ctx context.Context, d *sche
 	client := meta.(*Owner).v3client
 
 	orgName := meta.(*Owner).name
+	query := d.Get("q").(string)
 	options := &github.ListIDPGroupsOptions{
+		Query: query,
 		ListCursorOptions: github.ListCursorOptions{
 			PerPage: maxPerPage,
 		},
@@ -65,7 +73,7 @@ func dataSourceGithubOrganizationTeamSyncGroupsRead(ctx context.Context, d *sche
 		options.Page = resp.NextPageToken
 	}
 
-	d.SetId(fmt.Sprintf("%s/github-org-team-sync-groups", orgName))
+	d.SetId(fmt.Sprintf("%s/github-org-team-sync-groups/%s", orgName, query))
 	if err := d.Set("groups", groups); err != nil {
 		return diag.Errorf("error setting groups: %v", err)
 	}

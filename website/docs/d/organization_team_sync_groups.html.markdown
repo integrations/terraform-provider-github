@@ -12,8 +12,14 @@ Use this data source to retrieve the identity provider (IdP) groups for an organ
 ## Example Usage
 
 ```hcl
-data "github_organization_team_sync_groups" "test" {}
+data "github_organization_team_sync_groups" "test" {
+  q = "myprefix_"
+}
 ```
+
+## Argument Reference
+
+* `q` - (Optional) Filters the results to return only those groups whose names begin with this value.
 
 ## Attributes Reference
 
