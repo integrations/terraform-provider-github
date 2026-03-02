@@ -12,17 +12,24 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func Provider() *schema.Provider {
 	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
+			"auth_mode": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				DefaultFunc:  schema.EnvDefaultFunc("GITHUB_AUTH_MODE", nil),
+				Description:  descriptions["auth_mode"],
+				ValidateFunc: validation.StringInSlice([]string{"anonymous", "token", "app"}, false),
+			},
 			"token": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("GITHUB_TOKEN", nil),
 				Description: descriptions["token"],
-				// ConflictsWith: []string{"app_auth"}, // TODO: Enable as part of v7.
 			},
 			"owner": {
 				Type:        schema.TypeString,
@@ -326,6 +333,9 @@ var descriptions map[string]string
 
 func init() {
 	descriptions = map[string]string{
+		"auth_mode": "Explicit authentication mode. Valid values are `anonymous`, `token`, and `app`. " +
+			"When not set, the provider auto-detects the mode based on provided credentials for backward compatibility.",
+
 		"token": "The OAuth token used to connect to GitHub. Anonymous mode is enabled if both `token` and " +
 			"`app_auth` are not set.",
 
@@ -366,9 +376,11 @@ func init() {
 
 func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 	return func(ctx context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
+		var diags diag.Diagnostics
+
 		owner := d.Get("owner").(string)
-		token := d.Get("token").(string)
 		insecure := d.Get("insecure").(bool)
+		authMode := d.Get("auth_mode").(string)
 
 		// BEGIN backwards compatibility
 		// OwnerOrOrgEnvDefaultFunc used to be the default value for both
@@ -397,34 +409,37 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 			owner = org
 		}
 
-		if appAuth, ok := d.Get("app_auth").([]any); ok && len(appAuth) > 0 && appAuth[0] != nil {
-			appAuthAttr := appAuth[0].(map[string]any)
+		var token string
 
-			var appID, appInstallationID, appPemFile string
+		switch authMode {
+		case "anonymous":
+			log.Printf("[INFO] Auth mode: anonymous")
 
-			if v, ok := appAuthAttr["id"].(string); ok && v != "" {
-				appID = v
-			} else {
-				return nil, wrapErrors([]error{fmt.Errorf("app_auth.id must be set and contain a non-empty value")})
+		case "token":
+			token = d.Get("token").(string)
+			if token == "" {
+				return nil, diag.FromErr(fmt.Errorf(
+					"auth_mode is set to \"token\" but no token was provided; " +
+						"set the `token` argument or `GITHUB_TOKEN` environment variable"))
 			}
+			log.Printf("[INFO] Auth mode: token")
 
-			if v, ok := appAuthAttr["installation_id"].(string); ok && v != "" {
-				appInstallationID = v
-			} else {
-				return nil, wrapErrors([]error{fmt.Errorf("app_auth.installation_id must be set and contain a non-empty value")})
+		case "app":
+			appID, appInstallationID, appPemFile := getAppCredentials(d)
+			var missingFields []string
+			if appID == "" {
+				missingFields = append(missingFields, "app_id (GITHUB_APP_ID)")
 			}
-
-			if v, ok := appAuthAttr["pem_file"].(string); ok && v != "" {
-				// The Go encoding/pem package only decodes PEM formatted blocks
-				// that contain new lines. Some platforms, like Terraform Cloud,
-				// do not support new lines within Environment Variables.
-				// Any occurrence of \n in the `pem_file` argument's value
-				// (explicit value, or default value taken from
-				// GITHUB_APP_PEM_FILE Environment Variable) is replaced with an
-				// actual new line character before decoding.
-				appPemFile = strings.ReplaceAll(v, `\n`, "\n")
-			} else {
-				return nil, wrapErrors([]error{fmt.Errorf("app_auth.pem_file must be set and contain a non-empty value")})
+			if appInstallationID == "" {
+				missingFields = append(missingFields, "app_installation_id (GITHUB_APP_INSTALLATION_ID)")
+			}
+			if appPemFile == "" {
+				missingFields = append(missingFields, "app_pem_file (GITHUB_APP_PEM_FILE)")
+			}
+			if len(missingFields) > 0 {
+				return nil, diag.FromErr(fmt.Errorf(
+					"auth_mode is set to \"app\" but the following app credentials are missing: %s",
+					strings.Join(missingFields, ", ")))
 			}
 
 			apiPath := ""
@@ -438,11 +453,42 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 			}
 
 			token = appToken
-		}
+			log.Printf("[INFO] Auth mode: app (ID: %s, installation: %s)", appID, appInstallationID)
 
-		if token == "" {
-			log.Printf("[INFO] No token found, using GitHub CLI to get token from hostname %s", baseURL.Host)
-			token = tokenFromGHCLI(baseURL)
+		default: // auto-detect (backward compatibility)
+			token = d.Get("token").(string)
+
+			if token == "" {
+				appID, appInstallationID, appPemFile := getAppCredentials(d)
+				if appID != "" && appInstallationID != "" && appPemFile != "" {
+					apiPath := ""
+					if isGHES {
+						apiPath = GHESRESTAPIPath
+					}
+
+					appToken, err := GenerateOAuthTokenFromApp(baseURL.JoinPath(apiPath), appID, appInstallationID, appPemFile)
+					if err != nil {
+						return nil, wrapErrors([]error{err})
+					}
+					token = appToken
+					log.Printf("[INFO] Auth mode: app (ID: %s, installation: %s)", appID, appInstallationID)
+				}
+			}
+
+			if token == "" {
+				log.Printf("[INFO] No token found, trying GitHub CLI to get token from hostname %s", baseURL.Host)
+				ghToken := tokenFromGHCLI(baseURL)
+				if ghToken != "" {
+					token = ghToken
+					diags = append(diags, diag.Diagnostic{
+						Severity: diag.Warning,
+						Summary:  "GitHub CLI token fallback is deprecated",
+						Detail: "Automatic token detection from `gh auth token` is deprecated and will be removed in a future major release. " +
+							"Please set the `token` provider argument or `GITHUB_TOKEN` environment variable explicitly. " +
+							"You can use `export GITHUB_TOKEN=$(gh auth token)` as a replacement.",
+					})
+				}
+			}
 		}
 
 		writeDelay := d.Get("write_delay_ms").(int)
@@ -512,7 +558,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 			return nil, wrapErrors([]error{err})
 		}
 
-		return meta, nil
+		return meta, diags
 	}
 }
 
@@ -525,6 +571,13 @@ func getAppCredentials(d *schema.ResourceData) (appID, appInstallationID, appPem
 		appInstallationID = v
 	}
 	if v, ok := d.Get("app_pem_file").(string); ok && v != "" {
+		// The Go encoding/pem package only decodes PEM formatted blocks
+		// that contain new lines. Some platforms, like Terraform Cloud,
+		// do not support new lines within Environment Variables.
+		// Any occurrence of \n in the `pem_file` argument's value
+		// (explicit value, or default value taken from
+		// GITHUB_APP_PEM_FILE Environment Variable) is replaced with an
+		// actual new line character before decoding.
 		appPemFile = strings.ReplaceAll(v, `\n`, "\n")
 	}
 
