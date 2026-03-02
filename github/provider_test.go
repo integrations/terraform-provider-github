@@ -306,6 +306,7 @@ data "github_ip_ranges" "test" {}
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() {
 				t.Setenv("GITHUB_APP_INSTALLATION_ID", "")
+				t.Setenv("GITHUB_APP_PRIVATE_KEY", "")
 				t.Setenv("GITHUB_APP_PEM_FILE", "")
 			},
 			ProviderFactories: providerFactories,
@@ -324,7 +325,7 @@ data "github_ip_ranges" "test" {}
 			owner               = "%s"
 			app_id              = "123456"
 			app_installation_id = "1234567890"
-			app_pem_file        = "not-valid-pem"
+			app_private_key     = "not-valid-pem"
 		}
 		data "github_ip_ranges" "test" {}
 		`, testAccConf.owner)

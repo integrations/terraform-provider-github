@@ -105,7 +105,7 @@ func Provider() *schema.Provider {
 				Optional:    true,
 				MaxItems:    1,
 				Description: descriptions["app_auth"],
-				Deprecated:  "Use top-level app_id, app_installation_id, and app_pem_file instead.",
+				Deprecated: "Use top-level app_id, app_installation_id, and app_private_key instead.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
@@ -134,20 +134,20 @@ func Provider() *schema.Provider {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("GITHUB_APP_ID", nil),
-				Description: descriptions["app_auth.id"],
+				Description: descriptions["app_id"],
 			},
 			"app_installation_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("GITHUB_APP_INSTALLATION_ID", nil),
-				Description: descriptions["app_auth.installation_id"],
+				Description: descriptions["app_installation_id"],
 			},
-			"app_pem_file": {
+			"app_private_key": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Sensitive:   true,
-				DefaultFunc: schema.EnvDefaultFunc("GITHUB_APP_PEM_FILE", nil),
-				Description: descriptions["app_auth.pem_file"],
+				DefaultFunc: schema.EnvDefaultFunc("GITHUB_APP_PRIVATE_KEY", nil),
+				Description: descriptions["app_private_key"],
 			},
 			// https://developer.github.com/guides/traversing-with-pagination/#basics-of-pagination
 			"max_per_page": {
@@ -336,8 +336,8 @@ func init() {
 		"auth_mode": "Explicit authentication mode. Valid values are `anonymous`, `token`, and `app`. " +
 			"When not set, the provider auto-detects the mode based on provided credentials for backward compatibility.",
 
-		"token": "The OAuth token used to connect to GitHub. Anonymous mode is enabled if both `token` and " +
-			"`app_auth` are not set.",
+		"token": "The OAuth token used to connect to GitHub. " +
+			"When `auth_mode` is not set, anonymous mode is enabled if no credentials are provided.",
 
 		"base_url": "The GitHub Base API URL",
 
@@ -349,11 +349,14 @@ func init() {
 		"organization": "The GitHub organization name to manage. " +
 			"Use this field instead of `owner` when managing organization accounts.",
 
-		"app_auth": "The GitHub App credentials used to connect to GitHub. Conflicts with " +
-			"`token`. Anonymous mode is enabled if both `token` and `app_auth` are not set.",
+		"app_auth": "Deprecated: use top-level `app_id`, `app_installation_id`, and `app_private_key` instead. " +
+			"The GitHub App credentials used to connect to GitHub.",
 		"app_auth.id":              "The GitHub App ID.",
 		"app_auth.installation_id": "The GitHub App installation instance ID.",
 		"app_auth.pem_file":        "The GitHub App PEM file contents.",
+		"app_id":                   "The GitHub App ID.",
+		"app_installation_id":      "The GitHub App installation instance ID.",
+		"app_private_key":          "The GitHub App private key in PEM format.",
 		"write_delay_ms": "Amount of time in milliseconds to sleep in between writes to GitHub API. " +
 			"Defaults to 1000ms or 1s if not set.",
 		"read_delay_ms": "Amount of time in milliseconds to sleep in between non-write requests to GitHub API. " +
@@ -434,7 +437,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 				missingFields = append(missingFields, "app_installation_id (GITHUB_APP_INSTALLATION_ID)")
 			}
 			if appPemFile == "" {
-				missingFields = append(missingFields, "app_pem_file (GITHUB_APP_PEM_FILE)")
+				missingFields = append(missingFields, "app_private_key (GITHUB_APP_PRIVATE_KEY)")
 			}
 			if len(missingFields) > 0 {
 				return nil, diag.FromErr(fmt.Errorf(
@@ -570,13 +573,13 @@ func getAppCredentials(d *schema.ResourceData) (appID, appInstallationID, appPem
 	if v, ok := d.Get("app_installation_id").(string); ok && v != "" {
 		appInstallationID = v
 	}
-	if v, ok := d.Get("app_pem_file").(string); ok && v != "" {
+	if v, ok := d.Get("app_private_key").(string); ok && v != "" {
 		// The Go encoding/pem package only decodes PEM formatted blocks
 		// that contain new lines. Some platforms, like Terraform Cloud,
 		// do not support new lines within Environment Variables.
-		// Any occurrence of \n in the `pem_file` argument's value
+		// Any occurrence of \n in the `app_private_key` argument's value
 		// (explicit value, or default value taken from
-		// GITHUB_APP_PEM_FILE Environment Variable) is replaced with an
+		// GITHUB_APP_PRIVATE_KEY Environment Variable) is replaced with an
 		// actual new line character before decoding.
 		appPemFile = strings.ReplaceAll(v, `\n`, "\n")
 	}
