@@ -27,6 +27,7 @@ website/node_modules
 *.tfvars
 .vscode/
 testdata/
+!tools/tfproviderlint/**/testdata/
 website/vendor
 terraform-provider-github
 

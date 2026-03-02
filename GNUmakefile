@@ -32,7 +32,7 @@ bin/golangci-lint:
 	mkdir -p $(BIN)
 	GOBIN=$(BIN) go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.10.1
 
-bin/custom-gcl: bin/golangci-lint $(shell find tools -name '*.go' -or -name '*.mod' -or -name '*.sum')
+bin/custom-gcl: bin/golangci-lint $(shell find tools \( -name '*.go' -or -name '*.mod' -or -name '*.sum' \) -and -not -name '*_test.go' -maxdepth 4)
 	$(BIN)/golangci-lint custom --name custom-gcl --destination $(BIN)
 
 tools: bin/custom-gcl go.sum
@@ -67,6 +67,10 @@ test:
 		$(RUNARGS) $(TESTARGS) \
 		-count 1;
 
+test-tools:
+	@echo "==> Running tools tests..."
+	$(MAKE) test -C tools/tfproviderlint
+
 testacc:
 	@branch=$$(git rev-parse --abbrev-ref HEAD); \
 	printf "==> Running acceptance tests on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
@@ -90,4 +94,4 @@ ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
 endif
 	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider-test PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
 
-.PHONY: build test testacc fmt lint lintcheck tools website website-test sweep
+.PHONY: build test testacc fmt lint lintcheck tools test-tools website website-test sweep
