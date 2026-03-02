@@ -20,9 +20,9 @@ func TestAccGithubOrganizationTeamSyncGroupsDataSource_existing(t *testing.T) {
 				),
 			},
 			{
-				Config: `data "github_organization_team_sync_groups" "test" { q = "nonexistent_prefix_" }`,
+				Config: `data "github_organization_team_sync_groups" "test" { prefix_filter = "nonexistent_prefix_" }`,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("data.github_organization_team_sync_groups.test", "q", "nonexistent_prefix_"),
+					resource.TestCheckResourceAttr("data.github_organization_team_sync_groups.test", "prefix_filter", "nonexistent_prefix_"),
 					resource.TestCheckResourceAttr("data.github_organization_team_sync_groups.test", "groups.#", "0"),
 				),
 			},

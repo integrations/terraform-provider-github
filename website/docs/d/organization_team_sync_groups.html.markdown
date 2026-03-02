@@ -19,7 +19,7 @@ data "github_organization_team_sync_groups" "test" {
 
 ## Argument Reference
 
-* `q` - (Optional) Filters the results to return only those groups whose names begin with this value.
+* `prefix_filter` - (Optional) Filters the results to return only those groups whose names begin with this value.
 
 ## Attributes Reference
 

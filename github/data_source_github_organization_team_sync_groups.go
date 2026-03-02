@@ -14,7 +14,7 @@ func dataSourceGithubOrganizationTeamSyncGroups() *schema.Resource {
 		ReadContext: dataSourceGithubOrganizationTeamSyncGroupsRead,
 
 		Schema: map[string]*schema.Schema{
-			"q": {
+			"prefix_filter": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "",
