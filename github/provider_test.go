@@ -232,6 +232,134 @@ data "github_ip_ranges" "test" {}
 			},
 		})
 	})
+	t.Run("auth_mode anonymous ignores GITHUB_TOKEN in env", func(t *testing.T) {
+		config := `
+		provider "github" {
+			auth_mode = "anonymous"
+		}
+		data "github_ip_ranges" "test" {}
+		`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { t.Setenv("GITHUB_TOKEN", "some-token-value"); t.Setenv("GH_PATH", "none-existent-path") },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:             config,
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
+				},
+			},
+		})
+	})
+
+	t.Run("auth_mode token errors when no token provided", func(t *testing.T) {
+		config := `
+		provider "github" {
+			auth_mode = "token"
+		}
+		data "github_ip_ranges" "test" {}
+		`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { t.Setenv("GITHUB_TOKEN", ""); t.Setenv("GH_PATH", "none-existent-path") },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile(`auth_mode is set to "token" but no token was provided`),
+				},
+			},
+		})
+	})
+
+	t.Run("can be configured with auth_mode token", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			provider "github" {
+				auth_mode = "token"
+				token     = "%s"
+				owner     = "%s"
+			}`, testAccConf.token, testAccConf.owner)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, individual) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:             config,
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
+				},
+			},
+		})
+	})
+
+	t.Run("auth_mode app errors when credentials are incomplete", func(t *testing.T) {
+		config := `
+		provider "github" {
+			auth_mode = "app"
+			app_id    = "12345"
+		}
+		data "github_ip_ranges" "test" {}
+		`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck: func() {
+				t.Setenv("GITHUB_APP_INSTALLATION_ID", "")
+				t.Setenv("GITHUB_APP_PEM_FILE", "")
+			},
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile(`auth_mode is set to "app" but the following app credentials are missing`),
+				},
+			},
+		})
+	})
+
+	t.Run("can be configured with top-level app fields without auth_mode", func(t *testing.T) {
+		config := fmt.Sprintf(`
+		provider "github" {
+			owner               = "%s"
+			app_id              = "123456"
+			app_installation_id = "1234567890"
+			app_pem_file        = "not-valid-pem"
+		}
+		data "github_ip_ranges" "test" {}
+		`, testAccConf.owner)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { t.Setenv("GITHUB_TOKEN", "") },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("no decodeable PEM data found"),
+				},
+			},
+		})
+	})
+
+	t.Run("auth_mode rejects invalid values", func(t *testing.T) {
+		config := `
+		provider "github" {
+			auth_mode = "invalid"
+		}
+		data "github_ip_ranges" "test" {}
+		`
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile(`expected auth_mode to be one of`),
+				},
+			},
+		})
+	})
+
 	t.Run("should not allow both token and app_auth to be configured", func(t *testing.T) {
 		t.Skip("This would be a semver breaking change, this will be reinstated for v7.")
 		config := fmt.Sprintf(`
