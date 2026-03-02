@@ -98,7 +98,7 @@ func Provider() *schema.Provider {
 				Optional:    true,
 				MaxItems:    1,
 				Description: descriptions["app_auth"],
-				// ConflictsWith: []string{"token"}, // TODO: Enable as part of v7.
+				Deprecated:  "Use top-level app_id, app_installation_id, and app_pem_file instead.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
@@ -122,6 +122,25 @@ func Provider() *schema.Provider {
 						},
 					},
 				},
+			},
+			"app_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("GITHUB_APP_ID", nil),
+				Description: descriptions["app_auth.id"],
+			},
+			"app_installation_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("GITHUB_APP_INSTALLATION_ID", nil),
+				Description: descriptions["app_auth.installation_id"],
+			},
+			"app_pem_file": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Sensitive:   true,
+				DefaultFunc: schema.EnvDefaultFunc("GITHUB_APP_PEM_FILE", nil),
+				Description: descriptions["app_auth.pem_file"],
 			},
 			// https://developer.github.com/guides/traversing-with-pagination/#basics-of-pagination
 			"max_per_page": {
@@ -495,6 +514,43 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 
 		return meta, nil
 	}
+}
+
+func getAppCredentials(d *schema.ResourceData) (appID, appInstallationID, appPemFile string) {
+	// Try top-level fields first
+	if v, ok := d.Get("app_id").(string); ok && v != "" {
+		appID = v
+	}
+	if v, ok := d.Get("app_installation_id").(string); ok && v != "" {
+		appInstallationID = v
+	}
+	if v, ok := d.Get("app_pem_file").(string); ok && v != "" {
+		appPemFile = strings.ReplaceAll(v, `\n`, "\n")
+	}
+
+	// Fall back to app_auth block for any missing values
+	if appID == "" || appInstallationID == "" || appPemFile == "" {
+		if appAuth, ok := d.Get("app_auth").([]any); ok && len(appAuth) > 0 && appAuth[0] != nil {
+			appAuthAttr := appAuth[0].(map[string]any)
+			if appID == "" {
+				if v, ok := appAuthAttr["id"].(string); ok && v != "" {
+					appID = v
+				}
+			}
+			if appInstallationID == "" {
+				if v, ok := appAuthAttr["installation_id"].(string); ok && v != "" {
+					appInstallationID = v
+				}
+			}
+			if appPemFile == "" {
+				if v, ok := appAuthAttr["pem_file"].(string); ok && v != "" {
+					appPemFile = strings.ReplaceAll(v, `\n`, "\n")
+				}
+			}
+		}
+	}
+
+	return
 }
 
 // ghCLIHostFromAPIHost maps an API hostname to the corresponding
