@@ -98,6 +98,7 @@ linters:
             # - XR007 # https://github.com/bflad/tfproviderlint/tree/main/passes/XR007 # TODO: Enable when we can fix the issues
             - XR008 # https://github.com/bflad/tfproviderlint/tree/main/passes/XR008
             # - XS001 # https://github.com/bflad/tfproviderlint/tree/main/passes/XS001 # TODO: Enable when we can fix the issues
+            - L001 # file:///./tools/tfproviderlint/checks/L001/README.md
 
   exclusions:
     generated: lax

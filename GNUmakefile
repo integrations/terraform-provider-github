@@ -33,7 +33,7 @@ bin/golangci-lint:
 	mkdir -p $(BIN)
 	GOBIN=$(BIN) go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 # This version needs to be in sync with .custom-gcl.yml
 
-bin/custom-gcl: bin/golangci-lint $(shell find tools -name '*.go' -or -name '*.mod' -or -name '*.sum')
+bin/custom-gcl: bin/golangci-lint $(shell find tools \( -name '*.go' -or -name '*.mod' -or -name '*.sum' \) -and -not -name '*_test.go' -maxdepth 4)
 	$(BIN)/golangci-lint custom --name custom-gcl --destination $(BIN)
 
 tools: bin/custom-gcl go.sum
@@ -67,6 +67,10 @@ test:
 		-skip '^TestAcc' \
 		$(RUNARGS) $(TESTARGS) \
 		-count 1;
+
+test-tools:
+	@echo "==> Running tools tests..."
+	$(MAKE) test -C tools/tfproviderlint
 
 testacc:
 	@branch=$$(git rev-parse --abbrev-ref HEAD); \
@@ -105,4 +109,4 @@ mdfmt:
 mdlint:
 	@rumdl check $(RUMDL_ARGS) .
 
-.PHONY: build test testacc fmt lint lintcheck tools sweep generatedocs validatedocs fmtdocs lintdocs checkdocs yamlfmt mdfmt mdlint
+.PHONY: build test testacc fmt lint lintcheck tools sweep generatedocs validatedocs fmtdocs lintdocs checkdocs yamlfmt mdfmt mdlint test-tools

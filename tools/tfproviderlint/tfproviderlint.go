@@ -1,9 +1,10 @@
 // Package tfproviderlint is a custom linter to be used by
-// golangci-lint to find instances of `%d` or `%s` in
-// format strings when `%v` would be more consistent.
+// golangci-lint to integrate bflad/tfproviderlint.
 package tfproviderlint
 
 import (
+	"github.com/integrations/terraform-provider-github/tools/tfproviderlint/checks"
+
 	"github.com/bflad/tfproviderlint/passes"
 	"github.com/bflad/tfproviderlint/xpasses"
 	"github.com/golangci/plugin-module-register/register"
@@ -46,6 +47,11 @@ func New(settings any) (register.LinterPlugin, error) {
 // BuildAnalyzers builds the analyzers for the TfProviderLintPlugin.
 func (t *TfProviderLintPlugin) BuildAnalyzers() ([]*analysis.Analyzer, error) {
 	var analyzers []*analysis.Analyzer
+	for _, check := range checks.AllChecks {
+		if t.enabledChecks[check.Name] {
+			analyzers = append(analyzers, check)
+		}
+	}
 	for _, check := range passes.AllChecks {
 		if t.enabledChecks[check.Name] {
 			analyzers = append(analyzers, check)
