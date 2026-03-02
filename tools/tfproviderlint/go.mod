@@ -1,4 +1,4 @@
-module tools/tfproviderlint
+module github.com/integrations/terraform-provider-github/tools/tfproviderlint
 
 go 1.24.4
 
