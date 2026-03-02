@@ -32,10 +32,13 @@ bin/golangci-lint:
 	mkdir -p $(BIN)
 	GOBIN=$(BIN) go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.10.1
 
-bin/custom-gcl: bin/golangci-lint tools/tfproviderlint/tfproviderlint.go
+bin/custom-gcl: bin/golangci-lint $(shell find tools -name '*.go' -or -name '*.mod' -or -name '*.sum')
 	$(BIN)/golangci-lint custom --name custom-gcl --destination $(BIN)
 
-tools: bin/custom-gcl
+tools: bin/custom-gcl go.sum
+
+go.sum: go.mod $(shell find github -name '*.go')
+	go mod tidy
 
 build: lintcheck
 	CGO_ENABLED=0 go build -ldflags="-s -w" ./...
@@ -49,7 +52,8 @@ lint: tools
 	$(BIN)/custom-gcl run --fix ./...
 
 lintcheck: tools
-	@echo "==> Checking source code against linters..."
+	@branch=$$(git rev-parse --abbrev-ref HEAD); \
+	printf "==> Checking source code against linters on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
 	$(BIN)/custom-gcl run ./...
 
 test:
