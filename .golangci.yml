@@ -40,40 +40,40 @@ linters:
           enabled-checks:
             - AT005 # https://github.com/bflad/tfproviderlint/tree/main/passes/AT005
             - AT008 # https://github.com/bflad/tfproviderlint/tree/main/passes/AT008
-            # - AT009 # https://github.com/bflad/tfproviderlint/tree/main/passes/AT009
+            # - AT009 # https://github.com/bflad/tfproviderlint/tree/main/passes/AT009 # TODO: Enable when we can fix the issues
             # - R002 # https://github.com/bflad/tfproviderlint/tree/main/passes/R002
             # - R004 # https://github.com/bflad/tfproviderlint/tree/main/passes/R004
             - R005 # https://github.com/bflad/tfproviderlint/tree/main/passes/R005
             - R006 # https://github.com/bflad/tfproviderlint/tree/main/passes/R006
-            # - R009 # https://github.com/bflad/tfproviderlint/tree/main/passes/R009
-            # - R010 # https://github.com/bflad/tfproviderlint/tree/main/passes/R010
+            # - R009 # https://github.com/bflad/tfproviderlint/tree/main/passes/R009 # TODO: Enable when we can fix the issues
+            # - R010 # https://github.com/bflad/tfproviderlint/tree/main/passes/R010 # TODO: Enable when we can fix the issues
             - R011 # https://github.com/bflad/tfproviderlint/tree/main/passes/R011
             - R012 # https://github.com/bflad/tfproviderlint/tree/main/passes/R012
             - R013 # https://github.com/bflad/tfproviderlint/tree/main/passes/R013
             - R015 # https://github.com/bflad/tfproviderlint/tree/main/passes/R015
             - R016 # https://github.com/bflad/tfproviderlint/tree/main/passes/R016
             - R017 # https://github.com/bflad/tfproviderlint/tree/main/passes/R017
-            # - R018 # https://github.com/bflad/tfproviderlint/tree/main/passes/R018
+            # - R018 # https://github.com/bflad/tfproviderlint/tree/main/passes/R018 # TODO: Enable when we can fix the issues
             - S001 # https://github.com/bflad/tfproviderlint/tree/main/passes/S001
             - S002 # https://github.com/bflad/tfproviderlint/tree/main/passes/S002
             - S003 # https://github.com/bflad/tfproviderlint/tree/main/passes/S003
             - S004 # https://github.com/bflad/tfproviderlint/tree/main/passes/S004
             - S005 # https://github.com/bflad/tfproviderlint/tree/main/passes/S005
-            # - S006 # https://github.com/bflad/tfproviderlint/tree/main/passes/S006
+            # - S006 # https://github.com/bflad/tfproviderlint/tree/main/passes/S006 # TODO: Enable when we can fix the issues
             - S007 # https://github.com/bflad/tfproviderlint/tree/main/passes/S007
             - S008 # https://github.com/bflad/tfproviderlint/tree/main/passes/S008
             - S009 # https://github.com/bflad/tfproviderlint/tree/main/passes/S009
             - S010 # https://github.com/bflad/tfproviderlint/tree/main/passes/S010
             - S011 # https://github.com/bflad/tfproviderlint/tree/main/passes/S011
             - S012 # https://github.com/bflad/tfproviderlint/tree/main/passes/S012
-            # - S013 # https://github.com/bflad/tfproviderlint/tree/main/passes/S013
+            # - S013 # https://github.com/bflad/tfproviderlint/tree/main/passes/S013 # TODO: Enable when we can fix the issues
             - S014 # https://github.com/bflad/tfproviderlint/tree/main/passes/S014
             - S015 # https://github.com/bflad/tfproviderlint/tree/main/passes/S015
             - S016 # https://github.com/bflad/tfproviderlint/tree/main/passes/S016
             - S017 # https://github.com/bflad/tfproviderlint/tree/main/passes/S017
             - S018 # https://github.com/bflad/tfproviderlint/tree/main/passes/S018
-            # - S019 # https://github.com/bflad/tfproviderlint/tree/main/passes/S019
-            # - S020 # https://github.com/bflad/tfproviderlint/tree/main/passes/S020
+            # - S019 # https://github.com/bflad/tfproviderlint/tree/main/passes/S019 # TODO: Enable when we can fix the issues
+            # - S020 # https://github.com/bflad/tfproviderlint/tree/main/passes/S020 # TODO: Enable when we can fix the issues
             - S021 # https://github.com/bflad/tfproviderlint/tree/main/passes/S021
             - S022 # https://github.com/bflad/tfproviderlint/tree/main/passes/S022
             - S023 # https://github.com/bflad/tfproviderlint/tree/main/passes/S023
@@ -90,6 +90,14 @@ linters:
             - S035 # https://github.com/bflad/tfproviderlint/tree/main/passes/S035
             - S036 # https://github.com/bflad/tfproviderlint/tree/main/passes/S036
             - S037 # https://github.com/bflad/tfproviderlint/tree/main/passes/S037
+            # - XR002 # https://github.com/bflad/tfproviderlint/tree/main/passes/XR002 # TODO: Enable when we can fix the issues
+            # - XR003 # https://github.com/bflad/tfproviderlint/tree/main/passes/XR003 # TODO: Enable when we can fix the issues
+            - XR004 # https://github.com/bflad/tfproviderlint/tree/main/passes/XR004
+            # - XR005 # https://github.com/bflad/tfproviderlint/tree/main/passes/XR005 # TODO: Enable when we can fix the issues
+            - XR006 # https://github.com/bflad/tfproviderlint/tree/main/passes/XR006
+            # - XR007 # https://github.com/bflad/tfproviderlint/tree/main/passes/XR007 # TODO: Enable when we can fix the issues
+            - XR008 # https://github.com/bflad/tfproviderlint/tree/main/passes/XR008
+            # - XS001 # https://github.com/bflad/tfproviderlint/tree/main/passes/XS001 # TODO: Enable when we can fix the issues
 
   exclusions:
     generated: lax
