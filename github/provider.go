@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func Provider() *schema.Provider {
@@ -92,6 +93,13 @@ func Provider() *schema.Provider {
 				Optional:    true,
 				Default:     false,
 				Description: descriptions["parallel_requests"],
+			},
+			"rate_limiter": {
+				Type:             schema.TypeString,
+				Optional:         true,
+				Default:          "legacy",
+				Description:      descriptions["rate_limiter"],
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"legacy", "modern"}, false)),
 			},
 			"app_auth": {
 				Type:        schema.TypeList,
@@ -342,6 +350,10 @@ func init() {
 			"Defaults to 3",
 		"max_per_page": "Number of items per page for pagination" +
 			"Defaults to 100",
+		"rate_limiter": "The rate limiting strategy to use. 'modern' uses go-github-ratelimit for automatic GitHub API rate limit handling. " +
+			"'legacy' uses the provider's built-in rate limiting with configurable delays. " +
+			"When using 'modern', the read_delay_ms, write_delay_ms, and parallel_requests settings are ignored. " +
+			"Defaults to 'legacy'.",
 	}
 }
 
@@ -474,6 +486,9 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 
 		log.Printf("[DEBUG] Setting parallel_requests to %t", parallelRequests)
 
+		rateLimiter := d.Get("rate_limiter").(string)
+		log.Printf("[DEBUG] Setting rate_limiter to %s", rateLimiter)
+
 		config := Config{
 			Token:            token,
 			BaseURL:          baseURL,
@@ -486,6 +501,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 			MaxRetries:       maxRetries,
 			ParallelRequests: parallelRequests,
 			IsGHES:           isGHES,
+			RateLimiter:      rateLimiter,
 		}
 
 		meta, err := config.Meta()

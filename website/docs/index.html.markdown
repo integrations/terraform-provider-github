@@ -126,6 +126,8 @@ The following arguments are supported in the `provider` block:
 
 * `max_retries` - (Optional) Number of times to retry a request after receiving an error status code. Defaults to 3
 
+* `rate_limiter` - (Optional) The rate limiting strategy to use. Can be one of `legacy` or `modern`. When set to `modern`, uses [go-github-ratelimit](https://github.com/gofri/go-github-ratelimit) for automatic GitHub API rate limit handling, including primary and secondary rate limits. When using `modern`, the `read_delay_ms`, `write_delay_ms`, and `parallel_requests` settings are ignored. Defaults to `legacy`.
+
 Note: If you have a PEM file on disk, you can pass it in via `pem_file = file("path/to/file.pem")`.
 
 For backwards compatibility, if more than one of `owner`, `organization`,
