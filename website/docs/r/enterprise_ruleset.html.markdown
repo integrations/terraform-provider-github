@@ -529,13 +529,11 @@ The `rules` block supports the following:
 
 - `bypass_mode` - (Required) (String) When the specified actor can bypass the ruleset. `pull_request` means that an actor can only bypass rules on pull requests. `pull_request` is not applicable for the `DeployKey` actor type. Also, `pull_request` is only applicable to branch rulesets. When `bypass_mode` is `exempt`, rules will not be run for that actor and a bypass audit entry will not be created. Can be one of: `always`, `pull_request`, `exempt`.
 
-~>Note: at the time of writing this, the following actor types correspond to the following actor IDs:
+~>Note: For `RepositoryRole` actor type, the following are the base repository roles and their associated IDs:
 
-- `OrganizationAdmin` -> `1`
-- `RepositoryRole` (This is the actor type, the following are the base repository roles and their associated IDs.)
-  - `maintain` -> `2`
-  - `write` -> `4`
-  - `admin` -> `5`
+- `maintain` -> `2`
+- `write` -> `4`
+- `admin` -> `5`
 
 ### conditions
 
