@@ -123,7 +123,7 @@ func resourceGithubActionsRepositoryPermissionsCreate(ctx context.Context, d *sc
 		Enabled: &enabled,
 	}
 
-	// Only specify `allowed_actions` if actions are enabled
+	// Only specify `allowed_actions` if actions are enabled.
 	if enabled {
 		repoActionPermissions.AllowedActions = &allowedActions
 	}
@@ -158,7 +158,7 @@ func resourceGithubActionsRepositoryPermissionsCreate(ctx context.Context, d *sc
 	}
 
 	d.SetId(repoName)
-	return resourceGithubActionsRepositoryPermissionsRead(ctx, d, meta)
+	return nil
 }
 
 func resourceGithubActionsRepositoryPermissionsUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {

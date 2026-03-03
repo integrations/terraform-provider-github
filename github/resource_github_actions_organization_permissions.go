@@ -195,7 +195,7 @@ func resourceGithubActionsOrganizationPermissionsCreate(ctx context.Context, d *
 	}
 
 	d.SetId(orgName)
-	return resourceGithubActionsOrganizationPermissionsRead(ctx, d, meta)
+	return nil
 }
 
 func resourceGithubActionsOrganizationPermissionsUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
