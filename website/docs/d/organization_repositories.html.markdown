@@ -24,7 +24,7 @@ ___
 
 The `repository` block consists of:
 
- * `repo_id` - GitHub ID for the repository.
+ * `id` - GitHub ID for the repository.
  * `node_id` - The Node ID of the repository.
  * `name` - The name of the repository.
  * `archived` - Whether the repository is archived.
