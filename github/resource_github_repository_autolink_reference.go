@@ -69,7 +69,7 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 				Required:         true,
 				ForceNew:         true,
 				Description:      "This prefix appended by a number will generate a link any time it is found in an issue, pull request, or commit",
-				ValidateDiagFunc: validation.ToDiagFunc(validation.StringMatch(regexp.MustCompile(`^.*?[^\d]$`), "must not end with a number")),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringMatch(regexp.MustCompile(`[^\d]$`), "must not end with a number")),
 			},
 			"target_url_template": {
 				Type:             schema.TypeString,
