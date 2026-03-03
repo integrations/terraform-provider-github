@@ -360,16 +360,6 @@ func dataSourceGithubEnterpriseRulesetRead(ctx context.Context, d *schema.Resour
 
 	ruleset, resp, err := client.Enterprise.GetRepositoryRuleset(ctx, enterpriseSlug, rulesetID)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Error(ctx, "Enterprise ruleset not found", map[string]any{
-					"enterprise_slug": enterpriseSlug,
-					"ruleset_id":      rulesetID,
-				})
-				return diag.Errorf("enterprise ruleset %d not found in enterprise %s", rulesetID, enterpriseSlug)
-			}
-		}
 		tflog.Error(ctx, "Failed to read enterprise ruleset", map[string]any{
 			"enterprise_slug": enterpriseSlug,
 			"ruleset_id":      rulesetID,
