@@ -16,8 +16,8 @@ var repositoryTargetRules = []string{
 	"repository_visibility",
 }
 
-// resourceGithubEnterpriseRulesetCustomizeDiff validates enterprise ruleset configuration
-func resourceGithubEnterpriseRulesetCustomizeDiff(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
+// resourceGithubEnterpriseRulesetDiff validates enterprise ruleset configuration
+func resourceGithubEnterpriseRulesetDiff(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
 	target := d.Get("target").(string)
 
 	// Validate conditions

@@ -27,7 +27,7 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 			StateContext: resourceGithubEnterpriseRulesetImport,
 		},
 
-		CustomizeDiff: resourceGithubEnterpriseRulesetCustomizeDiff,
+		CustomizeDiff: resourceGithubEnterpriseRulesetDiff,
 
 		Schema: map[string]*schema.Schema{
 			"enterprise_slug": {
