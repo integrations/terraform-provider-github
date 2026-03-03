@@ -66,7 +66,7 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 							Type:        schema.TypeInt,
 							Optional:    true,
 							Default:     nil,
-							Description: "The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `1`. Some resources such as DeployKey do not have an ID and this should be omitted.",
+							Description: "The ID of the actor that can bypass a ruleset. Required for `Integration`, `RepositoryRole`, and `Team` actor types. If `actor_type` is `OrganizationAdmin` or `EnterpriseOwner`, `actor_id` is ignored. If `actor_type` is `DeployKey`, this should be null.",
 						},
 						"actor_type": {
 							Type:         schema.TypeString,
@@ -78,7 +78,7 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"always", "pull_request", "exempt"}, false)),
-							Description:  "When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`, `exempt`.",
+							Description:  "When the specified actor can bypass the ruleset. `pull_request` means that an actor can only bypass rules on pull requests. `pull_request` is not applicable for the `DeployKey` actor type. Also, `pull_request` is only applicable to branch rulesets. When `bypass_mode` is `exempt`, rules will not be run for that actor and a bypass audit entry will not be created.",
 						},
 					},
 				},
