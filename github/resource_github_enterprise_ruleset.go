@@ -39,7 +39,7 @@ func resourceGithubEnterpriseRuleset() *schema.Resource {
 			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 100)),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 256)),
 				Description:  "The name of the ruleset.",
 			},
 			"target": {
