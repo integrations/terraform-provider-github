@@ -57,7 +57,7 @@ lintcheck: tools
 	$(BIN)/custom-gcl run ./...
 
 .golangci.new.yml: .golangci.yml .golangci.strict.yml
-	yq eval-all 'select(fileIndex == 0) *+ select(fileIndex == 1)' .golangci{,.strict}.yml > .golangci.new.yml 
+	yq eval-all 'select(fileIndex == 0) *+ select(fileIndex == 1)' .golangci.yml .golangci.strict.yml > .golangci.new.yml 
 
 lintcheck-new: tools .golangci.new.yml
 	@branch=$$(git rev-parse --abbrev-ref HEAD); \
