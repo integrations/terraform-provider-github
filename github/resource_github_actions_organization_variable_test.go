@@ -361,7 +361,7 @@ resource "github_actions_organization_variable" "test" {
 						_, err = client.Actions.CreateOrgVariable(ctx, owner, &github.ActionsVariable{
 							Name:       varName,
 							Value:      "test",
-							Visibility: github.Ptr("all"),
+							Visibility: new("all"),
 						})
 						return err
 					},

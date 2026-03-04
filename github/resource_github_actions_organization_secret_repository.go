@@ -50,7 +50,7 @@ func resourceGithubActionsOrganizationSecretRepositoryCreate(ctx context.Context
 	repoID := d.Get("repository_id").(int)
 
 	repository := &github.Repository{
-		ID: github.Ptr(int64(repoID)),
+		ID: new(int64(repoID)),
 	}
 
 	_, err := client.Actions.AddSelectedRepoToOrgSecret(ctx, owner, secretName, repository)
@@ -120,7 +120,7 @@ func resourceGithubActionsOrganizationSecretRepositoryDelete(ctx context.Context
 	repoID := d.Get("repository_id").(int)
 
 	repository := &github.Repository{
-		ID: github.Ptr(int64(repoID)),
+		ID: new(int64(repoID)),
 	}
 	_, err := client.Actions.RemoveSelectedRepoFromOrgSecret(ctx, owner, secretName, repository)
 	if err != nil {

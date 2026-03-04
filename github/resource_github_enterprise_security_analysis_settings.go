@@ -69,23 +69,23 @@ func resourceGithubEnterpriseSecurityAnalysisSettingsCreateOrUpdate(d *schema.Re
 	settings := &github.EnterpriseSecurityAnalysisSettings{}
 
 	if v, ok := d.GetOk("advanced_security_enabled_for_new_repositories"); ok {
-		settings.AdvancedSecurityEnabledForNewRepositories = github.Ptr(v.(bool))
+		settings.AdvancedSecurityEnabledForNewRepositories = new(v.(bool))
 	}
 
 	if v, ok := d.GetOk("secret_scanning_enabled_for_new_repositories"); ok {
-		settings.SecretScanningEnabledForNewRepositories = github.Ptr(v.(bool))
+		settings.SecretScanningEnabledForNewRepositories = new(v.(bool))
 	}
 
 	if v, ok := d.GetOk("secret_scanning_push_protection_enabled_for_new_repositories"); ok {
-		settings.SecretScanningPushProtectionEnabledForNewRepositories = github.Ptr(v.(bool))
+		settings.SecretScanningPushProtectionEnabledForNewRepositories = new(v.(bool))
 	}
 
 	if v, ok := d.GetOk("secret_scanning_push_protection_custom_link"); ok {
-		settings.SecretScanningPushProtectionCustomLink = github.Ptr(v.(string))
+		settings.SecretScanningPushProtectionCustomLink = new(v.(string))
 	}
 
 	if v, ok := d.GetOk("secret_scanning_validity_checks_enabled"); ok {
-		settings.SecretScanningValidityChecksEnabled = github.Ptr(v.(bool))
+		settings.SecretScanningValidityChecksEnabled = new(v.(bool))
 	}
 
 	log.Printf("[DEBUG] Updating security analysis settings for enterprise: %s", enterpriseSlug)
@@ -140,11 +140,11 @@ func resourceGithubEnterpriseSecurityAnalysisSettingsDelete(d *schema.ResourceDa
 
 	// Reset to safe defaults (all disabled)
 	settings := &github.EnterpriseSecurityAnalysisSettings{
-		AdvancedSecurityEnabledForNewRepositories:             github.Ptr(false),
-		SecretScanningEnabledForNewRepositories:               github.Ptr(false),
-		SecretScanningPushProtectionEnabledForNewRepositories: github.Ptr(false),
-		SecretScanningPushProtectionCustomLink:                github.Ptr(""),
-		SecretScanningValidityChecksEnabled:                   github.Ptr(false),
+		AdvancedSecurityEnabledForNewRepositories:             new(false),
+		SecretScanningEnabledForNewRepositories:               new(false),
+		SecretScanningPushProtectionEnabledForNewRepositories: new(false),
+		SecretScanningPushProtectionCustomLink:                new(""),
+		SecretScanningValidityChecksEnabled:                   new(false),
 	}
 
 	_, err := client.Enterprise.UpdateCodeSecurityAndAnalysis(ctx, enterpriseSlug, settings)

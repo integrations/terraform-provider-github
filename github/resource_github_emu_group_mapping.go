@@ -77,7 +77,7 @@ func resourceGithubEMUGroupMappingCreate(ctx context.Context, d *schema.Resource
 	groupID := toInt64(d.Get("group_id"))
 	tflog.SetField(ctx, "group_id", groupID)
 	eg := &github.ExternalGroup{
-		GroupID: github.Ptr(groupID),
+		GroupID: new(groupID),
 	}
 
 	tflog.Debug(ctx, "Connecting external group to team via GitHub API")
@@ -223,7 +223,7 @@ func resourceGithubEMUGroupMappingUpdate(ctx context.Context, d *schema.Resource
 	groupID := toInt64(d.Get("group_id"))
 	tflog.SetField(ctx, "group_id", groupID)
 	eg := &github.ExternalGroup{
-		GroupID: github.Ptr(groupID),
+		GroupID: new(groupID),
 	}
 
 	if d.HasChanges("group_id", "team_slug") {
