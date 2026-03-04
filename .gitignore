@@ -30,6 +30,7 @@ testdata/
 !tools/tfproviderlint/**/testdata/
 website/vendor
 terraform-provider-github
+.golangci.new.yml
 
 # Test exclusions
 !command/test-fixtures/**/*.tfstate
