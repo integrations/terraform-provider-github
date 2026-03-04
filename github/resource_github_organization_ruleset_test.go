@@ -40,10 +40,9 @@ resource "github_repository" "test" {
 	visibility = "private"
 	auto_init = true
 }
-
 resource "github_repository_file" "workflow_file" {
 	repository          = github_repository.test.name
-	branch              = "main"
+	branch              = github_repository.test.default_branch
 	file                = "%[3]s"
 	content             = replace(local.workflow_content, "\t", " ") # NOTE: 'content' must be indented with spaces, not tabs
 	commit_message      = "Managed by Terraform"
@@ -128,7 +127,7 @@ resource "github_organization_ruleset" "test" {
 			required_workflow {
 				path          = github_repository_file.workflow_file.file
 				repository_id = github_repository.test.repo_id
-				ref           = "main" # Default ref is master
+				ref           = github_repository.test.default_branch
 			}
 		}
 
