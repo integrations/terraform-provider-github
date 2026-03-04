@@ -125,9 +125,9 @@ func resourceGithubTeamCreate(ctx context.Context, d *schema.ResourceData, meta 
 
 	newTeam := github.NewTeam{
 		Name:                name,
-		Description:         github.Ptr(d.Get("description").(string)),
-		Privacy:             github.Ptr(d.Get("privacy").(string)),
-		NotificationSetting: github.Ptr(d.Get("notification_setting").(string)),
+		Description:         new(d.Get("description").(string)),
+		Privacy:             new(d.Get("privacy").(string)),
+		NotificationSetting: new(d.Get("notification_setting").(string)),
 	}
 
 	if ldapDN := d.Get("ldap_dn").(string); ldapDN != "" {
@@ -318,9 +318,9 @@ func resourceGithubTeamUpdate(ctx context.Context, d *schema.ResourceData, meta 
 
 	editedTeam := github.NewTeam{
 		Name:                d.Get("name").(string),
-		Description:         github.Ptr(d.Get("description").(string)),
-		Privacy:             github.Ptr(d.Get("privacy").(string)),
-		NotificationSetting: github.Ptr(d.Get("notification_setting").(string)),
+		Description:         new(d.Get("description").(string)),
+		Privacy:             new(d.Get("privacy").(string)),
+		NotificationSetting: new(d.Get("notification_setting").(string)),
 	}
 	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
 		teamId, err := getTeamID(parentTeamID.(string), meta)
@@ -346,7 +346,7 @@ func resourceGithubTeamUpdate(ctx context.Context, d *schema.ResourceData, meta 
 	if d.HasChange("ldap_dn") {
 		ldapDN := d.Get("ldap_dn").(string)
 		mapping := &github.TeamLDAPMapping{
-			LDAPDN: github.Ptr(ldapDN),
+			LDAPDN: new(ldapDN),
 		}
 		_, _, err = client.Admin.UpdateTeamLDAPMapping(ctx, team.GetID(), mapping)
 		if err != nil {

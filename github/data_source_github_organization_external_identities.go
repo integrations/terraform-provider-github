@@ -121,7 +121,7 @@ func dataSourceGithubOrganizationExternalIdentitiesRead(ctx context.Context, d *
 		if !query.Organization.SamlIdentityProvider.PageInfo.HasNextPage {
 			break
 		}
-		variables["after"] = githubv4.NewString(query.Organization.SamlIdentityProvider.PageInfo.EndCursor)
+		variables["after"] = new(query.Organization.SamlIdentityProvider.PageInfo.EndCursor)
 	}
 
 	d.SetId(name)

@@ -180,7 +180,7 @@ func resourceGithubRepositoryWebhookRead(ctx context.Context, d *schema.Resource
 		currentSecret := d.Get("configuration").([]any)[0].(map[string]any)["secret"]
 
 		if hook.Config.Secret != nil {
-			hook.Config.Secret = github.Ptr(currentSecret.(string))
+			hook.Config.Secret = new(currentSecret.(string))
 		}
 	}
 

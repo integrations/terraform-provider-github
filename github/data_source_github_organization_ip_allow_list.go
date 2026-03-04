@@ -98,7 +98,7 @@ func dataSourceGithubOrganizationIpAllowListRead(ctx context.Context, d *schema.
 		if !query.Organization.IpAllowListEntries.PageInfo.HasNextPage {
 			break
 		}
-		variables["entriesCursor"] = githubv4.NewString(query.Organization.IpAllowListEntries.PageInfo.EndCursor)
+		variables["entriesCursor"] = new(query.Organization.IpAllowListEntries.PageInfo.EndCursor)
 	}
 	for index := range ipAllowListEntries {
 		ipAllowList = append(ipAllowList, map[string]any{

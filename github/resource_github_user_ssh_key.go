@@ -59,8 +59,8 @@ func resourceGithubUserSshKeyCreate(d *schema.ResourceData, meta any) error {
 	ctx := context.Background()
 
 	userKey, _, err := client.Users.CreateKey(ctx, &github.Key{
-		Title: github.Ptr(title),
-		Key:   github.Ptr(key),
+		Title: new(title),
+		Key:   new(key),
 	})
 	if err != nil {
 		return err

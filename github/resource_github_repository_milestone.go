@@ -101,11 +101,11 @@ func resourceGithubRepositoryMilestoneCreate(d *schema.ResourceData, meta any) e
 	repoName := d.Get("repository").(string)
 
 	milestone := &github.Milestone{
-		Title: github.Ptr(d.Get("title").(string)),
+		Title: new(d.Get("title").(string)),
 	}
 
 	if v, ok := d.GetOk("description"); ok && len(v.(string)) > 0 {
-		milestone.Description = github.Ptr(v.(string))
+		milestone.Description = new(v.(string))
 	}
 	if v, ok := d.GetOk("due_date"); ok && len(v.(string)) > 0 {
 		dueDate, err := time.Parse(layoutISO, v.(string))
@@ -118,7 +118,7 @@ func resourceGithubRepositoryMilestoneCreate(d *schema.ResourceData, meta any) e
 		}
 	}
 	if v, ok := d.GetOk("state"); ok && len(v.(string)) > 0 {
-		milestone.State = github.Ptr(v.(string))
+		milestone.State = new(v.(string))
 	}
 
 	milestone, _, err := conn.Issues.CreateMilestone(ctx, owner, repoName, milestone)
@@ -193,12 +193,12 @@ func resourceGithubRepositoryMilestoneUpdate(d *schema.ResourceData, meta any) e
 	milestone := &github.Milestone{}
 	if d.HasChanges("title") {
 		_, n := d.GetChange("title")
-		milestone.Title = github.Ptr(n.(string))
+		milestone.Title = new(n.(string))
 	}
 
 	if d.HasChanges("description") {
 		_, n := d.GetChange("description")
-		milestone.Description = github.Ptr(n.(string))
+		milestone.Description = new(n.(string))
 	}
 
 	if d.HasChanges("due_date") {
@@ -215,7 +215,7 @@ func resourceGithubRepositoryMilestoneUpdate(d *schema.ResourceData, meta any) e
 
 	if d.HasChanges("state") {
 		_, n := d.GetChange("state")
-		milestone.State = github.Ptr(n.(string))
+		milestone.State = new(n.(string))
 	}
 
 	_, _, err = conn.Issues.EditMilestone(ctx, owner, repoName, number, milestone)

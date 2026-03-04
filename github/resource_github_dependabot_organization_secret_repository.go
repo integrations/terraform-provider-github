@@ -50,7 +50,7 @@ func resourceGithubDependabotOrganizationSecretRepositoryCreate(ctx context.Cont
 	repoID := d.Get("repository_id").(int)
 
 	repository := &github.Repository{
-		ID: github.Ptr(int64(repoID)),
+		ID: new(int64(repoID)),
 	}
 
 	_, err := client.Dependabot.AddSelectedRepoToOrgSecret(ctx, owner, secretName, repository)
@@ -120,7 +120,7 @@ func resourceGithubDependabotOrganizationSecretRepositoryDelete(ctx context.Cont
 	repoID := d.Get("repository_id").(int)
 
 	repository := &github.Repository{
-		ID: github.Ptr(int64(repoID)),
+		ID: new(int64(repoID)),
 	}
 	_, err := client.Dependabot.RemoveSelectedRepoFromOrgSecret(ctx, owner, secretName, repository)
 	if err != nil {

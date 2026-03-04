@@ -238,7 +238,7 @@ func resourceGithubTeamMembersRead(d *schema.ResourceData, meta any) error {
 		if !q.Organization.Team.Members.PageInfo.HasNextPage {
 			break
 		}
-		variables["after"] = githubv4.NewString(q.Organization.Team.Members.PageInfo.EndCursor)
+		variables["after"] = new(q.Organization.Team.Members.PageInfo.EndCursor)
 	}
 
 	if err := d.Set("members", teamMembersAndMaintainers); err != nil {
