@@ -12,7 +12,6 @@ linters:
     - errcheck
     - errname
     - errorlint
-    # - forcetypeassert TODO: Re-enable when we can fix the issues
     - godot
     - govet
     - ineffassign

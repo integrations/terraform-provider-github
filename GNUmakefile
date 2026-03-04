@@ -31,10 +31,11 @@ default: build
 
 bin/golangci-lint:
 	mkdir -p $(BIN)
-	GOBIN=$(BIN) go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 # This version needs to be in sync with .custom-gcl.yml
+	GOBIN=$(BIN) go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest # This version needs to be in sync with .custom-gcl.yml
 
 bin/custom-gcl: bin/golangci-lint $(shell find tools \( -name '*.go' -or -name '*.mod' -or -name '*.sum' \) -and -not -name '*_test.go' -maxdepth 4)
-	$(BIN)/golangci-lint custom --name custom-gcl --destination $(BIN)
+	@GCLversion=$$(bin/golangci-lint version --short); \
+	$(BIN)/golangci-lint custom --name custom-gcl --destination $(BIN) --version "v$$GCLversion"
 
 tools: bin/custom-gcl go.sum
 
@@ -56,6 +57,19 @@ lintcheck: tools
 	@branch=$$(git rev-parse --abbrev-ref HEAD); \
 	printf "==> Checking source code against linters on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
 	$(BIN)/custom-gcl run ./...
+
+.golangci.new.yml: .golangci.yml .golangci.strict.yml
+	yq eval-all 'select(fileIndex == 0) *+ select(fileIndex == 1)' .golangci{,.strict}.yml > .golangci.new.yml 
+
+lintcheck-new: tools .golangci.new.yml
+	@branch=$$(git rev-parse --abbrev-ref HEAD); \
+	printf "==> Checking source code against linters on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
+	$(BIN)/custom-gcl run ./... --new-from-merge-base main --config .golangci.new.yml
+
+lintcheck-strict: tools .golangci.new.yml
+	@branch=$$(git rev-parse --abbrev-ref HEAD); \
+	printf "==> Checking source code against linters on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
+	$(BIN)/custom-gcl run ./... --config .golangci.new.yml
 
 test:
 	@branch=$$(git rev-parse --abbrev-ref HEAD); \
@@ -109,4 +123,4 @@ mdfmt:
 mdlint:
 	@rumdl check $(RUMDL_ARGS) .
 
-.PHONY: build test testacc fmt lint lintcheck tools sweep generatedocs validatedocs fmtdocs lintdocs checkdocs yamlfmt mdfmt mdlint test-tools
+.PHONY: build test testacc fmt lint lintcheck lintcheck-new lintcheck-strict tools sweep generatedocs validatedocs fmtdocs lintdocs checkdocs yamlfmt mdfmt mdlint test-tools

@@ -1,4 +1,4 @@
-version: v2.12.2 # should be in sync with GNUmakefile
+version: latest # This doesn't really work, but if we pass in `--version` to the `golangci-lint custom` command, it will be used in the generated code and thus we can ensure that the version of golangci-lint used to generate the custom linter is the same as the one used in CI.
 
 plugins:
   - module: "github.com/integrations/terraform-provider-github/tools/tfproviderlint"
