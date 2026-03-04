@@ -101,7 +101,9 @@ jobs:
         uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
         with:
           version: latest
-          args: --new-from-merge-base=main --config=.golangci.new.yml
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          only-new-issues: true
+          args: --config=.golangci.new.yml
   check:
     name: Check
     needs:
