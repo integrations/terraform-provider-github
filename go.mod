@@ -1,6 +1,6 @@
 module github.com/integrations/terraform-provider-github/v6
 
-go 1.25
+go 1.26
 
 require (
 	github.com/go-jose/go-jose/v3 v3.0.4
