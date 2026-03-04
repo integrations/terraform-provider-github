@@ -16,8 +16,11 @@ concurrency:
 
 permissions: read-all
 
+env:
+  GOLANGCI_LINT_VERSION: v2.10
+
 jobs:
-  ci:
+  test:
     name: Continuous Integration
     runs-on: ubuntu-latest
     permissions:
@@ -33,6 +36,41 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - run: make tools
-      - run: make build
+      - run: make build -o lintcheck
       - run: make test
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Set-up Go
+        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+  golangci-new:
+    name: lint-new
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Set-up Go
+        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: make .golangci.new.yml
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+          args: --new-from-merge-base=main --config=.golangci.new.yml

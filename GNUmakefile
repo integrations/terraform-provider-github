@@ -56,6 +56,19 @@ lintcheck: tools
 	printf "==> Checking source code against linters on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
 	$(BIN)/custom-gcl run ./...
 
+.golangci.new.yml: .golangci.yml .golangci.strict.yml
+	yq eval-all 'select(fileIndex == 0) *+ select(fileIndex == 1)' .golangci{,.strict}.yml > .golangci.new.yml 
+
+lintcheck-new: tools .golangci.new.yml
+	@branch=$$(git rev-parse --abbrev-ref HEAD); \
+	printf "==> Checking source code against linters on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
+	$(BIN)/custom-gcl run ./... --new-from-merge-base main --config .golangci.new.yml
+
+lintcheck-strict: tools .golangci.new.yml
+	@branch=$$(git rev-parse --abbrev-ref HEAD); \
+	printf "==> Checking source code against linters on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
+	$(BIN)/custom-gcl run ./... --config .golangci.new.yml
+
 test:
 	@branch=$$(git rev-parse --abbrev-ref HEAD); \
 	printf "==> Running unit tests on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
@@ -94,4 +107,4 @@ ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
 endif
 	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider-test PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
 
-.PHONY: build test testacc fmt lint lintcheck tools test-tools website website-test sweep
+.PHONY: build test testacc fmt lint lintcheck lintcheck-new lintcheck-strict tools test-tools website website-test sweep
