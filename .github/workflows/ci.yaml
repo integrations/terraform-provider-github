@@ -19,15 +19,16 @@ permissions: read-all
 env:
   GOLANGCI_LINT_VERSION: v2.10
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   test:
     name: Continuous Integration
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    defaults:
-      run:
-        shell: bash
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
