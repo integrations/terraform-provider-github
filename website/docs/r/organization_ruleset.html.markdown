@@ -99,6 +99,47 @@ resource "github_organization_ruleset" "example_push" {
     }
   }
 }
+
+# Example with repository_property targeting
+resource "github_organization_ruleset" "example_property" {
+  name        = "example_property"
+  target      = "branch"
+  enforcement = "active"
+
+  conditions {
+    ref_name {
+      include = ["~ALL"]
+      exclude = []
+    }
+
+    repository_property {
+      include = [
+        {
+          name            = "environment"
+          property_values = ["production", "staging"]
+          source          = "custom"
+        },
+        {
+          name            = "team"
+          property_values = ["backend"]
+          source          = "custom"
+        }
+      ]
+      exclude = [
+        {
+          name            = "archived"
+          property_values = ["true"]
+          source          = "system"
+        }
+      ]
+    }
+  }
+
+  rules {
+    required_signatures = true
+    pull_request {}
+  }
+}
 ```
 
 ## Argument Reference
@@ -325,10 +366,11 @@ The `rules` block supports the following:
 #### conditions ####
 
 - `ref_name` - (Optional) (Block List, Max: 1) Required for `branch` and `tag` targets. Must NOT be set for `push` targets. (see [below for nested schema](#conditionsref_name))
-- `repository_id` (Optional) (List of Number) The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass. Conflicts with `repository_name`.
-- `repository_name` (Optional) (Block List, Max: 1) Conflicts with `repository_id`. (see [below for nested schema](#conditionsrepository_name))
+- `repository_id` (Optional) (List of Number) The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass.
+- `repository_name` (Optional) (Block List, Max: 1) Targets repositories that match the specified name patterns. (see [below for nested schema](#conditionsrepository_name))
+- `repository_property` (Optional) (Block List, Max: 1) Targets repositories by custom or system properties. (see [below for nested schema](#conditionsrepository_property))
 
-One of `repository_id` and `repository_name` must be set for the rule to target any repositories.
+Exactly one of `repository_id`, `repository_name`, or `repository_property` must be set for the rule to target repositories.
 
 ~> **Note:** For `push` targets, do not include `ref_name` in conditions. Push rulesets operate on file content, not on refs.
 
@@ -343,6 +385,20 @@ One of `repository_id` and `repository_name` must be set for the rule to target 
 - `exclude` - (Required) (List of String) Array of repository names or patterns to exclude. The condition will not pass if any of these patterns match.
 - `include` - (Required) (List of String) Array of repository names or patterns to include. One of these patterns must match for the condition to pass. Also accepts `~ALL` to include all repositories.
 - `protected` - (Optional) (Boolean) Whether renaming of target repositories is prevented. Defaults to `false`.
+
+#### conditions.repository_property ####
+
+- `include` - (Optional) (List of Repository Properties) The repository properties and values to include. All of these properties must match for the condition to pass. (see [below for nested schema](#conditionsrepository_propertyproperties))
+
+- `exclude` - (Optional) (List of Repository Properties) The repository properties and values to exclude. The condition will not pass if any of these properties match. (see [below for nested schema](#conditionsrepository_propertyproperties))
+
+#### conditions.repository_property.properties ####
+
+- `name` (Required) (String) The name of the repository property to target.
+
+- `property_values` (Required) (Array of String) The values to match for the repository property.
+
+- `source` (String) The source of the repository property. Defaults to 'custom' if not specified. Can be one of: `custom`, `system`
 
 ## Attributes Reference
 
