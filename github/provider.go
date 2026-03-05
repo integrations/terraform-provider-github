@@ -467,6 +467,20 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 			token = d.Get("token").(string)
 
 			if token == "" {
+				// Top-level app fields require an explicit auth_mode.
+				// Skip this check when app_auth is configured for backward compatibility.
+				appAuth, _ := d.Get("app_auth").([]any)
+				hasAppAuth := len(appAuth) > 0 && appAuth[0] != nil
+				topLevelAppSet := d.Get("app_id").(string) != "" ||
+					d.Get("app_installation_id").(string) != "" ||
+					d.Get("app_private_key").(string) != ""
+				if topLevelAppSet && !hasAppAuth {
+					return nil, diag.Errorf(
+						"top-level app credentials (app_id, app_installation_id, app_private_key) " +
+							"require auth_mode = \"app\" to be set explicitly; use the `auth_mode` " +
+							"provider argument or the GITHUB_AUTH_MODE environment variable")
+				}
+
 				appID, appInstallationID, appPemFile := getAppCredentials(d)
 				if appID != "" && appInstallationID != "" && appPemFile != "" {
 					apiPath := ""
