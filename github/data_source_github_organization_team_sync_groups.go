@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -74,11 +73,15 @@ func dataSourceGithubOrganizationTeamSyncGroupsRead(ctx context.Context, d *sche
 		options.Page = resp.NextPageToken
 	}
 
+	idParts := []string{orgName, "team-sync-groups"}
 	if options.Query != "" {
-		d.SetId(fmt.Sprintf("%s/github-org-team-sync-groups/%s", orgName, options.Query))
-	} else {
-		d.SetId(fmt.Sprintf("%s/github-org-team-sync-groups", orgName))
+		idParts = append(idParts, options.Query)
 	}
+	id, err := buildID(idParts...)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	d.SetId(id)
 	if err := d.Set("groups", groups); err != nil {
 		return diag.Errorf("error setting groups: %v", err)
 	}
