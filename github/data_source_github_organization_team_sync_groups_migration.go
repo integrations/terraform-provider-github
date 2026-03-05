@@ -3,8 +3,8 @@ package github
 import (
 	"context"
 	"fmt"
-	"log"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -36,7 +36,7 @@ func dataSourceGithubOrganizationTeamSyncGroupsV0() *schema.Resource {
 }
 
 func dataSourceGithubOrganizationTeamSyncGroupsStateUpgradeV0(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
-	log.Printf("[DEBUG] GitHub Organization Team Sync Groups State before migration: %#v", rawState)
+	tflog.Debug(ctx, "GitHub Organization Team Sync Groups State before migration", map[string]any{"state": rawState})
 
 	if rawState == nil {
 		return nil, fmt.Errorf("cannot migrate nil state")
@@ -51,7 +51,7 @@ func dataSourceGithubOrganizationTeamSyncGroupsStateUpgradeV0(ctx context.Contex
 
 	rawState["id"] = newID
 
-	log.Printf("[DEBUG] GitHub Organization Team Sync Groups State after migration: %#v", rawState)
+	tflog.Debug(ctx, "GitHub Organization Team Sync Groups State after migration", map[string]any{"state": rawState})
 
 	return rawState, nil
 }
