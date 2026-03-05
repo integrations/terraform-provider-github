@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -408,7 +409,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 
 		org := d.Get("organization").(string)
 		if org != "" {
-			log.Printf("[INFO] Selecting organization attribute as owner: %s", org)
+			tflog.Info(ctx, "Selecting organization attribute as owner", map[string]any{"owner": org})
 			owner = org
 		}
 
@@ -416,7 +417,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 
 		switch authMode {
 		case "anonymous":
-			log.Printf("[INFO] Auth mode: anonymous")
+			tflog.Info(ctx, "Auth mode: anonymous")
 
 		case "token":
 			token = d.Get("token").(string)
@@ -425,7 +426,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 					"auth_mode is set to \"token\" but no token was provided; " +
 						"set the `token` argument or `GITHUB_TOKEN` environment variable"))
 			}
-			log.Printf("[INFO] Auth mode: token")
+			tflog.Info(ctx, "Auth mode: token")
 
 		case "app":
 			appID, appInstallationID, appPemFile := getAppCredentials(d)
@@ -456,7 +457,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 			}
 
 			token = appToken
-			log.Printf("[INFO] Auth mode: app (ID: %s, installation: %s)", appID, appInstallationID)
+			tflog.Info(ctx, "Auth mode: app", map[string]any{"app_id": appID, "installation_id": appInstallationID})
 
 		default: // auto-detect (backward compatibility)
 			token = d.Get("token").(string)
@@ -474,12 +475,12 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 						return nil, wrapErrors([]error{err})
 					}
 					token = appToken
-					log.Printf("[INFO] Auth mode: app (ID: %s, installation: %s)", appID, appInstallationID)
+					tflog.Info(ctx, "Auth mode: app", map[string]any{"app_id": appID, "installation_id": appInstallationID})
 				}
 			}
 
 			if token == "" {
-				log.Printf("[INFO] No token found, trying GitHub CLI to get token from hostname %s", baseURL.Host)
+				tflog.Info(ctx, "No token found, trying GitHub CLI to get token", map[string]any{"hostname": baseURL.Host})
 				ghToken := tokenFromGHCLI(baseURL)
 				if ghToken != "" {
 					token = ghToken
@@ -498,25 +499,25 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 		if writeDelay <= 0 {
 			return nil, wrapErrors([]error{fmt.Errorf("write_delay_ms must be greater than 0ms")})
 		}
-		log.Printf("[INFO] Setting write_delay_ms to %d", writeDelay)
+		tflog.Info(ctx, "Setting write_delay_ms", map[string]any{"write_delay_ms": writeDelay})
 
 		readDelay := d.Get("read_delay_ms").(int)
 		if readDelay < 0 {
 			return nil, wrapErrors([]error{fmt.Errorf("read_delay_ms must be greater than or equal to 0ms")})
 		}
-		log.Printf("[DEBUG] Setting read_delay_ms to %d", readDelay)
+		tflog.Debug(ctx, "Setting read_delay_ms", map[string]any{"read_delay_ms": readDelay})
 
 		retryDelay := d.Get("read_delay_ms").(int)
 		if retryDelay < 0 {
 			return nil, diag.FromErr(fmt.Errorf("retry_delay_ms must be greater than or equal to 0ms"))
 		}
-		log.Printf("[DEBUG] Setting retry_delay_ms to %d", retryDelay)
+		tflog.Debug(ctx, "Setting retry_delay_ms", map[string]any{"retry_delay_ms": retryDelay})
 
 		maxRetries := d.Get("max_retries").(int)
 		if maxRetries < 0 {
 			return nil, diag.FromErr(fmt.Errorf("max_retries must be greater than or equal to 0"))
 		}
-		log.Printf("[DEBUG] Setting max_retries to %d", maxRetries)
+		tflog.Debug(ctx, "Setting max_retries", map[string]any{"max_retries": maxRetries})
 		retryableErrors := make(map[int]bool)
 		if maxRetries > 0 {
 			reParam := d.Get("retryable_errors").([]any)
@@ -528,19 +529,19 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 				}
 			}
 
-			log.Printf("[DEBUG] Setting retriableErrors to %v", retryableErrors)
+			tflog.Debug(ctx, "Setting retryable_errors", map[string]any{"retryable_errors": retryableErrors})
 		}
 
 		_maxPerPage := d.Get("max_per_page").(int)
 		if _maxPerPage <= 0 {
 			return nil, diag.FromErr(fmt.Errorf("max_per_page must be greater than than 0"))
 		}
-		log.Printf("[DEBUG] Setting max_per_page to %d", _maxPerPage)
+		tflog.Debug(ctx, "Setting max_per_page", map[string]any{"max_per_page": _maxPerPage})
 		maxPerPage = _maxPerPage
 
 		parallelRequests := d.Get("parallel_requests").(bool)
 
-		log.Printf("[DEBUG] Setting parallel_requests to %t", parallelRequests)
+		tflog.Debug(ctx, "Setting parallel_requests", map[string]any{"parallel_requests": parallelRequests})
 
 		config := Config{
 			Token:            token,
