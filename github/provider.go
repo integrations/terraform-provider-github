@@ -102,11 +102,12 @@ func Provider() *schema.Provider {
 				Description: descriptions["parallel_requests"],
 			},
 			"app_auth": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				MaxItems:    1,
-				Description: descriptions["app_auth"],
-				Deprecated: "Use top-level app_id, app_installation_id, and app_private_key instead.",
+				Type:          schema.TypeList,
+				Optional:      true,
+				MaxItems:      1,
+				Description:   descriptions["app_auth"],
+				Deprecated:    "Use top-level app_id, app_installation_id, and app_private_key instead.",
+				ConflictsWith: []string{"app_id", "app_installation_id", "app_private_key"},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
@@ -132,23 +133,26 @@ func Provider() *schema.Provider {
 				},
 			},
 			"app_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("GITHUB_APP_ID", nil),
-				Description: descriptions["app_id"],
+				Type:          schema.TypeString,
+				Optional:      true,
+				DefaultFunc:   schema.EnvDefaultFunc("GITHUB_APP_ID", nil),
+				Description:   descriptions["app_id"],
+				ConflictsWith: []string{"app_auth"},
 			},
 			"app_installation_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("GITHUB_APP_INSTALLATION_ID", nil),
-				Description: descriptions["app_installation_id"],
+				Type:          schema.TypeString,
+				Optional:      true,
+				DefaultFunc:   schema.EnvDefaultFunc("GITHUB_APP_INSTALLATION_ID", nil),
+				Description:   descriptions["app_installation_id"],
+				ConflictsWith: []string{"app_auth"},
 			},
 			"app_private_key": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Sensitive:   true,
-				DefaultFunc: schema.EnvDefaultFunc("GITHUB_APP_PRIVATE_KEY", nil),
-				Description: descriptions["app_private_key"],
+				Type:          schema.TypeString,
+				Optional:      true,
+				Sensitive:     true,
+				DefaultFunc:   schema.EnvDefaultFunc("GITHUB_APP_PRIVATE_KEY", nil),
+				Description:   descriptions["app_private_key"],
+				ConflictsWith: []string{"app_auth"},
 			},
 			// https://developer.github.com/guides/traversing-with-pagination/#basics-of-pagination
 			"max_per_page": {
