@@ -63,13 +63,13 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Type:        schema.TypeInt,
 							Optional:    true,
 							Default:     nil,
-							Description: "The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `1`. Some resources such as DeployKey do not have an ID and this should be omitted.",
+							Description: "The ID of the actor that can bypass a ruleset. Some actor types such as OrganizationAdmin/EnterpriseOwner/DeployKey do not have an ID and this should be omitted.",
 						},
 						"actor_type": {
 							Type:             schema.TypeString,
 							Required:         true,
-							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"Integration", "OrganizationAdmin", "RepositoryRole", "Team", "DeployKey"}, false)),
-							Description:      "The type of actor that can bypass a ruleset. Can be one of: `Integration`, `OrganizationAdmin`, `RepositoryRole`, `Team`, or `DeployKey`.",
+							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"Integration", "OrganizationAdmin", "RepositoryRole", "Team", "DeployKey", "EnterpriseOwner"}, false)),
+							Description:      "The type of actor that can bypass a ruleset. Can be one of: `Integration`, `OrganizationAdmin`, `RepositoryRole`, `Team`, `DeployKey` or `EnterpriseOwner`.",
 						},
 						"bypass_mode": {
 							Type:             schema.TypeString,
