@@ -74,11 +74,6 @@ resource "github_organization_ruleset" "test" {
 		bypass_mode = "always"
 	}
 
-	bypass_actors {
-		actor_type  = "EnterpriseOwner"
-		bypass_mode = "always"
-	}
-
 	conditions {
 		repository_name {
 			include = ["~ALL"]
@@ -163,7 +158,7 @@ resource "github_organization_ruleset" "test" {
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "target", "branch"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "enforcement", "active"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.#", "4"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.#", "3"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.0.actor_type", "DeployKey"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.0.bypass_mode", "always"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.1.actor_id", "5"),
@@ -171,8 +166,6 @@ resource "github_organization_ruleset" "test" {
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.1.bypass_mode", "always"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.2.actor_type", "OrganizationAdmin"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.2.bypass_mode", "always"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.3.actor_type", "EnterpriseOwner"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.3.bypass_mode", "always"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.pull_request.0.allowed_merge_methods.#", "3"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.required_workflows.0.do_not_enforce_on_create", "true"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.required_workflows.0.required_workflow.0.path", workflowFilePath),
@@ -181,6 +174,62 @@ resource "github_organization_ruleset" "test" {
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.tool", "CodeQL"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.copilot_code_review.0.review_on_push", "true"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.copilot_code_review.0.review_draft_pull_requests", "false"),
+					),
+				},
+			},
+		})
+	})
+
+	t.Run("create_branch_ruleset_with_enterprise_features", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		rulesetName := fmt.Sprintf("%s-branch-ruleset-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+	resource "github_organization_ruleset" "test" {
+		name        = "%s"
+		target      = "branch"
+		enforcement = "active"
+
+		conditions {
+			ref_name {
+				include = ["~ALL"]
+				exclude = []
+			}
+
+			repository_name {
+				include = ["~ALL"]
+				exclude = []
+			}
+		}
+
+		bypass_actors {
+			actor_type  = "EnterpriseOwner"
+			bypass_mode = "always"
+		}
+
+		rules {
+			branch_name_pattern {
+				name     = "test"
+				negate   = false
+				operator = "starts_with"
+				pattern  = "test"
+			}
+		}
+	}
+`, rulesetName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "enforcement", "active"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.#", "1"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.0.actor_type", "EnterpriseOwner"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.0.bypass_mode", "always"),
 					),
 				},
 			},
