@@ -12,6 +12,15 @@ func dataSourceGithubOrganizationTeamSyncGroups() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceGithubOrganizationTeamSyncGroupsRead,
 
+		SchemaVersion: 1,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    dataSourceGithubOrganizationTeamSyncGroupsV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: dataSourceGithubOrganizationTeamSyncGroupsStateUpgradeV0,
+				Version: 0,
+			},
+		},
+
 		Schema: map[string]*schema.Schema{
 			"prefix_filter": {
 				Type:        schema.TypeString,
