@@ -422,9 +422,9 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 		case "token":
 			token = d.Get("token").(string)
 			if token == "" {
-				return nil, diag.FromErr(fmt.Errorf(
+				return nil, diag.Errorf(
 					"auth_mode is set to \"token\" but no token was provided; " +
-						"set the `token` argument or `GITHUB_TOKEN` environment variable"))
+						"set the `token` argument or `GITHUB_TOKEN` environment variable")
 			}
 			tflog.Info(ctx, "Auth mode: token")
 
@@ -441,9 +441,9 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 				missingFields = append(missingFields, "app_private_key (GITHUB_APP_PRIVATE_KEY)")
 			}
 			if len(missingFields) > 0 {
-				return nil, diag.FromErr(fmt.Errorf(
+				return nil, diag.Errorf(
 					"auth_mode is set to \"app\" but the following app credentials are missing: %s",
-					strings.Join(missingFields, ", ")))
+					strings.Join(missingFields, ", "))
 			}
 
 			apiPath := ""
@@ -509,13 +509,13 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 
 		retryDelay := d.Get("read_delay_ms").(int)
 		if retryDelay < 0 {
-			return nil, diag.FromErr(fmt.Errorf("retry_delay_ms must be greater than or equal to 0ms"))
+			return nil, diag.Errorf("retry_delay_ms must be greater than or equal to 0ms")
 		}
 		tflog.Debug(ctx, "Setting retry_delay_ms", map[string]any{"retry_delay_ms": retryDelay})
 
 		maxRetries := d.Get("max_retries").(int)
 		if maxRetries < 0 {
-			return nil, diag.FromErr(fmt.Errorf("max_retries must be greater than or equal to 0"))
+			return nil, diag.Errorf("max_retries must be greater than or equal to 0")
 		}
 		tflog.Debug(ctx, "Setting max_retries", map[string]any{"max_retries": maxRetries})
 		retryableErrors := make(map[int]bool)
@@ -534,7 +534,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 
 		_maxPerPage := d.Get("max_per_page").(int)
 		if _maxPerPage <= 0 {
-			return nil, diag.FromErr(fmt.Errorf("max_per_page must be greater than than 0"))
+			return nil, diag.Errorf("max_per_page must be greater than than 0")
 		}
 		tflog.Debug(ctx, "Setting max_per_page", map[string]any{"max_per_page": _maxPerPage})
 		maxPerPage = _maxPerPage
