@@ -190,7 +190,7 @@ resource "github_repository_ruleset" "test" {
 `, repoName, testAccConf.testRepositoryVisibility)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
