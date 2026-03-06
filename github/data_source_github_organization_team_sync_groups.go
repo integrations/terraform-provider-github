@@ -82,11 +82,7 @@ func dataSourceGithubOrganizationTeamSyncGroupsRead(ctx context.Context, d *sche
 		options.Page = resp.NextPageToken
 	}
 
-	idParts := []string{orgName, "team-sync-groups"}
-	if options.Query != "" {
-		idParts = append(idParts, options.Query)
-	}
-	id, err := buildID(idParts...)
+	id, err := buildID(orgName, "team-sync-groups", options.Query)
 	if err != nil {
 		return diag.FromErr(err)
 	}

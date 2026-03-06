@@ -44,7 +44,7 @@ func dataSourceGithubOrganizationTeamSyncGroupsStateUpgradeV0(ctx context.Contex
 
 	orgName := meta.(*Owner).name
 
-	newID, err := buildID(orgName, "team-sync-groups")
+	newID, err := buildID(orgName, "team-sync-groups", "")
 	if err != nil {
 		return nil, fmt.Errorf("error building migrated ID: %w", err)
 	}
