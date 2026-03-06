@@ -48,62 +48,57 @@ func TestAccGithubIssue(t *testing.T) {
 		`
 		config := fmt.Sprintf(issueHCL, repoName, title, body, labels, testAccConf.username)
 
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_issue.test", "title",
-					title,
-				),
-				resource.TestCheckResourceAttr(
-					"github_issue.test", "body",
-					body,
-				),
-				resource.TestCheckResourceAttr(
-					"github_issue.test", "labels.#",
-					"2",
-				),
-				func(state *terraform.State) error {
-					issue := state.RootModule().Resources["github_issue.test"].Primary
-					issueMilestone := issue.Attributes["milestone_number"]
-
-					milestone := state.RootModule().Resources["github_repository_milestone.test"].Primary
-					milestoneNumber := milestone.Attributes["number"]
-					if issueMilestone != milestoneNumber {
-						return fmt.Errorf("issue milestone number %s not the same as repository milestone number %s",
-							issueMilestone, milestoneNumber)
-					}
-					return nil
-				},
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_issue.test", "title",
-					updatedTitle,
-				),
-				resource.TestCheckResourceAttr(
-					"github_issue.test", "body",
-					updatedBody,
-				), resource.TestCheckResourceAttr(
-					"github_issue.test", "labels.#",
-					"1",
-				), resource.TestCheckResourceAttr(
-					"github_issue.test", "assignees.#",
-					"1",
-				),
-			),
-		}
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
+			PreCheck:          func() { skipUnlessMode(t, individual) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  checks["before"],
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"github_issue.test", "title",
+							title,
+						),
+						resource.TestCheckResourceAttr(
+							"github_issue.test", "body",
+							body,
+						),
+						resource.TestCheckResourceAttr(
+							"github_issue.test", "labels.#",
+							"2",
+						),
+						func(state *terraform.State) error {
+							issue := state.RootModule().Resources["github_issue.test"].Primary
+							issueMilestone := issue.Attributes["milestone_number"]
+
+							milestone := state.RootModule().Resources["github_repository_milestone.test"].Primary
+							milestoneNumber := milestone.Attributes["number"]
+							if issueMilestone != milestoneNumber {
+								return fmt.Errorf("issue milestone number %s not the same as repository milestone number %s",
+									issueMilestone, milestoneNumber)
+							}
+							return nil
+						},
+					),
 				},
 				{
 					Config: fmt.Sprintf(issueHCL, repoName, updatedTitle, updatedBody, updatedLabels, testAccConf.owner),
-					Check:  checks["after"],
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"github_issue.test", "title",
+							updatedTitle,
+						),
+						resource.TestCheckResourceAttr(
+							"github_issue.test", "body",
+							updatedBody,
+						), resource.TestCheckResourceAttr(
+							"github_issue.test", "labels.#",
+							"1",
+						), resource.TestCheckResourceAttr(
+							"github_issue.test", "assignees.#",
+							"1",
+						),
+					),
 				},
 			},
 		})

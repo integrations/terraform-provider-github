@@ -13,6 +13,10 @@ import (
 )
 
 func TestAccGithubBranchProtectionV4(t *testing.T) {
+	if len(testAccConf.username) == 0 {
+		t.Skip("Tests require the username to be set.")
+	}
+
 	t.Run("configures default settings when empty", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 

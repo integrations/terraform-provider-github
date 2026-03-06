@@ -43,18 +43,17 @@ func TestAccDataSourceGithubRepository(t *testing.T) {
 			}
 		`, testAccConf.username, testAccConf.testUserRepository)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"data.github_repository.test", "full_name",
-				fmt.Sprintf("%s/%s", testAccConf.username, testAccConf.testUserRepository)),
-		)
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
+			PreCheck:          func() { skipUnlessMode(t, individual) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"data.github_repository.test", "full_name",
+							fmt.Sprintf("%s/%s", testAccConf.username, testAccConf.testUserRepository)),
+					),
 				},
 			},
 		})
