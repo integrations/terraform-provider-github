@@ -378,35 +378,8 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 			owner = org
 		}
 
-		if appAuth, ok := d.Get("app_auth").([]any); ok && len(appAuth) > 0 && appAuth[0] != nil {
-			appAuthAttr := appAuth[0].(map[string]any)
-
-			var appID, appInstallationID, appPemFile string
-
-			if v, ok := appAuthAttr["id"].(string); ok && v != "" {
-				appID = v
-			} else {
-				return nil, wrapErrors([]error{fmt.Errorf("app_auth.id must be set and contain a non-empty value")})
-			}
-
-			if v, ok := appAuthAttr["installation_id"].(string); ok && v != "" {
-				appInstallationID = v
-			} else {
-				return nil, wrapErrors([]error{fmt.Errorf("app_auth.installation_id must be set and contain a non-empty value")})
-			}
-
-			if v, ok := appAuthAttr["pem_file"].(string); ok && v != "" {
-				// The Go encoding/pem package only decodes PEM formatted blocks
-				// that contain new lines. Some platforms, like Terraform Cloud,
-				// do not support new lines within Environment Variables.
-				// Any occurrence of \n in the `pem_file` argument's value
-				// (explicit value, or default value taken from
-				// GITHUB_APP_PEM_FILE Environment Variable) is replaced with an
-				// actual new line character before decoding.
-				appPemFile = strings.ReplaceAll(v, `\n`, "\n")
-			} else {
-				return nil, wrapErrors([]error{fmt.Errorf("app_auth.pem_file must be set and contain a non-empty value")})
-			}
+		if appID, appInstallationID, appPemFile, ok := getAppAuth(d); ok {
+			log.Println("[INFO] Using app authentication")
 
 			apiPath := ""
 			if isGHES {
@@ -415,7 +388,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 
 			appToken, err := GenerateOAuthTokenFromApp(baseURL.JoinPath(apiPath), appID, appInstallationID, appPemFile)
 			if err != nil {
-				return nil, wrapErrors([]error{err})
+				return nil, diag.FromErr(err)
 			}
 
 			token = appToken
@@ -495,6 +468,55 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 
 		return meta, nil
 	}
+}
+
+func getAppAuth(d *schema.ResourceData) (string, string, string, bool) {
+	appID := os.Getenv("GITHUB_APP_ID")
+	appInstallationID := os.Getenv("GITHUB_APP_INSTALLATION_ID")
+	appPEM := os.Getenv("GITHUB_APP_PEM_FILE")
+
+	v, ok := d.GetOk("app_auth")
+	if !ok {
+		return validateAppAuth(appID, appInstallationID, appPEM)
+	}
+
+	c, ok := v.([]any)
+	if !ok || len(c) == 0 || c[0] == nil {
+		return validateAppAuth(appID, appInstallationID, appPEM)
+	}
+
+	appAuthAttr, ok := c[0].(map[string]any)
+	if !ok {
+		return validateAppAuth(appID, appInstallationID, appPEM)
+	}
+
+	if o, ok := appAuthAttr["id"]; ok {
+		if s, ok := o.(string); ok && s != "" {
+			appID = s
+		}
+	}
+
+	if o, ok := appAuthAttr["installation_id"]; ok {
+		if s, ok := o.(string); ok && s != "" {
+			appInstallationID = s
+		}
+	}
+
+	if o, ok := appAuthAttr["pem_file"]; ok {
+		if s, ok := o.(string); ok && s != "" {
+			appPEM = s
+		}
+	}
+
+	return validateAppAuth(appID, appInstallationID, appPEM)
+}
+
+func validateAppAuth(appID, appInstallationID, appPEM string) (string, string, string, bool) {
+	if appID == "" || appInstallationID == "" || appPEM == "" {
+		return "", "", "", false
+	}
+
+	return appID, appInstallationID, strings.ReplaceAll(appPEM, `\n`, "\n"), true
 }
 
 // ghCLIHostFromAPIHost maps an API hostname to the corresponding

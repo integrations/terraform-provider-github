@@ -75,7 +75,7 @@ provider "github" {
 ### GitHub App Installation
 
 To authenticate using a GitHub App installation, ensure that arguments in the `app_auth` block or the `GITHUB_APP_XXX` environment variables are set.
-The `owner` parameter required in this situation. Leaving out will throw a `403 "Resource not accessible by integration"` error.
+The `owner` parameter is required in this situation. Leaving out will throw a `403 "Resource not accessible by integration"` error.
 
 Some API operations may not be available when using a GitHub App installation configuration. For more information, refer to the list of [supported endpoints](https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps).
 
@@ -89,8 +89,6 @@ provider "github" {
   }
 }
 ```
-
-~> **Note:** When using environment variables, an empty `app_auth` block is required to allow provider configurations from environment variables to be specified. See: https://github.com/hashicorp/terraform-plugin-sdk/issues/142
 
 ```terraform
 provider "github" {
