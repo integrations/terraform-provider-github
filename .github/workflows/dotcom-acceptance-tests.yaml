@@ -2,10 +2,11 @@ name: Acceptance Tests (github.com)
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches:
-  #     - main
-  #     - release-v*
+  push:
+    branches:
+      - main
+      - release-v*
+  # pull_request_target:
   pull_request:
     types:
       - opened
@@ -23,17 +24,70 @@ concurrency:
 permissions: read-all
 
 jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    outputs:
+      fork: ${{ steps.check.outputs.fork }}
+      test: ${{ steps.check.outputs.test }}
+      environment: ${{ steps.check.outputs.environment }}
+    steps:
+      - name: Check
+        id: check
+        env:
+          GITHUB_HEAD_REPO: ${{ case(github.event_name == 'pull_request' || github.event_name == 'pull_request_target', github.event.pull_request.head.repo.full_name, github.repository) }}
+          GITHUB_BASE_REPO: ${{ case(github.event_name == 'pull_request' || github.event_name == 'pull_request_target', github.event.pull_request.base.repo.full_name, github.repository) }}
+          ACCTEST_LABEL_SET: ${{ contains(github.event.pull_request.labels.*.name, 'acctest') }}
+        run: |
+          set -euo pipefail
+
+          fork="true"
+          test="false"
+          environment="acctest-dotcom-untrusted"
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]] || [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            fork="false"
+            test="true"
+            environment="acctest-dotcom"
+            echo "::notice::Running in ${GITHUB_EVENT_NAME} context, proceeding with tests"
+          else
+            if [[ "${GITHUB_HEAD_REPO}" == "${GITHUB_BASE_REPO}" ]]; then
+              fork="false"
+              test="true"
+              environment="acctest-dotcom"
+              echo "::notice::Running in ${GITHUB_EVENT_NAME} context from the base repository, proceeding with tests"
+            else
+              if [[ "${ACCTEST_LABEL_SET}" == "true" ]]; then
+                test="true"
+                echo "::warning::Running in ${GITHUB_EVENT_NAME} context from a fork, proceeding with tests as acctest label is set"
+              else
+                echo "::warning::Running in ${GITHUB_EVENT_NAME} context from a fork, skipping tests as acctest label is not set"
+              fi
+            fi
+          fi
+
+          {
+            echo "test=${test}"
+            echo "environment=${environment}"
+            echo "fork=${fork}"
+          } >> "${GITHUB_OUTPUT}"
+
   test:
-    name: Test ${{ matrix.mode }}
-    if: (github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || contains(github.event.pull_request.labels.*.name, 'acctest')
+    name: Test ${{ matrix.mode || 'Skipped' }}
+    needs:
+      - setup
+    if: needs.setup.outputs.test == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
     environment:
-      name: acctest-dotcom
+      name: ${{ needs.setup.outputs.environment }}
     strategy:
       matrix:
-        mode: [anonymous, individual, organization] # team, enterprise
+        mode: [organization] # anonymous, individual, team, enterprise
       fail-fast: true
       max-parallel: 1
     defaults:
@@ -44,16 +98,18 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Check secrets
-        if: github.event_name == 'pull_request_target'
+        if: github.event_name == 'pull_request' || github.event_name == 'pull_request_target'
         env:
-          INPUT_ALLOWED_SECRETS: ${{ vars.DOTCOM_ACCEPTANCE_TESTS_ALLOWED_SECRETS || 'GH_TEST_TOKEN' }}
           INPUT_SECRETS: ${{ toJSON(secrets) }}
+          INPUT_ALLOWED_SECRETS: ${{ vars.GH_TEST_ALLOWED_SECRETS }}
         run: |
           set -eou pipefail
 
-          secret_keys="$(jq --raw-output --compact-output '[. | keys[] | select(test("^(?:(?:ACTIONS)|(?:actions)|(?:GITHUB)|(?:github)|(?:TEST)|(?:test))_") | not)] | sort | join(",")' <<<"${INPUT_SECRETS}")"
-          if [[ "${secret_keys}" != "${INPUT_ALLOWED_SECRETS}" ]]; then
-            echo "::error::Too many or too few secrets configured: ${secret_keys}"
+          allowed_secrets="$(jq --raw-input --raw-output --compact-output 'split(",")' <<<"${INPUT_ALLOWED_SECRETS}")"
+
+          secret_keys="$(jq --raw-output --compact-output --argjson allowed "${allowed_secrets}" '[[. | to_entries[] | select(.value != "" and .value != "!NOSECRET!")] | from_entries | keys[] | ascii_upcase | select(test("^(?:(?:ACTIONS)|(?:GITHUB)|(?:TEST)|(?:GH_TEST))_") | not) | select((IN($allowed[]) | not))] | sort | join(",")' <<<"${INPUT_SECRETS}")"
+          if [[ -n "${secret_keys}" ]]; then
+            echo "::error::Unexpected secrets: ${secret_keys}"
             exit 1
           fi
 
@@ -61,16 +117,56 @@ jobs:
         id: credentials
         if: matrix.mode != 'anonymous'
         env:
+          MATRIX_MODE: ${{ matrix.mode }}
+          GH_TEST_APP_ID: ${{ vars.GH_TEST_APP_ID }}
+          GH_TEST_APP_INSTALLATION_ID: ${{ vars.GH_TEST_APP_INSTALLATION_ID }}
+          GH_TEST_APP_PEM: ${{ secrets.GH_TEST_APP_PEM }}
           GH_TEST_TOKEN: ${{ secrets.GH_TEST_TOKEN }}
         run: |
           set -eou pipefail
 
-          if [[ -z "${GH_TEST_TOKEN}" ]]; then
-            echo "::error::Missing credentials"
-            exit 1
+          app_id=""
+          app_installation_id=""
+          app_pem=""
+          token=""
+
+          if [[ "${MATRIX_MODE}" == "individual" ]]; then
+            if [[ -z "${GH_TEST_TOKEN}" ]]; then
+              echo "::error::Missing token"
+              exit 1
+            fi
+
+            token="${GH_TEST_TOKEN}"
+          else
+            if [[ -z "${GH_TEST_APP_ID}" ]]; then
+              echo "::error::Missing app id"
+              exit 1
+            fi
+
+            if [[ -z "${GH_TEST_APP_INSTALLATION_ID}" ]]; then
+              echo "::error::Missing app installation id"
+              exit 1
+            fi
+
+            if [[ -z "${GH_TEST_APP_PEM}" ]]; then
+              echo "::error::Missing app pem"
+              exit 1
+            fi
+
+            app_id="${GH_TEST_APP_ID}"
+            app_installation_id="${GH_TEST_APP_INSTALLATION_ID}"
+            app_pem="${GH_TEST_APP_PEM}"
           fi
 
-          echo "token=${GH_TEST_TOKEN}" >> "${GITHUB_OUTPUT}"
+          {
+            echo "app_id=${app_id}"
+            echo "app_installation_id=${app_installation_id}"
+            printf 'app_pem<<EOF
+          %s
+          EOF
+          ' "${app_pem}"
+            echo "token=${token}"
+          } >> "${GITHUB_OUTPUT}"
 
       - name: Set-up Go
         uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
@@ -101,11 +197,14 @@ jobs:
           TF_ACC_TERRAFORM_PATH: ${{ steps.tf.outputs.path }}
           TF_ACC: "1"
           TF_LOG: WARN
+          GITHUB_APP_ID: ${{ steps.credentials.outputs.app_id }}
+          GITHUB_APP_INSTALLATION_ID: ${{ steps.credentials.outputs.app_installation_id }}
+          GITHUB_APP_PEM_FILE: ${{ steps.credentials.outputs.app_pem }}
           GITHUB_TOKEN: ${{ steps.credentials.outputs.token }}
           GITHUB_BASE_URL: https://api.github.com/
-          GITHUB_OWNER: ${{ (matrix.mode == 'individual' && vars.GH_TEST_LOGIN) || (matrix.mode == 'organization' && vars.GH_TEST_ORG_NAME) || '' }}
-          GITHUB_USERNAME: ${{ vars.GH_TEST_LOGIN }}
-          GITHUB_ENTERPRISE_SLUG: ${{ vars.GH_TEST_ENTERPRISE_SLUG }}
+          GITHUB_OWNER: ${{ case(matrix.mode == 'anonymous', '', matrix.mode == 'individual', vars.GH_TEST_LOGIN, vars.GH_TEST_ORG_NAME) }}
+          GITHUB_USERNAME: ${{ case(matrix.mode == 'individual', vars.GH_TEST_LOGIN, '') }}
+          GITHUB_ENTERPRISE_SLUG: ${{ case(matrix.mode == 'enterprise', vars.GH_TEST_ENTERPRISE_SLUG, '') }}
           GH_TEST_AUTH_MODE: ${{ matrix.mode }}
           GH_TEST_USER_REPOSITORY: ${{ vars.GH_TEST_USER_REPOSITORY }}
           GH_TEST_ORG_USER: ${{ vars.GH_TEST_ORG_USER }}
@@ -128,7 +227,7 @@ jobs:
 
   check:
     name: Check DotCom Acceptance Tests
-    if: always() && github.event_name == 'pull_request'
+    if: always() && (github.event_name == 'pull_request' || github.event_name == 'pull_request_target')
     needs:
       - test
     runs-on: ubuntu-latest
