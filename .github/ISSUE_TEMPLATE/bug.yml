@@ -73,7 +73,8 @@ body:
       render: hcl
       description: |
         Please copy and paste any relevant configration files. This will be automatically formatted into code, so no need for backticks.
-        Please check your configuration before submission to ensure sensitive information is redacted.
+       Please copy and paste any relevant configration files. This will be automatically formatted into code, so no need for backticks. If this configuration is inside a Module, please mention that.
+       Please check your configuration before submission to ensure sensitive information is redacted.
     validations:
       required: false
 
