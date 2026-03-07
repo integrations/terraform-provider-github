@@ -96,7 +96,8 @@ body:
       label: Debug Output
       description: |
         Please copy and paste any relevant debug output. This will be automatically formatted into code, so no need for backticks.
-        Please check your logs before submission to ensure sensitive information is redacted.
+       Please run your `terraform` command with `TF_LOG=DEBUG` set, then copy and paste the output. This will be automatically formatted into code, so no need for backticks.
+       Please check your logs before submission to ensure sensitive information is redacted.
       render: shell
     validations:
       required: false
