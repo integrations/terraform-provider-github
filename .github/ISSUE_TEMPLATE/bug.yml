@@ -81,7 +81,7 @@ body:
     id: steps-to-reproduce
     attributes:
       label: Steps to Reproduce
-      description: Please list the steps required to reproduce the issue.
+      description: Please list the steps required to reproduce the issue. Remember to mention any configuration outside of Terraform that could be relevant to the issue.
       placeholder: |
         ```
         $ terraform apply
