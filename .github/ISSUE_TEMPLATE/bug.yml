@@ -7,7 +7,8 @@ body:
     attributes:
       value: |
         Hi there,
-        Thank you for opening an issue. Please note that we try to keep the Terraform issue tracker reserved for bug reports and feature requests. For general usage questions, please see: https://www.terraform.io/community.html.
+        Thank you for opening an issue. Please note that we try to keep the Terraform issue tracker reserved for bug reports and feature requests. 
+        For general usage questions, please see: https://github.com/integrations/terraform-provider-github/discussions.
 
   - type: textarea
     id: expected-behavior
@@ -25,16 +26,15 @@ body:
     validations:
       required: true
 
-
   - type: textarea
     id: terraform-version
     attributes:
       label: Terraform Version
       description: Run `terraform -v` to show the version. If you are not running the latest version of Terraform, please upgrade because your issue may have already been fixed.
       placeholder: |
-        Terraform v1.2.3
+        Terraform vX.Y.Z
         on linux_amd64
-        + provider registry.terraform.io/integrations/github v5.32.0
+        + provider registry.terraform.io/integrations/github vX.Y.Z
     validations:
       required: true
 
@@ -72,9 +72,8 @@ body:
       label: Terraform Configuration Files
       render: hcl
       description: |
-        Please copy and paste any relevant configration files. This will be automatically formatted into code, so no need for backticks.
-       Please copy and paste any relevant configration files. This will be automatically formatted into code, so no need for backticks. If this configuration is inside a Module, please mention that.
-       Please check your configuration before submission to ensure sensitive information is redacted.
+        Please copy and paste any relevant configuration files. This will be automatically formatted into code, so no need for backticks. If this configuration is inside a Module, please mention that.
+        Please check your configuration before submission to ensure sensitive information is redacted.
     validations:
       required: false
 
@@ -96,8 +95,8 @@ body:
       label: Debug Output
       description: |
         Please copy and paste any relevant debug output. This will be automatically formatted into code, so no need for backticks.
-       Please run your `terraform` command with `TF_LOG=DEBUG` set, then copy and paste the output. This will be automatically formatted into code, so no need for backticks.
-       Please check your logs before submission to ensure sensitive information is redacted.
+        Please run your `terraform` command with `TF_LOG=DEBUG` set, then copy and paste the output. This will be automatically formatted into code, so no need for backticks.
+        Please check your logs before submission to ensure sensitive information is redacted.
       render: shell
     validations:
       required: false
