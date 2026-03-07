@@ -27,8 +27,8 @@ body:
         - label: GitHub Enterprise Server/GHES (on-premises)
         - label: GitHub Enterprise Cloud/GHEC with Personal Accounts (GITHUB.com)
         - label: GitHub Enterprise Cloud/GHEC with Managed Users/EMU (GITHUB.com)
-        - label: GitHub Enterprise Cloud with Data Residency Personal Accounts (*.GHE.com)
-        - label: GitHub Enterprise Cloud with Data Residency and Managed Users/EMU (*.GHE.com)
+        - label: GitHub Enterprise Cloud/GHEC with Data Residency Personal Accounts (*.GHE.com)
+        - label: GitHub Enterprise Cloud/GHEC with Data Residency and Managed Users/EMU (*.GHE.com)
         - label: I don't know
     validations:
       required: true
