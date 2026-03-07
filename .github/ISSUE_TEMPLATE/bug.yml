@@ -38,6 +38,22 @@ body:
     validations:
       required: true
 
+  - type: checkboxes
+    id: github-installation
+    attributes:
+      label: GitHub Installation Type
+      description: What type of GitHub installation are you using?
+      options:
+        - label: GitHub Cloud (GITHUB.com)
+        - label: GitHub Enterprise Server/GHES (on-premises)
+        - label: GitHub Enterprise Cloud/GHEC with Personal Accounts (GITHUB.com)
+        - label: GitHub Enterprise Cloud/GHEC with Managed Users/EMU (GITHUB.com)
+        - label: GitHub Enterprise Cloud with Data Residency Personal Accounts (*.GHE.com)
+        - label: GitHub Enterprise Cloud with Data Residency and Managed Users/EMU (*.GHE.com)
+        - label: I don't know
+    validations:
+      required: true
+
   - type: textarea
     id: affected-resources
     attributes:
