@@ -3,8 +3,6 @@
 package L001
 
 import (
-	"log"
-
 	"github.com/bflad/tfproviderlint/helper/terraformtype/helper/schema"
 	"github.com/bflad/tfproviderlint/passes/commentignore"
 	"github.com/bflad/tfproviderlint/passes/helper/schema/schemainfo"
@@ -31,8 +29,6 @@ var Analyzer = &analysis.Analyzer{
 }
 
 func run(pass *analysis.Pass) (any, error) {
-	log.Println("$$$ L001: running")
-	defer log.Println("$$$ L001: done")
 	ignorer := pass.ResultOf[commentignore.Analyzer].(*commentignore.Ignorer)
 	schemaInfos := pass.ResultOf[schemainfo.Analyzer].([]*schema.SchemaInfo)
 	for _, schemaInfo := range schemaInfos {
@@ -44,9 +40,7 @@ func run(pass *analysis.Pass) (any, error) {
 			continue
 		}
 
-		log.Printf("$$$ L001: reporting: %d", schemaInfo.AstCompositeLit.Pos())
 		pass.Reportf(schemaInfo.AstCompositeLit.Pos(), "%s: schema should not configure ValidateFunc, replace it with ValidateDiagFunc", analyzerName)
 	}
-	log.Println("$$$ L001: returning nil")
 	return nil, nil
 }
