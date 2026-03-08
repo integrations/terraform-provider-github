@@ -33,7 +33,8 @@ bin/golangci-lint:
 	mkdir -p $(BIN)
 	GOBIN=$(BIN) go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest # This version needs to be in sync with .custom-gcl.yml
 
-bin/custom-gcl: bin/golangci-lint $(shell find tools \( -name '*.go' -or -name '*.mod' -or -name '*.sum' \) -and -not -name '*_test.go' -maxdepth 4)
+tools_go_files = $(shell find tools \( -name '*.go' -or -name '*.mod' -or -name '*.sum' \) -and -not -name '*_test.go' -maxdepth 4)
+bin/custom-gcl: bin/golangci-lint $(tools_go_files)
 	@GCLversion=$$(bin/golangci-lint version --short); \
 	$(BIN)/golangci-lint custom --name custom-gcl --destination $(BIN) --version "v$$GCLversion"
 
@@ -47,7 +48,7 @@ build: lintcheck
 
 fmt: tools
 	@echo "==> Fixing source code formatting..."
-	$(BIN)/custom-gcl fmt ./...
+	$(BIN)/custom-gcl fmt ./... ./tools/...
 
 lint: tools
 	@echo "==> Checking source code against linters and fixing..."
