@@ -1,6 +1,6 @@
 module github.com/integrations/terraform-provider-github/tools/tfproviderlint
 
-go 1.24.4
+go 1.26
 
 require (
 	github.com/bflad/tfproviderlint v0.31.0
