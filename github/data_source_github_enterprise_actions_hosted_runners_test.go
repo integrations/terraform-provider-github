@@ -5,6 +5,9 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubEnterpriseActionsHostedRunnersDataSource(t *testing.T) {
@@ -21,9 +24,9 @@ func TestAccGithubEnterpriseActionsHostedRunnersDataSource(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("data.github_enterprise_actions_hosted_runners.test", "runners.#"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_enterprise_actions_hosted_runners.test", tfjsonpath.New("runners"), knownvalue.NotNull()),
+					},
 				},
 			},
 		})

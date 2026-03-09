@@ -151,10 +151,10 @@ In addition to the arguments above, the following attributes are exported:
 
 ## Import
 
-Enterprise hosted runners can be imported using the format `{enterprise_slug}/{runner_id}`:
+Enterprise hosted runners can be imported using the format `{enterprise_slug}:{runner_id}`:
 
 ```
-$ terraform import github_enterprise_actions_hosted_runner.example my-enterprise/123456
+$ terraform import github_enterprise_actions_hosted_runner.example my-enterprise:123456
 ```
 
 ## Notes
