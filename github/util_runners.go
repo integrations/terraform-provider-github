@@ -1,19 +1,8 @@
 package github
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/google/go-github/v88/github"
 )
-
-func parseTwoPartID(id, part1Name, part2Name string) (string, string, error) {
-	parts := strings.SplitN(id, "/", 2)
-	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
-		return "", "", fmt.Errorf("invalid ID format %q: expected %s/%s", id, part1Name, part2Name)
-	}
-	return parts[0], parts[1], nil
-}
 
 func expandHostedRunnerImage(imageList []any) *github.HostedRunnerImage {
 	if len(imageList) == 0 {
@@ -30,9 +19,11 @@ func expandHostedRunnerImage(imageList []any) *github.HostedRunnerImage {
 		image.Source = source
 	}
 	if version, ok := imageMap["version"].(string); ok && version != "" {
-		image.Version = github.Ptr(version)
+		image.Version = &version
 	} else {
-		image.Version = github.Ptr("latest")
+		// Default to 'latest' for GitHub-owned images as required by the API
+		latest := "latest"
+		image.Version = &latest
 	}
 
 	return image

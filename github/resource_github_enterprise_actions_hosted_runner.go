@@ -88,8 +88,12 @@ func resourceGithubEnterpriseActionsHostedRunner() *schema.Resource {
 				},
 			},
 			"size": {
-				Type:        schema.TypeString,
-				Required:    true,
+				Type:     schema.TypeString,
+				Required: true,
+				ValidateFunc: validation.StringMatch(
+					regexp.MustCompile(`^\d+-core$`),
+					"size must be in the format '<number>-core' (e.g., '4-core', '8-core')",
+				),
 				Description: "Machine size for the hosted runner (e.g., '4-core', '8-core'). This determines the CPU, memory, and storage resources allocated to the runner. Can be updated to scale the runner. To list available sizes, use the GitHub API: GET /enterprises/{enterprise}/actions/hosted-runners/machine-sizes.",
 			},
 			"runner_group_id": {
@@ -203,6 +207,7 @@ func resourceGithubEnterpriseActionsHostedRunnerCreate(ctx context.Context, d *s
 	client := meta.(*Owner).v3client
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 
+	// Build request using SDK struct
 	request := github.CreateHostedRunnerRequest{
 		Name:          d.Get("name").(string),
 		Size:          d.Get("size").(string),
@@ -215,17 +220,12 @@ func resourceGithubEnterpriseActionsHostedRunnerCreate(ctx context.Context, d *s
 
 	if v, ok := d.GetOk("maximum_runners"); ok {
 		maxRunners := int64(v.(int))
-		request.MaximumRunners = &maxRunners
+		request.MaximumRunners = new(maxRunners)
 	}
 
 	if v, ok := d.GetOk("public_ip_enabled"); ok {
 		enableStaticIP := v.(bool)
 		request.EnableStaticIP = &enableStaticIP
-	}
-
-	if v, ok := d.GetOk("image_gen"); ok {
-		imageGen := v.(bool)
-		request.ImageGen = &imageGen
 	}
 
 	runner, _, err := client.Enterprise.CreateHostedRunner(ctx, enterpriseSlug, request)
@@ -408,15 +408,14 @@ func resourceGithubEnterpriseActionsHostedRunnerUpdate(ctx context.Context, d *s
 
 	name := d.Get("name").(string)
 	size := d.Get("size").(string)
-	groupID := int64(d.Get("runner_group_id").(int))
-	maxRunners := int64(d.Get("maximum_runners").(int))
+	runnerGroupID := int64(d.Get("runner_group_id").(int))
+	maximumRunners := int64(d.Get("maximum_runners").(int))
 	enableStaticIP := d.Get("public_ip_enabled").(bool)
-
 	request := github.UpdateHostedRunnerRequest{
 		Name:           &name,
 		Size:           &size,
-		RunnerGroupID:  &groupID,
-		MaximumRunners: &maxRunners,
+		RunnerGroupID:  &runnerGroupID,
+		MaximumRunners: &maximumRunners,
 		EnableStaticIP: &enableStaticIP,
 	}
 

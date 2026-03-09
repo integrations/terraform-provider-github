@@ -140,22 +140,15 @@ func dataSourceGithubEnterpriseActionsHostedRunnersRead(ctx context.Context, d *
 
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 
-	// List all hosted runners with pagination
-	opts := &github.ListOptions{PerPage: maxPerPage}
+	// List all hosted runners using the iterator for automatic pagination
 	var allRunners []*github.HostedRunner
-
-	for {
-		runners, resp, err := client.Enterprise.ListHostedRunners(ctx, enterpriseSlug, opts)
+	for runner, err := range client.Enterprise.ListHostedRunnersIter(ctx, enterpriseSlug, nil) {
 		if err != nil {
 			return diag.Errorf("error listing enterprise hosted runners: %s", err.Error())
 		}
-
-		allRunners = append(allRunners, runners.Runners...)
-
-		if resp.NextPage == 0 {
-			break
+		if runner != nil {
+			allRunners = append(allRunners, runner)
 		}
-		opts.Page = resp.NextPage
 	}
 
 	// Set the ID as the enterprise slug
