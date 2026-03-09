@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v84/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
@@ -88,8 +88,12 @@ func resourceGithubEnterpriseActionsHostedRunner() *schema.Resource {
 				},
 			},
 			"size": {
-				Type:        schema.TypeString,
-				Required:    true,
+				Type:     schema.TypeString,
+				Required: true,
+				ValidateFunc: validation.StringMatch(
+					regexp.MustCompile(`^\d+-core$`),
+					"size must be in the format '<number>-core' (e.g., '4-core', '8-core')",
+				),
 				Description: "Machine size for the hosted runner (e.g., '4-core', '8-core'). This determines the CPU, memory, and storage resources allocated to the runner. Can be updated to scale the runner. To list available sizes, use the GitHub API: GET /enterprises/{enterprise}/actions/hosted-runners/machine-sizes.",
 			},
 			"runner_group_id": {
@@ -204,7 +208,7 @@ func resourceGithubEnterpriseActionsHostedRunnerCreate(ctx context.Context, d *s
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 
 	// Build request using SDK struct
-	request := &github.HostedRunnerRequest{
+	request := github.CreateHostedRunnerRequest{
 		Name:          d.Get("name").(string),
 		Size:          d.Get("size").(string),
 		RunnerGroupID: int64(d.Get("runner_group_id").(int)),
@@ -215,11 +219,13 @@ func resourceGithubEnterpriseActionsHostedRunnerCreate(ctx context.Context, d *s
 	}
 
 	if v, ok := d.GetOk("maximum_runners"); ok {
-		request.MaximumRunners = int64(v.(int))
+		maxRunners := int64(v.(int))
+		request.MaximumRunners = new(maxRunners)
 	}
 
 	if v, ok := d.GetOk("public_ip_enabled"); ok {
-		request.EnableStaticIP = v.(bool)
+		enableStaticIP := v.(bool)
+		request.EnableStaticIP = &enableStaticIP
 	}
 
 	runner, _, err := client.Enterprise.CreateHostedRunner(ctx, enterpriseSlug, request)
@@ -400,15 +406,20 @@ func resourceGithubEnterpriseActionsHostedRunnerUpdate(ctx context.Context, d *s
 		return diag.Errorf("invalid runner ID %q: %s", runnerIDStr, err.Error())
 	}
 
-	request := &github.HostedRunnerRequest{
-		Name:           d.Get("name").(string),
-		Size:           d.Get("size").(string),
-		RunnerGroupID:  int64(d.Get("runner_group_id").(int)),
-		MaximumRunners: int64(d.Get("maximum_runners").(int)),
-		EnableStaticIP: d.Get("public_ip_enabled").(bool),
+	name := d.Get("name").(string)
+	size := d.Get("size").(string)
+	runnerGroupID := int64(d.Get("runner_group_id").(int))
+	maximumRunners := int64(d.Get("maximum_runners").(int))
+	enableStaticIP := d.Get("public_ip_enabled").(bool)
+	request := github.UpdateHostedRunnerRequest{
+		Name:           &name,
+		Size:           &size,
+		RunnerGroupID:  &runnerGroupID,
+		MaximumRunners: &maximumRunners,
+		EnableStaticIP: &enableStaticIP,
 	}
 
-	_, _, err = client.Enterprise.UpdateHostedRunner(ctx, enterpriseSlug, runnerID, *request)
+	_, _, err = client.Enterprise.UpdateHostedRunner(ctx, enterpriseSlug, runnerID, request)
 	if err != nil {
 		return diag.Errorf("error updating enterprise hosted runner: %s", err.Error())
 	}

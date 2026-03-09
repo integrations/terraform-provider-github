@@ -6,6 +6,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubEnterpriseActionsHostedRunner(t *testing.T) {
@@ -46,21 +49,21 @@ func TestAccGithubEnterpriseActionsHostedRunner(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_enterprise_actions_hosted_runner.test", "enterprise_slug", testAccConf.enterpriseSlug),
-						resource.TestCheckResourceAttr("github_enterprise_actions_hosted_runner.test", "name", fmt.Sprintf("tf-acc-test-%s", randomID)),
-						resource.TestCheckResourceAttr("github_enterprise_actions_hosted_runner.test", "size", "4-core"),
-						resource.TestCheckResourceAttr("github_enterprise_actions_hosted_runner.test", "image.0.id", "2306"),
-						resource.TestCheckResourceAttr("github_enterprise_actions_hosted_runner.test", "image.0.source", "github"),
-						resource.TestCheckResourceAttrSet("github_enterprise_actions_hosted_runner.test", "id"),
-						resource.TestCheckResourceAttrSet("github_enterprise_actions_hosted_runner.test", "status"),
-						resource.TestCheckResourceAttrSet("github_enterprise_actions_hosted_runner.test", "platform"),
-						resource.TestCheckResourceAttrSet("github_enterprise_actions_hosted_runner.test", "image.0.size_gb"),
-						resource.TestCheckResourceAttrSet("github_enterprise_actions_hosted_runner.test", "machine_size_details.0.id"),
-						resource.TestCheckResourceAttrSet("github_enterprise_actions_hosted_runner.test", "machine_size_details.0.cpu_cores"),
-						resource.TestCheckResourceAttrSet("github_enterprise_actions_hosted_runner.test", "machine_size_details.0.memory_gb"),
-						resource.TestCheckResourceAttrSet("github_enterprise_actions_hosted_runner.test", "machine_size_details.0.storage_gb"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_enterprise_actions_hosted_runner.test", tfjsonpath.New("enterprise_slug"), knownvalue.StringExact(testAccConf.enterpriseSlug)),
+						statecheck.ExpectKnownValue("github_enterprise_actions_hosted_runner.test", tfjsonpath.New("name"), knownvalue.StringExact(fmt.Sprintf("tf-acc-test-%s", randomID))),
+						statecheck.ExpectKnownValue("github_enterprise_actions_hosted_runner.test", tfjsonpath.New("size"), knownvalue.StringExact("4-core")),
+						statecheck.ExpectKnownValue("github_enterprise_actions_hosted_runner.test", tfjsonpath.New("image").AtSliceIndex(0).AtMapKey("id"), knownvalue.StringExact("2306")),
+						statecheck.ExpectKnownValue("github_enterprise_actions_hosted_runner.test", tfjsonpath.New("image").AtSliceIndex(0).AtMapKey("source"), knownvalue.StringExact("github")),
+						statecheck.ExpectKnownValue("github_enterprise_actions_hosted_runner.test", tfjsonpath.New("id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_enterprise_actions_hosted_runner.test", tfjsonpath.New("status"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_enterprise_actions_hosted_runner.test", tfjsonpath.New("platform"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_enterprise_actions_hosted_runner.test", tfjsonpath.New("image").AtSliceIndex(0).AtMapKey("size_gb"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_enterprise_actions_hosted_runner.test", tfjsonpath.New("machine_size_details").AtSliceIndex(0).AtMapKey("id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_enterprise_actions_hosted_runner.test", tfjsonpath.New("machine_size_details").AtSliceIndex(0).AtMapKey("cpu_cores"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_enterprise_actions_hosted_runner.test", tfjsonpath.New("machine_size_details").AtSliceIndex(0).AtMapKey("memory_gb"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_enterprise_actions_hosted_runner.test", tfjsonpath.New("machine_size_details").AtSliceIndex(0).AtMapKey("storage_gb"), knownvalue.NotNull()),
+					},
 				},
 			},
 		})
@@ -127,21 +130,21 @@ func TestAccGithubEnterpriseActionsHostedRunner(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_enterprise_actions_hosted_runner.test", "name", fmt.Sprintf("tf-acc-test-%s", randomID)),
-						resource.TestCheckResourceAttr("github_enterprise_actions_hosted_runner.test", "size", "4-core"),
-						resource.TestCheckResourceAttr("github_enterprise_actions_hosted_runner.test", "maximum_runners", "5"),
-						resource.TestCheckResourceAttr("github_enterprise_actions_hosted_runner.test", "public_ip_enabled", "false"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_enterprise_actions_hosted_runner.test", tfjsonpath.New("name"), knownvalue.StringExact(fmt.Sprintf("tf-acc-test-%s", randomID))),
+						statecheck.ExpectKnownValue("github_enterprise_actions_hosted_runner.test", tfjsonpath.New("size"), knownvalue.StringExact("4-core")),
+						statecheck.ExpectKnownValue("github_enterprise_actions_hosted_runner.test", tfjsonpath.New("maximum_runners"), knownvalue.Int64Exact(5)),
+						statecheck.ExpectKnownValue("github_enterprise_actions_hosted_runner.test", tfjsonpath.New("public_ip_enabled"), knownvalue.Bool(false)),
+					},
 				},
 				{
 					Config: configUpdated,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_enterprise_actions_hosted_runner.test", "name", fmt.Sprintf("tf-acc-test-updated-%s", randomID)),
-						resource.TestCheckResourceAttr("github_enterprise_actions_hosted_runner.test", "size", "8-core"),
-						resource.TestCheckResourceAttr("github_enterprise_actions_hosted_runner.test", "maximum_runners", "10"),
-						resource.TestCheckResourceAttr("github_enterprise_actions_hosted_runner.test", "public_ip_enabled", "true"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_enterprise_actions_hosted_runner.test", tfjsonpath.New("name"), knownvalue.StringExact(fmt.Sprintf("tf-acc-test-updated-%s", randomID))),
+						statecheck.ExpectKnownValue("github_enterprise_actions_hosted_runner.test", tfjsonpath.New("size"), knownvalue.StringExact("8-core")),
+						statecheck.ExpectKnownValue("github_enterprise_actions_hosted_runner.test", tfjsonpath.New("maximum_runners"), knownvalue.Int64Exact(10)),
+						statecheck.ExpectKnownValue("github_enterprise_actions_hosted_runner.test", tfjsonpath.New("public_ip_enabled"), knownvalue.Bool(true)),
+					},
 				},
 			},
 		})
@@ -179,11 +182,11 @@ func TestAccGithubEnterpriseActionsHostedRunner(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_enterprise_actions_hosted_runner.test", "enterprise_slug", testAccConf.enterpriseSlug),
-						resource.TestCheckResourceAttr("github_enterprise_actions_hosted_runner.test", "name", fmt.Sprintf("tf-acc-test-%s", randomID)),
-						resource.TestCheckResourceAttr("github_enterprise_actions_hosted_runner.test", "size", "4-core"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_enterprise_actions_hosted_runner.test", tfjsonpath.New("enterprise_slug"), knownvalue.StringExact(testAccConf.enterpriseSlug)),
+						statecheck.ExpectKnownValue("github_enterprise_actions_hosted_runner.test", tfjsonpath.New("name"), knownvalue.StringExact(fmt.Sprintf("tf-acc-test-%s", randomID))),
+						statecheck.ExpectKnownValue("github_enterprise_actions_hosted_runner.test", tfjsonpath.New("size"), knownvalue.StringExact("4-core")),
+					},
 				},
 				{
 					ResourceName:      "github_enterprise_actions_hosted_runner.test",

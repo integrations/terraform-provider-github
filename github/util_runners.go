@@ -1,7 +1,7 @@
 package github
 
 import (
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v84/github"
 )
 
 func expandHostedRunnerImage(imageList []any) *github.HostedRunnerImage {
@@ -19,10 +19,11 @@ func expandHostedRunnerImage(imageList []any) *github.HostedRunnerImage {
 		image.Source = source
 	}
 	if version, ok := imageMap["version"].(string); ok && version != "" {
-		image.Version = version
+		image.Version = &version
 	} else {
 		// Default to 'latest' for GitHub-owned images as required by the API
-		image.Version = "latest"
+		latest := "latest"
+		image.Version = &latest
 	}
 
 	return image
