@@ -73,6 +73,9 @@ formatters:
           replacement: diag.Errorf(a)
         - pattern: wrapErrors([]error{fmt.Errorf(a, b)})
           replacement: diag.Errorf(a, b)
+        - pattern: diag.FromErr(fmt.Errorf(a))
+          replacement: diag.Errorf(a)
+
     gofumpt:
       module-path: github.com/integrations/terraform-provider-github
       extra-rules: true
