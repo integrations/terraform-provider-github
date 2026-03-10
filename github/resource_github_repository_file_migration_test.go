@@ -142,7 +142,7 @@ package github
 // 			client.BaseURL = u
 // 			meta.v3client = client
 
-// 			got, err := resourceGithubRepositoryFileStateUpgradeV0(context.Background(), d.rawState, meta)
+// 			got, err := resourceGithubRepositoryFileStateUpgradeV0(t.Context(), d.rawState, meta)
 // 			if (err != nil) != d.shouldError {
 // 				t.Fatalf("unexpected error state: got error %v, shouldError %v", err, d.shouldError)
 // 			}

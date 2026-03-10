@@ -1,7 +1,6 @@
 package github
 
 import (
-	"context"
 	"fmt"
 	"regexp"
 	"testing"
@@ -318,7 +317,7 @@ resource "github_actions_variable" "test" {
 						}
 						client := meta.v3client
 						owner := meta.name
-						ctx := context.Background()
+						ctx := t.Context()
 
 						_, err = client.Actions.CreateRepoVariable(ctx, owner, repoName, &github.ActionsVariable{
 							Name:  varName,
@@ -337,7 +336,7 @@ resource "github_actions_variable" "test" {
 						}
 						client := meta.v3client
 						owner := meta.name
-						ctx := context.Background()
+						ctx := t.Context()
 
 						_, err = client.Actions.DeleteRepoVariable(ctx, owner, repoName, varName)
 						return err

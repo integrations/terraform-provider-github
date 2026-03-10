@@ -318,7 +318,7 @@ func skipUnlessHasAppInstallations(t *testing.T) {
 		t.Fatalf("failed to get test meta: %s", err)
 	}
 
-	installations, _, err := meta.v3client.Organizations.ListInstallations(context.Background(), meta.name, nil)
+	installations, _, err := meta.v3client.Organizations.ListInstallations(t.Context(), meta.name, nil)
 	if err != nil {
 		t.Fatalf("failed to list app installations: %s", err)
 	}
