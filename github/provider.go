@@ -414,7 +414,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 
 			appToken, err := GenerateOAuthTokenFromApp(baseURL.JoinPath(apiPath), appID, appInstallationID, appPemFile)
 			if err != nil {
-				return nil, wrapErrors([]error{err})
+				return nil, diag.FromErr(err)
 			}
 
 			token = appToken
@@ -489,7 +489,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 
 		meta, err := config.Meta()
 		if err != nil {
-			return nil, wrapErrors([]error{err})
+			return nil, diag.FromErr(err)
 		}
 
 		return meta, nil
