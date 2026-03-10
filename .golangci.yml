@@ -66,6 +66,8 @@ formatters:
           replacement: any
         - pattern: a[b:len(a)]
           replacement: a[b:]
+        - pattern: skipUnlessMode(t, enterprise)
+          replacement: skipUnlessEnterprise(t)
     gofumpt:
       module-path: github.com/integrations/terraform-provider-github
       extra-rules: true
