@@ -461,7 +461,7 @@ func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta any) erro
 }
 
 func resourceGithubBranchProtectionImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	repoName, pattern, err := parseTwoPartID(d.Id(), "repository", "pattern")
+	repoName, pattern, err := parseID2(d.Id())
 	if err != nil {
 		return nil, err
 	}

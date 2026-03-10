@@ -63,6 +63,21 @@ formatters:
           replacement: any
         - pattern: a[b:len(a)]
           replacement: a[b:]
+        - pattern: skipUnlessMode(t, enterprise)
+          replacement: skipUnlessEnterprise(t)
+        - pattern: parseTwoPartID(a, b, c)
+          replacement: parseID2(a)
+        - pattern: parseThreePartID(a, b, c, d)
+          replacement: parseID3(a)
+        - pattern: wrapErrors([]error{fmt.Errorf(a)})
+          replacement: diag.Errorf(a)
+        - pattern: wrapErrors([]error{fmt.Errorf(a, b)})
+          replacement: diag.Errorf(a, b)
+        - pattern: wrapErrors([]error{err})
+          replacement: diag.FromErr(err)
+        - pattern: diag.FromErr(fmt.Errorf(a))
+          replacement: diag.Errorf(a)
+
     gofumpt:
       module-path: github.com/integrations/terraform-provider-github
       extra-rules: true
