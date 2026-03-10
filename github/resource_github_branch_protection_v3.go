@@ -268,7 +268,7 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta any) erro
 
 	client := meta.(*Owner).v3client
 
-	repoName, branch, err := parseTwoPartID(d.Id(), "repository", "branch")
+	repoName, branch, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
@@ -345,7 +345,7 @@ func resourceGithubBranchProtectionV3Update(d *schema.ResourceData, meta any) er
 	}
 
 	client := meta.(*Owner).v3client
-	repoName, branch, err := parseTwoPartID(d.Id(), "repository", "branch")
+	repoName, branch, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
@@ -399,7 +399,7 @@ func resourceGithubBranchProtectionV3Delete(d *schema.ResourceData, meta any) er
 	}
 
 	client := meta.(*Owner).v3client
-	repoName, branch, err := parseTwoPartID(d.Id(), "repository", "branch")
+	repoName, branch, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
