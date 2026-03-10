@@ -141,16 +141,6 @@ func validateValueFunc(values []string) schema.SchemaValidateDiagFunc {
 	}
 }
 
-// return the pieces of id `left:right` as left, right.
-func parseTwoPartID(id, left, right string) (string, string, error) {
-	parts := strings.SplitN(id, ":", 2)
-	if len(parts) != 2 {
-		return "", "", fmt.Errorf("unexpected ID format (%q); expected %s:%s", id, left, right)
-	}
-
-	return parts[0], parts[1], nil
-}
-
 // format the strings into an id `a:b`.
 func buildTwoPartID(a, b string) string {
 	return fmt.Sprintf("%s:%s", a, b)

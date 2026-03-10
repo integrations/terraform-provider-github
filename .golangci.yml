@@ -65,6 +65,8 @@ formatters:
           replacement: a[b:]
         - pattern: skipUnlessMode(t, enterprise)
           replacement: skipUnlessEnterprise(t)
+        - pattern: parseTwoPartID(a, b, c)
+          replacement: parseID2(a)
     gofumpt:
       module-path: github.com/integrations/terraform-provider-github
       extra-rules: true
