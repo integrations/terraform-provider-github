@@ -74,14 +74,14 @@ func resourceGithubOrganizationRoleCreate(ctx context.Context, d *schema.Resourc
 	}
 
 	createOrUpdateOrgRoleOptions := &github.CreateOrUpdateOrgRoleOptions{
-		Name:        github.Ptr(d.Get("name").(string)),
-		Description: github.Ptr(d.Get("description").(string)),
+		Name:        new(d.Get("name").(string)),
+		Description: new(d.Get("description").(string)),
 		Permissions: permissionsStr,
 	}
 
 	baseRole := d.Get("base_role").(string)
 	if baseRole != "none" {
-		createOrUpdateOrgRoleOptions.BaseRole = github.Ptr(baseRole)
+		createOrUpdateOrgRoleOptions.BaseRole = new(baseRole)
 	}
 
 	role, _, err := client.Organizations.CreateCustomOrgRole(ctx, orgName, createOrUpdateOrgRoleOptions)
@@ -169,9 +169,9 @@ func resourceGithubOrganizationRoleUpdate(ctx context.Context, d *schema.Resourc
 	}
 
 	update := &github.CreateOrUpdateOrgRoleOptions{
-		Name:        github.Ptr(d.Get("name").(string)),
-		Description: github.Ptr(d.Get("description").(string)),
-		BaseRole:    github.Ptr(d.Get("base_role").(string)),
+		Name:        new(d.Get("name").(string)),
+		Description: new(d.Get("description").(string)),
+		BaseRole:    new(d.Get("base_role").(string)),
 		Permissions: permissionsStr,
 	}
 

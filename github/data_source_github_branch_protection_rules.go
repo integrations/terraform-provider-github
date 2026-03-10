@@ -74,7 +74,7 @@ func dataSourceGithubBranchProtectionRulesRead(ctx context.Context, d *schema.Re
 		if !query.Repository.BranchProtectionRules.PageInfo.HasNextPage {
 			break
 		}
-		variables["cursor"] = githubv4.NewString(query.Repository.BranchProtectionRules.PageInfo.EndCursor)
+		variables["cursor"] = new(query.Repository.BranchProtectionRules.PageInfo.EndCursor)
 	}
 
 	d.SetId(string(query.Repository.ID))

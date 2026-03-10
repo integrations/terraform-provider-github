@@ -86,8 +86,8 @@ func resourceGithubActionsOrganizationVariableCreate(ctx context.Context, d *sch
 	variable := &github.ActionsVariable{
 		Name:                  varName,
 		Value:                 d.Get("value").(string),
-		Visibility:            github.Ptr(visibility),
-		SelectedRepositoryIDs: github.Ptr(repoIDs),
+		Visibility:            new(visibility),
+		SelectedRepositoryIDs: new(repoIDs),
 	}
 	_, err := client.Actions.CreateOrgVariable(ctx, owner, variable)
 	if err != nil {
@@ -193,8 +193,8 @@ func resourceGithubActionsOrganizationVariableUpdate(ctx context.Context, d *sch
 	variable := &github.ActionsVariable{
 		Name:                  varName,
 		Value:                 d.Get("value").(string),
-		Visibility:            github.Ptr(visibility),
-		SelectedRepositoryIDs: github.Ptr(repoIDs),
+		Visibility:            new(visibility),
+		SelectedRepositoryIDs: new(repoIDs),
 	}
 
 	_, err := client.Actions.UpdateOrgVariable(ctx, owner, variable)

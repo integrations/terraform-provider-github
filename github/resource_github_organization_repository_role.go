@@ -77,9 +77,9 @@ func resourceGithubOrganizationRepositoryRoleCreate(ctx context.Context, d *sche
 	}
 
 	role, _, err := client.Organizations.CreateCustomRepoRole(ctx, orgName, &github.CreateOrUpdateCustomRepoRoleOptions{
-		Name:        github.Ptr(d.Get("name").(string)),
-		Description: github.Ptr(d.Get("description").(string)),
-		BaseRole:    github.Ptr(d.Get("base_role").(string)),
+		Name:        new(d.Get("name").(string)),
+		Description: new(d.Get("description").(string)),
+		BaseRole:    new(d.Get("base_role").(string)),
 		Permissions: permissionsStr,
 	})
 	if err != nil {
@@ -164,9 +164,9 @@ func resourceGithubOrganizationRepositoryRoleUpdate(ctx context.Context, d *sche
 	}
 
 	update := &github.CreateOrUpdateCustomRepoRoleOptions{
-		Name:        github.Ptr(d.Get("name").(string)),
-		Description: github.Ptr(d.Get("description").(string)),
-		BaseRole:    github.Ptr(d.Get("base_role").(string)),
+		Name:        new(d.Get("name").(string)),
+		Description: new(d.Get("description").(string)),
+		BaseRole:    new(d.Get("base_role").(string)),
 		Permissions: permissionsStr,
 	}
 
