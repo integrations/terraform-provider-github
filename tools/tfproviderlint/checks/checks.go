@@ -5,9 +5,11 @@ import (
 
 	"github.com/integrations/terraform-provider-github/tools/tfproviderlint/checks/L001"
 	"github.com/integrations/terraform-provider-github/tools/tfproviderlint/checks/L002"
+	"github.com/integrations/terraform-provider-github/tools/tfproviderlint/checks/L003"
 )
 
 var AllChecks = []*analysis.Analyzer{
 	L001.Analyzer,
 	L002.Analyzer,
+	L003.Analyzer,
 }
