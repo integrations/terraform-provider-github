@@ -168,7 +168,7 @@ func resourceGithubRepositoryDeploymentBranchPolicyDelete(d *schema.ResourceData
 }
 
 func resourceGithubRepositoryDeploymentBranchPolicyImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	repoName, environmentName, id, err := parseThreePartID(d.Id(), "repository", "environment_name", "id")
+	repoName, environmentName, id, err := parseID3(d.Id())
 	if err != nil {
 		return nil, err
 	}
