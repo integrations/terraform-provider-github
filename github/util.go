@@ -110,32 +110,15 @@ func caseInsensitive() schema.SchemaDiffSuppressFunc {
 	}
 }
 
-// wrapErrors is provided to easily turn errors into diag.Diagnostics
-// until we go through the provider and replace error usage.
-func wrapErrors(errs []error) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	for _, err := range errs {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Error",
-			Detail:   err.Error(),
-		})
-	}
-
-	return diags
-}
-
 func validateValueFunc(values []string) schema.SchemaValidateDiagFunc {
 	return func(v any, k cty.Path) diag.Diagnostics {
-		errs := make([]error, 0)
 		value := v.(string)
 		valid := slices.Contains(values, value)
 
 		if !valid {
-			errs = append(errs, fmt.Errorf("%s is an invalid value for argument %s", value, k))
+			return diag.Errorf("%s is an invalid value for argument %s", value, k)
 		}
-		return wrapErrors(errs)
+		return nil
 	}
 }
 
@@ -197,21 +180,31 @@ func (e *unconvertibleIdError) Error() string {
 var secretNameRegexp = regexp.MustCompile("^[a-zA-Z_][a-zA-Z0-9_]*$")
 
 func validateSecretNameFunc(v any, path cty.Path) diag.Diagnostics {
-	errs := make([]error, 0)
+	var diags diag.Diagnostics
 	name, ok := v.(string)
 	if !ok {
 		return diag.Errorf("expected type of %s to be string", path)
 	}
 
 	if !secretNameRegexp.MatchString(name) {
-		errs = append(errs, errors.New("secret names can only contain alphanumeric characters or underscores and must not start with a number"))
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Detail:        "secret names can only contain alphanumeric characters or underscores and must not start with a number",
+			Summary:       "Error",
+			AttributePath: path,
+		})
 	}
 
 	if strings.HasPrefix(strings.ToUpper(name), "GITHUB_") {
-		errs = append(errs, errors.New("secret names must not start with the GITHUB_ prefix"))
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Detail:        "secret names must not start with the GITHUB_ prefix",
+			Summary:       "Error",
+			AttributePath: path,
+		})
 	}
 
-	return wrapErrors(errs)
+	return diags
 }
 
 // deleteResourceOn404AndSwallow304OtherwiseReturnError will log and delete resource if error is 404 which indicates resource (or any of its ancestors)
