@@ -101,17 +101,6 @@ body:
     validations:
       required: false
 
-  - type: textarea
-    id: panic-output
-    attributes:
-      label: Panic Output
-      description: |
-        Please copy and paste any relevant panic output. This will be automatically formatted into code, so no need for backticks.
-        Please check your logs before submission to ensure sensitive information is redacted.
-      render: shell
-    validations:
-      required: false
-
   - type: checkboxes
     id: terms
     attributes:
