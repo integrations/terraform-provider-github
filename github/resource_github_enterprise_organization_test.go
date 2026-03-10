@@ -128,7 +128,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 		}
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -169,7 +169,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 			`, testAccConf.enterpriseSlug, orgName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -249,7 +249,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 		}
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -380,7 +380,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 		}
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -440,7 +440,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 		check := resource.ComposeTestCheckFunc()
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -484,7 +484,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 		check := resource.ComposeTestCheckFunc()
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -528,7 +528,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 		check := resource.ComposeTestCheckFunc()
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
