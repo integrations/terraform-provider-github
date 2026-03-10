@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/url"
 	"os"
@@ -444,13 +443,13 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 
 		retryDelay := d.Get("read_delay_ms").(int)
 		if retryDelay < 0 {
-			return nil, diag.FromErr(fmt.Errorf("retry_delay_ms must be greater than or equal to 0ms"))
+			return nil, diag.Errorf("retry_delay_ms must be greater than or equal to 0ms")
 		}
 		log.Printf("[DEBUG] Setting retry_delay_ms to %d", retryDelay)
 
 		maxRetries := d.Get("max_retries").(int)
 		if maxRetries < 0 {
-			return nil, diag.FromErr(fmt.Errorf("max_retries must be greater than or equal to 0"))
+			return nil, diag.Errorf("max_retries must be greater than or equal to 0")
 		}
 		log.Printf("[DEBUG] Setting max_retries to %d", maxRetries)
 		retryableErrors := make(map[int]bool)
@@ -469,7 +468,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 
 		_maxPerPage := d.Get("max_per_page").(int)
 		if _maxPerPage <= 0 {
-			return nil, diag.FromErr(fmt.Errorf("max_per_page must be greater than than 0"))
+			return nil, diag.Errorf("max_per_page must be greater than than 0")
 		}
 		log.Printf("[DEBUG] Setting max_per_page to %d", _maxPerPage)
 		maxPerPage = _maxPerPage
