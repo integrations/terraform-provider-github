@@ -386,13 +386,13 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 			if v, ok := appAuthAttr["id"].(string); ok && v != "" {
 				appID = v
 			} else {
-				return nil, wrapErrors([]error{fmt.Errorf("app_auth.id must be set and contain a non-empty value")})
+				return nil, diag.Errorf("app_auth.id must be set and contain a non-empty value")
 			}
 
 			if v, ok := appAuthAttr["installation_id"].(string); ok && v != "" {
 				appInstallationID = v
 			} else {
-				return nil, wrapErrors([]error{fmt.Errorf("app_auth.installation_id must be set and contain a non-empty value")})
+				return nil, diag.Errorf("app_auth.installation_id must be set and contain a non-empty value")
 			}
 
 			if v, ok := appAuthAttr["pem_file"].(string); ok && v != "" {
@@ -405,7 +405,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 				// actual new line character before decoding.
 				appPemFile = strings.ReplaceAll(v, `\n`, "\n")
 			} else {
-				return nil, wrapErrors([]error{fmt.Errorf("app_auth.pem_file must be set and contain a non-empty value")})
+				return nil, diag.Errorf("app_auth.pem_file must be set and contain a non-empty value")
 			}
 
 			apiPath := ""
@@ -428,13 +428,13 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 
 		writeDelay := d.Get("write_delay_ms").(int)
 		if writeDelay <= 0 {
-			return nil, wrapErrors([]error{fmt.Errorf("write_delay_ms must be greater than 0ms")})
+			return nil, diag.Errorf("write_delay_ms must be greater than 0ms")
 		}
 		log.Printf("[INFO] Setting write_delay_ms to %d", writeDelay)
 
 		readDelay := d.Get("read_delay_ms").(int)
 		if readDelay < 0 {
-			return nil, wrapErrors([]error{fmt.Errorf("read_delay_ms must be greater than or equal to 0ms")})
+			return nil, diag.Errorf("read_delay_ms must be greater than or equal to 0ms")
 		}
 		log.Printf("[DEBUG] Setting read_delay_ms to %d", readDelay)
 

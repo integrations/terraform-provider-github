@@ -492,3 +492,36 @@ func TestGithubUtilValidateSecretName(t *testing.T) {
 		}
 	}
 }
+
+func TestGithubUtilValidateSecretName_invalid_input(t *testing.T) {
+	cases := []struct {
+		Name  any
+		Error bool
+	}{
+		{
+			Name:  1,
+			Error: true,
+		},
+		{
+			Name:  []string{"v"},
+			Error: true,
+		},
+		{
+			Name:  map[string]string{"_valid_underscore_": "valid_underscore"},
+			Error: true,
+		},
+	}
+
+	for _, tc := range cases {
+		name := tc.Name
+		diags := validateSecretNameFunc(name, cty.Path{cty.GetAttrStep{Name: ""}})
+
+		if tc.Error != (len(diags) != 0) {
+			if tc.Error {
+				t.Fatalf("expected error, got none (%s)", tc.Name)
+			} else {
+				t.Fatalf("unexpected error(s): %v (%s)", diags, tc.Name)
+			}
+		}
+	}
+}

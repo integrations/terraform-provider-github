@@ -257,7 +257,7 @@ func validateSecretNameFunc(v any, path cty.Path) diag.Diagnostics {
 	errs := make([]error, 0)
 	name, ok := v.(string)
 	if !ok {
-		return wrapErrors([]error{fmt.Errorf("expected type of %s to be string", path)})
+		return diag.Errorf("expected type of %s to be string", path)
 	}
 
 	if !secretNameRegexp.MatchString(name) {
