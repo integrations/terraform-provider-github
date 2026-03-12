@@ -13,10 +13,9 @@ This resource allows you to create and manage an autolink reference for a single
 
 ```hcl
 resource "github_repository" "repo" {
-  name         = "my-repo"
-  description  = "GitHub repo managed by Terraform"
-
-  private = false
+  name        = "my-repo"
+  description = "GitHub repo managed by Terraform"
+  visibility  = "public"
 }
 
 resource "github_repository_autolink_reference" "autolink" {
@@ -32,19 +31,20 @@ resource "github_repository_autolink_reference" "autolink" {
 
 The following arguments are supported:
 
-* `repository` - (Required) The repository of the autolink reference.
+- `repository` - (Required) The repository of the autolink reference. If the repository is renamed, the autolink reference will be updated in-place rather than recreated.
 
-* `key_prefix` - (Required) This prefix appended by a number will generate a link any time it is found in an issue, pull request, or commit.
+- `key_prefix` - (Required) This prefix appended by a number will generate a link any time it is found in an issue, pull request, or commit.
 
-* `target_url_template` - (Required) The template of the target URL used for the links; must be a valid URL and contain `<num>` for the reference number
+- `target_url_template` - (Required) The template of the target URL used for the links; must be a valid URL and contain `<num>` for the reference number
 
-* `is_alphanumeric` - (Optional) Whether this autolink reference matches alphanumeric characters. If false, this autolink reference only matches numeric characters. Default is true.
+- `is_alphanumeric` - (Optional) Whether this autolink reference matches alphanumeric characters. If false, this autolink reference only matches numeric characters. Default is true.
 
 ## Attributes Reference
 
 The following additional attributes are exported:
 
-* `etag` - An etag representing the autolink reference object.
+- `etag` - An etag representing the autolink reference object.
+- `repository_id` - The ID of the repository.
 
 ## Import
 
