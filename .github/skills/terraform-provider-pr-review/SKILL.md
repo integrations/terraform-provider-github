@@ -55,8 +55,8 @@ This section summarizes the Terraform module and provider concepts most relevant
 	- Tests (`*_test.go`, especially acceptance tests)
 	- Docs/site content under `website/`
 	- Example configurations under `examples/`
-3. For schema changes, verify backward compatibility using the rules in *Terraform Background*: flag attribute removal/renames, type changes, new `ForceNew`, or `Optional`→`Required` transitions.
-4. For example/configuration changes, confirm they follow standard module structure (`main.tf`, `variables.tf`, `outputs.tf`, `README.md`), do not embed `provider` blocks in child modules, and include `description` on variables/outputs.
+3. For schema changes, verify backward compatibility using the rules in *Terraform Background*: flag attribute removal/renames, type changes, new `ForceNew`, or `Optional`→`Required` transitions. If a PR restructures resources or renames modules, consult [Refactoring Modules](./references/refactoring.mdx) for `moved` block requirements.
+4. For example/configuration changes, confirm they follow [Standard Module Structure](./references/structure.mdx) (`main.tf`, `variables.tf`, `outputs.tf`, `README.md`), do not embed `provider` blocks in child modules (see [Providers Within Modules](./references/providers.mdx)), and include `description` on variables/outputs.
 5. Review against the checklist in [Terraform Provider Review Checklist](./references/review-checklist.md).
 6. Prioritize findings by severity and provide actionable fixes.
 7. Report residual risk and testing gaps when uncertain.
