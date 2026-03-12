@@ -2,7 +2,7 @@ resource "github_repository" "repo" {
   name        = "my-repo"
   description = "GitHub repo managed by Terraform"
 
-  private = false
+  visibility = "public"
 }
 
 resource "github_repository_autolink_reference" "autolink" {

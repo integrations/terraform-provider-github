@@ -75,7 +75,7 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 			"repository": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The repository name",
+				Description: "The repository name. If the repository is renamed, the autolink reference will be updated in-place rather than recreated.",
 			},
 			"repository_id": {
 				Type:        schema.TypeInt,
