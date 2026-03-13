@@ -25,6 +25,7 @@ jobs:
       github.repository == 'integrations/terraform-provider-github'
     runs-on: ubuntu-latest
     permissions:
+      issues: write
       pull-requests: write
     steps:
       - name: Comment on PR
