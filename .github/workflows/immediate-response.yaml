@@ -168,7 +168,7 @@ jobs:
             const affectedResources = resourceMatches ? [...new Set(resourceMatches)] : [];
 
             // ── 4. Search for potential duplicates ──
-            const cleanTitle = title.replace(/^\[(BUG|FEAT|DOCS)\]:\s*/, '').trim();
+            const cleanTitle = title.replace(/^\[(BUG|FEAT|DOCS)\]\s*:?\s*/, '').trim();
             const searchTerms = [];
 
             // Build search queries from title keywords and resource names
