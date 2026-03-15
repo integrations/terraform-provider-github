@@ -68,6 +68,8 @@ GitHub private networking for GitHub-hosted runners is attached through the runn
 
 Use `github_organization_network_configuration` to manage the hosted compute network configuration, then set `network_configuration_id` on `github_actions_runner_group` so any `github_actions_hosted_runner` placed in that group uses the private networking association.
 
+For Azure private networking, `network_configuration_id` should reference the GitHub organization network configuration ID, not the Azure ARM resource ID for `GitHub.Network/networkSettings`.
+
 ## Import
 
 This resource can be imported using the ID of the runner group:
