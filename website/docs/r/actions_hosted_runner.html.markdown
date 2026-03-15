@@ -72,6 +72,8 @@ The following arguments are supported:
 * `public_ip_enabled` - (Optional) Whether to enable static public IP for the runner. Note there are account limits. To list limits, use the GitHub API: `GET /orgs/{org}/actions/hosted-runners/limits`. Defaults to false.
 * `image_version` - (Optional) The version of the runner image to deploy. This is only relevant for runners using custom images.
 
+~> **Note:** GitHub private networking for GitHub-hosted runners is configured on the runner group, not directly on the hosted runner. To attach a hosted runner to private networking, associate the runner group with a `github_organization_network_configuration` via `github_actions_runner_group.network_configuration_id`, then place the hosted runner in that group.
+
 ## Timeouts
 
 The `timeouts` block allows you to specify timeouts for certain actions:
@@ -135,6 +137,7 @@ $ terraform import github_actions_hosted_runner.example 123456
 * Deletion of hosted runners is asynchronous. The provider will poll for up to 10 minutes (configurable via timeouts) to confirm deletion.
 * Runner creation and updates may take several minutes as GitHub provisions the infrastructure.
 * Static public IPs are subject to account limits. Check your organization's limits before enabling.
+* `public_ip_enabled` controls static public IP allocation and is separate from GitHub private networking.
 
 ## Getting Available Images and Sizes
 
