@@ -4,15 +4,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v83/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
+
+type enterpriseRunnerGroup struct {
+	NetworkConfigurationID *string `json:"network_configuration_id,omitempty"`
+}
 
 func resourceGithubActionsEnterpriseRunnerGroup() *schema.Resource {
 	return &schema.Resource{
@@ -74,6 +78,12 @@ func resourceGithubActionsEnterpriseRunnerGroup() *schema.Resource {
 				Optional:    true,
 				Description: "List of workflows the runner group should be allowed to run. This setting will be ignored unless restricted_to_workflows is set to 'true'.",
 			},
+			"network_configuration_id": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringLenBetween(1, 255),
+				Description:  "The identifier of the hosted compute network configuration to associate with this runner group for GitHub-hosted private networking.",
+			},
 			"selected_organization_ids": {
 				Type: schema.TypeSet,
 				Elem: &schema.Schema{
@@ -90,6 +100,53 @@ func resourceGithubActionsEnterpriseRunnerGroup() *schema.Resource {
 			},
 		},
 	}
+}
+
+func getEnterpriseRunnerGroupNetworking(client *github.Client, ctx context.Context, enterprise string, groupID int64) (*enterpriseRunnerGroup, *github.Response, error) {
+	req, err := client.NewRequest("GET", fmt.Sprintf("enterprises/%s/actions/runner-groups/%d", enterprise, groupID), nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var runnerGroup enterpriseRunnerGroup
+	resp, err := client.Do(ctx, req, &runnerGroup)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return &runnerGroup, resp, nil
+}
+
+func updateEnterpriseRunnerGroupNetworking(client *github.Client, ctx context.Context, enterprise string, groupID int64, networkConfigurationID *string) (*github.Response, error) {
+	payload := map[string]any{
+		"network_configuration_id": networkConfigurationID,
+	}
+
+	req, err := client.NewRequest("PATCH", fmt.Sprintf("enterprises/%s/actions/runner-groups/%d", enterprise, groupID), payload)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := client.Do(ctx, req, nil)
+	if err != nil {
+		return resp, err
+	}
+
+	return resp, nil
+}
+
+func setGithubActionsEnterpriseRunnerGroupNetworkingState(d *schema.ResourceData, runnerGroup *enterpriseRunnerGroup) error {
+	if runnerGroup != nil && runnerGroup.NetworkConfigurationID != nil && *runnerGroup.NetworkConfigurationID != "" {
+		if err := d.Set("network_configuration_id", *runnerGroup.NetworkConfigurationID); err != nil {
+			return err
+		}
+	} else {
+		if err := d.Set("network_configuration_id", nil); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func resourceGithubActionsEnterpriseRunnerGroupCreate(d *schema.ResourceData, meta any) error {
@@ -174,6 +231,13 @@ func resourceGithubActionsEnterpriseRunnerGroupCreate(d *schema.ResourceData, me
 		return err
 	}
 
+	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
+		networkConfigurationIDValue := networkConfigurationID.(string)
+		if _, err = updateEnterpriseRunnerGroupNetworking(client, ctx, enterpriseSlug, enterpriseRunnerGroup.GetID(), &networkConfigurationIDValue); err != nil {
+			return err
+		}
+	}
+
 	return resourceGithubActionsEnterpriseRunnerGroupRead(d, meta)
 }
 
@@ -198,6 +262,8 @@ func resourceGithubActionsEnterpriseRunnerGroupRead(d *schema.ResourceData, meta
 		return err
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = tflog.SetField(ctx, "enterprise_slug", enterpriseSlug)
+	ctx = tflog.SetField(ctx, "id", d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
@@ -207,8 +273,7 @@ func resourceGithubActionsEnterpriseRunnerGroupRead(d *schema.ResourceData, meta
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing enterprise runner group %s/%s from state because it no longer exists in GitHub",
-					enterpriseSlug, d.Id())
+				tflog.Info(ctx, "Removing enterprise runner group from state because it no longer exists in GitHub")
 				d.SetId("")
 				return nil
 			}
@@ -249,6 +314,14 @@ func resourceGithubActionsEnterpriseRunnerGroupRead(d *schema.ResourceData, meta
 		return err
 	}
 	if err = d.Set("enterprise_slug", enterpriseSlug); err != nil {
+		return err
+	}
+
+	runnerGroupNetworking, _, err := getEnterpriseRunnerGroupNetworking(client, context.WithValue(context.Background(), ctxId, d.Id()), enterpriseSlug, runnerGroupID)
+	if err != nil {
+		return err
+	}
+	if err = setGithubActionsEnterpriseRunnerGroupNetworkingState(d, runnerGroupNetworking); err != nil {
 		return err
 	}
 
@@ -314,6 +387,18 @@ func resourceGithubActionsEnterpriseRunnerGroupUpdate(d *schema.ResourceData, me
 		return err
 	}
 
+	if d.HasChange("network_configuration_id") {
+		var networkConfigurationIDValue *string
+		if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
+			value := networkConfigurationID.(string)
+			networkConfigurationIDValue = &value
+		}
+
+		if _, err := updateEnterpriseRunnerGroupNetworking(client, ctx, enterpriseSlug, runnerGroupID, networkConfigurationIDValue); err != nil {
+			return err
+		}
+	}
+
 	selectedOrganizations, hasSelectedOrganizations := d.GetOk("selected_organization_ids")
 	selectedOrganizationIDs := []int64{}
 
@@ -342,8 +427,11 @@ func resourceGithubActionsEnterpriseRunnerGroupDelete(d *schema.ResourceData, me
 		return err
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = tflog.SetField(ctx, "enterprise_slug", enterpriseSlug)
+	ctx = tflog.SetField(ctx, "id", d.Id())
+	ctx = tflog.SetField(ctx, "name", d.Get("name"))
 
-	log.Printf("[INFO] Deleting enterprise runner group: %s/%s (%s)", enterpriseSlug, d.Get("name"), d.Id())
+	tflog.Debug(ctx, "Deleting enterprise runner group")
 	_, err = client.Enterprise.DeleteEnterpriseRunnerGroup(ctx, enterpriseSlug, enterpriseRunnerGroupID)
 	return err
 }

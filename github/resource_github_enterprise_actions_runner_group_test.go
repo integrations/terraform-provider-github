@@ -2,11 +2,15 @@ package github
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
@@ -193,4 +197,91 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 			},
 		})
 	})
+
+	t.Run("manages runner group network configuration", func(t *testing.T) {
+		networkSettingsID := testAccEnterpriseNetworkConfigurationID(t)
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		resourceName := "github_enterprise_actions_runner_group.test"
+		networkConfigurationResourceName := "github_enterprise_network_configuration.test"
+		groupName := fmt.Sprintf("tf-acc-test-%s", randomID)
+		networkConfigurationName := fmt.Sprintf("%senterprise-network-config-%s", testResourcePrefix, randomID)
+
+		configWithoutNetworking := fmt.Sprintf(`
+			resource "github_enterprise_network_configuration" "test" {
+			  enterprise_slug      = %q
+			  name                 = %q
+			  compute_service      = "actions"
+			  network_settings_ids = [%q]
+			}
+
+			resource "github_enterprise_actions_runner_group" "test" {
+			  enterprise_slug = %q
+			  name            = %q
+			  visibility      = "all"
+			}
+		`, testAccConf.enterpriseSlug, networkConfigurationName, networkSettingsID, testAccConf.enterpriseSlug, groupName)
+
+		configWithNetworking := fmt.Sprintf(`
+			resource "github_enterprise_network_configuration" "test" {
+			  enterprise_slug      = %q
+			  name                 = %q
+			  compute_service      = "actions"
+			  network_settings_ids = [%q]
+			}
+
+			resource "github_enterprise_actions_runner_group" "test" {
+			  enterprise_slug            = %q
+			  name                       = %q
+			  visibility                 = "all"
+			  network_configuration_id   = github_enterprise_network_configuration.test.id
+			}
+		`, testAccConf.enterpriseSlug, networkConfigurationName, networkSettingsID, testAccConf.enterpriseSlug, groupName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: configWithoutNetworking,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("name"), knownvalue.StringExact(groupName)),
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("visibility"), knownvalue.StringExact("all")),
+					},
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckNoResourceAttr(resourceName, "network_configuration_id"),
+					),
+				},
+				{
+					Config: configWithNetworking,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrSet(resourceName, "network_configuration_id"),
+						resource.TestCheckResourceAttrPair(resourceName, "network_configuration_id", networkConfigurationResourceName, "id"),
+					),
+				},
+				{
+					ResourceName:        resourceName,
+					ImportState:         true,
+					ImportStateVerify:   true,
+					ImportStateIdPrefix: fmt.Sprintf(`%s/`, testAccConf.enterpriseSlug),
+				},
+				{
+					Config: configWithoutNetworking,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckNoResourceAttr(resourceName, "network_configuration_id"),
+					),
+				},
+			},
+		})
+	})
+}
+
+func testAccEnterpriseNetworkConfigurationID(t *testing.T) string {
+	t.Helper()
+
+	networkSettingsID := os.Getenv("GITHUB_TEST_ENTERPRISE_NETWORK_SETTINGS_ID")
+	if networkSettingsID == "" {
+		t.Skip("GITHUB_TEST_ENTERPRISE_NETWORK_SETTINGS_ID not set")
+	}
+
+	return networkSettingsID
 }
