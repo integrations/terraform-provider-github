@@ -6,6 +6,7 @@ version: "2"
 linters:
   enable:
     - forcetypeassert
+    - revive
 
   settings:
     custom:
