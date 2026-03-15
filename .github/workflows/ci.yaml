@@ -39,6 +39,7 @@ jobs:
           cache: true
       - run: make build -o lintcheck
       - run: make test
+      - run: make test-tools
   golangci:
     name: lint
     runs-on: ubuntu-latest
