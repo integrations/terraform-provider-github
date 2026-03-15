@@ -4,34 +4,24 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
-
+	"github.com/hashicorp/terraform-plugin-testing/compare"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
-func testCheckRunnerGroupNetworkConfigurationMatches(resourceName, networkConfigurationResourceName string) resource.TestCheckFunc {
-	return func(state *terraform.State) error {
-		runnerGroup, ok := state.RootModule().Resources[resourceName]
-		if !ok {
-			return fmt.Errorf("runner group resource %s not found in state", resourceName)
-		}
-
-		networkConfiguration, ok := state.RootModule().Resources[networkConfigurationResourceName]
-		if !ok {
-			return fmt.Errorf("network configuration resource %s not found in state", networkConfigurationResourceName)
-		}
-
-		actual := runnerGroup.Primary.Attributes["network_configuration_id"]
-		expected := networkConfiguration.Primary.ID
-
-		if actual != expected {
-			return fmt.Errorf("actual network_configuration_id %q does not match expected %q", actual, expected)
-		}
-
-		return nil
-	}
+func testCheckRunnerGroupNetworkConfigurationMatches(resourceName, networkConfigurationResourceName string) statecheck.StateCheck {
+	return statecheck.CompareValuePairs(
+		resourceName,
+		tfjsonpath.New("network_configuration_id"),
+		networkConfigurationResourceName,
+		tfjsonpath.New("id"),
+		compare.ValuesSame(),
+	)
 }
 
 func TestAccGithubActionsRunnerGroup(t *testing.T) {
@@ -161,16 +151,16 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: configWithoutNetworkConfiguration,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckNoResourceAttr(resourceName, "network_configuration_id"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.Null()),
+					},
 				},
 				{
 					Config: configWithNetworkConfiguration,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet(resourceName, "network_configuration_id"),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.NotNull()),
 						testCheckRunnerGroupNetworkConfigurationMatches(resourceName, networkConfigurationResourceName),
-					),
+					},
 				},
 				{
 					ResourceName:      resourceName,
@@ -179,9 +169,9 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 				},
 				{
 					Config: configWithoutNetworkConfiguration,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckNoResourceAttr(resourceName, "network_configuration_id"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.Null()),
+					},
 				},
 			},
 		})
@@ -215,10 +205,10 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet(resourceName, "network_configuration_id"),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.NotNull()),
 						testCheckRunnerGroupNetworkConfigurationMatches(resourceName, networkConfigurationResourceName),
-					),
+					},
 				},
 				{
 					ResourceName:      resourceName,

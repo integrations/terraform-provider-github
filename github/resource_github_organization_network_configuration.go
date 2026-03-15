@@ -118,7 +118,7 @@ func resourceGithubOrganizationNetworkConfigurationRead(ctx context.Context, d *
 	configuration, resp, err := client.Organizations.GetNetworkConfiguration(ctx, orgName, networkConfigurationID)
 	if err != nil {
 		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
+		if errors.As(err, &ghErr) && ghErr.Response != nil && ghErr.Response.StatusCode == http.StatusNotFound {
 			tflog.Info(ctx, "Organization network configuration not found, removing from state", map[string]any{"id": networkConfigurationID})
 			d.SetId("")
 			return nil
@@ -190,7 +190,7 @@ func resourceGithubOrganizationNetworkConfigurationDelete(ctx context.Context, d
 	_, err := client.Organizations.DeleteNetworkConfigurations(ctx, orgName, d.Id())
 	if err != nil {
 		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
+		if errors.As(err, &ghErr) && ghErr.Response != nil && ghErr.Response.StatusCode == http.StatusNotFound {
 			return nil
 		}
 
