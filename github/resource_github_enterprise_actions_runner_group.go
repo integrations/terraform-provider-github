@@ -149,6 +149,44 @@ func setGithubActionsEnterpriseRunnerGroupNetworkingState(d *schema.ResourceData
 	return nil
 }
 
+func setGithubActionsEnterpriseRunnerGroupState(d *schema.ResourceData, runnerGroup *github.EnterpriseRunnerGroup, etag string, enterpriseSlug string, selectedOrganizationIDs []int64) error {
+	if err := d.Set("etag", etag); err != nil {
+		return err
+	}
+	if err := d.Set("allows_public_repositories", runnerGroup.GetAllowsPublicRepositories()); err != nil {
+		return err
+	}
+	if err := d.Set("default", runnerGroup.GetDefault()); err != nil {
+		return err
+	}
+	if err := d.Set("name", runnerGroup.GetName()); err != nil {
+		return err
+	}
+	if err := d.Set("runners_url", runnerGroup.GetRunnersURL()); err != nil {
+		return err
+	}
+	if err := d.Set("selected_organizations_url", runnerGroup.GetSelectedOrganizationsURL()); err != nil {
+		return err
+	}
+	if err := d.Set("visibility", runnerGroup.GetVisibility()); err != nil {
+		return err
+	}
+	if err := d.Set("selected_organization_ids", selectedOrganizationIDs); err != nil {
+		return err
+	}
+	if err := d.Set("restricted_to_workflows", runnerGroup.GetRestrictedToWorkflows()); err != nil {
+		return err
+	}
+	if err := d.Set("selected_workflows", runnerGroup.SelectedWorkflows); err != nil {
+		return err
+	}
+	if err := d.Set("enterprise_slug", enterpriseSlug); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func resourceGithubActionsEnterpriseRunnerGroupCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
@@ -182,7 +220,7 @@ func resourceGithubActionsEnterpriseRunnerGroupCreate(d *schema.ResourceData, me
 
 	ctx := context.Background()
 
-	enterpriseRunnerGroup, resp, err := client.Enterprise.CreateEnterpriseRunnerGroup(ctx,
+	runnerGroup, resp, err := client.Enterprise.CreateEnterpriseRunnerGroup(ctx,
 		enterpriseSlug,
 		github.CreateEnterpriseRunnerGroupRequest{
 			Name:                     &name,
@@ -196,56 +234,36 @@ func resourceGithubActionsEnterpriseRunnerGroupCreate(d *schema.ResourceData, me
 	if err != nil {
 		return err
 	}
-	d.SetId(strconv.FormatInt(enterpriseRunnerGroup.GetID(), 10))
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
-	}
-	if err = d.Set("allows_public_repositories", enterpriseRunnerGroup.GetAllowsPublicRepositories()); err != nil {
-		return err
-	}
-	if err = d.Set("default", enterpriseRunnerGroup.GetDefault()); err != nil {
-		return err
-	}
-	if err = d.Set("name", enterpriseRunnerGroup.GetName()); err != nil {
-		return err
-	}
-	if err = d.Set("runners_url", enterpriseRunnerGroup.GetRunnersURL()); err != nil {
-		return err
-	}
-	if err = d.Set("selected_organizations_url", enterpriseRunnerGroup.GetSelectedOrganizationsURL()); err != nil {
-		return err
-	}
-	if err = d.Set("visibility", enterpriseRunnerGroup.GetVisibility()); err != nil {
-		return err
-	}
-	if err = d.Set("selected_organization_ids", selectedOrganizationIDs); err != nil { // Note: enterpriseRunnerGroup has no method to get selected organization IDs
-		return err
-	}
-	if err = d.Set("restricted_to_workflows", enterpriseRunnerGroup.GetRestrictedToWorkflows()); err != nil {
-		return err
-	}
-	if err = d.Set("selected_workflows", enterpriseRunnerGroup.SelectedWorkflows); err != nil {
-		return err
-	}
-	if err = d.Set("enterprise_slug", enterpriseSlug); err != nil {
+	d.SetId(strconv.FormatInt(runnerGroup.GetID(), 10))
+	if err = setGithubActionsEnterpriseRunnerGroupState(d, runnerGroup, resp.Header.Get("ETag"), enterpriseSlug, selectedOrganizationIDs); err != nil {
 		return err
 	}
 
 	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
 		networkConfigurationIDValue := networkConfigurationID.(string)
-		if _, err = updateEnterpriseRunnerGroupNetworking(client, ctx, enterpriseSlug, enterpriseRunnerGroup.GetID(), &networkConfigurationIDValue); err != nil {
+		// The create endpoint does not accept network_configuration_id, so private networking
+		// must be attached with a follow-up PATCH after the runner group has been created.
+		if _, err = updateEnterpriseRunnerGroupNetworking(client, ctx, enterpriseSlug, runnerGroup.GetID(), &networkConfigurationIDValue); err != nil {
+			return err
+		}
+
+		if err = setGithubActionsEnterpriseRunnerGroupNetworkingState(d, &enterpriseRunnerGroup{NetworkConfigurationID: &networkConfigurationIDValue}); err != nil {
+			return err
+		}
+	} else {
+		if err = setGithubActionsEnterpriseRunnerGroupNetworkingState(d, nil); err != nil {
 			return err
 		}
 	}
 
-	return resourceGithubActionsEnterpriseRunnerGroupRead(d, meta)
+	return nil
 }
 
 func getEnterpriseRunnerGroup(client *github.Client, ctx context.Context, ent string, groupID int64) (*github.EnterpriseRunnerGroup, *github.Response, error) {
 	enterpriseRunnerGroup, resp, err := client.Enterprise.GetEnterpriseRunnerGroup(ctx, ent, groupID)
 	if err != nil {
 		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if errors.As(err, &ghErr) && ghErr.Response != nil && ghErr.Response.StatusCode == http.StatusNotModified {
 			// ignore error StatusNotModified
 			return enterpriseRunnerGroup, resp, nil
 		}
@@ -272,7 +290,7 @@ func resourceGithubActionsEnterpriseRunnerGroupRead(d *schema.ResourceData, meta
 	if err != nil {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
-			if ghErr.Response.StatusCode == http.StatusNotFound {
+			if ghErr.Response != nil && ghErr.Response.StatusCode == http.StatusNotFound {
 				tflog.Info(ctx, "Removing enterprise runner group from state because it no longer exists in GitHub")
 				d.SetId("")
 				return nil
@@ -285,43 +303,10 @@ func resourceGithubActionsEnterpriseRunnerGroupRead(d *schema.ResourceData, meta
 	if enterpriseRunnerGroup == nil {
 		return nil
 	}
-
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
-	}
-	if err = d.Set("allows_public_repositories", enterpriseRunnerGroup.GetAllowsPublicRepositories()); err != nil {
-		return err
-	}
-	if err = d.Set("default", enterpriseRunnerGroup.GetDefault()); err != nil {
-		return err
-	}
-	if err = d.Set("name", enterpriseRunnerGroup.GetName()); err != nil {
-		return err
-	}
-	if err = d.Set("runners_url", enterpriseRunnerGroup.GetRunnersURL()); err != nil {
-		return err
-	}
-	if err = d.Set("selected_organizations_url", enterpriseRunnerGroup.GetSelectedOrganizationsURL()); err != nil {
-		return err
-	}
-	if err = d.Set("visibility", enterpriseRunnerGroup.GetVisibility()); err != nil {
-		return err
-	}
-	if err = d.Set("restricted_to_workflows", enterpriseRunnerGroup.GetRestrictedToWorkflows()); err != nil {
-		return err
-	}
-	if err = d.Set("selected_workflows", enterpriseRunnerGroup.SelectedWorkflows); err != nil {
-		return err
-	}
-	if err = d.Set("enterprise_slug", enterpriseSlug); err != nil {
-		return err
-	}
+	runnerGroupEtag := resp.Header.Get("ETag")
 
 	runnerGroupNetworking, _, err := getEnterpriseRunnerGroupNetworking(client, context.WithValue(context.Background(), ctxId, d.Id()), enterpriseSlug, runnerGroupID)
 	if err != nil {
-		return err
-	}
-	if err = setGithubActionsEnterpriseRunnerGroupNetworkingState(d, runnerGroupNetworking); err != nil {
 		return err
 	}
 
@@ -347,7 +332,10 @@ func resourceGithubActionsEnterpriseRunnerGroupRead(d *schema.ResourceData, meta
 		optionsOrgs.Page = resp.NextPage
 	}
 
-	if err = d.Set("selected_organization_ids", selectedOrganizationIDs); err != nil {
+	if err = setGithubActionsEnterpriseRunnerGroupState(d, enterpriseRunnerGroup, runnerGroupEtag, enterpriseSlug, selectedOrganizationIDs); err != nil {
+		return err
+	}
+	if err = setGithubActionsEnterpriseRunnerGroupNetworkingState(d, runnerGroupNetworking); err != nil {
 		return err
 	}
 

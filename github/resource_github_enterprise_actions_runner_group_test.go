@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-testing/compare"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -12,6 +13,16 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
+
+func testCheckEnterpriseRunnerGroupNetworkConfigurationMatches(resourceName, networkConfigurationResourceName string) statecheck.StateCheck {
+	return statecheck.CompareValuePairs(
+		resourceName,
+		tfjsonpath.New("network_configuration_id"),
+		networkConfigurationResourceName,
+		tfjsonpath.New("id"),
+		compare.ValuesSame(),
+	)
+}
 
 func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 	t.Run("creates enterprise runner groups without error", func(t *testing.T) {
@@ -246,17 +257,15 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("name"), knownvalue.StringExact(groupName)),
 						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("visibility"), knownvalue.StringExact("all")),
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.Null()),
 					},
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckNoResourceAttr(resourceName, "network_configuration_id"),
-					),
 				},
 				{
 					Config: configWithNetworking,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet(resourceName, "network_configuration_id"),
-						resource.TestCheckResourceAttrPair(resourceName, "network_configuration_id", networkConfigurationResourceName, "id"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.NotNull()),
+						testCheckEnterpriseRunnerGroupNetworkConfigurationMatches(resourceName, networkConfigurationResourceName),
+					},
 				},
 				{
 					ResourceName:        resourceName,
@@ -266,9 +275,54 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 				},
 				{
 					Config: configWithoutNetworking,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckNoResourceAttr(resourceName, "network_configuration_id"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.Null()),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("creates runner group network configuration on create", func(t *testing.T) {
+		networkSettingsID := testAccEnterpriseNetworkConfigurationID(t)
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		resourceName := "github_enterprise_actions_runner_group.test"
+		networkConfigurationResourceName := "github_enterprise_network_configuration.test"
+		groupName := fmt.Sprintf("tf-acc-test-create-%s", randomID)
+		networkConfigurationName := fmt.Sprintf("%senterprise-network-config-create-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+			resource "github_enterprise_network_configuration" "test" {
+			  enterprise_slug      = %q
+			  name                 = %q
+			  compute_service      = "actions"
+			  network_settings_ids = [%q]
+			}
+
+			resource "github_enterprise_actions_runner_group" "test" {
+			  enterprise_slug          = %q
+			  name                     = %q
+			  visibility               = "all"
+			  network_configuration_id = github_enterprise_network_configuration.test.id
+			}
+		`, testAccConf.enterpriseSlug, networkConfigurationName, networkSettingsID, testAccConf.enterpriseSlug, groupName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.NotNull()),
+						testCheckEnterpriseRunnerGroupNetworkConfigurationMatches(resourceName, networkConfigurationResourceName),
+					},
+				},
+				{
+					ResourceName:        resourceName,
+					ImportState:         true,
+					ImportStateVerify:   true,
+					ImportStateIdPrefix: fmt.Sprintf(`%s/`, testAccConf.enterpriseSlug),
 				},
 			},
 		})
