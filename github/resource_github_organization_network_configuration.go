@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"regexp"
 	"time"
@@ -115,7 +116,8 @@ func resourceGithubOrganizationNetworkConfigurationRead(ctx context.Context, d *
 
 	configuration, resp, err := client.Organizations.GetNetworkConfiguration(ctx, orgName, networkConfigurationID)
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
 			tflog.Info(ctx, "Organization network configuration not found, removing from state", map[string]any{"id": networkConfigurationID})
 			d.SetId("")
 			return nil
@@ -186,7 +188,8 @@ func resourceGithubOrganizationNetworkConfigurationDelete(ctx context.Context, d
 	tflog.Debug(ctx, "Deleting organization network configuration")
 	_, err := client.Organizations.DeleteNetworkConfigurations(ctx, orgName, d.Id())
 	if err != nil {
-		if ghErr, ok := err.(*github.ErrorResponse); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
 			return nil
 		}
 
