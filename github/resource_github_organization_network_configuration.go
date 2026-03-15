@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"regexp"
 	"time"
@@ -90,7 +91,7 @@ func resourceGithubOrganizationNetworkConfigurationCreate(ctx context.Context, d
 		NetworkSettingsIDs: networkSettingsIDs,
 	})
 	if err != nil {
-		return diag.FromErr(err)
+		return organizationNetworkConfigurationDiagnostics(err)
 	}
 
 	d.SetId(configuration.GetID())
@@ -164,7 +165,7 @@ func resourceGithubOrganizationNetworkConfigurationUpdate(ctx context.Context, d
 		NetworkSettingsIDs: networkSettingsIDs,
 	})
 	if err != nil {
-		return diag.FromErr(err)
+		return organizationNetworkConfigurationDiagnostics(err)
 	}
 
 	if err := setOrganizationNetworkConfigurationState(d, configuration); err != nil {
@@ -218,4 +219,13 @@ func setOrganizationNetworkConfigurationState(d *schema.ResourceData, configurat
 	}
 
 	return nil
+}
+
+func organizationNetworkConfigurationDiagnostics(err error) diag.Diagnostics {
+	var ghErr *github.ErrorResponse
+	if errors.As(err, &ghErr) && ghErr.Response != nil && ghErr.Response.StatusCode == http.StatusUnprocessableEntity {
+		return diag.FromErr(fmt.Errorf("%w. if you are using Azure private networking, ensure the provided network settings GitHubId matches the organization scope; organization-level configurations may fail when the backing GitHub.Network/networkSettings resource was created with an enterprise databaseId", err))
+	}
+
+	return diag.FromErr(err)
 }

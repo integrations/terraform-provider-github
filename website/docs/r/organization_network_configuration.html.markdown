@@ -11,6 +11,8 @@ This resource allows you to create and manage hosted compute network configurati
 
 ~> **Note:** This resource is organization-only and is available for GitHub Enterprise Cloud organizations. See the [GitHub documentation](https://docs.github.com/en/enterprise-cloud@latest/rest/orgs/network-configurations) for more information.
 
+~> **Note:** Organization-level network configurations are only available when enterprise policy allows organizations to create their own hosted compute network configurations. Otherwise, organizations can only inherit enterprise-level network configurations.
+
 ## Example Usage
 
 ```hcl
@@ -29,7 +31,7 @@ The following arguments are supported:
 
 * `compute_service` - (Optional) The hosted compute service to use for the network configuration. Can be one of `none` or `actions`. Defaults to `none`.
 
-* `network_settings_ids` - (Required) An array containing exactly one network settings ID. Network settings resources are configured separately through your cloud provider. A network settings resource can only be associated with one network configuration at a time.
+* `network_settings_ids` - (Required) An array containing exactly one network settings ID. Network settings resources are configured separately through your cloud provider. For Azure private networking, use the `GitHubId` returned by the Azure `GitHub.Network/networkSettings` resource, not the Azure ARM resource ID. A network settings resource can only be associated with one network configuration at a time.
 
 ## Attributes Reference
 
@@ -44,6 +46,7 @@ In addition to the arguments above, the following attributes are exported:
 * This resource can only be used with organization accounts.
 * GitHub currently allows exactly one `network_settings_ids` value per organization network configuration.
 * The `network_settings_ids` value must reference an existing hosted compute network settings resource configured outside this provider.
+* For organization-scoped configurations backed by Azure private networking, create the Azure `GitHub.Network/networkSettings` resource using the GitHub organization's `databaseId`. Using a mismatched scope, such as an enterprise `databaseId` for an organization configuration, can cause GitHub to reject the configuration.
 
 ## Import
 
