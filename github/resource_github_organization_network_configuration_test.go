@@ -11,22 +11,13 @@ import (
 
 func TestAccGithubOrganizationNetworkConfiguration(t *testing.T) {
 	t.Run("create", func(t *testing.T) {
-		networkSettingsID := os.Getenv("GITHUB_TEST_NETWORK_SETTINGS_ID")
-		if networkSettingsID == "" {
-			t.Skip("GITHUB_TEST_NETWORK_SETTINGS_ID not set")
-		}
+		networkSettingsID := testAccOrganizationNetworkConfigurationID(t)
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		resourceName := "github_organization_network_configuration.test"
 		configurationName := fmt.Sprintf("%snetwork-config-%s", testResourcePrefix, randomID)
 
-		config := fmt.Sprintf(`
-resource "github_organization_network_configuration" "test" {
-  name                 = %q
-  compute_service      = "actions"
-  network_settings_ids = [%q]
-}
-`, configurationName, networkSettingsID)
+		config := testAccOrganizationNetworkConfigurationConfig(configurationName, "actions", networkSettingsID)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessMode(t, organization) },
@@ -47,30 +38,19 @@ resource "github_organization_network_configuration" "test" {
 	})
 
 	t.Run("update", func(t *testing.T) {
-		networkSettingsID := os.Getenv("GITHUB_TEST_NETWORK_SETTINGS_ID")
-		if networkSettingsID == "" {
-			t.Skip("GITHUB_TEST_NETWORK_SETTINGS_ID not set")
-		}
+		networkSettingsID := testAccOrganizationNetworkConfigurationID(t)
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		resourceName := "github_organization_network_configuration.test"
 		beforeName := fmt.Sprintf("%snetwork-config-%s-a", testResourcePrefix, randomID)
 		afterName := fmt.Sprintf("%snetwork-config-%s-b", testResourcePrefix, randomID)
 
-		config := `
-resource "github_organization_network_configuration" "test" {
-  name                 = %q
-  compute_service      = %q
-  network_settings_ids = [%q]
-}
-`
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessMode(t, organization) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: fmt.Sprintf(config, beforeName, "actions", networkSettingsID),
+					Config: testAccOrganizationNetworkConfigurationConfig(beforeName, "actions", networkSettingsID),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr(resourceName, "name", beforeName),
 						resource.TestCheckResourceAttr(resourceName, "compute_service", "actions"),
@@ -78,7 +58,7 @@ resource "github_organization_network_configuration" "test" {
 					),
 				},
 				{
-					Config: fmt.Sprintf(config, afterName, "none", networkSettingsID),
+					Config: testAccOrganizationNetworkConfigurationConfig(afterName, "none", networkSettingsID),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr(resourceName, "name", afterName),
 						resource.TestCheckResourceAttr(resourceName, "compute_service", "none"),
@@ -90,21 +70,12 @@ resource "github_organization_network_configuration" "test" {
 	})
 
 	t.Run("import", func(t *testing.T) {
-		networkSettingsID := os.Getenv("GITHUB_TEST_NETWORK_SETTINGS_ID")
-		if networkSettingsID == "" {
-			t.Skip("GITHUB_TEST_NETWORK_SETTINGS_ID not set")
-		}
+		networkSettingsID := testAccOrganizationNetworkConfigurationID(t)
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		configurationName := fmt.Sprintf("%snetwork-config-%s", testResourcePrefix, randomID)
 
-		config := fmt.Sprintf(`
-resource "github_organization_network_configuration" "test" {
-  name                 = %q
-  compute_service      = "actions"
-  network_settings_ids = [%q]
-}
-`, configurationName, networkSettingsID)
+		config := testAccOrganizationNetworkConfigurationConfig(configurationName, "actions", networkSettingsID)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessMode(t, organization) },
@@ -121,4 +92,25 @@ resource "github_organization_network_configuration" "test" {
 			},
 		})
 	})
+}
+
+func testAccOrganizationNetworkConfigurationID(t *testing.T) string {
+	t.Helper()
+
+	networkSettingsID := os.Getenv("GITHUB_TEST_NETWORK_SETTINGS_ID")
+	if networkSettingsID == "" {
+		t.Skip("GITHUB_TEST_NETWORK_SETTINGS_ID not set")
+	}
+
+	return networkSettingsID
+}
+
+func testAccOrganizationNetworkConfigurationConfig(name, computeService, networkSettingsID string) string {
+	return fmt.Sprintf(`
+resource "github_organization_network_configuration" "test" {
+  name                 = %q
+  compute_service      = %q
+  network_settings_ids = [%q]
+}
+`, name, computeService, networkSettingsID)
 }
