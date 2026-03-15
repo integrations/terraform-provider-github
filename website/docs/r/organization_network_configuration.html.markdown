@@ -2,14 +2,14 @@
 layout: "github"
 page_title: "GitHub: github_organization_network_configuration"
 description: |-
-  Creates and manages network configurations for GitHub Actions hosted runners in an organization.
+  Creates and manages hosted compute network configurations for a GitHub organization.
 ---
 
 # github_organization_network_configuration
 
-This resource allows you to create and manage network configurations for GitHub Actions hosted runners in a GitHub organization. Network configurations enable you to configure networking settings for hosted compute services.
+This resource allows you to create and manage hosted compute network configurations for a GitHub Organization. Network configurations allow GitHub-hosted compute services, such as Actions hosted runners, to connect to your private network resources.
 
-~> **Note:** This resource is only available for GitHub Enterprise Cloud organizations. See the [GitHub documentation](https://docs.github.com/en/enterprise-cloud@latest/rest/orgs/network-configurations) for more information.
+~> **Note:** This resource is organization-only and is available for GitHub Enterprise Cloud organizations. See the [GitHub documentation](https://docs.github.com/en/enterprise-cloud@latest/rest/orgs/network-configurations) for more information.
 
 ## Example Usage
 
@@ -33,11 +33,17 @@ The following arguments are supported:
 
 ## Attributes Reference
 
-The following additional attributes are exported:
+In addition to the arguments above, the following attributes are exported:
 
 * `id` - The ID of the network configuration.
 
 * `created_on` - The timestamp when the network configuration was created.
+
+## Notes
+
+* This resource can only be used with organization accounts.
+* GitHub currently allows exactly one `network_settings_ids` value per organization network configuration.
+* The `network_settings_ids` value must reference an existing hosted compute network settings resource configured outside this provider.
 
 ## Import
 
@@ -46,3 +52,5 @@ Organization network configurations can be imported using the network configurat
 ```shell
 terraform import github_organization_network_configuration.example 1234567890ABCDEF
 ```
+
+The network configuration ID can be found using the [list hosted compute network configurations for an organization](https://docs.github.com/en/enterprise-cloud@latest/rest/orgs/network-configurations#list-hosted-compute-network-configurations-for-an-organization) API.
