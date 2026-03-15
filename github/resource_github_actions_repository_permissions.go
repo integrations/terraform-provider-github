@@ -132,7 +132,7 @@ func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.Resource
 	}
 
 	if v, ok := d.GetOk("sha_pinning_required"); ok {
-		repoActionPermissions.SHAPinningRequired = github.Ptr(v.(bool))
+		repoActionPermissions.SHAPinningRequired = new(v.(bool))
 	}
 
 	_, _, err := client.Repositories.UpdateActionsPermissions(ctx,
@@ -236,8 +236,8 @@ func resourceGithubActionsRepositoryPermissionsDelete(d *schema.ResourceData, me
 
 	// Reset the repo to "default" settings
 	repoActionPermissions := github.ActionsPermissionsRepository{
-		AllowedActions: github.Ptr("all"),
-		Enabled:        github.Ptr(true),
+		AllowedActions: new("all"),
+		Enabled:        new(true),
 	}
 
 	_, _, err := client.Repositories.UpdateActionsPermissions(ctx,

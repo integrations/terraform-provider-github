@@ -137,8 +137,8 @@ func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, meta 
 			context.Background(),
 			data.Get("name").(string),
 			&github.Organization{
-				Description: github.Ptr(description),
-				Name:        github.Ptr(displayName),
+				Description: new(description),
+				Name:        new(displayName),
 			},
 		)
 		if err != nil {
@@ -208,7 +208,7 @@ func resourceGithubEnterpriseOrganizationRead(data *schema.ResourceData, meta an
 			break
 		}
 
-		variables["cursor"] = githubv4.NewString(query.Node.Organization.MembersWithRole.PageInfo.EndCursor)
+		variables["cursor"] = new(query.Node.Organization.MembersWithRole.PageInfo.EndCursor)
 	}
 
 	err := data.Set("admin_logins", schema.NewSet(schema.HashString, adminLogins))
@@ -324,7 +324,7 @@ func updateDescription(ctx context.Context, data *schema.ResourceData, v3 *githu
 			ctx,
 			orgName,
 			&github.Organization{
-				Description: github.Ptr(newDesc),
+				Description: new(newDesc),
 			},
 		)
 		if err != nil {
@@ -349,7 +349,7 @@ func updateDisplayName(ctx context.Context, data *schema.ResourceData, v4 *githu
 			ctx,
 			orgName,
 			&github.Organization{
-				Name: github.Ptr(newDisplayName),
+				Name: new(newDisplayName),
 			},
 		)
 		if err != nil {
@@ -411,7 +411,7 @@ func removeUser(ctx context.Context, v3 *github.Client, v4 *githubv4.Client, use
 		return err
 	}
 
-	membership.Role = github.Ptr("member")
+	membership.Role = new("member")
 	_, _, err = v3.Organizations.EditOrgMembership(ctx, user, orgName, membership)
 	return err
 }

@@ -40,7 +40,7 @@ func expandRequiredReviewers(input []any) []*github.RulesetRequiredReviewer {
 			reviewerData := rv[0].(map[string]any)
 			reviewerType := github.RulesetReviewerType(reviewerData["type"].(string))
 			reviewer = &github.RulesetReviewer{
-				ID:   github.Ptr(int64(reviewerData["id"].(int))),
+				ID:   new(int64(reviewerData["id"].(int))),
 				Type: &reviewerType,
 			}
 		}
@@ -53,7 +53,7 @@ func expandRequiredReviewers(input []any) []*github.RulesetRequiredReviewer {
 		}
 
 		reviewers = append(reviewers, &github.RulesetRequiredReviewer{
-			MinimumApprovals: github.Ptr(reviewerMap["minimum_approvals"].(int)),
+			MinimumApprovals: new(reviewerMap["minimum_approvals"].(int)),
 			FilePatterns:     filePatterns,
 			Reviewer:         reviewer,
 		})
@@ -144,7 +144,7 @@ func expandBypassActors(input []any) []*github.BypassActor {
 			if actorID == 0 {
 				actor.ActorID = nil
 			} else {
-				actor.ActorID = github.Ptr(int64(actorID))
+				actor.ActorID = new(int64(actorID))
 			}
 		}
 
@@ -404,7 +404,7 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 				}
 
 				if integrationID != 0 {
-					params.IntegrationID = github.Ptr(integrationID)
+					params.IntegrationID = new(integrationID)
 				}
 
 				requiredStatusChecks = append(requiredStatusChecks, params)
@@ -470,9 +470,9 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 					workflow := workflowMap.(map[string]any)
 
 					params := &github.RuleWorkflow{
-						RepositoryID: github.Ptr(toInt64(workflow["repository_id"])),
+						RepositoryID: new(toInt64(workflow["repository_id"])),
 						Path:         workflow["path"].(string),
-						Ref:          github.Ptr(workflow["ref"].(string)),
+						Ref:          new(workflow["ref"].(string)),
 					}
 
 					requiredWorkflows = append(requiredWorkflows, params)

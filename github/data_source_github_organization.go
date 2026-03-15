@@ -241,7 +241,7 @@ func dataSourceGithubOrganizationRead(ctx context.Context, d *schema.ResourceDat
 			if !query.Organization.MembersWithRole.PageInfo.HasNextPage {
 				break
 			}
-			variables["after"] = githubv4.NewString(query.Organization.MembersWithRole.PageInfo.EndCursor)
+			variables["after"] = new(query.Organization.MembersWithRole.PageInfo.EndCursor)
 		}
 
 		_ = d.Set("repositories", repoList)

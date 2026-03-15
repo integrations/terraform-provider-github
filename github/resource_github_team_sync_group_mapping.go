@@ -201,9 +201,9 @@ func expandTeamSyncGroups(d *schema.ResourceData) *github.IDPGroupList {
 			groupName := m["group_name"].(string)
 			groupDescription := m["group_description"].(string)
 			group := &github.IDPGroup{
-				GroupID:          github.Ptr(groupID),
-				GroupName:        github.Ptr(groupName),
-				GroupDescription: github.Ptr(groupDescription),
+				GroupID:          new(groupID),
+				GroupName:        new(groupName),
+				GroupDescription: new(groupDescription),
 			}
 			groups = append(groups, group)
 		}

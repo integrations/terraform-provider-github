@@ -131,7 +131,7 @@ func dataSourceGithubOrganizationTeamsRead(ctx context.Context, d *schema.Resour
 		if !query.Organization.Teams.PageInfo.HasNextPage {
 			break
 		}
-		variables["cursor"] = githubv4.NewString(query.Organization.Teams.PageInfo.EndCursor)
+		variables["cursor"] = new(query.Organization.Teams.PageInfo.EndCursor)
 	}
 
 	d.SetId(string(query.Organization.ID))
