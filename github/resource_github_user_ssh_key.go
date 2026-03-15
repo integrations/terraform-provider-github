@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/google/go-github/v84/github"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -22,6 +23,7 @@ func resourceGithubUserSshKey() *schema.Resource {
 			StateContext: resourceGithubUserSshKeyImport,
 		},
 
+		SchemaVersion: 1,
 		Schema: map[string]*schema.Schema{
 			"title": {
 				Type:        schema.TypeString,
@@ -35,6 +37,12 @@ func resourceGithubUserSshKey() *schema.Resource {
 				ForceNew:    true,
 				Description: "The public SSH key to add to your GitHub account.",
 			},
+			"url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The URL of the SSH key.",
+				Deprecated:  "Use key_id instead.",
+			},
 			"key_id": {
 				Type:        schema.TypeInt,
 				Computed:    true,
@@ -43,6 +51,37 @@ func resourceGithubUserSshKey() *schema.Resource {
 			"etag": {
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+		},
+
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Version: 0,
+				Type: cty.Object(map[string]cty.Type{
+					"id":    cty.String,
+					"title": cty.String,
+					"key":   cty.String,
+					"url":   cty.String,
+					"etag":  cty.String,
+				}),
+				Upgrade: func(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
+					if rawState == nil {
+						return nil, fmt.Errorf("resource state upgrade failed, state is nil")
+					}
+
+					// copy d.Id() into key_id
+					if id, ok := rawState["id"].(string); ok {
+						keyID, err := strconv.ParseInt(id, 10, 64)
+						if err != nil {
+							return nil, fmt.Errorf("resource state upgrade failed, invalid SSH key ID format: %w", err)
+						}
+						rawState["key_id"] = keyID
+					} else {
+						return nil, fmt.Errorf("resource state upgrade failed, missing or invalid 'id' field in state")
+					}
+
+					return rawState, nil
+				},
 			},
 		},
 	}
@@ -80,7 +119,16 @@ func resourceGithubUserSshKeyCreate(ctx context.Context, d *schema.ResourceData,
 func resourceGithubUserSshKeyRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
-	keyID := d.Get("key_id").(int64)
+	keyID := int64(d.Get("key_id").(int))
+	// fallback to d.Id() for backward compatibility when key_id is not set
+	if keyID == 0 {
+		var err error
+		keyID, err = strconv.ParseInt(d.Id(), 10, 64)
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("invalid SSH key ID format: %w", err))
+		}
+	}
+
 	_, _, err := client.Users.GetKey(ctx, keyID)
 	if err != nil {
 		var ghErr *github.ErrorResponse
@@ -103,12 +151,24 @@ func resourceGithubUserSshKeyRead(ctx context.Context, d *schema.ResourceData, m
 func resourceGithubUserSshKeyDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
-	keyID := d.Get("key_id").(int64)
-	resp, err := client.Users.DeleteKey(ctx, keyID)
-	if resp.StatusCode == http.StatusNotFound {
-		return nil
+	keyID := int64(d.Get("key_id").(int))
+	// fallback to d.Id() for backward compatibility when key_id is not set
+	if keyID == 0 {
+		var err error
+		keyID, err = strconv.ParseInt(d.Id(), 10, 64)
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("invalid SSH key ID format: %w", err))
+		}
 	}
-	return diag.FromErr(err)
+
+	resp, err := client.Users.DeleteKey(ctx, keyID)
+	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			return nil
+		}
+		return diag.FromErr(err)
+	}
+	return nil
 }
 
 func resourceGithubUserSshKeyImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {

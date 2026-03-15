@@ -105,10 +105,13 @@ func resourceGithubUserSshSigningKeyDelete(ctx context.Context, d *schema.Resour
 
 	keyID := d.Get("key_id").(int64)
 	resp, err := client.Users.DeleteSSHSigningKey(ctx, keyID)
-	if resp.StatusCode == http.StatusNotFound {
-		return nil
+	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			return nil
+		}
+		return diag.FromErr(err)
 	}
-	return diag.FromErr(err)
+	return nil
 }
 
 func resourceGithubUserSshSigningKeyImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
