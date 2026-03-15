@@ -97,6 +97,71 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 		})
 	})
 
+	t.Run("manages private networking association for hosted runners", func(t *testing.T) {
+		networkSettingsID := testAccOrganizationNetworkConfigurationID(t)
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		resourceName := "github_actions_runner_group.test"
+		networkConfigurationName := fmt.Sprintf("%snetwork-config-%s", testResourcePrefix, randomID)
+		runnerGroupName := fmt.Sprintf("%srunner-group-%s", testResourcePrefix, randomID)
+
+		configWithoutNetworkConfiguration := fmt.Sprintf(`
+			resource "github_organization_network_configuration" "test" {
+			  name                 = %q
+			  compute_service      = "actions"
+			  network_settings_ids = [%q]
+			}
+
+			resource "github_actions_runner_group" "test" {
+			  name       = %q
+			  visibility = "all"
+			}
+		`, networkConfigurationName, networkSettingsID, runnerGroupName)
+
+		configWithNetworkConfiguration := fmt.Sprintf(`
+			resource "github_organization_network_configuration" "test" {
+			  name                 = %q
+			  compute_service      = "actions"
+			  network_settings_ids = [%q]
+			}
+
+			resource "github_actions_runner_group" "test" {
+			  name                     = %q
+			  visibility               = "all"
+			  network_configuration_id = github_organization_network_configuration.test.id
+			}
+		`, networkConfigurationName, networkSettingsID, runnerGroupName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: configWithoutNetworkConfiguration,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckNoResourceAttr(resourceName, "network_configuration_id"),
+					),
+				},
+				{
+					Config: configWithNetworkConfiguration,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrSet(resourceName, "network_configuration_id"),
+					),
+				},
+				{
+					ResourceName:      resourceName,
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+				{
+					Config: configWithoutNetworkConfiguration,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckNoResourceAttr(resourceName, "network_configuration_id"),
+					),
+				},
+			},
+		})
+	})
+
 	t.Run("manages runner visibility", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-act-runner-%s", testResourcePrefix, randomID)

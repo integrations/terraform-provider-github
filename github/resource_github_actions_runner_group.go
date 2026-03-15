@@ -13,6 +13,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
+type organizationRunnerGroup struct {
+	NetworkConfigurationID *string `json:"network_configuration_id,omitempty"`
+}
+
 func resourceGithubActionsRunnerGroup() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGithubActionsRunnerGroupCreate,
@@ -92,8 +96,72 @@ func resourceGithubActionsRunnerGroup() *schema.Resource {
 				Optional:    true,
 				Description: "List of workflows the runner group should be allowed to run. This setting will be ignored unless restricted_to_workflows is set to 'true'.",
 			},
+			"network_configuration_id": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringLenBetween(1, 255),
+				Description:  "The identifier of the hosted compute network configuration to associate with this runner group for GitHub-hosted private networking.",
+			},
 		},
 	}
+}
+
+func getOrganizationRunnerGroupNetworking(client *github.Client, ctx context.Context, org string, groupID int64) (*organizationRunnerGroup, *github.Response, error) {
+	req, err := client.NewRequest("GET", fmt.Sprintf("orgs/%s/actions/runner-groups/%d", org, groupID), nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var runnerGroup organizationRunnerGroup
+	resp, err := client.Do(ctx, req, &runnerGroup)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return &runnerGroup, resp, nil
+}
+
+func getOrganizationRunnerGroup(client *github.Client, ctx context.Context, org string, groupID int64) (*github.RunnerGroup, *github.Response, error) {
+	runnerGroup, resp, err := client.Actions.GetOrganizationRunnerGroup(ctx, org, groupID)
+	if err != nil {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) {
+			// ignore error StatusNotModified
+			return runnerGroup, resp, nil
+		}
+	}
+	return runnerGroup, resp, err
+}
+
+func updateOrganizationRunnerGroupNetworking(client *github.Client, ctx context.Context, org string, groupID int64, networkConfigurationID *string) (*github.Response, error) {
+	payload := map[string]any{
+		"network_configuration_id": networkConfigurationID,
+	}
+
+	req, err := client.NewRequest("PATCH", fmt.Sprintf("orgs/%s/actions/runner-groups/%d", org, groupID), payload)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := client.Do(ctx, req, nil)
+	if err != nil {
+		return resp, err
+	}
+
+	return resp, nil
+}
+
+func setGithubActionsRunnerGroupNetworkingState(d *schema.ResourceData, runnerGroup *organizationRunnerGroup) error {
+	if runnerGroup != nil && runnerGroup.NetworkConfigurationID != nil && *runnerGroup.NetworkConfigurationID != "" {
+		if err := d.Set("network_configuration_id", *runnerGroup.NetworkConfigurationID); err != nil {
+			return err
+		}
+	} else {
+		if err := d.Set("network_configuration_id", nil); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta any) error {
@@ -186,19 +254,14 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta any) er
 		return err
 	}
 
-	return resourceGithubActionsRunnerGroupRead(d, meta)
-}
-
-func getOrganizationRunnerGroup(client *github.Client, ctx context.Context, org string, groupID int64) (*github.RunnerGroup, *github.Response, error) {
-	runnerGroup, resp, err := client.Actions.GetOrganizationRunnerGroup(ctx, org, groupID)
-	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
-			// ignore error StatusNotModified
-			return runnerGroup, resp, nil
+	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
+		networkConfigurationIDValue := networkConfigurationID.(string)
+		if _, err = updateOrganizationRunnerGroupNetworking(client, ctx, orgName, runnerGroup.GetID(), &networkConfigurationIDValue); err != nil {
+			return err
 		}
 	}
-	return runnerGroup, resp, err
+
+	return resourceGithubActionsRunnerGroupRead(d, meta)
 }
 
 func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta any) error {
@@ -272,6 +335,14 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta any) erro
 		return err
 	}
 
+	runnerGroupNetworking, _, err := getOrganizationRunnerGroupNetworking(client, context.WithValue(context.Background(), ctxId, d.Id()), orgName, runnerGroupID)
+	if err != nil {
+		return err
+	}
+	if err = setGithubActionsRunnerGroupNetworkingState(d, runnerGroupNetworking); err != nil {
+		return err
+	}
+
 	selectedRepositoryIDs := []int64{}
 	options := github.ListOptions{
 		PerPage: maxPerPage,
@@ -337,6 +408,18 @@ func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, meta any) er
 
 	if _, _, err := client.Actions.UpdateOrganizationRunnerGroup(ctx, orgName, runnerGroupID, options); err != nil {
 		return err
+	}
+
+	if d.HasChange("network_configuration_id") {
+		var networkConfigurationIDValue *string
+		if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
+			value := networkConfigurationID.(string)
+			networkConfigurationIDValue = &value
+		}
+
+		if _, err := updateOrganizationRunnerGroupNetworking(client, ctx, orgName, runnerGroupID, networkConfigurationIDValue); err != nil {
+			return err
+		}
 	}
 
 	selectedRepositories, hasSelectedRepositories := d.GetOk("selected_repository_ids")
