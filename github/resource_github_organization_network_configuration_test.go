@@ -7,6 +7,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubOrganizationNetworkConfiguration(t *testing.T) {
@@ -25,13 +28,13 @@ func TestAccGithubOrganizationNetworkConfiguration(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr(resourceName, "name", configurationName),
-						resource.TestCheckResourceAttr(resourceName, "compute_service", "actions"),
-						resource.TestCheckResourceAttr(resourceName, "network_settings_ids.0", networkSettingsID),
-						resource.TestCheckResourceAttrSet(resourceName, "id"),
-						resource.TestCheckResourceAttrSet(resourceName, "created_on"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("name"), knownvalue.StringExact(configurationName)),
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("compute_service"), knownvalue.StringExact("actions")),
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_settings_ids"), knownvalue.ListExact([]knownvalue.Check{knownvalue.StringExact(networkSettingsID)})),
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("created_on"), knownvalue.NotNull()),
+					},
 				},
 			},
 		})
@@ -51,19 +54,19 @@ func TestAccGithubOrganizationNetworkConfiguration(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: testAccOrganizationNetworkConfigurationConfig(beforeName, "actions", networkSettingsID),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr(resourceName, "name", beforeName),
-						resource.TestCheckResourceAttr(resourceName, "compute_service", "actions"),
-						resource.TestCheckResourceAttr(resourceName, "network_settings_ids.0", networkSettingsID),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("name"), knownvalue.StringExact(beforeName)),
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("compute_service"), knownvalue.StringExact("actions")),
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_settings_ids"), knownvalue.ListExact([]knownvalue.Check{knownvalue.StringExact(networkSettingsID)})),
+					},
 				},
 				{
 					Config: testAccOrganizationNetworkConfigurationConfig(afterName, "none", networkSettingsID),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr(resourceName, "name", afterName),
-						resource.TestCheckResourceAttr(resourceName, "compute_service", "none"),
-						resource.TestCheckResourceAttr(resourceName, "network_settings_ids.0", networkSettingsID),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("name"), knownvalue.StringExact(afterName)),
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("compute_service"), knownvalue.StringExact("none")),
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_settings_ids"), knownvalue.ListExact([]knownvalue.Check{knownvalue.StringExact(networkSettingsID)})),
+					},
 				},
 			},
 		})
