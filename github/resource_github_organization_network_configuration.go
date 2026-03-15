@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
+var organizationNetworkConfigurationNamePattern = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
+
 func resourceGithubOrganizationNetworkConfiguration() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGithubOrganizationNetworkConfigurationCreate,
@@ -28,7 +30,7 @@ func resourceGithubOrganizationNetworkConfiguration() *schema.Resource {
 				ValidateDiagFunc: validation.ToDiagFunc(validation.All(
 					validation.StringLenBetween(1, 100),
 					validation.StringMatch(
-						regexp.MustCompile(`^[a-zA-Z0-9._-]+$`),
+						organizationNetworkConfigurationNamePattern,
 						"name may only contain upper and lowercase letters a-z, numbers 0-9, '.', '-', and '_'",
 					),
 				)),
@@ -69,11 +71,7 @@ func resourceGithubOrganizationNetworkConfigurationCreate(d *schema.ResourceData
 	orgName := meta.(*Owner).name
 	ctx := context.Background()
 
-	configuration, _, err := client.Organizations.CreateNetworkConfiguration(ctx, orgName, github.NetworkConfigurationRequest{
-		Name:               github.Ptr(d.Get("name").(string)),
-		ComputeService:     expandOrganizationNetworkConfigurationComputeService(d.Get("compute_service").(string)),
-		NetworkSettingsIDs: expandOrganizationNetworkSettingsIDs(d.Get("network_settings_ids").([]any)),
-	})
+	configuration, _, err := client.Organizations.CreateNetworkConfiguration(ctx, orgName, buildOrganizationNetworkConfigurationRequest(d))
 	if err != nil {
 		return err
 	}
@@ -108,16 +106,7 @@ func resourceGithubOrganizationNetworkConfigurationRead(d *schema.ResourceData, 
 		return nil
 	}
 
-	_ = d.Set("name", configuration.GetName())
-	if configuration.ComputeService != nil {
-		_ = d.Set("compute_service", string(*configuration.ComputeService))
-	}
-	_ = d.Set("network_settings_ids", configuration.NetworkSettingsIDs)
-	if configuration.CreatedOn != nil {
-		_ = d.Set("created_on", configuration.CreatedOn.Format("2006-01-02T15:04:05Z07:00"))
-	}
-
-	return nil
+	return setOrganizationNetworkConfigurationState(d, configuration)
 }
 
 func resourceGithubOrganizationNetworkConfigurationUpdate(d *schema.ResourceData, meta any) error {
@@ -130,11 +119,7 @@ func resourceGithubOrganizationNetworkConfigurationUpdate(d *schema.ResourceData
 	networkConfigurationID := d.Id()
 	ctx := context.WithValue(context.Background(), ctxId, networkConfigurationID)
 
-	_, _, err := client.Organizations.UpdateNetworkConfiguration(ctx, orgName, networkConfigurationID, github.NetworkConfigurationRequest{
-		Name:               github.Ptr(d.Get("name").(string)),
-		ComputeService:     expandOrganizationNetworkConfigurationComputeService(d.Get("compute_service").(string)),
-		NetworkSettingsIDs: expandOrganizationNetworkSettingsIDs(d.Get("network_settings_ids").([]any)),
-	})
+	_, _, err := client.Organizations.UpdateNetworkConfiguration(ctx, orgName, networkConfigurationID, buildOrganizationNetworkConfigurationRequest(d))
 	if err != nil {
 		return err
 	}
@@ -175,4 +160,25 @@ func expandOrganizationNetworkSettingsIDs(networkSettingsIDs []any) []string {
 	}
 
 	return ids
+}
+
+func buildOrganizationNetworkConfigurationRequest(d *schema.ResourceData) github.NetworkConfigurationRequest {
+	return github.NetworkConfigurationRequest{
+		Name:               github.Ptr(d.Get("name").(string)),
+		ComputeService:     expandOrganizationNetworkConfigurationComputeService(d.Get("compute_service").(string)),
+		NetworkSettingsIDs: expandOrganizationNetworkSettingsIDs(d.Get("network_settings_ids").([]any)),
+	}
+}
+
+func setOrganizationNetworkConfigurationState(d *schema.ResourceData, configuration *github.NetworkConfiguration) error {
+	_ = d.Set("name", configuration.GetName())
+	if configuration.ComputeService != nil {
+		_ = d.Set("compute_service", string(*configuration.ComputeService))
+	}
+	_ = d.Set("network_settings_ids", configuration.NetworkSettingsIDs)
+	if configuration.CreatedOn != nil {
+		_ = d.Set("created_on", configuration.CreatedOn.Format("2006-01-02T15:04:05Z07:00"))
+	}
+
+	return nil
 }
