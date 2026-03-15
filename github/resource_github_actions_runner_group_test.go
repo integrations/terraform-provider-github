@@ -11,6 +11,29 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
+func testCheckRunnerGroupNetworkConfigurationMatches(resourceName, networkConfigurationResourceName string) resource.TestCheckFunc {
+	return func(state *terraform.State) error {
+		runnerGroup, ok := state.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("runner group resource %s not found in state", resourceName)
+		}
+
+		networkConfiguration, ok := state.RootModule().Resources[networkConfigurationResourceName]
+		if !ok {
+			return fmt.Errorf("network configuration resource %s not found in state", networkConfigurationResourceName)
+		}
+
+		actual := runnerGroup.Primary.Attributes["network_configuration_id"]
+		expected := networkConfiguration.Primary.ID
+
+		if actual != expected {
+			return fmt.Errorf("actual network_configuration_id %q does not match expected %q", actual, expected)
+		}
+
+		return nil
+	}
+}
+
 func TestAccGithubActionsRunnerGroup(t *testing.T) {
 	t.Run("creates runner groups without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -101,6 +124,7 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 		networkSettingsID := testAccOrganizationNetworkConfigurationID(t)
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		resourceName := "github_actions_runner_group.test"
+		networkConfigurationResourceName := "github_organization_network_configuration.test"
 		networkConfigurationName := fmt.Sprintf("%snetwork-config-%s", testResourcePrefix, randomID)
 		runnerGroupName := fmt.Sprintf("%srunner-group-%s", testResourcePrefix, randomID)
 
@@ -145,6 +169,7 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 					Config: configWithNetworkConfiguration,
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttrSet(resourceName, "network_configuration_id"),
+						testCheckRunnerGroupNetworkConfigurationMatches(resourceName, networkConfigurationResourceName),
 					),
 				},
 				{
@@ -157,6 +182,48 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckNoResourceAttr(resourceName, "network_configuration_id"),
 					),
+				},
+			},
+		})
+	})
+
+	t.Run("creates private networking association for hosted runners on create", func(t *testing.T) {
+		networkSettingsID := testAccOrganizationNetworkConfigurationID(t)
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		resourceName := "github_actions_runner_group.test"
+		networkConfigurationResourceName := "github_organization_network_configuration.test"
+		networkConfigurationName := fmt.Sprintf("%snetwork-config-create-%s", testResourcePrefix, randomID)
+		runnerGroupName := fmt.Sprintf("%srunner-group-create-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+			resource "github_organization_network_configuration" "test" {
+			  name                 = %q
+			  compute_service      = "actions"
+			  network_settings_ids = [%q]
+			}
+
+			resource "github_actions_runner_group" "test" {
+			  name                     = %q
+			  visibility               = "all"
+			  network_configuration_id = github_organization_network_configuration.test.id
+			}
+		`, networkConfigurationName, networkSettingsID, runnerGroupName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrSet(resourceName, "network_configuration_id"),
+						testCheckRunnerGroupNetworkConfigurationMatches(resourceName, networkConfigurationResourceName),
+					),
+				},
+				{
+					ResourceName:      resourceName,
+					ImportState:       true,
+					ImportStateVerify: true,
 				},
 			},
 		})
