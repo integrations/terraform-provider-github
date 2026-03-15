@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"time"
 
 	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -183,7 +184,7 @@ func setOrganizationNetworkConfigurationState(d *schema.ResourceData, configurat
 		return err
 	}
 	if configuration.CreatedOn != nil {
-		if err := d.Set("created_on", configuration.CreatedOn.Format("2006-01-02T15:04:05Z07:00")); err != nil {
+		if err := d.Set("created_on", configuration.CreatedOn.Format(time.RFC3339)); err != nil {
 			return err
 		}
 	}
