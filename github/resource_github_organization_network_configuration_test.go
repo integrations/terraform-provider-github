@@ -20,7 +20,7 @@ func TestAccGithubOrganizationNetworkConfiguration(t *testing.T) {
 		config := testAccOrganizationNetworkConfigurationConfig(configurationName, "actions", networkSettingsID)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, organization) },
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -46,7 +46,7 @@ func TestAccGithubOrganizationNetworkConfiguration(t *testing.T) {
 		afterName := fmt.Sprintf("%snetwork-config-%s-b", testResourcePrefix, randomID)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, organization) },
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -78,7 +78,7 @@ func TestAccGithubOrganizationNetworkConfiguration(t *testing.T) {
 		config := testAccOrganizationNetworkConfigurationConfig(configurationName, "actions", networkSettingsID)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, organization) },
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
