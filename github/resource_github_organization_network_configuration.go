@@ -171,13 +171,21 @@ func buildOrganizationNetworkConfigurationRequest(d *schema.ResourceData) github
 }
 
 func setOrganizationNetworkConfigurationState(d *schema.ResourceData, configuration *github.NetworkConfiguration) error {
-	_ = d.Set("name", configuration.GetName())
-	if configuration.ComputeService != nil {
-		_ = d.Set("compute_service", string(*configuration.ComputeService))
+	if err := d.Set("name", configuration.GetName()); err != nil {
+		return err
 	}
-	_ = d.Set("network_settings_ids", configuration.NetworkSettingsIDs)
+	if configuration.ComputeService != nil {
+		if err := d.Set("compute_service", string(*configuration.ComputeService)); err != nil {
+			return err
+		}
+	}
+	if err := d.Set("network_settings_ids", configuration.NetworkSettingsIDs); err != nil {
+		return err
+	}
 	if configuration.CreatedOn != nil {
-		_ = d.Set("created_on", configuration.CreatedOn.Format("2006-01-02T15:04:05Z07:00"))
+		if err := d.Set("created_on", configuration.CreatedOn.Format("2006-01-02T15:04:05Z07:00")); err != nil {
+			return err
+		}
 	}
 
 	return nil
