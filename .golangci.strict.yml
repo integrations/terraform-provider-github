@@ -28,5 +28,6 @@ linters:
             - XR005 # https://github.com/bflad/tfproviderlint/tree/main/passes/XR005
             - XR007 # https://github.com/bflad/tfproviderlint/tree/main/passes/XR007
             - XS001 # https://github.com/bflad/tfproviderlint/tree/main/passes/XS001
-            - L002 # file:///./tools/tfproviderlint/checks/L002/README.md
+            # Custom local checks
+            - L002 # file:///./tools/tfproviderlint/checks/L002/L002.go
             - L003 # file:///./tools/tfproviderlint/checks/L003/L003.go
