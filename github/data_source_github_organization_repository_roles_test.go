@@ -3,7 +3,7 @@ package github
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccDataSourceGithubOrganizationRepositoryRoles(t *testing.T) {
@@ -13,8 +13,8 @@ func TestAccDataSourceGithubOrganizationRepositoryRoles(t *testing.T) {
 		`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessHasPaidOrgs(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -45,8 +45,8 @@ func TestAccDataSourceGithubOrganizationRepositoryRoles(t *testing.T) {
 		`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, enterprise) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,

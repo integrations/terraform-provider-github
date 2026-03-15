@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -23,13 +23,13 @@ func resourceGithubActionsRepositoryAccessLevel() *schema.Resource {
 				Type:             schema.TypeString,
 				Required:         true,
 				Description:      "Where the actions or reusable workflows of the repository may be used. Possible values are 'none', 'user', 'organization', or 'enterprise'.",
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"none", "user", "organization", "enterprise"}, false), "access_level"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"none", "user", "organization", "enterprise"}, false)),
 			},
 			"repository": {
 				Type:             schema.TypeString,
 				Required:         true,
 				Description:      "The GitHub repository.",
-				ValidateDiagFunc: toDiagFunc(validation.StringLenBetween(1, 100), "repository"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 100)),
 			},
 		},
 	}
@@ -46,7 +46,7 @@ func resourceGithubActionsRepositoryAccessLevelCreateOrUpdate(d *schema.Resource
 
 	accessLevel := d.Get("access_level").(string)
 	actionAccessLevel := github.RepositoryActionsAccessLevel{
-		AccessLevel: github.String(accessLevel),
+		AccessLevel: github.Ptr(accessLevel),
 	}
 
 	_, err := client.Repositories.EditActionsAccessLevel(ctx, owner, repoName, actionAccessLevel)
@@ -81,7 +81,7 @@ func resourceGithubActionsRepositoryAccessLevelDelete(d *schema.ResourceData, me
 	ctx := context.WithValue(context.Background(), ctxId, repoName)
 
 	actionAccessLevel := github.RepositoryActionsAccessLevel{
-		AccessLevel: github.String("none"),
+		AccessLevel: github.Ptr("none"),
 	}
 	_, err := client.Repositories.EditActionsAccessLevel(ctx, owner, repoName, actionAccessLevel)
 

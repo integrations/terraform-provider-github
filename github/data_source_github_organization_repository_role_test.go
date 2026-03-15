@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubOrganizationRepositoryRoleDataSource(t *testing.T) {
 	t.Run("queries an organization repository role", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		roleName := fmt.Sprintf(`tf-acc-test-%s`, randomID)
+		roleName := fmt.Sprintf(`%s%s`, testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_organization_repository_role" "test" {
@@ -32,8 +32,8 @@ func TestAccGithubOrganizationRepositoryRoleDataSource(t *testing.T) {
 		`, roleName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, enterprise) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,

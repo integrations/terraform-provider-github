@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccGithubTeamMembers(t *testing.T) {
@@ -17,7 +17,7 @@ func TestAccGithubTeamMembers(t *testing.T) {
 
 	t.Run("creates a team & members configured with defaults", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		teamName := fmt.Sprintf("tf-acc-test-team-%s", randomID)
+		teamName := fmt.Sprintf("%steam-members-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 resource "github_team" "test" {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubEnterpriseActionsWorkflowPermissions(t *testing.T) {
@@ -25,8 +25,8 @@ func TestAccGithubEnterpriseActionsWorkflowPermissions(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessEnterprise(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -69,8 +69,8 @@ func TestAccGithubEnterpriseActionsWorkflowPermissions(t *testing.T) {
 		}
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessEnterprise(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: configs["before"],
@@ -101,8 +101,8 @@ func TestAccGithubEnterpriseActionsWorkflowPermissions(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessEnterprise(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,

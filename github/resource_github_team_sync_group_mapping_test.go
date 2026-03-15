@@ -5,16 +5,17 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v83/github"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
 	t.Run("creates a team sync group mapping", func(t *testing.T) {
-		teamName := acctest.RandomWithPrefix("tf-acc-test-%s")
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		teamName := fmt.Sprintf("%steam-sync-%s", testResourcePrefix, randomID)
 		rn := "github_team_sync_group_mapping.test_mapping"
 
 		resource.Test(t, resource.TestCase{
@@ -45,7 +46,8 @@ func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
 	})
 
 	t.Run("creates a team sync group mapping and then deletes it", func(t *testing.T) {
-		teamName := acctest.RandomWithPrefix("tf-acc-test-%s")
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		teamName := fmt.Sprintf("%steam-sync-%s", testResourcePrefix, randomID)
 		rn := "github_team_sync_group_mapping.test_mapping"
 
 		resource.Test(t, resource.TestCase{
@@ -65,7 +67,8 @@ func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
 	})
 
 	t.Run("creates a team sync group mapping and then updates it", func(t *testing.T) {
-		teamName := acctest.RandomWithPrefix("tf-acc-test-%s")
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		teamName := fmt.Sprintf("%steam-sync-%s", testResourcePrefix, randomID)
 		description := "tf-acc-group-description-update"
 		rn := "github_team_sync_group_mapping.test_mapping"
 
@@ -109,7 +112,8 @@ func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
 	})
 
 	t.Run("creates empty team sync group mapping", func(t *testing.T) {
-		teamName := acctest.RandomWithPrefix("tf-acc-test-%s")
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		teamName := fmt.Sprintf("%steam-sync-%s", testResourcePrefix, randomID)
 		rn := "github_team_sync_group_mapping.test_mapping"
 
 		resource.Test(t, resource.TestCase{

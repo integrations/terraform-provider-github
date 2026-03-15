@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubRepositoryProject(t *testing.T) {
@@ -14,10 +14,11 @@ func TestAccGithubRepositoryProject(t *testing.T) {
 
 	t.Run("creates a repository project", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-project-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
+			  name = "%s"
 				has_projects = true
 			}
 
@@ -26,12 +27,12 @@ func TestAccGithubRepositoryProject(t *testing.T) {
 			  repository = github_repository.test.name
 			  body       = "this is a test project"
 			}
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestMatchResourceAttr(
 				"github_repository_project.test", "url",
-				regexp.MustCompile(randomID+"/projects/1"),
+				regexp.MustCompile(repoName+"/projects/1"),
 			),
 		)
 

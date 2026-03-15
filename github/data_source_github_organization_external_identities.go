@@ -1,6 +1,9 @@
 package github
 
 import (
+	"context"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
@@ -32,7 +35,7 @@ type ExternalIdentities struct {
 
 func dataSourceGithubOrganizationExternalIdentities() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubOrganizationExternalIdentitiesRead,
+		ReadContext: dataSourceGithubOrganizationExternalIdentitiesRead,
 
 		Schema: map[string]*schema.Schema{
 			"identities": {
@@ -65,11 +68,10 @@ func dataSourceGithubOrganizationExternalIdentities() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationExternalIdentitiesRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubOrganizationExternalIdentitiesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	name := meta.(*Owner).name
 
 	client4 := meta.(*Owner).v4client
-	ctx := meta.(*Owner).StopContext
 
 	var query struct {
 		Organization struct {
@@ -88,7 +90,7 @@ func dataSourceGithubOrganizationExternalIdentitiesRead(d *schema.ResourceData, 
 	for {
 		err := client4.Query(ctx, &query, variables)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		for _, edge := range query.Organization.SamlIdentityProvider.Edges {
 			identity := map[string]any{

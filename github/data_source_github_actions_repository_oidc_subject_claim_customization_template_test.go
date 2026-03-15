@@ -4,17 +4,18 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDataSource(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	repoName := fmt.Sprintf("%srepo-oidc-%s", testResourcePrefix, randomID)
 
 	t.Run("get an repository oidc subject claim customization template without error", func(t *testing.T) {
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
+				name = "%s"
 				visibility = "private"
 			}
 
@@ -23,7 +24,7 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDataSour
 				use_default = false
 				include_claim_keys = ["repo", "context", "job_workflow_ref"]
 			}
-		`, randomID)
+		`, repoName)
 
 		config2 := config + `
 			data "github_actions_repository_oidc_subject_claim_customization_template" "test" {
@@ -33,7 +34,7 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDataSour
 
 		config3 := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
+				name = "%s"
 				visibility = "private"
 			}
 
@@ -41,7 +42,7 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDataSour
 				repository = github_repository.test.name
 				use_default = true
 			}
-		`, randomID)
+		`, repoName)
 
 		config4 := config3 + `
 			data "github_actions_repository_oidc_subject_claim_customization_template" "test" {

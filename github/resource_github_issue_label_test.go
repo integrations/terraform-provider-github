@@ -5,20 +5,21 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubIssueLabel(t *testing.T) {
 	t.Run("creates and updates labels without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-issue-label-%s", testResourcePrefix, randomID)
 		description := "label_description"
 		updatedDescription := "updated_label_description"
 
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
+			  name = "%s"
 				auto_init = true
 			}
 
@@ -28,7 +29,7 @@ func TestAccGithubIssueLabel(t *testing.T) {
 			  color       = "000000"
 			  description = "%s"
 			}
-		`, randomID, description)
+		`, repoName, description)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
@@ -65,10 +66,11 @@ func TestAccGithubIssueLabel(t *testing.T) {
 
 	t.Run("can delete labels from archived repositories without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-issue-label-arch-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name = "tf-acc-test-archive-%s"
+				name = "%s"
 				auto_init = true
 			}
 
@@ -78,7 +80,7 @@ func TestAccGithubIssueLabel(t *testing.T) {
 				color = "ff0000"
 				description = "Test label for archived repo"
 			}
-		`, randomID)
+		`, repoName)
 
 		archivedConfig := strings.Replace(config,
 			`auto_init = true`,
@@ -86,8 +88,8 @@ func TestAccGithubIssueLabel(t *testing.T) {
 				archived = true`, 1)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnauthenticated(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -112,11 +114,11 @@ func TestAccGithubIssueLabel(t *testing.T) {
 				{
 					Config: fmt.Sprintf(`
 							resource "github_repository" "test" {
-								name = "tf-acc-test-archive-%s"
+								name = "%s"
 								auto_init = true
 								archived = true
 							}
-						`, randomID),
+						`, repoName),
 				},
 			},
 		})

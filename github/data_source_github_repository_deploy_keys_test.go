@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubRepositoryDeployKeysDataSource(t *testing.T) {
@@ -22,7 +22,7 @@ func TestAccGithubRepositoryDeployKeysDataSource(t *testing.T) {
 
 		keyPath := strings.ReplaceAll(filepath.Join("test-fixtures", fmt.Sprintf("%s.pub", keyName)), "\\", "/")
 
-		repoName := fmt.Sprintf("tf-acc-test-deploy-keys-%s", acctest.RandString(5))
+		repoName := fmt.Sprintf("%srepo-deploy-keys-%s", testResourcePrefix, acctest.RandString(5))
 		config := fmt.Sprintf(`
 		resource "github_repository" "test" {
 			name      = "%s"

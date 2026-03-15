@@ -1,8 +1,29 @@
-TEST?=$$(go list ./... |grep -v 'vendor')
-WEBSITE_REPO=github.com/hashicorp/terraform-website
+SWEEP?=repositories,teams
 PKG_NAME=github
+TEST?=./$(PKG_NAME)/...
+WEBSITE_REPO=github.com/hashicorp/terraform-website
 
-export TESTARGS=-race -coverprofile=coverage.txt -covermode=atomic
+COVERAGEARGS?=-race -coverprofile=coverage.txt -covermode=atomic
+
+# VARIABLE REFERENCE:
+#
+# Test-specific variables:
+#   T=<pattern>       - Test name pattern (e.g., TestAccGithubRepository)
+#   COV=true          - Enable coverage
+#
+#
+# Examples:
+#   make test T=TestMigrate                               # Run only schema migration unit tests
+#   make test COV=true                                    # Run all unit tests with coverage
+#   make testacc T=TestAccGithubRepositories\$$ COV=true  # Run only acceptance tests for a specific Test name with coverage
+
+ifneq ($(origin T), undefined)
+	RUNARGS = -run='$(T)'
+endif
+
+ifneq ($(origin COV), undefined)
+	RUNARGS += $(COVERAGEARGS)
+endif
 
 default: build
 
@@ -26,19 +47,24 @@ lintcheck:
 	golangci-lint run ./...
 
 test:
-	CGO_ENABLED=0 go test ./...
-	# commenting this out for release tooling, please run testacc instead
+	@branch=$$(git rev-parse --abbrev-ref HEAD); \
+	printf "==> Running unit tests on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
+	CGO_ENABLED=0 go test $(TEST) \
+		-timeout=30s \
+		-parallel=4 \
+		-v \
+		-skip '^TestAcc' \
+		$(RUNARGS) $(TESTARGS) \
+		-count 1;
 
 testacc:
-	TF_ACC=1 CGO_ENABLED=0 go test -run "^TestAcc*" $(TEST) -v $(TESTARGS) -timeout 120m -count=1
+	@branch=$$(git rev-parse --abbrev-ref HEAD); \
+	printf "==> Running acceptance tests on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
+	TF_ACC=1 CGO_ENABLED=0 go test $(TEST) -v -run '^TestAcc' $(RUNARGS) $(TESTARGS) -timeout 120m -count=1
 
-test-compile:
-	@if [ "$(TEST)" = "./..." ]; then \
-		echo "ERROR: Set TEST to a specific package. For example,"; \
-		echo "  make test-compile TEST=./$(PKG_NAME)"; \
-		exit 1; \
-	fi
-	CGO_ENABLED=0 go test -c $(TEST) $(TESTARGS)
+sweep:
+	@echo "WARNING: This will destroy infrastructure. Use only in development accounts."
+	go test $(TEST) -v -sweep=$(SWEEP) $(SWEEPARGS)
 
 website:
 ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
@@ -58,4 +84,4 @@ ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
 endif
 	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider-test PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
 
-.PHONY: build test testacc fmt lint lintcheck tools test-compile website website-lint website-test
+.PHONY: build test testacc fmt lint lintcheck tools website website-lint website-test sweep

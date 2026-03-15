@@ -4,24 +4,25 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubRepositoryEnvironmentsDataSource(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	repoName := fmt.Sprintf("%srepo-envs-%s", testResourcePrefix, randomID)
 
 	t.Run("queries environments", func(t *testing.T) {
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%[1]s"
+			  name = "%[1]s"
 				auto_init = true
 			}
 			resource "github_repository_environment" "env1" {
 				repository = github_repository.test.name
 				environment = "env_x"
 			}
-		`, randomID)
+		`, repoName)
 
 		config2 := config + `
 			data "github_repository_environments" "all" {

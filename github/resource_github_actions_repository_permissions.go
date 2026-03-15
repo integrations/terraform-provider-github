@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -24,7 +24,7 @@ func resourceGithubActionsRepositoryPermissions() *schema.Resource {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Description:      "The permissions policy that controls the actions that are allowed to run. Can be one of: 'all', 'local_only', or 'selected'.",
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"all", "local_only", "selected"}, false), "allowed_actions"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"all", "local_only", "selected"}, false)),
 			},
 			"allowed_actions_config": {
 				Type:        schema.TypeList,
@@ -63,7 +63,13 @@ func resourceGithubActionsRepositoryPermissions() *schema.Resource {
 				Type:             schema.TypeString,
 				Required:         true,
 				Description:      "The GitHub repository.",
-				ValidateDiagFunc: toDiagFunc(validation.StringLenBetween(1, 100), "repository"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 100)),
+			},
+			"sha_pinning_required": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether pinning to a specific SHA is required for all actions and reusable workflows in a repository.",
 			},
 		},
 	}
@@ -125,7 +131,11 @@ func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.Resource
 		repoActionPermissions.AllowedActions = &allowedActions
 	}
 
-	_, _, err := client.Repositories.EditActionsPermissions(ctx,
+	if v, ok := d.GetOk("sha_pinning_required"); ok {
+		repoActionPermissions.SHAPinningRequired = github.Ptr(v.(bool))
+	}
+
+	_, _, err := client.Repositories.UpdateActionsPermissions(ctx,
 		owner,
 		repoName,
 		repoActionPermissions,
@@ -210,6 +220,10 @@ func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta
 		return err
 	}
 
+	if err = d.Set("sha_pinning_required", actionsPermissions.GetSHAPinningRequired()); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -222,11 +236,11 @@ func resourceGithubActionsRepositoryPermissionsDelete(d *schema.ResourceData, me
 
 	// Reset the repo to "default" settings
 	repoActionPermissions := github.ActionsPermissionsRepository{
-		AllowedActions: github.String("all"),
-		Enabled:        github.Bool(true),
+		AllowedActions: github.Ptr("all"),
+		Enabled:        github.Ptr(true),
 	}
 
-	_, _, err := client.Repositories.EditActionsPermissions(ctx,
+	_, _, err := client.Repositories.UpdateActionsPermissions(ctx,
 		owner,
 		repoName,
 		repoActionPermissions,

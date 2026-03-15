@@ -5,9 +5,9 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccGithubUserInvitationAccepter(t *testing.T) {
@@ -21,7 +21,8 @@ func TestAccGithubUserInvitationAccepter(t *testing.T) {
 
 	t.Run("accepts an invitation", func(t *testing.T) {
 		rn := "github_repository_collaborator.test"
-		repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
+		randomID := acctest.RandString(5)
+		repoName := fmt.Sprintf("%srepo-invitation-%s", testResourcePrefix, randomID)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },

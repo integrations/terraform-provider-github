@@ -5,13 +5,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubIssueLabels(t *testing.T) {
 	t.Run("authoritatively overtakes existing labels", func(t *testing.T) {
-		repoName := fmt.Sprintf("tf-acc-test-%s", acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
+		repoName := fmt.Sprintf("%srepo-issue-labels-%s", testResourcePrefix, acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
 		empty := []map[string]any{}
 
 		resource.Test(t, resource.TestCase{
@@ -85,13 +85,13 @@ func testAccGithubIssueLabelsConfig(repoName string, labels []map[string]any) st
 	if labels != nil {
 		var dynamic strings.Builder
 		for _, label := range labels {
-			dynamic.WriteString(fmt.Sprintf(`
+			fmt.Fprintf(&dynamic, `
 				label {
 					name = "%s"
 					color = "%s"
 					description = "%s"
 				}
-			`, label["name"], label["color"], label["description"]))
+			`, label["name"], label["color"], label["description"])
 		}
 
 		resource = fmt.Sprintf(`
@@ -117,7 +117,7 @@ func TestAccGithubIssueLabelsArchived(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("can delete labels from archived repositories without error", func(t *testing.T) {
-		repoName := fmt.Sprintf("tf-acc-test-labels-archive-%s", randomID)
+		repoName := fmt.Sprintf("%srepo-labels-arch-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -146,8 +146,8 @@ func TestAccGithubIssueLabelsArchived(t *testing.T) {
 				archived = true`, 1)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnauthenticated(t) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,

@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -23,7 +23,7 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate() *sch
 				Type:             schema.TypeString,
 				Required:         true,
 				Description:      "The name of the repository.",
-				ValidateDiagFunc: toDiagFunc(validation.StringLenBetween(1, 100), "repository"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 100)),
 			},
 			"use_default": {
 				Type:        schema.TypeBool,
@@ -117,7 +117,7 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDelete(
 	owner := meta.(*Owner).name
 
 	customOIDCSubjectClaimTemplate := &github.OIDCSubjectClaimCustomTemplate{
-		UseDefault: github.Bool(true),
+		UseDefault: github.Ptr(true),
 	}
 
 	ctx := context.Background()

@@ -7,15 +7,16 @@ Resolves #ISSUE_NUMBER
 ### Before the change?
 <!-- Please describe the current behavior that you are modifying. -->
 
-* 
+- 
 
 ### After the change?
 <!-- Please describe the behavior or changes that are being added by this PR. -->
 
-* 
+- 
 
 ### Pull request checklist
-- [ ] Schema migrations have been created if needed ([example](https://github.com/integrations/terraform-provider-github/pull/2820/files))
+
+- [ ] Schema migrations have been created if needed ([example](https://github.com/F-Secure-web/terraform-provider-github/blob/main/github/migrate_github_actions_organization_secret.go))
 - [ ] Tests for the changes have been added (for bug fixes / features)
 - [ ] Docs have been reviewed and added / updated if needed (for bug fixes / features)
 
@@ -28,4 +29,3 @@ Please see our docs on [breaking changes](https://github.com/octokit/.github/blo
 - [ ] No
 
 ----
-

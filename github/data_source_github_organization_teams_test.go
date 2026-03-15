@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
 	t.Run("queries", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		teamName := fmt.Sprintf("tf-acc-test-0-%s", randomID)
+		teamName := fmt.Sprintf("%steam-0-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {

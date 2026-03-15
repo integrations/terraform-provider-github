@@ -5,20 +5,21 @@ import (
 	"log"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubReleaseResource(t *testing.T) {
 	t.Run("create a release with defaults", func(t *testing.T) {
 		randomRepoPart := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-release-%s", testResourcePrefix, randomRepoPart)
 		randomVersion := fmt.Sprintf("v1.0.%d", acctest.RandIntRange(0, 9999))
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
+			  name = "%s"
 			  auto_init = true
 			}
 
@@ -26,7 +27,7 @@ func TestAccGithubReleaseResource(t *testing.T) {
 			  repository 	   = github_repository.test.name
 			  tag_name 		   = "%s"
 			}
-		`, randomRepoPart, randomVersion)
+		`, repoName, randomVersion)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -76,12 +77,13 @@ func TestAccGithubReleaseResource(t *testing.T) {
 
 	t.Run("create a release on branch", func(t *testing.T) {
 		randomRepoPart := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-release-%s", testResourcePrefix, randomRepoPart)
 		randomVersion := fmt.Sprintf("v1.0.%d", acctest.RandIntRange(0, 9999))
 		testBranchName := "test"
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
+				name = "%s"
 				auto_init = true
 			}
 
@@ -98,7 +100,7 @@ func TestAccGithubReleaseResource(t *testing.T) {
 			  	draft			 = false
 				prerelease		 = false
 			}
-		`, randomRepoPart, testBranchName, randomVersion)
+		`, repoName, testBranchName, randomVersion)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(

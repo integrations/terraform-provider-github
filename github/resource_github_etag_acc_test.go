@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 // TestAccGithubRepositoryEtagPresent tests that etag field is populated.
 func TestAccGithubRepositoryEtagPresent(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-	repoName := fmt.Sprintf("tf-acc-test-etag-%s", randomID)
+	repoName := fmt.Sprintf("%srepo-etag-%s", testResourcePrefix, randomID)
 
 	config := fmt.Sprintf(`
 		resource "github_repository" "test" {
@@ -21,8 +21,8 @@ func TestAccGithubRepositoryEtagPresent(t *testing.T) {
 	`, repoName)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { skipUnauthenticated(t) },
-		Providers: testAccProviders,
+		PreCheck:          func() { skipUnauthenticated(t) },
+		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -38,7 +38,7 @@ func TestAccGithubRepositoryEtagPresent(t *testing.T) {
 // TestAccGithubRepositoryEtagNoDiff tests that re-running the same config shows no changes.
 func TestAccGithubRepositoryEtagNoDiff(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-	repoName := fmt.Sprintf("tf-acc-test-etag-nodiff-%s", randomID)
+	repoName := fmt.Sprintf("%srepo-etag-nodiff-%s", testResourcePrefix, randomID)
 
 	config := fmt.Sprintf(`
 		resource "github_repository" "test" {
@@ -49,8 +49,8 @@ func TestAccGithubRepositoryEtagNoDiff(t *testing.T) {
 	`, repoName)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { skipUnauthenticated(t) },
-		Providers: testAccProviders,
+		PreCheck:          func() { skipUnauthenticated(t) },
+		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: config,

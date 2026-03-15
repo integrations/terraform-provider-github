@@ -4,18 +4,19 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 	t.Run("test setting of basic actions repository permissions", func(t *testing.T) {
 		allowedActions := "local_only"
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-perms-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name        = "tf-acc-test-topic-%[1]s"
+				name        = "%[1]s"
 				description = "Terraform acceptance tests %[1]s"
 				topics		= ["terraform", "testing"]
 			}
@@ -24,7 +25,7 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 				allowed_actions = "%s"
 				repository = github_repository.test.name
 			}
-		`, randomID, allowedActions)
+		`, repoName, allowedActions)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -48,11 +49,13 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 		allowedActions := "selected"
 		githubOwnedAllowed := true
 		verifiedAllowed := true
+		shaPinningRequired := true
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-perms-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name        = "tf-acc-test-topic-%[1]s"
+				name        = "%[1]s"
 				description = "Terraform acceptance tests %[1]s"
 				topics		= ["terraform", "testing"]
 			}
@@ -64,9 +67,10 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 					patterns_allowed     = ["actions/cache@*", "actions/checkout@*"]
 					verified_allowed     = %t
 				}
+				sha_pinning_required = %t
 				repository = github_repository.test.name
 			}
-		`, randomID, allowedActions, githubOwnedAllowed, verifiedAllowed)
+		`, repoName, allowedActions, githubOwnedAllowed, verifiedAllowed, shaPinningRequired)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -99,10 +103,11 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 		githubOwnedAllowed := true
 		verifiedAllowed := true
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-perms-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name        = "tf-acc-test-topic-%[1]s"
+				name        = "%[1]s"
 				description = "Terraform acceptance tests %[1]s"
 				topics		= ["terraform", "testing"]
 			}
@@ -116,7 +121,7 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 				}
 				repository = github_repository.test.name
 			}
-		`, randomID, allowedActions, githubOwnedAllowed, verifiedAllowed)
+		`, repoName, allowedActions, githubOwnedAllowed, verifiedAllowed)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -142,10 +147,11 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 	t.Run("test not setting of repository allowed actions without error", func(t *testing.T) {
 		allowedActions := "selected"
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-perms-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name        = "tf-acc-test-topic-%[1]s"
+				name        = "%[1]s"
 				description = "Terraform acceptance tests %[1]s"
 				topics		= ["terraform", "testing"]
 			}
@@ -154,7 +160,7 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 				allowed_actions = "%s"
 				repository = github_repository.test.name
 			}
-		`, randomID, allowedActions)
+		`, repoName, allowedActions)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -182,10 +188,11 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 	t.Run("test disabling actions on a repository", func(t *testing.T) {
 		actionsEnabled := false
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-perms-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name        = "tf-acc-test-topic-%[1]s"
+				name        = "%[1]s"
 				description = "Terraform acceptance tests %[1]s"
 				topics		= ["terraform", "testing"]
 			}
@@ -194,7 +201,7 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 				enabled = %t
 				repository = github_repository.test.name
 			}
-		`, randomID, actionsEnabled)
+		`, repoName, actionsEnabled)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -217,6 +224,7 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 	// https://github.com/integrations/terraform-provider-github/issues/2182
 	t.Run("test load with disabled actions", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-perms-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			locals {
@@ -224,7 +232,7 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 			}
 
 			resource "github_repository" "test" {
-				name        = "tf-acc-test-actions-permissions-%[1]s"
+				name        = "%[1]s"
 				description = "Terraform acceptance tests %[1]s"
 				topics		= ["terraform", "testing"]
 			}
@@ -234,7 +242,7 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 				enabled         = local.actions_enabled
 				allowed_actions = local.actions_enabled ? "all" : null
 			}
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(

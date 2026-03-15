@@ -4,14 +4,15 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v83/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func dataSourceGithubCollaborators() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubCollaboratorsRead,
+		ReadContext: dataSourceGithubCollaboratorsRead,
 
 		Schema: map[string]*schema.Schema{
 			"owner": {
@@ -24,23 +25,23 @@ func dataSourceGithubCollaborators() *schema.Resource {
 			},
 			"affiliation": {
 				Type: schema.TypeString,
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"all",
 					"direct",
 					"outside",
-				}, false), "affiliation"),
+				}, false)),
 				Optional: true,
 				Default:  "all",
 			},
 			"permission": {
 				Type: schema.TypeString,
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"pull",
 					"triage",
 					"push",
 					"maintain",
 					"admin",
-				}, false), "permission"),
+				}, false)),
 				Optional: true,
 				Default:  "",
 			},
@@ -120,9 +121,8 @@ func dataSourceGithubCollaborators() *schema.Resource {
 	}
 }
 
-func dataSourceGithubCollaboratorsRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubCollaboratorsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 
 	owner := d.Get("owner").(string)
 	repo := d.Get("repository").(string)
@@ -144,26 +144,26 @@ func dataSourceGithubCollaboratorsRead(d *schema.ResourceData, meta any) error {
 	}
 	err := d.Set("owner", owner)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	err = d.Set("repository", repo)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	err = d.Set("affiliation", affiliation)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	err = d.Set("permission", permission)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	totalCollaborators := make([]any, 0)
 	for {
 		collaborators, resp, err := client.Repositories.ListCollaborators(ctx, owner, repo, options)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		result := flattenGitHubCollaborators(collaborators)
@@ -178,7 +178,7 @@ func dataSourceGithubCollaboratorsRead(d *schema.ResourceData, meta any) error {
 
 	err = d.Set("collaborator", totalCollaborators)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

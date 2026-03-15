@@ -4,12 +4,13 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRepositoryMilestone() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoryMilestoneRead,
+		ReadContext: dataSourceGithubRepositoryMilestoneRead,
 
 		Schema: map[string]*schema.Schema{
 			"owner": {
@@ -44,9 +45,8 @@ func dataSourceGithubRepositoryMilestone() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryMilestoneRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubRepositoryMilestoneRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	conn := meta.(*Owner).v3client
-	ctx := context.Background()
 
 	owner := d.Get("owner").(string)
 	repoName := d.Get("repository").(string)
@@ -54,21 +54,21 @@ func dataSourceGithubRepositoryMilestoneRead(d *schema.ResourceData, meta any) e
 	number := d.Get("number").(int)
 	milestone, _, err := conn.Issues.GetMilestone(ctx, owner, repoName, number)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(milestone.GetID(), 10))
 	if err = d.Set("description", milestone.GetDescription()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("due_date", milestone.GetDueOn().Format(layoutISO)); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("state", milestone.GetState()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("title", milestone.GetTitle()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

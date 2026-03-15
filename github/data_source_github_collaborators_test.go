@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubCollaboratorsDataSource(t *testing.T) {
 	t.Run("gets all collaborators", func(t *testing.T) {
-		repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
+		repoName := fmt.Sprintf("%srepo-collab-%s", testResourcePrefix, acctest.RandString(5))
 		config := fmt.Sprintf(`
 resource "github_repository" "test" {
   name = "%s"
@@ -40,7 +40,7 @@ data "github_collaborators" "test" {
 	})
 
 	t.Run("gets admin collaborators", func(t *testing.T) {
-		repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
+		repoName := fmt.Sprintf("%srepo-collab-%s", testResourcePrefix, acctest.RandString(5))
 		config := fmt.Sprintf(`
 resource "github_repository" "test" {
   name = "%s"

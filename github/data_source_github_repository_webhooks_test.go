@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubRepositoryWebhooksDataSource(t *testing.T) {
 	t.Run("manages repository webhooks", func(t *testing.T) {
-		repoName := fmt.Sprintf("tf-acc-test-webhooks-%s", acctest.RandString(5))
+		repoName := fmt.Sprintf("%srepo-webhooks-%s", testResourcePrefix, acctest.RandString(5))
 
 		config := fmt.Sprintf(`
 		resource "github_repository" "test" {

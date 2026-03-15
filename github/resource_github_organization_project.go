@@ -1,14 +1,8 @@
 package github
 
 import (
-	"context"
-	"errors"
 	"fmt"
-	"log"
-	"net/http"
-	"strconv"
 
-	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -49,126 +43,134 @@ func resourceGithubOrganizationProject() *schema.Resource {
 }
 
 func resourceGithubOrganizationProjectCreate(d *schema.ResourceData, meta any) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
+	return fmt.Errorf("projects v1 are no longer supported by github")
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
-	name := d.Get("name").(string)
-	body := d.Get("body").(string)
-	ctx := context.Background()
+	// err := checkOrganization(meta)
+	// if err != nil {
+	// 	return err
+	// }
 
-	project, _, err := client.Organizations.CreateProject(ctx,
-		orgName,
-		&github.ProjectOptions{
-			Name: &name,
-			Body: &body,
-		},
-	)
-	if err != nil {
-		return err
-	}
-	d.SetId(strconv.FormatInt(project.GetID(), 10))
+	// client := meta.(*Owner).v3client
+	// orgName := meta.(*Owner).name
+	// name := d.Get("name").(string)
+	// body := d.Get("body").(string)
+	// ctx := context.Background()
 
-	return resourceGithubOrganizationProjectRead(d, meta)
+	// project, _, err := client.Organizations.CreateProject(ctx,
+	// 	orgName,
+	// 	&github.ProjectOptions{
+	// 		Name: &name,
+	// 		Body: &body,
+	// 	},
+	// )
+	// if err != nil {
+	// 	return err
+	// }
+	// d.SetId(strconv.FormatInt(project.GetID(), 10))
+
+	// return resourceGithubOrganizationProjectRead(d, meta)
 }
 
 func resourceGithubOrganizationProjectRead(d *schema.ResourceData, meta any) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
+	return fmt.Errorf("projects v1 are no longer supported by github")
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	// err := checkOrganization(meta)
+	// if err != nil {
+	// 	return err
+	// }
 
-	projectID, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return err
-	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
-	}
+	// client := meta.(*Owner).v3client
+	// orgName := meta.(*Owner).name
 
-	project, resp, err := client.Projects.GetProject(ctx, projectID)
-	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
-			if ghErr.Response.StatusCode == http.StatusNotModified {
-				return nil
-			}
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing organization project %s/%s from state because it no longer exists in GitHub",
-					orgName, d.Id())
-				d.SetId("")
-				return nil
-			}
-		}
-		return err
-	}
+	// projectID, err := strconv.ParseInt(d.Id(), 10, 64)
+	// if err != nil {
+	// 	return err
+	// }
+	// ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	// if !d.IsNewResource() {
+	// 	ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+	// }
 
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
-	}
-	if err = d.Set("name", project.GetName()); err != nil {
-		return err
-	}
-	if err = d.Set("body", project.GetBody()); err != nil {
-		return err
-	}
-	if err = d.Set("url", fmt.Sprintf("https://github.com/orgs/%s/projects/%d",
-		orgName, project.GetNumber())); err != nil {
-		return err
-	}
+	// project, resp, err := client.Projects.GetProject(ctx, projectID)
+	// if err != nil {
+	// 	var ghErr *github.ErrorResponse
+	// 	if errors.As(err, &ghErr) {
+	// 		if ghErr.Response.StatusCode == http.StatusNotModified {
+	// 			return nil
+	// 		}
+	// 		if ghErr.Response.StatusCode == http.StatusNotFound {
+	// 			log.Printf("[INFO] Removing organization project %s/%s from state because it no longer exists in GitHub",
+	// 				orgName, d.Id())
+	// 			d.SetId("")
+	// 			return nil
+	// 		}
+	// 	}
+	// 	return err
+	// }
 
-	return nil
+	// if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+	// 	return err
+	// }
+	// if err = d.Set("name", project.GetName()); err != nil {
+	// 	return err
+	// }
+	// if err = d.Set("body", project.GetBody()); err != nil {
+	// 	return err
+	// }
+	// if err = d.Set("url", fmt.Sprintf("https://github.com/orgs/%s/projects/%d",
+	// 	orgName, project.GetNumber())); err != nil {
+	// 	return err
+	// }
+
+	// return nil
 }
 
 func resourceGithubOrganizationProjectUpdate(d *schema.ResourceData, meta any) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
+	return fmt.Errorf("projects v1 are no longer supported by github")
 
-	client := meta.(*Owner).v3client
+	// err := checkOrganization(meta)
+	// if err != nil {
+	// 	return err
+	// }
 
-	name := d.Get("name").(string)
-	body := d.Get("body").(string)
+	// client := meta.(*Owner).v3client
 
-	options := github.ProjectOptions{
-		Name: &name,
-		Body: &body,
-	}
+	// name := d.Get("name").(string)
+	// body := d.Get("body").(string)
 
-	projectID, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return err
-	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	// options := github.ProjectOptions{
+	// 	Name: &name,
+	// 	Body: &body,
+	// }
 
-	if _, _, err := client.Projects.UpdateProject(ctx, projectID, &options); err != nil {
-		return err
-	}
+	// projectID, err := strconv.ParseInt(d.Id(), 10, 64)
+	// if err != nil {
+	// 	return err
+	// }
+	// ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	return resourceGithubOrganizationProjectRead(d, meta)
+	// if _, _, err := client.Projects.UpdateProject(ctx, projectID, &options); err != nil {
+	// 	return err
+	// }
+
+	// return resourceGithubOrganizationProjectRead(d, meta)
 }
 
 func resourceGithubOrganizationProjectDelete(d *schema.ResourceData, meta any) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
+	return fmt.Errorf("projects v1 are no longer supported by github")
 
-	client := meta.(*Owner).v3client
-	projectID, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return err
-	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	// err := checkOrganization(meta)
+	// if err != nil {
+	// 	return err
+	// }
 
-	_, err = client.Projects.DeleteProject(ctx, projectID)
-	return err
+	// client := meta.(*Owner).v3client
+	// projectID, err := strconv.ParseInt(d.Id(), 10, 64)
+	// if err != nil {
+	// 	return err
+	// }
+	// ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	// _, err = client.Projects.DeleteProject(ctx, projectID)
+	// return err
 }
