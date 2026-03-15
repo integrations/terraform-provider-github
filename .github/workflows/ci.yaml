@@ -36,6 +36,7 @@ jobs:
           cache: true
       - run: make build -o lintcheck
       - run: make test
+      - run: make test-tools
 
   docs:
     name: Documentation
