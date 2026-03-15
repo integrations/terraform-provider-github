@@ -86,6 +86,9 @@ func TestAccGithubOrganizationNetworkConfiguration(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_organization_network_configuration.test", tfjsonpath.New("id"), knownvalue.NotNull()),
+					},
 				},
 				{
 					ResourceName:      "github_organization_network_configuration.test",
