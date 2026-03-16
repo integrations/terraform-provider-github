@@ -1,9 +1,12 @@
-Terraform Provider GitHub
-=========================
+# Terraform Provider GitHub
 
 <img src="https://cloud.githubusercontent.com/assets/98681/24211275/c4ebd04e-0ee8-11e7-8606-061d656a42df.png" width="72" height="">
 
-<img src="https://raw.githubusercontent.com/hashicorp/terraform-website/d841a1e5fca574416b5ca24306f85a0f4f41b36d/content/source/assets/images/logo-terraform-main.svg" width="300px">
+<picture>
+	<source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/f169cecd-2681-4479-8cb2-e798d8e3161c">
+	<source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/63998a27-2efd-47a1-b957-63a78b97f683">
+	<img src="https://github.com/user-attachments/assets/63998a27-2efd-47a1-b957-63a78b97f683" width="300px" alt="HashiCorp Terraform logo">
+</picture>
 
 This project is used to manipulate GitHub resources (repositories, teams, files, etc.) using Terraform. Its Terraform Registry page can be found [here](https://registry.terraform.io/providers/integrations/github/).
 
