@@ -1,19 +1,18 @@
 ---
 layout: "github"
-page_title: "GitHub: github_enterprise_security_configuration"
+page_title: "GitHub: github_organization_security_configuration"
 description: |-
-  Manages a code security configuration for a GitHub Enterprise.
+  Manages a code security configuration for a GitHub Organization.
 ---
 
-# github_enterprise_security_configuration
+# github_organization_security_configuration
 
-This resource allows you to create and manage code security configurations for a GitHub Enterprise.
+This resource allows you to create and manage code security configurations for a GitHub Organization.
 
 ## Example Usage
 
 ```hcl
-resource "github_enterprise_security_configuration" "default" {
-  enterprise_slug                 = "my-enterprise"
+resource "github_organization_security_configuration" "default" {
   name                            = "default-config"
   description                     = "Default security configuration"
   advanced_security               = "enabled"
@@ -32,7 +31,6 @@ resource "github_enterprise_security_configuration" "default" {
 
 The following arguments are supported:
 
-* `enterprise_slug` - (Required) The slug of the enterprise. Changing this forces a new resource to be created.
 * `name` - (Required) The name of the code security configuration.
 * `description` - (Optional) A description of the code security configuration.
 * `advanced_security` - (Optional) The advanced security configuration. Can be one of `enabled`, `disabled`.
@@ -92,8 +90,8 @@ The `secret_scanning_delegated_bypass_options` block supports:
 
 ## Import
 
-GitHub Enterprise Code Security Configurations can be imported using the enterprise slug and the configuration ID separated by a colon, e.g.
+GitHub Organization Code Security Configurations can be imported using the organization name and the configuration ID separated by a colon, e.g.
 
 ```text
-$ terraform import github_enterprise_security_configuration.example my-enterprise:123
+$ terraform import github_organization_security_configuration.example my-org:123
 ```

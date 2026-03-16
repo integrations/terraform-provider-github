@@ -46,6 +46,8 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 							tfjsonpath.New("advanced_security"), knownvalue.StringExact("enabled")),
 						statecheck.ExpectKnownValue("github_organization_security_configuration.test",
 							tfjsonpath.New("enforcement"), knownvalue.StringExact("enforced")),
+						statecheck.ExpectKnownValue("github_organization_security_configuration.test",
+							tfjsonpath.New("configuration_id"), knownvalue.NotNull()),
 					},
 				},
 				{
