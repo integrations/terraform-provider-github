@@ -28,8 +28,8 @@ endif
 default: build
 
 tools:
-	go install github.com/client9/misspell/cmd/misspell@v0.3.4
 	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.0
+	go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.24.0
 
 build: lintcheck
 	CGO_ENABLED=0 go build -ldflags="-s -w" ./...
@@ -74,8 +74,22 @@ endif
 	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
 
 website-lint:
-	@echo "==> Checking website against linters..."
-	@misspell -error -source=text website/
+	@$(MAKE) docs-check
+
+docs:
+	@echo "==> Generating provider docs..."
+	go generate ./...
+
+docs-validate:
+	@echo "==> Validating provider docs..."
+	go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs validate --provider-name $(PKG_NAME)
+
+docs-check: docs docs-validate
+	@echo "==> Checking provider docs for drift..."
+	@test -z "$$(git status --short --untracked-files=all -- docs templates examples main.go go.mod go.sum)" || \
+		( echo "Generated docs are out of date. Run 'make docs' and commit the results."; \
+		git status --short --untracked-files=all -- docs templates examples main.go go.mod go.sum; \
+		exit 1 )
 
 website-test:
 ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
@@ -84,4 +98,4 @@ ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
 endif
 	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider-test PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
 
-.PHONY: build test testacc fmt lint lintcheck tools website website-lint website-test sweep
+.PHONY: build test testacc fmt lint lintcheck tools website website-lint website-test docs docs-validate docs-check sweep
