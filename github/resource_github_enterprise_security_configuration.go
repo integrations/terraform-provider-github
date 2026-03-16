@@ -32,6 +32,11 @@ func resourceGithubEnterpriseSecurityConfiguration() *schema.Resource {
 				ForceNew:    true,
 				Description: "The slug of the enterprise.",
 			},
+			"configuration_id": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The numeric ID of the code security configuration.",
+			},
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -303,7 +308,7 @@ func resourceGithubEnterpriseSecurityConfigurationCreate(ctx context.Context, d 
 	enterprise := d.Get("enterprise_slug").(string)
 	name := d.Get("name").(string)
 
-	tflog.Debug(ctx, fmt.Sprintf("Creating enterprise code security configuration: %s/%s", enterprise, name), map[string]any{
+	tflog.Debug(ctx, "Creating enterprise code security configuration", map[string]any{
 		"enterprise": enterprise,
 		"name":       name,
 	})
@@ -312,7 +317,7 @@ func resourceGithubEnterpriseSecurityConfigurationCreate(ctx context.Context, d 
 
 	configuration, _, err := client.Enterprise.CreateCodeSecurityConfiguration(ctx, enterprise, config)
 	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Failed to create enterprise code security configuration: %s/%s", enterprise, name), map[string]any{
+		tflog.Error(ctx, "Failed to create enterprise code security configuration", map[string]any{
 			"enterprise": enterprise,
 			"name":       name,
 			"error":      err.Error(),
@@ -326,7 +331,7 @@ func resourceGithubEnterpriseSecurityConfigurationCreate(ctx context.Context, d 
 	}
 	d.SetId(id)
 
-	tflog.Info(ctx, fmt.Sprintf("Created enterprise code security configuration: %s/%s (ID: %d)", enterprise, name, configuration.GetID()), map[string]any{
+	tflog.Info(ctx, "Created enterprise code security configuration", map[string]any{
 		"enterprise": enterprise,
 		"name":       name,
 		"id":         configuration.GetID(),
@@ -348,7 +353,7 @@ func resourceGithubEnterpriseSecurityConfigurationRead(ctx context.Context, d *s
 		return diag.FromErr(err)
 	}
 
-	tflog.Trace(ctx, fmt.Sprintf("Reading enterprise code security configuration: %s/%d", enterprise, id), map[string]any{
+	tflog.Trace(ctx, "Reading enterprise code security configuration", map[string]any{
 		"enterprise": enterprise,
 		"id":         id,
 	})
@@ -358,7 +363,7 @@ func resourceGithubEnterpriseSecurityConfigurationRead(ctx context.Context, d *s
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, fmt.Sprintf("Removing enterprise code security configuration %s/%d from state because it no longer exists in GitHub", enterprise, id), map[string]any{
+				tflog.Info(ctx, "Removing enterprise code security configuration from state because it no longer exists in GitHub", map[string]any{
 					"enterprise": enterprise,
 					"id":         id,
 				})
@@ -366,7 +371,7 @@ func resourceGithubEnterpriseSecurityConfigurationRead(ctx context.Context, d *s
 				return nil
 			}
 		}
-		tflog.Error(ctx, fmt.Sprintf("Failed to read enterprise code security configuration: %s/%d", enterprise, id), map[string]any{
+		tflog.Error(ctx, "Failed to read enterprise code security configuration", map[string]any{
 			"enterprise": enterprise,
 			"id":         id,
 			"error":      err.Error(),
@@ -382,7 +387,7 @@ func resourceGithubEnterpriseSecurityConfigurationRead(ctx context.Context, d *s
 		return diags
 	}
 
-	tflog.Trace(ctx, fmt.Sprintf("Successfully read enterprise code security configuration: %s/%d", enterprise, id), map[string]any{
+	tflog.Trace(ctx, "Successfully read enterprise code security configuration", map[string]any{
 		"enterprise": enterprise,
 		"id":         id,
 	})
@@ -392,27 +397,19 @@ func resourceGithubEnterpriseSecurityConfigurationRead(ctx context.Context, d *s
 
 func resourceGithubEnterpriseSecurityConfigurationUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
+	enterprise := d.Get("enterprise_slug").(string)
+	id := int64(d.Get("configuration_id").(int))
 
-	enterprise, idStr, err := parseID2(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	tflog.Debug(ctx, fmt.Sprintf("Updating enterprise code security configuration: %s/%d", enterprise, id), map[string]any{
+	tflog.Debug(ctx, "Updating enterprise code security configuration", map[string]any{
 		"enterprise": enterprise,
 		"id":         id,
 	})
 
 	config := expandCodeSecurityConfigurationCommon(d)
 
-	_, _, err = client.Enterprise.UpdateCodeSecurityConfiguration(ctx, enterprise, id, config)
+	_, _, err := client.Enterprise.UpdateCodeSecurityConfiguration(ctx, enterprise, id, config)
 	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Failed to update enterprise code security configuration: %s/%d", enterprise, id), map[string]any{
+		tflog.Error(ctx, "Failed to update enterprise code security configuration", map[string]any{
 			"enterprise": enterprise,
 			"id":         id,
 			"error":      err.Error(),
@@ -420,7 +417,7 @@ func resourceGithubEnterpriseSecurityConfigurationUpdate(ctx context.Context, d 
 		return diag.FromErr(err)
 	}
 
-	tflog.Info(ctx, fmt.Sprintf("Updated enterprise code security configuration: %s/%d", enterprise, id), map[string]any{
+	tflog.Info(ctx, "Updated enterprise code security configuration", map[string]any{
 		"enterprise": enterprise,
 		"id":         id,
 	})
@@ -430,33 +427,25 @@ func resourceGithubEnterpriseSecurityConfigurationUpdate(ctx context.Context, d 
 
 func resourceGithubEnterpriseSecurityConfigurationDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
+	enterprise := d.Get("enterprise_slug").(string)
+	id := int64(d.Get("configuration_id").(int))
 
-	enterprise, idStr, err := parseID2(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	tflog.Debug(ctx, fmt.Sprintf("Deleting enterprise code security configuration: %s/%d", enterprise, id), map[string]any{
+	tflog.Debug(ctx, "Deleting enterprise code security configuration", map[string]any{
 		"enterprise": enterprise,
 		"id":         id,
 	})
 
-	_, err = client.Enterprise.DeleteCodeSecurityConfiguration(ctx, enterprise, id)
+	_, err := client.Enterprise.DeleteCodeSecurityConfiguration(ctx, enterprise, id)
 	if err != nil {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
-			tflog.Info(ctx, fmt.Sprintf("Enterprise code security configuration %s/%d already deleted", enterprise, id), map[string]any{
+			tflog.Info(ctx, "Enterprise code security configuration already deleted", map[string]any{
 				"enterprise": enterprise,
 				"id":         id,
 			})
 			return nil
 		}
-		tflog.Error(ctx, fmt.Sprintf("Failed to delete enterprise code security configuration: %s/%d", enterprise, id), map[string]any{
+		tflog.Error(ctx, "Failed to delete enterprise code security configuration", map[string]any{
 			"enterprise": enterprise,
 			"id":         id,
 			"error":      err.Error(),
@@ -464,7 +453,7 @@ func resourceGithubEnterpriseSecurityConfigurationDelete(ctx context.Context, d 
 		return diag.FromErr(err)
 	}
 
-	tflog.Info(ctx, fmt.Sprintf("Deleted enterprise code security configuration: %s/%d", enterprise, id), map[string]any{
+	tflog.Info(ctx, "Deleted enterprise code security configuration", map[string]any{
 		"enterprise": enterprise,
 		"id":         id,
 	})

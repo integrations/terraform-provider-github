@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -26,6 +25,11 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"configuration_id": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The numeric ID of the code security configuration.",
+			},
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -301,7 +305,7 @@ func resourceGithubOrganizationSecurityConfigurationCreate(ctx context.Context, 
 	org := meta.(*Owner).name
 	name := d.Get("name").(string)
 
-	tflog.Debug(ctx, fmt.Sprintf("Creating organization code security configuration: %s/%s", org, name), map[string]any{
+	tflog.Debug(ctx, "Creating organization code security configuration", map[string]any{
 		"organization": org,
 		"name":         name,
 	})
@@ -310,7 +314,7 @@ func resourceGithubOrganizationSecurityConfigurationCreate(ctx context.Context, 
 
 	configuration, _, err := client.Organizations.CreateCodeSecurityConfiguration(ctx, org, config)
 	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Failed to create organization code security configuration: %s/%s", org, name), map[string]any{
+		tflog.Error(ctx, "Failed to create organization code security configuration", map[string]any{
 			"organization": org,
 			"name":         name,
 			"error":        err.Error(),
@@ -324,7 +328,7 @@ func resourceGithubOrganizationSecurityConfigurationCreate(ctx context.Context, 
 	}
 	d.SetId(id)
 
-	tflog.Info(ctx, fmt.Sprintf("Created organization code security configuration: %s/%s (ID: %d)", org, name, configuration.GetID()), map[string]any{
+	tflog.Info(ctx, "Created organization code security configuration", map[string]any{
 		"organization": org,
 		"name":         name,
 		"id":           configuration.GetID(),
@@ -350,7 +354,7 @@ func resourceGithubOrganizationSecurityConfigurationRead(ctx context.Context, d 
 		return diag.FromErr(err)
 	}
 
-	tflog.Trace(ctx, fmt.Sprintf("Reading organization code security configuration: %s/%d", org, id), map[string]any{
+	tflog.Trace(ctx, "Reading organization code security configuration", map[string]any{
 		"organization": org,
 		"id":           id,
 	})
@@ -360,7 +364,7 @@ func resourceGithubOrganizationSecurityConfigurationRead(ctx context.Context, d 
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, fmt.Sprintf("Removing organization code security configuration %s/%d from state because it no longer exists in GitHub", org, id), map[string]any{
+				tflog.Info(ctx, "Removing organization code security configuration from state because it no longer exists in GitHub", map[string]any{
 					"organization": org,
 					"id":           id,
 				})
@@ -368,7 +372,7 @@ func resourceGithubOrganizationSecurityConfigurationRead(ctx context.Context, d 
 				return nil
 			}
 		}
-		tflog.Error(ctx, fmt.Sprintf("Failed to read organization code security configuration: %s/%d", org, id), map[string]any{
+		tflog.Error(ctx, "Failed to read organization code security configuration", map[string]any{
 			"organization": org,
 			"id":           id,
 			"error":        err.Error(),
@@ -380,7 +384,7 @@ func resourceGithubOrganizationSecurityConfigurationRead(ctx context.Context, d 
 		return diags
 	}
 
-	tflog.Trace(ctx, fmt.Sprintf("Successfully read organization code security configuration: %s/%d", org, id), map[string]any{
+	tflog.Trace(ctx, "Successfully read organization code security configuration", map[string]any{
 		"organization": org,
 		"id":           id,
 	})
@@ -394,18 +398,10 @@ func resourceGithubOrganizationSecurityConfigurationUpdate(ctx context.Context, 
 		return diag.FromErr(err)
 	}
 	client := meta.(*Owner).v3client
+	org := meta.(*Owner).name
+	id := int64(d.Get("configuration_id").(int))
 
-	org, idStr, err := parseID2(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	tflog.Debug(ctx, fmt.Sprintf("Updating organization code security configuration: %s/%d", org, id), map[string]any{
+	tflog.Debug(ctx, "Updating organization code security configuration", map[string]any{
 		"organization": org,
 		"id":           id,
 	})
@@ -414,7 +410,7 @@ func resourceGithubOrganizationSecurityConfigurationUpdate(ctx context.Context, 
 
 	_, _, err = client.Organizations.UpdateCodeSecurityConfiguration(ctx, org, id, config)
 	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Failed to update organization code security configuration: %s/%d", org, id), map[string]any{
+		tflog.Error(ctx, "Failed to update organization code security configuration", map[string]any{
 			"organization": org,
 			"id":           id,
 			"error":        err.Error(),
@@ -422,7 +418,7 @@ func resourceGithubOrganizationSecurityConfigurationUpdate(ctx context.Context, 
 		return diag.FromErr(err)
 	}
 
-	tflog.Info(ctx, fmt.Sprintf("Updated organization code security configuration: %s/%d", org, id), map[string]any{
+	tflog.Info(ctx, "Updated organization code security configuration", map[string]any{
 		"organization": org,
 		"id":           id,
 	})
@@ -436,18 +432,10 @@ func resourceGithubOrganizationSecurityConfigurationDelete(ctx context.Context, 
 		return diag.FromErr(err)
 	}
 	client := meta.(*Owner).v3client
+	org := meta.(*Owner).name
+	id := int64(d.Get("configuration_id").(int))
 
-	org, idStr, err := parseID2(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	tflog.Debug(ctx, fmt.Sprintf("Deleting organization code security configuration: %s/%d", org, id), map[string]any{
+	tflog.Debug(ctx, "Deleting organization code security configuration", map[string]any{
 		"organization": org,
 		"id":           id,
 	})
@@ -456,13 +444,13 @@ func resourceGithubOrganizationSecurityConfigurationDelete(ctx context.Context, 
 	if err != nil {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
-			tflog.Info(ctx, fmt.Sprintf("Organization code security configuration %s/%d already deleted", org, id), map[string]any{
+			tflog.Info(ctx, "Organization code security configuration already deleted", map[string]any{
 				"organization": org,
 				"id":           id,
 			})
 			return nil
 		}
-		tflog.Error(ctx, fmt.Sprintf("Failed to delete organization code security configuration: %s/%d", org, id), map[string]any{
+		tflog.Error(ctx, "Failed to delete organization code security configuration", map[string]any{
 			"organization": org,
 			"id":           id,
 			"error":        err.Error(),
@@ -470,7 +458,7 @@ func resourceGithubOrganizationSecurityConfigurationDelete(ctx context.Context, 
 		return diag.FromErr(err)
 	}
 
-	tflog.Info(ctx, fmt.Sprintf("Deleted organization code security configuration: %s/%d", org, id), map[string]any{
+	tflog.Info(ctx, "Deleted organization code security configuration", map[string]any{
 		"organization": org,
 		"id":           id,
 	})

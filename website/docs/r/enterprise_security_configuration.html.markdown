@@ -60,6 +60,7 @@ The following arguments are supported:
 
 ## Attributes Reference
 
+* `configuration_id` - The numeric ID of the code security configuration.
 * `target_type` - The target type of the code security configuration.
 
 ### Dependency Graph Autosubmit Action Options
