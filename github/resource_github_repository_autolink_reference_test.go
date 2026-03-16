@@ -296,4 +296,24 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 			},
 		})
 	})
+
+	t.Run("rejects key_prefix ending with a digit at plan time", func(t *testing.T) {
+		config := `
+			resource "github_repository_autolink_reference" "autolink_invalid" {
+				repository          = "some-repo"
+				key_prefix          = "PTFY25"
+				target_url_template = "https://example.com/<num>"
+			}
+		`
+
+		resource.UnitTest(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile(`must not end with a number`),
+				},
+			},
+		})
+	})
 }
