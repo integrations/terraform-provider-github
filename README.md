@@ -1,4 +1,4 @@
-# Terraform Provider GitHub
+# Terraform GitHub Provider
 
 <picture>
 	<source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/b741c63a-76eb-4a40-af73-6509291d5b01">
