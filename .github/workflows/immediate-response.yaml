@@ -104,6 +104,7 @@ jobs:
                 /^tbd$/,
                 /^todo$/,
                 /^to do$/,
+                /^_no response_$/,
               ];
               return trimmed.length < 3 || naPatterns.some(p => p.test(trimmed));
             }
@@ -301,7 +302,7 @@ jobs:
 
             parts.push(
               `👋 Hi @${issue.user.login}, thank you for opening this issue! ` +
-              `A human maintainer from the GitHub SDK team will review this during our regular triage cycle. ` +
+              `A human maintainer will review this during our regular triage cycle. ` +
               `Here's a quick automated analysis to help move things along:\n`
             );
 
