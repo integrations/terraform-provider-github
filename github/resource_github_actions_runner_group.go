@@ -190,8 +190,6 @@ func resourceGithubActionsRunnerGroupCreate(ctx context.Context, d *schema.Resou
 		}
 	}
 
-	ctx = context.WithValue(ctx, ctxId, d.Id())
-
 	runnerGroup, resp, err := client.Actions.CreateOrganizationRunnerGroup(ctx,
 		orgName,
 		github.CreateRunnerGroupRequest{
@@ -207,7 +205,6 @@ func resourceGithubActionsRunnerGroupCreate(ctx context.Context, d *schema.Resou
 		return diag.FromErr(err)
 	}
 	d.SetId(strconv.FormatInt(runnerGroup.GetID(), 10))
-	ctx = context.WithValue(ctx, ctxId, d.Id())
 	if err = setGithubActionsRunnerGroupState(d, runnerGroup, normalizeEtag(resp.Header.Get("ETag")), selectedRepositoryIDs); err != nil {
 		return diag.FromErr(err)
 	}
@@ -266,7 +263,6 @@ func resourceGithubActionsRunnerGroupRead(ctx context.Context, d *schema.Resourc
 	}
 
 	runnerGroupEtag := normalizeEtag(resp.Header.Get("ETag"))
-
 	runnerGroupNetworking, _, err := getRunnerGroupNetworking(client, ctx, fmt.Sprintf("orgs/%s/actions/runner-groups/%d", orgName, runnerGroupID))
 	if err != nil {
 		return diag.FromErr(err)
