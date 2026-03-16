@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_organization_role_users Data Source"
+page_title: "GitHub: github_organization_role_users"
 description: |-
   Lookup all users assigned to a custom organization role.
 ---
 
-# github_organization_role_users (Data Source)
+# github_organization_role_users
 
 Lookup all users assigned to a custom organization role.
 

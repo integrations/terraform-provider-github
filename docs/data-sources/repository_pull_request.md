@@ -1,5 +1,5 @@
 ---
-page_title: "GitHub: repository_pull_request"
+page_title: "GitHub: github_repository_pull_request"
 description: |-
   Get information on a single GitHub Pull Request.
 ---

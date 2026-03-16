@@ -1,5 +1,5 @@
 ---
-page_title: "GitHub: repository_environments"
+page_title: "GitHub: github_repository_environments"
 description: |-
   Get information on a GitHub repository's environments.
 ---

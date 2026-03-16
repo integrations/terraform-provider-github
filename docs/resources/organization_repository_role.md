@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_organization_repository_role Resource"
+page_title: "GitHub: github_organization_repository_role"
 description: |-
   Manage a custom organization repository role.
 ---
 
-# github_organization_repository_role (Resource)
+# github_organization_repository_role
 
 Manage a custom organization repository role.
 

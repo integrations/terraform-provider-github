@@ -1,5 +1,5 @@
 ---
-page_title: "GitHub: repository_autolink_references"
+page_title: "GitHub: github_repository_autolink_references"
 description: |-
   Get autolink references for a Github repository.
 ---

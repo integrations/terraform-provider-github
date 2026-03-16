@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_organization_repository_roles Data Source"
+page_title: "GitHub: github_organization_repository_roles"
 description: |-
   Lookup all custom repository roles in an organization.
 ---
 
-# github_organization_repository_roles (Data Source)
+# github_organization_repository_roles
 
 Lookup all custom repository roles in an organization.
 

@@ -1,5 +1,5 @@
 ---
-page_title: "GitHub: github_app_installation_repository"
+page_title: "GitHub: github_app_installation_repositories"
 description: |-
   Manages the associations between app installations and repositories.
 ---

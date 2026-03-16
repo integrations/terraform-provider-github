@@ -1,5 +1,5 @@
 ---
-page_title: "GitHub: repository_branches"
+page_title: "GitHub: github_repository_branches"
 description: |-
   Get information on a GitHub repository's branches.
 ---

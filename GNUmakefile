@@ -74,8 +74,7 @@ endif
 	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
 
 website-lint:
-	@echo "==> Checking website against linters..."
-	@misspell -error -source=text website/
+	@$(MAKE) docs-check
 
 website-test:
 ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
@@ -90,9 +89,16 @@ docs-generate:
 docs-validate:
 	go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs validate
 
+docs-check: docs-generate docs-validate
+	@echo "==> Checking provider docs for drift..."
+	@test -z "$$(git status --short --untracked-files=all -- docs)" || \
+		( echo "Generated docs are out of date. Run 'make docs-generate' and commit the results."; \
+		git status --short --untracked-files=all -- docs; \
+		exit 1 )
+
 docs-migrate:
 	go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs migrate --provider-name github \
 		--templates-dir templates \
 		--examples-dir examples
 
-.PHONY: build test testacc fmt lint lintcheck tools website website-lint website-test sweep docs-generate docs-validate docs-migrate
+.PHONY: build test testacc fmt lint lintcheck tools website website-lint website-test sweep docs-generate docs-validate docs-check docs-migrate

@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_organization_role_user Resource"
+page_title: "GitHub: github_organization_role_user"
 description: |-
   Manage an association between an organization role and a user.
 ---
 
-# github_organization_role_user (Resource)
+# github_organization_role_user
 
 Manage an association between an organization role and a user.
 

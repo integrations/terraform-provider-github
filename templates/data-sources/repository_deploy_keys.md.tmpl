@@ -1,5 +1,5 @@
 ---
-page_title: "GitHub: repository_deploy_keys"
+page_title: "GitHub: github_repository_deploy_keys"
 description: |-
   Get all deploy keys of a repository
 ---

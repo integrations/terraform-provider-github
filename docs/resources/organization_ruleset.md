@@ -4,7 +4,7 @@ description: |-
   Creates a GitHub organization ruleset.
 ---
 
-# github_organization_ruleset (Resource)
+# github_organization_ruleset
 
 Creates a GitHub organization ruleset.
 

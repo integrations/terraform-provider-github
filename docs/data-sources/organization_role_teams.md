@@ -1,10 +1,10 @@
 ---
-page_title: "GitHub: github_organization_role_teams Data Source"
+page_title: "GitHub: github_organization_role_teams"
 description: |-
   Lookup all teams assigned to a custom organization role.
 ---
 
-# github_organization_role_teams (Data Source)
+# github_organization_role_teams
 
 Lookup all teams assigned to a custom organization role.
 

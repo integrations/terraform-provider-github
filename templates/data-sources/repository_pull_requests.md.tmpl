@@ -1,5 +1,5 @@
 ---
-page_title: "GitHub: repository_pull_requests"
+page_title: "GitHub: github_repository_pull_requests"
 description: |-
   Get information on multiple GitHub Pull Requests.
 ---
