@@ -39,7 +39,8 @@ func resourceGithubEnterpriseSecurityConfiguration() *schema.Resource {
 			},
 			"description": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
+				Computed:    true,
 				Description: "A description of the code security configuration.",
 			},
 			"advanced_security": {
