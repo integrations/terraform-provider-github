@@ -14,10 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-type enterpriseRunnerGroup struct {
-	NetworkConfigurationID *string `json:"network_configuration_id,omitempty"`
-}
-
 func resourceGithubActionsEnterpriseRunnerGroup() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGithubActionsEnterpriseRunnerGroupCreate,
@@ -100,53 +96,6 @@ func resourceGithubActionsEnterpriseRunnerGroup() *schema.Resource {
 			},
 		},
 	}
-}
-
-func getEnterpriseRunnerGroupNetworking(client *github.Client, ctx context.Context, enterprise string, groupID int64) (*enterpriseRunnerGroup, *github.Response, error) {
-	req, err := client.NewRequest("GET", fmt.Sprintf("enterprises/%s/actions/runner-groups/%d", enterprise, groupID), nil)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var runnerGroup enterpriseRunnerGroup
-	resp, err := client.Do(ctx, req, &runnerGroup)
-	if err != nil {
-		return nil, resp, err
-	}
-
-	return &runnerGroup, resp, nil
-}
-
-func updateEnterpriseRunnerGroupNetworking(client *github.Client, ctx context.Context, enterprise string, groupID int64, networkConfigurationID *string) (*github.Response, error) {
-	payload := map[string]any{
-		"network_configuration_id": networkConfigurationID,
-	}
-
-	req, err := client.NewRequest("PATCH", fmt.Sprintf("enterprises/%s/actions/runner-groups/%d", enterprise, groupID), payload)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := client.Do(ctx, req, nil)
-	if err != nil {
-		return resp, err
-	}
-
-	return resp, nil
-}
-
-func setGithubActionsEnterpriseRunnerGroupNetworkingState(d *schema.ResourceData, runnerGroup *enterpriseRunnerGroup) error {
-	if runnerGroup != nil && runnerGroup.NetworkConfigurationID != nil && *runnerGroup.NetworkConfigurationID != "" {
-		if err := d.Set("network_configuration_id", *runnerGroup.NetworkConfigurationID); err != nil {
-			return err
-		}
-	} else {
-		if err := d.Set("network_configuration_id", nil); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func setGithubActionsEnterpriseRunnerGroupState(d *schema.ResourceData, runnerGroup *github.EnterpriseRunnerGroup, etag string, enterpriseSlug string, selectedOrganizationIDs []int64) error {
@@ -243,14 +192,14 @@ func resourceGithubActionsEnterpriseRunnerGroupCreate(d *schema.ResourceData, me
 		networkConfigurationIDValue := networkConfigurationID.(string)
 		// The create endpoint does not accept network_configuration_id, so private networking
 		// must be attached with a follow-up PATCH after the runner group has been created.
-		if _, err = updateEnterpriseRunnerGroupNetworking(client, ctx, enterpriseSlug, runnerGroup.GetID(), &networkConfigurationIDValue); err != nil {
+		if _, err = updateRunnerGroupNetworking(client, ctx, fmt.Sprintf("enterprises/%s/actions/runner-groups/%d", enterpriseSlug, runnerGroup.GetID()), &networkConfigurationIDValue); err != nil {
 			return err
 		}
 
 		return resourceGithubActionsEnterpriseRunnerGroupRead(d, meta)
 	}
 
-	if err = setGithubActionsEnterpriseRunnerGroupNetworkingState(d, nil); err != nil {
+	if err = setRunnerGroupNetworkingState(d, nil); err != nil {
 		return err
 	}
 
@@ -302,7 +251,7 @@ func resourceGithubActionsEnterpriseRunnerGroupRead(d *schema.ResourceData, meta
 		runnerGroupEtag = normalizeEtag(resp.Header.Get("ETag"))
 	}
 
-	runnerGroupNetworking, _, err := getEnterpriseRunnerGroupNetworking(client, ctx, enterpriseSlug, runnerGroupID)
+	runnerGroupNetworking, _, err := getRunnerGroupNetworking(client, ctx, fmt.Sprintf("enterprises/%s/actions/runner-groups/%d", enterpriseSlug, runnerGroupID))
 	if err != nil {
 		return err
 	}
@@ -341,8 +290,10 @@ func resourceGithubActionsEnterpriseRunnerGroupRead(d *schema.ResourceData, meta
 			return err
 		}
 	}
-	if err = setGithubActionsEnterpriseRunnerGroupNetworkingState(d, runnerGroupNetworking); err != nil {
-		return err
+	if runnerGroupNetworking != nil {
+		if err = setRunnerGroupNetworkingState(d, runnerGroupNetworking); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -388,7 +339,7 @@ func resourceGithubActionsEnterpriseRunnerGroupUpdate(d *schema.ResourceData, me
 			networkConfigurationIDValue = &value
 		}
 
-		if _, err := updateEnterpriseRunnerGroupNetworking(client, ctx, enterpriseSlug, runnerGroupID, networkConfigurationIDValue); err != nil {
+		if _, err := updateRunnerGroupNetworking(client, ctx, fmt.Sprintf("enterprises/%s/actions/runner-groups/%d", enterpriseSlug, runnerGroupID), networkConfigurationIDValue); err != nil {
 			return err
 		}
 	}

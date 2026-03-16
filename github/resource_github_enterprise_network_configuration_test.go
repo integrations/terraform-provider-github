@@ -1,13 +1,18 @@
 package github
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"testing"
 
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
@@ -24,6 +29,7 @@ func TestAccGithubEnterpriseNetworkConfiguration(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessMode(t, enterprise) },
 			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubEnterpriseNetworkConfigurationDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -51,6 +57,7 @@ func TestAccGithubEnterpriseNetworkConfiguration(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessMode(t, enterprise) },
 			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubEnterpriseNetworkConfigurationDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config: testAccEnterpriseNetworkConfigurationConfig(beforeName, "actions", networkSettingsID),
@@ -83,6 +90,7 @@ func TestAccGithubEnterpriseNetworkConfiguration(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessMode(t, enterprise) },
 			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubEnterpriseNetworkConfigurationDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -99,6 +107,40 @@ func TestAccGithubEnterpriseNetworkConfiguration(t *testing.T) {
 			},
 		})
 	})
+}
+
+func testAccCheckGithubEnterpriseNetworkConfigurationDestroy(s *terraform.State) error {
+	meta, err := getTestMeta()
+	if err != nil {
+		return err
+	}
+
+	client := meta.v3client
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "github_enterprise_network_configuration" {
+			continue
+		}
+
+		enterpriseSlug := rs.Primary.Attributes["enterprise_slug"]
+		if enterpriseSlug == "" {
+			enterpriseSlug = testAccConf.enterpriseSlug
+		}
+
+		_, _, err := client.Enterprise.GetEnterpriseNetworkConfiguration(context.Background(), enterpriseSlug, rs.Primary.ID)
+		if err != nil {
+			var ghErr *github.ErrorResponse
+			if errors.As(err, &ghErr) && ghErr.Response != nil && ghErr.Response.StatusCode == http.StatusNotFound {
+				continue
+			}
+
+			return err
+		}
+
+		return fmt.Errorf("enterprise network configuration still exists: %s", rs.Primary.ID)
+	}
+
+	return nil
 }
 
 func testAccEnterpriseNetworkConfigurationConfig(name, computeService, networkSettingsID string) string {

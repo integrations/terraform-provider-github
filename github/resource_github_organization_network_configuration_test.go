@@ -1,14 +1,19 @@
 package github
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"testing"
 
+	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
@@ -25,6 +30,7 @@ func TestAccGithubOrganizationNetworkConfiguration(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
 			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubOrganizationNetworkConfigurationDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -51,6 +57,7 @@ func TestAccGithubOrganizationNetworkConfiguration(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
 			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubOrganizationNetworkConfigurationDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config: testAccOrganizationNetworkConfigurationConfig(beforeName, "actions", networkSettingsID),
@@ -83,6 +90,7 @@ func TestAccGithubOrganizationNetworkConfiguration(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
 			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubOrganizationNetworkConfigurationDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -98,6 +106,36 @@ func TestAccGithubOrganizationNetworkConfiguration(t *testing.T) {
 			},
 		})
 	})
+}
+
+func testAccCheckGithubOrganizationNetworkConfigurationDestroy(s *terraform.State) error {
+	meta, err := getTestMeta()
+	if err != nil {
+		return err
+	}
+
+	client := meta.v3client
+	orgName := meta.name
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "github_organization_network_configuration" {
+			continue
+		}
+
+		_, _, err := client.Organizations.GetNetworkConfiguration(context.Background(), orgName, rs.Primary.ID)
+		if err != nil {
+			var ghErr *github.ErrorResponse
+			if errors.As(err, &ghErr) && ghErr.Response != nil && ghErr.Response.StatusCode == http.StatusNotFound {
+				continue
+			}
+
+			return err
+		}
+
+		return fmt.Errorf("organization network configuration still exists: %s", rs.Primary.ID)
+	}
+
+	return nil
 }
 
 func testAccOrganizationNetworkConfigurationID(t *testing.T) string {
