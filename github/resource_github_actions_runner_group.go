@@ -165,7 +165,7 @@ func setGithubActionsRunnerGroupNetworkingState(d *schema.ResourceData, runnerGr
 }
 
 func setGithubActionsRunnerGroupState(d *schema.ResourceData, runnerGroup *github.RunnerGroup, etag string, selectedRepositoryIDs []int64) error {
-	if err := d.Set("etag", etag); err != nil {
+	if err := d.Set("etag", normalizeEtag(etag)); err != nil {
 		return err
 	}
 	if err := d.Set("allows_public_repositories", runnerGroup.GetAllowsPublicRepositories()); err != nil {
@@ -257,7 +257,7 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta any) er
 		return err
 	}
 	d.SetId(strconv.FormatInt(runnerGroup.GetID(), 10))
-	if err = setGithubActionsRunnerGroupState(d, runnerGroup, resp.Header.Get("ETag"), selectedRepositoryIDs); err != nil {
+	if err = setGithubActionsRunnerGroupState(d, runnerGroup, normalizeEtag(resp.Header.Get("ETag")), selectedRepositoryIDs); err != nil {
 		return err
 	}
 
@@ -269,13 +269,11 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta any) er
 			return err
 		}
 
-		if err = setGithubActionsRunnerGroupNetworkingState(d, &organizationRunnerGroup{NetworkConfigurationID: &networkConfigurationIDValue}); err != nil {
-			return err
-		}
-	} else {
-		if err = setGithubActionsRunnerGroupNetworkingState(d, nil); err != nil {
-			return err
-		}
+		return resourceGithubActionsRunnerGroupRead(d, meta)
+	}
+
+	if err = setGithubActionsRunnerGroupNetworkingState(d, nil); err != nil {
+		return err
 	}
 
 	return nil
@@ -313,11 +311,10 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta any) erro
 		return err
 	}
 
-	// if runner group is nil (typically not modified) we can return early
-	if runnerGroup == nil {
-		return nil
+	runnerGroupEtag := normalizeEtag(d.Get("etag").(string))
+	if resp != nil {
+		runnerGroupEtag = normalizeEtag(resp.Header.Get("ETag"))
 	}
-	runnerGroupEtag := resp.Header.Get("ETag")
 
 	runnerGroupNetworking, _, err := getOrganizationRunnerGroupNetworking(client, context.WithValue(context.Background(), ctxId, d.Id()), orgName, runnerGroupID)
 	if err != nil {
@@ -346,8 +343,17 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta any) erro
 		options.Page = resp.NextPage
 	}
 
-	if err = setGithubActionsRunnerGroupState(d, runnerGroup, runnerGroupEtag, selectedRepositoryIDs); err != nil {
-		return err
+	if runnerGroup != nil {
+		if err = setGithubActionsRunnerGroupState(d, runnerGroup, runnerGroupEtag, selectedRepositoryIDs); err != nil {
+			return err
+		}
+	} else {
+		if err := d.Set("selected_repository_ids", selectedRepositoryIDs); err != nil {
+			return err
+		}
+		if err := d.Set("etag", runnerGroupEtag); err != nil {
+			return err
+		}
 	}
 	if err = setGithubActionsRunnerGroupNetworkingState(d, runnerGroupNetworking); err != nil {
 		return err

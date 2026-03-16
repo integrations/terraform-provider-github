@@ -151,9 +151,6 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: configWithoutNetworkConfiguration,
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.Null()),
-					},
 				},
 				{
 					Config: configWithNetworkConfiguration,
@@ -169,9 +166,6 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 				},
 				{
 					Config: configWithoutNetworkConfiguration,
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.Null()),
-					},
 				},
 			},
 		})

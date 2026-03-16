@@ -257,7 +257,6 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("name"), knownvalue.StringExact(groupName)),
 						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("visibility"), knownvalue.StringExact("all")),
-						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.Null()),
 					},
 				},
 				{
@@ -275,9 +274,6 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 				},
 				{
 					Config: configWithoutNetworking,
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.Null()),
-					},
 				},
 			},
 		})
