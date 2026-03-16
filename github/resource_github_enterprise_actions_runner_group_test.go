@@ -14,16 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
-func testCheckEnterpriseRunnerGroupNetworkConfigurationMatches(resourceName, networkConfigurationResourceName string) statecheck.StateCheck {
-	return statecheck.CompareValuePairs(
-		resourceName,
-		tfjsonpath.New("network_configuration_id"),
-		networkConfigurationResourceName,
-		tfjsonpath.New("id"),
-		compare.ValuesSame(),
-	)
-}
-
 func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 	t.Run("creates enterprise runner groups without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -263,7 +253,13 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 					Config: configWithNetworking,
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.NotNull()),
-						testCheckEnterpriseRunnerGroupNetworkConfigurationMatches(resourceName, networkConfigurationResourceName),
+						statecheck.CompareValuePairs(
+							resourceName,
+							tfjsonpath.New("network_configuration_id"),
+							networkConfigurationResourceName,
+							tfjsonpath.New("id"),
+							compare.ValuesSame(),
+						),
 					},
 				},
 				{
@@ -311,7 +307,13 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.NotNull()),
-						testCheckEnterpriseRunnerGroupNetworkConfigurationMatches(resourceName, networkConfigurationResourceName),
+						statecheck.CompareValuePairs(
+							resourceName,
+							tfjsonpath.New("network_configuration_id"),
+							networkConfigurationResourceName,
+							tfjsonpath.New("id"),
+							compare.ValuesSame(),
+						),
 					},
 				},
 				{

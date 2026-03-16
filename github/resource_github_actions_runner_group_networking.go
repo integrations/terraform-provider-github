@@ -52,15 +52,10 @@ func updateRunnerGroupNetworking(client *github.Client, ctx context.Context, pat
 }
 
 func setRunnerGroupNetworkingState(d *schema.ResourceData, runnerGroup *runnerGroupNetworking) error {
-	if runnerGroup != nil && runnerGroup.NetworkConfigurationID != nil && *runnerGroup.NetworkConfigurationID != "" {
-		if err := d.Set("network_configuration_id", *runnerGroup.NetworkConfigurationID); err != nil {
-			return err
-		}
-	} else {
-		if err := d.Set("network_configuration_id", nil); err != nil {
-			return err
-		}
+	var networkConfigurationID any
+	if runnerGroup != nil {
+		networkConfigurationID = runnerGroup.NetworkConfigurationID
 	}
 
-	return nil
+	return d.Set("network_configuration_id", networkConfigurationID)
 }
