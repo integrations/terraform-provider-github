@@ -20,7 +20,7 @@ jobs:
       github.event_name == 'pull_request_target' &&
       github.actor != 'dependabot[bot]' &&
       github.actor != 'renovate[bot]' &&
-      github.actor != 'githubactions[bot]' &&
+      github.actor != 'github-actions[bot]' &&
       github.actor != 'octokitbot' &&
       github.repository == 'integrations/terraform-provider-github'
     runs-on: ubuntu-latest
@@ -53,7 +53,7 @@ jobs:
       github.event_name == 'issues' &&
       github.actor != 'dependabot[bot]' &&
       github.actor != 'renovate[bot]' &&
-      github.actor != 'githubactions[bot]' &&
+      github.actor != 'github-actions[bot]' &&
       github.actor != 'octokitbot' &&
       github.repository == 'integrations/terraform-provider-github'
     runs-on: ubuntu-latest
@@ -63,6 +63,8 @@ jobs:
     steps:
       - name: Triage issue with Copilot
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         with:
           script: |
             const issue = context.payload.issue;
@@ -74,6 +76,7 @@ jobs:
             if (title.startsWith('[BUG]')) issueType = 'bug';
             else if (title.startsWith('[FEAT]')) issueType = 'feature';
             else if (title.startsWith('[DOCS]')) issueType = 'documentation';
+            else if (title.startsWith('[MAINT]')) issueType = 'maintenance';
 
             // ── 2. Check template completeness ──
             const missingRequired = [];
@@ -168,7 +171,7 @@ jobs:
             const affectedResources = resourceMatches ? [...new Set(resourceMatches)] : [];
 
             // ── 4. Search for potential duplicates ──
-            const cleanTitle = title.replace(/^\[(BUG|FEAT|DOCS)\]\s*:?\s*/, '').trim();
+            const cleanTitle = title.replace(/^\[(BUG|FEAT|DOCS|MAINT)\]\s*:?\s*/, '').trim();
             const searchTerms = [];
 
             // Build search queries from title keywords and resource names
