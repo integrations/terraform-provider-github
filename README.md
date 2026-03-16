@@ -1,12 +1,10 @@
 # Terraform Provider GitHub
 
-<p align="left">
 <picture>
 	<source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/b741c63a-76eb-4a40-af73-6509291d5b01">
 	<source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/48ba06ce-d885-45df-8600-279af9fe6887">
-	<img src="https://github.com/user-attachments/assets/48ba06ce-d885-45df-8600-279af9fe6887" width="72" alt="GitHub Octocat logo">
+	<img src="https://github.com/user-attachments/assets/48ba06ce-d885-45df-8600-279af9fe6887" width="72" align="left" alt="GitHub Octocat logo">
 </picture>
-</p>
 
 <picture>
 	<source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/f169cecd-2681-4479-8cb2-e798d8e3161c">
