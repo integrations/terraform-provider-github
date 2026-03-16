@@ -306,7 +306,7 @@ func resourceGithubOrganizationSecurityConfigurationCreate(ctx context.Context, 
 		"name":         name,
 	})
 
-	config := expandCodeSecurityConfiguration(d)
+	config := expandCodeSecurityConfigurationCommon(d)
 
 	configuration, _, err := client.Organizations.CreateCodeSecurityConfiguration(ctx, org, config)
 	if err != nil {
@@ -376,88 +376,8 @@ func resourceGithubOrganizationSecurityConfigurationRead(ctx context.Context, d 
 		return diag.FromErr(err)
 	}
 
-	if err = d.Set("name", configuration.Name); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("description", configuration.Description); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("advanced_security", configuration.GetAdvancedSecurity()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("dependency_graph", configuration.GetDependencyGraph()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("dependency_graph_autosubmit_action", configuration.GetDependencyGraphAutosubmitAction()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("dependency_graph_autosubmit_action_options", flattenDependencyGraphAutosubmitActionOptions(configuration.DependencyGraphAutosubmitActionOptions)); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("dependabot_alerts", configuration.GetDependabotAlerts()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("dependabot_security_updates", configuration.GetDependabotSecurityUpdates()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("code_scanning_default_setup", configuration.GetCodeScanningDefaultSetup()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("code_scanning_default_setup_options", flattenCodeScanningDefaultSetupOptions(configuration.CodeScanningDefaultSetupOptions)); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("code_scanning_delegated_alert_dismissal", configuration.GetCodeScanningDelegatedAlertDismissal()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("code_scanning_options", flattenCodeScanningOptions(configuration.CodeScanningOptions)); err != nil {
-		return diag.FromErr(err)
-	}
-	codeSec := configuration.GetCodeSecurity()
-	if codeSec == "" {
-		codeSec = "disabled"
-	}
-	if err = d.Set("code_security", codeSec); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("secret_scanning", configuration.GetSecretScanning()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("secret_scanning_push_protection", configuration.GetSecretScanningPushProtection()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("secret_scanning_delegated_bypass", configuration.GetSecretScanningDelegatedBypass()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("secret_scanning_delegated_bypass_options", flattenSecretScanningDelegatedBypassOptions(configuration.SecretScanningDelegatedBypassOptions)); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("secret_scanning_validity_checks", configuration.GetSecretScanningValidityChecks()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("secret_scanning_non_provider_patterns", configuration.GetSecretScanningNonProviderPatterns()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("secret_scanning_generic_secrets", configuration.GetSecretScanningGenericSecrets()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("secret_scanning_delegated_alert_dismissal", configuration.GetSecretScanningDelegatedAlertDismissal()); err != nil {
-		return diag.FromErr(err)
-	}
-	secretProt := configuration.GetSecretProtection()
-	if secretProt == "" {
-		secretProt = "disabled"
-	}
-	if err = d.Set("secret_protection", secretProt); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("private_vulnerability_reporting", configuration.GetPrivateVulnerabilityReporting()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("enforcement", configuration.GetEnforcement()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("target_type", configuration.GetTargetType()); err != nil {
-		return diag.FromErr(err)
+	if diags := setCodeSecurityConfigurationState(d, configuration); diags != nil {
+		return diags
 	}
 
 	tflog.Trace(ctx, fmt.Sprintf("Successfully read organization code security configuration: %s/%d", org, id), map[string]any{
@@ -490,7 +410,7 @@ func resourceGithubOrganizationSecurityConfigurationUpdate(ctx context.Context, 
 		"id":           id,
 	})
 
-	config := expandCodeSecurityConfiguration(d)
+	config := expandCodeSecurityConfigurationCommon(d)
 
 	_, _, err = client.Organizations.UpdateCodeSecurityConfiguration(ctx, org, id, config)
 	if err != nil {
@@ -558,6 +478,3 @@ func resourceGithubOrganizationSecurityConfigurationDelete(ctx context.Context, 
 	return nil
 }
 
-func expandCodeSecurityConfiguration(d *schema.ResourceData) github.CodeSecurityConfiguration {
-	return expandCodeSecurityConfigurationCommon(d)
-}
