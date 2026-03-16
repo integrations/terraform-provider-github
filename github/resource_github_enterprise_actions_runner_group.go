@@ -302,7 +302,7 @@ func resourceGithubActionsEnterpriseRunnerGroupRead(d *schema.ResourceData, meta
 		runnerGroupEtag = normalizeEtag(resp.Header.Get("ETag"))
 	}
 
-	runnerGroupNetworking, _, err := getEnterpriseRunnerGroupNetworking(client, context.WithValue(context.Background(), ctxId, d.Id()), enterpriseSlug, runnerGroupID)
+	runnerGroupNetworking, _, err := getEnterpriseRunnerGroupNetworking(client, ctx, enterpriseSlug, runnerGroupID)
 	if err != nil {
 		return err
 	}

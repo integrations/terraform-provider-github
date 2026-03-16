@@ -316,7 +316,7 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta any) erro
 		runnerGroupEtag = normalizeEtag(resp.Header.Get("ETag"))
 	}
 
-	runnerGroupNetworking, _, err := getOrganizationRunnerGroupNetworking(client, context.WithValue(context.Background(), ctxId, d.Id()), orgName, runnerGroupID)
+	runnerGroupNetworking, _, err := getOrganizationRunnerGroupNetworking(client, ctx, orgName, runnerGroupID)
 	if err != nil {
 		return err
 	}
