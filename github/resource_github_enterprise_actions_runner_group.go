@@ -251,10 +251,7 @@ func resourceGithubActionsEnterpriseRunnerGroupRead(ctx context.Context, d *sche
 		return diag.FromErr(err)
 	}
 
-	runnerGroupEtag := normalizeEtag(d.Get("etag").(string))
-	if resp != nil {
-		runnerGroupEtag = normalizeEtag(resp.Header.Get("ETag"))
-	}
+	runnerGroupEtag := normalizeEtag(resp.Header.Get("ETag"))
 
 	runnerGroupNetworking, _, err := getRunnerGroupNetworking(client, ctx, fmt.Sprintf("enterprises/%s/actions/runner-groups/%d", enterpriseSlug, runnerGroupID))
 	if err != nil {
@@ -373,10 +370,7 @@ func resourceGithubActionsEnterpriseRunnerGroupUpdate(ctx context.Context, d *sc
 		return diag.FromErr(err)
 	}
 
-	runnerGroupEtag := normalizeEtag(d.Get("etag").(string))
-	if resp != nil {
-		runnerGroupEtag = normalizeEtag(resp.Header.Get("ETag"))
-	}
+	runnerGroupEtag := normalizeEtag(resp.Header.Get("ETag"))
 
 	if err := setGithubActionsEnterpriseRunnerGroupState(d, runnerGroup, runnerGroupEtag, enterpriseSlug, selectedOrganizationIDs); err != nil {
 		return diag.FromErr(err)
