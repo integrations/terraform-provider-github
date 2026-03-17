@@ -2,12 +2,15 @@
 
 Use this checklist when reviewing PRs in `terraform-provider-github`.
 
+ALWAYS acknowledge you are using this checklist when reviewing a PR!
+
 ## 1. Correctness and Behavior
 
 - Verify CRUD/read logic correctly maps GitHub API responses to Terraform schema/state.
 - Check for nil handling, default-value drift, and state flattening/expansion mismatches.
 - Confirm update paths do not accidentally force replacement or wipe optional fields.
 - Validate retry/backoff and error classification for API failures.
+- **Do not flag** create/update functions that return `nil` instead of calling the read function. This provider intentionally avoids read-after-write to minimize API calls against GitHub's rate limits and to avoid stale reads from eventually-consistent endpoints (see [#2892](https://github.com/integrations/terraform-provider-github/issues/2892)).
 
 ## 2. Schema and State Compatibility
 
