@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v83/github"
+	"github.com/google/go-github/v84/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -67,9 +67,9 @@ func resourceGithubOrganizationWebhookObject(d *schema.ResourceData) *github.Hoo
 	}
 
 	hook := &github.Hook{
-		URL:    github.Ptr(d.Get("url").(string)),
+		URL:    new(d.Get("url").(string)),
 		Events: events,
-		Active: github.Ptr(d.Get("active").(bool)),
+		Active: new(d.Get("active").(bool)),
 	}
 
 	config := d.Get("configuration").([]any)
@@ -167,7 +167,7 @@ func resourceGithubOrganizationWebhookRead(ctx context.Context, d *schema.Resour
 		currentSecret := d.Get("configuration").([]any)[0].(map[string]any)["secret"]
 
 		if hook.Config.Secret != nil {
-			hook.Config.Secret = github.Ptr(currentSecret.(string))
+			hook.Config.Secret = new(currentSecret.(string))
 		}
 	}
 
@@ -225,28 +225,28 @@ func resourceGithubOrganizationWebhookDelete(ctx context.Context, d *schema.Reso
 func webhookConfigFromInterface(config map[string]any) *github.HookConfig {
 	hookConfig := &github.HookConfig{}
 	if config["url"] != nil {
-		hookConfig.URL = github.Ptr(config["url"].(string))
+		hookConfig.URL = new(config["url"].(string))
 	}
 	if config["content_type"] != nil {
-		hookConfig.ContentType = github.Ptr(config["content_type"].(string))
+		hookConfig.ContentType = new(config["content_type"].(string))
 	}
 	if config["insecure_ssl"] != nil {
 		if insecureSsl, ok := config["insecure_ssl"].(bool); ok {
 			if insecureSsl {
-				hookConfig.InsecureSSL = github.Ptr("1")
+				hookConfig.InsecureSSL = new("1")
 			} else {
-				hookConfig.InsecureSSL = github.Ptr("0")
+				hookConfig.InsecureSSL = new("0")
 			}
 		} else {
 			if config["insecure_ssl"] == "1" || config["insecure_ssl"] == "true" {
-				hookConfig.InsecureSSL = github.Ptr("1")
+				hookConfig.InsecureSSL = new("1")
 			} else {
-				hookConfig.InsecureSSL = github.Ptr("0")
+				hookConfig.InsecureSSL = new("0")
 			}
 		}
 	}
 	if config["secret"] != nil {
-		hookConfig.Secret = github.Ptr(config["secret"].(string))
+		hookConfig.Secret = new(config["secret"].(string))
 	}
 	return hookConfig
 }

@@ -3,7 +3,7 @@ package github
 import (
 	"testing"
 
-	"github.com/google/go-github/v83/github"
+	"github.com/google/go-github/v84/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -704,18 +704,18 @@ func TestFlattenRequiredReviewers(t *testing.T) {
 	reviewerType := github.RulesetReviewerTypeTeam
 	reviewers := []*github.RulesetRequiredReviewer{
 		{
-			MinimumApprovals: github.Ptr(2),
+			MinimumApprovals: new(2),
 			FilePatterns:     []string{"*.go", "src/**/*.ts"},
 			Reviewer: &github.RulesetReviewer{
-				ID:   github.Ptr(int64(12345)),
+				ID:   new(int64(12345)),
 				Type: &reviewerType,
 			},
 		},
 		{
-			MinimumApprovals: github.Ptr(1),
+			MinimumApprovals: new(1),
 			FilePatterns:     []string{"docs/**/*.md"},
 			Reviewer: &github.RulesetReviewer{
-				ID:   github.Ptr(int64(67890)),
+				ID:   new(int64(67890)),
 				Type: &reviewerType,
 			},
 		},

@@ -8,7 +8,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/google/go-github/v83/github"
+	"github.com/google/go-github/v84/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -117,11 +117,11 @@ func resourceGithubActionsOrganizationWorkflowPermissionsCreateOrUpdate(ctx cont
 	workflowPerms := github.DefaultWorkflowPermissionOrganization{}
 
 	if v, ok := d.GetOk("default_workflow_permissions"); ok {
-		workflowPerms.DefaultWorkflowPermissions = github.Ptr(v.(string))
+		workflowPerms.DefaultWorkflowPermissions = new(v.(string))
 	}
 
 	if v, ok := d.GetOk("can_approve_pull_request_reviews"); ok {
-		workflowPerms.CanApprovePullRequestReviews = github.Ptr(v.(bool))
+		workflowPerms.CanApprovePullRequestReviews = new(v.(bool))
 	}
 
 	tflog.Debug(ctx, "Calling GitHub API to update workflow permissions", map[string]any{
@@ -194,8 +194,8 @@ func resourceGithubActionsOrganizationWorkflowPermissionsDelete(ctx context.Cont
 
 	// Reset to safe defaults
 	workflowPerms := github.DefaultWorkflowPermissionOrganization{
-		DefaultWorkflowPermissions:   github.Ptr("read"),
-		CanApprovePullRequestReviews: github.Ptr(false),
+		DefaultWorkflowPermissions:   new("read"),
+		CanApprovePullRequestReviews: new(false),
 	}
 
 	tflog.Debug(ctx, "Using safe default values", map[string]any{
