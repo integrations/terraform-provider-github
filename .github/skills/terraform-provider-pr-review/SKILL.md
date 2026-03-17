@@ -84,5 +84,6 @@ If no issues are found, explicitly state `No blocking findings found` and list r
 - Prefer matching resource/data source tests when implementation behavior changes.
 - When schema or state semantics change, treat as high-risk unless compatibility is clearly preserved.
 - Breaking changes must follow semantic versioning: attribute removal/rename or new required fields warrant a major version bump.
+- Create/update functions in this provider intentionally do **not** call the read function afterward. This reduces API call volume against GitHub's rate limits and avoids stale reads from eventually-consistent endpoints (see [#2892](https://github.com/integrations/terraform-provider-github/issues/2892)). Do not flag this as an issue.
 - Example configurations under `examples/` should be self-contained, follow standard module structure, and not include `provider` blocks inside nested modules.
 - Sensitive attributes (tokens, secrets, private keys) must be marked `Sensitive: true` in the schema and must not appear in log output.
