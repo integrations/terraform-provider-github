@@ -29,17 +29,19 @@ endif
 default: build
 
 bin/golangci-lint:
+	@echo "==> Installing golangci-lint..."
 	mkdir -p $(BIN)
 	GOBIN=$(BIN) go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.10.1
 
 tools_go_files = $(shell find tools \( -name '*.go' -or -name '*.mod' -or -name '*.sum' \) -and -not -name '*_test.go' -maxdepth 4)
 bin/custom-gcl: bin/golangci-lint $(tools_go_files)
-	$(BIN)/golangci-lint custom --name custom-gcl --destination $(BIN)
+	@echo "==> Building custom-gcl..."
+	@$(BIN)/golangci-lint custom --name custom-gcl --destination $(BIN)
 
 tools: bin/custom-gcl go.sum
 
 go.sum: go.mod $(shell find github -name '*.go')
-	go mod tidy
+	@go mod tidy
 
 build: lintcheck
 	CGO_ENABLED=0 go build -ldflags="-s -w" ./...
@@ -58,16 +60,16 @@ lintcheck: tools
 	$(BIN)/custom-gcl run ./...
 
 .golangci.new.yml: .golangci.yml .golangci.strict.yml
-	yq eval-all 'select(fileIndex == 0) *+ select(fileIndex == 1)' .golangci.yml .golangci.strict.yml > .golangci.new.yml 
+	@yq eval-all 'select(fileIndex == 0) *+ select(fileIndex == 1)' .golangci.yml .golangci.strict.yml > .golangci.new.yml 
 
 lintcheck-new: tools .golangci.new.yml
 	@branch=$$(git rev-parse --abbrev-ref HEAD); \
-	printf "==> Checking source code against linters on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
+	printf "==> Checking changed source code against linters on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
 	$(BIN)/custom-gcl run ./... --new-from-merge-base main --config .golangci.new.yml
 
 lintcheck-strict: tools .golangci.new.yml
 	@branch=$$(git rev-parse --abbrev-ref HEAD); \
-	printf "==> Checking source code against linters on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
+	printf "==> Checking source code against strict linters on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
 	$(BIN)/custom-gcl run ./... --config .golangci.new.yml
 
 test:
