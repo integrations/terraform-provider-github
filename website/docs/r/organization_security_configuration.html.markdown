@@ -86,7 +86,7 @@ The `secret_scanning_delegated_bypass_options` block supports:
 
 * `reviewers` - (Optional) The bypass reviewers. Each entry supports:
   * `reviewer_id` - (Required) The ID of the bypass reviewer (team or role ID).
-  * `reviewer_type` - (Required) The type of the bypass reviewer. Can be one of `Team`, `Role`.
+  * `reviewer_type` - (Required) The type of the bypass reviewer. Can be one of `TEAM`, `ROLE`.
 
 ## Import
 

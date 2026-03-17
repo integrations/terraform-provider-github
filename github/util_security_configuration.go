@@ -1,7 +1,7 @@
 package github
 
 import (
-	"github.com/google/go-github/v83/github"
+	"github.com/google/go-github/v84/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -106,23 +106,13 @@ func setCodeSecurityConfigurationState(d *schema.ResourceData, configuration *gi
 	if err := d.Set("code_scanning_options", flattenCodeScanningOptions(configuration.CodeScanningOptions)); err != nil {
 		return diag.FromErr(err)
 	}
-	codeSec := configuration.GetCodeSecurity()
-	if codeSec == "" {
-		codeSec = "disabled"
-	}
-	if err := d.Set("code_security", codeSec); err != nil {
+	if err := d.Set("code_security", configuration.GetCodeSecurity()); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("secret_scanning", configuration.GetSecretScanning()); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("secret_scanning_push_protection", configuration.GetSecretScanningPushProtection()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("secret_scanning_delegated_bypass", configuration.GetSecretScanningDelegatedBypass()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("secret_scanning_delegated_bypass_options", flattenSecretScanningDelegatedBypassOptions(configuration.SecretScanningDelegatedBypassOptions)); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("secret_scanning_validity_checks", configuration.GetSecretScanningValidityChecks()); err != nil {
@@ -137,11 +127,7 @@ func setCodeSecurityConfigurationState(d *schema.ResourceData, configuration *gi
 	if err := d.Set("secret_scanning_delegated_alert_dismissal", configuration.GetSecretScanningDelegatedAlertDismissal()); err != nil {
 		return diag.FromErr(err)
 	}
-	secretProt := configuration.GetSecretProtection()
-	if secretProt == "" {
-		secretProt = "disabled"
-	}
-	if err := d.Set("secret_protection", secretProt); err != nil {
+	if err := d.Set("secret_protection", configuration.GetSecretProtection()); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("private_vulnerability_reporting", configuration.GetPrivateVulnerabilityReporting()); err != nil {
@@ -160,8 +146,10 @@ func setCodeSecurityConfigurationState(d *schema.ResourceData, configuration *gi
 // Used by both the organization and enterprise security configuration resources.
 func expandCodeSecurityConfigurationCommon(d *schema.ResourceData) github.CodeSecurityConfiguration {
 	config := github.CodeSecurityConfiguration{
-		Name:        d.Get("name").(string),
-		Description: d.Get("description").(string),
+		Name: d.Get("name").(string),
+	}
+	if val, ok := d.GetOk("description"); ok {
+		config.Description = val.(string)
 	}
 
 	if val, ok := d.GetOk("advanced_security"); ok {
@@ -193,9 +181,6 @@ func expandCodeSecurityConfigurationCommon(d *schema.ResourceData) github.CodeSe
 	}
 	if val, ok := d.GetOk("secret_scanning_push_protection"); ok {
 		config.SecretScanningPushProtection = github.Ptr(val.(string))
-	}
-	if val, ok := d.GetOk("secret_scanning_delegated_bypass"); ok {
-		config.SecretScanningDelegatedBypass = github.Ptr(val.(string))
 	}
 	if val, ok := d.GetOk("secret_scanning_validity_checks"); ok {
 		config.SecretScanningValidityChecks = github.Ptr(val.(string))
@@ -252,6 +237,15 @@ func expandCodeSecurityConfigurationCommon(d *schema.ResourceData) github.CodeSe
 		}
 	}
 
+	return config
+}
+
+// expandSecretScanningDelegatedBypass adds secret_scanning_delegated_bypass fields to a CodeSecurityConfiguration.
+// These fields are only supported by the organization API, not the enterprise API.
+func expandSecretScanningDelegatedBypass(d *schema.ResourceData, config *github.CodeSecurityConfiguration) {
+	if val, ok := d.GetOk("secret_scanning_delegated_bypass"); ok {
+		config.SecretScanningDelegatedBypass = github.Ptr(val.(string))
+	}
 	if val, ok := d.GetOk("secret_scanning_delegated_bypass_options"); ok {
 		optionsList := val.([]any)
 		if len(optionsList) > 0 {
@@ -272,6 +266,4 @@ func expandCodeSecurityConfigurationCommon(d *schema.ResourceData) github.CodeSe
 			config.SecretScanningDelegatedBypassOptions = options
 		}
 	}
-
-	return config
 }

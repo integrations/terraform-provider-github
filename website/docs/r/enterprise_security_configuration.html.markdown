@@ -48,8 +48,6 @@ The following arguments are supported:
 * `code_security` - (Optional) The code security configuration. Can be one of `enabled`, `disabled`, `not_set`.
 * `secret_scanning` - (Optional) The secret scanning configuration. Can be one of `enabled`, `disabled`, `not_set`.
 * `secret_scanning_push_protection` - (Optional) The secret scanning push protection configuration. Can be one of `enabled`, `disabled`, `not_set`.
-* `secret_scanning_delegated_bypass` - (Optional) The secret scanning delegated bypass configuration. Can be one of `enabled`, `disabled`, `not_set`.
-* `secret_scanning_delegated_bypass_options` - (Optional) The secret scanning delegated bypass options. See [Secret Scanning Delegated Bypass Options](#secret-scanning-delegated-bypass-options) below for details.
 * `secret_scanning_validity_checks` - (Optional) The secret scanning validity checks configuration. Can be one of `enabled`, `disabled`, `not_set`.
 * `secret_scanning_non_provider_patterns` - (Optional) The secret scanning non provider patterns configuration. Can be one of `enabled`, `disabled`, `not_set`.
 * `secret_scanning_generic_secrets` - (Optional) The secret scanning generic secrets configuration. Can be one of `enabled`, `disabled`, `not_set`.
@@ -81,14 +79,6 @@ The `code_scanning_default_setup_options` block supports:
 The `code_scanning_options` block supports:
 
 * `allow_advanced` - (Optional) Whether to allow advanced security for code scanning.
-
-### Secret Scanning Delegated Bypass Options
-
-The `secret_scanning_delegated_bypass_options` block supports:
-
-* `reviewers` - (Optional) The bypass reviewers. Each entry supports:
-  * `reviewer_id` - (Required) The ID of the bypass reviewer (team or role ID).
-  * `reviewer_type` - (Required) The type of the bypass reviewer. Can be one of `Team`, `Role`.
 
 ## Import
 

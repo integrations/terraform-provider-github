@@ -195,7 +195,7 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 			secret_scanning_delegated_bypass_options {
 				reviewers {
 					reviewer_id   = 1
-					reviewer_type = "Team"
+					reviewer_type = "TEAM"
 				}
 			}
 		}`, configName)
@@ -210,8 +210,13 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 						statecheck.ExpectKnownValue("github_organization_security_configuration.test",
 							tfjsonpath.New("secret_scanning_delegated_bypass"), knownvalue.StringExact("enabled")),
 						statecheck.ExpectKnownValue("github_organization_security_configuration.test",
-							tfjsonpath.New("secret_scanning_delegated_bypass_options").AtSliceIndex(0).AtMapKey("reviewers").AtSliceIndex(0).AtMapKey("reviewer_type"), knownvalue.StringExact("Team")),
+							tfjsonpath.New("secret_scanning_delegated_bypass_options").AtSliceIndex(0).AtMapKey("reviewers").AtSliceIndex(0).AtMapKey("reviewer_type"), knownvalue.StringExact("TEAM")),
 					},
+				},
+				{
+					ResourceName:      "github_organization_security_configuration.test",
+					ImportState:       true,
+					ImportStateVerify: true,
 				},
 			},
 		})

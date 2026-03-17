@@ -174,45 +174,13 @@ func TestAccGithubEnterpriseSecurityConfiguration(t *testing.T) {
 							tfjsonpath.New("target_type"), knownvalue.NotNull()),
 					},
 				},
-			},
-		})
-	})
-
-	t.Run("creates enterprise security configuration with delegated bypass options", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		configName := fmt.Sprintf("test-config-bypass-%s", randomID)
-
-		config := fmt.Sprintf(`
-		resource "github_enterprise_security_configuration" "test" {
-			enterprise_slug = "%s"
-			name = "%s"
-			description = "Test configuration with delegated bypass"
-			advanced_security = "enabled"
-			secret_scanning = "enabled"
-			secret_scanning_push_protection = "enabled"
-			secret_scanning_delegated_bypass = "enabled"
-			secret_scanning_delegated_bypass_options {
-				reviewers {
-					reviewer_id   = 1
-					reviewer_type = "Team"
-				}
-			}
-		}`, testAccConf.enterpriseSlug, configName)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessEnterprise(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
 				{
-					Config: config,
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_enterprise_security_configuration.test",
-							tfjsonpath.New("secret_scanning_delegated_bypass"), knownvalue.StringExact("enabled")),
-						statecheck.ExpectKnownValue("github_enterprise_security_configuration.test",
-							tfjsonpath.New("secret_scanning_delegated_bypass_options").AtSliceIndex(0).AtMapKey("reviewers").AtSliceIndex(0).AtMapKey("reviewer_type"), knownvalue.StringExact("Team")),
-					},
+					ResourceName:      "github_enterprise_security_configuration.test",
+					ImportState:       true,
+					ImportStateVerify: true,
 				},
 			},
 		})
 	})
+
 }

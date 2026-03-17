@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v83/github"
+	"github.com/google/go-github/v84/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -215,8 +215,8 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 									"reviewer_type": {
 										Type:             schema.TypeString,
 										Required:         true,
-										Description:      "The type of the bypass reviewer. Can be one of 'Team', 'Role'.",
-										ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"Team", "Role"}, false)),
+										Description:      "The type of the bypass reviewer. Can be one of 'TEAM', 'ROLE'.",
+										ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"TEAM", "ROLE"}, false)),
 									},
 								},
 							},
@@ -311,6 +311,7 @@ func resourceGithubOrganizationSecurityConfigurationCreate(ctx context.Context, 
 	})
 
 	config := expandCodeSecurityConfigurationCommon(d)
+	expandSecretScanningDelegatedBypass(d, &config)
 
 	configuration, _, err := client.Organizations.CreateCodeSecurityConfiguration(ctx, org, config)
 	if err != nil {
@@ -383,6 +384,12 @@ func resourceGithubOrganizationSecurityConfigurationRead(ctx context.Context, d 
 	if diags := setCodeSecurityConfigurationState(d, configuration); diags != nil {
 		return diags
 	}
+	if err = d.Set("secret_scanning_delegated_bypass", configuration.GetSecretScanningDelegatedBypass()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err = d.Set("secret_scanning_delegated_bypass_options", flattenSecretScanningDelegatedBypassOptions(configuration.SecretScanningDelegatedBypassOptions)); err != nil {
+		return diag.FromErr(err)
+	}
 
 	tflog.Trace(ctx, "Successfully read organization code security configuration", map[string]any{
 		"organization": org,
@@ -407,6 +414,7 @@ func resourceGithubOrganizationSecurityConfigurationUpdate(ctx context.Context, 
 	})
 
 	config := expandCodeSecurityConfigurationCommon(d)
+	expandSecretScanningDelegatedBypass(d, &config)
 
 	_, _, err = client.Organizations.UpdateCodeSecurityConfiguration(ctx, org, id, config)
 	if err != nil {

@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v83/github"
+	"github.com/google/go-github/v84/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -191,45 +191,6 @@ func resourceGithubEnterpriseSecurityConfiguration() *schema.Resource {
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
 				}, false)),
-			},
-			"secret_scanning_delegated_bypass": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
-				Description: "The secret scanning delegated bypass configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
-				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
-					"enabled", "disabled", "not_set",
-				}, false)),
-			},
-			"secret_scanning_delegated_bypass_options": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				MaxItems:    1,
-				Description: "The secret scanning delegated bypass options for the code security configuration.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"reviewers": {
-							Type:        schema.TypeList,
-							Optional:    true,
-							Description: "The bypass reviewers for the secret scanning delegated bypass.",
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"reviewer_id": {
-										Type:        schema.TypeInt,
-										Required:    true,
-										Description: "The ID of the bypass reviewer.",
-									},
-									"reviewer_type": {
-										Type:             schema.TypeString,
-										Required:         true,
-										Description:      "The type of the bypass reviewer. Can be one of 'Team', 'Role'.",
-										ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"Team", "Role"}, false)),
-									},
-								},
-							},
-						},
-					},
-				},
 			},
 			"secret_scanning_validity_checks": {
 				Type:        schema.TypeString,
