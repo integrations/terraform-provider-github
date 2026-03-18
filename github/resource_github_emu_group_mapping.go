@@ -89,7 +89,7 @@ func resourceGithubEMUGroupMappingCreate(ctx context.Context, d *schema.Resource
 
 	tflog.Debug(ctx, "Successfully updated connected external group")
 
-	teamID, err := lookupTeamID(ctx, meta.(*Owner), teamSlug)
+	teamID, err := lookupTeamID(ctx, client, orgName, teamSlug)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -306,7 +306,11 @@ func resourceGithubEMUGroupMappingDelete(ctx context.Context, d *schema.Resource
 	return nil
 }
 
-func resourceGithubEMUGroupMappingImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubEMUGroupMappingImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+	meta := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
+
 	importID := d.Id()
 	tflog.Trace(ctx, "Importing EMU group mapping with two-part ID", map[string]any{
 		"import_id": importID,
@@ -329,7 +333,7 @@ func resourceGithubEMUGroupMappingImport(ctx context.Context, d *schema.Resource
 		"team_slug": teamSlug,
 	})
 
-	teamID, err := lookupTeamID(ctx, meta.(*Owner), teamSlug)
+	teamID, err := lookupTeamID(ctx, client, orgName, teamSlug)
 	if err != nil {
 		return nil, err
 	}

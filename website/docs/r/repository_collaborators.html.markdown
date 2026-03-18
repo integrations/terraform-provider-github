@@ -52,12 +52,12 @@ resource "github_repository_collaborators" "some_repo_collaborators" {
 
   user {
     permission = "admin"
-    username  = "SomeUser"
+    username   = "SomeUser"
   }
 
   team {
     permission = "pull"
-    team_id = github_team.some_team.slug
+    team_id    = github_team.some_team.slug
   }
 }
 ```
@@ -66,40 +66,40 @@ resource "github_repository_collaborators" "some_repo_collaborators" {
 
 The following arguments are supported:
 
-* `repository` - (Required) The GitHub repository.
-* `user` - (Optional) List of users to grant access to the repository.
-* `team` - (Optional) List of teams to grant access to the repository.
-* `ignore_team` - (Optional) List of teams to ignore when checking for repository access. This supports ignoring teams granted access at an organizational level.
+- `repository` - (Required) The GitHub repository.
+- `user` - (Optional) List of users to grant access to the repository.
+- `team` - (Optional) List of teams to grant access to the repository.
+- `ignore_team` - (Optional) List of teams to ignore when checking for repository access. This supports ignoring teams granted access at an organizational level.
 
 The `user` block supports:
 
-* `username` - (Required) The user to add to the repository as a collaborator.
-* `permission` - (Optional) The permission of the outside collaborators for the repository.
+- `username` - (Required) The user to add to the repository as a collaborator.
+- `permission` - (Optional) The permission of the outside collaborators for the repository.
             Must be one of `pull`, `push`, `maintain`, `triage` or `admin` or the name of an existing [custom repository role](https://docs.github.com/en/enterprise-cloud@latest/organizations/managing-peoples-access-to-your-organization-with-roles/managing-custom-repository-roles-for-an-organization) within the organization for organization-owned repositories.
             Must be `push` for personal repositories. Defaults to `push`.
 
 The `team` block supports:
 
-* `team_id` - (Required) The GitHub team id or the GitHub team slug.
-* `permission` - (Optional) The permission of the outside collaborators for the repository.
+- `team_id` - (Required) The GitHub team id or the GitHub team slug.
+- `permission` - (Optional) The permission of the outside collaborators for the repository.
   Must be one of `pull`, `triage`, `push`, `maintain`, `admin` or the name of an existing [custom repository role](https://docs.github.com/en/enterprise-cloud@latest/organizations/managing-peoples-access-to-your-organization-with-roles/managing-custom-repository-roles-for-an-organization) within the organisation. Defaults to `pull`.
   Must be `push` for personal repositories. Defaults to `push`.
 
 The `ignore_team` block supports:
 
-* `team_id` - (Required) The GitHub team id or the GitHub team slug.
+- `team_id` - (Required) The GitHub team id or the GitHub team slug.
 
 ## Attribute Reference
 
 In addition to the above arguments, the following attributes are exported:
 
-* `invitation_ids` - Map of usernames to invitation ID for any users added as part of creation of this resource to
+- `invitation_ids` - Map of usernames to invitation ID for any users added as part of creation of this resource to
   be used in [`github_user_invitation_accepter`](./user_invitation_accepter.html).
 
 ## Import
 
-GitHub Repository Collaborators can be imported using the name `name`, e.g.
+GitHub Repository Collaborators can be imported using the repository name `name`, e.g.
 
-```
-$ terraform import github_repository_collaborators.collaborators terraform
+```hcl
+terraform import github_repository_collaborators.collaborators myrepo
 ```

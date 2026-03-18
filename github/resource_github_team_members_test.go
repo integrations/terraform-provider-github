@@ -92,7 +92,7 @@ func testAccCheckGithubTeamMembersDestroy(s *terraform.State) error {
 
 		teamIdString := rs.Primary.ID
 
-		teamId, err := getTeamID(teamIdString, meta)
+		teamId, err := getTeamID(context.Background(), meta, teamIdString)
 		if err != nil {
 			return unconvertibleIdErr(teamIdString, err)
 		}
