@@ -292,27 +292,23 @@ func resourceGithubEnterpriseSecurityConfigurationCreate(ctx context.Context, d 
 	}
 	d.SetId(id)
 
+	if err = d.Set("configuration_id", int(configuration.GetID())); err != nil {
+		return diag.FromErr(err)
+	}
+
 	tflog.Info(ctx, "Created enterprise code security configuration", map[string]any{
 		"enterprise": enterprise,
 		"name":       name,
 		"id":         configuration.GetID(),
 	})
 
-	return resourceGithubEnterpriseSecurityConfigurationRead(ctx, d, meta)
+	return nil
 }
 
 func resourceGithubEnterpriseSecurityConfigurationRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-
-	enterprise, idStr, err := parseID2(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	enterprise := d.Get("enterprise_slug").(string)
+	id := int64(d.Get("configuration_id").(int))
 
 	tflog.Trace(ctx, "Reading enterprise code security configuration", map[string]any{
 		"enterprise": enterprise,
@@ -340,11 +336,7 @@ func resourceGithubEnterpriseSecurityConfigurationRead(ctx context.Context, d *s
 		return diag.FromErr(err)
 	}
 
-	if err = d.Set("enterprise_slug", enterprise); err != nil {
-		return diag.FromErr(err)
-	}
-
-	if diags := setCodeSecurityConfigurationState(d, configuration); diags != nil {
+	if diags := setCodeSecurityConfigurationState(d, configuration); diags.HasError() {
 		return diags
 	}
 
@@ -383,7 +375,7 @@ func resourceGithubEnterpriseSecurityConfigurationUpdate(ctx context.Context, d 
 		"id":         id,
 	})
 
-	return resourceGithubEnterpriseSecurityConfigurationRead(ctx, d, meta)
+	return nil
 }
 
 func resourceGithubEnterpriseSecurityConfigurationDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
@@ -422,19 +414,28 @@ func resourceGithubEnterpriseSecurityConfigurationDelete(ctx context.Context, d 
 	return nil
 }
 
-func resourceGithubEnterpriseSecurityConfigurationImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	enterpriseSlug, configID, err := parseID2(d.Id())
+func resourceGithubEnterpriseSecurityConfigurationImport(_ context.Context, d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
+	enterpriseSlug, configIDStr, err := parseID2(d.Id())
 	if err != nil {
 		return nil, fmt.Errorf("invalid import specified: supplied import must be written as <enterprise_slug>:<configuration_id>. Parse error: %w", err)
 	}
 
-	id, err := buildID(enterpriseSlug, configID)
+	configID, err := strconv.ParseInt(configIDStr, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid configuration_id %q: %w", configIDStr, err)
+	}
+
+	id, err := buildID(enterpriseSlug, configIDStr)
 	if err != nil {
 		return nil, err
 	}
 	d.SetId(id)
 
 	if err = d.Set("enterprise_slug", enterpriseSlug); err != nil {
+		return nil, err
+	}
+
+	if err = d.Set("configuration_id", int(configID)); err != nil {
 		return nil, err
 	}
 

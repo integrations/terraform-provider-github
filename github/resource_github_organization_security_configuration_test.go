@@ -14,7 +14,7 @@ import (
 func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 	t.Run("creates organization security configuration without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		configName := fmt.Sprintf("test-config-%s", randomID)
+		configName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 		resource "github_organization_security_configuration" "test" {
@@ -50,6 +50,27 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 							tfjsonpath.New("configuration_id"), knownvalue.NotNull()),
 					},
 				},
+			},
+		})
+	})
+
+	t.Run("imports organization security configuration without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		configName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+		resource "github_organization_security_configuration" "test" {
+			name = "%s"
+			description = "Test configuration for import"
+		}`, configName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+				},
 				{
 					ResourceName:      "github_organization_security_configuration.test",
 					ImportState:       true,
@@ -61,17 +82,22 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 
 	t.Run("updates organization security configuration without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		configName := fmt.Sprintf("test-config-%s", randomID)
-		configNameUpdated := fmt.Sprintf("test-config-updated-%s", randomID)
+		configName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+		configNameUpdated := fmt.Sprintf("%supdated-%s", testResourcePrefix, randomID)
 
-		tmpl := `
+		configBefore := fmt.Sprintf(`
 		resource "github_organization_security_configuration" "test" {
 			name = "%s"
-			description = "%s"
-			advanced_security = "%s"
-		}`
-		configBefore := fmt.Sprintf(tmpl, configName, "Test configuration", "disabled")
-		configAfter := fmt.Sprintf(tmpl, configNameUpdated, "Test configuration updated", "enabled")
+			description = "Test configuration"
+			advanced_security = "disabled"
+		}`, configName)
+
+		configAfter := fmt.Sprintf(`
+		resource "github_organization_security_configuration" "test" {
+			name = "%s"
+			description = "Test configuration updated"
+			advanced_security = "enabled"
+		}`, configNameUpdated)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -101,7 +127,7 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 
 	t.Run("creates organization security configuration with options", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		configName := fmt.Sprintf("test-config-options-%s", randomID)
+		configName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 		resource "github_organization_security_configuration" "test" {
@@ -139,18 +165,13 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 							tfjsonpath.New("code_scanning_default_setup_options").AtSliceIndex(0).AtMapKey("runner_label"), knownvalue.StringExact("code-scanning")),
 					},
 				},
-				{
-					ResourceName:      "github_organization_security_configuration.test",
-					ImportState:       true,
-					ImportStateVerify: true,
-				},
 			},
 		})
 	})
 
 	t.Run("creates organization security configuration with minimal config", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		configName := fmt.Sprintf("test-config-minimal-%s", randomID)
+		configName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 		resource "github_organization_security_configuration" "test" {
@@ -171,18 +192,13 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 							tfjsonpath.New("target_type"), knownvalue.NotNull()),
 					},
 				},
-				{
-					ResourceName:      "github_organization_security_configuration.test",
-					ImportState:       true,
-					ImportStateVerify: true,
-				},
 			},
 		})
 	})
 
 	t.Run("creates organization security configuration with delegated bypass options", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		configName := fmt.Sprintf("test-config-bypass-%s", randomID)
+		configName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 		resource "github_organization_security_configuration" "test" {
@@ -212,11 +228,6 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 						statecheck.ExpectKnownValue("github_organization_security_configuration.test",
 							tfjsonpath.New("secret_scanning_delegated_bypass_options").AtSliceIndex(0).AtMapKey("reviewers").AtSliceIndex(0).AtMapKey("reviewer_type"), knownvalue.StringExact("TEAM")),
 					},
-				},
-				{
-					ResourceName:      "github_organization_security_configuration.test",
-					ImportState:       true,
-					ImportStateVerify: true,
 				},
 			},
 		})

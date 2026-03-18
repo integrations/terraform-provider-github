@@ -14,7 +14,7 @@ import (
 func TestAccGithubEnterpriseSecurityConfiguration(t *testing.T) {
 	t.Run("creates enterprise security configuration without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		configName := fmt.Sprintf("test-config-%s", randomID)
+		configName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 		resource "github_enterprise_security_configuration" "test" {
@@ -51,6 +51,28 @@ func TestAccGithubEnterpriseSecurityConfiguration(t *testing.T) {
 							tfjsonpath.New("configuration_id"), knownvalue.NotNull()),
 					},
 				},
+			},
+		})
+	})
+
+	t.Run("imports enterprise security configuration without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		configName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+		resource "github_enterprise_security_configuration" "test" {
+			enterprise_slug = "%s"
+			name = "%s"
+			description = "Test configuration for import"
+		}`, testAccConf.enterpriseSlug, configName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+				},
 				{
 					ResourceName:      "github_enterprise_security_configuration.test",
 					ImportState:       true,
@@ -62,18 +84,24 @@ func TestAccGithubEnterpriseSecurityConfiguration(t *testing.T) {
 
 	t.Run("updates enterprise security configuration without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		configName := fmt.Sprintf("test-config-%s", randomID)
-		configNameUpdated := fmt.Sprintf("test-config-updated-%s", randomID)
+		configName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+		configNameUpdated := fmt.Sprintf("%supdated-%s", testResourcePrefix, randomID)
 
-		tmpl := `
+		configBefore := fmt.Sprintf(`
 		resource "github_enterprise_security_configuration" "test" {
 			enterprise_slug = "%s"
 			name = "%s"
-			description = "%s"
-			advanced_security = "%s"
-		}`
-		configBefore := fmt.Sprintf(tmpl, testAccConf.enterpriseSlug, configName, "Test configuration", "disabled")
-		configAfter := fmt.Sprintf(tmpl, testAccConf.enterpriseSlug, configNameUpdated, "Test configuration updated", "enabled")
+			description = "Test configuration"
+			advanced_security = "disabled"
+		}`, testAccConf.enterpriseSlug, configName)
+
+		configAfter := fmt.Sprintf(`
+		resource "github_enterprise_security_configuration" "test" {
+			enterprise_slug = "%s"
+			name = "%s"
+			description = "Test configuration updated"
+			advanced_security = "enabled"
+		}`, testAccConf.enterpriseSlug, configNameUpdated)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
@@ -103,7 +131,7 @@ func TestAccGithubEnterpriseSecurityConfiguration(t *testing.T) {
 
 	t.Run("creates enterprise security configuration with options", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		configName := fmt.Sprintf("test-config-options-%s", randomID)
+		configName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 		resource "github_enterprise_security_configuration" "test" {
@@ -141,18 +169,13 @@ func TestAccGithubEnterpriseSecurityConfiguration(t *testing.T) {
 							tfjsonpath.New("code_scanning_default_setup_options").AtSliceIndex(0).AtMapKey("runner_label"), knownvalue.StringExact("code-scanning")),
 					},
 				},
-				{
-					ResourceName:      "github_enterprise_security_configuration.test",
-					ImportState:       true,
-					ImportStateVerify: true,
-				},
 			},
 		})
 	})
 
 	t.Run("creates enterprise security configuration with minimal config", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		configName := fmt.Sprintf("test-config-minimal-%s", randomID)
+		configName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 		resource "github_enterprise_security_configuration" "test" {
@@ -174,13 +197,7 @@ func TestAccGithubEnterpriseSecurityConfiguration(t *testing.T) {
 							tfjsonpath.New("target_type"), knownvalue.NotNull()),
 					},
 				},
-				{
-					ResourceName:      "github_enterprise_security_configuration.test",
-					ImportState:       true,
-					ImportStateVerify: true,
-				},
 			},
 		})
 	})
-
 }

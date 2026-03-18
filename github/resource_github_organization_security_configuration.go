@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -21,7 +22,7 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 		UpdateContext: resourceGithubOrganizationSecurityConfigurationUpdate,
 		DeleteContext: resourceGithubOrganizationSecurityConfigurationDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: resourceGithubOrganizationSecurityConfigurationImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -329,13 +330,17 @@ func resourceGithubOrganizationSecurityConfigurationCreate(ctx context.Context, 
 	}
 	d.SetId(id)
 
+	if err = d.Set("configuration_id", int(configuration.GetID())); err != nil {
+		return diag.FromErr(err)
+	}
+
 	tflog.Info(ctx, "Created organization code security configuration", map[string]any{
 		"organization": org,
 		"name":         name,
 		"id":           configuration.GetID(),
 	})
 
-	return resourceGithubOrganizationSecurityConfigurationRead(ctx, d, meta)
+	return nil
 }
 
 func resourceGithubOrganizationSecurityConfigurationRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
@@ -344,16 +349,8 @@ func resourceGithubOrganizationSecurityConfigurationRead(ctx context.Context, d 
 		return diag.FromErr(err)
 	}
 	client := meta.(*Owner).v3client
-
-	org, idStr, err := parseID2(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	org := meta.(*Owner).name
+	id := int64(d.Get("configuration_id").(int))
 
 	tflog.Trace(ctx, "Reading organization code security configuration", map[string]any{
 		"organization": org,
@@ -381,7 +378,7 @@ func resourceGithubOrganizationSecurityConfigurationRead(ctx context.Context, d 
 		return diag.FromErr(err)
 	}
 
-	if diags := setCodeSecurityConfigurationState(d, configuration); diags != nil {
+	if diags := setCodeSecurityConfigurationState(d, configuration); diags.HasError() {
 		return diags
 	}
 	if err = d.Set("secret_scanning_delegated_bypass", configuration.GetSecretScanningDelegatedBypass()); err != nil {
@@ -431,7 +428,7 @@ func resourceGithubOrganizationSecurityConfigurationUpdate(ctx context.Context, 
 		"id":           id,
 	})
 
-	return resourceGithubOrganizationSecurityConfigurationRead(ctx, d, meta)
+	return nil
 }
 
 func resourceGithubOrganizationSecurityConfigurationDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
@@ -472,5 +469,29 @@ func resourceGithubOrganizationSecurityConfigurationDelete(ctx context.Context, 
 	})
 
 	return nil
+}
+
+func resourceGithubOrganizationSecurityConfigurationImport(_ context.Context, d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
+	orgName, configIDStr, err := parseID2(d.Id())
+	if err != nil {
+		return nil, fmt.Errorf("invalid import specified: supplied import must be written as <organization>:<configuration_id>. Parse error: %w", err)
+	}
+
+	configID, err := strconv.ParseInt(configIDStr, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid configuration_id %q: %w", configIDStr, err)
+	}
+
+	id, err := buildID(orgName, configIDStr)
+	if err != nil {
+		return nil, err
+	}
+	d.SetId(id)
+
+	if err = d.Set("configuration_id", int(configID)); err != nil {
+		return nil, err
+	}
+
+	return []*schema.ResourceData{d}, nil
 }
 
