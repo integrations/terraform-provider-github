@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v83/github"
+	"github.com/google/go-github/v84/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
@@ -238,7 +238,7 @@ func resourceGithubTeamMembersRead(d *schema.ResourceData, meta any) error {
 		if !q.Organization.Team.Members.PageInfo.HasNextPage {
 			break
 		}
-		variables["after"] = githubv4.NewString(q.Organization.Team.Members.PageInfo.EndCursor)
+		variables["after"] = new(q.Organization.Team.Members.PageInfo.EndCursor)
 	}
 
 	if err := d.Set("members", teamMembersAndMaintainers); err != nil {

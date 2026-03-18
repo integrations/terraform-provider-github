@@ -5,24 +5,24 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubActionsOrganizationWorkflowPermissions(t *testing.T) {
 	t.Run("creates organization workflow permissions without error", func(t *testing.T) {
+		defaultPermission := "write"
+		canApprovePRReviews := true
+
 		config := fmt.Sprintf(`
-		resource "github_actions_organization_workflow_permissions" "test" {
-			organization_slug = "%s"
+resource "github_actions_organization_workflow_permissions" "test" {
+	organization_slug = "%s"
 
-			default_workflow_permissions = "read"
-			can_approve_pull_request_reviews = false
-		}
-		`, testAccConf.owner)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_actions_organization_workflow_permissions.test", "organization_slug", testAccConf.owner),
-			resource.TestCheckResourceAttr("github_actions_organization_workflow_permissions.test", "default_workflow_permissions", "read"),
-			resource.TestCheckResourceAttr("github_actions_organization_workflow_permissions.test", "can_approve_pull_request_reviews", "false"),
-		)
+	default_workflow_permissions     = "%s"
+	can_approve_pull_request_reviews = %t
+}
+`, testAccConf.owner, defaultPermission, canApprovePRReviews)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -30,75 +30,70 @@ func TestAccGithubActionsOrganizationWorkflowPermissions(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_organization_workflow_permissions.test", tfjsonpath.New("id"), knownvalue.StringExact(testAccConf.owner)),
+						statecheck.ExpectKnownValue("github_actions_organization_workflow_permissions.test", tfjsonpath.New("organization_slug"), knownvalue.StringExact(testAccConf.owner)),
+						statecheck.ExpectKnownValue("github_actions_organization_workflow_permissions.test", tfjsonpath.New("default_workflow_permissions"), knownvalue.StringExact(defaultPermission)),
+						statecheck.ExpectKnownValue("github_actions_organization_workflow_permissions.test", tfjsonpath.New("can_approve_pull_request_reviews"), knownvalue.Bool(canApprovePRReviews)),
+					},
 				},
 			},
 		})
 	})
 
 	t.Run("updates organization workflow permissions without error", func(t *testing.T) {
-		configs := map[string]string{
-			"before": fmt.Sprintf(`
-			resource "github_actions_organization_workflow_permissions" "test" {
-				organization_slug = "%s"
+		defaultPermission := "write"
+		canApprovePRReviews := true
+		defaultPermissionUpdated := "read"
+		canApprovePRReviewsUpdated := false
 
-				default_workflow_permissions = "read"
-				can_approve_pull_request_reviews = false
-			}
-			`, testAccConf.owner),
+		config := `
+resource "github_actions_organization_workflow_permissions" "test" {
+	organization_slug = "%s"
 
-			"after": fmt.Sprintf(`
-			resource "github_actions_organization_workflow_permissions" "test" {
-				organization_slug = "%s"
-
-				default_workflow_permissions = "write" // This change might be restricted by the Enterprise's settings
-				can_approve_pull_request_reviews = true
-			}
-			`, testAccConf.owner),
-		}
-
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr("github_actions_organization_workflow_permissions.test", "default_workflow_permissions", "read"),
-				resource.TestCheckResourceAttr("github_actions_organization_workflow_permissions.test", "can_approve_pull_request_reviews", "false"),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr("github_actions_organization_workflow_permissions.test", "default_workflow_permissions", "write"),
-				resource.TestCheckResourceAttr("github_actions_organization_workflow_permissions.test", "can_approve_pull_request_reviews", "true"),
-			),
-		}
+	default_workflow_permissions     = "%s"
+	can_approve_pull_request_reviews = %t
+}
+`
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: configs["before"],
-					Check:  checks["before"],
+					Config: fmt.Sprintf(config, testAccConf.owner, defaultPermission, canApprovePRReviews),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_organization_workflow_permissions.test", tfjsonpath.New("id"), knownvalue.StringExact(testAccConf.owner)),
+						statecheck.ExpectKnownValue("github_actions_organization_workflow_permissions.test", tfjsonpath.New("organization_slug"), knownvalue.StringExact(testAccConf.owner)),
+						statecheck.ExpectKnownValue("github_actions_organization_workflow_permissions.test", tfjsonpath.New("default_workflow_permissions"), knownvalue.StringExact(defaultPermission)),
+						statecheck.ExpectKnownValue("github_actions_organization_workflow_permissions.test", tfjsonpath.New("can_approve_pull_request_reviews"), knownvalue.Bool(canApprovePRReviews)),
+					},
 				},
 				{
-					Config: configs["after"],
-					Check:  checks["after"],
+					Config: fmt.Sprintf(config, testAccConf.owner, defaultPermissionUpdated, canApprovePRReviewsUpdated),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_organization_workflow_permissions.test", tfjsonpath.New("id"), knownvalue.StringExact(testAccConf.owner)),
+						statecheck.ExpectKnownValue("github_actions_organization_workflow_permissions.test", tfjsonpath.New("organization_slug"), knownvalue.StringExact(testAccConf.owner)),
+						statecheck.ExpectKnownValue("github_actions_organization_workflow_permissions.test", tfjsonpath.New("default_workflow_permissions"), knownvalue.StringExact(defaultPermissionUpdated)),
+						statecheck.ExpectKnownValue("github_actions_organization_workflow_permissions.test", tfjsonpath.New("can_approve_pull_request_reviews"), knownvalue.Bool(canApprovePRReviewsUpdated)),
+					},
 				},
 			},
 		})
 	})
 
 	t.Run("imports organization workflow permissions without error", func(t *testing.T) {
+		defaultPermission := "write"
+		canApprovePRReviews := true
+
 		config := fmt.Sprintf(`
-		resource "github_actions_organization_workflow_permissions" "test" {
-			organization_slug = "%s"
+resource "github_actions_organization_workflow_permissions" "test" {
+	organization_slug = "%s"
 
-			default_workflow_permissions = "read"
-			can_approve_pull_request_reviews = false
-		}
-		`, testAccConf.owner)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_actions_organization_workflow_permissions.test", "organization_slug", testAccConf.owner),
-			resource.TestCheckResourceAttr("github_actions_organization_workflow_permissions.test", "default_workflow_permissions", "read"),
-			resource.TestCheckResourceAttr("github_actions_organization_workflow_permissions.test", "can_approve_pull_request_reviews", "false"),
-		)
+	default_workflow_permissions     = "%s"
+	can_approve_pull_request_reviews = %t
+}
+`, testAccConf.owner, defaultPermission, canApprovePRReviews)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -106,7 +101,12 @@ func TestAccGithubActionsOrganizationWorkflowPermissions(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_organization_workflow_permissions.test", tfjsonpath.New("id"), knownvalue.StringExact(testAccConf.owner)),
+						statecheck.ExpectKnownValue("github_actions_organization_workflow_permissions.test", tfjsonpath.New("organization_slug"), knownvalue.StringExact(testAccConf.owner)),
+						statecheck.ExpectKnownValue("github_actions_organization_workflow_permissions.test", tfjsonpath.New("default_workflow_permissions"), knownvalue.StringExact(defaultPermission)),
+						statecheck.ExpectKnownValue("github_actions_organization_workflow_permissions.test", tfjsonpath.New("can_approve_pull_request_reviews"), knownvalue.Bool(canApprovePRReviews)),
+					},
 				},
 				{
 					ResourceName:      "github_actions_organization_workflow_permissions.test",
@@ -119,18 +119,21 @@ func TestAccGithubActionsOrganizationWorkflowPermissions(t *testing.T) {
 
 	t.Run("deletes organization workflow permissions without error", func(t *testing.T) {
 		config := fmt.Sprintf(`
-		resource "github_actions_organization_workflow_permissions" "test" {
-			organization_slug = "%s"
+resource "github_actions_organization_workflow_permissions" "test" {
+	organization_slug = "%s"
 
-			default_workflow_permissions = "write"
-			can_approve_pull_request_reviews = true
-		}
-		`, testAccConf.owner)
+	default_workflow_permissions     = "write"
+	can_approve_pull_request_reviews = true
+}
+`, testAccConf.owner)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
+				{
+					Config: config,
+				},
 				{
 					Config:  config,
 					Destroy: true,
@@ -141,16 +144,10 @@ func TestAccGithubActionsOrganizationWorkflowPermissions(t *testing.T) {
 
 	t.Run("creates with minimal config using defaults", func(t *testing.T) {
 		config := fmt.Sprintf(`
-		resource "github_actions_organization_workflow_permissions" "test" {
-			organization_slug = "%s"
-		}
-		`, testAccConf.owner)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_actions_organization_workflow_permissions.test", "organization_slug", testAccConf.owner),
-			resource.TestCheckResourceAttr("github_actions_organization_workflow_permissions.test", "default_workflow_permissions", "read"),
-			resource.TestCheckResourceAttr("github_actions_organization_workflow_permissions.test", "can_approve_pull_request_reviews", "false"),
-		)
+resource "github_actions_organization_workflow_permissions" "test" {
+	organization_slug = "%s"
+}
+`, testAccConf.owner)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -158,7 +155,12 @@ func TestAccGithubActionsOrganizationWorkflowPermissions(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_organization_workflow_permissions.test", tfjsonpath.New("id"), knownvalue.StringExact(testAccConf.owner)),
+						statecheck.ExpectKnownValue("github_actions_organization_workflow_permissions.test", tfjsonpath.New("organization_slug"), knownvalue.StringExact(testAccConf.owner)),
+						statecheck.ExpectKnownValue("github_actions_organization_workflow_permissions.test", tfjsonpath.New("default_workflow_permissions"), knownvalue.StringExact("read")),
+						statecheck.ExpectKnownValue("github_actions_organization_workflow_permissions.test", tfjsonpath.New("can_approve_pull_request_reviews"), knownvalue.Bool(false)),
+					},
 				},
 			},
 		})
