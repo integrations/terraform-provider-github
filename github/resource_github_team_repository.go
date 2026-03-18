@@ -20,7 +20,7 @@ func resourceGithubTeamRepository() *schema.Resource {
 		Delete: resourceGithubTeamRepositoryDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-				teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
+				teamIdString, username, err := parseID2(d.Id())
 				if err != nil {
 					return nil, err
 				}
@@ -110,7 +110,7 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 
-	teamIdString, repoName, err := parseTwoPartID(d.Id(), "team_id", "repository")
+	teamIdString, repoName, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
@@ -170,7 +170,7 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta any) error 
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 
-	teamIdString, repoName, err := parseTwoPartID(d.Id(), "team_id", "repository")
+	teamIdString, repoName, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
@@ -209,7 +209,7 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta any) error 
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 
-	teamIdString, repoName, err := parseTwoPartID(d.Id(), "team_id", "repository")
+	teamIdString, repoName, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}

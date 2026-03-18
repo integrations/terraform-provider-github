@@ -19,7 +19,7 @@ func resourceGithubTeamMembership() *schema.Resource {
 		Delete: resourceGithubTeamMembershipDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-				teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
+				teamIdString, username, err := parseID2(d.Id())
 				if err != nil {
 					return nil, err
 				}
@@ -97,7 +97,7 @@ func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta any
 func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
-	teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
+	teamIdString, username, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}

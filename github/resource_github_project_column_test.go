@@ -69,7 +69,7 @@ package github
 // 			return err
 // 		}
 
-// 		column, res, err := conn.Projects.GetProjectColumn(context.Background(), columnID)
+// 		column, res, err := conn.Projects.GetProjectColumn(t.Context(), columnID)
 // 		if err == nil {
 // 			if column != nil &&
 // 				column.GetID() == columnID {
@@ -101,7 +101,7 @@ package github
 // 		}
 // 		conn := meta.v3client
 
-// 		gotColumn, _, err := conn.Projects.GetProjectColumn(context.Background(), columnID)
+// 		gotColumn, _, err := conn.Projects.GetProjectColumn(t.Context(), columnID)
 // 		if err != nil {
 // 			return err
 // 		}

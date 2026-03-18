@@ -1,7 +1,6 @@
 package github
 
 import (
-	"context"
 	"encoding/base64"
 	"fmt"
 	"net/url"
@@ -342,7 +341,7 @@ resource "github_actions_environment_secret" "test" {
 						}
 						client := meta.v3client
 						owner := meta.name
-						ctx := context.Background()
+						ctx := t.Context()
 
 						escapedEnvName := url.PathEscape(envName)
 
@@ -438,7 +437,7 @@ resource "github_actions_environment_secret" "test" {
 						}
 						client := meta.v3client
 						owner := meta.name
-						ctx := context.Background()
+						ctx := t.Context()
 
 						escapedEnvName := url.PathEscape(envName)
 

@@ -19,7 +19,7 @@ func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
 		rn := "github_team_sync_group_mapping.test_mapping"
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSyncGroupMappingDestroy,
 			Steps: []resource.TestStep{
@@ -51,7 +51,7 @@ func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
 		rn := "github_team_sync_group_mapping.test_mapping"
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSyncGroupMappingDestroy,
 			Steps: []resource.TestStep{
@@ -73,7 +73,7 @@ func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
 		rn := "github_team_sync_group_mapping.test_mapping"
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSyncGroupMappingDestroy,
 			Steps: []resource.TestStep{
@@ -117,7 +117,7 @@ func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
 		rn := "github_team_sync_group_mapping.test_mapping"
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSyncGroupMappingDestroy,
 			Steps: []resource.TestStep{

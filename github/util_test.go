@@ -427,29 +427,6 @@ func TestGithubUtilRole_validation(t *testing.T) {
 	}
 }
 
-func TestGithubUtilTwoPartID(t *testing.T) {
-	partOne, partTwo := "foo", "bar"
-
-	id := buildTwoPartID(partOne, partTwo)
-
-	if id != "foo:bar" {
-		t.Fatalf("Expected two part id to be foo:bar, actual: %s", id)
-	}
-
-	parsedPartOne, parsedPartTwo, err := parseTwoPartID(id, "left", "right")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if parsedPartOne != "foo" {
-		t.Fatalf("Expected parsed part one foo, actual: %s", parsedPartOne)
-	}
-
-	if parsedPartTwo != "bar" {
-		t.Fatalf("Expected parsed part two bar, actual: %s", parsedPartTwo)
-	}
-}
-
 func flipUsernameCase(username string) string {
 	oc := []rune(username)
 
@@ -504,6 +481,39 @@ func TestGithubUtilValidateSecretName(t *testing.T) {
 
 	for _, tc := range cases {
 		var name any = tc.Name
+		diags := validateSecretNameFunc(name, cty.Path{cty.GetAttrStep{Name: ""}})
+
+		if tc.Error != (len(diags) != 0) {
+			if tc.Error {
+				t.Fatalf("expected error, got none (%s)", tc.Name)
+			} else {
+				t.Fatalf("unexpected error(s): %v (%s)", diags, tc.Name)
+			}
+		}
+	}
+}
+
+func TestGithubUtilValidateSecretName_invalid_input(t *testing.T) {
+	cases := []struct {
+		Name  any
+		Error bool
+	}{
+		{
+			Name:  1,
+			Error: true,
+		},
+		{
+			Name:  []string{"v"},
+			Error: true,
+		},
+		{
+			Name:  map[string]string{"_valid_underscore_": "valid_underscore"},
+			Error: true,
+		},
+	}
+
+	for _, tc := range cases {
+		name := tc.Name
 		diags := validateSecretNameFunc(name, cty.Path{cty.GetAttrStep{Name: ""}})
 
 		if tc.Error != (len(diags) != 0) {
