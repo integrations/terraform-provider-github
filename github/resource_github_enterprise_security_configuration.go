@@ -292,8 +292,8 @@ func resourceGithubEnterpriseSecurityConfigurationCreate(ctx context.Context, d 
 	}
 	d.SetId(id)
 
-	if err = d.Set("configuration_id", int(configuration.GetID())); err != nil {
-		return diag.FromErr(err)
+	if diags := setCodeSecurityConfigurationState(d, configuration); diags.HasError() {
+		return diags
 	}
 
 	tflog.Info(ctx, "Created enterprise code security configuration", map[string]any{
@@ -360,7 +360,7 @@ func resourceGithubEnterpriseSecurityConfigurationUpdate(ctx context.Context, d 
 
 	config := expandCodeSecurityConfigurationCommon(d)
 
-	_, _, err := client.Enterprise.UpdateCodeSecurityConfiguration(ctx, enterprise, id, config)
+	configuration, _, err := client.Enterprise.UpdateCodeSecurityConfiguration(ctx, enterprise, id, config)
 	if err != nil {
 		tflog.Error(ctx, "Failed to update enterprise code security configuration", map[string]any{
 			"enterprise": enterprise,
@@ -368,6 +368,10 @@ func resourceGithubEnterpriseSecurityConfigurationUpdate(ctx context.Context, d 
 			"error":      err.Error(),
 		})
 		return diag.FromErr(err)
+	}
+
+	if diags := setCodeSecurityConfigurationState(d, configuration); diags.HasError() {
+		return diags
 	}
 
 	tflog.Info(ctx, "Updated enterprise code security configuration", map[string]any{

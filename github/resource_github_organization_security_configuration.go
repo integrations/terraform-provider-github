@@ -330,7 +330,13 @@ func resourceGithubOrganizationSecurityConfigurationCreate(ctx context.Context, 
 	}
 	d.SetId(id)
 
-	if err = d.Set("configuration_id", int(configuration.GetID())); err != nil {
+	if diags := setCodeSecurityConfigurationState(d, configuration); diags.HasError() {
+		return diags
+	}
+	if err = d.Set("secret_scanning_delegated_bypass", configuration.GetSecretScanningDelegatedBypass()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err = d.Set("secret_scanning_delegated_bypass_options", flattenSecretScanningDelegatedBypassOptions(configuration.SecretScanningDelegatedBypassOptions)); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -413,13 +419,23 @@ func resourceGithubOrganizationSecurityConfigurationUpdate(ctx context.Context, 
 	config := expandCodeSecurityConfigurationCommon(d)
 	expandSecretScanningDelegatedBypass(d, &config)
 
-	_, _, err = client.Organizations.UpdateCodeSecurityConfiguration(ctx, org, id, config)
+	configuration, _, err := client.Organizations.UpdateCodeSecurityConfiguration(ctx, org, id, config)
 	if err != nil {
 		tflog.Error(ctx, "Failed to update organization code security configuration", map[string]any{
 			"organization": org,
 			"id":           id,
 			"error":        err.Error(),
 		})
+		return diag.FromErr(err)
+	}
+
+	if diags := setCodeSecurityConfigurationState(d, configuration); diags.HasError() {
+		return diags
+	}
+	if err = d.Set("secret_scanning_delegated_bypass", configuration.GetSecretScanningDelegatedBypass()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err = d.Set("secret_scanning_delegated_bypass_options", flattenSecretScanningDelegatedBypassOptions(configuration.SecretScanningDelegatedBypassOptions)); err != nil {
 		return diag.FromErr(err)
 	}
 
