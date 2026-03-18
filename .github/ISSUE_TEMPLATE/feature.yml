@@ -23,12 +23,11 @@ body:
       label: GitHub Installation Type
       description: What type of GitHub installation are you using?
       options:
-        - label: GitHub Cloud (GITHUB.com)
-        - label: GitHub Enterprise Server/GHES (on-premises)
-        - label: GitHub Enterprise Cloud/GHEC with Personal Accounts (GITHUB.com)
-        - label: GitHub Enterprise Cloud/GHEC with Managed Users/EMU (GITHUB.com)
-        - label: GitHub Enterprise Cloud/GHEC with Data Residency Personal Accounts (*.GHE.com)
-        - label: GitHub Enterprise Cloud/GHEC with Data Residency and Managed Users/EMU (*.GHE.com)
+        - label: GitHub.com (Free, Pro, or Team)
+        - label: GitHub Enterprise Server (on-premises)
+        - label: GitHub Enterprise Cloud with Personal Accounts (github.com)
+        - label: GitHub Enterprise Cloud with Managed Users/EMU (github.com)
+        - label: GitHub Enterprise Cloud with Data Residency (*.ghe.com)
         - label: I don't know
     validations:
       required: true
