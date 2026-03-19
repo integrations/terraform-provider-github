@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/google/go-github/v83/github"
+	"github.com/google/go-github/v84/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -361,7 +361,7 @@ resource "github_actions_organization_variable" "test" {
 						_, err = client.Actions.CreateOrgVariable(ctx, owner, &github.ActionsVariable{
 							Name:       varName,
 							Value:      "test",
-							Visibility: github.Ptr("all"),
+							Visibility: new("all"),
 						})
 						return err
 					},

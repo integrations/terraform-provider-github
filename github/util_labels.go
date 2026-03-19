@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v83/github"
+	"github.com/google/go-github/v84/github"
 )
 
 func flattenLabels(labels []*github.Label) []any {

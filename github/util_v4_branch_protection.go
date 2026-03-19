@@ -597,7 +597,7 @@ func getBranchProtectionID(repoID githubv4.ID, pattern string, meta any) (github
 		if !query.Node.Repository.BranchProtectionRules.PageInfo.HasNextPage {
 			break
 		}
-		variables["cursor"] = githubv4.NewString(query.Node.Repository.BranchProtectionRules.PageInfo.EndCursor)
+		variables["cursor"] = new(query.Node.Repository.BranchProtectionRules.PageInfo.EndCursor)
 	}
 
 	for i := range allRules {

@@ -164,8 +164,8 @@ func resourceGithubTeamSettingsUpdate(d *schema.ResourceData, meta any) error {
 				ID:              d.Id(),
 				Enabled:         githubv4.Boolean(true),
 				Algorithm:       &teamReviewAlgorithm,
-				TeamMemberCount: githubv4.NewInt(githubv4.Int(settings["member_count"].(int))),
-				NotifyTeam:      githubv4.NewBoolean(githubv4.Boolean(settings["notify"].(bool))),
+				TeamMemberCount: new(githubv4.Int(settings["member_count"].(int))),
+				NotifyTeam:      new(githubv4.Boolean(settings["notify"].(bool))),
 			}, nil)
 		}
 	}

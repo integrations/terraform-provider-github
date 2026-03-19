@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/google/go-github/v83/github"
+	"github.com/google/go-github/v84/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
@@ -241,7 +241,7 @@ func dataSourceGithubOrganizationRead(ctx context.Context, d *schema.ResourceDat
 			if !query.Organization.MembersWithRole.PageInfo.HasNextPage {
 				break
 			}
-			variables["after"] = githubv4.NewString(query.Organization.MembersWithRole.PageInfo.EndCursor)
+			variables["after"] = new(query.Organization.MembersWithRole.PageInfo.EndCursor)
 		}
 
 		_ = d.Set("repositories", repoList)
