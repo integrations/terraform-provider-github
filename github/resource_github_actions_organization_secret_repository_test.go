@@ -19,7 +19,7 @@ func TestAccGithubActionsOrganizationSecretRepository(t *testing.T) {
 		config := fmt.Sprintf(`
 resource "github_actions_organization_secret" "test" {
 	secret_name     = "%s"
-	encrypted_value = "%s"
+	value_encrypted = "%s"
 	visibility      = "selected"
 }
 

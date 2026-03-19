@@ -5,6 +5,7 @@ import (
 	"unicode"
 
 	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func Test_escapeIDPart(t *testing.T) {
@@ -392,6 +393,75 @@ func Test_parseID4(t *testing.T) {
 				if got4 != d.expect4 {
 					t.Fatalf("expected part 4 to be %q but got %q", d.expect4, got4)
 				}
+			}
+		})
+	}
+}
+
+func Test_resourceKeysGetOk_string(t *testing.T) {
+	t.Parallel()
+
+	key0, key1 := "foo", "bar"
+	expect := "bar"
+	unwanted := "baz"
+	s := map[string]*schema.Schema{
+		key0: {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		key1: {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+	}
+
+	for _, d := range []struct {
+		testName string
+		data     *schema.ResourceData
+		keys     []string
+		found    bool
+	}{
+		{
+			testName: "none",
+			data:     schema.TestResourceDataRaw(t, s, map[string]any{}),
+			keys:     []string{key0, key1},
+			found:    false,
+		},
+		{
+			testName: "only_first_key",
+			data:     schema.TestResourceDataRaw(t, s, map[string]any{key0: expect}),
+			keys:     []string{key0, key1},
+			found:    true,
+		},
+		{
+			testName: "only_second_key",
+			data:     schema.TestResourceDataRaw(t, s, map[string]any{key1: expect}),
+			keys:     []string{key0, key1},
+			found:    true,
+		},
+		{
+			testName: "first_key",
+			data:     schema.TestResourceDataRaw(t, s, map[string]any{key0: expect, key1: unwanted}),
+			keys:     []string{key0, key1},
+			found:    true,
+		},
+		{
+			testName: "second_key",
+			data:     schema.TestResourceDataRaw(t, s, map[string]any{key0: "", key1: expect}),
+			keys:     []string{key0, key1},
+			found:    true,
+		},
+	} {
+		t.Run(d.testName, func(t *testing.T) {
+			t.Parallel()
+
+			got, found := resourceKeysGetOk[string](d.data, d.keys...)
+
+			if found != d.found {
+				t.Fatalf("expected found to be %v but got %v", d.found, found)
+			}
+			if found && got != expect {
+				t.Fatalf("expected value to be %q but got %q", expect, got)
 			}
 		})
 	}

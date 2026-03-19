@@ -20,9 +20,9 @@ func TestAccGithubDependabotSecretsDataSource(t *testing.T) {
 			}
 
 			resource "github_dependabot_secret" "test" {
-				secret_name 		= "dep_secret_1"
-				repository  		= github_repository.test.name
-				plaintext_value = "foo"
+				secret_name = "dep_secret_1"
+				repository  = github_repository.test.name
+				value       = "foo"
 			}
 		`, repoName)
 

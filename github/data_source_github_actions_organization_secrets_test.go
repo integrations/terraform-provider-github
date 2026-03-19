@@ -15,9 +15,9 @@ func TestAccGithubActionsOrganizationSecretsDataSource(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_actions_organization_secret" "test" {
-				secret_name 		= "org_secret_1_%s"
-				plaintext_value = "foo"
-				visibility      = "all" # going with all as it does not require a paid subscrption
+				secret_name = "org_secret_1_%s"
+				value       = "foo"
+				visibility  = "all" # going with all as it does not require a paid subscrption
 			}
 	`, randomID)
 
