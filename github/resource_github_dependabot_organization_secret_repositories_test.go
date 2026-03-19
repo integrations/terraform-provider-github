@@ -20,7 +20,7 @@ func TestAccGithubDependabotOrganizationSecretRepositories(t *testing.T) {
 		config := fmt.Sprintf(`
 resource "github_dependabot_organization_secret" "test" {
 	secret_name     = "%s"
-	encrypted_value = "%s"
+	value_encrypted = "%s"
 	visibility      = "selected"
 }
 
