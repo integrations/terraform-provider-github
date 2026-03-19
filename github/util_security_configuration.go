@@ -67,7 +67,7 @@ func flattenSecretScanningDelegatedBypassOptions(options *github.SecretScanningD
 // setCodeSecurityConfigurationState writes all shared CodeSecurityConfiguration fields to Terraform state.
 // Used by both the organization and enterprise security configuration resources.
 func setCodeSecurityConfigurationState(d *schema.ResourceData, configuration *github.CodeSecurityConfiguration) diag.Diagnostics {
-	if err := d.Set("configuration_id", configuration.GetID()); err != nil {
+	if err := d.Set("configuration_id", int(configuration.GetID())); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("name", configuration.Name); err != nil {

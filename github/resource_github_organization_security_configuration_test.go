@@ -1,13 +1,16 @@
 package github
 
 import (
+	"context"
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
@@ -34,6 +37,7 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubOrganizationSecurityConfigurationDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -67,6 +71,7 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubOrganizationSecurityConfigurationDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -102,6 +107,7 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubOrganizationSecurityConfigurationDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config: configBefore,
@@ -151,6 +157,7 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubOrganizationSecurityConfigurationDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -182,6 +189,7 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubOrganizationSecurityConfigurationDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -219,6 +227,7 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubOrganizationSecurityConfigurationDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -232,4 +241,32 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 			},
 		})
 	})
+}
+
+func testAccCheckGithubOrganizationSecurityConfigurationDestroy(s *terraform.State) error {
+	meta, err := getTestMeta()
+	if err != nil {
+		return err
+	}
+	conn := meta.v3client
+	orgName := meta.name
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "github_organization_security_configuration" {
+			continue
+		}
+		configIDStr := rs.Primary.Attributes["configuration_id"]
+		configID, err := strconv.ParseInt(configIDStr, 10, 64)
+		if err != nil {
+			return err
+		}
+		_, resp, err := conn.Organizations.GetCodeSecurityConfiguration(context.Background(), orgName, configID)
+		if err == nil {
+			return fmt.Errorf("organization security configuration %s still exists", configIDStr)
+		}
+		if resp.StatusCode != 404 {
+			return err
+		}
+	}
+	return nil
 }

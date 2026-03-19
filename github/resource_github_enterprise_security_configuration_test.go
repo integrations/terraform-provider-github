@@ -1,13 +1,16 @@
 package github
 
 import (
+	"context"
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
@@ -35,6 +38,7 @@ func TestAccGithubEnterpriseSecurityConfiguration(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubEnterpriseSecurityConfigurationDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -69,6 +73,7 @@ func TestAccGithubEnterpriseSecurityConfiguration(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubEnterpriseSecurityConfigurationDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -106,6 +111,7 @@ func TestAccGithubEnterpriseSecurityConfiguration(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubEnterpriseSecurityConfigurationDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config: configBefore,
@@ -155,6 +161,7 @@ func TestAccGithubEnterpriseSecurityConfiguration(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubEnterpriseSecurityConfigurationDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -187,6 +194,7 @@ func TestAccGithubEnterpriseSecurityConfiguration(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubEnterpriseSecurityConfigurationDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -200,4 +208,32 @@ func TestAccGithubEnterpriseSecurityConfiguration(t *testing.T) {
 			},
 		})
 	})
+}
+
+func testAccCheckGithubEnterpriseSecurityConfigurationDestroy(s *terraform.State) error {
+	meta, err := getTestMeta()
+	if err != nil {
+		return err
+	}
+	conn := meta.v3client
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "github_enterprise_security_configuration" {
+			continue
+		}
+		enterpriseSlug := rs.Primary.Attributes["enterprise_slug"]
+		configIDStr := rs.Primary.Attributes["configuration_id"]
+		configID, err := strconv.ParseInt(configIDStr, 10, 64)
+		if err != nil {
+			return err
+		}
+		_, resp, err := conn.Enterprise.GetCodeSecurityConfiguration(context.Background(), enterpriseSlug, configID)
+		if err == nil {
+			return fmt.Errorf("enterprise security configuration %s still exists", configIDStr)
+		}
+		if resp.StatusCode != 404 {
+			return err
+		}
+	}
+	return nil
 }

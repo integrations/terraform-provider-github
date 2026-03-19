@@ -163,7 +163,7 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: "The code security configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
+				Description: "The code security setting. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
 				}, false)),
