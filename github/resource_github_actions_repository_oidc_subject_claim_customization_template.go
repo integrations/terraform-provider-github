@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/google/go-github/v83/github"
+	"github.com/google/go-github/v84/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -117,7 +117,7 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDelete(
 	owner := meta.(*Owner).name
 
 	customOIDCSubjectClaimTemplate := &github.OIDCSubjectClaimCustomTemplate{
-		UseDefault: github.Ptr(true),
+		UseDefault: new(true),
 	}
 
 	ctx := context.Background()
