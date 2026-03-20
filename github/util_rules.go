@@ -274,7 +274,7 @@ func expandRepositoryPropertyConditions(v []any) *github.RepositoryRulesetReposi
 			}
 			property := &github.RepositoryRulesetRepositoryPropertyTargetParameters{
 				Name:           propertyMap["name"].(string),
-				Source:         github.Ptr(propertyMap["source"].(string)),
+				Source:         new(propertyMap["source"].(string)),
 				PropertyValues: propertyValues,
 			}
 			include = append(include, property)
@@ -292,7 +292,7 @@ func expandRepositoryPropertyConditions(v []any) *github.RepositoryRulesetReposi
 			}
 			property := &github.RepositoryRulesetRepositoryPropertyTargetParameters{
 				Name:           propertyMap["name"].(string),
-				Source:         github.Ptr(propertyMap["source"].(string)),
+				Source:         new(propertyMap["source"].(string)),
 				PropertyValues: propertyValues,
 			}
 			exclude = append(exclude, property)

@@ -1070,12 +1070,12 @@ func TestFlattenRulesetRepositoryPropertyTargetParameters(t *testing.T) {
 	input := []*github.RepositoryRulesetRepositoryPropertyTargetParameters{
 		{
 			Name:           "env",
-			Source:         github.Ptr("custom"),
+			Source:         new("custom"),
 			PropertyValues: []string{"prod", "staging"},
 		},
 		{
 			Name:           "tier",
-			Source:         github.Ptr("system"),
+			Source:         new("system"),
 			PropertyValues: []string{"premium"},
 		},
 	}
@@ -1108,7 +1108,7 @@ func TestFlattenRulesetRepositoryPropertyTargetParameters_EmptySource(t *testing
 	input := []*github.RepositoryRulesetRepositoryPropertyTargetParameters{
 		{
 			Name:           "env",
-			Source:         github.Ptr(""),
+			Source:         new(""),
 			PropertyValues: []string{"prod"},
 		},
 	}
@@ -1209,7 +1209,7 @@ func TestFlattenRulesetRepositoryPropertyTargetParameters_SingleProperty(t *test
 	input := []*github.RepositoryRulesetRepositoryPropertyTargetParameters{
 		{
 			Name:           "env",
-			Source:         github.Ptr("system"),
+			Source:         new("system"),
 			PropertyValues: []string{"prod", "staging"},
 		},
 	}
@@ -1259,7 +1259,7 @@ func TestFlattenRulesetRepositoryPropertyTargetParameters_EmptyPropertyValues(t 
 	input := []*github.RepositoryRulesetRepositoryPropertyTargetParameters{
 		{
 			Name:           "env",
-			Source:         github.Ptr("custom"),
+			Source:         new("custom"),
 			PropertyValues: []string{},
 		},
 	}
@@ -1280,7 +1280,7 @@ func TestFlattenRulesetRepositoryPropertyTargetParameters_NilPropertyValues(t *t
 	input := []*github.RepositoryRulesetRepositoryPropertyTargetParameters{
 		{
 			Name:           "env",
-			Source:         github.Ptr("custom"),
+			Source:         new("custom"),
 			PropertyValues: nil,
 		},
 	}
