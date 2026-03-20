@@ -14,7 +14,7 @@ import (
 
 func resourceGithubEnterpriseTeamMembership() *schema.Resource {
 	return &schema.Resource{
-		Description:   "Manages membership of a user in a GitHub enterprise team.",
+		Description:   "Creates and manages membership of a user in a GitHub enterprise team.",
 		CreateContext: resourceGithubEnterpriseTeamMembershipCreate,
 		ReadContext:   resourceGithubEnterpriseTeamMembershipRead,
 		DeleteContext: resourceGithubEnterpriseTeamMembershipDelete,

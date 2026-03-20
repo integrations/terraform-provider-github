@@ -18,7 +18,7 @@ import (
 
 func resourceGithubEnterpriseTeam() *schema.Resource {
 	return &schema.Resource{
-		Description:   "Manages a GitHub enterprise team.",
+		Description:   "Creates and manages a GitHub enterprise team.",
 		CreateContext: resourceGithubEnterpriseTeamCreate,
 		ReadContext:   resourceGithubEnterpriseTeamRead,
 		UpdateContext: resourceGithubEnterpriseTeamUpdate,
