@@ -124,3 +124,31 @@ func mustAddRepositoryToTeam(t *testing.T, team *github.Team, repo *github.Repos
 		t.Fatalf("failed to add team %s to test repository %s: %v", team.GetName(), repo.GetName(), err)
 	}
 }
+
+func mustRemoveAllMembersFromTeam(t *testing.T, team *github.Team) {
+	t.Helper()
+
+	members, _, err := testAccConf.meta.v3client.Teams.ListTeamMembersBySlug(t.Context(), testAccConf.meta.name, team.GetSlug(), &github.TeamListTeamMembersOptions{})
+	if err != nil {
+		t.Fatalf("failed to list members of test team %s: %v", team.GetName(), err)
+	}
+
+	for _, member := range members {
+		if _, err := testAccConf.meta.v3client.Teams.RemoveTeamMembershipBySlug(t.Context(), testAccConf.meta.name, team.GetSlug(), member.GetLogin()); err != nil {
+			t.Fatalf("failed to remove member %s from test team %s: %v", member.GetLogin(), team.GetName(), err)
+		}
+	}
+}
+
+func mustConnectTeamToExternalGroup(t *testing.T, team *github.Team, externalGroupID int64) {
+	t.Helper()
+
+	mustRemoveAllMembersFromTeam(t, team)
+
+	_, _, err := testAccConf.meta.v3client.Teams.UpdateConnectedExternalGroup(t.Context(), testAccConf.meta.name, team.GetSlug(), github.UpdateConnectedExternalGroupRequest{
+		GroupID: externalGroupID,
+	})
+	if err != nil {
+		t.Fatalf("failed to connect team %s to external group %d: %v", team.GetName(), externalGroupID, err)
+	}
+}
