@@ -2,6 +2,7 @@ package github
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -29,6 +30,18 @@ func TestAccGithubEnterpriseBillingPremiumRequestUsage(t *testing.T) {
 							tfjsonpath.New("enterprise_slug"),
 							knownvalue.StringExact(testAccConf.enterpriseSlug),
 						),
+						statecheck.ExpectKnownValue("data.github_enterprise_billing_premium_request_usage.test",
+							tfjsonpath.New("id"),
+							knownvalue.StringRegexp(regexp.MustCompile(`^.+:billing-premium-request-usage$`)),
+						),
+						statecheck.ExpectKnownValue("data.github_enterprise_billing_premium_request_usage.test",
+							tfjsonpath.New("usage_items"),
+							knownvalue.NotNull(),
+						),
+						statecheck.ExpectKnownValue("data.github_enterprise_billing_premium_request_usage.test",
+							tfjsonpath.New("time_period"),
+							knownvalue.NotNull(),
+						),
 					},
 				},
 			},
@@ -54,6 +67,14 @@ func TestAccGithubEnterpriseBillingPremiumRequestUsage(t *testing.T) {
 						statecheck.ExpectKnownValue("data.github_enterprise_billing_premium_request_usage.test",
 							tfjsonpath.New("enterprise_slug"),
 							knownvalue.StringExact(testAccConf.enterpriseSlug),
+						),
+						statecheck.ExpectKnownValue("data.github_enterprise_billing_premium_request_usage.test",
+							tfjsonpath.New("usage_items"),
+							knownvalue.NotNull(),
+						),
+						statecheck.ExpectKnownValue("data.github_enterprise_billing_premium_request_usage.test",
+							tfjsonpath.New("time_period"),
+							knownvalue.NotNull(),
 						),
 					},
 				},
