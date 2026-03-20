@@ -14,7 +14,7 @@ import (
 
 func resourceGithubEnterpriseTeamOrganizations() *schema.Resource {
 	return &schema.Resource{
-		Description:   "Manages organization assignments for a GitHub enterprise team.",
+		Description:   "Creates and manages organization assignments for a GitHub enterprise team.",
 		CreateContext: resourceGithubEnterpriseTeamOrganizationsCreate,
 		ReadContext:   resourceGithubEnterpriseTeamOrganizationsRead,
 		UpdateContext: resourceGithubEnterpriseTeamOrganizationsUpdate,
