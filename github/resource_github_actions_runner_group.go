@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v83/github"
+	"github.com/google/go-github/v84/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -190,6 +190,12 @@ func resourceGithubActionsRunnerGroupCreate(ctx context.Context, d *schema.Resou
 		}
 	}
 
+	var networkConfigurationIDPtr *string
+	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
+		value := networkConfigurationID.(string)
+		networkConfigurationIDPtr = &value
+	}
+
 	runnerGroup, resp, err := client.Actions.CreateOrganizationRunnerGroup(ctx,
 		orgName,
 		github.CreateRunnerGroupRequest{
@@ -199,6 +205,7 @@ func resourceGithubActionsRunnerGroupCreate(ctx context.Context, d *schema.Resou
 			SelectedRepositoryIDs:    selectedRepositoryIDs,
 			SelectedWorkflows:        selectedWorkflows,
 			AllowsPublicRepositories: &allowsPublicRepositories,
+			NetworkConfigurationID:   networkConfigurationIDPtr,
 		},
 	)
 	if err != nil {
@@ -208,23 +215,7 @@ func resourceGithubActionsRunnerGroupCreate(ctx context.Context, d *schema.Resou
 	if err = setGithubActionsRunnerGroupState(d, runnerGroup, normalizeEtag(resp.Header.Get("ETag")), selectedRepositoryIDs); err != nil {
 		return diag.FromErr(err)
 	}
-
-	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
-		networkConfigurationIDValue := networkConfigurationID.(string)
-		// The create endpoint does not accept network_configuration_id, so private networking
-		// must be attached with a follow-up PATCH after the runner group has been created.
-		if _, err = updateRunnerGroupNetworking(client, ctx, fmt.Sprintf("orgs/%s/actions/runner-groups/%d", orgName, runnerGroup.GetID()), &networkConfigurationIDValue); err != nil {
-			return diag.FromErr(err)
-		}
-
-		if err = setRunnerGroupNetworkingState(d, &runnerGroupNetworking{NetworkConfigurationID: &networkConfigurationIDValue}); err != nil {
-			return diag.FromErr(err)
-		}
-
-		return nil
-	}
-
-	if err = setRunnerGroupNetworkingState(d, nil); err != nil {
+	if err = d.Set("network_configuration_id", runnerGroup.NetworkConfigurationID); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -262,10 +253,8 @@ func resourceGithubActionsRunnerGroupRead(ctx context.Context, d *schema.Resourc
 		return diag.FromErr(err)
 	}
 
-	runnerGroupEtag := normalizeEtag(resp.Header.Get("ETag"))
-	runnerGroupNetworking, _, err := getRunnerGroupNetworking(client, ctx, fmt.Sprintf("orgs/%s/actions/runner-groups/%d", orgName, runnerGroupID))
-	if err != nil {
-		return diag.FromErr(err)
+	if runnerGroup == nil {
+		return nil
 	}
 
 	selectedRepositoryIDs := []int64{}
@@ -290,22 +279,12 @@ func resourceGithubActionsRunnerGroupRead(ctx context.Context, d *schema.Resourc
 		options.Page = resp.NextPage
 	}
 
-	if runnerGroup != nil {
-		if err = setGithubActionsRunnerGroupState(d, runnerGroup, runnerGroupEtag, selectedRepositoryIDs); err != nil {
-			return diag.FromErr(err)
-		}
-	} else {
-		if err := d.Set("selected_repository_ids", selectedRepositoryIDs); err != nil {
-			return diag.FromErr(err)
-		}
-		if err := d.Set("etag", runnerGroupEtag); err != nil {
-			return diag.FromErr(err)
-		}
+	runnerGroupEtag := normalizeEtag(resp.Header.Get("ETag"))
+	if err = setGithubActionsRunnerGroupState(d, runnerGroup, runnerGroupEtag, selectedRepositoryIDs); err != nil {
+		return diag.FromErr(err)
 	}
-	if runnerGroupNetworking != nil {
-		if err = setRunnerGroupNetworkingState(d, runnerGroupNetworking); err != nil {
-			return diag.FromErr(err)
-		}
+	if err = d.Set("network_configuration_id", runnerGroup.NetworkConfigurationID); err != nil {
+		return diag.FromErr(err)
 	}
 
 	return nil
@@ -330,12 +309,24 @@ func resourceGithubActionsRunnerGroupUpdate(ctx context.Context, d *schema.Resou
 		}
 	}
 
+	var networkConfigurationIDPtr *string
+	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
+		value := networkConfigurationID.(string)
+		networkConfigurationIDPtr = &value
+	} else if d.HasChange("network_configuration_id") {
+		// Field was removed — send empty string to clear it.
+		// go-github's omitempty omits nil pointers, so empty string is used as a workaround.
+		empty := ""
+		networkConfigurationIDPtr = &empty
+	}
+
 	options := github.UpdateRunnerGroupRequest{
 		Name:                     &name,
 		Visibility:               &visibility,
 		RestrictedToWorkflows:    &restrictedToWorkflows,
 		SelectedWorkflows:        selectedWorkflows,
 		AllowsPublicRepositories: &allowsPublicRepositories,
+		NetworkConfigurationID:   networkConfigurationIDPtr,
 	}
 
 	runnerGroupID, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -347,23 +338,6 @@ func resourceGithubActionsRunnerGroupUpdate(ctx context.Context, d *schema.Resou
 	runnerGroup, resp, err := client.Actions.UpdateOrganizationRunnerGroup(ctx, orgName, runnerGroupID, options)
 	if err != nil {
 		return diag.FromErr(err)
-	}
-
-	var networkConfigurationIDValue *string
-	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
-		value := networkConfigurationID.(string)
-		networkConfigurationIDValue = &value
-	}
-
-	if d.HasChange("network_configuration_id") {
-		if _, err := updateRunnerGroupNetworking(client, ctx, fmt.Sprintf("orgs/%s/actions/runner-groups/%d", orgName, runnerGroupID), networkConfigurationIDValue); err != nil {
-			return diag.FromErr(err)
-		}
-	}
-
-	var networkingState *runnerGroupNetworking
-	if networkConfigurationIDValue != nil {
-		networkingState = &runnerGroupNetworking{NetworkConfigurationID: networkConfigurationIDValue}
 	}
 
 	selectedRepositories, hasSelectedRepositories := d.GetOk("selected_repository_ids")
@@ -388,7 +362,7 @@ func resourceGithubActionsRunnerGroupUpdate(ctx context.Context, d *schema.Resou
 	if err := setGithubActionsRunnerGroupState(d, runnerGroup, runnerGroupEtag, selectedRepositoryIDs); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := setRunnerGroupNetworkingState(d, networkingState); err != nil {
+	if err := d.Set("network_configuration_id", runnerGroup.NetworkConfigurationID); err != nil {
 		return diag.FromErr(err)
 	}
 

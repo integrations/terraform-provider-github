@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v83/github"
+	"github.com/google/go-github/v84/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -251,6 +251,10 @@ func resourceGithubActionsEnterpriseRunnerGroupRead(ctx context.Context, d *sche
 		return diag.FromErr(err)
 	}
 
+	if enterpriseRunnerGroup == nil {
+		return nil
+	}
+
 	runnerGroupEtag := normalizeEtag(resp.Header.Get("ETag"))
 
 	runnerGroupNetworking, _, err := getRunnerGroupNetworking(client, ctx, fmt.Sprintf("enterprises/%s/actions/runner-groups/%d", enterpriseSlug, runnerGroupID))
@@ -280,17 +284,8 @@ func resourceGithubActionsEnterpriseRunnerGroupRead(ctx context.Context, d *sche
 		optionsOrgs.Page = resp.NextPage
 	}
 
-	if enterpriseRunnerGroup != nil {
-		if err = setGithubActionsEnterpriseRunnerGroupState(d, enterpriseRunnerGroup, runnerGroupEtag, enterpriseSlug, selectedOrganizationIDs); err != nil {
-			return diag.FromErr(err)
-		}
-	} else {
-		if err := d.Set("selected_organization_ids", selectedOrganizationIDs); err != nil {
-			return diag.FromErr(err)
-		}
-		if err := d.Set("etag", runnerGroupEtag); err != nil {
-			return diag.FromErr(err)
-		}
+	if err = setGithubActionsEnterpriseRunnerGroupState(d, enterpriseRunnerGroup, runnerGroupEtag, enterpriseSlug, selectedOrganizationIDs); err != nil {
+		return diag.FromErr(err)
 	}
 	if runnerGroupNetworking != nil {
 		if err = setRunnerGroupNetworkingState(d, runnerGroupNetworking); err != nil {
