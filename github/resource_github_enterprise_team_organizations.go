@@ -77,10 +77,16 @@ func resourceGithubEnterpriseTeamOrganizationsCreate(ctx context.Context, d *sch
 		return diag.Errorf("enterprise team not found")
 	}
 
-	// Verify no organizations are already assigned (authoritative resource)
+	// Verify no organizations are already assigned (authoritative resource).
+	// A 404 here means the team has no assignments yet — treat as empty and proceed.
 	existing, err := listAllEnterpriseTeamOrganizations(ctx, client, enterpriseSlug, team.Slug)
 	if err != nil {
-		return diag.FromErr(err)
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
+			existing = nil
+		} else {
+			return diag.FromErr(err)
+		}
 	}
 	if len(existing) > 0 {
 		return diag.Errorf("%q already has organizations assigned; import first or remove manually", team.Slug)
@@ -122,6 +128,11 @@ func resourceGithubEnterpriseTeamOrganizationsRead(ctx context.Context, d *schem
 
 	orgs, err := listAllEnterpriseTeamOrganizations(ctx, client, enterpriseSlug, teamSlug)
 	if err != nil {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
