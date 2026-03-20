@@ -116,7 +116,7 @@ The following arguments are supported:
 
 * `has_downloads` - (**DEPRECATED**) (Optional) Set to `true` to enable the (deprecated) downloads features on the repository. This attribute is no longer in use, but it hasn't been removed yet. It will be removed in a future version. See [this discussion](https://github.com/orgs/community/discussions/102145#discussioncomment-8351756).
 
-* `auto_init` - (Optional) Set to `true` to produce an initial commit in the repository.
+* `auto_init` - (Optional) Set to `true` to produce an initial commit in the repository. If a repository is created without activating this functionality, adding it afterwards will not be effective. You'll have to `terraform destroy` and `terraform apply` again for the repository to be initialized properly.
 
 * `gitignore_template` - (Optional) Use the [name of the template](https://github.com/github/gitignore) without the extension. For example, "Haskell".
 
