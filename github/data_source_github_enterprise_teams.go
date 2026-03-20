@@ -20,7 +20,7 @@ const (
 
 func dataSourceGithubEnterpriseTeams() *schema.Resource {
 	return &schema.Resource{
-		Description: "Lists all GitHub enterprise teams in an enterprise.",
+		Description: "Retrieves information about all GitHub enterprise teams in an enterprise.",
 		ReadContext: dataSourceGithubEnterpriseTeamsRead,
 
 		Schema: map[string]*schema.Schema{
