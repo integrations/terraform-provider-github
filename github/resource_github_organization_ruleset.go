@@ -124,11 +124,12 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							},
 						},
 						"repository_property": {
-							Type:         schema.TypeList,
-							Optional:     true,
-							MaxItems:     1,
-							ExactlyOneOf: []string{"conditions.0.repository_property", "conditions.0.repository_name", "conditions.0.repository_id"},
-							Description:  "Conditions to target repositories by custom or system properties.",
+							Type:          schema.TypeList,
+							Optional:      true,
+							MaxItems:      1,
+							ConflictsWith: []string{"conditions.0.repository_id", "conditions.0.repository_name"},
+							AtLeastOneOf:  []string{"conditions.0.repository_name", "conditions.0.repository_id", "conditions.0.repository_property"},
+							Description:   "Conditions to target repositories by custom or system properties.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -195,11 +196,12 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							},
 						},
 						"repository_name": {
-							Type:         schema.TypeList,
-							Optional:     true,
-							MaxItems:     1,
-							ExactlyOneOf: []string{"conditions.0.repository_property", "conditions.0.repository_name", "conditions.0.repository_id"},
-							Description:  "Targets repositories that match the specified name patterns.",
+							Type:          schema.TypeList,
+							Optional:      true,
+							MaxItems:      1,
+							ConflictsWith: []string{"conditions.0.repository_id", "conditions.0.repository_property"},
+							AtLeastOneOf:  []string{"conditions.0.repository_name", "conditions.0.repository_id", "conditions.0.repository_property"},
+							Description:   "Targets repositories that match the specified name patterns.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -228,10 +230,11 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							},
 						},
 						"repository_id": {
-							Type:         schema.TypeList,
-							Optional:     true,
-							ExactlyOneOf: []string{"conditions.0.repository_property", "conditions.0.repository_name", "conditions.0.repository_id"},
-							Description:  "The repository IDs that the ruleset applies to. One of these IDs must match for the ruleset to apply.",
+							Type:          schema.TypeList,
+							Optional:      true,
+							ConflictsWith: []string{"conditions.0.repository_name", "conditions.0.repository_property"},
+							AtLeastOneOf:  []string{"conditions.0.repository_name", "conditions.0.repository_id", "conditions.0.repository_property"},
+							Description:   "The repository IDs that the ruleset applies to. One of these IDs must match for the ruleset to apply.",
 							Elem: &schema.Schema{
 								Type: schema.TypeInt,
 							},

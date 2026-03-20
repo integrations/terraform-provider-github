@@ -1011,7 +1011,7 @@ resource "github_organization_ruleset" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config:      config,
-					ExpectError: regexp.MustCompile(`(?s)only one of.*conditions\.0\.repository_id.*conditions\.0\.repository_name.*conditions\.0\.repository_property.*can be specified`),
+					ExpectError: regexp.MustCompile(`(?s)Conflicting configuration arguments.*conditions\.0\.repository_(name|id|property).*conflicts with`),
 				},
 			},
 		})
