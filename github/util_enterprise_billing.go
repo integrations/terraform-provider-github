@@ -236,6 +236,14 @@ func getEnterpriseUsageSummary(ctx context.Context, client *github.Client, enter
 func flattenUsageItems(items []*github.UsageItem) []map[string]any {
 	result := make([]map[string]any, len(items))
 	for idx, item := range items {
+		orgName := ""
+		if item.OrganizationName != nil {
+			orgName = *item.OrganizationName
+		}
+		repoName := ""
+		if item.RepositoryName != nil {
+			repoName = *item.RepositoryName
+		}
 		result[idx] = map[string]any{
 			"date":              item.Date,
 			"product":           item.Product,
@@ -246,8 +254,8 @@ func flattenUsageItems(items []*github.UsageItem) []map[string]any {
 			"gross_amount":      item.GrossAmount,
 			"discount_amount":   item.DiscountAmount,
 			"net_amount":        item.NetAmount,
-			"organization_name": item.OrganizationName,
-			"repository_name":   item.RepositoryName,
+			"organization_name": orgName,
+			"repository_name":   repoName,
 		}
 	}
 	return result

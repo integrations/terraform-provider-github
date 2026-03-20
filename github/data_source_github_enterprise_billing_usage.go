@@ -21,22 +21,22 @@ func dataSourceGithubEnterpriseBillingUsage() *schema.Resource {
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsNotEmpty),
 			},
 			"year": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				Description:  "If specified, only return results for a single year.",
-				ValidateFunc: validation.IntAtLeast(2000),
+				Type:             schema.TypeInt,
+				Optional:         true,
+				Description:      "If specified, only return results for a single year.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(2000)),
 			},
 			"month": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				Description:  "If specified, only return results for a single month. Value between 1 and 12.",
-				ValidateFunc: validation.IntBetween(1, 12),
+				Type:             schema.TypeInt,
+				Optional:         true,
+				Description:      "If specified, only return results for a single month. Value between 1 and 12.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(1, 12)),
 			},
 			"day": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				Description:  "If specified, only return results for a single day. Value between 1 and 31.",
-				ValidateFunc: validation.IntBetween(1, 31),
+				Type:             schema.TypeInt,
+				Optional:         true,
+				Description:      "If specified, only return results for a single day. Value between 1 and 31.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(1, 31)),
 			},
 			"cost_center_id": {
 				Type:        schema.TypeString,
@@ -134,11 +134,7 @@ func dataSourceGithubEnterpriseBillingUsageRead(ctx context.Context, d *schema.R
 		return diag.Errorf("error getting enterprise billing usage for %q: %s", enterpriseSlug, err)
 	}
 
-	id, err := buildID(enterpriseSlug, "billing-usage")
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	d.SetId(id)
+	d.SetId(buildTwoPartID(enterpriseSlug, "billing-usage"))
 
 	if err := d.Set("usage_items", flattenUsageItems(report.UsageItems)); err != nil {
 		return diag.FromErr(err)

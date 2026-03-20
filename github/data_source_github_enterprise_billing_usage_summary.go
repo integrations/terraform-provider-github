@@ -21,22 +21,22 @@ func dataSourceGithubEnterpriseBillingUsageSummary() *schema.Resource {
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsNotEmpty),
 			},
 			"year": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				Description:  "If specified, only return results for a single year.",
-				ValidateFunc: validation.IntAtLeast(2000),
+				Type:             schema.TypeInt,
+				Optional:         true,
+				Description:      "If specified, only return results for a single year.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(2000)),
 			},
 			"month": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				Description:  "If specified, only return results for a single month. Value between 1 and 12.",
-				ValidateFunc: validation.IntBetween(1, 12),
+				Type:             schema.TypeInt,
+				Optional:         true,
+				Description:      "If specified, only return results for a single month. Value between 1 and 12.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(1, 12)),
 			},
 			"day": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				Description:  "If specified, only return results for a single day. Value between 1 and 31.",
-				ValidateFunc: validation.IntBetween(1, 31),
+				Type:             schema.TypeInt,
+				Optional:         true,
+				Description:      "If specified, only return results for a single day. Value between 1 and 31.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(1, 31)),
 			},
 			"organization": {
 				Type:        schema.TypeString,
@@ -190,11 +190,7 @@ func dataSourceGithubEnterpriseBillingUsageSummaryRead(ctx context.Context, d *s
 		return diag.Errorf("error getting enterprise billing usage summary for %q: %s", enterpriseSlug, err)
 	}
 
-	id, err := buildID(enterpriseSlug, "billing-usage-summary")
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	d.SetId(id)
+	d.SetId(buildTwoPartID(enterpriseSlug, "billing-usage-summary"))
 
 	if err := d.Set("time_period", flattenTimePeriod(report.TimePeriod)); err != nil {
 		return diag.FromErr(err)

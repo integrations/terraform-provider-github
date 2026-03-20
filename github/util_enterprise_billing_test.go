@@ -108,8 +108,8 @@ func TestFlattenUsageItems(t *testing.T) {
 		assert.InDelta(t, 0.8, result[0]["gross_amount"], 0.0001)
 		assert.InDelta(t, 0.0, result[0]["discount_amount"], 0.0001)
 		assert.InDelta(t, 0.8, result[0]["net_amount"], 0.0001)
-		assert.Equal(t, github.Ptr("test-org"), result[0]["organization_name"])
-		assert.Equal(t, github.Ptr("test-org/example"), result[0]["repository_name"])
+		assert.Equal(t, "test-org", result[0]["organization_name"])
+		assert.Equal(t, "test-org/example", result[0]["repository_name"])
 	})
 
 	t.Run("flattens items with nil optional fields", func(t *testing.T) {
@@ -125,8 +125,8 @@ func TestFlattenUsageItems(t *testing.T) {
 
 		result := flattenUsageItems(items)
 		assert.Len(t, result, 1)
-		assert.Nil(t, result[0]["organization_name"])
-		assert.Nil(t, result[0]["repository_name"])
+		assert.Equal(t, "", result[0]["organization_name"])
+		assert.Equal(t, "", result[0]["repository_name"])
 	})
 }
 
