@@ -70,23 +70,18 @@ func dataSourceGithubEnterpriseTeamRead(ctx context.Context, d *schema.ResourceD
 	var te *github.EnterpriseTeam
 	if v, ok := d.GetOk("team_id"); ok {
 		teamID := int64(v.(int))
-		if teamID != 0 {
-			found, err := findEnterpriseTeamByID(ctx, client, enterpriseSlug, teamID)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			if found == nil {
-				return diag.Errorf("could not find enterprise team %d in enterprise %s", teamID, enterpriseSlug)
-			}
-			te = found
+		found, err := findEnterpriseTeamByID(ctx, client, enterpriseSlug, teamID)
+		if err != nil {
+			return diag.FromErr(err)
 		}
+		if found == nil {
+			return diag.Errorf("could not find enterprise team %d in enterprise %s", teamID, enterpriseSlug)
+		}
+		te = found
 	}
 
 	if te == nil {
 		teamSlug := strings.TrimSpace(d.Get("slug").(string))
-		if teamSlug == "" {
-			return diag.Errorf("one of slug or team_id must be set")
-		}
 		found, _, err := client.Enterprise.GetTeam(ctx, enterpriseSlug, teamSlug)
 		if err != nil {
 			return diag.FromErr(err)
