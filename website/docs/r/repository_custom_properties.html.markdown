@@ -21,7 +21,7 @@ resource "github_repository" "example" {
 }
 
 resource "github_repository_custom_properties" "example" {
-  repository_name = github_repository.example.name
+  repository = github_repository.example.name
 
   property {
     name  = "environment"
@@ -39,7 +39,7 @@ resource "github_repository_custom_properties" "example" {
 
 ```hcl
 resource "github_repository_custom_properties" "example" {
-  repository_name = "my-repo"
+  repository = "my-repo"
 
   property {
     name  = "languages"
@@ -57,7 +57,9 @@ resource "github_repository_custom_properties" "example" {
 
 The following arguments are supported:
 
-* `repository_name` - (Required) The name of the repository. Changing this will force the resource to be recreated.
+* `repository` - (Required) The name of the repository.
+
+* `repository_id` - The ID of the GitHub repository (computed).
 
 * `property` - (Required) One or more property blocks as defined below. At least one must be specified.
 
@@ -71,14 +73,14 @@ The following arguments are supported:
 
 In addition to all arguments above, the following attributes are exported:
 
-* `id` - A composite ID in the format `owner:repository_name`.
+* `id` - A composite ID in the format `owner:repository`.
 
 ## Import
 
-Repository custom properties can be imported using the `owner/repository_name` format. When imported, **all** custom property values currently set on the repository will be imported into state.
+Repository custom properties can be imported using the repository name. When imported, **all** custom property values currently set on the repository will be imported into state.
 
 ```
-terraform import github_repository_custom_properties.example my-org/my-repo
+terraform import github_repository_custom_properties.example my-repo
 ```
 
 ## Differences from `github_repository_custom_property`

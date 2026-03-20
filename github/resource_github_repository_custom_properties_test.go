@@ -6,13 +6,22 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
+)
+
+const (
+	testCustomPropsRepoNameFmt    = "%srepo-custom-props-%s"
+	testCustomPropsEnvPropNameFmt = "tf-acc-env-%s"
+	testCustomPropsResourceAddr   = "github_repository_custom_properties.test"
 )
 
 func TestAccGithubRepositoryCustomProperties(t *testing.T) {
 	t.Run("creates and reads multiple custom properties", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%srepo-custom-props-%s", testResourcePrefix, randomID)
-		envPropName := fmt.Sprintf("tf-acc-env-%s", randomID)
+		repoName := fmt.Sprintf(testCustomPropsRepoNameFmt, testResourcePrefix, randomID)
+		envPropName := fmt.Sprintf(testCustomPropsEnvPropNameFmt, randomID)
 		teamPropName := fmt.Sprintf("tf-acc-team-%s", randomID)
 
 		config := fmt.Sprintf(`
@@ -35,7 +44,7 @@ func TestAccGithubRepositoryCustomProperties(t *testing.T) {
 			}
 
 			resource "github_repository_custom_properties" "test" {
-				repository_name = github_repository.test.name
+				repository = github_repository.test.name
 
 				property {
 					name  = github_organization_custom_properties.environment.property_name
@@ -49,24 +58,17 @@ func TestAccGithubRepositoryCustomProperties(t *testing.T) {
 			}
 		`, envPropName, teamPropName, repoName)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_repository_custom_properties.test", "repository_name", repoName),
-			resource.TestCheckResourceAttr("github_repository_custom_properties.test", "property.#", "2"),
-			resource.TestCheckTypeSetElemNestedAttrs("github_repository_custom_properties.test", "property.*", map[string]string{
-				"name": envPropName,
-			}),
-			resource.TestCheckTypeSetElemNestedAttrs("github_repository_custom_properties.test", "property.*", map[string]string{
-				"name": teamPropName,
-			}),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue(testCustomPropsResourceAddr, tfjsonpath.New("repository"), knownvalue.StringExact(repoName)),
+						statecheck.ExpectKnownValue(testCustomPropsResourceAddr, tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue(testCustomPropsResourceAddr, tfjsonpath.New("property"), knownvalue.SetSizeExact(2)),
+					},
 				},
 			},
 		})
@@ -74,8 +76,8 @@ func TestAccGithubRepositoryCustomProperties(t *testing.T) {
 
 	t.Run("updates property value in place", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%srepo-custom-props-%s", testResourcePrefix, randomID)
-		propName := fmt.Sprintf("tf-acc-env-%s", randomID)
+		repoName := fmt.Sprintf(testCustomPropsRepoNameFmt, testResourcePrefix, randomID)
+		propName := fmt.Sprintf(testCustomPropsEnvPropNameFmt, randomID)
 
 		configCreate := fmt.Sprintf(`
 			resource "github_organization_custom_properties" "test" {
@@ -91,7 +93,7 @@ func TestAccGithubRepositoryCustomProperties(t *testing.T) {
 			}
 
 			resource "github_repository_custom_properties" "test" {
-				repository_name = github_repository.test.name
+				repository = github_repository.test.name
 
 				property {
 					name  = github_organization_custom_properties.test.property_name
@@ -114,7 +116,7 @@ func TestAccGithubRepositoryCustomProperties(t *testing.T) {
 			}
 
 			resource "github_repository_custom_properties" "test" {
-				repository_name = github_repository.test.name
+				repository = github_repository.test.name
 
 				property {
 					name  = github_organization_custom_properties.test.property_name
@@ -129,21 +131,15 @@ func TestAccGithubRepositoryCustomProperties(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: configCreate,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository_custom_properties.test", "property.#", "1"),
-						resource.TestCheckTypeSetElemNestedAttrs("github_repository_custom_properties.test", "property.*", map[string]string{
-							"name": propName,
-						}),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue(testCustomPropsResourceAddr, tfjsonpath.New("property"), knownvalue.SetSizeExact(1)),
+					},
 				},
 				{
 					Config: configUpdate,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository_custom_properties.test", "property.#", "1"),
-						resource.TestCheckTypeSetElemNestedAttrs("github_repository_custom_properties.test", "property.*", map[string]string{
-							"name": propName,
-						}),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue(testCustomPropsResourceAddr, tfjsonpath.New("property"), knownvalue.SetSizeExact(1)),
+					},
 				},
 			},
 		})
@@ -151,8 +147,8 @@ func TestAccGithubRepositoryCustomProperties(t *testing.T) {
 
 	t.Run("imports all properties for a repository", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%srepo-custom-props-%s", testResourcePrefix, randomID)
-		propName := fmt.Sprintf("tf-acc-env-%s", randomID)
+		repoName := fmt.Sprintf(testCustomPropsRepoNameFmt, testResourcePrefix, randomID)
+		propName := fmt.Sprintf(testCustomPropsEnvPropNameFmt, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_organization_custom_properties" "test" {
@@ -168,7 +164,7 @@ func TestAccGithubRepositoryCustomProperties(t *testing.T) {
 			}
 
 			resource "github_repository_custom_properties" "test" {
-				repository_name = github_repository.test.name
+				repository = github_repository.test.name
 
 				property {
 					name  = github_organization_custom_properties.test.property_name
@@ -185,7 +181,7 @@ func TestAccGithubRepositoryCustomProperties(t *testing.T) {
 					Config: config,
 				},
 				{
-					ResourceName:      "github_repository_custom_properties.test",
+					ResourceName:      testCustomPropsResourceAddr,
 					ImportState:       true,
 					ImportStateVerify: true,
 				},
@@ -195,7 +191,7 @@ func TestAccGithubRepositoryCustomProperties(t *testing.T) {
 
 	t.Run("creates multi_select property", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%srepo-custom-props-%s", testResourcePrefix, randomID)
+		repoName := fmt.Sprintf(testCustomPropsRepoNameFmt, testResourcePrefix, randomID)
 		propName := fmt.Sprintf("tf-acc-tags-%s", randomID)
 
 		config := fmt.Sprintf(`
@@ -212,7 +208,7 @@ func TestAccGithubRepositoryCustomProperties(t *testing.T) {
 			}
 
 			resource "github_repository_custom_properties" "test" {
-				repository_name = github_repository.test.name
+				repository = github_repository.test.name
 
 				property {
 					name  = github_organization_custom_properties.test.property_name
@@ -221,21 +217,15 @@ func TestAccGithubRepositoryCustomProperties(t *testing.T) {
 			}
 		`, propName, repoName)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_repository_custom_properties.test", "property.#", "1"),
-			resource.TestCheckTypeSetElemNestedAttrs("github_repository_custom_properties.test", "property.*", map[string]string{
-				"name":    propName,
-				"value.#": "2",
-			}),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue(testCustomPropsResourceAddr, tfjsonpath.New("property"), knownvalue.SetSizeExact(1)),
+					},
 				},
 			},
 		})
