@@ -11,7 +11,7 @@ import (
 
 func dataSourceGithubEnterpriseTeamOrganizations() *schema.Resource {
 	return &schema.Resource{
-		Description: "Lists organizations assigned to a GitHub enterprise team.",
+		Description: "Retrieves information about organizations assigned to a GitHub enterprise team.",
 		ReadContext: dataSourceGithubEnterpriseTeamOrganizationsRead,
 
 		Schema: map[string]*schema.Schema{
