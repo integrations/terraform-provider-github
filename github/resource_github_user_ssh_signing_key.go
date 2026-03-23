@@ -33,7 +33,7 @@ func resourceGithubUserSshSigningKey() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "The public SSH key to add to your GitHub account.",
+				Description: "The public SSH signing key to add to your GitHub account.",
 			},
 			"key_id": {
 				Type:        schema.TypeInt,
@@ -55,8 +55,8 @@ func resourceGithubUserSshSigningKeyCreate(ctx context.Context, d *schema.Resour
 	key := d.Get("key").(string)
 
 	userKey, resp, err := client.Users.CreateSSHSigningKey(ctx, &github.Key{
-		Title: github.Ptr(title),
-		Key:   github.Ptr(key),
+		Title: new(title),
+		Key:   new(key),
 	})
 	if err != nil {
 		return diag.FromErr(err)
@@ -80,8 +80,8 @@ func resourceGithubUserSshSigningKeyCreate(ctx context.Context, d *schema.Resour
 func resourceGithubUserSshSigningKeyRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
-	keyID := d.Get("key_id").(int64)
-	_, _, err := client.Users.GetSSHSigningKey(ctx, keyID)
+	keyID := int64(d.Get("key_id").(int))
+	userKey, resp, err := client.Users.GetSSHSigningKey(ctx, keyID)
 	if err != nil {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
@@ -89,7 +89,7 @@ func resourceGithubUserSshSigningKeyRead(ctx context.Context, d *schema.Resource
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, fmt.Sprintf("Removing user SSH key %s from state because it no longer exists in GitHub", d.Id()), map[string]any{
+				tflog.Info(ctx, fmt.Sprintf("Removing user SSH signing key %s from state because it no longer exists in GitHub", d.Id()), map[string]any{
 					"ssh_signing_key_id": d.Id(),
 				})
 				d.SetId("")
@@ -97,13 +97,22 @@ func resourceGithubUserSshSigningKeyRead(ctx context.Context, d *schema.Resource
 			}
 		}
 	}
+
+	// set computed fields
+	if err = d.Set("key_id", userKey.GetID()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
+	}
+
 	return nil
 }
 
 func resourceGithubUserSshSigningKeyDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
-	keyID := d.Get("key_id").(int64)
+	keyID := int64(d.Get("key_id").(int))
 	resp, err := client.Users.DeleteSSHSigningKey(ctx, keyID)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
@@ -122,7 +131,7 @@ func resourceGithubUserSshSigningKeyImport(ctx context.Context, d *schema.Resour
 		return nil, fmt.Errorf("invalid SSH signing key ID format: %w", err)
 	}
 
-	key, resp, err := client.Users.GetSSHSigningKey(ctx, keyID)
+	key, _, err := client.Users.GetSSHSigningKey(ctx, keyID)
 	if err != nil {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
@@ -135,12 +144,6 @@ func resourceGithubUserSshSigningKeyImport(ctx context.Context, d *schema.Resour
 
 	d.SetId(strconv.FormatInt(key.GetID(), 10))
 
-	if err = d.Set("key_id", key.GetID()); err != nil {
-		return nil, err
-	}
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return nil, err
-	}
 	if err = d.Set("title", key.GetTitle()); err != nil {
 		return nil, err
 	}
