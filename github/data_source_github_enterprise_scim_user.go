@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -39,7 +38,7 @@ func dataSourceGithubEnterpriseSCIMUserRead(ctx context.Context, d *schema.Resou
 		return diag.FromErr(err)
 	}
 
-	d.SetId(fmt.Sprintf("%s/%s", enterprise, scimUserID))
+	d.SetId(buildTwoPartID(enterprise, scimUserID))
 
 	if err := d.Set("schemas", user.Schemas); err != nil {
 		return diag.FromErr(err)
