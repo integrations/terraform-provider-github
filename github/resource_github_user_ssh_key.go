@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	"github.com/google/go-github/v84/github"
-	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -41,7 +40,6 @@ func resourceGithubUserSshKey() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The URL of the SSH key.",
-				Deprecated:  "Use key_id instead.",
 			},
 			"key_id": {
 				Type:        schema.TypeInt,
@@ -57,31 +55,8 @@ func resourceGithubUserSshKey() *schema.Resource {
 		StateUpgraders: []schema.StateUpgrader{
 			{
 				Version: 0,
-				Type: cty.Object(map[string]cty.Type{
-					"id":    cty.String,
-					"title": cty.String,
-					"key":   cty.String,
-					"url":   cty.String,
-					"etag":  cty.String,
-				}),
-				Upgrade: func(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
-					if rawState == nil {
-						return nil, fmt.Errorf("resource state upgrade failed, state is nil")
-					}
-
-					// copy d.Id() into key_id
-					if id, ok := rawState["id"].(string); ok {
-						keyID, err := strconv.ParseInt(id, 10, 64)
-						if err != nil {
-							return nil, fmt.Errorf("resource state upgrade failed, invalid SSH key ID format: %w", err)
-						}
-						rawState["key_id"] = keyID
-					} else {
-						return nil, fmt.Errorf("resource state upgrade failed, missing or invalid 'id' field in state")
-					}
-
-					return rawState, nil
-				},
+				Type:    resourceGithubUserSshKeyV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceGithubUserSshKeyStateUpgradeV0,
 			},
 		},
 	}
@@ -94,8 +69,8 @@ func resourceGithubUserSshKeyCreate(ctx context.Context, d *schema.ResourceData,
 	key := d.Get("key").(string)
 
 	userKey, resp, err := client.Users.CreateKey(ctx, &github.Key{
-		Title: github.Ptr(title),
-		Key:   github.Ptr(key),
+		Title: new(title),
+		Key:   new(key),
 	})
 	if err != nil {
 		return diag.FromErr(err)
@@ -109,6 +84,9 @@ func resourceGithubUserSshKeyCreate(ctx context.Context, d *schema.ResourceData,
 	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
 		return diag.FromErr(err)
 	}
+	if err = d.Set("url", userKey.GetURL()); err != nil {
+		return diag.FromErr(err)
+	}
 	if err = d.Set("title", userKey.GetTitle()); err != nil {
 		return diag.FromErr(err)
 	}
@@ -120,16 +98,7 @@ func resourceGithubUserSshKeyRead(ctx context.Context, d *schema.ResourceData, m
 	client := meta.(*Owner).v3client
 
 	keyID := int64(d.Get("key_id").(int))
-	// fallback to d.Id() for backward compatibility when key_id is not set
-	if keyID == 0 {
-		var err error
-		keyID, err = strconv.ParseInt(d.Id(), 10, 64)
-		if err != nil {
-			return diag.FromErr(fmt.Errorf("invalid SSH key ID format: %w", err))
-		}
-	}
-
-	_, _, err := client.Users.GetKey(ctx, keyID)
+	userKey, resp, err := client.Users.GetKey(ctx, keyID)
 	if err != nil {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
@@ -145,6 +114,18 @@ func resourceGithubUserSshKeyRead(ctx context.Context, d *schema.ResourceData, m
 			}
 		}
 	}
+
+	// set computed fields
+	if err = d.Set("key_id", userKey.GetID()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
+	}
+	if err = d.Set("url", userKey.GetURL()); err != nil {
+		return diag.FromErr(err)
+	}
+
 	return nil
 }
 
@@ -179,7 +160,7 @@ func resourceGithubUserSshKeyImport(ctx context.Context, d *schema.ResourceData,
 		return nil, fmt.Errorf("invalid SSH key ID format: %w", err)
 	}
 
-	key, resp, err := client.Users.GetKey(ctx, keyID)
+	key, _, err := client.Users.GetKey(ctx, keyID)
 	if err != nil {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
@@ -192,12 +173,6 @@ func resourceGithubUserSshKeyImport(ctx context.Context, d *schema.ResourceData,
 
 	d.SetId(strconv.FormatInt(key.GetID(), 10))
 
-	if err = d.Set("key_id", key.GetID()); err != nil {
-		return nil, err
-	}
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return nil, err
-	}
 	if err = d.Set("title", key.GetTitle()); err != nil {
 		return nil, err
 	}
