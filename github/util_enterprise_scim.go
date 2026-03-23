@@ -4,6 +4,7 @@ import (
 	"context"
 
 	gh "github.com/google/go-github/v84/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 // enterpriseSCIMListAllGroups fetches all SCIM groups for an enterprise with automatic pagination.
@@ -221,4 +222,29 @@ func flattenEnterpriseSCIMUser(user *gh.SCIMEnterpriseUserAttributes) map[string
 		m["id"] = *user.ID
 	}
 	return m
+}
+
+func enterpriseSCIMMetaSchema() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		"resource_type": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "The SCIM resource type.",
+		},
+		"created": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "The creation timestamp.",
+		},
+		"last_modified": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "The lastModified timestamp.",
+		},
+		"location": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "The resource location.",
+		},
+	}
 }

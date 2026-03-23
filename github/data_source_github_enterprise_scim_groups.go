@@ -120,31 +120,6 @@ func dataSourceGithubEnterpriseSCIMGroupsRead(ctx context.Context, d *schema.Res
 	return nil
 }
 
-func enterpriseSCIMMetaSchema() map[string]*schema.Schema {
-	return map[string]*schema.Schema{
-		"resource_type": {
-			Type:        schema.TypeString,
-			Computed:    true,
-			Description: "The SCIM resource type.",
-		},
-		"created": {
-			Type:        schema.TypeString,
-			Computed:    true,
-			Description: "The creation timestamp.",
-		},
-		"last_modified": {
-			Type:        schema.TypeString,
-			Computed:    true,
-			Description: "The lastModified timestamp.",
-		},
-		"location": {
-			Type:        schema.TypeString,
-			Computed:    true,
-			Description: "The resource location.",
-		},
-	}
-}
-
 func enterpriseSCIMGroupSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"schemas": {
