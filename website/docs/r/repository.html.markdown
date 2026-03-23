@@ -36,7 +36,7 @@ resource "github_repository" "example" {
   name        = "example"
   description = "My awesome web page"
 
-  private = false
+  visibility = "public"
 
   pages {
     source {
@@ -75,8 +75,8 @@ The following arguments are supported:
 
 * `source_repo` - (Optional) The name of the repository to fork. Required when `fork` is `true`.
 
-* `private` - (Optional) Set to `true` to create a private repository.
-  Repositories are created as public (e.g. open source) by default.
+* `private` - (**DEPRECATED**) (Optional) Set to `true` to create a private repository.
+  Repositories are created as public (e.g. open source) by default. Use `visibility` instead.
 
 * `visibility` - (Optional) Can be `public` or `private`. If your organization is associated with an enterprise account using GitHub Enterprise Cloud or GitHub Enterprise Server 2.20+, visibility can also be `internal`. The `visibility` parameter overrides the `private` parameter.
 
