@@ -45,6 +45,9 @@ linters:
           - unparam
         text: always receives
       - linters:
+          - modernize
+        text: "newexpr: call of Ptr"
+      - linters:
           - staticcheck
         text: "SA1019: \\(github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema.Resource\\)\\.(Create|Read|Update|Delete) is deprecated"
       - linters:
