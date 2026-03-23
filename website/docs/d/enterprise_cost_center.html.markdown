@@ -7,7 +7,7 @@ description: |-
 
 # github_enterprise_cost_center
 
-Use this data source to retrieve a GitHub enterprise cost center by ID.
+Retrieves information about a specific GitHub enterprise cost center.
 
 ## Example Usage
 
