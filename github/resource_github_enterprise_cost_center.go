@@ -62,10 +62,6 @@ func resourceGithubEnterpriseCostCenterCreate(ctx context.Context, d *schema.Res
 		return diag.FromErr(err)
 	}
 
-	if cc == nil || cc.ID == "" {
-		return diag.Errorf("failed to create cost center: missing id in response (unexpected API response; please retry or contact support)")
-	}
-
 	d.SetId(cc.ID)
 
 	if err := d.Set("state", cc.GetState()); err != nil {
@@ -85,15 +81,7 @@ func resourceGithubEnterpriseCostCenterRead(ctx context.Context, d *schema.Resou
 
 	cc, _, err := client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
 	if err != nil {
-		if errIs404(err) {
-			tflog.Warn(ctx, "Cost center not found, removing from state", map[string]any{
-				"enterprise_slug": enterpriseSlug,
-				"cost_center_id":  costCenterID,
-			})
-			d.SetId("")
-			return nil
-		}
-		return diag.FromErr(err)
+		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "cost center %s/%s", enterpriseSlug, costCenterID))
 	}
 
 	// If the cost center is archived (deleted), remove from state

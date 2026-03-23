@@ -151,15 +151,7 @@ func resourceGithubEnterpriseCostCenterOrganizationsRead(ctx context.Context, d 
 
 	cc, _, err := client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
 	if err != nil {
-		if errIs404(err) {
-			tflog.Warn(ctx, "Cost center not found, removing from state", map[string]any{
-				"enterprise_slug": enterpriseSlug,
-				"cost_center_id":  costCenterID,
-			})
-			d.SetId("")
-			return nil
-		}
-		return diag.FromErr(err)
+		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "cost center organizations %s/%s", enterpriseSlug, costCenterID))
 	}
 
 	var organizations []string
