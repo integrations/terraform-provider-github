@@ -9,7 +9,7 @@ import (
 
 func dataSourceGithubEnterpriseCostCenter() *schema.Resource {
 	return &schema.Resource{
-		Description: "Use this data source to retrieve information about a specific enterprise cost center.",
+		Description: "Retrieves information about a specific GitHub enterprise cost center.",
 		ReadContext: dataSourceGithubEnterpriseCostCenterRead,
 
 		Schema: map[string]*schema.Schema{

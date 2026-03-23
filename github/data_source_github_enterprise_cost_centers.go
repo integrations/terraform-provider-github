@@ -11,7 +11,7 @@ import (
 
 func dataSourceGithubEnterpriseCostCenters() *schema.Resource {
 	return &schema.Resource{
-		Description: "Use this data source to retrieve a list of enterprise cost centers.",
+		Description: "Retrieves a list of GitHub enterprise cost centers.",
 		ReadContext: dataSourceGithubEnterpriseCostCentersRead,
 
 		Schema: map[string]*schema.Schema{
