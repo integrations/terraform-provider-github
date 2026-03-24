@@ -9,3 +9,7 @@ variable "installation_id" {
 variable "pem_file_path" {
   type = string
 }
+
+variable "repositories" {
+  type = list(string)
+}
