@@ -1066,6 +1066,25 @@ func TestExpandRepositoryPropertyConditions_NilPropertyValues(t *testing.T) {
 	}
 }
 
+func TestExpandConditions_NilRefName(t *testing.T) {
+	// When ref_name contains a nil element (e.g. org ruleset without ref_name specified),
+	// expandConditions should not panic and should return conditions with nil RefName.
+	input := []any{
+		map[string]any{
+			"ref_name": []any{nil},
+		},
+	}
+
+	result := expandConditions(input, true)
+
+	if result == nil {
+		t.Fatal("Expected result to not be nil")
+	}
+	if result.RefName != nil {
+		t.Errorf("Expected RefName to be nil, got %+v", result.RefName)
+	}
+}
+
 func TestFlattenRulesetRepositoryPropertyTargetParameters(t *testing.T) {
 	input := []*github.RepositoryRulesetRepositoryPropertyTargetParameters{
 		{
