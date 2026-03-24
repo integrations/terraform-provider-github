@@ -1498,7 +1498,7 @@ func TestFlattenConditionsRepositoryProperty(t *testing.T) {
 		},
 	}
 
-	result := flattenConditions(context.Background(), conditions, RulesetLevelEnterprise)
+	result := flattenConditions(t.Context(), conditions, RulesetLevelEnterprise)
 
 	if len(result) != 1 {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
@@ -1568,7 +1568,7 @@ func TestRoundTripConditionsRepositoryProperty(t *testing.T) {
 		t.Fatal("Expected expanded conditions to not be nil")
 	}
 
-	flattened := flattenConditions(context.Background(), expanded, RulesetLevelEnterprise)
+	flattened := flattenConditions(t.Context(), expanded, RulesetLevelEnterprise)
 	if len(flattened) != 1 {
 		t.Fatalf("Expected 1 flattened result, got %d", len(flattened))
 	}
