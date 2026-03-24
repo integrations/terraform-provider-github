@@ -147,7 +147,6 @@ func dataSourceGithubReleaseAssetRead(ctx context.Context, d *schema.ResourceDat
 		return diag.FromErr(err)
 	}
 
-	req.Header.Set("Accept", "application/octet-stream")
 	resp, err := clientCopy.Do(req)
 	if err != nil {
 		return diag.FromErr(err)
