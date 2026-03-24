@@ -3,6 +3,7 @@ package github
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-github/v84/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -1066,22 +1067,54 @@ func TestExpandRepositoryPropertyConditions_NilPropertyValues(t *testing.T) {
 	}
 }
 
-func TestExpandConditions_NilRefName(t *testing.T) {
-	// When ref_name contains a nil element (e.g. org ruleset without ref_name specified),
-	// expandConditions should not panic and should return conditions with nil RefName.
-	input := []any{
-		map[string]any{
-			"ref_name": []any{nil},
+func TestExpandConditions(t *testing.T) {
+	t.Parallel()
+
+	for _, d := range []struct {
+		testName string
+		input    []any
+		want     *github.RepositoryRulesetConditions
+	}{
+		{
+			testName: "returns_nil_for_empty_input",
+			input:    []any{},
+			want:     nil,
 		},
-	}
+		{
+			testName: "returns_nil_for_empty_input_slice",
+			input:    []any{nil},
+			want:     nil,
+		},
+		{
+			testName: "returns_empty_conditions_for_empty_input_slice",
+			input:    []any{map[string]any{}},
+			want:     &github.RepositoryRulesetConditions{},
+		},
+		{
+			testName: "returns_empty_conditions_for_empty_ref_name",
+			input:    []any{map[string]any{"ref_name": []any{}}},
+			want:     &github.RepositoryRulesetConditions{},
+		},
+		{
+			testName: "returns_empty_conditions_for_empty_ref_name_arrays",
+			input:    []any{map[string]any{"ref_name": []any{map[string]any{"include": []any{}, "exclude": []any{}}}}},
+			want:     &github.RepositoryRulesetConditions{RefName: &github.RepositoryRulesetRefConditionParameters{Include: []string{}, Exclude: []string{}}},
+		},
+		{
+			testName: "returns_empty_conditions_for_nil_ref_name_arrays",
+			input:    []any{map[string]any{"ref_name": []any{nil}}},
+			want:     &github.RepositoryRulesetConditions{},
+		},
+	} {
+		t.Run(d.testName, func(t *testing.T) {
+			t.Parallel()
 
-	result := expandConditions(input, true)
+			got := expandConditions(d.input, false)
 
-	if result == nil {
-		t.Fatal("Expected result to not be nil")
-	}
-	if result.RefName != nil {
-		t.Errorf("Expected RefName to be nil, got %+v", result.RefName)
+			if diff := cmp.Diff(got, d.want); diff != "" {
+				t.Fatalf("got %+v, want %+v", got, d.want)
+			}
+		})
 	}
 }
 
