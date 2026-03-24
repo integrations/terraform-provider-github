@@ -190,7 +190,7 @@ func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions
 	inputConditions := input[0].(map[string]any)
 
 	// ref_name is available for both repo and org rulesets
-	if v, ok := inputConditions["ref_name"].([]any); ok && v != nil && len(v) != 0 {
+	if v, ok := inputConditions["ref_name"].([]any); ok && v != nil && len(v) != 0 && v[0] != nil {
 		inputRefName := v[0].(map[string]any)
 		include := make([]string, 0)
 		exclude := make([]string, 0)
