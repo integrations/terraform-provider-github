@@ -13,9 +13,9 @@ You must have write access to a repository to use this resource.
 Secret values are encrypted using the [Go '/crypto/box' module](https://godoc.org/golang.org/x/crypto/nacl/box) which is
 interoperable with [libsodium](https://libsodium.gitbook.io/doc/). Libsodium is used by GitHub to decrypt secret values.
 
-For the purposes of security, the contents of the `plaintext_value` field have been marked as `sensitive` to Terraform,
+For the purposes of security, the contents of the `value` field have been marked as `sensitive` to Terraform,
 but it is important to note that **this does not hide it from state files**. You should treat state as sensitive always.
-It is also advised that you do not store plaintext values in your code but rather populate the `encrypted_value`
+It is also advised that you do not store plaintext values in your code but rather populate the `value_encrypted`
 using fields from a resource, data source or variable as, while encrypted in state, these will be easily accessible
 in your code. See below for an example of this abstraction.
 
@@ -23,15 +23,15 @@ in your code. See below for an example of this abstraction.
 
 ```hcl
 resource "github_actions_secret" "example_plaintext" {
-  repository       = "example_repository"
-  secret_name      = "example_secret_name"
-  plaintext_value  = var.some_secret_string
+  repository  = "example_repository"
+  secret_name = "example_secret_name"
+  value       = var.some_secret_string
 }
 
 resource "github_actions_secret" "example_encrypted" {
   repository       = "example_repository"
   secret_name      = "example_secret_name"
-  encrypted_value  = var.some_encrypted_secret_string
+  value_encrypted  = var.some_encrypted_secret_string
 }
 ```
 
@@ -41,9 +41,9 @@ This resource supports using the `lifecycle` `ignore_changes` block on `remote_u
 
 ```hcl
 resource "github_actions_secret" "example_allow_drift" {
-  repository      = "example_repository"
-  secret_name     = "example_secret_name"
-  plaintext_value = "placeholder"
+  repository  = "example_repository"
+  secret_name = "example_secret_name"
+  value       = "placeholder"
 
   lifecycle {
     ignore_changes = [remote_updated_at]
@@ -57,9 +57,11 @@ The following arguments are supported:
 
 - `repository` - (Required) Name of the repository.
 - `secret_name` - (Required) Name of the secret.
-- `key_id` - (Optional) ID of the public key used to encrypt the secret. This should be provided when setting `encrypted_value`; if it isn't then the current public key will be looked up, which could cause a missmatch. This conflicts with `plaintext_value`.
-- `encrypted_value` - (Optional) Encrypted value of the secret using the GitHub public key in Base64 format.
-- `plaintext_value` - (Optional) Plaintext value of the secret to be encrypted.
+- `key_id` - (Optional) ID of the public key used to encrypt the secret, required when setting `encrypted_value`.
+- `value` - (Optional) Plaintext value of the secret to be encrypted. This conflicts with `value_encrypted`, `encrypted_value` & `plaintext_value`.
+- `value_encrypted` - (Optional) Encrypted value of the secret using the GitHub public key in Base64 format, `key_id` is required with this value. This conflicts with `value`, `encrypted_value` & `plaintext_value`.
+- `encrypted_value` - (**DEPRECATED**)(Optional) Please use `value_encrypted`.
+- `plaintext_value` - (**DEPRECATED**)(Optional) Please use `value`.
 - `destroy_on_drift` - (**DEPRECATED**) (Optional) This is ignored as drift detection is built into the resource.
 
 ~> **Note**: One of either `encrypted_value` or `plaintext_value` must be specified.
@@ -75,7 +77,7 @@ The following arguments are supported:
 
 This resource can be imported using an ID made of the repository name, and secret name separated by a `:`.
 
-~> **Note**: When importing secrets, the `plaintext_value` or `encrypted_value` fields will not be populated in the state. You may need to ignore changes for these as a workaround if you're not planning on updating the secret through Terraform.
+~> **Note**: When importing secrets, the `value`, `value_encrypted`, `encrypted_value`, or `plaintext_value` fields will not be populated in the state. You may need to ignore changes for these as a workaround if you're not planning on updating the secret through Terraform.
 
 ### Import Block
 

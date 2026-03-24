@@ -16,9 +16,9 @@ This resource is only applicable when `visibility` of the existing organization 
 
 ```hcl
 resource "github_actions_organization_variable" "example" {
-	variable_name     = "myvariable"
-	plaintext_value = "foo"
-	visibility      = "selected"
+	variable_name = "myvariable"
+	value         = "foo"
+	visibility    = "selected"
 }
 
 resource "github_repository" "example" {

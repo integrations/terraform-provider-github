@@ -22,9 +22,9 @@ func TestAccGithubDependabotOrganizationSecret(t *testing.T) {
 
 		config := `
 resource "github_dependabot_organization_secret" "test" {
-	secret_name      = "%s"
-	plaintext_value  = "%s"
-	visibility       = "all"
+	secret_name = "%s"
+	value       = "%s"
+	visibility  = "all"
 }
 `
 
@@ -37,8 +37,8 @@ resource "github_dependabot_organization_secret" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "secret_name", secretName),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "key_id"),
-						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "plaintext_value", value),
-						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "encrypted_value"),
+						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "value", value),
+						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "value_encrypted"),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "visibility", "all"),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "selected_repository_ids.#", "0"),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "created_at"),
@@ -50,8 +50,8 @@ resource "github_dependabot_organization_secret" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "secret_name", secretName),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "key_id"),
-						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "plaintext_value", valueUpdated),
-						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "encrypted_value"),
+						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "value", valueUpdated),
+						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "value_encrypted"),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "visibility", "all"),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "selected_repository_ids.#", "0"),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "created_at"),
@@ -71,7 +71,7 @@ resource "github_dependabot_organization_secret" "test" {
 		config := `
 resource "github_dependabot_organization_secret" "test" {
 	secret_name     = "%s"
-	encrypted_value = "%s"
+	value_encrypted = "%s"
 	visibility      = "all"
 }
 `
@@ -85,8 +85,8 @@ resource "github_dependabot_organization_secret" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "secret_name", secretName),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "key_id"),
-						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "plaintext_value"),
-						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "encrypted_value", value),
+						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "value"),
+						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "value_encrypted", value),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "visibility", "all"),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "selected_repository_ids.#", "0"),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "created_at"),
@@ -98,8 +98,8 @@ resource "github_dependabot_organization_secret" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "secret_name", secretName),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "key_id"),
-						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "plaintext_value"),
-						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "encrypted_value", valueUpdated),
+						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "value"),
+						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "value_encrypted", valueUpdated),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "visibility", "all"),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "selected_repository_ids.#", "0"),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "created_at"),
@@ -122,7 +122,7 @@ data "github_dependabot_organization_public_key" "default" {}
 resource "github_dependabot_organization_secret" "test" {
 	secret_name     = "%s"
 	key_id          = data.github_dependabot_organization_public_key.default.key_id
-	encrypted_value = "%s"
+	value_encrypted = "%s"
 	visibility      = "all"
 }
 `
@@ -136,8 +136,8 @@ resource "github_dependabot_organization_secret" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "secret_name", secretName),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "key_id"),
-						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "plaintext_value"),
-						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "encrypted_value", value),
+						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "value"),
+						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "value_encrypted", value),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "visibility", "all"),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "selected_repository_ids.#", "0"),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "created_at"),
@@ -149,8 +149,8 @@ resource "github_dependabot_organization_secret" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "secret_name", secretName),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "key_id"),
-						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "plaintext_value"),
-						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "encrypted_value", valueUpdated),
+						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "value"),
+						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "value_encrypted", valueUpdated),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "visibility", "all"),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "selected_repository_ids.#", "0"),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "created_at"),
@@ -169,9 +169,9 @@ resource "github_dependabot_organization_secret" "test" {
 
 		config := `
 resource "github_dependabot_organization_secret" "test" {
-	secret_name      = "%s"
-	plaintext_value  = "%s"
-	visibility       = "all"
+	secret_name = "%s"
+	value       = "%s"
+	visibility  = "all"
 }
 `
 
@@ -184,8 +184,8 @@ resource "github_dependabot_organization_secret" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "secret_name", secretName),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "key_id"),
-						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "plaintext_value", value),
-						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "encrypted_value"),
+						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "value", value),
+						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "value_encrypted"),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "visibility", "all"),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "selected_repository_ids.#", "0"),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "created_at"),
@@ -197,8 +197,8 @@ resource "github_dependabot_organization_secret" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "secret_name", secretName),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "key_id"),
-						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "plaintext_value", valueUpdated),
-						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "encrypted_value"),
+						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "value", valueUpdated),
+						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "value_encrypted"),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "visibility", "all"),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "selected_repository_ids.#", "0"),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "created_at"),
@@ -217,9 +217,9 @@ resource "github_dependabot_organization_secret" "test" {
 
 		config := `
 resource "github_dependabot_organization_secret" "test" {
-	secret_name      = "%s"
-	plaintext_value  = "%s"
-	visibility       = "private"
+	secret_name = "%s"
+	value       = "%s"
+	visibility  = "private"
 }
 `
 
@@ -232,8 +232,8 @@ resource "github_dependabot_organization_secret" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "secret_name", secretName),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "key_id"),
-						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "plaintext_value", value),
-						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "encrypted_value"),
+						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "value", value),
+						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "value_encrypted"),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "visibility", "private"),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "selected_repository_ids.#", "0"),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "created_at"),
@@ -245,8 +245,8 @@ resource "github_dependabot_organization_secret" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "secret_name", secretName),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "key_id"),
-						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "plaintext_value", valueUpdated),
-						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "encrypted_value"),
+						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "value", valueUpdated),
+						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "value_encrypted"),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "visibility", "private"),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "selected_repository_ids.#", "0"),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "created_at"),
@@ -275,9 +275,9 @@ resource "github_repository" "test_1" {
 }
 
 resource "github_dependabot_organization_secret" "test" {
-	secret_name      = "%s"
-	plaintext_value  = "%s"
-	visibility       = "selected"
+	secret_name = "%s"
+	value       = "%s"
+	visibility  = "selected"
 
 	selected_repository_ids = [github_repository.test_%s.repo_id]
 }
@@ -292,8 +292,8 @@ resource "github_dependabot_organization_secret" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "secret_name", secretName),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "key_id"),
-						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "plaintext_value", value),
-						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "encrypted_value"),
+						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "value", value),
+						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "value_encrypted"),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "visibility", "selected"),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "selected_repository_ids.#", "1"),
 						resource.TestCheckResourceAttrPair("github_dependabot_organization_secret.test", "selected_repository_ids.0", "github_repository.test_0", "repo_id"),
@@ -306,8 +306,8 @@ resource "github_dependabot_organization_secret" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "secret_name", secretName),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "key_id"),
-						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "plaintext_value", valueUpdated),
-						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "encrypted_value"),
+						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "value", valueUpdated),
+						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "value_encrypted"),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "visibility", "selected"),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "selected_repository_ids.#", "1"),
 						resource.TestCheckResourceAttrPair("github_dependabot_organization_secret.test", "selected_repository_ids.0", "github_repository.test_1", "repo_id"),
@@ -327,9 +327,9 @@ resource "github_dependabot_organization_secret" "test" {
 
 		config := `
 resource "github_dependabot_organization_secret" "test" {
-	secret_name      = "%s"
-	plaintext_value  = "%s"
-	visibility       = "selected"
+	secret_name = "%s"
+	value       = "%s"
+	visibility  = "selected"
 }
 `
 
@@ -342,8 +342,8 @@ resource "github_dependabot_organization_secret" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "secret_name", secretName),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "key_id"),
-						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "plaintext_value", value),
-						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "encrypted_value"),
+						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "value", value),
+						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "value_encrypted"),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "visibility", "selected"),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "selected_repository_ids.#", "0"),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "created_at"),
@@ -355,8 +355,8 @@ resource "github_dependabot_organization_secret" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "secret_name", secretName),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "key_id"),
-						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "plaintext_value", valueUpdated),
-						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "encrypted_value"),
+						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "value", valueUpdated),
+						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "value_encrypted"),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "visibility", "selected"),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "selected_repository_ids.#", "0"),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "created_at"),
@@ -377,9 +377,9 @@ resource "github_dependabot_organization_secret" "test" {
 
 		config := `
 resource "github_dependabot_organization_secret" "test" {
-	secret_name      = "%s"
-	plaintext_value  = "%s"
-	visibility       = "%s"
+	secret_name = "%s"
+	value       = "%s"
+	visibility  = "%s"
 }
 `
 
@@ -392,8 +392,8 @@ resource "github_dependabot_organization_secret" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "secret_name", secretName),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "key_id"),
-						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "plaintext_value", value),
-						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "encrypted_value"),
+						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "value", value),
+						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "value_encrypted"),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "visibility", visibility),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "selected_repository_ids.#", "0"),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "created_at"),
@@ -405,8 +405,8 @@ resource "github_dependabot_organization_secret" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "secret_name", secretName),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "key_id"),
-						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "plaintext_value", valueUpdated),
-						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "encrypted_value"),
+						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "value", valueUpdated),
+						resource.TestCheckNoResourceAttr("github_dependabot_organization_secret.test", "value_encrypted"),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "visibility", visibilityUpdated),
 						resource.TestCheckResourceAttr("github_dependabot_organization_secret.test", "selected_repository_ids.#", "0"),
 						resource.TestCheckResourceAttrSet("github_dependabot_organization_secret.test", "created_at"),
@@ -424,9 +424,9 @@ resource "github_dependabot_organization_secret" "test" {
 
 		config := fmt.Sprintf(`
 resource "github_dependabot_organization_secret" "test" {
-	secret_name      = "%s"
-	plaintext_value  = "%s"
-	visibility       = "all"
+	secret_name = "%s"
+	value       = "%s"
+	visibility  = "all"
 }
 `, secretName, value)
 
@@ -498,9 +498,9 @@ resource "github_dependabot_organization_secret" "test" {
 
 		config := fmt.Sprintf(`
 resource "github_dependabot_organization_secret" "test" {
-	secret_name      = "%s"
-	plaintext_value  = "%s"
-	visibility       = "all"
+	secret_name = "%s"
+	value       = "%s"
+	visibility  = "all"
 
 	lifecycle {
 		ignore_changes = [remote_updated_at]
@@ -575,9 +575,9 @@ resource "github_dependabot_organization_secret" "test" {
 
 		config := fmt.Sprintf(`
 resource "github_dependabot_organization_secret" "test" {
-	secret_name      = "%s"
-	plaintext_value  = "%s"
-	visibility       = "all"
+	secret_name = "%s"
+	value       = "%s"
+	visibility  = "all"
 }
 `, secretName, value)
 
@@ -603,9 +603,9 @@ resource "github_dependabot_organization_secret" "test" {
 
 		config := fmt.Sprintf(`
 resource "github_dependabot_organization_secret" "test" {
-	secret_name      = "%s"
-	plaintext_value  = "%s"
-	visibility       = "all"
+	secret_name = "%s"
+	value       = "%s"
+	visibility  = "all"
 }
 `, secretName, value)
 
@@ -620,7 +620,7 @@ resource "github_dependabot_organization_secret" "test" {
 					ResourceName:            "github_dependabot_organization_secret.test",
 					ImportState:             true,
 					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"key_id", "plaintext_value", "destroy_on_drift"},
+					ImportStateVerifyIgnore: []string{"key_id", "value", "destroy_on_drift"},
 				},
 			},
 		})
@@ -633,9 +633,9 @@ resource "github_dependabot_organization_secret" "test" {
 
 		config := fmt.Sprintf(`
 resource "github_dependabot_organization_secret" "test" {
-	secret_name      = "%s"
-	plaintext_value  = "%s"
-	visibility       = "all"
+	secret_name = "%s"
+	value       = "%s"
+	visibility  = "all"
 
 	selected_repository_ids = [123456]
 }
