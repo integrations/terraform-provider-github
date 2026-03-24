@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/google/go-github/v83/github"
+	"github.com/google/go-github/v84/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -148,7 +148,7 @@ func isNewTeamID(ctx context.Context, diff *schema.ResourceDiff, m any) bool {
 
 	// Resolve new team_slug to team ID via API
 	oldTeamSlug, newTeamSlug := diff.GetChange("team_slug")
-	newTeamID, err := lookupTeamID(ctx, meta, newTeamSlug.(string))
+	newTeamID, err := lookupTeamID(ctx, meta.v3client, meta.name, newTeamSlug.(string))
 	if err != nil {
 		// If team doesn't exist or API fails, skip ForceNew check and let Read handle it
 		tflog.Debug(ctx, "Unable to resolve new team_slug to team ID, skipping ForceNew check", map[string]any{

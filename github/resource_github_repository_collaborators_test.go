@@ -2,127 +2,60 @@ package github
 
 import (
 	"fmt"
-	"strings"
+	"regexp"
 	"testing"
 
-	"github.com/google/go-github/v83/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubRepositoryCollaborators(t *testing.T) {
-	if len(testAccConf.testExternalUser) == 0 {
-		t.Skip("No external user provided")
-	}
+	t.Run("create", func(t *testing.T) {
+		if len(testAccConf.testOrgUser) == 0 {
+			t.Skip("No organization user provided")
+		}
 
-	ctx := t.Context()
-	meta, err := getTestMeta()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Run("adds user collaborator", func(t *testing.T) {
-		conn := meta.v3client
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%srepo-collabs-%s", testResourcePrefix, randomID)
-
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name = "%s"
-				auto_init = true
-				visibility = "private"
-			}
-
-			resource "github_repository_collaborators" "test_repo_collaborators" {
-				repository = "${github_repository.test.name}"
-
-				user {
-					username   = "%s"
-					permission = "push"
-				}
-			}
-		`, repoName, testAccConf.testExternalUser)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("github_repository_collaborators.test_repo_collaborators", "user.#"),
-						resource.TestCheckResourceAttrSet("github_repository_collaborators.test_repo_collaborators", "team.#"),
-						resource.TestCheckResourceAttr("github_repository_collaborators.test_repo_collaborators", "user.#", "1"),
-						resource.TestCheckResourceAttr("github_repository_collaborators.test_repo_collaborators", "team.#", "0"),
-						func(state *terraform.State) error {
-							owner := testAccConf.owner
-
-							collaborators := state.RootModule().Resources["github_repository_collaborators.test_repo_collaborators"].Primary
-							for name, val := range collaborators.Attributes {
-								if strings.HasPrefix(name, "user.") && strings.HasSuffix(name, ".username") && val != testAccConf.testExternalUser {
-									return fmt.Errorf("expected user.*.username to be set to %s, was %s", testAccConf.testExternalUser, val)
-								}
-								if strings.HasPrefix(name, "user.") && strings.HasSuffix(name, ".permission") && val != "push" {
-									return fmt.Errorf("expected user.*.permission to be set to push, was %s", val)
-								}
-							}
-
-							invites, _, err := conn.Repositories.ListInvitations(ctx, owner, repoName, nil)
-							if err != nil {
-								return err
-							}
-							if len(invites) != 1 {
-								return fmt.Errorf("expected an invite for %s but not found", testAccConf.testExternalUser)
-							}
-							if invites[0].GetInvitee().GetLogin() != testAccConf.testExternalUser {
-								return fmt.Errorf("expected an invite for %s for repo %s/%s", testAccConf.testExternalUser, owner, repoName)
-							}
-							perm := invites[0].GetPermissions()
-							if perm != "write" {
-								return fmt.Errorf("expected the invite for %s to have push perms for for %s/%s, found %s", testAccConf.testExternalUser, owner, repoName, perm)
-							}
-							return nil
-						},
-					),
-				},
-			},
-		})
-	})
-
-	t.Run("adds team collaborator", func(t *testing.T) {
-		ctx := t.Context()
-		conn := meta.v3client
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%srepo-collabs-%s", testResourcePrefix, randomID)
-		teamName := fmt.Sprintf("%steam-collabs-%s", testResourcePrefix, randomID)
+		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+		teamName0 := fmt.Sprintf("%s%s-0", testResourcePrefix, randomID)
+		teamName1 := fmt.Sprintf("%s%s-1", testResourcePrefix, randomID)
 		collaboratorUser := testAccConf.testOrgUser
 
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name = "%s"
-				auto_init = true
-				visibility = "private"
-			}
+resource "github_repository" "test" {
+	name       = "%s"
+	visibility = "private"
+}
 
-			resource "github_team" "test" {
-				name = "%s"
-			}
+resource "github_team" "test_0" {
+	name = "%s"
+}
 
-			resource "github_repository_collaborators" "test_repo_collaborators" {
-				repository = "${github_repository.test.name}"
+resource "github_team" "test_1" {
+	name = "%s"
+}
 
-				user {
-					username   = "%s"
-					permission = "admin"
-				}
+resource "github_repository_collaborators" "test" {
+	repository = github_repository.test.name
 
-				team {
-					team_id   = github_team.test.id
-					permission = "pull"
-				}
-			}
-		`, repoName, teamName, collaboratorUser)
+	user {
+		username   = "%s"
+		permission = "admin"
+	}
+
+	team {
+		team_id    = github_team.test_0.id
+		permission = "pull"
+	}
+
+	team {
+		team_id = github_team.test_1.slug
+	}
+}
+`, repoName, teamName0, teamName1, collaboratorUser)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -130,103 +63,60 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("github_repository_collaborators.test_repo_collaborators", "user.#"),
-						resource.TestCheckResourceAttrSet("github_repository_collaborators.test_repo_collaborators", "team.#"),
-						resource.TestCheckResourceAttr("github_repository_collaborators.test_repo_collaborators", "user.#", "1"),
-						resource.TestCheckResourceAttr("github_repository_collaborators.test_repo_collaborators", "team.#", "1"),
-						func(state *terraform.State) error {
-							owner := testAccConf.owner
-
-							teamAttrs := state.RootModule().Resources["github_team.test"].Primary.Attributes
-							collaborators := state.RootModule().Resources["github_repository_collaborators.test_repo_collaborators"].Primary
-							for name, val := range collaborators.Attributes {
-								if strings.HasPrefix(name, "user.") && strings.HasSuffix(name, ".username") && val != collaboratorUser {
-									return fmt.Errorf("expected user.*.username to be set to %s, was %s", collaboratorUser, val)
-								}
-								if strings.HasPrefix(name, "user.") && strings.HasSuffix(name, ".permission") && val != "admin" {
-									return fmt.Errorf("expected user.*.permission to be set to admin, was %s", val)
-								}
-								if strings.HasPrefix(name, "team.") && strings.HasSuffix(name, ".team_id") && val != teamAttrs["id"] {
-									return fmt.Errorf("expected team.*.team_id to be set to %s, was %s", teamAttrs["id"], val)
-								}
-								if strings.HasPrefix(name, "team.") && strings.HasSuffix(name, ".permission") && val != "pull" {
-									return fmt.Errorf("expected team.*.permission to be set to pull, was %s", val)
-								}
-							}
-							users, _, err := conn.Repositories.ListCollaborators(ctx, owner, repoName, &github.ListCollaboratorsOptions{Affiliation: "direct"})
-							if err != nil {
-								return err
-							}
-							if len(users) != 1 {
-								return fmt.Errorf("expected 1 collaborator (%s) for repo %s/%s , found %d", collaboratorUser, owner, repoName, len(users))
-							}
-							perm := getPermission(users[0].GetRoleName())
-							if perm != "admin" {
-								return fmt.Errorf("expected %s to have admin perms for repo %s/%s, found %s", collaboratorUser, owner, repoName, perm)
-							}
-							teams, _, err := conn.Repositories.ListTeams(ctx, owner, repoName, nil)
-							if err != nil {
-								return err
-							}
-							if len(teams) != 1 {
-								return fmt.Errorf("expected team %s to be a collaborator for %s/%s", repoName, owner, repoName)
-							}
-							perm = getPermission(teams[0].GetPermission())
-							if perm != "pull" {
-								return fmt.Errorf("expected team %s to have pull perms for repo %s/%s, found %s", repoName, owner, repoName, perm)
-							}
-							return nil
-						},
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("user"), knownvalue.SetExact([]knownvalue.Check{
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"username":   knownvalue.StringExact(collaboratorUser),
+								"permission": knownvalue.StringExact("admin"),
+							}),
+						})),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("team"), knownvalue.SetExact([]knownvalue.Check{
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"team_id":    knownvalue.StringRegexp(regexp.MustCompile(`^\d+$`)),
+								"permission": knownvalue.StringExact("pull"),
+							}),
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"team_id":    knownvalue.StringExact(teamName1),
+								"permission": knownvalue.StringExact("push"),
+							}),
+						})),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("invitation_ids"), knownvalue.MapSizeExact(0)),
+					},
+				},
+				{
+					ResourceName:            "github_repository_collaborators.test",
+					ImportState:             true,
+					ImportStateId:           repoName,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"user", "team", "invitation_ids"},
 				},
 			},
 		})
 	})
 
-	t.Run("updates user collaborators without error", func(t *testing.T) {
-		if len(testAccConf.testExternalUser2) == 0 {
-			t.Skip("No additional external user provided")
+	t.Run("add_external_user", func(t *testing.T) {
+		if len(testAccConf.testExternalUser) == 0 {
+			t.Skip("No external user provided")
 		}
 
-		ctx := t.Context()
-		conn := meta.v3client
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%srepo-collabs-%s", testResourcePrefix, randomID)
+		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name = "%s"
-				auto_init = true
-				visibility = "private"
-			}
+resource "github_repository" "test" {
+	name       = "%s"
+	visibility = "private"
+}
 
-			resource "github_repository_collaborators" "test_repo_collaborators" {
-				repository = "${github_repository.test.name}"
+resource "github_repository_collaborators" "test" {
+	repository = github_repository.test.name
 
-				user {
-					username   = "%s"
-					permission = "push"
-				}
-			}
-		`, repoName, testAccConf.testExternalUser)
-
-		configUpdate := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name = "%s"
-				auto_init = true
-				visibility = "private"
-			}
-
-			resource "github_repository_collaborators" "test_repo_collaborators" {
-				repository = "${github_repository.test.name}"
-
-				user {
-					username   = "%s"
-					permission = "pull"
-				}
-			}
-		`, repoName, testAccConf.testExternalUser2)
+	user {
+		username   = "%s"
+		permission = "push"
+	}
+}
+`, repoName, testAccConf.testExternalUser)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -234,332 +124,340 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-				},
-				{
-					Config: configUpdate,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("github_repository_collaborators.test_repo_collaborators", "user.#"),
-						resource.TestCheckResourceAttrSet("github_repository_collaborators.test_repo_collaborators", "team.#"),
-						resource.TestCheckResourceAttr("github_repository_collaborators.test_repo_collaborators", "user.#", "1"),
-						resource.TestCheckResourceAttr("github_repository_collaborators.test_repo_collaborators", "team.#", "0"),
-						func(state *terraform.State) error {
-							owner := testAccConf.owner
-
-							collaborators := state.RootModule().Resources["github_repository_collaborators.test_repo_collaborators"].Primary
-							for name, val := range collaborators.Attributes {
-								if strings.HasPrefix(name, "user.") && strings.HasSuffix(name, ".username") && val != testAccConf.testExternalUser2 {
-									return fmt.Errorf("expected user.*.username to be set to %s, was %s", testAccConf.testExternalUser, val)
-								}
-								if strings.HasPrefix(name, "user.") && strings.HasSuffix(name, ".permission") && val != "pull" {
-									return fmt.Errorf("expected user.*.permission to be set to pull, was %s", val)
-								}
-							}
-
-							invites, _, err := conn.Repositories.ListInvitations(ctx, owner, repoName, nil)
-							if err != nil {
-								return err
-							}
-							if len(invites) != 1 {
-								return fmt.Errorf("expected an invite for %s but not found", testAccConf.testExternalUser)
-							}
-							if invites[0].GetInvitee().GetLogin() != testAccConf.testExternalUser2 {
-								return fmt.Errorf("expected an invite for %s for repo %s/%s", testAccConf.testExternalUser, owner, repoName)
-							}
-							perm := getPermission(invites[0].GetPermissions())
-							if perm != "pull" {
-								return fmt.Errorf("expected the invite for %s to have pull perms for for %s/%s, found %s", testAccConf.testExternalUser, owner, repoName, perm)
-							}
-							return nil
-						},
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("user"), knownvalue.SetSizeExact(0)),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("team"), knownvalue.SetSizeExact(0)),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("invitation_ids"), knownvalue.MapSizeExact(1)),
+					},
 				},
 			},
 		})
 	})
 
-	t.Run("updates team collaborators without error", func(t *testing.T) {
-		if len(testAccConf.testExternalUser2) == 0 {
-			t.Skip("No additional external user provided")
-		}
-
-		ctx := t.Context()
-		conn := meta.v3client
+	t.Run("update_teams", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%srepo-collabs-%s", testResourcePrefix, randomID)
-		teamName1 := fmt.Sprintf("%steam-collabs-1-%s", testResourcePrefix, randomID)
-		teamName2 := fmt.Sprintf("%steam-collabs-2-%s", testResourcePrefix, randomID)
+		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+		teamName0 := fmt.Sprintf("%s%s-0", testResourcePrefix, randomID)
+		teamName1 := fmt.Sprintf("%s%s-1", testResourcePrefix, randomID)
+		teamName2 := fmt.Sprintf("%s%s-2", testResourcePrefix, randomID)
 
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name = "%s"
-				auto_init = true
-				visibility = "private"
-			}
+		configPre := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name       = "%s"
+	visibility = "private"
+}
 
-			resource "github_team" "test_0" {
-				name = "%s"
-			}
+resource "github_team" "test_0" {
+	name = "%s"
+}
 
-			resource "github_team" "test_1" {
-				name = "%s"
-			}
+resource "github_team" "test_1" {
+	name = "%s"
+}
 
-			resource "github_repository_collaborators" "test_repo_collaborators" {
-				repository = "${github_repository.test.name}"
+resource "github_team" "test_2" {
+	name = "%s"
+}
+`, repoName, teamName0, teamName1, teamName2)
 
-				user {
-					username   = "%s"
-					permission = "admin"
-				}
-				user {
-					username   = "%s"
-					permission = "admin"
-				}
-				team {
-					team_id   = github_team.test.id
-					permission = "pull"
-				}
-				team {
-					team_id   = github_team.test2.id
-					permission = "pull"
-				}
-			}
-		`, repoName, teamName1, teamName2, testAccConf.testExternalUser, testAccConf.testExternalUser2)
+		config0 := fmt.Sprintf(`
+%s
 
-		configUpdate := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name = "%s"
-				auto_init = true
-				visibility = "private"
-			}
+resource "github_repository_collaborators" "test" {
+	repository = github_repository.test.name
 
-			resource "github_team" "test_0" {
-				name = "%s"
-			}
+	team {
+		team_id   = github_team.test_0.slug
+		permission = "pull"
+	}
 
-			resource "github_team" "test_1" {
-				name = "%s"
-			}
+	team {
+		team_id   = github_team.test_1.slug
+		permission = "pull"
+	}
+}
+`, configPre)
 
-			resource "github_repository_collaborators" "test_repo_collaborators" {
-				repository = "${github_repository.test.name}"
+		config1 := fmt.Sprintf(`
+%s
 
-				user {
-					username   = "%s"
-					permission = "push"
-				}
-				team {
-					team_id   = github_team.test_0.id
-					permission = "push"
-				}
-			}
-		`, repoName, teamName1, teamName2, testAccConf.testExternalUser)
+resource "github_repository_collaborators" "test" {
+	repository = github_repository.test.name
+
+	team {
+		team_id   = github_team.test_1.slug
+		permission = "push"
+	}
+
+	team {
+		team_id   = github_team.test_2.slug
+		permission = "push"
+	}
+}
+`, configPre)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: config,
+					Config: config0,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("team"), knownvalue.SetExact([]knownvalue.Check{
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"team_id":    knownvalue.StringExact(teamName0),
+								"permission": knownvalue.StringExact("pull"),
+							}),
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"team_id":    knownvalue.StringExact(teamName1),
+								"permission": knownvalue.StringExact("pull"),
+							}),
+						})),
+					},
 				},
 				{
-					Config: configUpdate,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("github_repository_collaborators.test_repo_collaborators", "user.#"),
-						resource.TestCheckResourceAttrSet("github_repository_collaborators.test_repo_collaborators", "team.#"),
-						resource.TestCheckResourceAttr("github_repository_collaborators.test_repo_collaborators", "user.#", "1"),
-						resource.TestCheckResourceAttr("github_repository_collaborators.test_repo_collaborators", "team.#", "1"),
-						func(state *terraform.State) error {
-							owner := testAccConf.owner
-
-							teamAttrs := state.RootModule().Resources["github_team.test"].Primary.Attributes
-							collaborators := state.RootModule().Resources["github_repository_collaborators.test_repo_collaborators"].Primary
-							for name, val := range collaborators.Attributes {
-								if strings.HasPrefix(name, "user.") && strings.HasSuffix(name, ".username") && val != testAccConf.testExternalUser {
-									return fmt.Errorf("expected user.*.username to be set to %s, was %s", testAccConf.testExternalUser, val)
-								}
-								if strings.HasPrefix(name, "user.") && strings.HasSuffix(name, ".permission") && val != "push" {
-									return fmt.Errorf("expected user.*.permission to be set to push, was %s", val)
-								}
-								if strings.HasPrefix(name, "team.") && strings.HasSuffix(name, ".team_id") && val != teamAttrs["id"] {
-									return fmt.Errorf("expected team.*.team_id to be set to %s, was %s", teamAttrs["id"], val)
-								}
-								if strings.HasPrefix(name, "team.") && strings.HasSuffix(name, ".permission") && val != "push" {
-									return fmt.Errorf("expected team.*.permission to be set to push, was %s", val)
-								}
-							}
-
-							users, _, err := conn.Repositories.ListCollaborators(ctx, owner, repoName, &github.ListCollaboratorsOptions{Affiliation: "direct"})
-							if err != nil {
-								return err
-							}
-							if len(users) != 1 {
-								return fmt.Errorf("expected %s to be a collaborator for repo %s/%s", testAccConf.testExternalUser, owner, repoName)
-							}
-							perm := getPermission(users[0].GetRoleName())
-							if perm != "push" {
-								return fmt.Errorf("expected %s to have push perms for repo %s/%s, found %s", testAccConf.testExternalUser, owner, repoName, perm)
-							}
-							teams, _, err := conn.Repositories.ListTeams(ctx, owner, repoName, nil)
-							if err != nil {
-								return err
-							}
-							if len(teams) != 1 {
-								return fmt.Errorf("expected team %s to be a collaborator for %s/%s", repoName, owner, repoName)
-							}
-							perm = getPermission(teams[0].GetPermission())
-							if perm != "push" {
-								return fmt.Errorf("expected team %s to have push perms for repo %s/%s, found %s", repoName, owner, repoName, perm)
-							}
-							return nil
-						},
-					),
+					Config: config1,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("team"), knownvalue.SetExact([]knownvalue.Check{
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"team_id":    knownvalue.StringExact(teamName1),
+								"permission": knownvalue.StringExact("push"),
+							}),
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"team_id":    knownvalue.StringExact(teamName2),
+								"permission": knownvalue.StringExact("push"),
+							}),
+						})),
+					},
 				},
 			},
 		})
 	})
 
-	t.Run("removes user collaborators without error", func(t *testing.T) {
-		ctx := t.Context()
-		conn := meta.v3client
+	t.Run("remove_user", func(t *testing.T) {
+		if len(testAccConf.testOrgUser) == 0 {
+			t.Skip("No organization user provided")
+		}
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%srepo-collabs-%s", testResourcePrefix, randomID)
+		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name = "%s"
-				auto_init = true
-				visibility = "private"
-			}
+		configPre := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name       = "%s"
+	visibility = "private"
+}
+`, repoName)
 
-			resource "github_repository_collaborators" "test_repo_collaborators" {
-				repository = "${github_repository.test.name}"
+		config0 := fmt.Sprintf(`
+%s
 
-				user {
-					username   = "%s"
-					permission = "push"
-				}
-			}
-		`, repoName, testAccConf.testExternalUser)
+resource "github_repository_collaborators" "test" {
+	repository = github_repository.test.name
 
-		configUpdate := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name = "%s"
-				auto_init = true
-				visibility = "private"
-			}
-		`, repoName)
+	user {
+		username   = "%s"
+		permission = "admin"
+	}
+}
+`, configPre, testAccConf.testOrgUser)
+
+		config1 := fmt.Sprintf(`
+%s
+
+resource "github_repository_collaborators" "test" {
+	repository = github_repository.test.name
+}
+`, configPre)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: config,
+					Config: config0,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("user"), knownvalue.SetSizeExact(1)),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("team"), knownvalue.SetSizeExact(0)),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("invitation_ids"), knownvalue.MapSizeExact(0)),
+					},
 				},
 				{
-					Config: configUpdate,
-					Check: resource.ComposeTestCheckFunc(
-						func(state *terraform.State) error {
-							owner := testAccConf.owner
-
-							invites, _, err := conn.Repositories.ListInvitations(ctx, owner, repoName, nil)
-							if err != nil {
-								return err
-							}
-							if len(invites) != 0 {
-								return fmt.Errorf("expected no invites but not found %d", len(invites))
-							}
-							return nil
-						},
-					),
+					Config: config1,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("user"), knownvalue.SetSizeExact(0)),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("team"), knownvalue.SetSizeExact(0)),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("invitation_ids"), knownvalue.MapSizeExact(0)),
+					},
 				},
 			},
 		})
 	})
 
-	t.Run("removes team collaborators without error", func(t *testing.T) {
-		if len(testAccConf.testExternalUser2) == 0 {
-			t.Skip("No additional external user provided")
-		}
-
-		ctx := t.Context()
-		conn := meta.v3client
+	t.Run("change_team_reference", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%srepo-collabs-%s", testResourcePrefix, randomID)
-		teamName := fmt.Sprintf("%steam-collabs-%s", testResourcePrefix, randomID)
+		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+		teamName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name = "%s"
-				auto_init = true
-				visibility = "private"
-			}
+		configPre := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name       = "%s"
+	visibility = "private"
+}
 
-			resource "github_team" "test" {
-				name = "%s"
-			}
+resource "github_team" "test" {
+	name = "%s"
+}
+`, repoName, teamName)
 
-			resource "github_repository_collaborators" "test_repo_collaborators" {
-				repository = "${github_repository.test.name}"
+		config0 := fmt.Sprintf(`
+%s
 
-				user {
-					username   = "%s"
-					permission = "admin"
-				}
-				user {
-					username   = "%s"
-					permission = "admin"
-				}
-				team {
-					team_id   = github_team.test.id
-					permission = "pull"
-				}
-			}
-		`, repoName, teamName, testAccConf.testExternalUser, testAccConf.testExternalUser2)
+resource "github_repository_collaborators" "test" {
+	repository = github_repository.test.name
 
-		configUpdate := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name = "%s"
-				auto_init = true
-				visibility = "private"
-			}
+	team {
+		team_id    = github_team.test.id
+		permission = "pull"
+	}
+}
+`, configPre)
 
-			resource "github_team" "test" {
-				name = "%s"
-			}
-		`, repoName, teamName)
+		config1 := fmt.Sprintf(`
+%s
+
+resource "github_repository_collaborators" "test" {
+	repository = github_repository.test.name
+
+	team {
+		team_id    = github_team.test.slug
+		permission = "pull"
+	}
+}
+`, configPre)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: config,
+					Config: config0,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("user"), knownvalue.SetSizeExact(0)),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("team"), knownvalue.SetSizeExact(1)),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("invitation_ids"), knownvalue.MapSizeExact(0)),
+					},
 				},
 				{
-					Config: configUpdate,
-					Check: resource.ComposeTestCheckFunc(
-						func(state *terraform.State) error {
-							owner := testAccConf.owner
+					Config: config1,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("user"), knownvalue.SetSizeExact(0)),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("team"), knownvalue.SetSizeExact(1)),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("invitation_ids"), knownvalue.MapSizeExact(0)),
+					},
+				},
+			},
+		})
+	})
 
-							users, _, err := conn.Repositories.ListCollaborators(ctx, owner, repoName, &github.ListCollaboratorsOptions{Affiliation: "direct"})
-							if err != nil {
-								return err
-							}
-							if len(users) != 0 {
-								return fmt.Errorf("expected no collaborators for repo %s/%s but found %d", owner, repoName, len(users))
-							}
-							teams, _, err := conn.Repositories.ListTeams(ctx, owner, repoName, nil)
-							if err != nil {
-								return err
-							}
-							if len(teams) != 0 {
-								return fmt.Errorf("expected no teams to be a collaborator for %s/%s but found %d", owner, repoName, len(teams))
-							}
-							return nil
-						},
-					),
+	t.Run("remove_team", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+		teamName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+
+		configPre := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name       = "%s"
+	visibility = "private"
+}
+
+resource "github_team" "test" {
+	name = "%s"
+}
+`, repoName, teamName)
+
+		config0 := fmt.Sprintf(`
+%s
+
+resource "github_repository_collaborators" "test" {
+	repository = github_repository.test.name
+
+	team {
+		team_id    = github_team.test.slug
+		permission = "pull"
+	}
+}
+`, configPre)
+
+		config1 := fmt.Sprintf(`
+%s
+
+resource "github_repository_collaborators" "test" {
+	repository = github_repository.test.name
+}
+`, configPre)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config0,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("user"), knownvalue.SetSizeExact(0)),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("team"), knownvalue.SetSizeExact(1)),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("invitation_ids"), knownvalue.MapSizeExact(0)),
+					},
+				},
+				{
+					Config: config1,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("user"), knownvalue.SetSizeExact(0)),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("team"), knownvalue.SetSizeExact(0)),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("invitation_ids"), knownvalue.MapSizeExact(0)),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("duplicate_teams_error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+		teamName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name       = "%s"
+	visibility = "private"
+}
+
+resource "github_team" "test" {
+	name = "%s"
+}
+
+resource "github_repository_collaborators" "test" {
+	repository = github_repository.test.name
+
+	team {
+		team_id    = github_team.test.slug
+		permission = "pull"
+	}
+
+	team {
+		team_id    = github_team.test.slug
+		permission = "push"
+	}
+}
+`, repoName, teamName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile(`duplicate team .+ found`),
 				},
 			},
 		})
