@@ -49,10 +49,6 @@ func githubv4IDSliceEmpty(ss []string) []githubv4.ID {
 	return vGh4
 }
 
-func githubv4NewStringSlice(v []githubv4.String) *[]githubv4.String { return &v }
-
-func githubv4NewIDSlice(v []githubv4.ID) *[]githubv4.ID { return &v }
-
 func getEnterpriseID(ctx context.Context, client *githubv4.Client, enterpriseSlug string) (string, error) {
 	var query struct {
 		Enterprise struct {
