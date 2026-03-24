@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/google/go-github/v84/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -13,7 +12,21 @@ func dataSourceGithubOrganizationTeamSyncGroups() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceGithubOrganizationTeamSyncGroupsRead,
 
+		SchemaVersion: 1,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    dataSourceGithubOrganizationTeamSyncGroupsV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: dataSourceGithubOrganizationTeamSyncGroupsStateUpgradeV0,
+				Version: 0,
+			},
+		},
+
 		Schema: map[string]*schema.Schema{
+			"prefix_filter": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Filters the results to return only those that begin with the specified value.",
+			},
 			"groups": {
 				Type:     schema.TypeList,
 				Computed: true,
@@ -48,6 +61,10 @@ func dataSourceGithubOrganizationTeamSyncGroupsRead(ctx context.Context, d *sche
 		},
 	}
 
+	if v, ok := d.GetOk("prefix_filter"); ok {
+		options.Query = v.(string)
+	}
+
 	groups := make([]any, 0)
 	for {
 		idpGroupList, resp, err := client.Teams.ListIDPGroupsInOrganization(ctx, orgName, options)
@@ -65,7 +82,11 @@ func dataSourceGithubOrganizationTeamSyncGroupsRead(ctx context.Context, d *sche
 		options.Page = resp.NextPageToken
 	}
 
-	d.SetId(fmt.Sprintf("%s/github-org-team-sync-groups", orgName))
+	id, err := buildID(orgName, "team-sync-groups", options.Query)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	d.SetId(id)
 	if err := d.Set("groups", groups); err != nil {
 		return diag.Errorf("error setting groups: %v", err)
 	}
