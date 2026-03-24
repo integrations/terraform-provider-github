@@ -281,3 +281,16 @@ func toInt64(v any) int64 {
 		return 0
 	}
 }
+
+// resourceKeysGetOk is a helper function that checks multiple keys in the ResourceData and returns the first one that is set and a boolean indicating if any were set.
+func resourceKeysGetOk[T any](d *schema.ResourceData, keys ...string) (T, bool) {
+	var empty T
+	for _, key := range keys {
+		if v, ok := d.GetOk(key); ok {
+			if vv, ok := v.(T); ok {
+				return vv, true
+			}
+		}
+	}
+	return empty, false
+}
