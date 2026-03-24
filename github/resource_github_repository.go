@@ -972,7 +972,12 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 			if pages == nil {
 				_, _, err = client.Repositories.EnablePages(ctx, owner, repoName, &github.Pages{Source: opts.Source, BuildType: opts.BuildType})
 			} else {
-				_, err = client.Repositories.UpdatePages(ctx, owner, repoName, opts)
+				if meta.(*Owner).IsGHES {
+					ghesOpts := updatePagesWithoutCNAME(opts)
+					_, err = client.Repositories.UpdatePagesGHES(ctx, owner, repoName, ghesOpts)
+				} else {
+					_, err = client.Repositories.UpdatePages(ctx, owner, repoName, opts)
+				}
 			}
 			if err != nil {
 				return diag.FromErr(err)
@@ -1119,6 +1124,19 @@ func expandPagesUpdate(input []any) *github.PagesUpdate {
 	}
 
 	return update
+}
+
+func updatePagesWithoutCNAME(update *github.PagesUpdate) *github.PagesUpdateWithoutCNAME {
+	if update == nil {
+		return nil
+	}
+
+	return &github.PagesUpdateWithoutCNAME{
+		BuildType:     update.BuildType,
+		Source:        update.Source,
+		Public:        update.Public,
+		HTTPSEnforced: update.HTTPSEnforced,
+	}
 }
 
 func flattenPages(pages *github.Pages) []any {
