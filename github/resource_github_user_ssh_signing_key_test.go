@@ -4,12 +4,14 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
-	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -26,18 +28,16 @@ func TestAccGithubUserSshSigningKey(t *testing.T) {
 			}
 		`, name, testKey)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestMatchResourceAttr("github_user_ssh_signing_key.test", "title", regexp.MustCompile(randomID)),
-			resource.TestMatchResourceAttr("github_user_ssh_signing_key.test", "key", regexp.MustCompile("^ssh-rsa ")),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_user_ssh_signing_key.test", tfjsonpath.New("title"), knownvalue.StringExact(name)),
+						statecheck.ExpectKnownValue("github_user_ssh_signing_key.test", tfjsonpath.New("key"), knownvalue.StringExact(testKey)),
+					},
 				},
 			},
 		})
@@ -55,18 +55,16 @@ func TestAccGithubUserSshSigningKey(t *testing.T) {
 			}
 		`, name, testKey)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet("github_user_ssh_signing_key.test", "title"),
-			resource.TestCheckResourceAttrSet("github_user_ssh_signing_key.test", "key"),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_user_ssh_signing_key.test", tfjsonpath.New("title"), knownvalue.StringExact(name)),
+						statecheck.ExpectKnownValue("github_user_ssh_signing_key.test", tfjsonpath.New("key"), knownvalue.StringExact(testKey)),
+					},
 				},
 				{
 					ResourceName:      "github_user_ssh_signing_key.test",

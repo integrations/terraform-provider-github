@@ -54,8 +54,6 @@ func resourceGithubUserSshKeyStateUpgradeV0(ctx context.Context, rawState map[st
 			return nil, fmt.Errorf("resource state upgrade failed, invalid SSH key ID format: %w", err)
 		}
 		rawState["key_id"] = keyID
-	} else {
-		return nil, fmt.Errorf("resource state upgrade failed, missing or invalid 'id' field in state")
 	}
 
 	return rawState, nil
