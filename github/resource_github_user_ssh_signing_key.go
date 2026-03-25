@@ -22,6 +22,8 @@ func resourceGithubUserSshSigningKey() *schema.Resource {
 			StateContext: resourceGithubUserSshSigningKeyImport,
 		},
 
+		Description: "Manages a SSH signing key for the authenticated user.",
+
 		Schema: map[string]*schema.Schema{
 			"title": {
 				Type:        schema.TypeString,
@@ -89,7 +91,7 @@ func resourceGithubUserSshSigningKeyRead(ctx context.Context, d *schema.Resource
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, fmt.Sprintf("Removing user SSH signing key %s from state because it no longer exists in GitHub", d.Id()), map[string]any{
+				tflog.Info(ctx, "Removing user SSH signing key from state because it no longer exists in GitHub", map[string]any{
 					"ssh_signing_key_id": d.Id(),
 				})
 				d.SetId("")

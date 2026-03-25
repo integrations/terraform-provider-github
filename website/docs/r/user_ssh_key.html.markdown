@@ -24,6 +24,8 @@ resource "github_user_ssh_key" "example" {
 
 The following arguments are supported:
 
+* `id` - The ID of the SSH key
+* `url` - The URL of the SSH key
 * `title` - (Required) A descriptive name for the new key.
 * `key` - (Required) The public SSH key to add to your GitHub account.
 
