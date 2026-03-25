@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	"github.com/google/go-github/v84/github"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -85,19 +84,7 @@ func resourceGithubUserSshSigningKeyRead(ctx context.Context, d *schema.Resource
 	keyID := int64(d.Get("key_id").(int))
 	userKey, resp, err := client.Users.GetSSHSigningKey(ctx, keyID)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
-			if ghErr.Response.StatusCode == http.StatusNotModified {
-				return nil
-			}
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "Removing user SSH signing key from state because it no longer exists in GitHub", map[string]any{
-					"ssh_signing_key_id": d.Id(),
-				})
-				d.SetId("")
-				return nil
-			}
-		}
+		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "user SSH signing key (%d)", keyID))
 	}
 
 	// set computed fields
