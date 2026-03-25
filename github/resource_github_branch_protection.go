@@ -133,6 +133,8 @@ func resourceGithubBranchProtection() *schema.Resource {
 						PROTECTION_REQUIRED_STATUS_CHECK_CONTEXTS: {
 							Type:        schema.TypeSet,
 							Optional:    true,
+							Computed:    true,
+							Deprecated:  "GitHub is deprecating the use of `contexts`. Use a `checks` array instead.",
 							Description: "The list of status checks to require in order to merge into this branch. No status checks are required by default.",
 							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
@@ -293,6 +295,12 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta any) error 
 	}
 	protection := query.Node.Node
 
+	if protection.Repository.IsArchived {
+		log.Printf("[INFO] Removing branch protection (%s) from state because the repository (%s) is archived", d.Id(), protection.Repository.Name)
+		d.SetId("")
+		return nil
+	}
+
 	err = d.Set(PROTECTION_PATTERN, protection.Pattern)
 	if err != nil {
 		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_PATTERN, protection.Repository.Name, protection.Pattern, d.Id())
@@ -366,6 +374,25 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta any) error 
 }
 
 func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta any) error {
+	var query struct {
+		Node struct {
+			Node BranchProtectionRule `graphql:"... on BranchProtectionRule"`
+		} `graphql:"node(id: $id)"`
+	}
+	variables := map[string]any{
+		"id": d.Id(),
+	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	client := meta.(*Owner).v4client
+	err := client.Query(ctx, &query, variables)
+	if err == nil {
+		protection := query.Node.Node
+		if protection.Repository.IsArchived {
+			log.Printf("[INFO] Skipping update of branch protection (%s) because the repository (%s) is archived", d.Id(), protection.Repository.Name)
+			return nil
+		}
+	}
+
 	var mutate struct {
 		UpdateBranchProtectionRule struct {
 			BranchProtectionRule struct {
@@ -444,6 +471,25 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta any) erro
 }
 
 func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta any) error {
+	var query struct {
+		Node struct {
+			Node BranchProtectionRule `graphql:"... on BranchProtectionRule"`
+		} `graphql:"node(id: $id)"`
+	}
+	variables := map[string]any{
+		"id": d.Id(),
+	}
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	client := meta.(*Owner).v4client
+	err := client.Query(ctx, &query, variables)
+	if err == nil {
+		protection := query.Node.Node
+		if protection.Repository.IsArchived {
+			log.Printf("[INFO] Skipping deletion of branch protection (%s) because the repository (%s) is archived", d.Id(), protection.Repository.Name)
+			return nil
+		}
+	}
+
 	var mutate struct {
 		DeleteBranchProtectionRule struct { // Empty struct does not work
 			ClientMutationId githubv4.ID

@@ -275,6 +275,26 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta any) erro
 	orgName := meta.(*Owner).name
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	repo, _, err := client.Repositories.Get(ctx, orgName, repoName)
+	if err != nil {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) {
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[INFO] Removing branch protection %s/%s (%s) from state because the repository no longer exists",
+					orgName, repoName, branch)
+				d.SetId("")
+				return nil
+			}
+		}
+		return err
+	}
+	if repo.GetArchived() {
+		log.Printf("[INFO] Removing branch protection %s/%s (%s) from state because the repository is archived", orgName, repoName, branch)
+		d.SetId("")
+		return nil
+	}
+
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
@@ -349,6 +369,16 @@ func resourceGithubBranchProtectionV3Update(d *schema.ResourceData, meta any) er
 	if err != nil {
 		return err
 	}
+	orgName := meta.(*Owner).name
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	repo, _, err := client.Repositories.Get(ctx, orgName, repoName)
+	if err == nil {
+		if repo.GetArchived() {
+			log.Printf("[INFO] Skipping update of branch protection %s/%s (%s) because the repository is archived", orgName, repoName, branch)
+			return nil
+		}
+	}
 
 	protectionRequest, err := buildProtectionRequest(d)
 	if err != nil {
@@ -406,6 +436,14 @@ func resourceGithubBranchProtectionV3Delete(d *schema.ResourceData, meta any) er
 
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	repo, _, err := client.Repositories.Get(ctx, orgName, repoName)
+	if err == nil {
+		if repo.GetArchived() {
+			log.Printf("[INFO] Skipping deletion of branch protection %s/%s (%s) because the repository is archived", orgName, repoName, branch)
+			return nil
+		}
+	}
 
 	_, err = client.Repositories.RemoveBranchProtection(ctx,
 		orgName, repoName, branch)
