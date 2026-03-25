@@ -56,28 +56,71 @@ resource "github_membership" "membership_for_user_x" {
 
 ## Authentication
 
-The GitHub provider offers multiple ways to authenticate with GitHub API.
+The GitHub provider offers multiple ways to authenticate with GitHub API. You can explicitly set the authentication mode using the `auth_mode` argument, or let the provider auto-detect based on the provided credentials.
 
-### GitHub CLI
+### Explicit Authentication Mode (Recommended)
 
-The GitHub provider taps into [GitHub CLI](https://cli.github.com/) authentication, where it picks up the token issued by [`gh auth login`](https://cli.github.com/manual/gh_auth_login) command. It is possible to specify the path to the `gh` executable in the `GH_PATH` environment variable, which is useful for when the GitHub Terraform provider can not properly determine its the path to GitHub CLI such as in the cygwin terminal.
+Setting `auth_mode` explicitly is recommended for clarity and to avoid unexpected behavior.
 
-### OAuth / Personal Access Token
-
-To authenticate using OAuth tokens, ensure that the `token` argument or the `GITHUB_TOKEN` environment variable is set.
+#### Anonymous
 
 ```terraform
 provider "github" {
-  token = var.token # or `GITHUB_TOKEN`
+  auth_mode = "anonymous"
 }
 ```
 
-### GitHub App Installation
+When `auth_mode` is set to `"anonymous"`, the provider will not use any credentials, even if `GITHUB_TOKEN` or other authentication environment variables are set.
 
-To authenticate using a GitHub App installation, ensure that arguments in the `app_auth` block or the `GITHUB_APP_XXX` environment variables are set.
-The `owner` parameter required in this situation. Leaving out will throw a `403 "Resource not accessible by integration"` error.
+#### OAuth / Personal Access Token
+
+```terraform
+provider "github" {
+  auth_mode = "token"
+  token     = var.token # or `GITHUB_TOKEN`
+}
+```
+
+When `auth_mode` is set to `"token"`, the provider requires the `token` argument or `GITHUB_TOKEN` environment variable. An error will be returned if no token is provided.
+
+#### GitHub App Installation
+
+```terraform
+provider "github" {
+  auth_mode           = "app"
+  owner               = var.github_owner
+  app_id              = var.app_id              # or `GITHUB_APP_ID`
+  app_installation_id = var.app_installation_id # or `GITHUB_APP_INSTALLATION_ID`
+  app_private_key     = var.app_private_key     # or `GITHUB_APP_PRIVATE_KEY`
+}
+```
+
+When `auth_mode` is set to `"app"`, the provider requires all three app credential arguments (`app_id`, `app_installation_id`, `app_private_key`) or their corresponding environment variables. The `owner` argument is also required when using app authentication.
 
 Some API operations may not be available when using a GitHub App installation configuration. For more information, refer to the list of [supported endpoints](https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps).
+
+### Auto-detected Authentication (Default)
+
+When `auth_mode` is not set, the provider auto-detects the authentication method using the following priority:
+
+1. If `token` (or `GITHUB_TOKEN`) is set, use token-based authentication.
+2. If app credentials (`app_id`, `app_installation_id`, `app_private_key`, or the deprecated `app_auth` block) are set, use GitHub App authentication.
+3. If none of the above, fall back to the GitHub CLI (`gh auth token`).
+4. If no credentials are found, operate in anonymous mode.
+
+This is equivalent to the pre-existing behavior and is preserved for backward compatibility.
+
+~> **Note:** Using `auth_mode = "anonymous"` is the only way to ensure the provider runs anonymously when `GITHUB_TOKEN` or GitHub CLI credentials are present in the environment.
+
+### GitHub CLI (Deprecated)
+
+~> The GitHub CLI token fallback is deprecated and will be removed in a future major release. Please set the `token` provider argument or `GITHUB_TOKEN` environment variable explicitly. You can use `export GITHUB_TOKEN=$(gh auth token)` as a replacement.
+
+### Deprecated: `app_auth` block
+
+~> The `app_auth` block is deprecated. Use the top-level `app_id`, `app_installation_id`, and `app_private_key` arguments instead. Note that the deprecated `app_auth` block reads from `GITHUB_APP_PEM_FILE`, while the new `app_private_key` argument reads from `GITHUB_APP_PRIVATE_KEY`.
+
+The `app_auth` block is still supported for backward compatibility:
 
 ```terraform
 provider "github" {
@@ -85,23 +128,16 @@ provider "github" {
   app_auth {
     id              = var.app_id              # or `GITHUB_APP_ID`
     installation_id = var.app_installation_id # or `GITHUB_APP_INSTALLATION_ID`
-    pem_file        = var.app_pem_file        # or `GITHUB_APP_PEM_FILE`
+    pem_file        = var.app_private_key     # or `GITHUB_APP_PEM_FILE`
   }
-}
-```
-
-~> **Note:** When using environment variables, an empty `app_auth` block is required to allow provider configurations from environment variables to be specified. See: https://github.com/hashicorp/terraform-plugin-sdk/issues/142
-
-```terraform
-provider "github" {
-  owner = var.github_organization
-  app_auth {} # When using `GITHUB_APP_XXX` environment variables
 }
 ```
 
 ## Argument Reference
 
 The following arguments are supported in the `provider` block:
+
+* `auth_mode` - (Optional) Explicit authentication mode. Valid values are `anonymous`, `token`, and `app`. When not set, the provider auto-detects the mode based on provided credentials for backward compatibility. Can also be sourced from the `GITHUB_AUTH_MODE` environment variable.
 
 * `token` - (Optional) A GitHub OAuth / Personal Access Token. When not provided or made available via the `GITHUB_TOKEN` environment variable, the provider can only access resources available anonymously.
 
@@ -111,7 +147,13 @@ The following arguments are supported in the `provider` block:
 
 * `organization` - (Deprecated) This behaves the same as `owner`, which should be used instead. This value can also be sourced from the `GITHUB_ORGANIZATION` environment variable.
 
-* `app_auth` - (Optional) Configuration block to use GitHub App installation token. When not provided, the provider can only access resources available anonymously.
+* `app_id` - (Optional) This is the ID of the GitHub App. It can also be sourced from the `GITHUB_APP_ID` environment variable.
+
+* `app_installation_id` - (Optional) This is the ID of the GitHub App installation. It can also be sourced from the `GITHUB_APP_INSTALLATION_ID` environment variable.
+
+* `app_private_key` - (Optional) This is the contents of the GitHub App private key in PEM format. It can also be sourced from the `GITHUB_APP_PRIVATE_KEY` environment variable and may use `\n` instead of actual new lines. If you have a PEM file on disk, you can pass it in via `app_private_key = file("path/to/file.pem")`.
+
+* `app_auth` - (Optional, **Deprecated**: Use top-level `app_id`, `app_installation_id`, and `app_private_key` instead.) Configuration block to use GitHub App installation token.
   * `id` - (Required) This is the ID of the GitHub App. It can sourced from the `GITHUB_APP_ID` environment variable.
   * `installation_id` - (Required) This is the ID of the GitHub App installation. It can sourced from the `GITHUB_APP_INSTALLATION_ID` environment variable.
   * `pem_file` - (Required) This is the contents of the GitHub App private key PEM file. It can also be sourced from the `GITHUB_APP_PEM_FILE` environment variable and may use `\n` instead of actual new lines.
@@ -125,8 +167,6 @@ The following arguments are supported in the `provider` block:
 * `retryable_errors` - (Optional) "Allow the provider to retry after receiving an error status code, the max_retries should be set for this to work. Defaults to [500, 502, 503, 504]
 
 * `max_retries` - (Optional) Number of times to retry a request after receiving an error status code. Defaults to 3
-
-Note: If you have a PEM file on disk, you can pass it in via `pem_file = file("path/to/file.pem")`.
 
 For backwards compatibility, if more than one of `owner`, `organization`,
 `GITHUB_OWNER` and `GITHUB_ORGANIZATION` are set, the first in this
