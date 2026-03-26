@@ -105,9 +105,6 @@ func resourceGithubUserSshKeyRead(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	// set computed fields
-	if err = d.Set("key_id", userKey.GetID()); err != nil {
-		return diag.FromErr(err)
-	}
 	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
 		return diag.FromErr(err)
 	}
@@ -160,8 +157,9 @@ func resourceGithubUserSshKeyImport(ctx context.Context, d *schema.ResourceData,
 		return nil, err
 	}
 
-	d.SetId(strconv.FormatInt(key.GetID(), 10))
-
+	if err = d.Set("key_id", key.GetID()); err != nil {
+		return nil, err
+	}
 	if err = d.Set("title", key.GetTitle()); err != nil {
 		return nil, err
 	}

@@ -82,15 +82,12 @@ func resourceGithubUserSshSigningKeyRead(ctx context.Context, d *schema.Resource
 	client := meta.(*Owner).v3client
 
 	keyID := int64(d.Get("key_id").(int))
-	userKey, resp, err := client.Users.GetSSHSigningKey(ctx, keyID)
+	_, resp, err := client.Users.GetSSHSigningKey(ctx, keyID)
 	if err != nil {
 		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "user SSH signing key (%d)", keyID))
 	}
 
 	// set computed fields
-	if err = d.Set("key_id", userKey.GetID()); err != nil {
-		return diag.FromErr(err)
-	}
 	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
 		return diag.FromErr(err)
 	}
@@ -131,8 +128,9 @@ func resourceGithubUserSshSigningKeyImport(ctx context.Context, d *schema.Resour
 		return nil, err
 	}
 
-	d.SetId(strconv.FormatInt(key.GetID(), 10))
-
+	if err = d.Set("key_id", key.GetID()); err != nil {
+		return nil, err
+	}
 	if err = d.Set("title", key.GetTitle()); err != nil {
 		return nil, err
 	}

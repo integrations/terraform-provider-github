@@ -11,7 +11,7 @@ import (
 
 func resourceGithubUserSshKeyV0() *schema.Resource {
 	return &schema.Resource{
-		SchemaVersion: 1,
+		SchemaVersion: 0,
 		Schema: map[string]*schema.Schema{
 			"title": {
 				Type:        schema.TypeString,
