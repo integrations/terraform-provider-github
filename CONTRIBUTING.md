@@ -102,7 +102,7 @@ Setting a `processId` of 0 allows a dropdown to select the process of the provid
 
 ## Manual Testing
 
-Manual testing should be performed on each PR opened in order to validate the provider's correct behavior and discover any regressions. Our automated testing is in an unhealthy spot at this point unfortunately, so extra care is required with manual testing. See [issue #1414](https://github.com/integrations/terraform-provider-github/issues/1414) for more details.
+> **Note:** Automated test coverage is incomplete ([#1414](https://github.com/integrations/terraform-provider-github/issues/1414)). Manual testing on each PR is essential until this is resolved.
 
 ### Using a local version of the provider
 
@@ -142,7 +142,19 @@ The following provider development overrides are set in the CLI configuration:
  - integrations/github in /Users/jcudit/go/bin
 ```
 
-### Environment variable reference
+See the [Environment Variable Reference](#environment-variable-reference) below for the full list of configuration options.
+
+There are also a small amount of unit tests in the provider. Due to the nature of the provider, such tests are currently only recommended for exercising functionality completely internal to the provider. These may be executed by running `make test`.
+
+### GitHub Organization
+
+If you do not have an organization already that you are comfortable running tests against, you will need to [create one](https://help.github.com/en/articles/creating-a-new-organization-from-scratch). The free "Team for Open Source" org type is fine for these tests. The name of the organization must then be exported in your environment as `GITHUB_OWNER`.
+
+Make sure that your organization has a `terraform-template-module` repository ([terraformtesting/terraform-template-module](https://github.com/terraformtesting/terraform-template-module) is an example you can clone) and that its "Template repository" item in Settings is checked.
+
+If you are interested in using and/or testing GitHub's [Team synchronization](https://help.github.com/en/github/setting-up-and-managing-organizations-and-teams/synchronizing-teams-between-your-identity-provider-and-github) feature, please contact a maintainer as special arrangements can be made for your convenience.
+
+## Environment Variable Reference
 
 Commonly required environment variables are listed below:
 
@@ -189,16 +201,6 @@ export GH_TEST_ADVANCED_SECURITY=
 # Configure if the enterprise is an EMU enterprise
 export GH_TEST_ENTERPRISE_IS_EMU=
 ```
-
-There are also a small amount of unit tests in the provider. Due to the nature of the provider, such tests are currently only recommended for exercising functionality completely internal to the provider. These may be executed by running `make test`.
-
-### GitHub Organization
-
-If you do not have an organization already that you are comfortable running tests against, you will need to [create one](https://help.github.com/en/articles/creating-a-new-organization-from-scratch). The free "Team for Open Source" org type is fine for these tests. The name of the organization must then be exported in your environment as `GITHUB_OWNER`.
-
-Make sure that your organization has a `terraform-template-module` repository ([terraformtesting/terraform-template-module](https://github.com/terraformtesting/terraform-template-module) is an example you can clone) and that its "Template repository" item in Settings is checked.
-
-If you are interested in using and/or testing GitHub's [Team synchronization](https://help.github.com/en/github/setting-up-and-managing-organizations-and-teams/synchronizing-teams-between-your-identity-provider-and-github) feature, please contact a maintainer as special arrangements can be made for your convenience.
 
 ### Example _.vscode/settings.json_ file
 

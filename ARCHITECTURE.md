@@ -594,8 +594,8 @@ The following features are blocked waiting for upstream changes in [google/go-gi
 | `escapeIDPart(part)`                                        | Escape colons in ID parts                      |
 | `wrapErrors([]error)`                                       | Convert errors to diagnostics                  |
 | `checkOrganization(meta)`                                   | Verify org context                             |
-| `getTeamID(idOrSlug, meta)`                                 | Resolve team ID from ID or slug                |
-| `getTeamSlug(idOrSlug, meta)`                               | Resolve team slug from ID or slug              |
+| `getTeamID(ctx, meta, idOrSlug)`                            | Resolve team ID from ID or slug                |
+| `getTeamSlug(ctx, meta, idOrSlug)`                          | Resolve team slug from ID or slug              |
 | `expandStringList([]any)`                                   | Convert to `[]string`                          |
 | `flattenStringList([]string)`                               | Convert to `[]any`                             |
 | `deleteResourceOn404AndSwallow304OtherwiseReturnError(...)` | Handle 404/304 responses                       |
