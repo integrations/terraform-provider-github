@@ -261,10 +261,6 @@ The `rules` block supports the following:
 
 - `review_draft_pull_requests` - (Optional) (Boolean) Copilot automatically reviews draft pull requests before they are marked as ready for review. Defaults to `false`.
 
-- `allowed_merge_methods` - (Required) (List of String, Min: 1) Array of merge methods to be allowed. Allowed values include `merge`, `squash`, and `rebase`. At least one must be enabled.
-
-- `required_reviewers` - (Optional) (Block List) Require specific reviewers to approve pull requests. Note: This feature is in beta. (see [below for nested schema](#rulespull_requestrequired_reviewers))
-
 #### rules.pull_request.required_reviewers ####
 
 - `reviewer` - (Required) (Block List, Max: 1) The reviewer that must review matching files. (see [below for nested schema](#rulespull_requestrequired_reviewersreviewer))
