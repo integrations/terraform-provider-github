@@ -488,7 +488,7 @@ func resourceGithubOrganizationSecurityConfigurationDelete(ctx context.Context, 
 }
 
 func resourceGithubOrganizationSecurityConfigurationImport(_ context.Context, d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
-	orgName, configIDStr, err := parseID2(d.Id())
+	_, configIDStr, err := parseID2(d.Id())
 	if err != nil {
 		return nil, fmt.Errorf("invalid import specified: supplied import must be written as <organization>:<configuration_id>. Parse error: %w", err)
 	}
@@ -497,12 +497,6 @@ func resourceGithubOrganizationSecurityConfigurationImport(_ context.Context, d 
 	if err != nil {
 		return nil, fmt.Errorf("invalid configuration_id %q: %w", configIDStr, err)
 	}
-
-	id, err := buildID(orgName, configIDStr)
-	if err != nil {
-		return nil, err
-	}
-	d.SetId(id)
 
 	if err = d.Set("configuration_id", int(configID)); err != nil {
 		return nil, err

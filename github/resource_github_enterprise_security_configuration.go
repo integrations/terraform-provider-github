@@ -429,12 +429,6 @@ func resourceGithubEnterpriseSecurityConfigurationImport(_ context.Context, d *s
 		return nil, fmt.Errorf("invalid configuration_id %q: %w", configIDStr, err)
 	}
 
-	id, err := buildID(enterpriseSlug, configIDStr)
-	if err != nil {
-		return nil, err
-	}
-	d.SetId(id)
-
 	if err = d.Set("enterprise_slug", enterpriseSlug); err != nil {
 		return nil, err
 	}

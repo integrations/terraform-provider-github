@@ -92,21 +92,15 @@ func TestAccGithubEnterpriseSecurityConfiguration(t *testing.T) {
 		configName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		configNameUpdated := fmt.Sprintf("%supdated-%s", testResourcePrefix, randomID)
 
-		configBefore := fmt.Sprintf(`
+		tmpl := `
 		resource "github_enterprise_security_configuration" "test" {
 			enterprise_slug = "%s"
 			name = "%s"
-			description = "Test configuration"
-			advanced_security = "disabled"
-		}`, testAccConf.enterpriseSlug, configName)
-
-		configAfter := fmt.Sprintf(`
-		resource "github_enterprise_security_configuration" "test" {
-			enterprise_slug = "%s"
-			name = "%s"
-			description = "Test configuration updated"
-			advanced_security = "enabled"
-		}`, testAccConf.enterpriseSlug, configNameUpdated)
+			description = "%s"
+			advanced_security = "%s"
+		}`
+		configBefore := fmt.Sprintf(tmpl, testAccConf.enterpriseSlug, configName, "Test configuration", "disabled")
+		configAfter := fmt.Sprintf(tmpl, testAccConf.enterpriseSlug, configNameUpdated, "Test configuration updated", "enabled")
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
