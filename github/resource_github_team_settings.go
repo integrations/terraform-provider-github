@@ -306,7 +306,7 @@ func resourceGithubTeamSettingsImport(ctx context.Context, d *schema.ResourceDat
 	return []*schema.ResourceData{d}, nil
 }
 
-func resolveTeamIDs(ctx context.Context, meta *Owner, idOrSlug string) (nodeId, slug string, err error) {
+func resolveTeamIDs(ctx context.Context, meta *Owner, idOrSlug string) (string, string, error) {
 	team, err := getTeam(ctx, meta, idOrSlug)
 	if err != nil {
 		return "", "", err
