@@ -14,6 +14,7 @@ This document serves as a guide for contributors implementing new features and r
         - [Schema Field Guidelines](#schema-field-guidelines)
         - [ID Patterns](#id-patterns)
     - [Implementation Patterns](#implementation-patterns)
+        - [Authentication](#authentication)
         - [CRUD Function Signatures](#crud-function-signatures)
         - [Accessing the API Client](#accessing-the-api-client)
         - [Error Handling](#error-handling)
@@ -28,6 +29,7 @@ This document serves as a guide for contributors implementing new features and r
     - [Gotchas \& Known Issues](#gotchas--known-issues)
         - [API Preview Headers](#api-preview-headers)
         - [Deprecated Resources](#deprecated-resources)
+        - [Deprecated Data Sources](#deprecated-data-sources)
         - [Known Limitations](#known-limitations)
         - [Workarounds in Code](#workarounds-in-code)
         - [Pending go-github Updates](#pending-go-github-updates)
@@ -39,6 +41,7 @@ This document serves as a guide for contributors implementing new features and r
             - [Use StateUpgraders for State Migrations](#use-stateupgraders-for-state-migrations)
             - [Explicit Authentication Configuration](#explicit-authentication-configuration)
             - [Transport Layer Rework](#transport-layer-rework)
+            - [Migrate to `terraform-plugin-testing`](#migrate-to-terraform-plugin-testing)
             - [No Local Git CLI Support](#no-local-git-cli-support)
         - [2025](#2025)
             - [Replace `log` Package with `tflog`](#replace-log-package-with-tflog)
@@ -62,7 +65,7 @@ terraform-provider-github/
 │   ├── util.go                  # Core utilities (ID parsing, validation)
 │   ├── util_*.go                # Domain utilities (rules, labels, etc.)
 │   │
-│   └── transport.go             # Custom HTTP transport with ETag caching
+│   └── transport.go             # HTTP transports: ETag caching, rate limiting, retries
 │
 ├── ARCHITECTURE.md              # This file - implementation guide
 ├── MAINTAINERS.md               # Maintainers and contributors
@@ -268,6 +271,17 @@ id, err := buildID(escapeIDPart(part1), part2)
 ---
 
 ## Implementation Patterns
+
+### Authentication
+
+The provider resolves credentials using the following fallback chain (first match wins):
+
+1. **Token** — `token` attribute or `GITHUB_TOKEN` env var
+2. **GitHub App** — `app_auth` block with `id`, `installation_id`, and `pem_file`
+3. **GitHub CLI** — Falls back to `gh auth token` if neither token nor app_auth is set
+4. **Anonymous** — Read-only access when no credentials are available
+
+All authentication configuration is handled in `config.go`. See the [Explicit Authentication Configuration](#explicit-authentication-configuration) decision for design rationale.
 
 ### CRUD Function Signatures
 
@@ -513,7 +527,16 @@ func TestAccGithubExample(t *testing.T) {
 
 ### Test Modes
 
-Use `skipUnauthenticated(t)`, `skipUnlessHasOrgs(t)`, `skipUnlessHasPaidOrgs(t)`, `skipUnlessEnterprise(t)`, `skipUnlessMode(t, testModes...)` functions to run tests in appropriate contexts:
+Use these skip functions to run tests in appropriate contexts:
+
+- `skipUnauthenticated(t)` — skips if anonymous mode
+- `skipUnlessHasOrgs(t)` — requires organization, team, or enterprise mode
+- `skipUnlessHasPaidOrgs(t)` — requires team or enterprise mode (paid orgs)
+- `skipUnlessEnterprise(t)` — requires enterprise mode
+- `skipUnlessHasAppInstallations(t)` — requires GitHub App installations
+- `skipUnlessEMUEnterprise(t)` — requires EMU enterprise
+- `skipIfEMUEnterprise(t)` — skips if EMU enterprise
+- `skipUnlessMode(t, testModes...)` — generic mode check
 
 | Mode           | Environment Variables Required         |
 | -------------- | -------------------------------------- |
@@ -525,15 +548,24 @@ Use `skipUnauthenticated(t)`, `skipUnlessHasOrgs(t)`, `skipUnlessHasPaidOrgs(t)`
 ### Running Tests
 
 ```bash
-# Run specific test
+# Run specific acceptance test
 make testacc T=TestAccGithubExample
+
+# Run unit tests (non-acceptance)
+make test
+
+# With coverage
+make testacc T=TestAccGithubExample COV=true
+
+# Clean up leaked test resources (repos, teams prefixed with tf-acc-test-)
+make sweep
 ```
 
 ### Debugging Tests
 
 ```bash
 # With debug logging
-TF_LOG=DEBUG make testacc T=TestAccGithubExample 
+TF_LOG=DEBUG make testacc T=TestAccGithubExample
 ```
 
 ---
@@ -555,11 +587,20 @@ The following resources are deprecated and will be removed in future versions:
 | -------------------------------------------- | ------------------------------------------------- |
 | `github_organization_security_manager`       | `github_organization_role_team`                   |
 | `github_organization_custom_role`            | `github_organization_repository_role`             |
+| `github_organization_role_team_assignment`   | `github_organization_role_team`                   |
 | `github_repository_deployment_branch_policy` | `github_repository_environment_deployment_policy` |
 | `github_organization_project`                | None (Classic Projects API removed)               |
 | `github_project_card`                        | None (Classic Projects API removed)               |
 | `github_project_column`                      | None (Classic Projects API removed)               |
 | `github_repository_project`                  | None (Classic Projects API removed)               |
+
+### Deprecated Data Sources
+
+| Deprecated Data Source                         | Replacement                                         |
+| ---------------------------------------------- | --------------------------------------------------- |
+| `github_organization_custom_role`              | `github_organization_repository_role`               |
+| `github_organization_security_managers`        | `github_organization_role_teams`                    |
+| `github_repository_deployment_branch_policies` | `github_repository_environment_deployment_policies` |
 
 ### Known Limitations
 
@@ -585,24 +626,58 @@ The following features are blocked waiting for upstream changes in [google/go-gi
 
 ### Common Utilities
 
+**ID Parsing & Building** (`util.go`):
+
+| Function             | Purpose                                        |
+| -------------------- | ---------------------------------------------- |
+| `buildID(parts...)`  | Create composite ID (e.g., `"a:b"`, `"a:b:c"`) |
+| `parseID2(id)`       | Parse two-part composite ID                    |
+| `parseID3(id)`       | Parse three-part composite ID                  |
+| `parseID4(id)`       | Parse four-part composite ID                   |
+| `escapeIDPart(part)` | Escape colons in ID parts                      |
+| `buildChecksumID(v)` | Create MD5-based checksum ID from string slice |
+
+**Error Handling & Validation** (`util.go`):
+
 | Function                                                    | Purpose                                        |
 | ----------------------------------------------------------- | ---------------------------------------------- |
-| `buildID(parts...)`                                         | Create composite ID (e.g., `"a:b"`, `"a:b:c"`) |
-| `parseID2(id)`                                              | Parse two-part composite ID                    |
-| `parseID3(id)`                                              | Parse three-part composite ID                  |
-| `parseID4(id)`                                              | Parse four-part composite ID                   |
-| `escapeIDPart(part)`                                        | Escape colons in ID parts                      |
 | `wrapErrors([]error)`                                       | Convert errors to diagnostics                  |
 | `checkOrganization(meta)`                                   | Verify org context                             |
-| `getTeamID(ctx, meta, idOrSlug)`                            | Resolve team ID from ID or slug                |
-| `getTeamSlug(ctx, meta, idOrSlug)`                          | Resolve team slug from ID or slug              |
-| `expandStringList([]any)`                                   | Convert to `[]string`                          |
-| `flattenStringList([]string)`                               | Convert to `[]any`                             |
 | `deleteResourceOn404AndSwallow304OtherwiseReturnError(...)` | Handle 404/304 responses                       |
-| `diffRepository`                                            | `CustomizeDiffFunc`: force replacement on repo ID change |
-| `diffSecret`                                                | `CustomizeDiffFunc`: detect remote secret drift via timestamps |
-| `diffSecretVariableVisibility`                              | `CustomizeDiffFunc`: validate `selected_repository_ids` vs `visibility` |
-| `diffTeam`                                                  | `CustomizeDiffFunc`: force new resource on team ID change |
+| `validateValueFunc(values)`                                 | Create enum validator from allowed values      |
+| `validateSecretNameFunc`                                    | Validate GitHub secret naming rules            |
+| `caseInsensitive()`                                         | `DiffSuppressFunc` for case-insensitive fields |
+| `isArchivedRepositoryError(err)`                            | Detect archived repo 403 errors                |
+
+**Data Conversion** (`util.go`):
+
+| Function                      | Purpose               |
+| ----------------------------- | --------------------- |
+| `expandStringList([]any)`     | Convert to `[]string` |
+| `flattenStringList([]string)` | Convert to `[]any`    |
+
+**Team & Repository Resolution** (`util_team.go`, `util_v4_repository.go`):
+
+| Function                           | Purpose                              |
+| ---------------------------------- | ------------------------------------ |
+| `getTeamID(ctx, meta, idOrSlug)`   | Resolve team ID from ID or slug      |
+| `getTeamSlug(ctx, meta, idOrSlug)` | Resolve team slug from ID or slug    |
+| `getRepositoryID(name, meta)`      | Resolve repository node ID from name |
+
+**Permission Mapping** (`util_permissions.go`):
+
+| Function                    | Purpose                                                    |
+| --------------------------- | ---------------------------------------------------------- |
+| `getPermission(permission)` | Normalize permission names (`read`↔`pull`, `write`↔`push`) |
+
+**CustomizeDiffFuncs** (`util_diff.go`):
+
+| Function                       | Purpose                                            |
+| ------------------------------ | -------------------------------------------------- |
+| `diffRepository`               | Force replacement on repo ID change                |
+| `diffSecret`                   | Detect remote secret drift via timestamps          |
+| `diffSecretVariableVisibility` | Validate `selected_repository_ids` vs `visibility` |
+| `diffTeam`                     | Force new resource on team ID change               |
 
 ### Naming Conventions
 

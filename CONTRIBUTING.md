@@ -144,7 +144,17 @@ The following provider development overrides are set in the CLI configuration:
 
 See the [Environment Variable Reference](#environment-variable-reference) below for the full list of configuration options.
 
-There are also a small amount of unit tests in the provider. Due to the nature of the provider, such tests are currently only recommended for exercising functionality completely internal to the provider. These may be executed by running `make test`.
+There are also a small number of unit tests in the provider. Due to the nature of the provider, such tests are currently only recommended for exercising functionality completely internal to the provider. These may be executed by running `make test`.
+
+### Cleaning Up Test Resources
+
+Acceptance tests create real GitHub resources prefixed with `tf-acc-test-`. If tests fail or are interrupted, these resources may be left behind. Run the sweeper to clean them up:
+
+```sh
+make sweep
+```
+
+This removes leaked test repositories and teams matching the `tf-acc-test-` prefix.
 
 ### GitHub Organization
 
