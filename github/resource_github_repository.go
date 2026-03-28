@@ -840,22 +840,22 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 	_ = d.Set("node_id", repo.GetNodeID())
 	_ = d.Set("repo_id", repo.GetID())
 
-	// TODO: Validate this behavior as I can see these fields being returned even when archived
-	// GitHub API doesn't respond following parameters when repository is archived
-	if !d.Get("archived").(bool) {
-		_ = d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
-		_ = d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
-		_ = d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
-		_ = d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
-		_ = d.Set("allow_update_branch", repo.GetAllowUpdateBranch())
-		_ = d.Set("allow_forking", repo.GetAllowForking())
-		_ = d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge())
-		_ = d.Set("web_commit_signoff_required", repo.GetWebCommitSignoffRequired())
-		_ = d.Set("has_downloads", repo.GetHasDownloads())
-		_ = d.Set("merge_commit_message", repo.GetMergeCommitMessage())
-		_ = d.Set("merge_commit_title", repo.GetMergeCommitTitle())
-		_ = d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage())
-		_ = d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle())
+	if err := errors.Join(
+		d.Set("allow_auto_merge", repo.GetAllowAutoMerge()),
+		d.Set("allow_merge_commit", repo.GetAllowMergeCommit()),
+		d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge()),
+		d.Set("allow_squash_merge", repo.GetAllowSquashMerge()),
+		d.Set("allow_update_branch", repo.GetAllowUpdateBranch()),
+		d.Set("allow_forking", repo.GetAllowForking()),
+		d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge()),
+		d.Set("web_commit_signoff_required", repo.GetWebCommitSignoffRequired()),
+		d.Set("has_downloads", repo.GetHasDownloads()),
+		d.Set("merge_commit_message", repo.GetMergeCommitMessage()),
+		d.Set("merge_commit_title", repo.GetMergeCommitTitle()),
+		d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage()),
+		d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle()),
+	); err != nil {
+		tflog.Warn(ctx, "Error setting repository fields, which were previously ignored for archived repositories", map[string]any{"error": err.Error()})
 	}
 
 	if repo.GetHasPages() {
