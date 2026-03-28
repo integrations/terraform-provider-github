@@ -771,20 +771,7 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 		}
 	}
 
-	// handle visibility updates separately from other fields
-	visibility := repoReq.GetVisibility()
-	repoReq.Visibility = nil
-
-	// This change needs to be made with the correct visibility
-	allowForking := repoReq.AllowForking
-	if d.HasChanges("visibility", "private") {
-		repoReq.AllowForking = nil
-	}
-
-	if !d.HasChange("security_and_analysis") {
-		repoReq.SecurityAndAnalysis = nil
-	}
-
+	tflog.Info(ctx, "Patching repository to ensure all configurations are applied", map[string]any{"owner": owner, "name": repoName})
 	_, _, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
 	if err != nil {
 		return diag.FromErr(err)
@@ -793,18 +780,6 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 	if v, ok := d.GetOkExists("vulnerability_alerts"); ok { //nolint:staticcheck // SA1019 // We sometimes need to use GetOkExists for booleans
 		if val, ok := v.(bool); ok {
 			if err := updateVulnerabilityAlerts(ctx, client, owner, repoName, val); err != nil {
-				return diag.FromErr(err)
-			}
-		}
-	}
-
-	if d.HasChanges("visibility", "private") {
-		repoReq.Visibility = new(visibility)
-		repoReq.AllowForking = allowForking
-
-		_, resp, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
-		if err != nil {
-			if resp.StatusCode != 422 || !strings.Contains(err.Error(), fmt.Sprintf("Visibility is already %s", visibility)) {
 				return diag.FromErr(err)
 			}
 		}
