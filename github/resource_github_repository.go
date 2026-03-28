@@ -660,6 +660,8 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 	owner := meta.(*Owner).name
 	repoName := repoReq.GetName()
 
+	var upstreamRepo *github.Repository
+
 	if template, ok := d.GetOk("template"); ok {
 		templateConfigBlocks := template.([]any)
 
@@ -693,7 +695,7 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 				return diag.FromErr(err)
 			}
 
-			d.SetId(repo.GetName())
+			upstreamRepo = repo
 		}
 	} else if d.Get("fork").(string) == "true" {
 		// Handle repository forking
@@ -734,27 +736,24 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 			tflog.Debug(ctx, "Fork response status", map[string]any{"status": resp.StatusCode})
 		}
 
-		if fork == nil {
-			return diag.Errorf("fork creation failed - no repository returned")
-		}
+		upstreamRepo = fork
 
 		tflog.Info(ctx, "Fork created", map[string]any{"name": fork.GetName()})
-		d.SetId(fork.GetName())
 	} else {
 		// Create without a repository template
-		var repo *github.Repository
+
 		var err error
 		if meta.(*Owner).IsOrganization {
-			repo, _, err = client.Repositories.Create(ctx, owner, repoReq)
+			upstreamRepo, _, err = client.Repositories.Create(ctx, owner, repoReq)
 		} else {
 			// Create repository within authenticated user's account
-			repo, _, err = client.Repositories.Create(ctx, "", repoReq)
+			upstreamRepo, _, err = client.Repositories.Create(ctx, "", repoReq)
 		}
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		d.SetId(repo.GetName())
 	}
+	d.SetId(upstreamRepo.GetName()) // TODO: To be able to support repos for different owners, this needs to be updated to something like `buildID(owner,repo.GetName()`
 
 	topics := repoReq.Topics
 	if len(topics) > 0 {
