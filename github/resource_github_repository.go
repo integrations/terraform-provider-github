@@ -740,14 +740,6 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 
 		tflog.Info(ctx, "Fork created", map[string]any{"name": fork.GetName()})
 		d.SetId(fork.GetName())
-		tflog.Debug(ctx, "Set resource ID to just the name", map[string]any{"resource_id": d.Id()})
-
-		_ = d.Set("name", fork.GetName())
-		_ = d.Set("full_name", fork.GetFullName()) // Add the full name for reference
-		_ = d.Set("html_url", fork.GetHTMLURL())
-		_ = d.Set("ssh_clone_url", fork.GetSSHURL())
-		_ = d.Set("git_clone_url", fork.GetGitURL())
-		_ = d.Set("http_clone_url", fork.GetCloneURL())
 	} else {
 		// Create without a repository template
 		var repo *github.Repository
@@ -780,7 +772,56 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 		}
 	}
 
-	return resourceGithubRepositoryUpdate(ctx, d, meta)
+	// handle visibility updates separately from other fields
+	visibility := repoReq.GetVisibility()
+	repoReq.Visibility = nil
+
+	// This change needs to be made with the correct visibility
+	allowForking := repoReq.AllowForking
+	if d.HasChanges("visibility", "private") {
+		repoReq.AllowForking = nil
+	}
+
+	if !d.HasChange("security_and_analysis") {
+		repoReq.SecurityAndAnalysis = nil
+	}
+
+	_, _, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	if v, ok := d.GetOkExists("vulnerability_alerts"); ok { //nolint:staticcheck // SA1019 // We sometimes need to use GetOkExists for booleans
+		if val, ok := v.(bool); ok {
+			if err := updateVulnerabilityAlerts(ctx, client, owner, repoName, val); err != nil {
+				return diag.FromErr(err)
+			}
+		}
+	}
+
+	if d.HasChanges("visibility", "private") {
+		repoReq.Visibility = new(visibility)
+		repoReq.AllowForking = allowForking
+
+		_, resp, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
+		if err != nil {
+			if resp.StatusCode != 422 || !strings.Contains(err.Error(), fmt.Sprintf("Visibility is already %s", visibility)) {
+				return diag.FromErr(err)
+			}
+		}
+	}
+
+	// Fetch final repo state after all mutations and set Computed fields
+	finalRepo, _, err := client.Repositories.Get(ctx, owner, d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	if diags := setRepositoryFieldsFromRepo(ctx, d, client, owner, finalRepo); diags.HasError() {
+		return diags
+	}
+
+	return nil
 }
 
 func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
@@ -795,7 +836,6 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 		owner = explicitOwner
 	}
 
-	ctx = context.WithValue(ctx, ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
@@ -816,100 +856,12 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 		return diag.FromErr(err)
 	}
 
-	_ = d.Set("etag", resp.Header.Get("ETag"))
-	_ = d.Set("name", repoName)
-	_ = d.Set("description", repo.GetDescription())
-	_ = d.Set("primary_language", repo.GetLanguage())
-	_ = d.Set("homepage_url", repo.GetHomepage())
-	_ = d.Set("private", repo.GetPrivate())
-	_ = d.Set("visibility", repo.GetVisibility())
-	_ = d.Set("has_issues", repo.GetHasIssues())
-	_ = d.Set("has_discussions", repo.GetHasDiscussions())
-	_ = d.Set("has_projects", repo.GetHasProjects())
-	_ = d.Set("has_wiki", repo.GetHasWiki())
-	_ = d.Set("is_template", repo.GetIsTemplate())
-	_ = d.Set("full_name", repo.GetFullName())
-	_ = d.Set("default_branch", repo.GetDefaultBranch())
-	_ = d.Set("html_url", repo.GetHTMLURL())
-	_ = d.Set("ssh_clone_url", repo.GetSSHURL())
-	_ = d.Set("svn_url", repo.GetSVNURL())
-	_ = d.Set("git_clone_url", repo.GetGitURL())
-	_ = d.Set("http_clone_url", repo.GetCloneURL())
-	_ = d.Set("archived", repo.GetArchived())
-	_ = d.Set("topics", flattenStringList(repo.Topics))
-	_ = d.Set("node_id", repo.GetNodeID())
-	_ = d.Set("repo_id", repo.GetID())
-
-	if err := errors.Join(
-		d.Set("allow_auto_merge", repo.GetAllowAutoMerge()),
-		d.Set("allow_merge_commit", repo.GetAllowMergeCommit()),
-		d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge()),
-		d.Set("allow_squash_merge", repo.GetAllowSquashMerge()),
-		d.Set("allow_update_branch", repo.GetAllowUpdateBranch()),
-		d.Set("allow_forking", repo.GetAllowForking()),
-		d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge()),
-		d.Set("web_commit_signoff_required", repo.GetWebCommitSignoffRequired()),
-		d.Set("has_downloads", repo.GetHasDownloads()),
-		d.Set("merge_commit_message", repo.GetMergeCommitMessage()),
-		d.Set("merge_commit_title", repo.GetMergeCommitTitle()),
-		d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage()),
-		d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle()),
-	); err != nil {
-		tflog.Warn(ctx, "Error setting repository fields, which were previously ignored for archived repositories", map[string]any{"error": err.Error()})
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
 	}
 
-	if repo.GetHasPages() {
-		pages, _, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		if err := d.Set("pages", flattenPages(pages)); err != nil {
-			return diag.Errorf("error setting pages: %s", err.Error())
-		}
-	}
-
-	// Set fork information if this is a fork
-	if repo.GetFork() {
-		_ = d.Set("fork", "true")
-
-		// If the repository has parent information, set the source details
-		if repo.Parent != nil {
-			_ = d.Set("source_owner", repo.Parent.GetOwner().GetLogin())
-			_ = d.Set("source_repo", repo.Parent.GetName())
-		}
-	} else {
-		_ = d.Set("fork", "false")
-		_ = d.Set("source_owner", "")
-		_ = d.Set("source_repo", "")
-	}
-
-	if repo.TemplateRepository != nil {
-		if err = d.Set("template", []any{
-			map[string]any{
-				"owner":      repo.TemplateRepository.Owner.Login,
-				"repository": repo.TemplateRepository.Name,
-			},
-		}); err != nil {
-			return diag.FromErr(err)
-		}
-	} else {
-		if err = d.Set("template", []any{}); err != nil {
-			return diag.FromErr(err)
-		}
-	}
-
-	if repo.GetSecurityAndAnalysis() != nil {
-		vulnerabilityAlerts, _, err := client.Repositories.GetVulnerabilityAlerts(ctx, owner, repoName)
-		if err != nil {
-			return diag.Errorf("error reading repository vulnerability alerts: %s", err.Error())
-		}
-		if err = d.Set("vulnerability_alerts", vulnerabilityAlerts); err != nil {
-			return diag.FromErr(err)
-		}
-
-		if err = d.Set("security_and_analysis", flattenSecurityAndAnalysis(repo.SecurityAndAnalysis)); err != nil {
-			return diag.FromErr(err)
-		}
+	if diags := setRepositoryFieldsFromRepo(ctx, d, client, owner, repo); diags.HasError() {
+		return diags
 	}
 
 	return nil
@@ -952,7 +904,6 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 
 	repoName := d.Id()
 	owner := meta.(*Owner).name
-	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	repo, _, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
 	if err != nil {
@@ -1009,22 +960,26 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 		repoReq.AllowForking = allowForking
 
 		tflog.Debug(ctx, "Updating repository visibility", map[string]any{"from": repo.GetVisibility(), "to": visibility})
-		_, resp, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
+		updatedRepo, resp, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
 		if err != nil {
 			if resp.StatusCode != 422 || !strings.Contains(err.Error(), fmt.Sprintf("Visibility is already %s", visibility)) {
 				return diag.FromErr(err)
 			}
 		}
+		repo = updatedRepo
 	}
 
-	return resourceGithubRepositoryRead(ctx, d, meta)
+	if diags := setRepositoryFieldsFromRepo(ctx, d, client, owner, repo); diags.HasError() {
+		return diags
+	}
+
+	return nil
 }
 
 func resourceGithubRepositoryDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	repoName := d.Id()
 	owner := meta.(*Owner).name
-	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	archiveOnDestroy := d.Get("archive_on_destroy").(bool)
 	if archiveOnDestroy {
@@ -1052,6 +1007,120 @@ func resourceGithubRepositoryImport(ctx context.Context, d *schema.ResourceData,
 		return nil, err
 	}
 	return []*schema.ResourceData{d}, nil
+}
+
+// setRepositoryFieldsFromRepo populates all Computed and Optional+Computed schema fields
+// from a *github.Repository API response. Used by Create and Update to set state directly
+// instead of chaining to Read. For fields requiring separate API calls (pages, vulnerability
+// alerts), targeted calls are made here.
+func setRepositoryFieldsFromRepo(ctx context.Context, d *schema.ResourceData, client *github.Client, owner string, repo *github.Repository) diag.Diagnostics {
+	repoName := repo.GetName()
+
+	if err := errors.Join(
+		d.Set("name", repoName),
+		d.Set("description", repo.GetDescription()),
+		d.Set("primary_language", repo.GetLanguage()),
+		d.Set("homepage_url", repo.GetHomepage()),
+		d.Set("private", repo.GetPrivate()),
+		d.Set("visibility", repo.GetVisibility()),
+		d.Set("has_issues", repo.GetHasIssues()),
+		d.Set("has_discussions", repo.GetHasDiscussions()),
+		d.Set("has_projects", repo.GetHasProjects()),
+		d.Set("has_wiki", repo.GetHasWiki()),
+		d.Set("is_template", repo.GetIsTemplate()),
+		d.Set("full_name", repo.GetFullName()),
+		d.Set("default_branch", repo.GetDefaultBranch()),
+		d.Set("html_url", repo.GetHTMLURL()),
+		d.Set("ssh_clone_url", repo.GetSSHURL()),
+		d.Set("svn_url", repo.GetSVNURL()),
+		d.Set("git_clone_url", repo.GetGitURL()),
+		d.Set("http_clone_url", repo.GetCloneURL()),
+		d.Set("archived", repo.GetArchived()),
+		d.Set("topics", flattenStringList(repo.Topics)),
+		d.Set("node_id", repo.GetNodeID()),
+		d.Set("repo_id", repo.GetID()),
+		d.Set("allow_auto_merge", repo.GetAllowAutoMerge()),
+		d.Set("allow_merge_commit", repo.GetAllowMergeCommit()),
+		d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge()),
+		d.Set("allow_squash_merge", repo.GetAllowSquashMerge()),
+		d.Set("allow_update_branch", repo.GetAllowUpdateBranch()),
+		d.Set("allow_forking", repo.GetAllowForking()),
+		d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge()),
+		d.Set("web_commit_signoff_required", repo.GetWebCommitSignoffRequired()),
+		d.Set("has_downloads", repo.GetHasDownloads()),
+		d.Set("merge_commit_message", repo.GetMergeCommitMessage()),
+		d.Set("merge_commit_title", repo.GetMergeCommitTitle()),
+		d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage()),
+		d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle()),
+	); err != nil {
+		return diag.FromErr(err)
+	}
+
+	// Fork info
+	if repo.GetFork() {
+		if err := d.Set("fork", "true"); err != nil {
+			return diag.FromErr(err)
+		}
+		if repo.Parent != nil {
+			if err := errors.Join(
+				d.Set("source_owner", repo.Parent.GetOwner().GetLogin()),
+				d.Set("source_repo", repo.Parent.GetName()),
+			); err != nil {
+				return diag.FromErr(err)
+			}
+		}
+	} else {
+		if err := errors.Join(
+			d.Set("fork", "false"),
+			d.Set("source_owner", ""),
+			d.Set("source_repo", ""),
+		); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	// Template info
+	if repo.TemplateRepository != nil {
+		if err := d.Set("template", []any{
+			map[string]any{
+				"owner":      repo.TemplateRepository.Owner.Login,
+				"repository": repo.TemplateRepository.Name,
+			},
+		}); err != nil {
+			return diag.FromErr(err)
+		}
+	} else {
+		if err := d.Set("template", []any{}); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	// Pages (requires separate API call for computed fields like url, status)
+	if repo.GetHasPages() {
+		pages, _, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		if err := d.Set("pages", flattenPages(pages)); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	// Security and analysis + vulnerability alerts (requires separate API call)
+	if repo.GetSecurityAndAnalysis() != nil {
+		vulnerabilityAlerts, _, err := client.Repositories.GetVulnerabilityAlerts(ctx, owner, repoName)
+		if err != nil {
+			return diag.Errorf("error reading repository vulnerability alerts: %s", err.Error())
+		}
+		if err := errors.Join(
+			d.Set("vulnerability_alerts", vulnerabilityAlerts),
+			d.Set("security_and_analysis", flattenSecurityAndAnalysis(repo.SecurityAndAnalysis)),
+		); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	return nil
 }
 
 func expandPages(input []any) *github.Pages {
