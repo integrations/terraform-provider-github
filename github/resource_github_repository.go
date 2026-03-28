@@ -649,15 +649,16 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 	return repository
 }
 
-func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
 
 	if branchName, hasDefaultBranch := d.GetOk("default_branch"); hasDefaultBranch && (branchName != "main") {
 		return diag.Errorf("cannot set the default branch on a new repository to something other than 'main'")
 	}
 
 	repoReq := resourceGithubRepositoryObject(d)
-	owner := meta.(*Owner).name
+	owner := meta.name
 	repoName := repoReq.GetName()
 
 	var upstreamRepo *github.Repository
@@ -713,7 +714,7 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 			Name: requestedName,
 		}
 
-		if meta.(*Owner).IsOrganization {
+		if meta.IsOrganization {
 			opts.Organization = owner
 		}
 
@@ -743,12 +744,16 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 		// Create without a repository template
 
 		var err error
-		if meta.(*Owner).IsOrganization {
-			upstreamRepo, _, err = client.Repositories.Create(ctx, owner, repoReq)
+		var repoOwner string
+		if meta.IsOrganization {
+			repoOwner = owner
 		} else {
-			// Create repository within authenticated user's account
-			upstreamRepo, _, err = client.Repositories.Create(ctx, "", repoReq)
+			// TODO: This is deprecated since `owner` should already be set to the authenticated user
+			tflog.Info(ctx, "Creating repository for authenticated user")
+			repoOwner = ""
 		}
+
+		upstreamRepo, _, err = client.Repositories.Create(ctx, repoOwner, repoReq)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -936,7 +941,7 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 		tflog.Debug(ctx, "Updating repository visibility", map[string]any{"from": repo.GetVisibility(), "to": visibility})
 		updatedRepo, resp, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
 		if err != nil {
-			if resp.StatusCode != 422 || !strings.Contains(err.Error(), fmt.Sprintf("Visibility is already %s", visibility)) {
+			if resp.StatusCode != http.StatusUnprocessableEntity || !strings.Contains(err.Error(), fmt.Sprintf("Visibility is already %s", visibility)) {
 				return diag.FromErr(err)
 			}
 		}
