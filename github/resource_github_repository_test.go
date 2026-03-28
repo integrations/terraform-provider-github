@@ -132,7 +132,7 @@ func TestAccGithubRepository(t *testing.T) {
 					ResourceName:            "github_repository.test",
 					ImportState:             true,
 					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"auto_init", "vulnerability_alerts", "ignore_vulnerability_alerts_during_read"},
+					ImportStateVerifyIgnore: []string{"auto_init", "vulnerability_alerts", "ignore_vulnerability_alerts_during_read", "etag"},
 				},
 			},
 		})
@@ -1511,7 +1511,7 @@ resource "github_repository" "private" {
 					ResourceName:            "github_repository.forked_update",
 					ImportState:             true,
 					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"auto_init", "vulnerability_alerts", "ignore_vulnerability_alerts_during_read"},
+					ImportStateVerifyIgnore: []string{"auto_init", "vulnerability_alerts", "ignore_vulnerability_alerts_during_read", "etag"},
 				},
 			},
 		})
