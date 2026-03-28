@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"regexp"
 	"strings"
 
 	"github.com/google/go-github/v84/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -700,7 +700,7 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 		sourceOwner := d.Get("source_owner").(string)
 		sourceRepo := d.Get("source_repo").(string)
 		requestedName := d.Get("name").(string)
-		log.Printf("[INFO] Creating fork of %s/%s in %s", sourceOwner, sourceRepo, owner)
+		tflog.Info(ctx, "Creating fork", map[string]any{"source_owner": sourceOwner, "source_repo": sourceRepo, "owner": owner})
 
 		if sourceOwner == "" || sourceRepo == "" {
 			return diag.Errorf("source_owner and source_repo must be provided when forking a repository")
@@ -721,26 +721,26 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 			// Handle accepted error (202) which means the fork is being created asynchronously
 			acceptedError := &github.AcceptedError{}
 			if errors.As(err, &acceptedError) {
-				log.Printf("[INFO] Fork is being created asynchronously")
+				tflog.Info(ctx, "Fork is being created asynchronously")
 				// Despite the 202 status, the API should still return preliminary fork information
 				if fork == nil {
 					return diag.Errorf("fork information not available after accepted status")
 				}
-				log.Printf("[DEBUG] Fork name: %s", fork.GetName())
+				tflog.Debug(ctx, "Fork name", map[string]any{"name": fork.GetName()})
 			} else {
 				return diag.Errorf("failed to create fork: %s", err.Error())
 			}
 		} else if resp != nil {
-			log.Printf("[DEBUG] Fork response status: %d", resp.StatusCode)
+			tflog.Debug(ctx, "Fork response status", map[string]any{"status": resp.StatusCode})
 		}
 
 		if fork == nil {
 			return diag.Errorf("fork creation failed - no repository returned")
 		}
 
-		log.Printf("[INFO] Fork created with name: %s", fork.GetName())
+		tflog.Info(ctx, "Fork created", map[string]any{"name": fork.GetName()})
 		d.SetId(fork.GetName())
-		log.Printf("[DEBUG] Set resource ID to just the name: %s", d.Id())
+		tflog.Debug(ctx, "Set resource ID to just the name", map[string]any{"resource_id": d.Id()})
 
 		_ = d.Set("name", fork.GetName())
 		_ = d.Set("full_name", fork.GetFullName()) // Add the full name for reference
@@ -808,8 +808,7 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing repository %s/%s from state because it no longer exists in GitHub",
-					owner, repoName)
+				tflog.Info(ctx, "Removing repository from state because it no longer exists in GitHub", map[string]any{"owner": owner, "name": repoName})
 				d.SetId("")
 				return nil
 			}
@@ -920,7 +919,7 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 	// Can only update a repository if it is not archived or the update is to
 	// archive the repository (unarchiving is not supported by the GitHub API)
 	if d.Get("archived").(bool) && !d.HasChange("archived") {
-		log.Printf("[INFO] Skipping update of archived repository")
+		tflog.Info(ctx, "Skipping update of archived repository")
 		return nil
 	}
 
@@ -940,7 +939,7 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 
 	if !d.HasChange("security_and_analysis") {
 		repoReq.SecurityAndAnalysis = nil
-		log.Print("[DEBUG] No security_and_analysis update required. Removing this field from the payload.")
+		tflog.Debug(ctx, "No security_and_analysis update required, removing from payload")
 	}
 
 	// The documentation for `default_branch` states: "This can only be set
@@ -1009,7 +1008,7 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 		repoReq.Visibility = new(visibility)
 		repoReq.AllowForking = allowForking
 
-		log.Printf("[DEBUG] Updating repository visibility from %s to %s", repo.GetVisibility(), visibility)
+		tflog.Debug(ctx, "Updating repository visibility", map[string]any{"from": repo.GetVisibility(), "to": visibility})
 		_, resp, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
 		if err != nil {
 			if resp.StatusCode != 422 || !strings.Contains(err.Error(), fmt.Sprintf("Visibility is already %s", visibility)) {
@@ -1030,20 +1029,20 @@ func resourceGithubRepositoryDelete(ctx context.Context, d *schema.ResourceData,
 	archiveOnDestroy := d.Get("archive_on_destroy").(bool)
 	if archiveOnDestroy {
 		if d.Get("archived").(bool) {
-			log.Printf("[DEBUG] Repository already archived, nothing to do on delete: %s/%s", owner, repoName)
+			tflog.Debug(ctx, "Repository already archived, nothing to do on delete", map[string]any{"owner": owner, "name": repoName})
 			return nil
 		} else {
 			if err := d.Set("archived", true); err != nil {
 				return diag.FromErr(err)
 			}
 			repoReq := resourceGithubRepositoryObject(d)
-			log.Printf("[DEBUG] Archiving repository on delete: %s/%s", owner, repoName)
+			tflog.Debug(ctx, "Archiving repository on delete", map[string]any{"owner": owner, "name": repoName})
 			_, _, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
 			return diag.FromErr(err)
 		}
 	}
 
-	log.Printf("[DEBUG] Deleting repository: %s/%s", owner, repoName)
+	tflog.Debug(ctx, "Deleting repository", map[string]any{"owner": owner, "name": repoName})
 	_, err := client.Repositories.Delete(ctx, owner, repoName)
 	return diag.FromErr(err)
 }
