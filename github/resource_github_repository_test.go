@@ -41,7 +41,7 @@ func TestAccGithubRepository(t *testing.T) {
 			}
 		`, testRepoName, testAccConf.testRepositoryVisibility)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -72,7 +72,7 @@ func TestAccGithubRepository(t *testing.T) {
 			}
 		`, oldName, randomID, testAccConf.testRepositoryVisibility)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -110,7 +110,7 @@ func TestAccGithubRepository(t *testing.T) {
 			}
 		`, testRepoName, testAccConf.testRepositoryVisibility)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -142,7 +142,7 @@ resource "github_repository" "test" {
 }
 `
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -174,7 +174,7 @@ resource "github_repository" "test" {
 			}
 		`, testRepoName, testAccConf.testRepositoryVisibility)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -214,7 +214,7 @@ resource "github_repository" "test" {
 			}
 		`, testRepoName, testAccConf.testRepositoryVisibility)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -263,7 +263,7 @@ resource "github_repository" "test" {
 			statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("default_branch"), knownvalue.StringExact("main")),
 		}
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -297,7 +297,7 @@ resource "github_repository" "test" {
 			}
 		`, testRepoName, testAccConf.testRepositoryVisibility)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -326,7 +326,7 @@ resource "github_repository" "test" {
 			}
 		`
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -362,7 +362,7 @@ resource "github_repository" "test" {
 			}
 		`, testRepoName, testAccConf.testRepositoryVisibility, testAccConf.testPublicTemplateRepositoryOwner, testAccConf.testPublicTemplateRepository)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t); skipIfEMUEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -392,7 +392,7 @@ resource "github_repository" "test" {
 			}
 		`, testRepoName, testAccConf.testRepositoryVisibility, testAccConf.owner, testAccConf.testOrgTemplateRepository)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -420,7 +420,7 @@ resource "github_repository" "test" {
 }
 `
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -453,7 +453,7 @@ resource "github_repository" "test" {
 }
 `, repoName)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -481,7 +481,7 @@ resource "github_repository" "test" {
 		}
 		`, repoName)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -507,7 +507,7 @@ resource "github_repository" "test" {
 }
 `, repoName)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -548,7 +548,7 @@ resource "github_repository" "test" {
 			}
 		`, testRepoName)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck: func() {
 				skipUnauthenticated(t)
 				skipIfEMUEnterprise(t)
@@ -593,7 +593,7 @@ resource "github_repository" "test" {
 		}
 		`, repoName, testAccConf.testRepositoryVisibility)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -620,7 +620,7 @@ resource "github_repository" "test" {
 		}
 		`, repoName, testAccConf.testRepositoryVisibility)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -647,7 +647,7 @@ resource "github_repository" "test" {
 
 		// NOTE: terraform-plugin-testing does not support asserting the nonexistence of a value
 		// (no equivalent to the legacy TestCheckNoResourceAttr). We only verify creation succeeds.
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -671,7 +671,7 @@ resource "github_repository" "test" {
 		}
 		`
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -709,7 +709,7 @@ resource "github_repository" "test" {
 }
 `
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -750,7 +750,7 @@ resource "github_repository" "test" {
 		}
 `
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -791,7 +791,7 @@ resource "github_repository" "test" {
 	// 		resource.TestCheckResourceAttr("github_repository.test", "primary_language", "Go"),
 	// 	)
 
-	// 	resource.Test(t, resource.TestCase{
+	// 	resource.ParallelTest(t, resource.TestCase{
 	// 		PreCheck:          func() { skipUnauthenticated(t) },
 	// 		ProviderFactories: providerFactories,
 	// 		Steps: []resource.TestStep{
@@ -826,7 +826,7 @@ resource "github_repository" "test" {
 			}
 			`, testRepoName, testAccConf.testRepositoryVisibility)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -859,7 +859,7 @@ resource "github_repository" "test" {
 		}
 		`, testRepoName, testAccConf.testRepositoryVisibility)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -913,7 +913,7 @@ resource "github_repository" "test" {
 			`, testRepoName)
 
 		securityPath := tfjsonpath.New("security_and_analysis").AtSliceIndex(0)
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -953,7 +953,7 @@ resource "github_repository" "test" {
 			`, testRepoName)
 
 		securityPath := tfjsonpath.New("security_and_analysis").AtSliceIndex(0)
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck: func() {
 				skipUnauthenticated(t)
 				if testAccConf.authMode == enterprise { // Requires ability to modifying secret scanning and push protection. This might often be blocked by Enterprise policies.
@@ -983,7 +983,7 @@ resource "github_repository" "test" {
 			}
 		`
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -1007,7 +1007,7 @@ resource "github_repository" "test" {
 			}
 		`, testRepoName)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -1032,7 +1032,7 @@ resource "github_repository" "test" {
 			}
 		`
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t); skipIfEMUEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -1062,7 +1062,7 @@ resource "github_repository" "test" {
 			}
 		`
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -1090,7 +1090,7 @@ resource "github_repository" "test" {
 			}
 		`
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -1124,7 +1124,7 @@ resource "github_repository" "test" {
 			}
 		`, testRepoName, testAccConf.testPublicTemplateRepositoryOwner, testAccConf.testPublicTemplateRepository)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t); skipIfEMUEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -1153,7 +1153,7 @@ resource "github_repository" "test" {
 			}
 		`, testRepoName, testAccConf.testPublicTemplateRepositoryOwner, testAccConf.testPublicTemplateRepository)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t); skipIfEMUEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -1179,7 +1179,7 @@ resource "github_repository" "test" {
 			}
 		`
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -1204,7 +1204,7 @@ resource "github_repository" "test" {
 			}
 		`
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -1228,7 +1228,7 @@ resource "github_repository" "test" {
 			}
 		`
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -1256,7 +1256,7 @@ resource "github_repository" "test" {
 			}
 		`
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -1287,7 +1287,7 @@ resource "github_repository" "private" {
 }
 `
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -1318,7 +1318,7 @@ resource "github_repository" "private" {
 }
 `
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -1392,7 +1392,7 @@ func Test_expandPages(t *testing.T) {
 				}
 		 	`, testRepoName)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -1437,7 +1437,7 @@ func Test_expandPages(t *testing.T) {
 				}
 		 `, testRepoName)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
