@@ -824,7 +824,7 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 		return diag.FromErr(err)
 	}
 
-	if diags := setRepositoryFieldsFromRepo(ctx, d, client, owner, finalRepo); diags.HasError() {
+	if diags := setResourceFieldsFromRepo(ctx, d, client, owner, finalRepo); diags.HasError() {
 		return diags
 	}
 
@@ -866,7 +866,7 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 		return diag.FromErr(err)
 	}
 
-	if diags := setRepositoryFieldsFromRepo(ctx, d, client, owner, repo); diags.HasError() {
+	if diags := setResourceFieldsFromRepo(ctx, d, client, owner, repo); diags.HasError() {
 		return diags
 	}
 
@@ -975,7 +975,7 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 		repo = updatedRepo
 	}
 
-	if diags := setRepositoryFieldsFromRepo(ctx, d, client, owner, repo); diags.HasError() {
+	if diags := setResourceFieldsFromRepo(ctx, d, client, owner, repo); diags.HasError() {
 		return diags
 	}
 
@@ -1015,11 +1015,10 @@ func resourceGithubRepositoryImport(ctx context.Context, d *schema.ResourceData,
 	return []*schema.ResourceData{d}, nil
 }
 
-// setRepositoryFieldsFromRepo populates all Computed and Optional+Computed schema fields
-// from a *github.Repository API response. Used by Create and Update to set state directly
-// instead of chaining to Read. For fields requiring separate API calls (pages, vulnerability
-// alerts), targeted calls are made here.
-func setRepositoryFieldsFromRepo(ctx context.Context, d *schema.ResourceData, client *github.Client, owner string, repo *github.Repository) diag.Diagnostics {
+// setResourceFieldsFromRepo populates all Computed schema fields
+// from a *github.Repository API response.
+// For fields requiring separate API calls (pages, vulnerability alerts), targeted calls are made here.
+func setResourceFieldsFromRepo(ctx context.Context, d *schema.ResourceData, client *github.Client, owner string, repo *github.Repository) diag.Diagnostics {
 	repoName := repo.GetName()
 
 	if err := errors.Join(
@@ -1101,7 +1100,6 @@ func setRepositoryFieldsFromRepo(ctx context.Context, d *schema.ResourceData, cl
 		}
 	}
 
-	// Pages (requires separate API call for computed fields like url, status)
 	_, isPagesConfigured := d.GetOk("pages")
 	if repo.GetHasPages() && isPagesConfigured {
 		pages, _, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)
@@ -1113,7 +1111,6 @@ func setRepositoryFieldsFromRepo(ctx context.Context, d *schema.ResourceData, cl
 		}
 	}
 
-	// Security and analysis + vulnerability alerts (requires separate API call)
 	if repo.GetSecurityAndAnalysis() != nil {
 		vulnerabilityAlerts, _, err := client.Repositories.GetVulnerabilityAlerts(ctx, owner, repoName)
 		if err != nil {
