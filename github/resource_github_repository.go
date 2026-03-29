@@ -258,32 +258,28 @@ func resourceGithubRepository() *schema.Resource {
 				Description: "Configure private forking for organization owned private and internal repositories; set to 'true' to enable, 'false' to disable, and leave unset for the default behaviour. Configuring this requires that private forking is not being explicitly configured at the organization level.",
 			},
 			"squash_merge_commit_title": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "COMMIT_OR_PR_TITLE",
-				Description:  "Can be 'PR_TITLE' or 'COMMIT_OR_PR_TITLE' for a default squash merge commit title. Applicable only if 'allow_squash_merge' is 'true'.",
-				RequiredWith: []string{"allow_squash_merge"},
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "COMMIT_OR_PR_TITLE",
+				Description: "Can be 'PR_TITLE' or 'COMMIT_OR_PR_TITLE' for a default squash merge commit title. Applicable only if 'allow_squash_merge' is 'true'.",
 			},
 			"squash_merge_commit_message": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "COMMIT_MESSAGES",
-				Description:  "Can be 'PR_BODY', 'COMMIT_MESSAGES', or 'BLANK' for a default squash merge commit message. Applicable only if 'allow_squash_merge' is 'true'.",
-				RequiredWith: []string{"allow_squash_merge", "squash_merge_commit_title"},
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "COMMIT_MESSAGES",
+				Description: "Can be 'PR_BODY', 'COMMIT_MESSAGES', or 'BLANK' for a default squash merge commit message. Applicable only if 'allow_squash_merge' is 'true'.",
 			},
 			"merge_commit_title": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "MERGE_MESSAGE",
-				Description:  "Can be 'PR_TITLE' or 'MERGE_MESSAGE' for a default merge commit title. Applicable only if 'allow_merge_commit' is 'true'.",
-				RequiredWith: []string{"allow_merge_commit"},
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "MERGE_MESSAGE",
+				Description: "Can be 'PR_TITLE' or 'MERGE_MESSAGE' for a default merge commit title. Applicable only if 'allow_merge_commit' is 'true'.",
 			},
 			"merge_commit_message": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "PR_TITLE",
-				Description:  "Can be 'PR_BODY', 'PR_TITLE', or 'BLANK' for a default merge commit message. Applicable only if 'allow_merge_commit' is 'true'.",
-				RequiredWith: []string{"allow_merge_commit", "merge_commit_title"},
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "PR_TITLE",
+				Description: "Can be 'PR_BODY', 'PR_TITLE', or 'BLANK' for a default merge commit message. Applicable only if 'allow_merge_commit' is 'true'.",
 			},
 			"delete_branch_on_merge": {
 				Type:        schema.TypeBool,
@@ -522,27 +518,31 @@ func valueChangedButNotEmpty(ctx context.Context, oldVal, newVal, meta any) bool
 	return oldValStr != "" && oldValStr != newValStr
 }
 
-func customDiffFunction(_ context.Context, diff *schema.ResourceDiff, v any) error {
+func customDiffFunction(ctx context.Context, diff *schema.ResourceDiff, v any) error {
 	if diff.HasChange("name") {
 		if err := diff.SetNewComputed("full_name"); err != nil {
 			return err
 		}
 	}
-	_, titleOk := diff.GetOk("squash_merge_commit_title")
-	_, messageOk := diff.GetOk("squash_merge_commit_message")
-	if messageOk && titleOk {
+
+	// We need to check the `allow_squash_merge` flag by checking if the `squash_merge_commit_title` and `squash_merge_commit_message` are set in the configuration.
+	isSquashMergeCommitTitleSet := !diff.GetRawConfig().GetAttr("squash_merge_commit_title").IsNull()
+	isSquashMergeCommitMessageSet := !diff.GetRawConfig().GetAttr("squash_merge_commit_message").IsNull()
+	if isSquashMergeCommitMessageSet && isSquashMergeCommitTitleSet {
 		if !diff.Get("allow_squash_merge").(bool) {
 			return fmt.Errorf("allow_squash_merge is required when squash_merge_commit_title and squash_merge_commit_message is set")
 		}
 	}
 
-	_, titleOk = diff.GetOk("merge_commit_title")
-	_, messageOk = diff.GetOk("merge_commit_message")
-	if messageOk && titleOk {
+	// We need to check the `allow_merge_commit` flag by checking if the `merge_commit_title` and `merge_commit_message` are set in the configuration.
+	isMergeCommitTitleSet := !diff.GetRawConfig().GetAttr("merge_commit_title").IsNull()
+	isMergeCommitMessageSet := !diff.GetRawConfig().GetAttr("merge_commit_message").IsNull()
+	if isMergeCommitMessageSet && isMergeCommitTitleSet {
 		if !diff.Get("allow_merge_commit").(bool) {
 			return fmt.Errorf("allow_merge_commit is required when merge_commit_title and merge_commit_message is set")
 		}
 	}
+
 	return nil
 }
 
