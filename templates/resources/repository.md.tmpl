@@ -34,7 +34,7 @@ The following arguments are supported:
 
 - `source_repo` - (Optional) The name of the repository to fork. Required when `fork` is `true`.
 
-- `private` - (Optional) Set to `true` to create a private repository. Repositories are created as public (e.g. open source) by default.
+- `private` - (**DEPRECATED**) (Optional) Set to `true` to create a private repository. Repositories are created as public (e.g. open source) by default. Use `visibility` instead.
 
 - `visibility` - (Optional) Can be `public` or `private`. If your organization is associated with an enterprise account using GitHub Enterprise Cloud or GitHub Enterprise Server 2.20+, visibility can also be `internal`. The `visibility` parameter overrides the `private` parameter.
 
@@ -62,9 +62,9 @@ The following arguments are supported:
 
 - `squash_merge_commit_message` - (Optional) Can be `PR_BODY`, `COMMIT_MESSAGES`, or `BLANK` for a default squash merge commit message. Applicable only if `allow_squash_merge` is `true`.
 
-- `merge_commit_title` - Can be `PR_TITLE` or `MERGE_MESSAGE` for a default merge commit title. Applicable only if `allow_merge_commit` is `true`.
+- `merge_commit_title` - (Optional) Can be `PR_TITLE` or `MERGE_MESSAGE` for a default merge commit title. Applicable only if `allow_merge_commit` is `true`.
 
-- `merge_commit_message` - Can be `PR_BODY`, `PR_TITLE`, or `BLANK` for a default merge commit message. Applicable only if `allow_merge_commit` is `true`.
+- `merge_commit_message` - (Optional) Can be `PR_BODY`, `PR_TITLE`, or `BLANK` for a default merge commit message. Applicable only if `allow_merge_commit` is `true`.
 
 - `delete_branch_on_merge` - (Optional) Automatically delete head branch after a pull request is merged. Defaults to `false`.
 
@@ -174,7 +174,7 @@ The `advanced_security` block supports the following:
 
 The following additional attributes are exported:
 
-- `full_name` - A string of the form "orgname/reponame".
+- `full_name` - A string of the form "repo_owner/reponame".
 
 - `html_url` - URL to the repository on the web.
 
@@ -192,10 +192,13 @@ The following additional attributes are exported:
 
 - `primary_language` - The primary language used in the repository.
 
+- `etag` - An etag representing the repository object.
+
 - `pages` - The block consisting of the repository's GitHub Pages configuration.
   - `custom_404` - Whether the rendered GitHub Pages site has a custom 404 page.
   - `html_url` - The absolute URL (including scheme) of the rendered GitHub Pages site e.g. `https://username.github.io`.
-  - `status` - The GitHub Pages site's build status e.g. `building` or `built`.
+  - `status` - The Pages build status of the latest build e.g. `building`, `built` `errored`.
+  - `url` - The API address for accessing this Page resource.
 
 ## Import
 

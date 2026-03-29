@@ -372,16 +372,17 @@ func resourceGithubRepository() *schema.Resource {
 						"html_url": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: "URL to the repository on the web.",
+							Description: "The absolute URL (including scheme) of the rendered GitHub Pages site e.g. `https://username.github.io`",
 						},
 						"status": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: "The GitHub Pages site's build status e.g. building or built.",
+							Description: "The Pages build status of the latest build e.g. `building`, `built` `errored`.",
 						},
 						"url": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The API address for accessing this Page resource.",
 						},
 					},
 				},
