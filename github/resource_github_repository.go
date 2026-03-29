@@ -255,28 +255,32 @@ func resourceGithubRepository() *schema.Resource {
 				Description: "Set to 'true' to allow private forking on the repository; this is only relevant if the repository is owned by an organization and is private or internal.",
 			},
 			"squash_merge_commit_title": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "COMMIT_OR_PR_TITLE",
-				Description: "Can be 'PR_TITLE' or 'COMMIT_OR_PR_TITLE' for a default squash merge commit title.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "COMMIT_OR_PR_TITLE",
+				Description:  "Can be 'PR_TITLE' or 'COMMIT_OR_PR_TITLE' for a default squash merge commit title.",
+				RequiredWith: []string{"allow_squash_merge"},
 			},
 			"squash_merge_commit_message": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "COMMIT_MESSAGES",
-				Description: "Can be 'PR_BODY', 'COMMIT_MESSAGES', or 'BLANK' for a default squash merge commit message.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "COMMIT_MESSAGES",
+				Description:  "Can be 'PR_BODY', 'COMMIT_MESSAGES', or 'BLANK' for a default squash merge commit message.",
+				RequiredWith: []string{"allow_squash_merge", "squash_merge_commit_title"},
 			},
 			"merge_commit_title": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "MERGE_MESSAGE",
-				Description: "Can be 'PR_TITLE' or 'MERGE_MESSAGE' for a default merge commit title.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "MERGE_MESSAGE",
+				Description:  "Can be 'PR_TITLE' or 'MERGE_MESSAGE' for a default merge commit title.",
+				RequiredWith: []string{"allow_merge_commit"},
 			},
 			"merge_commit_message": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "PR_TITLE",
-				Description: "Can be 'PR_BODY', 'PR_TITLE', or 'BLANK' for a default merge commit message.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "PR_TITLE",
+				Description:  "Can be 'PR_BODY', 'PR_TITLE', or 'BLANK' for a default merge commit message.",
+				RequiredWith: []string{"allow_merge_commit", "merge_commit_title"},
 			},
 			"delete_branch_on_merge": {
 				Type:        schema.TypeBool,
@@ -515,6 +519,21 @@ func customDiffFunction(_ context.Context, diff *schema.ResourceDiff, v any) err
 			return err
 		}
 	}
+	_, titleOk := diff.GetOk("squash_merge_commit_title")
+	_, messageOk := diff.GetOk("squash_merge_commit_message")
+	if messageOk && titleOk {
+		if !diff.Get("allow_squash_merge").(bool) {
+			return fmt.Errorf("allow_squash_merge is required when squash_merge_commit_title and squash_merge_commit_message is set")
+		}
+	}
+
+	_, titleOk = diff.GetOk("merge_commit_title")
+	_, messageOk = diff.GetOk("merge_commit_message")
+	if messageOk && titleOk {
+		if !diff.Get("allow_merge_commit").(bool) {
+			return fmt.Errorf("allow_merge_commit is required when merge_commit_title and merge_commit_message is set")
+		}
+	}
 	return nil
 }
 
@@ -748,7 +767,7 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 		if meta.IsOrganization {
 			repoOwner = owner
 		} else {
-			// TODO: This is deprecated since `owner` should already be set to the authenticated user
+			// Note: This exists due to the `go-github` library, which chooses endpoints based on the owner being empty or not
 			tflog.Info(ctx, "Creating repository for authenticated user")
 			repoOwner = ""
 		}

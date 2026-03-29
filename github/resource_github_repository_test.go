@@ -731,6 +731,66 @@ resource "github_repository" "test" {
 		})
 	})
 
+	t.Run("validate_required_fields_for_squash_merge_commit_strategy", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%smodify-sq-str-%s", testResourcePrefix, randomID)
+
+		config := `
+		resource "github_repository" "test" {
+				name                        = "%s"
+				squash_merge_commit_title   = "PR_TITLE"
+				squash_merge_commit_message = "PR_BODY"
+				visibility                  = "%s"
+				%s
+		}
+`
+		resource.ParallelTest(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      fmt.Sprintf(config, testRepoName, testAccConf.testRepositoryVisibility, "allow_squash_merge = false"),
+					ExpectError: regexp.MustCompile("allow_squash_merge is required.*"),
+				},
+				{
+					Config:      fmt.Sprintf(config, testRepoName, testAccConf.testRepositoryVisibility, ""),
+					ExpectError: regexp.MustCompile(`all of[\s\S]*?allow_squash_merge[\s\S]*?must be specified`),
+				},
+			},
+		},
+		)
+	})
+
+	t.Run("validate_required_fields_for_merge_commit_strategy", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%smodify-sq-str-%s", testResourcePrefix, randomID)
+
+		config := `
+		resource "github_repository" "test" {
+				name                        = "%s"
+				merge_commit_title   = "PR_TITLE"
+				merge_commit_message = "PR_BODY"
+				visibility                  = "%s"
+				%s
+		}
+`
+		resource.ParallelTest(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      fmt.Sprintf(config, testRepoName, testAccConf.testRepositoryVisibility, "allow_merge_commit = false"),
+					ExpectError: regexp.MustCompile("allow_merge_commit is required.*"),
+				},
+				{
+					Config:      fmt.Sprintf(config, testRepoName, testAccConf.testRepositoryVisibility, ""),
+					ExpectError: regexp.MustCompile(`all of[\s\S]*?allow_merge_commit[\s\S]*?must[\s\S]be[\s\S]specified`),
+				},
+			},
+		},
+		)
+	})
+
 	t.Run("create and modify squash merge commit strategy without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%smodify-sq-str-%s", testResourcePrefix, randomID)
