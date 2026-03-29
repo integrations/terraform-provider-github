@@ -380,7 +380,7 @@ func resourceGithubRepository() *schema.Resource {
 						"status": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: "The GitHub Pages site's build status e.g. building or built.",
+							Description: "The Pages build status of the latest build e.g. `building`, `built` `errored`.",
 						},
 						"url": {
 							Type:        schema.TypeString,

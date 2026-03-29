@@ -94,7 +94,8 @@ func TestAccGithubRepository(t *testing.T) {
 					Config: strings.Replace(
 						config,
 						oldName,
-						newName, 1),
+						newName, 1,
+					),
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("name"), knownvalue.StringExact(newName)),
 						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("full_name"), knownvalue.StringRegexp(regexp.MustCompile(regexp.QuoteMeta(newName)))),
