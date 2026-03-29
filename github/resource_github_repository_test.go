@@ -753,8 +753,10 @@ resource "github_repository" "test" {
 					ExpectError: regexp.MustCompile("allow_squash_merge is required.*"),
 				},
 				{
-					Config:      fmt.Sprintf(config, testRepoName, testAccConf.testRepositoryVisibility, ""),
-					ExpectError: regexp.MustCompile(`all of[\s\S]*?allow_squash_merge[\s\S]*?must be specified`),
+					Config: fmt.Sprintf(config, testRepoName, testAccConf.testRepositoryVisibility, ""),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("allow_squash_merge"), knownvalue.Bool(true)),
+					},
 				},
 			},
 		},
@@ -783,8 +785,10 @@ resource "github_repository" "test" {
 					ExpectError: regexp.MustCompile("allow_merge_commit is required.*"),
 				},
 				{
-					Config:      fmt.Sprintf(config, testRepoName, testAccConf.testRepositoryVisibility, ""),
-					ExpectError: regexp.MustCompile(`all of[\s\S]*?allow_merge_commit[\s\S]*?must[\s\S]be[\s\S]specified`),
+					Config: fmt.Sprintf(config, testRepoName, testAccConf.testRepositoryVisibility, ""),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("allow_merge_commit"), knownvalue.Bool(true)),
+					},
 				},
 			},
 		},
