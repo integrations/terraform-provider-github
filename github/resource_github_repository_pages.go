@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v83/github"
+	"github.com/google/go-github/v84/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
@@ -176,15 +176,15 @@ func resourceGithubRepositoryPagesCreate(ctx context.Context, d *schema.Resource
 		update := &github.PagesUpdate{}
 
 		if cnameOK {
-			update.CNAME = github.Ptr(cname.(string))
+			update.CNAME = new(cname.(string))
 		}
 
 		if publicOKExists {
-			update.Public = github.Ptr(public.(bool))
+			update.Public = new(public.(bool))
 		}
 
 		if httpsEnforcedExists {
-			update.HTTPSEnforced = github.Ptr(httpsEnforced.(bool))
+			update.HTTPSEnforced = new(httpsEnforced.(bool))
 		}
 
 		_, err = client.Repositories.UpdatePages(ctx, owner, repoName, update)
@@ -288,27 +288,27 @@ func resourceGithubRepositoryPagesUpdate(ctx context.Context, d *schema.Resource
 	if d.HasChange("cname") {
 		cname := d.Get("cname").(string)
 		if cname != "" {
-			update.CNAME = github.Ptr(cname)
+			update.CNAME = new(cname)
 		}
 	}
 
 	if d.HasChange("public") {
 		public, ok := d.Get("public").(bool)
 		if ok {
-			update.Public = github.Ptr(public)
+			update.Public = new(public)
 		}
 	}
 
 	if d.HasChange("https_enforced") {
 		httpsEnforced, ok := d.Get("https_enforced").(bool)
 		if ok {
-			update.HTTPSEnforced = github.Ptr(httpsEnforced)
+			update.HTTPSEnforced = new(httpsEnforced)
 		}
 	}
 
 	if d.HasChange("build_type") {
 		buildType := d.Get("build_type").(string)
-		update.BuildType = github.Ptr(buildType)
+		update.BuildType = new(buildType)
 	}
 
 	if d.HasChange("source") || d.HasChange("build_type") {
@@ -403,7 +403,7 @@ func expandPagesForCreate(d *schema.ResourceData) *github.Pages {
 	pages := &github.Pages{}
 
 	buildType := d.Get("build_type").(string)
-	pages.BuildType = github.Ptr(buildType)
+	pages.BuildType = new(buildType)
 
 	if buildType == "legacy" {
 		if source, ok := d.GetOk("source"); ok {
@@ -412,10 +412,10 @@ func expandPagesForCreate(d *schema.ResourceData) *github.Pages {
 				sourceMap := sourceList[0].(map[string]any)
 				branch := sourceMap["branch"].(string)
 				pagesSource := &github.PagesSource{
-					Branch: github.Ptr(branch),
+					Branch: new(branch),
 				}
 				if path, ok := sourceMap["path"].(string); ok && path != "" && path != "/" {
-					pagesSource.Path = github.Ptr(path)
+					pagesSource.Path = new(path)
 				}
 				pages.Source = pagesSource
 			}
@@ -423,7 +423,7 @@ func expandPagesForCreate(d *schema.ResourceData) *github.Pages {
 		// Default to main branch if no source specified
 		if pages.Source == nil {
 			pages.Source = &github.PagesSource{
-				Branch: github.Ptr("main"),
+				Branch: new("main"),
 			}
 		}
 	}
