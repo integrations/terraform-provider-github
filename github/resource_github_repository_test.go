@@ -832,41 +832,39 @@ resource "github_repository" "test" {
 		})
 	})
 
-	// t.Run("create a repository with go as primary_language", func(t *testing.T) {
-	// 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-	// 	testResourceName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
-	// 	config := fmt.Sprintf(`
-	// 		resource "github_repository" "test" {
-	// 			name = "%s"
-	// 			auto_init = true
-	// 		}
-	// 		resource "github_repository_file" "test" {
-	// 			repository     = github_repository.test.name
-	// 			file           = "test.go"
-	// 			content        = "package main"
-	// 		}
-	// 	`, testResourceName)
+	t.Run("create a repository with go as primary_language", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testResourceName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name = "%s"
+				auto_init = true
+			}
+			resource "github_repository_file" "test" {
+				repository     = github_repository.test.name
+				file           = "test.go"
+				content        = "package main"
+			}
+		`, testResourceName)
 
-	// 	check := resource.ComposeTestCheckFunc(
-	// 		resource.TestCheckResourceAttr("github_repository.test", "primary_language", "Go"),
-	// 	)
-
-	// 	resource.ParallelTest(t, resource.TestCase{
-	// 		PreCheck:          func() { skipUnauthenticated(t) },
-	// 		ProviderFactories: providerFactories,
-	// 		Steps: []resource.TestStep{
-	// 			{
-	// 				// Not doing any checks since the file needs to be created before the language can be updated
-	// 				Config: config,
-	// 			},
-	// 			{
-	// 				// Re-running the terraform will refresh the language since the go-file has been created
-	// 				Config: config,
-	// 				Check:  check,
-	// 			},
-	// 		},
-	// 	})
-	// })
+		resource.ParallelTest(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					// Not doing any checks since the file needs to be created before the language can be updated
+					Config: config,
+				},
+				{
+					// Re-running the terraform will refresh the language since the go-file has been created
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("primary_language"), knownvalue.StringExact("Go")),
+					},
+				},
+			},
+		})
+	})
 
 	t.Run("manages the legacy pages feature for a repository", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
