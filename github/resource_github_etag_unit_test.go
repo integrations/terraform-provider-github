@@ -74,13 +74,35 @@ func TestEtagDiffSuppressFunction(t *testing.T) {
 // TestEtagSchemaConsistency ensure DiffSuppressFunc and DiffSuppressOnRefresh are consistently applied.
 func TestEtagSchemaConsistency(t *testing.T) {
 	resourcesWithEtag := map[string]*schema.Resource{
-		"github_repository":                          resourceGithubRepository(),
+		"github_actions_runner_group":                resourceGithubActionsRunnerGroup(),
 		"github_branch":                              resourceGithubBranch(),
 		"github_branch_default":                      resourceGithubBranchDefault(),
+		"github_branch_protection_v3":                resourceGithubBranchProtectionV3(),
+		"github_emu_group_mapping":                   resourceGithubEMUGroupMapping(),
+		"github_enterprise_actions_runner_group":     resourceGithubActionsEnterpriseRunnerGroup(),
+		"github_issue":                               resourceGithubIssue(),
 		"github_issue_label":                         resourceGithubIssueLabel(),
-		"github_repository_webhook":                  resourceGithubRepositoryWebhook(),
+		"github_membership":                          resourceGithubMembership(),
+		"github_organization_project":                resourceGithubOrganizationProject(),
+		"github_organization_ruleset":                resourceGithubOrganizationRuleset(),
+		"github_organization_webhook":                resourceGithubOrganizationWebhook(),
+		"github_project_card":                        resourceGithubProjectCard(),
+		"github_project_column":                      resourceGithubProjectColumn(),
+		"github_release":                             resourceGithubRelease(),
+		"github_repository":                          resourceGithubRepository(),
+		"github_repository_autolink_reference":       resourceGithubRepositoryAutolinkReference(),
+		"github_repository_deploy_key":               resourceGithubRepositoryDeployKey(),
 		"github_repository_deployment_branch_policy": resourceGithubRepositoryDeploymentBranchPolicy(),
 		"github_repository_project":                  resourceGithubRepositoryProject(),
+		"github_repository_ruleset":                  resourceGithubRepositoryRuleset(),
+		"github_repository_webhook":                  resourceGithubRepositoryWebhook(),
+		"github_team":                                resourceGithubTeam(),
+		"github_team_membership":                     resourceGithubTeamMembership(),
+		"github_team_repository":                     resourceGithubTeamRepository(),
+		"github_team_sync_group_mapping":             resourceGithubTeamSyncGroupMapping(),
+		"github_user_gpg_key":                        resourceGithubUserGpgKey(),
+		"github_user_ssh_key":                        resourceGithubUserSshKey(),
+		"organization_block":                         resourceOrganizationBlock(),
 	}
 
 	for resourceName, resource := range resourcesWithEtag {
