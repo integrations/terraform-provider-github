@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
+	"github.com/hashicorp/terraform-plugin-testing/compare"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
@@ -64,34 +65,33 @@ func TestAccGithubRepository(t *testing.T) {
 		oldName := fmt.Sprintf(`%srename-%s`, testResourcePrefix, randomID)
 		newName := fmt.Sprintf(`%s-renamed`, oldName)
 
-		config := fmt.Sprintf(`
+		config := `
 			resource "github_repository" "test" {
 				name         = "%[1]s"
 				description  = "Terraform acceptance tests %[2]s"
 				visibility   = "%s"
 			}
-		`, oldName, randomID, testAccConf.testRepositoryVisibility)
+		`
 
+		nameDiffer := statecheck.CompareValue(compare.ValuesDiffer())
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: config,
+					Config: fmt.Sprintf(config, oldName, randomID, testAccConf.testRepositoryVisibility),
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("name"), knownvalue.StringExact(oldName)),
 						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("full_name"), knownvalue.StringRegexp(regexp.MustCompile(regexp.QuoteMeta(oldName)))),
+						nameDiffer.AddStateValue("github_repository.test", tfjsonpath.New("name")),
 					},
 				},
 				{
-					// Rename the repo to something else
-					Config: strings.Replace(
-						config,
-						oldName,
-						newName, 1),
+					Config: fmt.Sprintf(config, newName, randomID, testAccConf.testRepositoryVisibility),
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("name"), knownvalue.StringExact(newName)),
 						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("full_name"), knownvalue.StringRegexp(regexp.MustCompile(regexp.QuoteMeta(newName)))),
+						nameDiffer.AddStateValue("github_repository.test", tfjsonpath.New("name")),
 					},
 				},
 			},
@@ -199,11 +199,11 @@ resource "github_repository" "test" {
 	t.Run("manages the default branch feature for a repository", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%sbranch-%s", testResourcePrefix, randomID)
-		config := fmt.Sprintf(`
+		config := `
 			resource "github_repository" "test" {
 				name           = "%s"
 				description    = "Terraform acceptance tests %[1]s"
-				default_branch = "main"
+				default_branch = "%s"
 				auto_init      = true
 				visibility     = "%s"
 			}
@@ -212,39 +212,36 @@ resource "github_repository" "test" {
 				repository = github_repository.test.name
 				branch     = "default"
 			}
-		`, testRepoName, testAccConf.testRepositoryVisibility)
+		`
 
+		defaultBranchChangeCheck := statecheck.CompareValue(compare.ValuesDiffer())
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: config,
+					Config: fmt.Sprintf(config, testRepoName, "main", testAccConf.testRepositoryVisibility),
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("default_branch"), knownvalue.StringExact("main")),
+						defaultBranchChangeCheck.AddStateValue("github_repository.test", tfjsonpath.New("default_branch")),
 					},
 				},
-				// Test changing default_branch
 				{
-					Config: strings.Replace(config,
-						`default_branch = "main"`,
-						`default_branch = "default"`, 1),
+					Config: fmt.Sprintf(config, testRepoName, "default", testAccConf.testRepositoryVisibility),
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("default_branch"), knownvalue.StringExact("default")),
+						defaultBranchChangeCheck.AddStateValue("github_repository.test", tfjsonpath.New("default_branch")),
 					},
 				},
-				// Test changing default_branch back to main again
 				{
-					Config: config,
+					Config: fmt.Sprintf(config, testRepoName, "main", testAccConf.testRepositoryVisibility),
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("default_branch"), knownvalue.StringExact("main")),
+						defaultBranchChangeCheck.AddStateValue("github_repository.test", tfjsonpath.New("default_branch")),
 					},
 				},
 			},
 		})
 	})
 
-	t.Run("allows setting default_branch on an empty repository", func(t *testing.T) {
+	t.Run("updates_default_branchon_an_empty_repository_without_error", func(t *testing.T) {
 		// Although default_branch is deprecated, for backwards compatibility
 		// we allow setting it to "main".
 
@@ -259,26 +256,25 @@ resource "github_repository" "test" {
 			}
 		`, testRepoName, testAccConf.testRepositoryVisibility)
 
-		defaultBranchChecks := []statecheck.StateCheck{
-			statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("default_branch"), knownvalue.StringExact("main")),
-		}
-
+		defaultBranchChangeCheck := statecheck.CompareValue(compare.ValuesSame())
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
-				// Test creation with default_branch set
 				{
-					Config:            config,
-					ConfigStateChecks: defaultBranchChecks,
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("default_branch"), knownvalue.StringExact("main")),
+						defaultBranchChangeCheck.AddStateValue("github_repository.test", tfjsonpath.New("default_branch")),
+					},
 				},
-				// Test that changing another property does not try to set
-				// default_branch (which would crash).
 				{
 					Config: strings.Replace(config,
 						`acceptance tests`,
 						`acceptance test`, 1),
-					ConfigStateChecks: defaultBranchChecks,
+					ConfigStateChecks: []statecheck.StateCheck{
+						defaultBranchChangeCheck.AddStateValue("github_repository.test", tfjsonpath.New("default_branch")),
+					},
 				},
 			},
 		})
