@@ -21,8 +21,7 @@ jobs:
       github.actor != 'dependabot[bot]' &&
       github.actor != 'renovate[bot]' &&
       github.actor != 'github-actions[bot]' &&
-      github.actor != 'octokitbot' &&
-      github.repository == 'integrations/terraform-provider-github'
+      github.actor != 'octokitbot'
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -54,8 +53,7 @@ jobs:
       github.actor != 'dependabot[bot]' &&
       github.actor != 'renovate[bot]' &&
       github.actor != 'github-actions[bot]' &&
-      github.actor != 'octokitbot' &&
-      github.repository == 'integrations/terraform-provider-github'
+      github.actor != 'octokitbot'
     runs-on: ubuntu-latest
     permissions:
       issues: write
