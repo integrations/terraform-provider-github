@@ -17,7 +17,8 @@ func dataSourceGithubOrganization() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Computed: true,
 			},
 			"ignore_archived_repos": {
 				Type:     schema.TypeBool,
@@ -151,7 +152,10 @@ func dataSourceGithubOrganization() *schema.Resource {
 }
 
 func dataSourceGithubOrganizationRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	name := d.Get("name").(string)
+	name := meta.(*Owner).name
+	if v, ok := d.GetOk("name"); ok {
+		name = v.(string)
+	}
 
 	client4 := meta.(*Owner).v4client
 	client3 := meta.(*Owner).v3client
