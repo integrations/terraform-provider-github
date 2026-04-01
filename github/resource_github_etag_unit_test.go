@@ -168,7 +168,11 @@ func TestEtagSchemaConsistency(t *testing.T) {
 				return
 			}
 
-			// Verify etag is computed
+			// Verify etag is optional+computed (Optional is required by the SDK
+			// for DiffSuppressFunc, see TestEtagComputedOnlyRejectsSuppress)
+			if !etagField.Optional {
+				t.Errorf("etag should be optional in %s", resourceName)
+			}
 			if !etagField.Computed {
 				t.Errorf("etag should be computed in %s", resourceName)
 			}
