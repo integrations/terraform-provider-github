@@ -45,6 +45,7 @@ func resourceGithubUserSshKey() *schema.Resource {
 			},
 			"etag": {
 				Type:     schema.TypeString,
+				Optional: true,
 				Computed: true,
 				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
 					return true
