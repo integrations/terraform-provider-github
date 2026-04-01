@@ -50,7 +50,6 @@ func resourceGithubBranch() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the Branch object.",
 				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {

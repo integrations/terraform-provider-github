@@ -42,7 +42,6 @@ func resourceGithubActionsRunnerGroup() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the runner group object",
 				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
