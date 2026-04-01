@@ -1,6 +1,7 @@
 package github
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -71,6 +72,60 @@ func TestEtagDiffSuppressFunction(t *testing.T) {
 	}
 }
 
+// TestEtagComputedOnlyRejectsSuppress verifies that the SDK rejects
+// DiffSuppressFunc on Computed-only fields, proving Optional is required.
+func TestEtagComputedOnlyRejectsSuppress(t *testing.T) {
+	p := &schema.Provider{
+		ResourcesMap: map[string]*schema.Resource{
+			"test": {
+				Schema: map[string]*schema.Schema{
+					"etag": {
+						Type:     schema.TypeString,
+						Computed: true,
+						DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+							return true
+						},
+						DiffSuppressOnRefresh: true,
+					},
+				},
+			},
+		},
+	}
+	err := p.InternalValidate()
+	if err == nil {
+		t.Fatal("expected SDK to reject DiffSuppressFunc on Computed-only field")
+	}
+	if !strings.Contains(err.Error(), "DiffSuppressFunc") {
+		t.Fatalf("unexpected error: %s", err)
+	}
+}
+
+// TestEtagOptionalComputedAcceptsSuppress verifies that the SDK accepts
+// DiffSuppressFunc on Optional+Computed fields.
+func TestEtagOptionalComputedAcceptsSuppress(t *testing.T) {
+	p := &schema.Provider{
+		ResourcesMap: map[string]*schema.Resource{
+			"test": {
+				Schema: map[string]*schema.Schema{
+					"etag": {
+						Type:     schema.TypeString,
+						Optional: true,
+						Computed: true,
+						DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+							return true
+						},
+						DiffSuppressOnRefresh: true,
+					},
+				},
+			},
+		},
+	}
+	err := p.InternalValidate()
+	if err != nil {
+		t.Fatalf("Optional+Computed with DiffSuppressFunc should be valid, got: %s", err)
+	}
+}
+
 // TestEtagSchemaConsistency ensure DiffSuppressFunc and DiffSuppressOnRefresh are consistently applied.
 func TestEtagSchemaConsistency(t *testing.T) {
 	resourcesWithEtag := map[string]*schema.Resource{
@@ -135,6 +190,16 @@ func TestEtagSchemaConsistency(t *testing.T) {
 				if !result {
 					t.Errorf("DiffSuppressFunc should return true in %s", resourceName)
 				}
+			}
+
+			// Verify the schema passes SDK internal validation
+			p := &schema.Provider{
+				ResourcesMap: map[string]*schema.Resource{
+					resourceName: resource,
+				},
+			}
+			if err := p.InternalValidate(); err != nil {
+				t.Errorf("SDK validation failed for %s: %s", resourceName, err)
 			}
 		})
 	}
