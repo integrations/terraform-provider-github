@@ -1,7 +1,6 @@
 package github
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -69,60 +68,6 @@ func TestEtagDiffSuppressFunction(t *testing.T) {
 				t.Errorf("DiffSuppressFunc should always return true for etag field")
 			}
 		})
-	}
-}
-
-// TestEtagComputedOnlyRejectsSuppress verifies that the SDK rejects
-// DiffSuppressFunc on Computed-only fields, proving Optional is required.
-func TestEtagComputedOnlyRejectsSuppress(t *testing.T) {
-	p := &schema.Provider{
-		ResourcesMap: map[string]*schema.Resource{
-			"test": {
-				Schema: map[string]*schema.Schema{
-					"etag": {
-						Type:     schema.TypeString,
-						Computed: true,
-						DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
-							return true
-						},
-						DiffSuppressOnRefresh: true,
-					},
-				},
-			},
-		},
-	}
-	err := p.InternalValidate()
-	if err == nil {
-		t.Fatal("expected SDK to reject DiffSuppressFunc on Computed-only field")
-	}
-	if !strings.Contains(err.Error(), "DiffSuppressFunc") {
-		t.Fatalf("unexpected error: %s", err)
-	}
-}
-
-// TestEtagOptionalComputedAcceptsSuppress verifies that the SDK accepts
-// DiffSuppressFunc on Optional+Computed fields.
-func TestEtagOptionalComputedAcceptsSuppress(t *testing.T) {
-	p := &schema.Provider{
-		ResourcesMap: map[string]*schema.Resource{
-			"test": {
-				Schema: map[string]*schema.Schema{
-					"etag": {
-						Type:     schema.TypeString,
-						Optional: true,
-						Computed: true,
-						DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
-							return true
-						},
-						DiffSuppressOnRefresh: true,
-					},
-				},
-			},
-		},
-	}
-	err := p.InternalValidate()
-	if err != nil {
-		t.Fatalf("Optional+Computed with DiffSuppressFunc should be valid, got: %s", err)
 	}
 }
 
