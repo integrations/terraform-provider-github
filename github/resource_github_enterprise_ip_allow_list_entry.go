@@ -91,7 +91,8 @@ func resourceGithubEnterpriseIpAllowListEntryCreate(ctx context.Context, d *sche
 	}
 
 	if name != "" {
-		input.Name = githubv4.NewString(githubv4.String(name))
+		v := githubv4.String(name)
+		input.Name = &v
 	}
 
 	err = client.Mutate(ctx, &mutation, input, nil)
@@ -191,7 +192,8 @@ func resourceGithubEnterpriseIpAllowListEntryUpdate(ctx context.Context, d *sche
 	}
 
 	if name != "" {
-		input.Name = githubv4.NewString(githubv4.String(name))
+		v := githubv4.String(name)
+		input.Name = &v
 	}
 
 	err := client.Mutate(ctx, &mutation, input, nil)
