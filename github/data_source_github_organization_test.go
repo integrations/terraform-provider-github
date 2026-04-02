@@ -6,9 +6,32 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubOrganizationDataSource(t *testing.T) {
+	t.Run("uses provider owner when name is not set", func(t *testing.T) {
+		config := `data "github_organization" "test" {}`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_organization.test", tfjsonpath.New("login"), knownvalue.StringExact(testAccConf.owner)),
+						statecheck.ExpectKnownValue("data.github_organization.test", tfjsonpath.New("orgname"), knownvalue.StringExact(testAccConf.owner)),
+						statecheck.ExpectKnownValue("data.github_organization.test", tfjsonpath.New("node_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("data.github_organization.test", tfjsonpath.New("plan"), knownvalue.NotNull()),
+					},
+				},
+			},
+		})
+	})
+
 	t.Run("queries for an organization without error", func(t *testing.T) {
 		config := fmt.Sprintf(`
 			data "github_organization" "test" {

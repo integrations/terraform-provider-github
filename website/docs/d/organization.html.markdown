@@ -17,9 +17,15 @@ data "github_organization" "example" {
 }
 ```
 
+If `name` is omitted, the provider's configured `owner` is used:
+
+```hcl
+data "github_organization" "example" {}
+```
+
 ## Argument Reference
 
-* `name` - (Required) The name of the organization.
+* `name` - (Optional) The name of the organization. Defaults to the provider's configured `owner`.
 * `ignore_archived_repos` - (Optional) Whether or not to include archived repos in the `repositories` list. Defaults to `false`.
 * `summary_only` - (Optional) Exclude the repos, members and other attributes from the returned result. Defaults to `false`.
 
