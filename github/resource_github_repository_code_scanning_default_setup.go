@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"net/http"
 	"time"
 
 	"github.com/google/go-github/v84/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -30,12 +31,18 @@ func resourceGithubRepositoryCodeScanningDefaultSetup() *schema.Resource {
 			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 
+		CustomizeDiff: diffRepository,
+
 		Schema: map[string]*schema.Schema{
 			"repository": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "The GitHub repository name.",
+			},
+			"repository_id": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The ID of the GitHub repository.",
 			},
 			"state": {
 				Type:        schema.TypeString,
@@ -73,6 +80,14 @@ func resourceGithubRepositoryCodeScanningDefaultSetupCreateOrUpdate(ctx context.
 	repoName := d.Get("repository").(string)
 	state := d.Get("state").(string)
 
+	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
+	if err != nil {
+		return diag.Errorf("error reading repository %s/%s: %s", owner, repoName, err)
+	}
+	if repo.GetArchived() {
+		return diag.Errorf("repository %s/%s is archived", owner, repoName)
+	}
+
 	options := &github.UpdateDefaultSetupConfigurationOptions{
 		State: state,
 	}
@@ -86,7 +101,7 @@ func resourceGithubRepositoryCodeScanningDefaultSetupCreateOrUpdate(ctx context.
 		options.Languages = expandStringList(v.(*schema.Set).List())
 	}
 
-	_, _, err := client.CodeScanning.UpdateDefaultSetupConfiguration(ctx, owner, repoName, options)
+	_, _, err = client.CodeScanning.UpdateDefaultSetupConfiguration(ctx, owner, repoName, options)
 	if err != nil {
 		// 202 Accepted is expected — go-github surfaces it as AcceptedError
 		var acceptedErr *github.AcceptedError
@@ -117,8 +132,21 @@ func resourceGithubRepositoryCodeScanningDefaultSetupRead(ctx context.Context, d
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 
-	if repoName == "" {
-		repoName = d.Id()
+	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
+	if err != nil {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Repository not found, removing from state", map[string]any{
+				"owner":      owner,
+				"repository": repoName,
+			})
+			d.SetId("")
+			return nil
+		}
+		return diag.Errorf("error reading repository %s/%s: %s", owner, repoName, err)
+	}
+	if err := d.Set("repository_id", int(repo.GetID())); err != nil {
+		return diag.Errorf("error setting repository_id: %s", err)
 	}
 
 	config, _, err := client.CodeScanning.GetDefaultSetupConfiguration(ctx, owner, repoName)
@@ -141,16 +169,26 @@ func resourceGithubRepositoryCodeScanningDefaultSetupDelete(ctx context.Context,
 	_, _, err := client.CodeScanning.UpdateDefaultSetupConfiguration(ctx, owner, repoName, options)
 	if err != nil {
 		var acceptedErr *github.AcceptedError
-		if !errors.As(err, &acceptedErr) {
+		var ghErr *github.ErrorResponse
+		switch {
+		case errors.As(err, &acceptedErr):
+			// 202 Accepted is expected
+		case errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound:
+			// repository already gone
+			return nil
+		default:
 			return diag.Errorf("error disabling code scanning default setup for %s/%s: %s", owner, repoName, err)
 		}
 	}
 
-	log.Printf("[INFO] Code scanning default setup disabled for %s/%s", owner, repoName)
+	tflog.Info(ctx, "Code scanning default setup disabled", map[string]any{
+		"owner":      owner,
+		"repository": repoName,
+	})
 	return nil
 }
 
-func resourceGithubRepositoryCodeScanningDefaultSetupImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubRepositoryCodeScanningDefaultSetupImport(_ context.Context, d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
 	repoName := d.Id()
 	if repoName == "" {
 		return nil, fmt.Errorf("repository name must not be empty")
@@ -158,11 +196,6 @@ func resourceGithubRepositoryCodeScanningDefaultSetupImport(ctx context.Context,
 
 	if err := d.Set("repository", repoName); err != nil {
 		return nil, err
-	}
-
-	diags := resourceGithubRepositoryCodeScanningDefaultSetupRead(ctx, d, meta)
-	if diags.HasError() {
-		return nil, fmt.Errorf("error importing code scanning default setup for %s: %s", repoName, diags[0].Summary)
 	}
 
 	return []*schema.ResourceData{d}, nil
@@ -204,6 +237,9 @@ func waitForCodeScanningState(ctx context.Context, client *github.Client, owner,
 	result, err := conf.WaitForStateContext(ctx)
 	if err != nil {
 		return nil, err
+	}
+	if result == nil {
+		return nil, fmt.Errorf("code scanning default setup returned nil result for %s/%s", owner, repo)
 	}
 
 	return result.(*github.DefaultSetupConfiguration), nil

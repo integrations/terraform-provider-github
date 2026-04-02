@@ -2,10 +2,14 @@ package github
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func testAccCodeScanningDefaultSetupConfig(repoName, extraAttrs string) string {
@@ -24,35 +28,7 @@ func testAccCodeScanningDefaultSetupConfig(repoName, extraAttrs string) string {
 }
 
 func TestAccGithubRepositoryCodeScanningDefaultSetup(t *testing.T) {
-	t.Run("configures and unconfigures code scanning default setup", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%srepo-code-scanning-%s", testResourcePrefix, randomID)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: testAccCodeScanningDefaultSetupConfig(repoName, `state = "configured"`),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr(
-							"github_repository_code_scanning_default_setup.test", "state", "configured"),
-						resource.TestCheckResourceAttrSet(
-							"github_repository_code_scanning_default_setup.test", "query_suite"),
-					),
-				},
-				{
-					Config: testAccCodeScanningDefaultSetupConfig(repoName, `state = "not-configured"`),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr(
-							"github_repository_code_scanning_default_setup.test", "state", "not-configured"),
-					),
-				},
-			},
-		})
-	})
-
-	t.Run("configures with extended query suite", func(t *testing.T) {
+	t.Run("configures with explicit query suite and languages", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-code-scanning-%s", testResourcePrefix, randomID)
 
@@ -64,65 +40,16 @@ func TestAccGithubRepositoryCodeScanningDefaultSetup(t *testing.T) {
 					Config: testAccCodeScanningDefaultSetupConfig(repoName, `
 						state       = "configured"
 						query_suite = "extended"
+						languages   = ["javascript-typescript", "python"]
 					`),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr(
-							"github_repository_code_scanning_default_setup.test", "state", "configured"),
-						resource.TestCheckResourceAttr(
-							"github_repository_code_scanning_default_setup.test", "query_suite", "extended"),
-					),
-				},
-			},
-		})
-	})
-
-	t.Run("configures with explicit languages", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%srepo-code-scanning-%s", testResourcePrefix, randomID)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: testAccCodeScanningDefaultSetupConfig(repoName, `
-						state     = "configured"
-						languages = ["javascript-typescript", "python"]
-					`),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr(
-							"github_repository_code_scanning_default_setup.test", "state", "configured"),
-						resource.TestCheckResourceAttr(
-							"github_repository_code_scanning_default_setup.test", "languages.#", "2"),
-					),
-				},
-			},
-		})
-	})
-
-	t.Run("updates query suite without changing state", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%srepo-code-scanning-%s", testResourcePrefix, randomID)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: testAccCodeScanningDefaultSetupConfig(repoName, `
-						state       = "configured"
-						query_suite = "default"
-					`),
-					Check: resource.TestCheckResourceAttr(
-						"github_repository_code_scanning_default_setup.test", "query_suite", "default"),
-				},
-				{
-					Config: testAccCodeScanningDefaultSetupConfig(repoName, `
-						state       = "configured"
-						query_suite = "extended"
-					`),
-					Check: resource.TestCheckResourceAttr(
-						"github_repository_code_scanning_default_setup.test", "query_suite", "extended"),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_code_scanning_default_setup.test",
+							tfjsonpath.New("state"), knownvalue.StringExact("configured")),
+						statecheck.ExpectKnownValue("github_repository_code_scanning_default_setup.test",
+							tfjsonpath.New("query_suite"), knownvalue.StringExact("extended")),
+						statecheck.ExpectKnownValue("github_repository_code_scanning_default_setup.test",
+							tfjsonpath.New("languages"), knownvalue.SetSizeExact(2)),
+					},
 				},
 			},
 		})
@@ -133,15 +60,24 @@ func TestAccGithubRepositoryCodeScanningDefaultSetup(t *testing.T) {
 		repoName := fmt.Sprintf("%srepo-code-scanning-%s", testResourcePrefix, randomID)
 		config := testAccCodeScanningDefaultSetupConfig(repoName, `state = "not-configured"`)
 
-		check := resource.TestCheckResourceAttr(
-			"github_repository_code_scanning_default_setup.test", "state", "not-configured")
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
-				{Config: config, Check: check},
-				{Config: config, Check: check},
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_code_scanning_default_setup.test",
+							tfjsonpath.New("state"), knownvalue.StringExact("not-configured")),
+					},
+				},
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_code_scanning_default_setup.test",
+							tfjsonpath.New("state"), knownvalue.StringExact("not-configured")),
+					},
+				},
 			},
 		})
 	})
@@ -156,14 +92,16 @@ func TestAccGithubRepositoryCodeScanningDefaultSetup(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: testAccCodeScanningDefaultSetupConfig(repoName, `state = "configured"`),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet(
-							"github_repository_code_scanning_default_setup.test", "repository"),
-						resource.TestCheckResourceAttr(
-							"github_repository_code_scanning_default_setup.test", "state", "configured"),
-						resource.TestCheckResourceAttrSet(
-							"github_repository_code_scanning_default_setup.test", "query_suite"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_code_scanning_default_setup.test",
+							tfjsonpath.New("repository"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_repository_code_scanning_default_setup.test",
+							tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_repository_code_scanning_default_setup.test",
+							tfjsonpath.New("state"), knownvalue.StringExact("configured")),
+						statecheck.ExpectKnownValue("github_repository_code_scanning_default_setup.test",
+							tfjsonpath.New("query_suite"), knownvalue.NotNull()),
+					},
 				},
 				{
 					ResourceName:      "github_repository_code_scanning_default_setup.test",
@@ -187,8 +125,44 @@ func TestAccGithubRepositoryCodeScanningDefaultSetup(t *testing.T) {
 						state     = "configured"
 						languages = ["go", "java-kotlin"]
 					`),
-					Check: resource.TestCheckResourceAttr(
-						"github_repository_code_scanning_default_setup.test", "state", "configured"),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_code_scanning_default_setup.test",
+							tfjsonpath.New("state"), knownvalue.StringExact("configured")),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("prevents configuring on archived repository", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-code-scanning-%s", testResourcePrefix, randomID)
+		repoConfig := `
+			resource "github_repository" "test" {
+				name       = "%s"
+				visibility = "public"
+				auto_init  = true
+				archived   = %t
+			}
+			%s
+		`
+		codeScanningConfig := `
+			resource "github_repository_code_scanning_default_setup" "test" {
+				repository = github_repository.test.name
+				state      = "configured"
+			}
+		`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(repoConfig, repoName, false, ""),
+				},
+				{
+					Config:      fmt.Sprintf(repoConfig, repoName, true, codeScanningConfig),
+					ExpectError: regexp.MustCompile("is archived"),
 				},
 			},
 		})
@@ -207,29 +181,31 @@ func TestAccGithubRepositoryCodeScanningDefaultSetup(t *testing.T) {
 						state       = "configured"
 						query_suite = "default"
 					`),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr(
-							"github_repository_code_scanning_default_setup.test", "state", "configured"),
-						resource.TestCheckResourceAttr(
-							"github_repository_code_scanning_default_setup.test", "query_suite", "default"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_code_scanning_default_setup.test",
+							tfjsonpath.New("state"), knownvalue.StringExact("configured")),
+						statecheck.ExpectKnownValue("github_repository_code_scanning_default_setup.test",
+							tfjsonpath.New("query_suite"), knownvalue.StringExact("default")),
+					},
 				},
 				{
 					Config: testAccCodeScanningDefaultSetupConfig(repoName, `
 						state       = "configured"
 						query_suite = "extended"
 					`),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr(
-							"github_repository_code_scanning_default_setup.test", "state", "configured"),
-						resource.TestCheckResourceAttr(
-							"github_repository_code_scanning_default_setup.test", "query_suite", "extended"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_code_scanning_default_setup.test",
+							tfjsonpath.New("state"), knownvalue.StringExact("configured")),
+						statecheck.ExpectKnownValue("github_repository_code_scanning_default_setup.test",
+							tfjsonpath.New("query_suite"), knownvalue.StringExact("extended")),
+					},
 				},
 				{
 					Config: testAccCodeScanningDefaultSetupConfig(repoName, `state = "not-configured"`),
-					Check: resource.TestCheckResourceAttr(
-						"github_repository_code_scanning_default_setup.test", "state", "not-configured"),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_code_scanning_default_setup.test",
+							tfjsonpath.New("state"), knownvalue.StringExact("not-configured")),
+					},
 				},
 			},
 		})
