@@ -3,10 +3,13 @@ package github
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/google/go-github/v84/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+const oidcCustomPropertyAPIVersion = "2026-03-10"
 
 func resourceGithubActionsOrganizationOIDCCustomPropertyInclusion() *schema.Resource {
 	return &schema.Resource{
@@ -47,11 +50,14 @@ func resourceGithubActionsOrganizationOIDCCustomPropertyInclusionCreate(d *schem
 	if err != nil {
 		return fmt.Errorf("error creating request to add OIDC custom property inclusion: %w", err)
 	}
+	req.Header.Set("X-GitHub-Api-Version", oidcCustomPropertyAPIVersion)
 
 	_, err = client.Do(ctx, req, nil)
 	if err != nil {
 		return fmt.Errorf("error adding OIDC custom property inclusion %q for organization %q: %w", customPropertyName, orgName, err)
 	}
+
+	log.Printf("[DEBUG] Successfully added OIDC custom property inclusion %q for organization %q", customPropertyName, orgName)
 
 	d.SetId(buildTwoPartID(orgName, customPropertyName))
 
@@ -115,6 +121,7 @@ func resourceGithubActionsOrganizationOIDCCustomPropertyInclusionDelete(d *schem
 	if err != nil {
 		return fmt.Errorf("error creating request to delete OIDC custom property inclusion: %w", err)
 	}
+	req.Header.Set("X-GitHub-Api-Version", oidcCustomPropertyAPIVersion)
 
 	_, err = client.Do(ctx, req, nil)
 	if err != nil {
@@ -126,7 +133,8 @@ func resourceGithubActionsOrganizationOIDCCustomPropertyInclusionDelete(d *schem
 
 // OIDCCustomPropertyInclusion represents a custom property included in OIDC tokens.
 type OIDCCustomPropertyInclusion struct {
-	PropertyName string `json:"property_name"`
+	PropertyName    string `json:"custom_property_name"`
+	InclusionSource string `json:"inclusion_source,omitempty"`
 }
 
 // listOrgOIDCCustomPropertyInclusions lists all custom properties included in OIDC tokens for an organization.
@@ -135,6 +143,7 @@ func listOrgOIDCCustomPropertyInclusions(ctx context.Context, client *github.Cli
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("X-GitHub-Api-Version", oidcCustomPropertyAPIVersion)
 
 	var inclusions []*OIDCCustomPropertyInclusion
 	_, err = client.Do(ctx, req, &inclusions)

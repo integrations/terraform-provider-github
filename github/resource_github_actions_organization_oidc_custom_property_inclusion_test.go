@@ -9,14 +9,21 @@ import (
 func TestAccGithubActionsOrganizationOIDCCustomPropertyInclusion(t *testing.T) {
 	t.Run("creates and deletes an OIDC custom property inclusion without error", func(t *testing.T) {
 		config := `
+		resource "github_organization_custom_properties" "test" {
+			property_name  = "tf-acc-test-oidc-env"
+			value_type     = "single_select"
+			required       = false
+			allowed_values = ["production", "staging"]
+		}
+
 		resource "github_actions_organization_oidc_custom_property_inclusion" "test" {
-			custom_property_name = "environment"
+			custom_property_name = github_organization_custom_properties.test.property_name
 		}`
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
 				"github_actions_organization_oidc_custom_property_inclusion.test",
-				"custom_property_name", "environment",
+				"custom_property_name", "tf-acc-test-oidc-env",
 			),
 		)
 		resource.Test(t, resource.TestCase{
@@ -33,14 +40,21 @@ func TestAccGithubActionsOrganizationOIDCCustomPropertyInclusion(t *testing.T) {
 
 	t.Run("imports an OIDC custom property inclusion without error", func(t *testing.T) {
 		config := `
+		resource "github_organization_custom_properties" "test" {
+			property_name  = "tf-acc-test-oidc-import"
+			value_type     = "single_select"
+			required       = false
+			allowed_values = ["production", "staging"]
+		}
+
 		resource "github_actions_organization_oidc_custom_property_inclusion" "test" {
-			custom_property_name = "environment"
+			custom_property_name = github_organization_custom_properties.test.property_name
 		}`
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
 				"github_actions_organization_oidc_custom_property_inclusion.test",
-				"custom_property_name", "environment",
+				"custom_property_name", "tf-acc-test-oidc-import",
 			),
 		)
 
@@ -63,22 +77,35 @@ func TestAccGithubActionsOrganizationOIDCCustomPropertyInclusion(t *testing.T) {
 
 	t.Run("manages multiple OIDC custom property inclusions", func(t *testing.T) {
 		config := `
+		resource "github_organization_custom_properties" "env" {
+			property_name  = "tf-acc-test-oidc-env2"
+			value_type     = "single_select"
+			required       = false
+			allowed_values = ["production", "staging"]
+		}
+
+		resource "github_organization_custom_properties" "team" {
+			property_name  = "tf-acc-test-oidc-team"
+			value_type     = "string"
+			required       = false
+		}
+
 		resource "github_actions_organization_oidc_custom_property_inclusion" "env" {
-			custom_property_name = "environment"
+			custom_property_name = github_organization_custom_properties.env.property_name
 		}
 
 		resource "github_actions_organization_oidc_custom_property_inclusion" "team" {
-			custom_property_name = "team"
+			custom_property_name = github_organization_custom_properties.team.property_name
 		}`
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
 				"github_actions_organization_oidc_custom_property_inclusion.env",
-				"custom_property_name", "environment",
+				"custom_property_name", "tf-acc-test-oidc-env2",
 			),
 			resource.TestCheckResourceAttr(
 				"github_actions_organization_oidc_custom_property_inclusion.team",
-				"custom_property_name", "team",
+				"custom_property_name", "tf-acc-test-oidc-team",
 			),
 		)
 
@@ -98,8 +125,15 @@ func TestAccGithubActionsOrganizationOIDCCustomPropertyInclusion(t *testing.T) {
 func TestAccGithubActionsOrganizationOIDCCustomPropertyInclusionsDataSource(t *testing.T) {
 	t.Run("reads OIDC custom property inclusions without error", func(t *testing.T) {
 		config := `
+		resource "github_organization_custom_properties" "test" {
+			property_name  = "tf-acc-test-oidc-ds"
+			value_type     = "single_select"
+			required       = false
+			allowed_values = ["production", "staging"]
+		}
+
 		resource "github_actions_organization_oidc_custom_property_inclusion" "test" {
-			custom_property_name = "environment"
+			custom_property_name = github_organization_custom_properties.test.property_name
 		}
 
 		data "github_actions_organization_oidc_custom_property_inclusions" "test" {
