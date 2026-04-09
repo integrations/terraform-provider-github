@@ -2,6 +2,10 @@ name: Acceptance Tests (GHES)
 
 on:
   workflow_dispatch:
+  # push:
+  #   branches:
+  #     - main
+  #     - release-v*
   # pull_request_target:
   #   types:
   #     - opened
@@ -26,6 +30,7 @@ jobs:
       contents: read
     environment:
       name: acctest-ghes
+      deployment: false
     defaults:
       run:
         shell: bash
