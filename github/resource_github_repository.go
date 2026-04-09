@@ -407,6 +407,13 @@ func resourceGithubRepository() *schema.Resource {
 				Default:    false,
 				Deprecated: "This is ignored as the provider now handles lack of permissions automatically.",
 			},
+			"custom_properties": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Computed:    true,
+				Description: "Custom properties for the repository. Key/value pairs where values must be strings. Use this to satisfy organization-required custom properties at repository creation time.",
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
 			"full_name": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -644,6 +651,10 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 				repository.WebCommitSignoffRequired = new(val)
 			}
 		}
+	}
+
+	if v, ok := d.GetOk("custom_properties"); ok {
+		repository.CustomProperties = v.(map[string]any)
 	}
 
 	return repository
@@ -910,6 +921,12 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 
 		if err = d.Set("security_and_analysis", flattenSecurityAndAnalysis(repo.SecurityAndAnalysis)); err != nil {
 			return diag.FromErr(err)
+		}
+	}
+
+	if len(repo.CustomProperties) > 0 {
+		if err := d.Set("custom_properties", repo.CustomProperties); err != nil {
+			return diag.Errorf("error setting custom_properties: %s", err.Error())
 		}
 	}
 
