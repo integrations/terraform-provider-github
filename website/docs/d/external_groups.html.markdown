@@ -30,11 +30,7 @@ N/A. This resource will retrieve all the external groups belonging to an organiz
 ## Attributes Reference
 
  * `external_groups` - an array of external groups belonging to the organization. Each group consists of the fields documented below.
-
-___
-
-
- * `group_id` - the ID of the group.
- * `group_name` - the name of the group.
- * `updated_at` - the date the group was last updated.
+   * `group_id` - the ID of the group.
+   * `group_name` - the name of the group.
+   * `updated_at` - the date the group was last updated.
 
