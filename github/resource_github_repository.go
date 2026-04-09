@@ -373,6 +373,12 @@ func resourceGithubRepository() *schema.Resource {
 							Computed:    true,
 							Description: "URL to the repository on the web.",
 						},
+						"public": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Optional:    true,
+							Description: "Whether the GitHub Pages site is publicly visible. If set to `true`, the site is accessible to anyone on the internet. If set to `false`, the site will only be accessible to users who have at least `read` access to the repository that published the site.",
+						},
 						"status": {
 							Type:        schema.TypeString,
 							Computed:    true,
@@ -1117,6 +1123,11 @@ func expandPagesUpdate(input []any) *github.PagesUpdate {
 		}
 		update.Source = &github.PagesSource{Branch: &sourceBranch, Path: &sourcePath}
 	}
+	
+	// Only set the github.PagesUpdate public field if the value is a valid boolean.
+	if v, ok := pages["public"].(bool); ok && v != "" {
+		update.Public = github.Ptr(v)
+	}
 
 	return update
 }
@@ -1141,6 +1152,7 @@ func flattenPages(pages *github.Pages) []any {
 
 	pagesMap["url"] = pages.GetURL()
 	pagesMap["status"] = pages.GetStatus()
+	pagesMap["public"] = pages.GetPublic()
 	pagesMap["cname"] = pages.GetCNAME()
 	pagesMap["custom_404"] = pages.GetCustom404()
 	pagesMap["html_url"] = pages.GetHTMLURL()
