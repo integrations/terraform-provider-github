@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -141,9 +140,9 @@ func resourceGithubActionsEnvironmentVariableRead(ctx context.Context, d *schema
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, fmt.Sprintf("Removing actions variable %s from state because it no longer exists in GitHub", d.Id()), map[string]any{
-				"variable_id": d.Id(),
-			})
+				tflog.Info(ctx, "Removing actions variable from state because it no longer exists in GitHub", map[string]any{
+					"variable_id": d.Id(),
+				})
 				d.SetId("")
 				return nil
 			}
