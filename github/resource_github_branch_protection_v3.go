@@ -275,6 +275,26 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta any) erro
 	orgName := meta.(*Owner).name
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	repo, _, err := client.Repositories.Get(ctx, orgName, repoName)
+	if err != nil {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) {
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				log.Printf("[INFO] Removing branch protection %s/%s (%s) from state because the repository no longer exists",
+					orgName, repoName, branch)
+				d.SetId("")
+				return nil
+			}
+		}
+		return err
+	}
+	if repo.GetArchived() {
+		log.Printf("[INFO] Removing branch protection %s/%s (%s) from state because the repository is archived", orgName, repoName, branch)
+		d.SetId("")
+		return nil
+	}
+
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
