@@ -12,9 +12,9 @@ import (
 
 func resourceGithubActionsOrganizationPermissions() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsOrganizationPermissionsCreateOrUpdate,
+		Create: resourceGithubActionsOrganizationPermissionsCreate,
 		Read:   resourceGithubActionsOrganizationPermissionsRead,
-		Update: resourceGithubActionsOrganizationPermissionsCreateOrUpdate,
+		Update: resourceGithubActionsOrganizationPermissionsUpdate,
 		Delete: resourceGithubActionsOrganizationPermissionsDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -137,13 +137,13 @@ func resourceGithubActionsEnabledRepositoriesObject(d *schema.ResourceData) ([]i
 	return enabled, nil
 }
 
-func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.ResourceData, meta any) error {
+// resourceGithubActionsOrganizationPermissionsCreate handles resource creation.
+// Uses GetOkExists for sha_pinning_required to detect explicit false values.
+// Ref: https://github.com/integrations/terraform-provider-github/pull/3224#pullrequestreview-3868068333
+func resourceGithubActionsOrganizationPermissionsCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	ctx := context.Background()
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxId, d.Id())
-	}
 
 	err := checkOrganization(meta)
 	if err != nil {
@@ -158,8 +158,17 @@ func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.Resour
 		EnabledRepositories: &enabledRepositories,
 	}
 
-	if v, ok := d.GetOk("sha_pinning_required"); ok {
-		actionsPermissions.SHAPinningRequired = new(v.(bool))
+	// The `sha_pinning_required` is an Optional and Computed boolean.
+	//
+	// When a user writes `sha_pinning_required = false`,
+	// `GetOk` returns `(false, false)`. The second `false` argument
+	// means "not set", which is indistinguishable from the user omitting
+	// the field entirely. So the explicit false was silently ignored.
+	//
+	// `GetOkExists` returns `(false, true)`.
+	// The `true` value correctly indicates the user did want to set it.
+	if v, ok := d.GetOkExists("sha_pinning_required"); ok { //nolint:staticcheck
+		actionsPermissions.SHAPinningRequired = github.Ptr(v.(bool))
 	}
 
 	_, _, err = client.Actions.UpdateActionsPermissions(ctx,
@@ -198,6 +207,69 @@ func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.Resour
 	}
 
 	d.SetId(orgName)
+	return resourceGithubActionsOrganizationPermissionsRead(d, meta)
+}
+
+// resourceGithubActionsOrganizationPermissionsUpdate handles resource updates.
+// Uses HasChange + Get for sha_pinning_required to send the value only when it changes.
+// Ref: https://github.com/integrations/terraform-provider-github/pull/3224#pullrequestreview-3868068333
+func resourceGithubActionsOrganizationPermissionsUpdate(d *schema.ResourceData, meta any) error {
+	client := meta.(*Owner).v3client
+	orgName := meta.(*Owner).name
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	err := checkOrganization(meta)
+	if err != nil {
+		return err
+	}
+
+	allowedActions := d.Get("allowed_actions").(string)
+	enabledRepositories := d.Get("enabled_repositories").(string)
+
+	actionsPermissions := github.ActionsPermissions{
+		AllowedActions:      &allowedActions,
+		EnabledRepositories: &enabledRepositories,
+	}
+
+	if d.HasChange("sha_pinning_required") {
+		actionsPermissions.SHAPinningRequired = github.Ptr(d.Get("sha_pinning_required").(bool))
+	}
+
+	_, _, err = client.Actions.UpdateActionsPermissions(ctx,
+		orgName,
+		actionsPermissions)
+	if err != nil {
+		return err
+	}
+
+	if allowedActions == "selected" {
+		actionsAllowedData := resourceGithubActionsOrganizationAllowedObject(d)
+		if actionsAllowedData != nil {
+			log.Printf("[DEBUG] Allowed actions config is set")
+			_, _, err = client.Actions.UpdateActionsAllowed(ctx,
+				orgName,
+				*actionsAllowedData)
+			if err != nil {
+				return err
+			}
+		} else {
+			log.Printf("[DEBUG] Allowed actions config not set, skipping")
+		}
+	}
+
+	if enabledRepositories == "selected" {
+		enabledReposData, err := resourceGithubActionsEnabledRepositoriesObject(d)
+		if err != nil {
+			return err
+		}
+		_, err = client.Actions.SetEnabledReposInOrg(ctx,
+			orgName,
+			enabledReposData)
+		if err != nil {
+			return err
+		}
+	}
+
 	return resourceGithubActionsOrganizationPermissionsRead(d, meta)
 }
 

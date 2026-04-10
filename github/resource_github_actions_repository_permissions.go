@@ -11,9 +11,9 @@ import (
 
 func resourceGithubActionsRepositoryPermissions() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsRepositoryPermissionsCreateOrUpdate,
+		Create: resourceGithubActionsRepositoryPermissionsCreate,
 		Read:   resourceGithubActionsRepositoryPermissionsRead,
-		Update: resourceGithubActionsRepositoryPermissionsCreateOrUpdate,
+		Update: resourceGithubActionsRepositoryPermissionsUpdate,
 		Delete: resourceGithubActionsRepositoryPermissionsDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -108,15 +108,15 @@ func resourceGithubActionsRepositoryAllowedObject(d *schema.ResourceData) *githu
 	return allowed
 }
 
-func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.ResourceData, meta any) error {
+// resourceGithubActionsRepositoryPermissionsCreate handles resource creation.
+// Uses GetOkExists for sha_pinning_required to detect explicit false values.
+// Ref: https://github.com/integrations/terraform-provider-github/pull/3224#pullrequestreview-3868068333
+func resourceGithubActionsRepositoryPermissionsCreate(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	ctx := context.Background()
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxId, d.Id())
-	}
 
 	allowedActions := d.Get("allowed_actions").(string)
 	enabled := d.Get("enabled").(bool)
@@ -131,8 +131,17 @@ func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.Resource
 		repoActionPermissions.AllowedActions = &allowedActions
 	}
 
-	if v, ok := d.GetOk("sha_pinning_required"); ok {
-		repoActionPermissions.SHAPinningRequired = new(v.(bool))
+	// The `sha_pinning_required` is an Optional and Computed boolean.
+	//
+	// When a user writes `sha_pinning_required = false`,
+	// `GetOk` returns `(false, false)`. The second `false` argument
+	// means "not set", which is indistinguishable from the user omitting
+	// the field entirely. So the explicit false was silently ignored.
+	//
+	// `GetOkExists` returns `(false, true)`.
+	// The `true` value correctly indicates the user did want to set it.
+	if v, ok := d.GetOkExists("sha_pinning_required"); ok { //nolint:staticcheck
+		repoActionPermissions.SHAPinningRequired = github.Ptr(v.(bool))
 	}
 
 	_, _, err := client.Repositories.UpdateActionsPermissions(ctx,
@@ -161,6 +170,61 @@ func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.Resource
 	}
 
 	d.SetId(repoName)
+	return resourceGithubActionsRepositoryPermissionsRead(d, meta)
+}
+
+// resourceGithubActionsRepositoryPermissionsUpdate handles resource updates.
+// Uses HasChange + Get for sha_pinning_required to send the value only when it changes.
+// Ref: https://github.com/integrations/terraform-provider-github/pull/3224#pullrequestreview-3868068333
+func resourceGithubActionsRepositoryPermissionsUpdate(d *schema.ResourceData, meta any) error {
+	client := meta.(*Owner).v3client
+
+	owner := meta.(*Owner).name
+	repoName := d.Get("repository").(string)
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
+	allowedActions := d.Get("allowed_actions").(string)
+	enabled := d.Get("enabled").(bool)
+	log.Printf("[DEBUG] Actions enabled: %t", enabled)
+
+	repoActionPermissions := github.ActionsPermissionsRepository{
+		Enabled: &enabled,
+	}
+
+	// Only specify `allowed_actions` if actions are enabled
+	if enabled {
+		repoActionPermissions.AllowedActions = &allowedActions
+	}
+
+	if d.HasChange("sha_pinning_required") {
+		repoActionPermissions.SHAPinningRequired = github.Ptr(d.Get("sha_pinning_required").(bool))
+	}
+
+	_, _, err := client.Repositories.UpdateActionsPermissions(ctx,
+		owner,
+		repoName,
+		repoActionPermissions,
+	)
+	if err != nil {
+		return err
+	}
+
+	if allowedActions == "selected" {
+		actionsAllowedData := resourceGithubActionsRepositoryAllowedObject(d)
+		if actionsAllowedData != nil {
+			log.Printf("[DEBUG] Allowed actions config is set")
+			_, _, err = client.Repositories.EditActionsAllowed(ctx,
+				owner,
+				repoName,
+				*actionsAllowedData)
+			if err != nil {
+				return err
+			}
+		} else {
+			log.Printf("[DEBUG] Allowed actions config not set, skipping")
+		}
+	}
+
 	return resourceGithubActionsRepositoryPermissionsRead(d, meta)
 }
 

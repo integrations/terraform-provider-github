@@ -185,6 +185,62 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 		})
 	})
 
+	t.Run("test setting sha_pinning_required to true then updating to false", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-perms-%s", testResourcePrefix, randomID)
+
+		configTrue := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name        = "%[1]s"
+				description = "Terraform acceptance tests %[1]s"
+				topics		= ["terraform", "testing"]
+			}
+
+			resource "github_actions_repository_permissions" "test" {
+				allowed_actions = "all"
+				repository = github_repository.test.name
+				sha_pinning_required = true
+			}
+		`, repoName)
+
+		configFalse := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name        = "%[1]s"
+				description = "Terraform acceptance tests %[1]s"
+				topics		= ["terraform", "testing"]
+			}
+
+			resource "github_actions_repository_permissions" "test" {
+				allowed_actions = "all"
+				repository = github_repository.test.name
+				sha_pinning_required = false
+			}
+		`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: configTrue,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"github_actions_repository_permissions.test", "sha_pinning_required", "true",
+						),
+					),
+				},
+				{
+					Config: configFalse,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"github_actions_repository_permissions.test", "sha_pinning_required", "false",
+						),
+					),
+				},
+			},
+		})
+	})
+
 	t.Run("test disabling actions on a repository", func(t *testing.T) {
 		actionsEnabled := false
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
