@@ -120,3 +120,41 @@ func TestEtagSchemaConsistency(t *testing.T) {
 		})
 	}
 }
+
+func TestNormalizeEtag(t *testing.T) {
+	testCases := []struct {
+		name string
+		etag string
+		want string
+	}{
+		{
+			name: "empty etag",
+			etag: "",
+			want: "",
+		},
+		{
+			name: "strong etag unchanged",
+			etag: `"abc123"`,
+			want: `"abc123"`,
+		},
+		{
+			name: "weak etag normalized",
+			etag: `W/"abc123"`,
+			want: `"abc123"`,
+		},
+		{
+			name: "weak etag with whitespace normalized",
+			etag: "  W/\"abc123\"  ",
+			want: `"abc123"`,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := normalizeEtag(tc.etag)
+			if got != tc.want {
+				t.Fatalf("normalizeEtag(%q) = %q, want %q", tc.etag, got, tc.want)
+			}
+		})
+	}
+}
