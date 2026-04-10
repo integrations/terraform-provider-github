@@ -43,6 +43,7 @@ data "github_organization" "example" {
  * `default_repository_permission` - Default permission level members have for organization repositories.
  * `members_allowed_repository_creation_type` - The type of repository allowed to be created by members of the organization. Can be one of `ALL`, `PUBLIC`, `PRIVATE`, `NONE`.
  * `members_can_create_repositories` - Whether non-admin organization members can create repositories.
+ * `members_can_change_repo_visibility` - Whether organization members can change the visibility of repositories.
  * `members_can_create_internal_repositories` - Whether organization members can create internal repositories.
  * `members_can_create_private_repositories` - Whether organization members can create private repositories.
  * `members_can_create_public_repositories` - Whether organization members can create public repositories.
