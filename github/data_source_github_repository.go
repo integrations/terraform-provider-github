@@ -341,6 +341,11 @@ func dataSourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
+			"web_commit_signoff_required": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Require contributors to sign off on web-based commits.",
+			},
 		},
 	}
 }
@@ -414,6 +419,7 @@ func dataSourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData,
 	_ = d.Set("has_projects", repo.GetHasProjects())
 	_ = d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge())
 	_ = d.Set("allow_update_branch", repo.GetAllowUpdateBranch())
+	_ = d.Set("web_commit_signoff_required", repo.GetWebCommitSignoffRequired())
 
 	if repo.GetHasPages() {
 		pages, _, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)
