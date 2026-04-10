@@ -3,6 +3,7 @@ package github
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-github/v84/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -1063,6 +1064,57 @@ func TestExpandRepositoryPropertyConditions_NilPropertyValues(t *testing.T) {
 	}
 	if prop.PropertyValues[1] != "staging" {
 		t.Errorf("Expected second value to be 'staging', got '%s'", prop.PropertyValues[1])
+	}
+}
+
+func TestExpandConditions(t *testing.T) {
+	t.Parallel()
+
+	for _, d := range []struct {
+		testName string
+		input    []any
+		want     *github.RepositoryRulesetConditions
+	}{
+		{
+			testName: "returns_nil_for_empty_input",
+			input:    []any{},
+			want:     nil,
+		},
+		{
+			testName: "returns_nil_for_empty_input_slice",
+			input:    []any{nil},
+			want:     nil,
+		},
+		{
+			testName: "returns_empty_conditions_for_empty_input_slice",
+			input:    []any{map[string]any{}},
+			want:     &github.RepositoryRulesetConditions{},
+		},
+		{
+			testName: "returns_empty_conditions_for_empty_ref_name",
+			input:    []any{map[string]any{"ref_name": []any{}}},
+			want:     &github.RepositoryRulesetConditions{},
+		},
+		{
+			testName: "returns_empty_conditions_for_empty_ref_name_arrays",
+			input:    []any{map[string]any{"ref_name": []any{map[string]any{"include": []any{}, "exclude": []any{}}}}},
+			want:     &github.RepositoryRulesetConditions{RefName: &github.RepositoryRulesetRefConditionParameters{Include: []string{}, Exclude: []string{}}},
+		},
+		{
+			testName: "returns_empty_conditions_for_nil_ref_name_arrays",
+			input:    []any{map[string]any{"ref_name": []any{nil}}},
+			want:     &github.RepositoryRulesetConditions{},
+		},
+	} {
+		t.Run(d.testName, func(t *testing.T) {
+			t.Parallel()
+
+			got := expandConditions(d.input, false)
+
+			if diff := cmp.Diff(got, d.want); diff != "" {
+				t.Fatalf("got %+v, want %+v", got, d.want)
+			}
+		})
 	}
 }
 
