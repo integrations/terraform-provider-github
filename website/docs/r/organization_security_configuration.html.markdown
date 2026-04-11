@@ -90,8 +90,8 @@ The `secret_scanning_delegated_bypass_options` block supports:
 
 ## Import
 
-GitHub Organization Code Security Configurations can be imported using the organization name and the configuration ID separated by a colon, e.g.
+GitHub Organization Code Security Configurations can be imported using the configuration ID, e.g.
 
 ```text
-$ terraform import github_organization_security_configuration.example my-org:123
+$ terraform import github_organization_security_configuration.example 123
 ```

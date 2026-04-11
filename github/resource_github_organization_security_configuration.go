@@ -324,11 +324,7 @@ func resourceGithubOrganizationSecurityConfigurationCreate(ctx context.Context, 
 		return diag.FromErr(err)
 	}
 
-	id, err := buildID(org, strconv.FormatInt(configuration.GetID(), 10))
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	d.SetId(id)
+	d.SetId(strconv.FormatInt(configuration.GetID(), 10))
 
 	if diags := setCodeSecurityConfigurationState(d, configuration); diags.HasError() {
 		return diags
@@ -488,14 +484,9 @@ func resourceGithubOrganizationSecurityConfigurationDelete(ctx context.Context, 
 }
 
 func resourceGithubOrganizationSecurityConfigurationImport(_ context.Context, d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
-	_, configIDStr, err := parseID2(d.Id())
+	configID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return nil, fmt.Errorf("invalid import specified: supplied import must be written as <organization>:<configuration_id>. Parse error: %w", err)
-	}
-
-	configID, err := strconv.ParseInt(configIDStr, 10, 64)
-	if err != nil {
-		return nil, fmt.Errorf("invalid configuration_id %q: %w", configIDStr, err)
+		return nil, fmt.Errorf("invalid configuration_id %q: %w", d.Id(), err)
 	}
 
 	if err = d.Set("configuration_id", int(configID)); err != nil {
