@@ -1,6 +1,6 @@
 ---
 layout: "github"
-page_title: "Github: github_enterprise"
+page_title: "GitHub: github_enterprise"
 description: |-
   Get an enterprise.
 ---
