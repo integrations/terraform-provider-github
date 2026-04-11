@@ -1,11 +1,26 @@
 # Terraform Provider GitHub
-=========================
 
 <img src="https://cloud.githubusercontent.com/assets/98681/24211275/c4ebd04e-0ee8-11e7-8606-061d656a42df.png" width="72" height="">
 
 <img src="https://raw.githubusercontent.com/hashicorp/terraform-website/d841a1e5fca574416b5ca24306f85a0f4f41b36d/content/source/assets/images/logo-terraform-main.svg" width="300px">
 
-This project is used to manipulate GitHub resources (repositories, teams, files, etc.) using Terraform. Its Terraform Registry page can be found [here](https://registry.terraform.io/providers/integrations/github/).
+This provider manages GitHub resources — repositories, teams, branch protections, actions secrets/variables, organization settings, rulesets, deploy keys, webhooks, and more — using Terraform. It supports both GitHub.com and GitHub Enterprise Server via the REST and GraphQL APIs.
+
+See the [GitHub Provider page on the Terraform Registry](https://registry.terraform.io/providers/integrations/github/) for installation and documentation.
+
+## Quick Start
+
+```hcl
+provider "github" {
+  owner = "my-org"
+}
+
+resource "github_repository" "example" {
+  name        = "example-repo"
+  description = "Managed by Terraform"
+  visibility  = "private"
+}
+```
 
 ## Requirements
 
@@ -14,11 +29,11 @@ This project is used to manipulate GitHub resources (repositories, teams, files,
 
 ## Usage
 
-Detailed documentation for the GitHub provider can be found [here](https://registry.terraform.io/providers/integrations/github).
+Comprehensive documentation for the GitHub Terraform provider is available on the [Terraform Registry – GitHub Provider page](https://registry.terraform.io/providers/integrations/github).
 
 ## Contributing
 
-Detailed documentation for contributing to the GitHub provider can be found [here](CONTRIBUTING.md).
+For instructions on how to contribute to the GitHub Terraform provider, see the [Contributing Guide](CONTRIBUTING.md).
 
 ## Roadmap
 
