@@ -241,8 +241,9 @@ func dataSourceGithubRepository() *schema.Resource {
 				},
 			},
 			"pages": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:       schema.TypeList,
+				Computed:   true,
+				Deprecated: "Use the github_repository_pages data source instead. This field will be removed in a future version.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"source": {
