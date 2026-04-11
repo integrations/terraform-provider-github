@@ -67,7 +67,7 @@ func dataSourceGithubEnterpriseCostCentersRead(ctx context.Context, d *schema.Re
 
 	var opts github.ListCostCenterOptions
 	if stateFilter != "all" {
-		opts.State = github.Ptr(stateFilter)
+		opts.State = &stateFilter
 	}
 
 	result, _, err := client.Enterprise.ListCostCenters(ctx, enterpriseSlug, &opts)
