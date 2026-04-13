@@ -110,6 +110,17 @@ func caseInsensitive() schema.SchemaDiffSuppressFunc {
 	}
 }
 
+// GitHub can return the same runner group with a strong ETag on create/import
+// paths and a weak ETag on subsequent reads. We store a canonical form in
+// state so runner group refresh/import comparisons do not drift solely because
+// the API toggled the wire format between "etag" and W/"etag".
+func normalizeEtag(etag string) string {
+	etag = strings.TrimSpace(etag)
+	etag = strings.TrimPrefix(etag, "W/")
+
+	return etag
+}
+
 // wrapErrors is provided to easily turn errors into diag.Diagnostics
 // until we go through the provider and replace error usage.
 func wrapErrors(errs []error) diag.Diagnostics {

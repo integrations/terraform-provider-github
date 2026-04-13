@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-testing/compare"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
-
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubActionsRunnerGroup(t *testing.T) {
@@ -92,6 +95,147 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 				{
 					Config: config,
 					Check:  check,
+				},
+			},
+		})
+	})
+
+	t.Run("manages private networking association for hosted runners", func(t *testing.T) {
+		networkSettingsID := testAccOrganizationNetworkConfigurationID(t)
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		resourceName := "github_actions_runner_group.test"
+		networkConfigurationResourceName := "github_organization_network_configuration.test"
+		networkConfigurationName := fmt.Sprintf("%snetwork-config-%s", testResourcePrefix, randomID)
+		runnerGroupName := fmt.Sprintf("%srunner-group-%s", testResourcePrefix, randomID)
+
+		configWithoutNetworkConfiguration := fmt.Sprintf(`
+			resource "github_organization_network_configuration" "test" {
+			  name                 = %q
+			  compute_service      = "actions"
+			  network_settings_ids = [%q]
+			}
+
+			resource "github_actions_runner_group" "test" {
+			  name       = %q
+			  visibility = "all"
+			}
+		`, networkConfigurationName, networkSettingsID, runnerGroupName)
+
+		configWithNetworkConfiguration := fmt.Sprintf(`
+			resource "github_organization_network_configuration" "test" {
+			  name                 = %q
+			  compute_service      = "actions"
+			  network_settings_ids = [%q]
+			}
+
+			resource "github_actions_runner_group" "test" {
+			  name                     = %q
+			  visibility               = "all"
+			  network_configuration_id = github_organization_network_configuration.test.id
+			}
+		`, networkConfigurationName, networkSettingsID, runnerGroupName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: configWithoutNetworkConfiguration,
+				},
+				{
+					Config: configWithNetworkConfiguration,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.NotNull()),
+						statecheck.CompareValuePairs(
+							resourceName,
+							tfjsonpath.New("network_configuration_id"),
+							networkConfigurationResourceName,
+							tfjsonpath.New("id"),
+							compare.ValuesSame(),
+						),
+					},
+				},
+				{
+					Config: configWithoutNetworkConfiguration,
+				},
+			},
+		})
+	})
+
+	t.Run("creates private networking association for hosted runners on create", func(t *testing.T) {
+		networkSettingsID := testAccOrganizationNetworkConfigurationID(t)
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		resourceName := "github_actions_runner_group.test"
+		networkConfigurationResourceName := "github_organization_network_configuration.test"
+		networkConfigurationName := fmt.Sprintf("%snetwork-config-create-%s", testResourcePrefix, randomID)
+		runnerGroupName := fmt.Sprintf("%srunner-group-create-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+			resource "github_organization_network_configuration" "test" {
+			  name                 = %q
+			  compute_service      = "actions"
+			  network_settings_ids = [%q]
+			}
+
+			resource "github_actions_runner_group" "test" {
+			  name                     = %q
+			  visibility               = "all"
+			  network_configuration_id = github_organization_network_configuration.test.id
+			}
+		`, networkConfigurationName, networkSettingsID, runnerGroupName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.NotNull()),
+						statecheck.CompareValuePairs(
+							resourceName,
+							tfjsonpath.New("network_configuration_id"),
+							networkConfigurationResourceName,
+							tfjsonpath.New("id"),
+							compare.ValuesSame(),
+						),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("imports private networking association for hosted runners", func(t *testing.T) {
+		networkSettingsID := testAccOrganizationNetworkConfigurationID(t)
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		networkConfigurationName := fmt.Sprintf("%snetwork-config-import-%s", testResourcePrefix, randomID)
+		runnerGroupName := fmt.Sprintf("%srunner-group-import-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+			resource "github_organization_network_configuration" "test" {
+			  name                 = %q
+			  compute_service      = "actions"
+			  network_settings_ids = [%q]
+			}
+
+			resource "github_actions_runner_group" "test" {
+			  name                     = %q
+			  visibility               = "all"
+			  network_configuration_id = github_organization_network_configuration.test.id
+			}
+		`, networkConfigurationName, networkSettingsID, runnerGroupName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+				},
+				{
+					ResourceName:      "github_actions_runner_group.test",
+					ImportState:       true,
+					ImportStateVerify: true,
 				},
 			},
 		})

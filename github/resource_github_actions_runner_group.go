@@ -9,16 +9,17 @@ import (
 	"strconv"
 
 	"github.com/google/go-github/v84/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubActionsRunnerGroup() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsRunnerGroupCreate,
-		Read:   resourceGithubActionsRunnerGroupRead,
-		Update: resourceGithubActionsRunnerGroupUpdate,
-		Delete: resourceGithubActionsRunnerGroupDelete,
+		CreateContext: resourceGithubActionsRunnerGroupCreate,
+		ReadContext:   resourceGithubActionsRunnerGroupRead,
+		UpdateContext: resourceGithubActionsRunnerGroupUpdate,
+		DeleteContext: resourceGithubActionsRunnerGroupDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -92,14 +93,72 @@ func resourceGithubActionsRunnerGroup() *schema.Resource {
 				Optional:    true,
 				Description: "List of workflows the runner group should be allowed to run. This setting will be ignored unless restricted_to_workflows is set to 'true'.",
 			},
+			"network_configuration_id": {
+				Type:             schema.TypeString,
+				Optional:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 255)),
+				Description:      "The identifier of the hosted compute network configuration to associate with this runner group for GitHub-hosted private networking.",
+			},
 		},
 	}
 }
 
-func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta any) error {
-	err := checkOrganization(meta)
+func getOrganizationRunnerGroup(client *github.Client, ctx context.Context, org string, groupID int64) (*github.RunnerGroup, *github.Response, error) {
+	runnerGroup, resp, err := client.Actions.GetOrganizationRunnerGroup(ctx, org, groupID)
 	if err != nil {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) && ghErr.Response != nil && ghErr.Response.StatusCode == http.StatusNotModified {
+			// ignore error StatusNotModified
+			return nil, resp, nil
+		}
+	}
+	return runnerGroup, resp, err
+}
+
+func setGithubActionsRunnerGroupState(d *schema.ResourceData, runnerGroup *github.RunnerGroup, etag string, selectedRepositoryIDs []int64) error {
+	if err := d.Set("etag", normalizeEtag(etag)); err != nil {
 		return err
+	}
+	if err := d.Set("allows_public_repositories", runnerGroup.GetAllowsPublicRepositories()); err != nil {
+		return err
+	}
+	if err := d.Set("default", runnerGroup.GetDefault()); err != nil {
+		return err
+	}
+	if err := d.Set("id", strconv.FormatInt(runnerGroup.GetID(), 10)); err != nil {
+		return err
+	}
+	if err := d.Set("inherited", runnerGroup.GetInherited()); err != nil {
+		return err
+	}
+	if err := d.Set("name", runnerGroup.GetName()); err != nil {
+		return err
+	}
+	if err := d.Set("runners_url", runnerGroup.GetRunnersURL()); err != nil {
+		return err
+	}
+	if err := d.Set("selected_repositories_url", runnerGroup.GetSelectedRepositoriesURL()); err != nil {
+		return err
+	}
+	if err := d.Set("visibility", runnerGroup.GetVisibility()); err != nil {
+		return err
+	}
+	if err := d.Set("selected_repository_ids", selectedRepositoryIDs); err != nil {
+		return err
+	}
+	if err := d.Set("restricted_to_workflows", runnerGroup.GetRestrictedToWorkflows()); err != nil {
+		return err
+	}
+	if err := d.Set("selected_workflows", runnerGroup.SelectedWorkflows); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func resourceGithubActionsRunnerGroupCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	if err := checkOrganization(meta); err != nil {
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
@@ -118,7 +177,7 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta any) er
 	}
 
 	if visibility != "selected" && hasSelectedRepositories {
-		return fmt.Errorf("cannot use selected_repository_ids without visibility being set to selected")
+		return diag.FromErr(fmt.Errorf("cannot use selected_repository_ids without visibility being set to selected"))
 	}
 
 	selectedRepositoryIDs := []int64{}
@@ -131,7 +190,11 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta any) er
 		}
 	}
 
-	ctx := context.Background()
+	var networkConfigurationIDPtr *string
+	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
+		value := networkConfigurationID.(string)
+		networkConfigurationIDPtr = &value
+	}
 
 	runnerGroup, resp, err := client.Actions.CreateOrganizationRunnerGroup(ctx,
 		orgName,
@@ -142,69 +205,26 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta any) er
 			SelectedRepositoryIDs:    selectedRepositoryIDs,
 			SelectedWorkflows:        selectedWorkflows,
 			AllowsPublicRepositories: &allowsPublicRepositories,
+			NetworkConfigurationID:   networkConfigurationIDPtr,
 		},
 	)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	d.SetId(strconv.FormatInt(runnerGroup.GetID(), 10))
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
+	if err = setGithubActionsRunnerGroupState(d, runnerGroup, normalizeEtag(resp.Header.Get("ETag")), selectedRepositoryIDs); err != nil {
+		return diag.FromErr(err)
 	}
-	if err = d.Set("allows_public_repositories", runnerGroup.GetAllowsPublicRepositories()); err != nil {
-		return err
-	}
-	if err = d.Set("default", runnerGroup.GetDefault()); err != nil {
-		return err
+	if err = d.Set("network_configuration_id", runnerGroup.NetworkConfigurationID); err != nil {
+		return diag.FromErr(err)
 	}
 
-	if err = d.Set("id", strconv.FormatInt(runnerGroup.GetID(), 10)); err != nil {
-		return err
-	}
-	if err = d.Set("inherited", runnerGroup.GetInherited()); err != nil {
-		return err
-	}
-	if err = d.Set("name", runnerGroup.GetName()); err != nil {
-		return err
-	}
-	if err = d.Set("runners_url", runnerGroup.GetRunnersURL()); err != nil {
-		return err
-	}
-	if err = d.Set("selected_repositories_url", runnerGroup.GetSelectedRepositoriesURL()); err != nil {
-		return err
-	}
-	if err = d.Set("visibility", runnerGroup.GetVisibility()); err != nil {
-		return err
-	}
-	if err = d.Set("selected_repository_ids", selectedRepositoryIDs); err != nil { // Note: runnerGroup has no method to get selected repository IDs
-		return err
-	}
-	if err = d.Set("restricted_to_workflows", runnerGroup.GetRestrictedToWorkflows()); err != nil {
-		return err
-	}
-	if err = d.Set("selected_workflows", runnerGroup.SelectedWorkflows); err != nil {
-		return err
-	}
-
-	return resourceGithubActionsRunnerGroupRead(d, meta)
+	return nil
 }
 
-func getOrganizationRunnerGroup(client *github.Client, ctx context.Context, org string, groupID int64) (*github.RunnerGroup, *github.Response, error) {
-	runnerGroup, resp, err := client.Actions.GetOrganizationRunnerGroup(ctx, org, groupID)
-	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
-			// ignore error StatusNotModified
-			return runnerGroup, resp, nil
-		}
-	}
-	return runnerGroup, resp, err
-}
-
-func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta any) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
+func resourceGithubActionsRunnerGroupRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	if err := checkOrganization(meta); err != nil {
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
@@ -212,9 +232,9 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta any) erro
 
 	runnerGroupID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
@@ -223,53 +243,18 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta any) erro
 	if err != nil {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
-			if ghErr.Response.StatusCode == http.StatusNotFound {
+			if ghErr.Response != nil && ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing organization runner group %s/%s from state because it no longer exists in GitHub",
 					orgName, d.Id())
 				d.SetId("")
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
-	// if runner group is nil (typically not modified) we can return early
 	if runnerGroup == nil {
 		return nil
-	}
-
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
-	}
-	if err = d.Set("allows_public_repositories", runnerGroup.GetAllowsPublicRepositories()); err != nil {
-		return err
-	}
-	if err = d.Set("default", runnerGroup.GetDefault()); err != nil {
-		return err
-	}
-	if err = d.Set("id", strconv.FormatInt(runnerGroup.GetID(), 10)); err != nil {
-		return err
-	}
-	if err = d.Set("inherited", runnerGroup.GetInherited()); err != nil {
-		return err
-	}
-	if err = d.Set("name", runnerGroup.GetName()); err != nil {
-		return err
-	}
-	if err = d.Set("runners_url", runnerGroup.GetRunnersURL()); err != nil {
-		return err
-	}
-	if err = d.Set("selected_repositories_url", runnerGroup.GetSelectedRepositoriesURL()); err != nil {
-		return err
-	}
-	if err = d.Set("visibility", runnerGroup.GetVisibility()); err != nil {
-		return err
-	}
-	if err = d.Set("restricted_to_workflows", runnerGroup.GetRestrictedToWorkflows()); err != nil {
-		return err
-	}
-	if err = d.Set("selected_workflows", runnerGroup.SelectedWorkflows); err != nil {
-		return err
 	}
 
 	selectedRepositoryIDs := []int64{}
@@ -280,7 +265,7 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta any) erro
 	for {
 		runnerGroupRepositories, resp, err := client.Actions.ListRepositoryAccessRunnerGroup(ctx, orgName, runnerGroupID, &options)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		for _, repo := range runnerGroupRepositories.Repositories {
@@ -294,17 +279,20 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta any) erro
 		options.Page = resp.NextPage
 	}
 
-	if err = d.Set("selected_repository_ids", selectedRepositoryIDs); err != nil {
-		return err
+	runnerGroupEtag := normalizeEtag(resp.Header.Get("ETag"))
+	if err = setGithubActionsRunnerGroupState(d, runnerGroup, runnerGroupEtag, selectedRepositoryIDs); err != nil {
+		return diag.FromErr(err)
+	}
+	if err = d.Set("network_configuration_id", runnerGroup.NetworkConfigurationID); err != nil {
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, meta any) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
+func resourceGithubActionsRunnerGroupUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	if err := checkOrganization(meta); err != nil {
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
@@ -321,22 +309,35 @@ func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, meta any) er
 		}
 	}
 
+	var networkConfigurationIDPtr *string
+	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
+		value := networkConfigurationID.(string)
+		networkConfigurationIDPtr = &value
+	} else if d.HasChange("network_configuration_id") {
+		// Field was removed — send empty string to clear it.
+		// go-github's omitempty omits nil pointers, so empty string is used as a workaround.
+		empty := ""
+		networkConfigurationIDPtr = &empty
+	}
+
 	options := github.UpdateRunnerGroupRequest{
 		Name:                     &name,
 		Visibility:               &visibility,
 		RestrictedToWorkflows:    &restrictedToWorkflows,
 		SelectedWorkflows:        selectedWorkflows,
 		AllowsPublicRepositories: &allowsPublicRepositories,
+		NetworkConfigurationID:   networkConfigurationIDPtr,
 	}
 
 	runnerGroupID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
-	if _, _, err := client.Actions.UpdateOrganizationRunnerGroup(ctx, orgName, runnerGroupID, options); err != nil {
-		return err
+	runnerGroup, resp, err := client.Actions.UpdateOrganizationRunnerGroup(ctx, orgName, runnerGroupID, options)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	selectedRepositories, hasSelectedRepositories := d.GetOk("selected_repository_ids")
@@ -353,27 +354,39 @@ func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, meta any) er
 	reposOptions := github.SetRepoAccessRunnerGroupRequest{SelectedRepositoryIDs: selectedRepositoryIDs}
 
 	if _, err := client.Actions.SetRepositoryAccessRunnerGroup(ctx, orgName, runnerGroupID, reposOptions); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceGithubActionsRunnerGroupRead(d, meta)
+	runnerGroupEtag := normalizeEtag(resp.Header.Get("ETag"))
+
+	if err := setGithubActionsRunnerGroupState(d, runnerGroup, runnerGroupEtag, selectedRepositoryIDs); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("network_configuration_id", runnerGroup.NetworkConfigurationID); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
 }
 
-func resourceGithubActionsRunnerGroupDelete(d *schema.ResourceData, meta any) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
+func resourceGithubActionsRunnerGroupDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	if err := checkOrganization(meta); err != nil {
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	runnerGroupID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	log.Printf("[INFO] Deleting organization runner group: %s (%s)", d.Id(), orgName)
 	_, err = client.Actions.DeleteOrganizationRunnerGroup(ctx, orgName, runnerGroupID)
-	return err
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
 }
