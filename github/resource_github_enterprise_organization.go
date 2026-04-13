@@ -268,7 +268,7 @@ func resourceGithubEnterpriseOrganizationImport(data *schema.ResourceData, meta 
 	v4 := meta.(*Owner).v4client
 	ctx := context.Background()
 
-	enterpriseId, err := getEnterpriseId(ctx, v4, parts[0])
+	enterpriseId, err := getEnterpriseID(ctx, v4, parts[0])
 	if err != nil {
 		return nil, err
 	}
@@ -285,20 +285,6 @@ func resourceGithubEnterpriseOrganizationImport(data *schema.ResourceData, meta 
 		return nil, err
 	}
 	return []*schema.ResourceData{data}, nil
-}
-
-func getEnterpriseId(ctx context.Context, v4 *githubv4.Client, enterpriseSlug string) (string, error) {
-	var query struct {
-		Enterprise struct {
-			ID githubv4.String
-		} `graphql:"enterprise(slug: $enterpriseSlug)"`
-	}
-
-	err := v4.Query(ctx, &query, map[string]any{"enterpriseSlug": githubv4.String(enterpriseSlug)})
-	if err != nil {
-		return "", err
-	}
-	return string(query.Enterprise.ID), nil
 }
 
 func getOrganizationId(ctx context.Context, v4 *githubv4.Client, orgName string) (string, error) {
