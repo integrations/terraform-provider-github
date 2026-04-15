@@ -77,6 +77,11 @@ resource "github_organization_ruleset" "test" {
 		bypass_mode = "always"
 	}
 
+	bypass_actors {
+		actor_type  = "RepositoryMigration"
+		bypass_mode = "always"
+	}
+
 	conditions {
 		repository_name {
 			include = ["~ALL"]
@@ -161,7 +166,7 @@ resource "github_organization_ruleset" "test" {
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "target", "branch"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "enforcement", "active"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.#", "3"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.#", "4"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.0.actor_type", "DeployKey"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.0.bypass_mode", "always"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.1.actor_id", "5"),
@@ -170,6 +175,8 @@ resource "github_organization_ruleset" "test" {
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.2.actor_id", "1"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.2.actor_type", "OrganizationAdmin"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.2.bypass_mode", "always"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.3.actor_type", "RepositoryMigration"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.3.bypass_mode", "always"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.pull_request.0.allowed_merge_methods.#", "3"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.required_workflows.0.do_not_enforce_on_create", "true"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.required_workflows.0.required_workflow.0.path", workflowFilePath),

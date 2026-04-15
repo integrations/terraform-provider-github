@@ -46,6 +46,11 @@ resource "github_repository_ruleset" "test" {
 		bypass_mode = "always"
 	}
 
+	bypass_actors {
+		actor_type  = "RepositoryMigration"
+		bypass_mode = "always"
+	}
+
 	conditions {
 		ref_name {
 			include = ["refs/heads/main"]
@@ -125,12 +130,14 @@ resource "github_repository_ruleset" "test" {
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", "test"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "target", "branch"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "enforcement", "active"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.#", "2"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.#", "3"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.0.actor_type", "DeployKey"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.0.bypass_mode", "always"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.1.actor_id", "5"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.1.actor_type", "RepositoryRole"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.1.bypass_mode", "always"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.2.actor_type", "RepositoryMigration"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.2.bypass_mode", "always"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.allowed_merge_methods.#", "2"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.alerts_threshold", "errors"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.security_alerts_threshold", "high_or_higher"),
