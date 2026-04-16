@@ -320,19 +320,19 @@ func resolveTeamIDs(ctx context.Context, meta *Owner, idOrSlug string) (string, 
 // only one source can be active at a time.
 func resolveNotify(ctx context.Context, d *schema.ResourceData) bool {
 	// Check if top-level notify is explicitly configured.
-	if v, ok := d.GetOk("notify"); ok {
+	if v := d.Get("notify").(bool); v {
 		tflog.Debug(ctx, "Top-level notify is explicitly configured", map[string]any{
 			"notify": v,
 		})
-		return v.(bool)
+		return v
 	}
 
 	// Fall back to deprecated nested field
-	if v, ok := d.GetOk("review_request_delegation.0.notify"); ok {
+	if v := d.Get("review_request_delegation.0.notify").(bool); v {
 		tflog.Debug(ctx, "Deprecated nested notify is explicitly configured", map[string]any{
 			"notify": v,
 		})
-		return v.(bool)
+		return v
 	}
 
 	return false
