@@ -390,18 +390,10 @@ func TestAccGithubTeamSettings(t *testing.T) {
 				{
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_team_settings.test",
-							tfjsonpath.New("review_request_delegation").AtSliceIndex(0).AtMapKey("algorithm"),
-							knownvalue.StringExact("ROUND_ROBIN")),
-						statecheck.ExpectKnownValue("github_team_settings.test",
-							tfjsonpath.New("review_request_delegation").AtSliceIndex(0).AtMapKey("member_count"),
-							knownvalue.Int64Exact(2)),
-						statecheck.ExpectKnownValue("github_team_settings.test",
-							tfjsonpath.New("review_request_delegation").AtSliceIndex(0).AtMapKey("notify"),
-							knownvalue.Bool(false)),
-						statecheck.ExpectKnownValue("github_team_settings.test",
-							tfjsonpath.New("notify"),
-							knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_team_settings.test", tfjsonpath.New("review_request_delegation").AtSliceIndex(0).AtMapKey("algorithm"), knownvalue.StringExact("ROUND_ROBIN")),
+						statecheck.ExpectKnownValue("github_team_settings.test", tfjsonpath.New("review_request_delegation").AtSliceIndex(0).AtMapKey("member_count"), knownvalue.Int64Exact(2)),
+						statecheck.ExpectKnownValue("github_team_settings.test", tfjsonpath.New("review_request_delegation").AtSliceIndex(0).AtMapKey("notify"), knownvalue.Bool(false)),
+						statecheck.ExpectKnownValue("github_team_settings.test", tfjsonpath.New("notify"), knownvalue.Bool(true)),
 					},
 				},
 				{

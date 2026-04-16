@@ -260,7 +260,7 @@ func resourceGithubTeamSettingsUpdate(ctx context.Context, d *schema.ResourceDat
 				Enabled:         githubv4.Boolean(true),
 				Algorithm:       &teamReviewAlgorithm,
 				TeamMemberCount: new(githubv4.Int(settings["member_count"].(int))),
-				NotifyTeam:      new(githubv4.Boolean(settings["notify"].(bool))),
+				NotifyTeam:      new(githubv4.Boolean(notify)),
 			}
 			err := graphql.Mutate(ctx, &mutation, updateTeamReviewAssignmentInput, nil)
 			if err != nil {
