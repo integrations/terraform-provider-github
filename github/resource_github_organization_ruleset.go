@@ -768,7 +768,7 @@ func resourceGithubOrganizationRulesetCreate(ctx context.Context, d *schema.Reso
 
 	rulesetReq := resourceGithubRulesetObject(d, owner)
 
-	ruleset, resp, err := client.Organizations.CreateRepositoryRuleset(ctx, owner, rulesetReq)
+	ruleset, resp, err := createOrgRuleset(ctx, client, owner, rulesetReq)
 	if err != nil {
 		tflog.Error(ctx, fmt.Sprintf("Failed to create organization ruleset: %s/%s", owner, name), map[string]any{
 			"owner": owner,
@@ -824,7 +824,7 @@ func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.Resour
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	ruleset, resp, err := client.Organizations.GetRepositoryRuleset(ctx, owner, rulesetID)
+	ruleset, resp, err := getOrgRuleset(ctx, client, owner, rulesetID)
 	if err != nil {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
@@ -912,7 +912,7 @@ func resourceGithubOrganizationRulesetUpdate(ctx context.Context, d *schema.Reso
 
 	rulesetReq := resourceGithubRulesetObject(d, owner)
 
-	ruleset, resp, err := client.Organizations.UpdateRepositoryRuleset(ctx, owner, rulesetID, rulesetReq)
+	ruleset, resp, err := updateOrgRuleset(ctx, client, owner, rulesetID, rulesetReq)
 	if err != nil {
 		tflog.Error(ctx, fmt.Sprintf("Failed to update organization ruleset: %s/%d", owner, rulesetID), map[string]any{
 			"owner":      owner,
@@ -1005,7 +1005,7 @@ func resourceGithubOrganizationRulesetImport(ctx context.Context, d *schema.Reso
 		"ruleset_id": rulesetID,
 	})
 
-	ruleset, _, err := client.Organizations.GetRepositoryRuleset(ctx, owner, rulesetID)
+	ruleset, _, err := getOrgRuleset(ctx, client, owner, rulesetID)
 	if ruleset == nil || err != nil {
 		tflog.Error(ctx, fmt.Sprintf("Failed to import organization ruleset: %s/%d", owner, rulesetID), map[string]any{
 			"owner":      owner,

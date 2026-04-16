@@ -2,7 +2,12 @@ package github
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
 	"reflect"
+	"regexp"
 	"sort"
 
 	"github.com/google/go-github/v84/github"
@@ -878,6 +883,110 @@ func flattenRules(ctx context.Context, rules *github.RepositoryRulesetRules, org
 	}
 
 	return []any{rulesMap}
+}
+
+// reviewerStringIDPattern matches JSON "id" fields with quoted integer values.
+// The GitHub API returns reviewer.id as a JSON string (e.g., "id": "12345") but
+// go-github's RulesetReviewer.ID expects *int64, causing unmarshal failures.
+// See https://github.com/integrations/terraform-provider-github/issues/3340
+var reviewerStringIDPattern = regexp.MustCompile(`"id"\s*:\s*"(\d+)"`)
+
+// fixReviewerStringIDs converts quoted integer "id" fields in raw JSON to
+// unquoted integers so that go-github can unmarshal them into *int64 fields.
+func fixReviewerStringIDs(data []byte) []byte {
+	return reviewerStringIDPattern.ReplaceAll(data, []byte(`"id":$1`))
+}
+
+// doRulesetRequest executes an HTTP request against the GitHub API and
+// unmarshals the response into a RepositoryRuleset. It applies
+// fixReviewerStringIDs to the response body before unmarshaling to work around
+// the GitHub API returning reviewer.id as a string instead of a number.
+func doRulesetRequest(ctx context.Context, client *github.Client, req *http.Request) (*github.RepositoryRuleset, *github.Response, error) {
+	resp, err := client.BareDo(ctx, req)
+	if err != nil {
+		return nil, resp, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	body = fixReviewerStringIDs(body)
+
+	var rs *github.RepositoryRuleset
+	if err := json.Unmarshal(body, &rs); err != nil {
+		return nil, resp, err
+	}
+
+	return rs, resp, nil
+}
+
+// createRepoRuleset creates a repository ruleset, working around the
+// reviewer.id string marshaling bug in go-github.
+func createRepoRuleset(ctx context.Context, client *github.Client, owner, repo string, ruleset github.RepositoryRuleset) (*github.RepositoryRuleset, *github.Response, error) {
+	u := fmt.Sprintf("repos/%v/%v/rulesets", owner, repo)
+	req, err := client.NewRequest("POST", u, ruleset)
+	if err != nil {
+		return nil, nil, err
+	}
+	return doRulesetRequest(ctx, client, req)
+}
+
+// getRepoRuleset gets a repository ruleset, working around the
+// reviewer.id string marshaling bug in go-github.
+func getRepoRuleset(ctx context.Context, client *github.Client, owner, repo string, rulesetID int64, includesParents bool) (*github.RepositoryRuleset, *github.Response, error) {
+	u := fmt.Sprintf("repos/%v/%v/rulesets/%v?includes_parents=%v", owner, repo, rulesetID, includesParents)
+	req, err := client.NewRequest("GET", u, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	return doRulesetRequest(ctx, client, req)
+}
+
+// updateRepoRuleset updates a repository ruleset, working around the
+// reviewer.id string marshaling bug in go-github.
+func updateRepoRuleset(ctx context.Context, client *github.Client, owner, repo string, rulesetID int64, ruleset github.RepositoryRuleset) (*github.RepositoryRuleset, *github.Response, error) {
+	u := fmt.Sprintf("repos/%v/%v/rulesets/%v", owner, repo, rulesetID)
+	req, err := client.NewRequest("PUT", u, ruleset)
+	if err != nil {
+		return nil, nil, err
+	}
+	return doRulesetRequest(ctx, client, req)
+}
+
+// createOrgRuleset creates an organization ruleset, working around the
+// reviewer.id string marshaling bug in go-github.
+func createOrgRuleset(ctx context.Context, client *github.Client, org string, ruleset github.RepositoryRuleset) (*github.RepositoryRuleset, *github.Response, error) {
+	u := fmt.Sprintf("orgs/%v/rulesets", org)
+	req, err := client.NewRequest("POST", u, ruleset)
+	if err != nil {
+		return nil, nil, err
+	}
+	return doRulesetRequest(ctx, client, req)
+}
+
+// getOrgRuleset gets an organization ruleset, working around the
+// reviewer.id string marshaling bug in go-github.
+func getOrgRuleset(ctx context.Context, client *github.Client, org string, rulesetID int64) (*github.RepositoryRuleset, *github.Response, error) {
+	u := fmt.Sprintf("orgs/%v/rulesets/%v", org, rulesetID)
+	req, err := client.NewRequest("GET", u, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	return doRulesetRequest(ctx, client, req)
+}
+
+// updateOrgRuleset updates an organization ruleset, working around the
+// reviewer.id string marshaling bug in go-github.
+func updateOrgRuleset(ctx context.Context, client *github.Client, org string, rulesetID int64, ruleset github.RepositoryRuleset) (*github.RepositoryRuleset, *github.Response, error) {
+	u := fmt.Sprintf("orgs/%v/rulesets/%v", org, rulesetID)
+	req, err := client.NewRequest("PUT", u, ruleset)
+	if err != nil {
+		return nil, nil, err
+	}
+	return doRulesetRequest(ctx, client, req)
 }
 
 func bypassActorsDiffSuppressFunc(k, o, n string, d *schema.ResourceData) bool {

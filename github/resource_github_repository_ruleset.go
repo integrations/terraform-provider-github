@@ -702,7 +702,7 @@ func resourceGithubRepositoryRulesetCreate(ctx context.Context, d *schema.Resour
 		return diag.Errorf("cannot create ruleset on archived repository %s/%s", owner, repoName)
 	}
 
-	ruleset, resp, err := client.Repositories.CreateRuleset(ctx, owner, repoName, rulesetReq)
+	ruleset, resp, err := createRepoRuleset(ctx, client, owner, repoName, rulesetReq)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -739,7 +739,7 @@ func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.Resource
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	ruleset, resp, err := client.Repositories.GetRuleset(ctx, owner, repoName, rulesetID, false)
+	ruleset, resp, err := getRepoRuleset(ctx, client, owner, repoName, rulesetID, false)
 	if err != nil {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
@@ -815,7 +815,7 @@ func resourceGithubRepositoryRulesetUpdate(ctx context.Context, d *schema.Resour
 		return nil
 	}
 
-	ruleset, resp, err := client.Repositories.UpdateRuleset(ctx, owner, repoName, rulesetID, rulesetReq)
+	ruleset, resp, err := updateRepoRuleset(ctx, client, owner, repoName, rulesetID, rulesetReq)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -874,7 +874,7 @@ func resourceGithubRepositoryRulesetImport(ctx context.Context, d *schema.Resour
 		return []*schema.ResourceData{d}, err
 	}
 
-	ruleset, _, err := client.Repositories.GetRuleset(ctx, owner, repository.GetName(), rulesetID, false)
+	ruleset, _, err := getRepoRuleset(ctx, client, owner, repository.GetName(), rulesetID, false)
 	if ruleset == nil || err != nil {
 		return []*schema.ResourceData{d}, err
 	}
