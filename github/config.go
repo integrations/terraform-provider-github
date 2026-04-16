@@ -87,7 +87,7 @@ func (c *Config) Anonymous() bool {
 }
 
 func (c *Config) AnonymousHTTPClient() *http.Client {
-	client := &http.Client{Transport: &http.Transport{}}
+	client := &http.Client{Transport: http.DefaultTransport.(*http.Transport).Clone()}
 	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay, c.RetryDelay, c.ParallelRequests, c.RetryableErrors, c.MaxRetries)
 }
 
