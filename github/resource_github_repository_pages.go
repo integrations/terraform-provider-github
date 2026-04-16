@@ -117,6 +117,7 @@ func resourceGithubRepositoryPages() *schema.Resource {
 }
 
 func resourceGithubRepositoryPagesCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	tflog.Debug(ctx, "Creating GitHub Pages")
 	meta := m.(*Owner)
 	client := meta.v3client
 
@@ -277,6 +278,7 @@ func resourceGithubRepositoryPagesRead(ctx context.Context, d *schema.ResourceDa
 }
 
 func resourceGithubRepositoryPagesUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	tflog.Debug(ctx, "Updating GitHub Pages")
 	meta := m.(*Owner)
 	client := meta.v3client
 
@@ -338,6 +340,7 @@ func resourceGithubRepositoryPagesUpdate(ctx context.Context, d *schema.Resource
 }
 
 func resourceGithubRepositoryPagesDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	tflog.Debug(ctx, "Deleting GitHub Pages")
 	meta := m.(*Owner)
 	client := meta.v3client
 
@@ -382,9 +385,7 @@ func resourceGithubRepositoryPagesImport(ctx context.Context, d *schema.Resource
 }
 
 func resourceGithubRepositoryPagesDiff(ctx context.Context, d *schema.ResourceDiff, _ any) error {
-	if d.Id() == "" {
-		return nil
-	}
+	tflog.Debug(ctx, "Diffing GitHub Pages")
 
 	buildType := d.Get("build_type").(string)
 	_, ok := d.GetOk("source")
