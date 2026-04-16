@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
@@ -269,7 +270,12 @@ source {
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config:      config,
+					Config: config,
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectEmptyPlan(),
+						},
+					},
 					ExpectError: regexp.MustCompile(`'source' is not supported for workflow build type`),
 				},
 			},
@@ -298,7 +304,12 @@ source {
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config:      config,
+					Config: config,
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectEmptyPlan(),
+						},
+					},
 					ExpectError: regexp.MustCompile(`'source' is required for legacy build type`),
 				},
 			},
