@@ -243,6 +243,68 @@ source {
 		})
 	})
 
+	t.Run("validates_that_source_is_not_set_for_workflow_build_type", func(t *testing.T) {
+		randomID := acctest.RandString(5)
+		repoName := fmt.Sprintf("%spages-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name       = "%s"
+				visibility = "%s"
+				auto_init  = true
+			}
+
+			resource "github_repository_pages" "test" {
+				repository     = github_repository.test.name
+				build_type     = "workflow"
+				source {
+					branch = "main"
+					path   = "/"
+				}
+			}
+		`, repoName, testAccConf.testRepositoryVisibility)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile(`'source' is not supported for workflow build type`),
+				},
+			},
+		})
+	})
+
+	t.Run("validates_that_source_is_set_for_legacy_build_type", func(t *testing.T) {
+		randomID := acctest.RandString(5)
+		repoName := fmt.Sprintf("%spages-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name       = "%s"
+				visibility = "%s"
+				auto_init  = true
+			}
+
+			resource "github_repository_pages" "test" {
+				repository     = github_repository.test.name
+				build_type     = "legacy"
+			}
+		`, repoName, testAccConf.testRepositoryVisibility)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile(`'source' is required for legacy build type`),
+				},
+			},
+		})
+	})
+
 	t.Run("imports_pages_configuration", func(t *testing.T) {
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%spages-%s", testResourcePrefix, randomID)
