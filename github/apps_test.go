@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
@@ -29,7 +30,12 @@ var (
 )
 
 func TestGenerateAppJWT(t *testing.T) {
-	appJWT, err := generateAppJWT(testGitHubAppID, testEpochTime, testGitHubAppPrivateKeyPemData)
+	signer, err := NewPEMSigner(testGitHubAppPrivateKeyPemData)
+	if err != nil {
+		t.Fatalf("Failed to create PEM signer: %s", err)
+	}
+
+	appJWT, err := generateAppJWT(context.Background(), testGitHubAppID, testEpochTime, signer)
 	t.Log(appJWT)
 	if err != nil {
 		t.Logf("Failed to generate GitHub app JWT: %s", err)
