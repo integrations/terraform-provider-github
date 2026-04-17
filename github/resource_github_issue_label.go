@@ -3,19 +3,20 @@ package github
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 
 	"github.com/google/go-github/v84/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubIssueLabel() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubIssueLabelCreateOrUpdate,
-		Read:   resourceGithubIssueLabelRead,
-		Update: resourceGithubIssueLabelCreateOrUpdate,
-		Delete: resourceGithubIssueLabelDelete,
+		CreateContext: resourceGithubIssueLabelCreateOrUpdate,
+		ReadContext:   resourceGithubIssueLabelRead,
+		UpdateContext: resourceGithubIssueLabelCreateOrUpdate,
+		DeleteContext: resourceGithubIssueLabelDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -70,7 +71,7 @@ func resourceGithubIssueLabel() *schema.Resource {
 // otherwise it will create. This is also advantageous in that we get to use the
 // same function for two schema funcs.
 
-func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubIssueLabelCreateOrUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
@@ -81,7 +82,6 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta any) er
 		Name:  new(name),
 		Color: new(color),
 	}
-	ctx := context.Background()
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxId, d.Id())
 	}
@@ -95,14 +95,14 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta any) er
 		var err error
 		_, originalName, err = parseTwoPartID(d.Id(), "repository", "name")
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	existing, resp, err := client.Issues.GetLabel(ctx,
 		orgName, repoName, originalName)
 	if err != nil && resp.StatusCode != http.StatusNotFound {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if existing != nil {
@@ -117,14 +117,14 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta any) er
 			var err error
 			_, originalName, err = parseTwoPartID(d.Id(), "repository", "name")
 			if err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 		}
 
 		_, _, err := client.Issues.EditLabel(ctx,
 			orgName, repoName, originalName, label)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	} else {
 		if v, ok := d.GetOk("description"); ok {
@@ -134,24 +134,23 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta any) er
 		_, _, err := client.Issues.CreateLabel(ctx,
 			orgName, repoName, label)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	d.SetId(buildTwoPartID(repoName, name))
 
-	return resourceGithubIssueLabelRead(d, meta)
+	return resourceGithubIssueLabelRead(ctx, d, meta)
 }
 
-func resourceGithubIssueLabelRead(d *schema.ResourceData, meta any) error {
+func resourceGithubIssueLabelRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	repoName, name, err := parseTwoPartID(d.Id(), "repository", "name")
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	orgName := meta.(*Owner).name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
@@ -165,45 +164,48 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta any) error {
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing label %s (%s/%s) from state because it no longer exists in GitHub",
-					name, orgName, repoName)
+				tflog.Info(ctx, "Removing label from state because it no longer exists in GitHub", map[string]any{
+					"name":      name,
+					"org_name":  orgName,
+					"repo_name": repoName,
+				})
 				d.SetId("")
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("repository", repoName); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("name", name); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("color", githubLabel.GetColor()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("description", githubLabel.GetDescription()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("url", githubLabel.GetURL()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubIssueLabelDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubIssueLabelDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	name := d.Get("name").(string)
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	_, err := client.Issues.DeleteLabel(ctx, orgName, repoName, name)
-	return handleArchivedRepoDelete(err, "issue label", name, orgName, repoName)
+	return diag.FromErr(handleArchivedRepoDelete(err, "issue label", name, orgName, repoName))
 }
