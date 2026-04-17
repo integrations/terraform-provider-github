@@ -9,7 +9,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -18,21 +17,6 @@ import (
 	"github.com/go-jose/go-jose/v3"
 	"github.com/go-jose/go-jose/v3/jwt"
 )
-
-// NewSignerFromConfig returns the appropriate Signer based on which credential is provided.
-// Exactly one of pemFile or kmsKeyID must be non-empty.
-func NewSignerFromConfig(ctx context.Context, pemFile, kmsKeyID string) (Signer, error) {
-	if pemFile != "" && kmsKeyID != "" {
-		return nil, errors.New("app_auth.pem_file and app_auth.kms_key_id are mutually exclusive")
-	}
-	if pemFile != "" {
-		return NewPEMSigner([]byte(pemFile))
-	}
-	if strings.HasPrefix(kmsKeyID, "arn:aws:kms:") {
-		return NewAWSKMSSigner(ctx, kmsKeyID)
-	}
-	return nil, errors.New("app_auth.pem_file or a supported app_auth.kms_key_id must be set")
-}
 
 // PEMSigner signs JWTs using a local RSA private key in PEM format.
 type PEMSigner struct {

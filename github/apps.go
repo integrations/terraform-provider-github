@@ -20,23 +20,13 @@ type Signer interface {
 
 // GenerateOAuthTokenFromApp generates a GitHub OAuth access token from a set of valid GitHub App credentials.
 // The returned token can be used to interact with both GitHub's REST and GraphQL APIs.
-func GenerateOAuthTokenFromApp(apiURL *url.URL, appID, appInstallationID, pemData string) (string, error) {
-	signer, err := NewPEMSigner([]byte(pemData))
+func GenerateOAuthTokenFromApp(ctx context.Context, signer Signer, apiURL *url.URL, appID, appInstallationID string) (string, error) {
+	appJWT, err := generateAppJWT(ctx, appID, time.Now(), signer)
 	if err != nil {
 		return "", err
 	}
 
-	appJWT, err := generateAppJWT(context.Background(), appID, time.Now(), signer)
-	if err != nil {
-		return "", err
-	}
-
-	token, err := getInstallationAccessToken(apiURL, appJWT, appInstallationID)
-	if err != nil {
-		return "", err
-	}
-
-	return token, nil
+	return getInstallationAccessToken(apiURL, appJWT, appInstallationID)
 }
 
 func getInstallationAccessToken(apiURL *url.URL, jwt, installationID string) (string, error) {
