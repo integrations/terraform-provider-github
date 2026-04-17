@@ -7,19 +7,20 @@ import (
 	"net/http"
 
 	"github.com/google/go-github/v85/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubOrganizationCustomProperties() *schema.Resource {
 	return &schema.Resource{
-		Description: "Creates and manages a custom property for a GitHub Organization.",
-		Create:      resourceGithubCustomPropertiesCreate,
-		Read:        resourceGithubCustomPropertiesRead,
-		Update:      resourceGithubCustomPropertiesUpdate,
-		Delete:      resourceGithubCustomPropertiesDelete,
+		Description:   "Creates and manages a custom property for a GitHub Organization.",
+		CreateContext: resourceGithubCustomPropertiesCreate,
+		ReadContext:   resourceGithubCustomPropertiesRead,
+		UpdateContext: resourceGithubCustomPropertiesUpdate,
+		DeleteContext: resourceGithubCustomPropertiesDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourceGithubCustomPropertiesImport,
+			StateContext: resourceGithubCustomPropertiesImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -71,15 +72,8 @@ func resourceGithubOrganizationCustomProperties() *schema.Resource {
 	}
 }
 
-func resourceGithubCustomPropertiesCreate(d *schema.ResourceData, meta any) error {
-	if err := checkOrganization(meta); err != nil {
-		return err
-	}
-
-	ctx := context.Background()
-	client := meta.(*Owner).v3client
-	ownerName := meta.(*Owner).name
-
+// buildCustomProperty constructs a github.CustomProperty from the resource data.
+func buildCustomProperty(d *schema.ResourceData) (*github.CustomProperty, error) {
 	propertyName := d.Get("property_name").(string)
 	valueType := github.PropertyValueType(d.Get("value_type").(string))
 	required := d.Get("required").(bool)
@@ -104,13 +98,13 @@ func resourceGithubCustomPropertiesCreate(d *schema.ResourceData, meta any) erro
 		if valueType == github.PropertyValueTypeSingleSelect || valueType == github.PropertyValueTypeMultiSelect {
 			customProperty.AllowedValues = allowedValues
 		} else {
-			return fmt.Errorf("allowed_values can only be set for single_select or multi_select value types")
+			return nil, fmt.Errorf("allowed_values can only be set for single_select or multi_select value types")
 		}
 	}
 
 	// Validate that allowed_values is provided for select types
 	if (valueType == github.PropertyValueTypeSingleSelect || valueType == github.PropertyValueTypeMultiSelect) && len(customProperty.AllowedValues) == 0 {
-		return fmt.Errorf("allowed_values is required for %s value type", valueType)
+		return nil, fmt.Errorf("allowed_values is required for %s value type", valueType)
 	}
 
 	if val, ok := d.GetOk("values_editable_by"); ok {
@@ -118,21 +112,53 @@ func resourceGithubCustomPropertiesCreate(d *schema.ResourceData, meta any) erro
 		customProperty.ValuesEditableBy = &str
 	}
 
-	customProperty, _, err := client.Organizations.CreateOrUpdateCustomProperty(ctx, ownerName, propertyName, customProperty)
-	if err != nil {
-		return fmt.Errorf("error creating organization custom property %s: %w", propertyName, err)
-	}
-
-	d.SetId(*customProperty.PropertyName)
-	return resourceGithubCustomPropertiesRead(d, meta)
+	return customProperty, nil
 }
 
-func resourceGithubCustomPropertiesRead(d *schema.ResourceData, meta any) error {
+// setCustomPropertyState sets all resource data fields from a CustomProperty API response.
+func setCustomPropertyState(d *schema.ResourceData, customProperty *github.CustomProperty) {
+	// TODO: Add support for other types of default values
+	defaultValue, _ := customProperty.DefaultValueString()
+
+	d.SetId(*customProperty.PropertyName)
+	_ = d.Set("allowed_values", customProperty.AllowedValues)
+	_ = d.Set("default_value", defaultValue)
+	_ = d.Set("description", customProperty.Description)
+	_ = d.Set("property_name", customProperty.PropertyName)
+	_ = d.Set("required", customProperty.Required)
+	_ = d.Set("value_type", string(customProperty.ValueType))
+	_ = d.Set("values_editable_by", customProperty.ValuesEditableBy)
+}
+
+func resourceGithubCustomPropertiesCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	if err := checkOrganization(meta); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	ctx := context.Background()
+	client := meta.(*Owner).v3client
+	ownerName := meta.(*Owner).name
+
+	customProperty, err := buildCustomProperty(d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	propertyName := d.Get("property_name").(string)
+	customProperty, _, err = client.Organizations.CreateOrUpdateCustomProperty(ctx, ownerName, propertyName, customProperty)
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("error creating organization custom property %s: %w", propertyName, err))
+	}
+
+	setCustomPropertyState(d, customProperty)
+
+	return nil
+}
+
+func resourceGithubCustomPropertiesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	if err := checkOrganization(meta); err != nil {
+		return diag.FromErr(err)
+	}
+
 	client := meta.(*Owner).v3client
 	ownerName := meta.(*Owner).name
 
@@ -148,47 +174,56 @@ func resourceGithubCustomPropertiesRead(d *schema.ResourceData, meta any) error 
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("error reading organization custom property %s: %w", propertyName, err)
+		return diag.FromErr(fmt.Errorf("error reading organization custom property %s: %w", propertyName, err))
 	}
 
-	// TODO: Add support for other types of default values
-	defaultValue, _ := customProperty.DefaultValueString()
-
-	d.SetId(*customProperty.PropertyName)
-	_ = d.Set("allowed_values", customProperty.AllowedValues)
-	_ = d.Set("default_value", defaultValue)
-	_ = d.Set("description", customProperty.Description)
-	_ = d.Set("property_name", customProperty.PropertyName)
-	_ = d.Set("required", customProperty.Required)
-	_ = d.Set("value_type", string(customProperty.ValueType))
-	_ = d.Set("values_editable_by", customProperty.ValuesEditableBy)
+	setCustomPropertyState(d, customProperty)
 
 	return nil
 }
 
-func resourceGithubCustomPropertiesUpdate(d *schema.ResourceData, meta any) error {
-	// Create uses the same upsert API, and already calls Read at the end
-	return resourceGithubCustomPropertiesCreate(d, meta)
+func resourceGithubCustomPropertiesUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	if err := checkOrganization(meta); err != nil {
+		return diag.FromErr(err)
+	}
+
+	client := meta.(*Owner).v3client
+	ownerName := meta.(*Owner).name
+
+	customProperty, err := buildCustomProperty(d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	propertyName := d.Get("property_name").(string)
+	customProperty, _, err = client.Organizations.CreateOrUpdateCustomProperty(ctx, ownerName, propertyName, customProperty)
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("error updating organization custom property %s: %w", propertyName, err))
+	}
+
+	setCustomPropertyState(d, customProperty)
+
+	return nil
 }
 
-func resourceGithubCustomPropertiesDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubCustomPropertiesDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	if err := checkOrganization(meta); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
 	ownerName := meta.(*Owner).name
 	propertyName := d.Get("property_name").(string)
 
-	_, err := client.Organizations.RemoveCustomProperty(context.Background(), ownerName, propertyName)
+	_, err := client.Organizations.RemoveCustomProperty(ctx, ownerName, propertyName)
 	if err != nil {
-		return fmt.Errorf("error deleting organization custom property %s: %w", propertyName, err)
+		return diag.FromErr(fmt.Errorf("error deleting organization custom property %s: %w", propertyName, err))
 	}
 
 	return nil
 }
 
-func resourceGithubCustomPropertiesImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubCustomPropertiesImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	if err := d.Set("property_name", d.Id()); err != nil {
 		return nil, err
 	}
