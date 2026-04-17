@@ -3,21 +3,22 @@ package github
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 
 	"github.com/google/go-github/v88/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubIssueLabel() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubIssueLabelCreateOrUpdate,
-		Read:   resourceGithubIssueLabelRead,
-		Update: resourceGithubIssueLabelCreateOrUpdate,
-		Delete: resourceGithubIssueLabelDelete,
+		CreateContext: resourceGithubIssueLabelCreate,
+		ReadContext:   resourceGithubIssueLabelRead,
+		UpdateContext: resourceGithubIssueLabelUpdate,
+		DeleteContext: resourceGithubIssueLabelDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: resourceGithubIssueLabelImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -60,104 +61,82 @@ func resourceGithubIssueLabel() *schema.Resource {
 	}
 }
 
-// resourceGithubIssueLabelCreateOrUpdate idempotently creates or updates an
-// issue label. Issue labels are keyed off of their "name", so pre-existing
-// issue labels result in a 422 HTTP error if they exist outside of Terraform.
-// Normally this would not be an issue, except new repositories are created with
-// a "default" set of labels, and those labels easily conflict with custom ones.
-//
-// This function will first check if the label exists, and then issue an update,
-// otherwise it will create. This is also advantageous in that we get to use the
-// same function for two schema funcs.
-
-func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
-	name := d.Get("name").(string)
-	color := d.Get("color").(string)
+// resourceGithubIssueLabelCreate creates an issue label.
+func resourceGithubIssueLabelCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
+	repoName, ok := d.Get("repository").(string)
+	if !ok {
+		return diag.Errorf(`expected "repository" to be string`)
+	}
+	name, ok := d.Get("name").(string)
+	if !ok {
+		return diag.Errorf(`expected "name" to be string`)
+	}
+	color, ok := d.Get("color").(string)
+	if !ok {
+		return diag.Errorf(`expected "color" to be string`)
+	}
 
 	label := &github.Label{
 		Name:  new(name),
 		Color: new(color),
 	}
-	ctx := context.Background()
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxId, d.Id())
-	}
 
-	// Pull out the original name. If we already have a resource, this is the
-	// parsed ID. If not, it's the value given to the resource.
-	var originalName string
-	if d.Id() == "" {
-		originalName = name
+	if v, ok := d.GetOk("description"); ok {
+		description, ok := v.(string)
+		if !ok {
+			return diag.Errorf(`expected "description" to be string`)
+		}
+		label.Description = &description
+	}
+	githubLabel, resp, err := client.Issues.GetLabel(ctx, orgName, repoName, name)
+	if err != nil {
+		if resp == nil || resp.StatusCode != http.StatusNotFound {
+			return diag.FromErr(err)
+		}
+		githubLabel, resp, err = client.Issues.CreateLabel(ctx, orgName, repoName, label)
 	} else {
-		var err error
-		_, originalName, err = parseID2(d.Id())
-		if err != nil {
-			return err
-		}
+		githubLabel, resp, err = client.Issues.EditLabel(ctx, orgName, repoName, name, label)
 	}
 
-	existing, resp, err := client.Issues.GetLabel(ctx,
-		orgName, repoName, originalName)
-	if err != nil && resp.StatusCode != http.StatusNotFound {
-		return err
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	id, err := buildID(repoName, name)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	d.SetId(id)
+	if err := d.Set("url", githubLabel.GetURL()); err != nil {
+		return diag.FromErr(err)
 	}
 
-	if existing != nil {
-		label.Description = new(d.Get("description").(string))
-
-		// Pull out the original name. If we already have a resource, this is the
-		// parsed ID. If not, it's the value given to the resource.
-		var originalName string
-		if d.Id() == "" {
-			originalName = name
-		} else {
-			var err error
-			_, originalName, err = parseID2(d.Id())
-			if err != nil {
-				return err
-			}
-		}
-
-		_, _, err := client.Issues.EditLabel(ctx,
-			orgName, repoName, originalName, label)
-		if err != nil {
-			return err
-		}
-	} else {
-		if v, ok := d.GetOk("description"); ok {
-			label.Description = new(v.(string))
-		}
-
-		_, _, err := client.Issues.CreateLabel(ctx,
-			orgName, repoName, label)
-		if err != nil {
-			return err
-		}
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
 	}
-
-	d.SetId(buildTwoPartID(repoName, name))
-
-	return resourceGithubIssueLabelRead(d, meta)
+	return nil
 }
 
-func resourceGithubIssueLabelRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	repoName, name, err := parseID2(d.Id())
-	if err != nil {
-		return err
+func resourceGithubIssueLabelRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	repoName, ok := d.Get("repository").(string)
+	if !ok {
+		return diag.Errorf(`expected "repository" to be string`)
+	}
+	name, ok := d.Get("name").(string)
+	if !ok {
+		return diag.Errorf(`expected "name" to be string`)
 	}
 
-	orgName := meta.(*Owner).name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	orgName := meta.name
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	githubLabel, resp, err := client.Issues.GetLabel(ctx,
-		orgName, repoName, name)
+	githubLabel, resp, err := client.Issues.GetLabel(ctx, orgName, repoName, name)
 	if err != nil {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
@@ -165,45 +144,119 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta any) error {
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing label %s (%s/%s) from state because it no longer exists in GitHub",
-					name, orgName, repoName)
+				tflog.Info(ctx, "Removing label from state because it no longer exists in GitHub", map[string]any{"name": name, "org_name": orgName, "repo_name": repoName})
 				d.SetId("")
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
+	}
+
+	if err = d.Set("color", githubLabel.GetColor()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err = d.Set("description", githubLabel.GetDescription()); err != nil {
+		return diag.FromErr(err)
 	}
 
 	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
-	}
-	if err = d.Set("repository", repoName); err != nil {
-		return err
-	}
-	if err = d.Set("name", name); err != nil {
-		return err
-	}
-	if err = d.Set("color", githubLabel.GetColor()); err != nil {
-		return err
-	}
-	if err = d.Set("description", githubLabel.GetDescription()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("url", githubLabel.GetURL()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubIssueLabelDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubIssueLabelUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
+	repoName, ok := d.Get("repository").(string)
+	if !ok {
+		return diag.Errorf(`expected "repository" to be string`)
+	}
+	name, ok := d.Get("name").(string)
+	if !ok {
+		return diag.Errorf(`expected "name" to be string`)
+	}
+	color, ok := d.Get("color").(string)
+	if !ok {
+		return diag.Errorf(`expected "color" to be string`)
+	}
 
-	orgName := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
-	name := d.Get("name").(string)
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	originalName := name
+	if d.HasChange("name") {
+		oldName, _ := d.GetChange("name")
+		oldNameString, ok := oldName.(string)
+		if !ok {
+			return diag.Errorf(`expected old "name" to be string`)
+		}
+		originalName = oldNameString
+	}
+	label := &github.Label{
+		Name:  new(name),
+		Color: new(color),
+	}
+	if v, ok := d.GetOk("description"); ok {
+		description, ok := v.(string)
+		if !ok {
+			return diag.Errorf(`expected "description" to be string`)
+		}
+		label.Description = &description
+	}
+	githubLabel, resp, err := client.Issues.EditLabel(ctx, orgName, repoName, originalName, label)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	id, err := buildID(repoName, name)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	d.SetId(id)
 
+	if err := d.Set("url", githubLabel.GetURL()); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
+}
+
+func resourceGithubIssueLabelDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
+
+	repoName, ok := d.Get("repository").(string)
+	if !ok {
+		return diag.Errorf(`expected "repository" to be string`)
+	}
+	name, ok := d.Get("name").(string)
+	if !ok {
+		return diag.Errorf(`expected "name" to be string`)
+	}
 	_, err := client.Issues.DeleteLabel(ctx, orgName, repoName, name)
-	return handleArchivedRepoDelete(err, "issue label", name, orgName, repoName)
+	return diag.FromErr(handleArchivedRepoDelete(err, "issue label", name, orgName, repoName))
+}
+
+func resourceGithubIssueLabelImport(_ context.Context, d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
+	repoName, name, err := parseID2(d.Id())
+	if err != nil {
+		return nil, err
+	}
+
+	if err := d.Set("repository", repoName); err != nil {
+		return nil, err
+	}
+
+	if err := d.Set("name", name); err != nil {
+		return nil, err
+	}
+
+	return []*schema.ResourceData{d}, nil
 }
