@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
 	"github.com/google/go-github/v84/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -370,7 +370,10 @@ func dataSourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData,
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[DEBUG] Missing GitHub repository %s/%s", owner, repoName)
+				tflog.Debug(ctx, "Missing GitHub repository", map[string]any{
+					"owner": owner,
+					"repo":  repoName,
+				})
 				d.SetId("")
 				return nil
 			}
