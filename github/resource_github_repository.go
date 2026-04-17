@@ -400,12 +400,13 @@ func resourceGithubRepository() *schema.Resource {
 				Optional:    true,
 				Computed:    true,
 				Description: "Set to 'true' to enable security alerts for vulnerable dependencies. Enabling requires alerts to be enabled on the owner level. (Note for importing: GitHub enables the alerts on all repos by default). Note that vulnerability alerts have not been successfully tested on any GitHub Enterprise instance and may be unavailable in those settings.",
+				Deprecated:  "Use the github_repository_vulnerability_alerts resource instead. This field will be removed in a future version.",
 			},
 			"ignore_vulnerability_alerts_during_read": {
 				Type:       schema.TypeBool,
 				Optional:   true,
 				Default:    false,
-				Deprecated: "This is ignored as the provider now handles lack of permissions automatically.",
+				Deprecated: "This is ignored as the provider now handles lack of permissions automatically. This field will be removed in a future version.",
 			},
 			"full_name": {
 				Type:        schema.TypeString,
