@@ -160,9 +160,11 @@ func resourceGithubRepositoryPagesCreate(ctx context.Context, d *schema.Resource
 		return diag.FromErr(err)
 	}
 
-	// Check if we have values set that can't be configured as part of the create logic
+	// Sending a null value will remove the custom domain in the API, so we make sure to only send the value if it's set.
 	cname, cnameOK := d.GetOk("cname")
-	public, publicOKExists := d.GetOkExists("public")                     //nolint:staticcheck // SA1019: d.GetOkExists is deprecated but necessary for bool fields
+	// `public` can only be set for GHEC. Hence we make sure to only send the value if it's set.
+	public, publicOKExists := d.GetOkExists("public") //nolint:staticcheck // SA1019: d.GetOkExists is deprecated but necessary for bool fields
+	// `https_enforced` can't be sent to the API unless `cname` is set. Otherwise the API will return "404 The certificate does not exist yet".
 	httpsEnforced, httpsEnforcedExists := d.GetOkExists("https_enforced") //nolint:staticcheck // SA1019: d.GetOkExists is deprecated but necessary for bool fields
 	tflog.Debug(ctx, "Do we have values set that need the update logic?", map[string]any{
 		"public":                public,
