@@ -162,7 +162,7 @@ func resourceGithubRepositoryPagesCreate(ctx context.Context, d *schema.Resource
 
 	// Sending a null value will remove the custom domain in the API, so we make sure to only send the value if it's set.
 	cname, cnameOK := d.GetOk("cname")
-	// `public` can only be set for GHEC. Hence we make sure to only send the value if it's set.
+	// // Sending the `public` value will return an error if the repository doesn't have public pages enabled.
 	public, publicOKExists := d.GetOkExists("public") //nolint:staticcheck // SA1019: d.GetOkExists is deprecated but necessary for bool fields
 	// `https_enforced` can't be sent to the API unless `cname` is set. Otherwise the API will return "404 The certificate does not exist yet".
 	httpsEnforced, httpsEnforcedExists := d.GetOkExists("https_enforced") //nolint:staticcheck // SA1019: d.GetOkExists is deprecated but necessary for bool fields
@@ -289,13 +289,15 @@ func resourceGithubRepositoryPagesUpdate(ctx context.Context, d *schema.Resource
 
 	update := &github.PagesUpdate{}
 
+	// Sending a null value for `cname` will remove the custom domain in the API, so we make sure to only send the value if it's changed.
 	if d.HasChange("cname") {
 		cname := d.Get("cname").(string)
-		if cname != "" {
-			update.CNAME = new(cname)
-		}
+		update.CNAME = new(cname)
 	}
 
+	// Sending the `public` value on updates will return an error if the repository doesn't have public pages enabled.
+	// Hence we make sure to only send the value if it's changed.
+	// Error: "400 Private pages is not enabled for this repository. All Pages will be public."
 	if d.HasChange("public") {
 		public, ok := d.Get("public").(bool)
 		if ok {
@@ -303,6 +305,7 @@ func resourceGithubRepositoryPagesUpdate(ctx context.Context, d *schema.Resource
 		}
 	}
 
+	// `https_enforced` can't be sent to the API unless `cname` is set. Otherwise the API will return "404 The certificate does not exist yet".
 	if d.HasChange("https_enforced") {
 		httpsEnforced, ok := d.Get("https_enforced").(bool)
 		if ok {
@@ -310,24 +313,19 @@ func resourceGithubRepositoryPagesUpdate(ctx context.Context, d *schema.Resource
 		}
 	}
 
-	if d.HasChange("build_type") {
-		buildType := d.Get("build_type").(string)
-		update.BuildType = new(buildType)
-	}
+	buildType := d.Get("build_type").(string)
+	update.BuildType = new(buildType)
 
-	if d.HasChange("source") || d.HasChange("build_type") {
-		buildType := d.Get("build_type").(string)
-		if buildType == "legacy" {
-			if source, ok := d.GetOk("source"); ok {
-				sourceList := source.([]any)
-				if len(sourceList) > 0 {
-					sourceMap := sourceList[0].(map[string]any)
-					branch := sourceMap["branch"].(string)
-					path := sourceMap["path"].(string)
-					update.Source = &github.PagesSource{
-						Branch: &branch,
-						Path:   &path,
-					}
+	if buildType == "legacy" {
+		if source, ok := d.GetOk("source"); ok {
+			sourceList := source.([]any)
+			if len(sourceList) > 0 {
+				sourceMap := sourceList[0].(map[string]any)
+				branch := sourceMap["branch"].(string)
+				path := sourceMap["path"].(string)
+				update.Source = &github.PagesSource{
+					Branch: &branch,
+					Path:   &path,
 				}
 			}
 		}
