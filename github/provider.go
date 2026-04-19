@@ -3,13 +3,13 @@ package github
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/url"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -363,7 +363,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 		// an explicitly set value in a provider block), but is necessary
 		// for backwards compatibility. We could remove this backwards compatibility
 		// code in a future major release.
-		env := ownerOrOrgEnvDefaultFunc()
+		env := ownerOrOrgEnvDefaultFunc(ctx)
 		if env.(string) != "" {
 			owner = env.(string)
 		}
@@ -376,7 +376,9 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 
 		org := d.Get("organization").(string)
 		if org != "" {
-			log.Printf("[INFO] Selecting organization attribute as owner: %s", org)
+			tflog.Info(ctx, "Selecting organization attribute as owner", map[string]any{
+				"org_name": org,
+			})
 			owner = org
 		}
 
@@ -424,33 +426,44 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 		}
 
 		if token == "" {
-			log.Printf("[INFO] No token found, using GitHub CLI to get token from hostname %s", baseURL.Host)
-			token = tokenFromGHCLI(baseURL)
+			tflog.Info(ctx, "No token found, using GitHub CLI to get token from hostname", map[string]any{
+				"hostname": baseURL.Host,
+			})
+			token = tokenFromGHCLI(ctx, baseURL)
 		}
 
 		writeDelay := d.Get("write_delay_ms").(int)
 		if writeDelay <= 0 {
 			return nil, wrapErrors([]error{fmt.Errorf("write_delay_ms must be greater than 0ms")})
 		}
-		log.Printf("[INFO] Setting write_delay_ms to %d", writeDelay)
+		tflog.Info(ctx, "Setting write_delay_ms", map[string]any{
+			"write_delay_ms": writeDelay,
+		})
 
 		readDelay := d.Get("read_delay_ms").(int)
 		if readDelay < 0 {
 			return nil, wrapErrors([]error{fmt.Errorf("read_delay_ms must be greater than or equal to 0ms")})
 		}
-		log.Printf("[DEBUG] Setting read_delay_ms to %d", readDelay)
+		tflog.Debug(ctx, "Setting read_delay_ms", map[string]any{
+			"read_delay_ms": readDelay,
+		})
 
 		retryDelay := d.Get("read_delay_ms").(int)
 		if retryDelay < 0 {
 			return nil, diag.FromErr(fmt.Errorf("retry_delay_ms must be greater than or equal to 0ms"))
 		}
-		log.Printf("[DEBUG] Setting retry_delay_ms to %d", retryDelay)
+		tflog.Debug(ctx, "Setting retry_delay_ms", map[string]any{
+			"retry_delay_ms": retryDelay,
+		})
 
 		maxRetries := d.Get("max_retries").(int)
 		if maxRetries < 0 {
 			return nil, diag.FromErr(fmt.Errorf("max_retries must be greater than or equal to 0"))
 		}
-		log.Printf("[DEBUG] Setting max_retries to %d", maxRetries)
+		tflog.Debug(ctx, "Setting max_retries", map[string]any{
+			"max_retries": maxRetries,
+		})
+
 		retryableErrors := make(map[int]bool)
 		if maxRetries > 0 {
 			reParam := d.Get("retryable_errors").([]any)
@@ -462,19 +475,24 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 				}
 			}
 
-			log.Printf("[DEBUG] Setting retriableErrors to %v", retryableErrors)
+			tflog.Debug(ctx, "Setting retriableErrors", map[string]any{
+				"retryable_errors": retryableErrors,
+			})
 		}
 
 		_maxPerPage := d.Get("max_per_page").(int)
 		if _maxPerPage <= 0 {
 			return nil, diag.FromErr(fmt.Errorf("max_per_page must be greater than than 0"))
 		}
-		log.Printf("[DEBUG] Setting max_per_page to %d", _maxPerPage)
+		tflog.Debug(ctx, "Setting max_per_page", map[string]any{
+			"max_per_page": _maxPerPage,
+		})
 		maxPerPage = _maxPerPage
 
 		parallelRequests := d.Get("parallel_requests").(bool)
-
-		log.Printf("[DEBUG] Setting parallel_requests to %t", parallelRequests)
+		tflog.Debug(ctx, "Setting parallel_requests", map[string]any{
+			"parallel_requests": parallelRequests,
+		})
 
 		config := Config{
 			Token:            token,
@@ -513,7 +531,7 @@ func ghCLIHostFromAPIHost(host string) string {
 }
 
 // See https://github.com/integrations/terraform-provider-github/issues/1822
-func tokenFromGHCLI(u *url.URL) string {
+func tokenFromGHCLI(ctx context.Context, u *url.URL) string {
 	ghCliPath := os.Getenv("GH_PATH")
 	if ghCliPath == "" {
 		ghCliPath = "gh"
@@ -523,22 +541,28 @@ func tokenFromGHCLI(u *url.URL) string {
 
 	out, err := exec.Command(ghCliPath, "auth", "token", "--hostname", host).Output()
 	if err != nil {
-		log.Printf("[DEBUG] Error getting token from GitHub CLI: %s", err.Error())
+		tflog.Debug(ctx, "Error getting token from GitHub CLI", map[string]any{
+			"error": err.Error(),
+		})
 		// GH CLI is either not installed or there was no `gh auth login` command issued,
 		// which is fine. don't return the error to keep the flow going
 		return ""
 	}
 
-	log.Printf("[INFO] Using the token from GitHub CLI")
+	tflog.Info(ctx, "Using the token from GitHub CLI")
 	return strings.TrimSpace(string(out))
 }
 
-func ownerOrOrgEnvDefaultFunc() any {
+func ownerOrOrgEnvDefaultFunc(ctx context.Context) any {
 	if organization := os.Getenv("GITHUB_ORGANIZATION"); organization != "" {
-		log.Printf("[INFO] Selecting owner %s from GITHUB_ORGANIZATION environment variable", organization)
+		tflog.Info(ctx, "Selecting owner from GITHUB_ORGANIZATION environment variable", map[string]any{
+			"owner": organization,
+		})
 		return organization
 	}
 	owner := os.Getenv("GITHUB_OWNER")
-	log.Printf("[INFO] Selecting owner %s from GITHUB_OWNER environment variable", owner)
+	tflog.Info(ctx, "Selecting owner from GITHUB_OWNER environment variable", map[string]any{
+		"owner": owner,
+	})
 	return owner
 }
