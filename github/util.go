@@ -242,6 +242,7 @@ func deleteResourceOn404AndSwallow304OtherwiseReturnError(err error, d *schema.R
 	var ghErr *github.ErrorResponse
 	if errors.As(err, &ghErr) {
 		if ghErr.Response.StatusCode == http.StatusNotModified {
+			log.Printf("[INFO] Resource %s not modified, skipping", resourceDescription)
 			return nil
 		}
 		if ghErr.Response.StatusCode == http.StatusNotFound {
