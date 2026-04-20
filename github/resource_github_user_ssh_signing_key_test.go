@@ -15,14 +15,14 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func TestAccGithubUserSshKey(t *testing.T) {
-	t.Run("creates and destroys a user SSH key without error", func(t *testing.T) {
+func TestAccGithubUserSshSigningKey(t *testing.T) {
+	t.Run("creates and destroys a user SSH signing key without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		name := fmt.Sprintf(`%s-%s`, testResourcePrefix, randomID)
-		testKey := newTestKey()
+		testKey := newTestSigningKey()
 
 		config := fmt.Sprintf(`
-			resource "github_user_ssh_key" "test" {
+			resource "github_user_ssh_signing_key" "test" {
 				title = "%[1]s"
 				key   = "%[2]s"
 			}
@@ -35,21 +35,21 @@ func TestAccGithubUserSshKey(t *testing.T) {
 				{
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_user_ssh_key.test", tfjsonpath.New("title"), knownvalue.StringExact(name)),
-						statecheck.ExpectKnownValue("github_user_ssh_key.test", tfjsonpath.New("key"), knownvalue.StringExact(testKey)),
+						statecheck.ExpectKnownValue("github_user_ssh_signing_key.test", tfjsonpath.New("title"), knownvalue.StringExact(name)),
+						statecheck.ExpectKnownValue("github_user_ssh_signing_key.test", tfjsonpath.New("key"), knownvalue.StringExact(testKey)),
 					},
 				},
 			},
 		})
 	})
 
-	t.Run("imports an individual account SSH key without error", func(t *testing.T) {
+	t.Run("imports an individual account SSH signing key without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		name := fmt.Sprintf(`%s-%s`, testResourcePrefix, randomID)
-		testKey := newTestKey()
+		testKey := newTestSigningKey()
 
 		config := fmt.Sprintf(`
-			resource "github_user_ssh_key" "test" {
+			resource "github_user_ssh_signing_key" "test" {
 				title = "%[1]s"
 				key   = "%[2]s"
 			}
@@ -62,12 +62,12 @@ func TestAccGithubUserSshKey(t *testing.T) {
 				{
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_user_ssh_key.test", tfjsonpath.New("title"), knownvalue.StringExact(name)),
-						statecheck.ExpectKnownValue("github_user_ssh_key.test", tfjsonpath.New("key"), knownvalue.StringExact(testKey)),
+						statecheck.ExpectKnownValue("github_user_ssh_signing_key.test", tfjsonpath.New("title"), knownvalue.StringExact(name)),
+						statecheck.ExpectKnownValue("github_user_ssh_signing_key.test", tfjsonpath.New("key"), knownvalue.StringExact(testKey)),
 					},
 				},
 				{
-					ResourceName:      "github_user_ssh_key.test",
+					ResourceName:      "github_user_ssh_signing_key.test",
 					ImportState:       true,
 					ImportStateVerify: true,
 				},
@@ -76,7 +76,7 @@ func TestAccGithubUserSshKey(t *testing.T) {
 	})
 }
 
-func newTestKey() string {
+func newTestSigningKey() string {
 	privateKey, _ := rsa.GenerateKey(rand.Reader, 1024)
 	publicKey, _ := ssh.NewPublicKey(&privateKey.PublicKey)
 	return strings.TrimRight(string(ssh.MarshalAuthorizedKey(publicKey)), "\n")
