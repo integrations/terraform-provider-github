@@ -6,7 +6,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v85/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -32,7 +32,7 @@ func resourceGithubOrganizationSecurityManager() *schema.Resource {
 	}
 }
 
-func getSecurityManagerRole(client *github.Client, ctx context.Context, orgName string) (*github.CustomOrgRoles, error) {
+func getSecurityManagerRole(client *github.Client, ctx context.Context, orgName string) (*github.CustomOrgRole, error) {
 	roles, _, err := client.Organizations.ListRoles(ctx, orgName)
 	if err != nil {
 		return nil, err
