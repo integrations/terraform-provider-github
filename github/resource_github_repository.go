@@ -408,6 +408,13 @@ func resourceGithubRepository() *schema.Resource {
 				Default:    false,
 				Deprecated: "This is ignored as the provider now handles lack of permissions automatically. This field will be removed in a future version.",
 			},
+			"custom_properties": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Computed:    true,
+				Description: "Custom properties for the repository. Key/value pairs where values must be strings. Use this to satisfy organization-required custom properties at repository creation time.",
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
 			"full_name": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -645,6 +652,10 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 				repository.WebCommitSignoffRequired = new(val)
 			}
 		}
+	}
+
+	if v, ok := d.GetOk("custom_properties"); ok {
+		repository.CustomProperties = v.(map[string]any)
 	}
 
 	return repository
@@ -914,6 +925,19 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 		}
 	}
 
+	customPropertyValues, _, err := client.Repositories.GetAllCustomPropertyValues(ctx, owner, repoName)
+	if err == nil {
+		customProps := make(map[string]string, len(customPropertyValues))
+		for _, v := range customPropertyValues {
+			if strVal, ok := v.Value.(string); ok {
+				customProps[v.PropertyName] = strVal
+			}
+		}
+		if err := d.Set("custom_properties", customProps); err != nil {
+			return diag.Errorf("error setting custom_properties: %s", err.Error())
+		}
+	}
+
 	return nil
 }
 
@@ -961,6 +985,30 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 		return diag.FromErr(err)
 	}
 	d.SetId(repo.GetName()) // It's possible that `repo.GetName()` is different from `repoName` if the repository is renamed
+
+	if d.HasChange("custom_properties") {
+		newProps := d.Get("custom_properties").(map[string]interface{})
+		if len(newProps) > 0 {
+			if err := setRepositoryCustomProperties(ctx, client, owner, repoName, newProps); err != nil {
+				return diag.FromErr(err)
+			}
+		} else {
+			// custom_properties was removed from config — clear any previously set values
+			oldRaw, _ := d.GetChange("custom_properties")
+			if oldProps, ok := oldRaw.(map[string]interface{}); ok && len(oldProps) > 0 {
+				clearValues := make([]*github.CustomPropertyValue, 0, len(oldProps))
+				for k := range oldProps {
+					clearValues = append(clearValues, &github.CustomPropertyValue{
+						PropertyName: k,
+						Value:        nil,
+					})
+				}
+				if _, err := client.Repositories.CreateOrUpdateCustomProperties(ctx, owner, repoName, clearValues); err != nil {
+					return diag.FromErr(err)
+				}
+			}
+		}
+	}
 
 	if d.HasChange("pages") && !d.IsNewResource() {
 		opts := expandPagesUpdate(d.Get("pages").([]any))
@@ -1120,6 +1168,18 @@ func expandPagesUpdate(input []any) *github.PagesUpdate {
 	}
 
 	return update
+}
+
+func setRepositoryCustomProperties(ctx context.Context, client *github.Client, owner, repoName string, props map[string]any) error {
+	customPropertyValues := make([]*github.CustomPropertyValue, 0, len(props))
+	for k, v := range props {
+		customPropertyValues = append(customPropertyValues, &github.CustomPropertyValue{
+			PropertyName: k,
+			Value:        v,
+		})
+	}
+	_, err := client.Repositories.CreateOrUpdateCustomProperties(ctx, owner, repoName, customPropertyValues)
+	return err
 }
 
 func flattenPages(pages *github.Pages) []any {

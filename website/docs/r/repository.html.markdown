@@ -47,6 +47,20 @@ resource "github_repository" "example" {
 }
 ```
 
+## Example Usage with Required Custom Properties
+
+```hcl
+resource "github_repository" "example" {
+  name       = "example"
+  visibility = "private"
+
+  custom_properties = {
+    securityTier = "tier1"
+    owningTeam   = "platform"
+  }
+}
+```
+
 ## Example Usage with Repository Forking
 
 ```hcl
@@ -145,6 +159,8 @@ initial repository creation and create the target branch inside of the repositor
 - `ignore_vulnerability_alerts_during_read` (**DEPRECATED**) (Optional) - This is ignored as the provider now handles lack of permissions automatically. This field will be removed in a future version.
 
 - `allow_update_branch` (Optional) - Set to `true` to always suggest updating pull request branches.
+
+* `custom_properties` - (Optional) A map of custom property key/value pairs to set on the repository. Custom properties must first be defined at the organization or enterprise level. Use this to satisfy required custom properties at repository creation time — if your organization enforces required custom properties, they must be provided here or the creation request will be rejected. Values must be strings; for `single_select` and `true_false` types pass the value as a string (e.g. `"true"`). This attribute is also `Computed`, so GitHub-managed defaults will be reflected in state.
 
 ### GitHub Pages Configuration
 
