@@ -3,7 +3,6 @@ package github
 import (
 	"bytes"
 	"context"
-	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -290,42 +289,6 @@ func TestRepositoryPullRequestCreationPolicyGraphQL(t *testing.T) {
 
 	if err := updateRepositoryPullRequestCreationPolicy(ctx, githubv4.ID("R_kgDOGGmaaw"), "all", &meta); err != nil {
 		t.Fatalf("unexpected update error: %v", err)
-	}
-}
-
-func TestIsUnsupportedPullRequestCreationPolicyError(t *testing.T) {
-	cases := []struct {
-		name string
-		err  error
-		want bool
-	}{
-		{
-			name: "missing field",
-			err:  errors.New(`Field 'pullRequestCreationPolicy' doesn't exist on type 'Repository'`),
-			want: true,
-		},
-		{
-			name: "cannot query field",
-			err:  errors.New(`Cannot query field "pullRequestCreationPolicy" on type "Repository".`),
-			want: true,
-		},
-		{
-			name: "unrelated graphql error",
-			err:  errors.New(`Could not resolve to a Repository with the name 'integrations/terraform-provider-github'.`),
-			want: false,
-		},
-		{
-			name: "nil",
-			err:  nil,
-			want: false,
-		},
-	}
-
-	for _, tc := range cases {
-		got := isUnsupportedPullRequestCreationPolicyError(tc.err)
-		if got != tc.want {
-			t.Fatalf("%s: got %t want %t", tc.name, got, tc.want)
-		}
 	}
 }
 

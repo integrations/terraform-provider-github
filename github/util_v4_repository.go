@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/shurcooL/githubv4"
 )
@@ -108,21 +107,6 @@ func expandPullRequestCreationPolicy(policy string) (PullRequestCreationPolicy, 
 	default:
 		return "", fmt.Errorf("unsupported Terraform pull request creation policy %q", policy)
 	}
-}
-
-func isUnsupportedPullRequestCreationPolicyError(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	message := strings.ToLower(err.Error())
-
-	return strings.Contains(message, "pullrequestcreationpolicy") &&
-		(strings.Contains(message, "doesn't exist") ||
-			strings.Contains(message, "does not exist") ||
-			strings.Contains(message, "undefined field") ||
-			strings.Contains(message, "unknown argument") ||
-			strings.Contains(message, "cannot query field"))
 }
 
 func getRepositoryPullRequestCreationPolicy(ctx context.Context, owner, name string, meta any) (string, error) {

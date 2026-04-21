@@ -284,13 +284,6 @@ func resourceGithubRepository() *schema.Resource {
 				Default:     false,
 				Description: "Automatically delete head branch after a pull request is merged. Defaults to 'false'.",
 			},
-			"pull_request_creation_policy": {
-				Type:             schema.TypeString,
-				Optional:         true,
-				Computed:         true,
-				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"all", "collaborators_only"}, false)),
-				Description:      "Controls who can create pull requests in the repository. Can be `all` or `collaborators_only`.",
-			},
 			"web_commit_signoff_required": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -877,19 +870,6 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 		}
 	}
 
-	pullRequestCreationPolicy, err := getRepositoryPullRequestCreationPolicy(ctx, owner, repoName, meta)
-	if err != nil {
-		if isUnsupportedPullRequestCreationPolicyError(err) {
-			log.Printf("[DEBUG] Skipping pull_request_creation_policy read for %s/%s: %s", owner, repoName, err)
-		} else {
-			return diag.Errorf("error reading repository pull request creation policy: %s", err.Error())
-		}
-	} else {
-		if err = d.Set("pull_request_creation_policy", pullRequestCreationPolicy); err != nil {
-			return diag.FromErr(err)
-		}
-	}
-
 	// Set fork information if this is a fork
 	if repo.GetFork() {
 		_ = d.Set("fork", "true")
@@ -1012,19 +992,6 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 		_, _, err := client.Repositories.ReplaceAllTopics(ctx, owner, repo.GetName(), repoReq.Topics)
 		if err != nil {
 			return diag.FromErr(err)
-		}
-	}
-
-	if d.IsNewResource() || d.HasChange("pull_request_creation_policy") {
-		if v, ok := d.GetOk("pull_request_creation_policy"); ok {
-			repositoryID, err := getRepositoryID(repo.GetName(), meta)
-			if err != nil {
-				return diag.Errorf("error resolving repository id for pull request creation policy update: %s", err.Error())
-			}
-
-			if err := updateRepositoryPullRequestCreationPolicy(ctx, repositoryID, v.(string), meta); err != nil {
-				return diag.Errorf("error updating repository pull request creation policy: %s", err.Error())
-			}
 		}
 	}
 

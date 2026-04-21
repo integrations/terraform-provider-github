@@ -1334,43 +1334,6 @@ resource "github_repository" "test" {
 		})
 	})
 
-	t.Run("check_pull_request_creation_policy", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		testRepoName := fmt.Sprintf("%spr-policy-%s", testResourcePrefix, randomID)
-		config := `
-			resource "github_repository" "test" {
-				name                         = "%s"
-				visibility                   = "%s"
-				pull_request_creation_policy = "%s"
-			}
-		`
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: fmt.Sprintf(config, testRepoName, testAccConf.testRepositoryVisibility, "collaborators_only"),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository.test", "pull_request_creation_policy", "collaborators_only"),
-					),
-				},
-				{
-					Config: fmt.Sprintf(config, testRepoName, testAccConf.testRepositoryVisibility, "all"),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository.test", "pull_request_creation_policy", "all"),
-					),
-				},
-				{
-					ResourceName:            "github_repository.test",
-					ImportState:             true,
-					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"auto_init", "vulnerability_alerts", "ignore_vulnerability_alerts_during_read"},
-				},
-			},
-		})
-	})
-
 	t.Run("check_web_commit_signoff_required_organization_enabled_but_not_set", func(t *testing.T) {
 		t.Skip("This test should be run manually after confirming that the test organization has 'Require contributors to sign off on web-based commits' enabled under Organizations -> Settings -> Repository -> Repository defaults.")
 
