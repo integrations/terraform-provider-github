@@ -26,6 +26,7 @@ jobs:
       contents: read
     environment:
       name: acctest-ghes
+      deployment: false
     defaults:
       run:
         shell: bash

@@ -25,6 +25,7 @@ jobs:
       id-token: write
     environment:
       name: release
+      deployment: false
     defaults:
       run:
         shell: bash
