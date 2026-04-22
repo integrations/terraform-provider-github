@@ -64,7 +64,7 @@ The following arguments are supported:
 * `members_can_create_pages` - (Optional) Whether or not organization members can create new pages. Defaults to `true`.
 * `members_can_create_public_pages` - (Optional) Whether or not organization members can create new public pages. Defaults to `true`.
 * `members_can_create_private_pages` - (Optional) Whether or not organization members can create new private pages. Defaults to `true`.
-* `members_can_fork_private_repositories` - (Optional) Whether or not organization members can fork private repositories. Defaults to `false`.
+* `members_can_fork_private_repositories` - (Optional) Whether or not organization members can fork private repositories. When an enterprise policy controls this setting, omit this attribute to avoid API validation errors.
 * `web_commit_signoff_required` - (Optional) Whether or not commit signatures are required for commits to the organization. Defaults to `false`.
 * `advanced_security_enabled_for_new_repositories` - (Optional) Whether or not advanced security is enabled for new repositories. Defaults to `false`.
 * `dependabot_alerts_enabled_for_new_repositories` - (Optional) Whether or not dependabot alerts are enabled for new repositories. Defaults to `false`.
