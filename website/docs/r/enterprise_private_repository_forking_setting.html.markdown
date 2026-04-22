@@ -10,7 +10,7 @@ description: |-
 This resource allows you to create and manage the private repository forking policy for a GitHub Enterprise.
 You must have enterprise admin access to use this resource.
 
-When `setting_value` is `ENABLED`, the `policy_value` attribute controls where forks
+When `setting` is `ENABLED`, the `policy` attribute controls where forks
 can be created. When `DISABLED`, forking of private repositories is not allowed.
 When `NO_POLICY`, individual organizations within the enterprise control their own
 forking settings.
@@ -22,8 +22,8 @@ forking settings.
 ```hcl
 resource "github_enterprise_private_repository_forking_setting" "example" {
   enterprise_slug = "my-enterprise"
-  setting_value   = "ENABLED"
-  policy_value    = "SAME_ORGANIZATION"
+  setting   = "ENABLED"
+  policy    = "SAME_ORGANIZATION"
 }
 ```
 
@@ -32,8 +32,8 @@ resource "github_enterprise_private_repository_forking_setting" "example" {
 ```hcl
 resource "github_enterprise_private_repository_forking_setting" "example" {
   enterprise_slug = "my-enterprise"
-  setting_value   = "ENABLED"
-  policy_value    = "ENTERPRISE_ORGANIZATIONS_USER_ACCOUNTS"
+  setting   = "ENABLED"
+  policy    = "ENTERPRISE_ORGANIZATIONS_USER_ACCOUNTS"
 }
 ```
 
@@ -42,7 +42,7 @@ resource "github_enterprise_private_repository_forking_setting" "example" {
 ```hcl
 resource "github_enterprise_private_repository_forking_setting" "example" {
   enterprise_slug = "my-enterprise"
-  setting_value   = "DISABLED"
+  setting   = "DISABLED"
 }
 ```
 
@@ -51,7 +51,7 @@ resource "github_enterprise_private_repository_forking_setting" "example" {
 ```hcl
 resource "github_enterprise_private_repository_forking_setting" "example" {
   enterprise_slug = "my-enterprise"
-  setting_value   = "NO_POLICY"
+  setting   = "NO_POLICY"
 }
 ```
 
@@ -60,8 +60,8 @@ resource "github_enterprise_private_repository_forking_setting" "example" {
 The following arguments are supported:
 
 * `enterprise_slug` - (Required) The slug of the enterprise.
-* `setting_value` - (Required) Whether private repository forking is enabled for the enterprise. Must be one of `ENABLED`, `DISABLED`, or `NO_POLICY`.
-* `policy_value` - (Optional) Where members can fork private repositories. Required when `setting_value` is `ENABLED`. Must be one of:
+* `setting` - (Required) Whether private repository forking is enabled for the enterprise. Must be one of `ENABLED`, `DISABLED`, or `NO_POLICY`.
+* `policy` - (Optional) Where members can fork private repositories. Required when `setting` is `ENABLED`. Must be one of:
   * `ENTERPRISE_ORGANIZATIONS` - Members can fork to an organization within this enterprise.
   * `SAME_ORGANIZATION` - Members can fork only within the same organization (intra-org).
   * `SAME_ORGANIZATION_USER_ACCOUNTS` - Members can fork to their user account or within the same organization.

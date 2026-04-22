@@ -22,14 +22,14 @@ func resourceGithubEnterprisePrivateRepositoryForkingSetting() *schema.Resource 
 		},
 
 		CustomizeDiff: func(_ context.Context, diff *schema.ResourceDiff, _ any) error {
-			settingValue := diff.Get("setting_value").(string)
-			policyValue := diff.Get("policy_value").(string)
+			settingValue := diff.Get("setting").(string)
+			policyValue := diff.Get("policy").(string)
 
 			if settingValue == "ENABLED" && policyValue == "" {
-				return fmt.Errorf("policy_value is required when setting_value is ENABLED")
+				return fmt.Errorf("policy is required when setting is ENABLED")
 			}
 			if settingValue != "ENABLED" && policyValue != "" {
-				return fmt.Errorf("policy_value must not be set when setting_value is %s", settingValue)
+				return fmt.Errorf("policy must not be set when setting is %s", settingValue)
 			}
 			return nil
 		},
@@ -41,7 +41,7 @@ func resourceGithubEnterprisePrivateRepositoryForkingSetting() *schema.Resource 
 				ForceNew:    true,
 				Description: "The slug of the enterprise.",
 			},
-			"setting_value": {
+			"setting": {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
@@ -51,7 +51,7 @@ func resourceGithubEnterprisePrivateRepositoryForkingSetting() *schema.Resource 
 				}, false)),
 				Description: "Whether private repository forking is enabled for the enterprise. Must be one of: ENABLED, DISABLED, NO_POLICY.",
 			},
-			"policy_value": {
+			"policy": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
@@ -62,7 +62,7 @@ func resourceGithubEnterprisePrivateRepositoryForkingSetting() *schema.Resource 
 					"USER_ACCOUNTS",
 					"EVERYWHERE",
 				}, false)),
-				Description: "Where members can fork private repositories. Required when setting_value is ENABLED. Must be one of: ENTERPRISE_ORGANIZATIONS, SAME_ORGANIZATION, SAME_ORGANIZATION_USER_ACCOUNTS, ENTERPRISE_ORGANIZATIONS_USER_ACCOUNTS, USER_ACCOUNTS, EVERYWHERE.",
+				Description: "Where members can fork private repositories. Required when setting is ENABLED. Must be one of: ENTERPRISE_ORGANIZATIONS, SAME_ORGANIZATION, SAME_ORGANIZATION_USER_ACCOUNTS, ENTERPRISE_ORGANIZATIONS_USER_ACCOUNTS, USER_ACCOUNTS, EVERYWHERE.",
 			},
 		},
 	}
@@ -79,14 +79,14 @@ func resourceGithubEnterprisePrivateRepositoryForkingSettingCreateOrUpdate(d *sc
 		return fmt.Errorf("error resolving enterprise ID for slug %q: %w", enterpriseSlug, err)
 	}
 
-	settingValue := githubv4.EnterpriseEnabledDisabledSettingValue(d.Get("setting_value").(string))
+	settingValue := githubv4.EnterpriseEnabledDisabledSettingValue(d.Get("setting").(string))
 
 	input := githubv4.UpdateEnterpriseAllowPrivateRepositoryForkingSettingInput{
 		EnterpriseID: enterpriseID,
 		SettingValue: settingValue,
 	}
 
-	if v, ok := d.GetOk("policy_value"); ok {
+	if v, ok := d.GetOk("policy"); ok {
 		pv := githubv4.EnterpriseAllowPrivateRepositoryForkingPolicyValue(v.(string))
 		input.PolicyValue = &pv
 	}
@@ -141,16 +141,16 @@ func resourceGithubEnterprisePrivateRepositoryForkingSettingRead(d *schema.Resou
 	}
 
 	settingValue := string(query.Enterprise.OwnerInfo.AllowPrivateRepositoryForkingSetting)
-	if err := d.Set("setting_value", settingValue); err != nil {
+	if err := d.Set("setting", settingValue); err != nil {
 		return err
 	}
 
 	if settingValue == "ENABLED" {
-		if err := d.Set("policy_value", string(query.Enterprise.OwnerInfo.AllowPrivateRepositoryForkingSettingPolicyValue)); err != nil {
+		if err := d.Set("policy", string(query.Enterprise.OwnerInfo.AllowPrivateRepositoryForkingSettingPolicyValue)); err != nil {
 			return err
 		}
 	} else {
-		if err := d.Set("policy_value", ""); err != nil {
+		if err := d.Set("policy", ""); err != nil {
 			return err
 		}
 	}

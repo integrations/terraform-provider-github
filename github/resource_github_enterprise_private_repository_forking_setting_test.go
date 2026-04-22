@@ -15,15 +15,15 @@ func testAccEnterpriseForkingSettingConfig(settingValue, policyValue string) str
 		return fmt.Sprintf(`
 		resource "github_enterprise_private_repository_forking_setting" "test" {
 			enterprise_slug = "%s"
-			setting_value   = "%s"
-			policy_value    = "%s"
+			setting   = "%s"
+			policy    = "%s"
 		}
 		`, testAccConf.enterpriseSlug, settingValue, policyValue)
 	}
 	return fmt.Sprintf(`
 	resource "github_enterprise_private_repository_forking_setting" "test" {
 		enterprise_slug = "%s"
-		setting_value   = "%s"
+		setting   = "%s"
 	}
 	`, testAccConf.enterpriseSlug, settingValue)
 }
@@ -31,8 +31,8 @@ func testAccEnterpriseForkingSettingConfig(settingValue, policyValue string) str
 func testAccEnterpriseForkingSettingCheck(settingValue, policyValue string) resource.TestCheckFunc {
 	return resource.ComposeTestCheckFunc(
 		resource.TestCheckResourceAttr(testAccEnterpriseForkingSettingResource, "enterprise_slug", testAccConf.enterpriseSlug),
-		resource.TestCheckResourceAttr(testAccEnterpriseForkingSettingResource, "setting_value", settingValue),
-		resource.TestCheckResourceAttr(testAccEnterpriseForkingSettingResource, "policy_value", policyValue),
+		resource.TestCheckResourceAttr(testAccEnterpriseForkingSettingResource, "setting", settingValue),
+		resource.TestCheckResourceAttr(testAccEnterpriseForkingSettingResource, "policy", policyValue),
 	)
 }
 
@@ -110,27 +110,27 @@ func TestAccGithubEnterprisePrivateRepositoryForkingSetting(t *testing.T) {
 		})
 	})
 
-	t.Run("rejects policy_value when disabled", func(t *testing.T) {
+	t.Run("rejects policy when disabled", func(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config:      testAccEnterpriseForkingSettingConfig("DISABLED", "SAME_ORGANIZATION"),
-					ExpectError: regexp.MustCompile(`policy_value must not be set when setting_value is DISABLED`),
+					ExpectError: regexp.MustCompile(`policy must not be set when setting is DISABLED`),
 				},
 			},
 		})
 	})
 
-	t.Run("requires policy_value when enabled", func(t *testing.T) {
+	t.Run("requires policy when enabled", func(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config:      testAccEnterpriseForkingSettingConfig("ENABLED", ""),
-					ExpectError: regexp.MustCompile(`policy_value is required when setting_value is ENABLED`),
+					ExpectError: regexp.MustCompile(`policy is required when setting is ENABLED`),
 				},
 			},
 		})
