@@ -1,13 +1,16 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
 	"testing"
 
+	"github.com/google/go-github/v85/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccGithubRepositoryFile(t *testing.T) {
@@ -455,4 +458,95 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 			},
 		})
 	})
+
+	t.Run("produces a signed commit when deleting a managed file", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-file-signed-del-%s", testResourcePrefix, randomID)
+		filename := "signed-delete-test.md"
+
+		withFile := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name      = "%s"
+				auto_init = true
+			}
+
+			resource "github_repository_file" "test" {
+				repository = github_repository.test.name
+				branch     = "main"
+				file       = "%s"
+				content    = "signed delete test\n"
+			}
+		`, repoName, filename)
+
+		withoutFile := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name      = "%s"
+				auto_init = true
+			}
+		`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: withFile,
+					Check: resource.TestCheckResourceAttr(
+						"github_repository_file.test", "file", filename,
+					),
+				},
+				{
+					Config: withoutFile,
+					Check:  testAccCheckLatestCommitIsSigned(repoName, "main", filename),
+				},
+			},
+		})
+	})
+}
+
+// testAccCheckLatestCommitIsSigned asserts that the HEAD of the given branch is
+// a signed commit (commit.verification.verified == true) and that its message
+// references the expected file path. It is used to guard against regressing the
+// delete path off the GraphQL createCommitOnBranch mutation, since the REST
+// Contents API produces unsigned commits on DELETE.
+func testAccCheckLatestCommitIsSigned(repoName, branch, expectedPathInMessage string) resource.TestCheckFunc {
+	return func(_ *terraform.State) error {
+		meta, err := getTestMeta()
+		if err != nil {
+			return err
+		}
+
+		ctx := context.Background()
+		commits, _, err := meta.v3client.Repositories.ListCommits(ctx, meta.name, repoName, &github.CommitsListOptions{
+			SHA: branch,
+			ListOptions: github.ListOptions{
+				PerPage: 1,
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("listing commits on %s/%s@%s: %w", meta.name, repoName, branch, err)
+		}
+		if len(commits) == 0 {
+			return fmt.Errorf("no commits found on %s/%s@%s", meta.name, repoName, branch)
+		}
+
+		head := commits[0]
+		msg := head.GetCommit().GetMessage()
+		if !strings.Contains(msg, expectedPathInMessage) {
+			return fmt.Errorf(
+				"expected HEAD commit on %s/%s@%s to reference %q, got message %q (sha %s)",
+				meta.name, repoName, branch, expectedPathInMessage, msg, head.GetSHA(),
+			)
+		}
+
+		verification := head.GetCommit().GetVerification()
+		if !verification.GetVerified() {
+			return fmt.Errorf(
+				"expected HEAD commit on %s/%s@%s (sha %s, message %q) to be signed, got verified=false reason=%q",
+				meta.name, repoName, branch, head.GetSHA(), msg, verification.GetReason(),
+			)
+		}
+
+		return nil
+	}
 }
