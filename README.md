@@ -5,17 +5,17 @@
 
 <a href="https://github.com" aria-label="GitHub">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="readme-assets/github-octocat-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="readme-assets/github-octocat-light.svg">
-    <img alt="GitHub logo" src="readme-assets/github-octocat-light.svg" width="72" height="">
+    <source media="(prefers-color-scheme: dark)" srcset=".github/readme-assets/github-octocat-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset=".github/readme-assets/github-octocat-light.svg">
+    <img alt="GitHub logo" src=".github/readme-assets/github-octocat-light.svg" width="72">
   </picture>
 </a>
 
 <a href="https://terraform.io" aria-label="Terraform">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="readme-assets/hashicorp-terraform-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="readme-assets/hashicorp-terraform-light.svg">
-    <img alt="Terraform logo" src="readme-assets/hashicorp-terraform-light.svg" width="300px">
+    <source media="(prefers-color-scheme: dark)" srcset=".github/readme-assets/hashicorp-terraform-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset=".github/readme-assets/hashicorp-terraform-light.svg">
+    <img alt="Terraform logo" src=".github/readme-assets/hashicorp-terraform-light.svg" width="300px">
   </picture>
 </a>
 
