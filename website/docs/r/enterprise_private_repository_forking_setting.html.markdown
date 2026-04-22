@@ -2,20 +2,18 @@
 layout: "github"
 page_title: "GitHub: github_enterprise_private_repository_forking_setting"
 description: |-
-  Manages the private repository forking policy for a GitHub Enterprise.
+  Creates and manages the private repository forking policy for a GitHub Enterprise.
 ---
 
 # github_enterprise_private_repository_forking_setting
 
-This resource manages the enterprise-level policy that controls whether and where
-members can fork private and internal repositories within a GitHub Enterprise.
+This resource allows you to create and manage the private repository forking policy for a GitHub Enterprise.
+You must have enterprise admin access to use this resource.
 
 When `setting_value` is `ENABLED`, the `policy_value` attribute controls where forks
 can be created. When `DISABLED`, forking of private repositories is not allowed.
 When `NO_POLICY`, individual organizations within the enterprise control their own
 forking settings.
-
-~> **Note:** You must have enterprise admin access to use this resource.
 
 ## Example Usage
 
@@ -71,7 +69,11 @@ The following arguments are supported:
   * `USER_ACCOUNTS` - Members can fork to their user account.
   * `EVERYWHERE` - Members can fork to their user account or an organization, either inside or outside of this enterprise.
 
-~> **Note:** Destroying this resource sets the enterprise policy to `NO_POLICY`, which allows individual organizations to control their own forking settings. It does not set the policy to `DISABLED`.
+**Note:** Destroying this resource sets the enterprise policy to `NO_POLICY`, which allows individual organizations to control their own forking settings. It does not set the policy to `DISABLED`.
+
+## Attributes Reference
+
+No additional attributes are exported.
 
 ## Import
 
