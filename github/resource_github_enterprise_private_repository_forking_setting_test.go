@@ -8,192 +8,115 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccGithubEnterprisePrivateRepositoryForkingSetting(t *testing.T) {
-	t.Run("enables private repository forking with policy", func(t *testing.T) {
-		config := fmt.Sprintf(`
+const testAccEnterpriseForkingSettingResource = "github_enterprise_private_repository_forking_setting.test"
+
+func testAccEnterpriseForkingSettingConfig(settingValue, policyValue string) string {
+	if policyValue != "" {
+		return fmt.Sprintf(`
 		resource "github_enterprise_private_repository_forking_setting" "test" {
 			enterprise_slug = "%s"
-			setting_value   = "ENABLED"
-			policy_value    = "SAME_ORGANIZATION"
+			setting_value   = "%s"
+			policy_value    = "%s"
 		}
-		`, testAccConf.enterpriseSlug)
+		`, testAccConf.enterpriseSlug, settingValue, policyValue)
+	}
+	return fmt.Sprintf(`
+	resource "github_enterprise_private_repository_forking_setting" "test" {
+		enterprise_slug = "%s"
+		setting_value   = "%s"
+	}
+	`, testAccConf.enterpriseSlug, settingValue)
+}
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_enterprise_private_repository_forking_setting.test", "enterprise_slug", testAccConf.enterpriseSlug),
-			resource.TestCheckResourceAttr("github_enterprise_private_repository_forking_setting.test", "setting_value", "ENABLED"),
-			resource.TestCheckResourceAttr("github_enterprise_private_repository_forking_setting.test", "policy_value", "SAME_ORGANIZATION"),
-		)
+func testAccEnterpriseForkingSettingCheck(settingValue, policyValue string) resource.TestCheckFunc {
+	return resource.ComposeTestCheckFunc(
+		resource.TestCheckResourceAttr(testAccEnterpriseForkingSettingResource, "enterprise_slug", testAccConf.enterpriseSlug),
+		resource.TestCheckResourceAttr(testAccEnterpriseForkingSettingResource, "setting_value", settingValue),
+		resource.TestCheckResourceAttr(testAccEnterpriseForkingSettingResource, "policy_value", policyValue),
+	)
+}
 
+func TestAccGithubEnterprisePrivateRepositoryForkingSetting(t *testing.T) {
+	t.Run("enables private repository forking with policy", func(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: config,
-					Check:  check,
+					Config: testAccEnterpriseForkingSettingConfig("ENABLED", "SAME_ORGANIZATION"),
+					Check:  testAccEnterpriseForkingSettingCheck("ENABLED", "SAME_ORGANIZATION"),
 				},
 			},
 		})
 	})
 
 	t.Run("updates policy value", func(t *testing.T) {
-		configs := map[string]string{
-			"before": fmt.Sprintf(`
-			resource "github_enterprise_private_repository_forking_setting" "test" {
-				enterprise_slug = "%s"
-				setting_value   = "ENABLED"
-				policy_value    = "SAME_ORGANIZATION"
-			}
-			`, testAccConf.enterpriseSlug),
-
-			"after": fmt.Sprintf(`
-			resource "github_enterprise_private_repository_forking_setting" "test" {
-				enterprise_slug = "%s"
-				setting_value   = "ENABLED"
-				policy_value    = "ENTERPRISE_ORGANIZATIONS_USER_ACCOUNTS"
-			}
-			`, testAccConf.enterpriseSlug),
-		}
-
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr("github_enterprise_private_repository_forking_setting.test", "setting_value", "ENABLED"),
-				resource.TestCheckResourceAttr("github_enterprise_private_repository_forking_setting.test", "policy_value", "SAME_ORGANIZATION"),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr("github_enterprise_private_repository_forking_setting.test", "setting_value", "ENABLED"),
-				resource.TestCheckResourceAttr("github_enterprise_private_repository_forking_setting.test", "policy_value", "ENTERPRISE_ORGANIZATIONS_USER_ACCOUNTS"),
-			),
-		}
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: configs["before"],
-					Check:  checks["before"],
+					Config: testAccEnterpriseForkingSettingConfig("ENABLED", "SAME_ORGANIZATION"),
+					Check:  testAccEnterpriseForkingSettingCheck("ENABLED", "SAME_ORGANIZATION"),
 				},
 				{
-					Config: configs["after"],
-					Check:  checks["after"],
+					Config: testAccEnterpriseForkingSettingConfig("ENABLED", "ENTERPRISE_ORGANIZATIONS_USER_ACCOUNTS"),
+					Check:  testAccEnterpriseForkingSettingCheck("ENABLED", "ENTERPRISE_ORGANIZATIONS_USER_ACCOUNTS"),
 				},
 			},
 		})
 	})
 
 	t.Run("disables private repository forking", func(t *testing.T) {
-		config := fmt.Sprintf(`
-		resource "github_enterprise_private_repository_forking_setting" "test" {
-			enterprise_slug = "%s"
-			setting_value   = "DISABLED"
-		}
-		`, testAccConf.enterpriseSlug)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_enterprise_private_repository_forking_setting.test", "enterprise_slug", testAccConf.enterpriseSlug),
-			resource.TestCheckResourceAttr("github_enterprise_private_repository_forking_setting.test", "setting_value", "DISABLED"),
-			resource.TestCheckResourceAttr("github_enterprise_private_repository_forking_setting.test", "policy_value", ""),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: config,
-					Check:  check,
+					Config: testAccEnterpriseForkingSettingConfig("DISABLED", ""),
+					Check:  testAccEnterpriseForkingSettingCheck("DISABLED", ""),
 				},
 			},
 		})
 	})
 
 	t.Run("sets no policy", func(t *testing.T) {
-		config := fmt.Sprintf(`
-		resource "github_enterprise_private_repository_forking_setting" "test" {
-			enterprise_slug = "%s"
-			setting_value   = "NO_POLICY"
-		}
-		`, testAccConf.enterpriseSlug)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_enterprise_private_repository_forking_setting.test", "enterprise_slug", testAccConf.enterpriseSlug),
-			resource.TestCheckResourceAttr("github_enterprise_private_repository_forking_setting.test", "setting_value", "NO_POLICY"),
-			resource.TestCheckResourceAttr("github_enterprise_private_repository_forking_setting.test", "policy_value", ""),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: config,
-					Check:  check,
+					Config: testAccEnterpriseForkingSettingConfig("NO_POLICY", ""),
+					Check:  testAccEnterpriseForkingSettingCheck("NO_POLICY", ""),
 				},
 			},
 		})
 	})
 
 	t.Run("transitions from enabled to disabled", func(t *testing.T) {
-		configs := map[string]string{
-			"enabled": fmt.Sprintf(`
-			resource "github_enterprise_private_repository_forking_setting" "test" {
-				enterprise_slug = "%s"
-				setting_value   = "ENABLED"
-				policy_value    = "SAME_ORGANIZATION"
-			}
-			`, testAccConf.enterpriseSlug),
-
-			"disabled": fmt.Sprintf(`
-			resource "github_enterprise_private_repository_forking_setting" "test" {
-				enterprise_slug = "%s"
-				setting_value   = "DISABLED"
-			}
-			`, testAccConf.enterpriseSlug),
-		}
-
-		checks := map[string]resource.TestCheckFunc{
-			"enabled": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr("github_enterprise_private_repository_forking_setting.test", "setting_value", "ENABLED"),
-				resource.TestCheckResourceAttr("github_enterprise_private_repository_forking_setting.test", "policy_value", "SAME_ORGANIZATION"),
-			),
-			"disabled": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr("github_enterprise_private_repository_forking_setting.test", "setting_value", "DISABLED"),
-				resource.TestCheckResourceAttr("github_enterprise_private_repository_forking_setting.test", "policy_value", ""),
-			),
-		}
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: configs["enabled"],
-					Check:  checks["enabled"],
+					Config: testAccEnterpriseForkingSettingConfig("ENABLED", "SAME_ORGANIZATION"),
+					Check:  testAccEnterpriseForkingSettingCheck("ENABLED", "SAME_ORGANIZATION"),
 				},
 				{
-					Config: configs["disabled"],
-					Check:  checks["disabled"],
+					Config: testAccEnterpriseForkingSettingConfig("DISABLED", ""),
+					Check:  testAccEnterpriseForkingSettingCheck("DISABLED", ""),
 				},
 			},
 		})
 	})
 
 	t.Run("rejects policy_value when disabled", func(t *testing.T) {
-		config := fmt.Sprintf(`
-		resource "github_enterprise_private_repository_forking_setting" "test" {
-			enterprise_slug = "%s"
-			setting_value   = "DISABLED"
-			policy_value    = "SAME_ORGANIZATION"
-		}
-		`, testAccConf.enterpriseSlug)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config:      config,
+					Config:      testAccEnterpriseForkingSettingConfig("DISABLED", "SAME_ORGANIZATION"),
 					ExpectError: regexp.MustCompile(`policy_value must not be set when setting_value is DISABLED`),
 				},
 			},
@@ -201,19 +124,12 @@ func TestAccGithubEnterprisePrivateRepositoryForkingSetting(t *testing.T) {
 	})
 
 	t.Run("requires policy_value when enabled", func(t *testing.T) {
-		config := fmt.Sprintf(`
-		resource "github_enterprise_private_repository_forking_setting" "test" {
-			enterprise_slug = "%s"
-			setting_value   = "ENABLED"
-		}
-		`, testAccConf.enterpriseSlug)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config:      config,
+					Config:      testAccEnterpriseForkingSettingConfig("ENABLED", ""),
 					ExpectError: regexp.MustCompile(`policy_value is required when setting_value is ENABLED`),
 				},
 			},
@@ -221,30 +137,16 @@ func TestAccGithubEnterprisePrivateRepositoryForkingSetting(t *testing.T) {
 	})
 
 	t.Run("imports without error", func(t *testing.T) {
-		config := fmt.Sprintf(`
-		resource "github_enterprise_private_repository_forking_setting" "test" {
-			enterprise_slug = "%s"
-			setting_value   = "ENABLED"
-			policy_value    = "ENTERPRISE_ORGANIZATIONS_USER_ACCOUNTS"
-		}
-		`, testAccConf.enterpriseSlug)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_enterprise_private_repository_forking_setting.test", "enterprise_slug", testAccConf.enterpriseSlug),
-			resource.TestCheckResourceAttr("github_enterprise_private_repository_forking_setting.test", "setting_value", "ENABLED"),
-			resource.TestCheckResourceAttr("github_enterprise_private_repository_forking_setting.test", "policy_value", "ENTERPRISE_ORGANIZATIONS_USER_ACCOUNTS"),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: config,
-					Check:  check,
+					Config: testAccEnterpriseForkingSettingConfig("ENABLED", "ENTERPRISE_ORGANIZATIONS_USER_ACCOUNTS"),
+					Check:  testAccEnterpriseForkingSettingCheck("ENABLED", "ENTERPRISE_ORGANIZATIONS_USER_ACCOUNTS"),
 				},
 				{
-					ResourceName:      "github_enterprise_private_repository_forking_setting.test",
+					ResourceName:      testAccEnterpriseForkingSettingResource,
 					ImportState:       true,
 					ImportStateVerify: true,
 				},
