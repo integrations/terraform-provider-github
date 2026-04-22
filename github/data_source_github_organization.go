@@ -254,7 +254,7 @@ func dataSourceGithubOrganizationRead(ctx context.Context, d *schema.ResourceDat
 		_ = d.Set("members_can_create_public_repositories", organization.GetMembersCanCreatePublicRepos())
 		_ = d.Set("members_can_create_private_repositories", organization.GetMembersCanCreatePrivateRepos())
 		_ = d.Set("members_can_create_internal_repositories", organization.GetMembersCanCreateInternalRepos())
-		_ = d.Set("members_can_fork_private_repositories", organization.GetMembersCanCreatePrivateRepos())
+		_ = d.Set("members_can_fork_private_repositories", organization.GetMembersCanForkPrivateRepos())
 		_ = d.Set("web_commit_signoff_required", organization.GetWebCommitSignoffRequired())
 		_ = d.Set("members_can_create_pages", organization.GetMembersCanCreatePages())
 		_ = d.Set("members_can_create_public_pages", organization.GetMembersCanCreatePublicPages())
