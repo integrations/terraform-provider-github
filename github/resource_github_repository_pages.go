@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v85/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
@@ -124,7 +124,34 @@ func resourceGithubRepositoryPagesCreate(ctx context.Context, d *schema.Resource
 	owner := meta.name // TODO: Add owner support // d.Get("owner").(string)
 	repoName := d.Get("repository").(string)
 
-	pagesReq := expandPagesForCreate(d)
+	pagesReq := &github.Pages{}
+
+	buildType := d.Get("build_type").(string)
+	pagesReq.BuildType = new(buildType)
+
+	if buildType == "legacy" {
+		if source, ok := d.GetOk("source"); ok {
+			sourceList := source.([]any)
+			if len(sourceList) > 0 {
+				sourceMap := sourceList[0].(map[string]any)
+				branch := sourceMap["branch"].(string)
+				pagesSource := &github.PagesSource{
+					Branch: new(branch),
+				}
+				if path, ok := sourceMap["path"].(string); ok && path != "" && path != "/" {
+					pagesSource.Path = new(path)
+				}
+				pagesReq.Source = pagesSource
+			}
+		}
+		// Default to main branch if no source specified
+		if pagesReq.Source == nil {
+			pagesReq.Source = &github.PagesSource{
+				Branch: new("main"),
+			}
+		}
+	}
+
 	pages, _, err := client.Repositories.EnablePages(ctx, owner, repoName, pagesReq)
 	if err != nil {
 		return diag.FromErr(err)
@@ -299,18 +326,14 @@ func resourceGithubRepositoryPagesUpdate(ctx context.Context, d *schema.Resource
 	// Hence we make sure to only send the value if it's changed.
 	// Error: "400 Private pages is not enabled for this repository. All Pages will be public."
 	if d.HasChange("public") {
-		public, ok := d.Get("public").(bool)
-		if ok {
-			update.Public = new(public)
-		}
+		public := d.Get("public").(bool)
+		update.Public = new(public)
 	}
 
 	// `https_enforced` can't be sent to the API unless `cname` is set. Otherwise the API will return "404 The certificate does not exist yet".
 	if d.HasChange("https_enforced") {
-		httpsEnforced, ok := d.Get("https_enforced").(bool)
-		if ok {
-			update.HTTPSEnforced = new(httpsEnforced)
-		}
+		httpsEnforced := d.Get("https_enforced").(bool)
+		update.HTTPSEnforced = new(httpsEnforced)
 	}
 
 	buildType := d.Get("build_type").(string)
@@ -398,36 +421,4 @@ func resourceGithubRepositoryPagesDiff(ctx context.Context, d *schema.ResourceDi
 	}
 
 	return nil
-}
-
-func expandPagesForCreate(d *schema.ResourceData) *github.Pages {
-	pages := &github.Pages{}
-
-	buildType := d.Get("build_type").(string)
-	pages.BuildType = new(buildType)
-
-	if buildType == "legacy" {
-		if source, ok := d.GetOk("source"); ok {
-			sourceList := source.([]any)
-			if len(sourceList) > 0 {
-				sourceMap := sourceList[0].(map[string]any)
-				branch := sourceMap["branch"].(string)
-				pagesSource := &github.PagesSource{
-					Branch: new(branch),
-				}
-				if path, ok := sourceMap["path"].(string); ok && path != "" && path != "/" {
-					pagesSource.Path = new(path)
-				}
-				pages.Source = pagesSource
-			}
-		}
-		// Default to main branch if no source specified
-		if pages.Source == nil {
-			pages.Source = &github.PagesSource{
-				Branch: new("main"),
-			}
-		}
-	}
-
-	return pages
 }
