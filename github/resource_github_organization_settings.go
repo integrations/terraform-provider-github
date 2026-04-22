@@ -119,8 +119,7 @@ func resourceGithubOrganizationSettings() *schema.Resource {
 			"members_can_fork_private_repositories": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Default:     false,
-				Description: "Whether or not organization members can fork private repositories.",
+				Description: "Whether or not organization members can fork private repositories. When an enterprise policy controls this setting, omit this attribute to avoid API validation errors.",
 			},
 			"web_commit_signoff_required": {
 				Type:        schema.TypeBool,
