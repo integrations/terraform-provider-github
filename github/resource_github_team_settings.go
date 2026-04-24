@@ -225,7 +225,7 @@ func resourceGithubTeamSettingsRead(ctx context.Context, d *schema.ResourceData,
 }
 
 func resourceGithubTeamSettingsUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	if d.HasChange("review_request_delegation") || d.HasChange("notify") {
+	if d.HasChanges("review_request_delegation", "notify") {
 		meta := m.(*Owner)
 		graphql := meta.v4client
 		reviewRequestDelegation := d.Get("review_request_delegation").([]any)
