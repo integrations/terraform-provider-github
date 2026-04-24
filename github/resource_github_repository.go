@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v85/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -328,6 +328,7 @@ func resourceGithubRepository() *schema.Resource {
 				MaxItems:    1,
 				Optional:    true,
 				Description: "The repository's GitHub Pages configuration",
+				Deprecated:  "Use the github_repository_pages resource instead. This field will be removed in a future version.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"source": {
@@ -400,12 +401,13 @@ func resourceGithubRepository() *schema.Resource {
 				Optional:    true,
 				Computed:    true,
 				Description: "Set to 'true' to enable security alerts for vulnerable dependencies. Enabling requires alerts to be enabled on the owner level. (Note for importing: GitHub enables the alerts on all repos by default). Note that vulnerability alerts have not been successfully tested on any GitHub Enterprise instance and may be unavailable in those settings.",
+				Deprecated:  "Use the github_repository_vulnerability_alerts resource instead. This field will be removed in a future version.",
 			},
 			"ignore_vulnerability_alerts_during_read": {
 				Type:       schema.TypeBool,
 				Optional:   true,
 				Default:    false,
-				Deprecated: "This is ignored as the provider now handles lack of permissions automatically.",
+				Deprecated: "This is ignored as the provider now handles lack of permissions automatically. This field will be removed in a future version.",
 			},
 			"full_name": {
 				Type:        schema.TypeString,
@@ -859,7 +861,8 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 		_ = d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle())
 	}
 
-	if repo.GetHasPages() {
+	_, isPagesConfigured := d.GetOk("pages")
+	if repo.GetHasPages() && isPagesConfigured {
 		pages, _, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)
 		if err != nil {
 			return diag.FromErr(err)

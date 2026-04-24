@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v85/github"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -242,6 +242,7 @@ func deleteResourceOn404AndSwallow304OtherwiseReturnError(err error, d *schema.R
 	var ghErr *github.ErrorResponse
 	if errors.As(err, &ghErr) {
 		if ghErr.Response.StatusCode == http.StatusNotModified {
+			log.Printf("[INFO] Resource %s not modified, skipping", resourceDescription)
 			return nil
 		}
 		if ghErr.Response.StatusCode == http.StatusNotFound {
