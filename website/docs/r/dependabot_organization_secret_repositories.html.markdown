@@ -16,9 +16,9 @@ This resource is only applicable when `visibility` of the existing organization 
 
 ```hcl
 resource "github_dependabot_organization_secret" "example" {
-	secret_name     = "mysecret"
-	plaintext_value = "foo"
-	visibility      = "selected"
+	secret_name = "mysecret"
+	value       = "foo"
+	visibility  = "selected"
 }
 
 resource "github_repository" "example" {

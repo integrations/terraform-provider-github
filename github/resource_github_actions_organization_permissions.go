@@ -5,7 +5,7 @@ import (
 	"errors"
 	"log"
 
-	"github.com/google/go-github/v83/github"
+	"github.com/google/go-github/v85/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -159,7 +159,7 @@ func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.Resour
 	}
 
 	if v, ok := d.GetOk("sha_pinning_required"); ok {
-		actionsPermissions.SHAPinningRequired = github.Ptr(v.(bool))
+		actionsPermissions.SHAPinningRequired = new(v.(bool))
 	}
 
 	_, _, err = client.Actions.UpdateActionsPermissions(ctx,
@@ -313,8 +313,8 @@ func resourceGithubActionsOrganizationPermissionsDelete(d *schema.ResourceData, 
 	_, _, err = client.Actions.UpdateActionsPermissions(ctx,
 		orgName,
 		github.ActionsPermissions{
-			AllowedActions:      github.Ptr("all"),
-			EnabledRepositories: github.Ptr("all"),
+			AllowedActions:      new("all"),
+			EnabledRepositories: new("all"),
 		})
 	if err != nil {
 		return err

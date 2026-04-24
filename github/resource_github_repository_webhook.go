@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v83/github"
+	"github.com/google/go-github/v85/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -180,7 +180,7 @@ func resourceGithubRepositoryWebhookRead(ctx context.Context, d *schema.Resource
 		currentSecret := d.Get("configuration").([]any)[0].(map[string]any)["secret"]
 
 		if hook.Config.Secret != nil {
-			hook.Config.Secret = github.Ptr(currentSecret.(string))
+			hook.Config.Secret = new(currentSecret.(string))
 		}
 	}
 

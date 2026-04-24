@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v83/github"
+	"github.com/google/go-github/v85/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -201,9 +201,9 @@ func expandTeamSyncGroups(d *schema.ResourceData) *github.IDPGroupList {
 			groupName := m["group_name"].(string)
 			groupDescription := m["group_description"].(string)
 			group := &github.IDPGroup{
-				GroupID:          github.Ptr(groupID),
-				GroupName:        github.Ptr(groupName),
-				GroupDescription: github.Ptr(groupDescription),
+				GroupID:          new(groupID),
+				GroupName:        new(groupName),
+				GroupDescription: new(groupDescription),
 			}
 			groups = append(groups, group)
 		}

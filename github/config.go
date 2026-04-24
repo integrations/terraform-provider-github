@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v83/github"
+	"github.com/google/go-github/v85/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
@@ -87,7 +87,7 @@ func (c *Config) Anonymous() bool {
 }
 
 func (c *Config) AnonymousHTTPClient() *http.Client {
-	client := &http.Client{Transport: &http.Transport{}}
+	client := &http.Client{Transport: http.DefaultTransport.(*http.Transport).Clone()}
 	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay, c.RetryDelay, c.ParallelRequests, c.RetryableErrors, c.MaxRetries)
 }
 

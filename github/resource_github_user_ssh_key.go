@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v83/github"
+	"github.com/google/go-github/v85/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -59,8 +59,8 @@ func resourceGithubUserSshKeyCreate(d *schema.ResourceData, meta any) error {
 	ctx := context.Background()
 
 	userKey, _, err := client.Users.CreateKey(ctx, &github.Key{
-		Title: github.Ptr(title),
-		Key:   github.Ptr(key),
+		Title: new(title),
+		Key:   new(key),
 	})
 	if err != nil {
 		return err

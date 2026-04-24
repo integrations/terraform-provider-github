@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/google/go-github/v83/github"
+	"github.com/google/go-github/v85/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
@@ -241,7 +241,7 @@ func dataSourceGithubOrganizationRead(ctx context.Context, d *schema.ResourceDat
 			if !query.Organization.MembersWithRole.PageInfo.HasNextPage {
 				break
 			}
-			variables["after"] = githubv4.NewString(query.Organization.MembersWithRole.PageInfo.EndCursor)
+			variables["after"] = new(query.Organization.MembersWithRole.PageInfo.EndCursor)
 		}
 
 		_ = d.Set("repositories", repoList)
@@ -254,7 +254,7 @@ func dataSourceGithubOrganizationRead(ctx context.Context, d *schema.ResourceDat
 		_ = d.Set("members_can_create_public_repositories", organization.GetMembersCanCreatePublicRepos())
 		_ = d.Set("members_can_create_private_repositories", organization.GetMembersCanCreatePrivateRepos())
 		_ = d.Set("members_can_create_internal_repositories", organization.GetMembersCanCreateInternalRepos())
-		_ = d.Set("members_can_fork_private_repositories", organization.GetMembersCanCreatePrivateRepos())
+		_ = d.Set("members_can_fork_private_repositories", organization.GetMembersCanForkPrivateRepos())
 		_ = d.Set("web_commit_signoff_required", organization.GetWebCommitSignoffRequired())
 		_ = d.Set("members_can_create_pages", organization.GetMembersCanCreatePages())
 		_ = d.Set("members_can_create_public_pages", organization.GetMembersCanCreatePublicPages())

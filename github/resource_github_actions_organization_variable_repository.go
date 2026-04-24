@@ -5,7 +5,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/google/go-github/v83/github"
+	"github.com/google/go-github/v85/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -50,7 +50,7 @@ func resourceGithubActionsOrganizationVariableRepositoryCreate(ctx context.Conte
 	repoID := d.Get("repository_id").(int)
 
 	repository := &github.Repository{
-		ID: github.Ptr(int64(repoID)),
+		ID: new(int64(repoID)),
 	}
 
 	_, err := client.Actions.AddSelectedRepoToOrgVariable(ctx, owner, variableName, repository)
@@ -120,7 +120,7 @@ func resourceGithubActionsOrganizationVariableRepositoryDelete(ctx context.Conte
 	repoID := d.Get("repository_id").(int)
 
 	repository := &github.Repository{
-		ID: github.Ptr(int64(repoID)),
+		ID: new(int64(repoID)),
 	}
 	_, err := client.Actions.RemoveSelectedRepoFromOrgVariable(ctx, owner, variableName, repository)
 	if err != nil {

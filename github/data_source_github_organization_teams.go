@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/google/go-github/v83/github"
+	"github.com/google/go-github/v85/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -131,7 +131,7 @@ func dataSourceGithubOrganizationTeamsRead(ctx context.Context, d *schema.Resour
 		if !query.Organization.Teams.PageInfo.HasNextPage {
 			break
 		}
-		variables["cursor"] = githubv4.NewString(query.Organization.Teams.PageInfo.EndCursor)
+		variables["cursor"] = new(query.Organization.Teams.PageInfo.EndCursor)
 	}
 
 	d.SetId(string(query.Organization.ID))

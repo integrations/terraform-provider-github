@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/google/go-github/v83/github"
+	"github.com/google/go-github/v85/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -54,11 +54,11 @@ func resourceGithubEnterpriseActionsWorkflowPermissionsCreateOrUpdate(d *schema.
 	workflowPerms := github.DefaultWorkflowPermissionEnterprise{}
 
 	if v, ok := d.GetOk("default_workflow_permissions"); ok {
-		workflowPerms.DefaultWorkflowPermissions = github.Ptr(v.(string))
+		workflowPerms.DefaultWorkflowPermissions = new(v.(string))
 	}
 
 	if v, ok := d.GetOk("can_approve_pull_request_reviews"); ok {
-		workflowPerms.CanApprovePullRequestReviews = github.Ptr(v.(bool))
+		workflowPerms.CanApprovePullRequestReviews = new(v.(bool))
 	}
 
 	log.Printf("[DEBUG] Updating workflow permissions for enterprise: %s", enterpriseSlug)
@@ -104,8 +104,8 @@ func resourceGithubEnterpriseActionsWorkflowPermissionsDelete(d *schema.Resource
 
 	// Reset to safe defaults
 	workflowPerms := github.DefaultWorkflowPermissionEnterprise{
-		DefaultWorkflowPermissions:   github.Ptr("read"),
-		CanApprovePullRequestReviews: github.Ptr(false),
+		DefaultWorkflowPermissions:   new("read"),
+		CanApprovePullRequestReviews: new(false),
 	}
 
 	_, _, err := client.Actions.UpdateDefaultWorkflowPermissionsInEnterprise(ctx, enterpriseSlug, workflowPerms)

@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/google/go-github/v83/github"
+	"github.com/google/go-github/v85/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
@@ -335,27 +335,27 @@ func createUpdateEnvironmentData(d *schema.ResourceData) github.CreateUpdateEnvi
 	data := github.CreateUpdateEnvironment{}
 
 	if v, ok := d.GetOk("wait_timer"); ok {
-		data.WaitTimer = github.Ptr(v.(int))
+		data.WaitTimer = new(v.(int))
 	}
 
-	data.CanAdminsBypass = github.Ptr(d.Get("can_admins_bypass").(bool))
+	data.CanAdminsBypass = new(d.Get("can_admins_bypass").(bool))
 
-	data.PreventSelfReview = github.Ptr(d.Get("prevent_self_review").(bool))
+	data.PreventSelfReview = new(d.Get("prevent_self_review").(bool))
 
 	if v, ok := d.GetOk("reviewers"); ok {
 		envReviewers := make([]*github.EnvReviewers, 0)
 
 		for _, team := range expandReviewers(v, "teams") {
 			envReviewers = append(envReviewers, &github.EnvReviewers{
-				Type: github.Ptr("Team"),
-				ID:   github.Ptr(team),
+				Type: new("Team"),
+				ID:   new(team),
 			})
 		}
 
 		for _, user := range expandReviewers(v, "users") {
 			envReviewers = append(envReviewers, &github.EnvReviewers{
-				Type: github.Ptr("User"),
-				ID:   github.Ptr(user),
+				Type: new("User"),
+				ID:   new(user),
 			})
 		}
 
@@ -365,8 +365,8 @@ func createUpdateEnvironmentData(d *schema.ResourceData) github.CreateUpdateEnvi
 	if v, ok := d.GetOk("deployment_branch_policy"); ok {
 		policy := v.([]any)[0].(map[string]any)
 		data.DeploymentBranchPolicy = &github.BranchPolicy{
-			ProtectedBranches:    github.Ptr(policy["protected_branches"].(bool)),
-			CustomBranchPolicies: github.Ptr(policy["custom_branch_policies"].(bool)),
+			ProtectedBranches:    new(policy["protected_branches"].(bool)),
+			CustomBranchPolicies: new(policy["custom_branch_policies"].(bool)),
 		}
 	}
 

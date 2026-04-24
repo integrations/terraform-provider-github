@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v83/github"
+	"github.com/google/go-github/v85/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -112,22 +112,23 @@ func resourceGithubTeam() *schema.Resource {
 	}
 }
 
-func resourceGithubTeamCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubTeamCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
+	ownerName := meta.name
+
 	err := checkOrganization(meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v3client
-	ownerName := meta.(*Owner).name
-
 	name := d.Get("name").(string)
 
 	newTeam := github.NewTeam{
 		Name:                name,
-		Description:         github.Ptr(d.Get("description").(string)),
-		Privacy:             github.Ptr(d.Get("privacy").(string)),
-		NotificationSetting: github.Ptr(d.Get("notification_setting").(string)),
+		Description:         new(d.Get("description").(string)),
+		Privacy:             new(d.Get("privacy").(string)),
+		NotificationSetting: new(d.Get("notification_setting").(string)),
 	}
 
 	if ldapDN := d.Get("ldap_dn").(string); ldapDN != "" {
@@ -135,7 +136,7 @@ func resourceGithubTeamCreate(ctx context.Context, d *schema.ResourceData, meta 
 	}
 
 	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
-		teamId, err := getTeamID(parentTeamID.(string), meta)
+		teamId, err := getTeamID(ctx, meta, parentTeamID.(string))
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -306,24 +307,25 @@ func resourceGithubTeamRead(ctx context.Context, d *schema.ResourceData, meta an
 	return nil
 }
 
-func resourceGithubTeamUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubTeamUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
+	orgId := meta.id
+
 	err := checkOrganization(meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
 	var removeParentTeam bool
-
 	editedTeam := github.NewTeam{
 		Name:                d.Get("name").(string),
-		Description:         github.Ptr(d.Get("description").(string)),
-		Privacy:             github.Ptr(d.Get("privacy").(string)),
-		NotificationSetting: github.Ptr(d.Get("notification_setting").(string)),
+		Description:         new(d.Get("description").(string)),
+		Privacy:             new(d.Get("privacy").(string)),
+		NotificationSetting: new(d.Get("notification_setting").(string)),
 	}
 	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
-		teamId, err := getTeamID(parentTeamID.(string), meta)
+		teamId, err := getTeamID(ctx, meta, parentTeamID.(string))
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -346,7 +348,7 @@ func resourceGithubTeamUpdate(ctx context.Context, d *schema.ResourceData, meta 
 	if d.HasChange("ldap_dn") {
 		ldapDN := d.Get("ldap_dn").(string)
 		mapping := &github.TeamLDAPMapping{
-			LDAPDN: github.Ptr(ldapDN),
+			LDAPDN: new(ldapDN),
 		}
 		_, _, err = client.Admin.UpdateTeamLDAPMapping(ctx, team.GetID(), mapping)
 		if err != nil {
@@ -434,8 +436,10 @@ func resourceGithubTeamDelete(ctx context.Context, d *schema.ResourceData, meta 
 	return nil
 }
 
-func resourceGithubTeamImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	teamId, err := getTeamID(d.Id(), meta)
+func resourceGithubTeamImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+	meta := m.(*Owner)
+
+	teamId, err := getTeamID(ctx, meta, d.Id())
 	if err != nil {
 		return nil, err
 	}
