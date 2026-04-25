@@ -255,10 +255,6 @@ func resourceGithubRepositoryCollaboratorsRead(ctx context.Context, d *schema.Re
 		return diag.FromErr(err)
 	}
 
-	if err := d.Set("user", ghUsers.flatten()); err != nil {
-		return diag.FromErr(err)
-	}
-
 	if isOrg {
 		ghTeams, err := listTeamCollaborators(ctx, client, owner, repoName, inTeams, inIgnoreTeams)
 		if err != nil {
@@ -277,6 +273,11 @@ func resourceGithubRepositoryCollaboratorsRead(ctx context.Context, d *schema.Re
 
 	ghInvitations, err := listInvitations(ctx, client, owner, repoName)
 	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	combinedUsersAndInvitations := slices.Concat(ghUsers, ghInvitations)
+	if err := d.Set("user", combinedUsersAndInvitations.flatten()); err != nil {
 		return diag.FromErr(err)
 	}
 

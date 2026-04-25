@@ -57,7 +57,7 @@ resource "github_repository_collaborators" "test" {
 }
 `, repoName, teamName0, teamName1, collaboratorUser)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -118,14 +118,14 @@ resource "github_repository_collaborators" "test" {
 }
 `, repoName, testAccConf.testExternalUser)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("user"), knownvalue.SetSizeExact(0)),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("user"), knownvalue.SetSizeExact(1)),
 						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("team"), knownvalue.SetSizeExact(0)),
 						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("invitation_ids"), knownvalue.MapSizeExact(1)),
 					},
@@ -196,7 +196,7 @@ resource "github_repository_collaborators" "test" {
 }
 `, configPre)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -270,7 +270,7 @@ resource "github_repository_collaborators" "test" {
 }
 `, configPre)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -336,7 +336,7 @@ resource "github_repository_collaborators" "test" {
 }
 `, configPre)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -397,7 +397,7 @@ resource "github_repository_collaborators" "test" {
 }
 `, configPre)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -451,7 +451,7 @@ resource "github_repository_collaborators" "test" {
 }
 `, repoName, teamName)
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
