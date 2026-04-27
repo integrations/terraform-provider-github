@@ -713,8 +713,13 @@ func updateUserCollaboratorsAndInvites(ctx context.Context, client *github.Clien
 		if err != nil {
 			return nil, err
 		}
-		inUser.invitationID = inv.ID
-		ghInvites = append(ghInvites, inUser)
+		// AddCollaborator returns 204 No Content (inv == nil) when the invitee
+		// is an organization member gaining direct access without an
+		// invitation. In that case there is no invitation ID to record.
+		if inv != nil {
+			inUser.invitationID = inv.ID
+			ghInvites = append(ghInvites, inUser)
+		}
 	}
 
 	for _, l := range remove {
