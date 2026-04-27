@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -208,6 +209,12 @@ func resourceGithubRepositoryCustomPropertiesRead(ctx context.Context, d *schema
 	// Read actual properties from GitHub
 	allCustomProperties, _, err := client.Repositories.GetAllCustomPropertyValues(ctx, owner, repoName)
 	if err != nil {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Warn(ctx, "Repository not found, removing from state", map[string]any{"owner": owner, "repository": repoName})
+			d.SetId("")
+			return nil
+		}
 		return diag.Errorf("error reading custom properties for repository %s/%s: %v", owner, repoName, err)
 	}
 
@@ -274,6 +281,9 @@ func resourceGithubRepositoryCustomPropertiesDelete(ctx context.Context, d *sche
 	repoName := d.Get("repository").(string)
 
 	properties := d.Get("property").(*schema.Set).List()
+	if len(properties) == 0 {
+		return nil
+	}
 
 	// Set all managed properties to nil (removes them)
 	customProperties := make([]*github.CustomPropertyValue, 0, len(properties))
@@ -285,13 +295,13 @@ func resourceGithubRepositoryCustomPropertiesDelete(ctx context.Context, d *sche
 		})
 	}
 
-	resp, err := client.Repositories.CreateOrUpdateCustomProperties(ctx, owner, repoName, customProperties)
+	_, err = client.Repositories.CreateOrUpdateCustomProperties(ctx, owner, repoName, customProperties)
 	if err != nil {
-		// If the repository was deleted, the resource is already gone
-		if resp != nil && resp.StatusCode == http.StatusNotFound {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
 			return nil
 		}
-		return diag.FromErr(handleArchivedRepoDelete(err, "custom properties", repoName, owner, repoName))
+		return diag.Errorf("error deleting custom properties for repository %s/%s: %v", owner, repoName, err)
 	}
 
 	return nil
