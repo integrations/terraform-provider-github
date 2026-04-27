@@ -20,7 +20,9 @@ func init() {
 // NewProvider returns a function that returns the schema.Provider for this provider.
 func NewProvider() func() *schema.Provider {
 	return func() *schema.Provider {
-		return &schema.Provider{
+		
+
+	return &schema.Provider{
 			Schema: map[string]*schema.Schema{
 				"base_url": {
 					Type:        schema.TypeString,
@@ -144,6 +146,7 @@ func NewProvider() func() *schema.Provider {
 				"github_actions_repository_oidc_subject_claim_customization_template":   resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(),
 				"github_actions_repository_permissions":                                 resourceGithubActionsRepositoryPermissions(),
 				"github_actions_runner_group":                                           resourceGithubActionsRunnerGroup(),
+				"github_actions_runner_group_repository_access":                         resourceGithubActionsRunnerGroupRepositoryAccess(),
 				"github_actions_hosted_runner":                                          resourceGithubActionsHostedRunner(),
 				"github_actions_secret":                                                 resourceGithubActionsSecret(),
 				"github_actions_variable":                                               resourceGithubActionsVariable(),
