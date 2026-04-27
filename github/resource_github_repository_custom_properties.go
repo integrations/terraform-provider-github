@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/google/go-github/v84/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -13,7 +14,7 @@ import (
 
 func resourceGithubRepositoryCustomProperties() *schema.Resource {
 	return &schema.Resource{
-		Description: "Manages custom properties for a GitHub repository. This resource allows you to set multiple custom property values on a single repository in a single resource block, with in-place updates when values change.",
+		Description: "Manages custom properties for a GitHub repository. This resource is non-authoritative: it only manages the property values explicitly declared in the resource block, with in-place updates when values change. Properties set by other sources (UI, API, or other tooling) are ignored.",
 
 		CreateContext: resourceGithubRepositoryCustomPropertiesCreate,
 		ReadContext:   resourceGithubRepositoryCustomPropertiesRead,
@@ -191,11 +192,7 @@ func resourceGithubRepositoryCustomPropertiesRead(ctx context.Context, d *schema
 
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
-
-	_, repoName, err := parseID2(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	repoName := d.Get("repository").(string)
 
 	// Get current properties from state to know which ones we're managing.
 	// On import this will be empty, which is handled below.
@@ -211,12 +208,12 @@ func resourceGithubRepositoryCustomPropertiesRead(ctx context.Context, d *schema
 	// Read actual properties from GitHub
 	allCustomProperties, _, err := client.Repositories.GetAllCustomPropertyValues(ctx, owner, repoName)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("error reading custom properties for repository %s/%s: %w", owner, repoName, err))
+		return diag.Errorf("error reading custom properties for repository %s/%s: %v", owner, repoName, err)
 	}
 
 	managedProperties, err := filterManagedCustomProperties(allCustomProperties, managedPropertyNames, isImport)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("error processing custom properties for repository %s/%s: %w", owner, repoName, err))
+		return diag.Errorf("error processing custom properties for repository %s/%s: %v", owner, repoName, err)
 	}
 
 	// If no properties exist, remove resource from state
@@ -274,16 +271,9 @@ func resourceGithubRepositoryCustomPropertiesDelete(ctx context.Context, d *sche
 
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
-
-	_, repoName, err := parseID2(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	repoName := d.Get("repository").(string)
 
 	properties := d.Get("property").(*schema.Set).List()
-	if len(properties) == 0 {
-		return nil
-	}
 
 	// Set all managed properties to nil (removes them)
 	customProperties := make([]*github.CustomPropertyValue, 0, len(properties))
@@ -295,9 +285,13 @@ func resourceGithubRepositoryCustomPropertiesDelete(ctx context.Context, d *sche
 		})
 	}
 
-	_, err = client.Repositories.CreateOrUpdateCustomProperties(ctx, owner, repoName, customProperties)
+	resp, err := client.Repositories.CreateOrUpdateCustomProperties(ctx, owner, repoName, customProperties)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("error deleting custom properties for repository %s/%s: %w", owner, repoName, err))
+		// If the repository was deleted, the resource is already gone
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			return nil
+		}
+		return diag.FromErr(handleArchivedRepoDelete(err, "custom properties", repoName, owner, repoName))
 	}
 
 	return nil

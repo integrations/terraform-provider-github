@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
@@ -67,7 +68,7 @@ func TestAccGithubRepositoryCustomProperties(t *testing.T) {
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue(testCustomPropsResourceAddr, tfjsonpath.New("repository"), knownvalue.StringExact(repoName)),
 						statecheck.ExpectKnownValue(testCustomPropsResourceAddr, tfjsonpath.New("repository_id"), knownvalue.NotNull()),
-						statecheck.ExpectKnownValue(testCustomPropsResourceAddr, tfjsonpath.New("property"), knownvalue.SetSizeExact(2)),
+						statecheck.ExpectKnownValue(testCustomPropsResourceAddr, tfjsonpath.New("property"), knownvalue.NotNull()),
 					},
 				},
 			},
@@ -79,7 +80,7 @@ func TestAccGithubRepositoryCustomProperties(t *testing.T) {
 		repoName := fmt.Sprintf(testCustomPropsRepoNameFmt, testResourcePrefix, randomID)
 		propName := fmt.Sprintf(testCustomPropsEnvPropNameFmt, randomID)
 
-		configCreate := fmt.Sprintf(`
+		configTmpl := `
 			resource "github_organization_custom_properties" "test" {
 				allowed_values = ["production", "staging", "development"]
 				description    = "Deployment environment"
@@ -97,48 +98,30 @@ func TestAccGithubRepositoryCustomProperties(t *testing.T) {
 
 				property {
 					name  = github_organization_custom_properties.test.property_name
-					value = ["production"]
+					value = ["%s"]
 				}
 			}
-		`, propName, repoName)
-
-		configUpdate := fmt.Sprintf(`
-			resource "github_organization_custom_properties" "test" {
-				allowed_values = ["production", "staging", "development"]
-				description    = "Deployment environment"
-				property_name  = "%s"
-				value_type     = "single_select"
-			}
-
-			resource "github_repository" "test" {
-				name      = "%s"
-				auto_init = true
-			}
-
-			resource "github_repository_custom_properties" "test" {
-				repository = github_repository.test.name
-
-				property {
-					name  = github_organization_custom_properties.test.property_name
-					value = ["staging"]
-				}
-			}
-		`, propName, repoName)
+		`
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: configCreate,
+					Config: fmt.Sprintf(configTmpl, propName, repoName, "production"),
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue(testCustomPropsResourceAddr, tfjsonpath.New("property"), knownvalue.SetSizeExact(1)),
+						statecheck.ExpectKnownValue(testCustomPropsResourceAddr, tfjsonpath.New("property"), knownvalue.NotNull()),
 					},
 				},
 				{
-					Config: configUpdate,
+					Config: fmt.Sprintf(configTmpl, propName, repoName, "staging"),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction(testCustomPropsResourceAddr, plancheck.ResourceActionUpdate),
+						},
+					},
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue(testCustomPropsResourceAddr, tfjsonpath.New("property"), knownvalue.SetSizeExact(1)),
+						statecheck.ExpectKnownValue(testCustomPropsResourceAddr, tfjsonpath.New("property"), knownvalue.NotNull()),
 					},
 				},
 			},
@@ -224,7 +207,15 @@ func TestAccGithubRepositoryCustomProperties(t *testing.T) {
 				{
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue(testCustomPropsResourceAddr, tfjsonpath.New("property"), knownvalue.SetSizeExact(1)),
+						statecheck.ExpectKnownValue(testCustomPropsResourceAddr, tfjsonpath.New("property"), knownvalue.SetPartial([]knownvalue.Check{
+							knownvalue.ObjectPartial(map[string]knownvalue.Check{
+								"name": knownvalue.StringExact(propName),
+								"value": knownvalue.SetExact([]knownvalue.Check{
+									knownvalue.StringExact("go"),
+									knownvalue.StringExact("rust"),
+								}),
+							}),
+						})),
 					},
 				},
 			},

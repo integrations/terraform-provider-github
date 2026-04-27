@@ -61,8 +61,6 @@ The following arguments are supported:
 
 * `repository` - (Required) The name of the repository.
 
-* `repository_id` - The ID of the GitHub repository (computed).
-
 * `property` - (Required) One or more property blocks as defined below. At least one must be specified.
 
 ### property
@@ -76,6 +74,8 @@ The following arguments are supported:
 In addition to all arguments above, the following attributes are exported:
 
 * `id` - A composite ID in the format `owner:repository`.
+
+* `repository_id` - The ID of the GitHub repository.
 
 ## Import
 
