@@ -442,7 +442,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 		}
 		log.Printf("[DEBUG] Setting read_delay_ms to %d", readDelay)
 
-		retryDelay := d.Get("read_delay_ms").(int)
+		retryDelay := d.Get("retry_delay_ms").(int)
 		if retryDelay < 0 {
 			return nil, diag.FromErr(fmt.Errorf("retry_delay_ms must be greater than or equal to 0ms"))
 		}
