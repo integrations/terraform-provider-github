@@ -74,7 +74,7 @@ func resourceGithubOrganizationRoleTeamAssignmentRead(d *schema.ResourceData, me
 	ctx := context.Background()
 	orgName := meta.(*Owner).name
 
-	teamSlug, roleIDString, err := parseTwoPartID(d.Id(), "team_slug", "role_id")
+	teamSlug, roleIDString, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
@@ -135,7 +135,7 @@ func resourceGithubOrganizationRoleTeamAssignmentDelete(d *schema.ResourceData, 
 	orgName := meta.(*Owner).name
 	ctx := context.Background()
 
-	teamSlug, roleIDString, err := parseTwoPartID(d.Id(), "team_slug", "role_id")
+	teamSlug, roleIDString, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}

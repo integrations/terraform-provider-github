@@ -95,7 +95,7 @@ func resourceGithubMembershipRead(ctx context.Context, d *schema.ResourceData, m
 	client := meta.(*Owner).v3client
 
 	orgName := meta.(*Owner).name
-	_, username, err := parseTwoPartID(d.Id(), "organization", "username")
+	_, username, err := parseID2(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}

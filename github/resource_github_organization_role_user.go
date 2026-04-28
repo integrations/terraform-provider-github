@@ -70,7 +70,7 @@ func resourceGithubOrganizationRoleUserRead(ctx context.Context, d *schema.Resou
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 
-	roleIdString, login, err := parseTwoPartID(d.Id(), "role_id", "login")
+	roleIdString, login, err := parseID2(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
