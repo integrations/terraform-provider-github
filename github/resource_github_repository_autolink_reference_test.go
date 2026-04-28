@@ -268,6 +268,35 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 		})
 	})
 
+	t.Run("errors when key_prefix ends with a number", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-autolink-%s", testResourcePrefix, randomID)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name        = "%s"
+				description = "Test autolink creation"
+			}
+
+			resource "github_repository_autolink_reference" "autolink_invalid" {
+				repository = github_repository.test.name
+
+				key_prefix          = "TEST-1"
+				target_url_template = "https://example.com/TEST-<num>"
+			}
+		`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile(`must not end with a number`),
+				},
+			},
+		})
+	})
+
 	t.Run("deletes repository autolink reference without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-autolink-%s", testResourcePrefix, randomID)
