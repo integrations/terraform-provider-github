@@ -57,7 +57,7 @@ resource "github_repository_collaborators" "test" {
 }
 `, repoName, teamName0, teamName1, collaboratorUser)
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -118,7 +118,7 @@ resource "github_repository_collaborators" "test" {
 }
 `, repoName, testAccConf.testExternalUser)
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -196,7 +196,7 @@ resource "github_repository_collaborators" "test" {
 }
 `, configPre)
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -270,7 +270,7 @@ resource "github_repository_collaborators" "test" {
 }
 `, configPre)
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -336,7 +336,7 @@ resource "github_repository_collaborators" "test" {
 }
 `, configPre)
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -397,7 +397,7 @@ resource "github_repository_collaborators" "test" {
 }
 `, configPre)
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -451,7 +451,7 @@ resource "github_repository_collaborators" "test" {
 }
 `, repoName, teamName)
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
