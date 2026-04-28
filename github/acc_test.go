@@ -35,6 +35,7 @@ var (
 type testAccConfig struct {
 	// Target configuration
 	baseURL *url.URL
+	isGHES  bool
 
 	// Auth configuration
 	authMode testMode
@@ -100,12 +101,7 @@ func TestMain(m *testing.M) {
 		authMode = anonymous
 	}
 
-	u, ok := os.LookupEnv("GITHUB_BASE_URL")
-	if !ok {
-		u = DotComAPIURL
-	}
-
-	baseURL, err := url.Parse(u)
+	baseURL, isGHES, err := getBaseURL(os.Getenv("GITHUB_BASE_URL"))
 	if err != nil {
 		fmt.Printf("Error parsing base URL: %s\n", err)
 		os.Exit(1)
@@ -113,6 +109,7 @@ func TestMain(m *testing.M) {
 
 	config := testAccConfig{
 		baseURL:                   baseURL,
+		isGHES:                    isGHES,
 		authMode:                  authMode,
 		testPublicRepository:      "terraform-provider-github",
 		testPublicRepositoryOwner: "integrations",
@@ -194,6 +191,7 @@ func getTestMeta() (*Owner, error) {
 		Token:   testAccConf.token,
 		Owner:   testAccConf.owner,
 		BaseURL: testAccConf.baseURL,
+		IsGHES:  testAccConf.isGHES,
 	}
 
 	meta, err := config.Meta()
