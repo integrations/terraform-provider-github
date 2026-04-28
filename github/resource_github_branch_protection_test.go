@@ -9,7 +9,10 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubBranchProtectionV4(t *testing.T) {
@@ -159,6 +162,54 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 					ImportStateIdFunc: importBranchProtectionByRepoName(
 						testRepoName, "no-such-pattern",
 					),
+				},
+			},
+		})
+	})
+
+	t.Run("removes from state when repository is archived", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
+
+		configTemplate := `
+			resource "github_repository" "test" {
+			  name      = "%s"
+			  auto_init = true
+			  archived  = %t
+			}
+
+			resource "github_branch_protection" "test" {
+			  repository_id = github_repository.test.node_id
+			  pattern       = "main"
+			}
+		`
+
+		config := fmt.Sprintf(configTemplate, testRepoName, false)
+		configArchived := fmt.Sprintf(configTemplate, testRepoName, true)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_branch_protection.test", tfjsonpath.New("pattern"), knownvalue.StringExact("main")),
+					},
+				},
+				{
+					Config: configArchived,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("archived"), knownvalue.Bool(true)),
+					},
+				},
+				{
+					Config:             configArchived,
+					ResourceName:       "github_branch_protection.test",
+					ImportState:        true,
+					ImportStateVerify:  false, // Should fail to import because it's removed from state
+					ExpectError:        regexp.MustCompile(`could not find a branch protection rule`),
+					ImportStateIdFunc:  importBranchProtectionByRepoID("github_repository.test", "main"),
 				},
 			},
 		})
