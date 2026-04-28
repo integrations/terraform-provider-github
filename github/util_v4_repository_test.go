@@ -2,6 +2,7 @@ package github
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -188,6 +189,106 @@ func TestGetRepositoryIDPositiveMatches(t *testing.T) {
 		if (tc.Expected == "") && (got != nil) {
 			t.Fatalf("%s should have failed, instead got  %s", tc.Provided, got)
 		}
+	}
+}
+
+func TestPullRequestCreationPolicyMapping(t *testing.T) {
+	t.Run("flatten GraphQL values", func(t *testing.T) {
+		cases := []struct {
+			name    string
+			input   PullRequestCreationPolicy
+			want    string
+			wantErr bool
+		}{
+			{name: "all", input: PullRequestCreationPolicyAll, want: "all"},
+			{name: "collaborators_only", input: PullRequestCreationPolicyCollaboratorsOnly, want: "collaborators_only"},
+			{name: "empty", input: "", want: ""},
+			{name: "invalid", input: PullRequestCreationPolicy("NOPE"), wantErr: true},
+		}
+
+		for _, tc := range cases {
+			got, err := flattenPullRequestCreationPolicy(tc.input)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("%s: expected error, got nil", tc.name)
+				}
+				continue
+			}
+			if err != nil {
+				t.Fatalf("%s: unexpected error: %v", tc.name, err)
+			}
+			if got != tc.want {
+				t.Fatalf("%s: got %q want %q", tc.name, got, tc.want)
+			}
+		}
+	})
+
+	t.Run("expand Terraform values", func(t *testing.T) {
+		cases := []struct {
+			name    string
+			input   string
+			want    PullRequestCreationPolicy
+			wantErr bool
+		}{
+			{name: "all", input: "all", want: PullRequestCreationPolicyAll},
+			{name: "collaborators_only", input: "collaborators_only", want: PullRequestCreationPolicyCollaboratorsOnly},
+			{name: "invalid", input: "everyone", wantErr: true},
+		}
+
+		for _, tc := range cases {
+			got, err := expandPullRequestCreationPolicy(tc.input)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("%s: expected error, got nil", tc.name)
+				}
+				continue
+			}
+			if err != nil {
+				t.Fatalf("%s: unexpected error: %v", tc.name, err)
+			}
+			if got != tc.want {
+				t.Fatalf("%s: got %q want %q", tc.name, got, tc.want)
+			}
+		}
+	})
+}
+
+func TestRepositoryPullRequestCreationPolicyGraphQL(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/graphql", func(w http.ResponseWriter, req *http.Request) {
+		body := mustRead(req.Body)
+		w.Header().Set("Content-Type", "application/json")
+
+		switch {
+		case strings.Contains(body, "repository(owner:$owner, name:$name){pullRequestCreationPolicy}"):
+			if !strings.Contains(body, `"owner":"integrations"`) {
+				t.Fatalf("expected resolved owner in GraphQL body, got %s", body)
+			}
+			mustWrite(w, `{"data":{"repository":{"pullRequestCreationPolicy":"COLLABORATORS_ONLY"}}}`)
+		case strings.Contains(body, "mutation($input:UpdateRepositoryInput!){updateRepository(input:$input){repository{id}}}"):
+			mustWrite(w, `{"data":{"updateRepository":{"repository":{"id":"R_kgDOGGmaaw"}}}}`)
+		default:
+			t.Fatalf("unexpected GraphQL body: %s", body)
+		}
+	})
+
+	meta := Owner{
+		v4client: githubv4.NewClient(&http.Client{Transport: localRoundTripper{handler: mux}}),
+		name:     "integrations",
+	}
+
+	ctx := context.Background()
+
+	got, err := getRepositoryPullRequestCreationPolicy(ctx, "integrations", "terraform-provider-github", &meta)
+	if err != nil {
+		t.Fatalf("unexpected read error: %v", err)
+	}
+	if got != "collaborators_only" {
+		t.Fatalf("got %q want %q", got, "collaborators_only")
+	}
+
+	if err := updateRepositoryPullRequestCreationPolicy(ctx, githubv4.ID("R_kgDOGGmaaw"), "all", &meta); err != nil {
+		t.Fatalf("unexpected update error: %v", err)
 	}
 }
 
