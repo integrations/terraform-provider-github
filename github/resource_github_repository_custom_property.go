@@ -13,6 +13,7 @@ func resourceGithubRepositoryCustomProperty() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGithubRepositoryCustomPropertyCreate,
 		Read:   resourceGithubRepositoryCustomPropertyRead,
+		Update: resourceGithubRepositoryCustomPropertyUpdate,
 		Delete: resourceGithubRepositoryCustomPropertyDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -46,7 +47,6 @@ func resourceGithubRepositoryCustomProperty() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				ForceNew: true,
 			},
 		},
 	}
@@ -83,6 +83,13 @@ func resourceGithubRepositoryCustomPropertyCreate(d *schema.ResourceData, meta a
 
 	d.SetId(buildThreePartID(owner, repoName, propertyName))
 
+	return resourceGithubRepositoryCustomPropertyRead(d, meta)
+}
+
+func resourceGithubRepositoryCustomPropertyUpdate(d *schema.ResourceData, meta any) error {
+	if err := resourceGithubRepositoryCustomPropertyCreate(d, meta); err != nil {
+		return err
+	}
 	return resourceGithubRepositoryCustomPropertyRead(d, meta)
 }
 
