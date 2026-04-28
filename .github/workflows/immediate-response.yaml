@@ -11,23 +11,62 @@ on:
 permissions: read-all
 
 jobs:
-  respond:
-    name: Respond to Issue or PR
-    if: github.actor != 'dependabot[bot]' && github.actor != 'renovate[bot]' && github.actor != 'githubactions[bot]' && github.actor != 'octokitbot' && github.repository == 'integrations/terraform-provider-github'
+  # ──────────────────────────────────────────────
+  # PR Response
+  # ──────────────────────────────────────────────
+  respond-to-pr:
+    name: Respond to PR
+    if: >
+      github.event_name == 'pull_request_target' &&
+      github.actor != 'dependabot[bot]' &&
+      github.actor != 'renovate[bot]' &&
+      github.actor != 'github-actions[bot]' &&
+      github.actor != 'octokitbot' &&
+      github.repository == 'integrations/terraform-provider-github'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Comment on PR
+        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            👋 Hi, and thank you for this contribution!
+
+            This repo is maintained by GitHub and community members on a best-effort basis. We'll get to this as soon as we can.
+
+            In the meantime, you're part of this community too: feel free to comment on, add to, or pick up any issues/PRs labeled `Status: Up for grabs`. Contributors like you are the reason this provider works. Happy coding! 🚀
+
+            ---
+            <sub>🤖 This is an automated message.</sub>
+
+  # ──────────────────────────────────────────────
+  # Issue Response
+  # ──────────────────────────────────────────────
+  respond-to-issue:
+    name: Respond to Issue
+    if: >
+      github.event_name == 'issues' &&
+      github.actor != 'dependabot[bot]' &&
+      github.actor != 'renovate[bot]' &&
+      github.actor != 'github-actions[bot]' &&
+      github.actor != 'octokitbot' &&
+      github.repository == 'integrations/terraform-provider-github'
     runs-on: ubuntu-latest
     permissions:
       issues: write
-      pull-requests: write
-    defaults:
-      run:
-        shell: bash
     steps:
-      - name: Comment
+      - name: Comment on issue
         uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
         with:
-          issue-number: ${{ github.event.issue.number || github.event.pull_request.number }}
-          body: >
-            👋 Hi! Thank you for this contribution! Just to let you know, our GitHub SDK team does a round of issue and PR reviews twice a week, every Monday and Friday!
-            We have a [process in place](https://github.com/octokit/.github/blob/main/community/prioritization_response.md#overview) for prioritizing and responding to your input.
-            Because you are a part of this community please feel free to comment, add to, or pick up any issues/PRs that are labeled with `Status: Up for grabs`.
-            You & others like you are the reason all of this works! So thank you & happy coding! 🚀
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            👋 Hi, and thank you for opening this issue!
+
+            This repo is maintained by GitHub and community members on a best-effort basis. We'll get to this as soon as we can.
+
+            In the meantime, you're part of this community too: feel free to comment on, add to, or pick up any issues/PRs labeled `Status: Up for grabs`. Contributors like you are the reason this provider works. Happy coding! 🚀
+
+            ---
+            <sub>🤖 This is an automated message.</sub>
