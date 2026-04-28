@@ -1,9 +1,35 @@
 # Terraform Provider GitHub
 =========================
 
-<img src="https://cloud.githubusercontent.com/assets/98681/24211275/c4ebd04e-0ee8-11e7-8606-061d656a42df.png" width="72" height="">
+<!-- markdownlint-disable MD033 -->
 
-<img src="https://raw.githubusercontent.com/hashicorp/terraform-website/d841a1e5fca574416b5ca24306f85a0f4f41b36d/content/source/assets/images/logo-terraform-main.svg" width="300px">
+<a href="https://github.com" aria-label="GitHub">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/readme-assets/github-octocat-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset=".github/readme-assets/github-octocat-light.svg">
+    <img alt="GitHub logo" src=".github/readme-assets/github-octocat-light.svg" width="72">
+  </picture>
+</a>
+
+<a href="https://terraform.io" aria-label="Terraform">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/readme-assets/hashicorp-terraform-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset=".github/readme-assets/hashicorp-terraform-light.svg">
+    <img alt="Terraform logo" src=".github/readme-assets/hashicorp-terraform-light.svg" width="300px">
+  </picture>
+</a>
+
+<!-- markdownlint-enable MD033 -->
+
+# Terraform Provider GitHub
+
+Manage GitHub resources such as repositories, teams, and files using Terraform.
+
+- Provider documentation:  
+  https://registry.terraform.io/providers/integrations/github/latest/docs
+
+- Terraform documentation:  
+  https://developer.hashicorp.com/terraform
 
 This project is used to manipulate GitHub resources (repositories, teams, files, etc.) using Terraform. Its Terraform Registry page can be found [here](https://registry.terraform.io/providers/integrations/github/).
 
