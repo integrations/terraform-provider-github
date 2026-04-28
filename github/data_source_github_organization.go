@@ -50,6 +50,7 @@ func dataSourceGithubOrganization() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+				Deprecated: "Use `github_organization_repositories` data source instead. Expect this field to be removed in next major version.",
 			},
 			"members": {
 				Type:     schema.TypeList,
