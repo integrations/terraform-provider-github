@@ -30,6 +30,45 @@ func TestAccGithubOrganizationCustomPropertiesValidation(t *testing.T) {
 			},
 		})
 	})
+
+	t.Run("rejects allowed_values for string type", func(t *testing.T) {
+		config := `
+		resource "github_organization_custom_properties" "test" {
+			property_name  = "TestInvalidAllowedValues"
+			value_type     = "string"
+			allowed_values = ["a", "b"]
+		}`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("allowed_values can only be set for single_select or multi_select"),
+				},
+			},
+		})
+	})
+
+	t.Run("requires allowed_values for single_select type", func(t *testing.T) {
+		config := `
+		resource "github_organization_custom_properties" "test" {
+			property_name = "TestMissingAllowedValues"
+			value_type    = "single_select"
+		}`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("allowed_values is required for single_select"),
+				},
+			},
+		})
+	})
 }
 
 func TestAccGithubOrganizationCustomProperties(t *testing.T) {
