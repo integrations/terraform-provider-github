@@ -1,34 +1,32 @@
 package github
 
 import (
-	"crypto/x509"
+	"context"
 	"encoding/json"
-	"encoding/pem"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"time"
 
-	"github.com/go-jose/go-jose/v3"
 	"github.com/go-jose/go-jose/v3/jwt"
 )
 
+// Signer is an interface for signing JWTs.
+// It allow for different implementations (e.g., using a local PEM file or delegating to AWS KMS).
+type Signer interface {
+	SignJWT(ctx context.Context, claims jwt.Claims) (string, error)
+}
+
 // GenerateOAuthTokenFromApp generates a GitHub OAuth access token from a set of valid GitHub App credentials.
 // The returned token can be used to interact with both GitHub's REST and GraphQL APIs.
-func GenerateOAuthTokenFromApp(apiURL *url.URL, appID, appInstallationID, pemData string) (string, error) {
-	appJWT, err := generateAppJWT(appID, time.Now(), []byte(pemData))
+func GenerateOAuthTokenFromApp(ctx context.Context, signer Signer, apiURL *url.URL, appID, appInstallationID string) (string, error) {
+	appJWT, err := generateAppJWT(ctx, appID, time.Now(), signer)
 	if err != nil {
 		return "", err
 	}
 
-	token, err := getInstallationAccessToken(apiURL, appJWT, appInstallationID)
-	if err != nil {
-		return "", err
-	}
-
-	return token, nil
+	return getInstallationAccessToken(apiURL, appJWT, appInstallationID)
 }
 
 func getInstallationAccessToken(apiURL *url.URL, jwt, installationID string) (string, error) {
@@ -67,38 +65,15 @@ func getInstallationAccessToken(apiURL *url.URL, jwt, installationID string) (st
 	return resData.Token, nil
 }
 
-func generateAppJWT(appID string, now time.Time, pemData []byte) (string, error) {
-	block, _ := pem.Decode(pemData)
-	if block == nil {
-		return "", errors.New("no decodeable PEM data found")
-	}
-
-	privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
-	if err != nil {
-		return "", err
-	}
-
-	signer, err := jose.NewSigner(
-		jose.SigningKey{Algorithm: jose.RS256, Key: privateKey},
-		(&jose.SignerOptions{}).WithType("JWT"),
-	)
-	if err != nil {
-		return "", err
-	}
-
-	claims := &jwt.Claims{
+func generateAppJWT(ctx context.Context, appID string, now time.Time, signer Signer) (string, error) {
+	claims := jwt.Claims{
 		Issuer: appID,
 		// Using now - 60s to accommodate any client/server clock drift.
 		IssuedAt: jwt.NewNumericDate(now.Add(time.Duration(-60) * time.Second)),
 		// The JWT's lifetime can be short as it is only used immediately
-		// after to retrieve the installation's access  token.
+		// after to retrieve the installation's access token.
 		Expiry: jwt.NewNumericDate(now.Add(time.Duration(5) * time.Minute)),
 	}
 
-	token, err := jwt.Signed(signer).Claims(claims).CompactSerialize()
-	if err != nil {
-		return "", err
-	}
-
-	return token, nil
+	return signer.SignJWT(ctx, claims)
 }
