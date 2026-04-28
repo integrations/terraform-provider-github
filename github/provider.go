@@ -10,19 +10,27 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func Provider() *schema.Provider {
 	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
+			"auth_mode": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				DefaultFunc:  schema.EnvDefaultFunc("GITHUB_AUTH_MODE", nil),
+				Description:  descriptions["auth_mode"],
+				ValidateFunc: validation.StringInSlice([]string{"anonymous", "token", "app"}, false),
+			},
 			"token": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("GITHUB_TOKEN", nil),
 				Description: descriptions["token"],
-				// ConflictsWith: []string{"app_auth"}, // TODO: Enable as part of v7.
 			},
 			"owner": {
 				Type:        schema.TypeString,
@@ -94,11 +102,12 @@ func Provider() *schema.Provider {
 				Description: descriptions["parallel_requests"],
 			},
 			"app_auth": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				MaxItems:    1,
-				Description: descriptions["app_auth"],
-				// ConflictsWith: []string{"token"}, // TODO: Enable as part of v7.
+				Type:          schema.TypeList,
+				Optional:      true,
+				MaxItems:      1,
+				Description:   descriptions["app_auth"],
+				Deprecated:    "Use top-level app_id, app_installation_id, and app_private_key instead.",
+				ConflictsWith: []string{"app_id", "app_installation_id", "app_private_key"},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
@@ -122,6 +131,28 @@ func Provider() *schema.Provider {
 						},
 					},
 				},
+			},
+			"app_id": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				DefaultFunc:   schema.EnvDefaultFunc("GITHUB_APP_ID", nil),
+				Description:   descriptions["app_id"],
+				ConflictsWith: []string{"app_auth"},
+			},
+			"app_installation_id": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				DefaultFunc:   schema.EnvDefaultFunc("GITHUB_APP_INSTALLATION_ID", nil),
+				Description:   descriptions["app_installation_id"],
+				ConflictsWith: []string{"app_auth"},
+			},
+			"app_private_key": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Sensitive:     true,
+				DefaultFunc:   schema.EnvDefaultFunc("GITHUB_APP_PRIVATE_KEY", nil),
+				Description:   descriptions["app_private_key"],
+				ConflictsWith: []string{"app_auth"},
 			},
 			// https://developer.github.com/guides/traversing-with-pagination/#basics-of-pagination
 			"max_per_page": {
@@ -311,8 +342,11 @@ var descriptions map[string]string
 
 func init() {
 	descriptions = map[string]string{
-		"token": "The OAuth token used to connect to GitHub. Anonymous mode is enabled if both `token` and " +
-			"`app_auth` are not set.",
+		"auth_mode": "Explicit authentication mode. Valid values are `anonymous`, `token`, and `app`. " +
+			"When not set, the provider auto-detects the mode based on provided credentials for backward compatibility.",
+
+		"token": "The OAuth token used to connect to GitHub. " +
+			"When `auth_mode` is not set, anonymous mode is enabled if no credentials are provided.",
 
 		"base_url": "The GitHub Base API URL",
 
@@ -324,11 +358,14 @@ func init() {
 		"organization": "The GitHub organization name to manage. " +
 			"Use this field instead of `owner` when managing organization accounts.",
 
-		"app_auth": "The GitHub App credentials used to connect to GitHub. Conflicts with " +
-			"`token`. Anonymous mode is enabled if both `token` and `app_auth` are not set.",
+		"app_auth": "Deprecated: use top-level `app_id`, `app_installation_id`, and `app_private_key` instead. " +
+			"The GitHub App credentials used to connect to GitHub.",
 		"app_auth.id":              "The GitHub App ID.",
 		"app_auth.installation_id": "The GitHub App installation instance ID.",
 		"app_auth.pem_file":        "The GitHub App PEM file contents.",
+		"app_id":                   "The GitHub App ID.",
+		"app_installation_id":      "The GitHub App installation instance ID.",
+		"app_private_key":          "The GitHub App private key in PEM format.",
 		"write_delay_ms": "Amount of time in milliseconds to sleep in between writes to GitHub API. " +
 			"Defaults to 1000ms or 1s if not set.",
 		"read_delay_ms": "Amount of time in milliseconds to sleep in between non-write requests to GitHub API. " +
@@ -351,9 +388,11 @@ func init() {
 
 func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 	return func(ctx context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
+		var diags diag.Diagnostics
+
 		owner := d.Get("owner").(string)
-		token := d.Get("token").(string)
 		insecure := d.Get("insecure").(bool)
+		authMode := d.Get("auth_mode").(string)
 
 		// BEGIN backwards compatibility
 		// OwnerOrOrgEnvDefaultFunc used to be the default value for both
@@ -378,38 +417,41 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 
 		org := d.Get("organization").(string)
 		if org != "" {
-			log.Printf("[INFO] Selecting organization attribute as owner: %s", org)
+			tflog.Info(ctx, "Selecting organization attribute as owner", map[string]any{"owner": org})
 			owner = org
 		}
 
-		if appAuth, ok := d.Get("app_auth").([]any); ok && len(appAuth) > 0 && appAuth[0] != nil {
-			appAuthAttr := appAuth[0].(map[string]any)
+		var token string
 
-			var appID, appInstallationID, appPemFile string
+		switch authMode {
+		case "anonymous":
+			tflog.Info(ctx, "Auth mode: anonymous")
 
-			if v, ok := appAuthAttr["id"].(string); ok && v != "" {
-				appID = v
-			} else {
-				return nil, wrapErrors([]error{fmt.Errorf("app_auth.id must be set and contain a non-empty value")})
+		case "token":
+			token = d.Get("token").(string)
+			if token == "" {
+				return nil, diag.Errorf(
+					"auth_mode is set to \"token\" but no token was provided; " +
+						"set the `token` argument or `GITHUB_TOKEN` environment variable")
 			}
+			tflog.Info(ctx, "Auth mode: token")
 
-			if v, ok := appAuthAttr["installation_id"].(string); ok && v != "" {
-				appInstallationID = v
-			} else {
-				return nil, wrapErrors([]error{fmt.Errorf("app_auth.installation_id must be set and contain a non-empty value")})
+		case "app":
+			appID, appInstallationID, appPemFile := getAppCredentials(d)
+			var missingFields []string
+			if appID == "" {
+				missingFields = append(missingFields, "app_id (GITHUB_APP_ID)")
 			}
-
-			if v, ok := appAuthAttr["pem_file"].(string); ok && v != "" {
-				// The Go encoding/pem package only decodes PEM formatted blocks
-				// that contain new lines. Some platforms, like Terraform Cloud,
-				// do not support new lines within Environment Variables.
-				// Any occurrence of \n in the `pem_file` argument's value
-				// (explicit value, or default value taken from
-				// GITHUB_APP_PEM_FILE Environment Variable) is replaced with an
-				// actual new line character before decoding.
-				appPemFile = strings.ReplaceAll(v, `\n`, "\n")
-			} else {
-				return nil, wrapErrors([]error{fmt.Errorf("app_auth.pem_file must be set and contain a non-empty value")})
+			if appInstallationID == "" {
+				missingFields = append(missingFields, "app_installation_id (GITHUB_APP_INSTALLATION_ID)")
+			}
+			if appPemFile == "" {
+				missingFields = append(missingFields, "app_private_key (GITHUB_APP_PRIVATE_KEY)")
+			}
+			if len(missingFields) > 0 {
+				return nil, diag.Errorf(
+					"auth_mode is set to \"app\" but the following app credentials are missing: %s",
+					strings.Join(missingFields, ", "))
 			}
 
 			apiPath := ""
@@ -423,36 +465,81 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 			}
 
 			token = appToken
-		}
+			tflog.Info(ctx, "Auth mode: app", map[string]any{"app_id": appID, "installation_id": appInstallationID})
 
-		if token == "" {
-			log.Printf("[INFO] No token found, using GitHub CLI to get token from hostname %s", baseURL.Host)
-			token = tokenFromGHCLI(baseURL)
+		default: // auto-detect (backward compatibility)
+			token = d.Get("token").(string)
+
+			if token == "" {
+				// Top-level app fields require an explicit auth_mode.
+				// Skip this check when app_auth is configured for backward compatibility.
+				appAuth, _ := d.Get("app_auth").([]any)
+				hasAppAuth := len(appAuth) > 0 && appAuth[0] != nil
+				topLevelAppSet := d.Get("app_id").(string) != "" ||
+					d.Get("app_installation_id").(string) != "" ||
+					d.Get("app_private_key").(string) != ""
+				if topLevelAppSet && !hasAppAuth {
+					return nil, diag.Errorf(
+						"top-level app credentials (app_id, app_installation_id, app_private_key) " +
+							"require auth_mode = \"app\" to be set explicitly; use the `auth_mode` " +
+							"provider argument or the GITHUB_AUTH_MODE environment variable")
+				}
+
+				appID, appInstallationID, appPemFile := getAppCredentials(d)
+				if appID != "" && appInstallationID != "" && appPemFile != "" {
+					apiPath := ""
+					if isGHES {
+						apiPath = GHESRESTAPIPath
+					}
+
+					appToken, err := GenerateOAuthTokenFromApp(baseURL.JoinPath(apiPath), appID, appInstallationID, appPemFile)
+					if err != nil {
+						return nil, wrapErrors([]error{err})
+					}
+					token = appToken
+					tflog.Info(ctx, "Auth mode: app", map[string]any{"app_id": appID, "installation_id": appInstallationID})
+				}
+			}
+
+			if token == "" {
+				tflog.Info(ctx, "No token found, trying GitHub CLI to get token", map[string]any{"hostname": baseURL.Host})
+				ghToken := tokenFromGHCLI(baseURL)
+				if ghToken != "" {
+					token = ghToken
+					diags = append(diags, diag.Diagnostic{
+						Severity: diag.Warning,
+						Summary:  "GitHub CLI token fallback is deprecated",
+						Detail: "Automatic token detection from `gh auth token` is deprecated and will be removed in a future major release. " +
+							"Please set the `token` provider argument or `GITHUB_TOKEN` environment variable explicitly. " +
+							"You can use `export GITHUB_TOKEN=$(gh auth token)` as a replacement.",
+					})
+				}
+			}
 		}
 
 		writeDelay := d.Get("write_delay_ms").(int)
 		if writeDelay <= 0 {
 			return nil, wrapErrors([]error{fmt.Errorf("write_delay_ms must be greater than 0ms")})
 		}
-		log.Printf("[INFO] Setting write_delay_ms to %d", writeDelay)
+		tflog.Info(ctx, "Setting write_delay_ms", map[string]any{"write_delay_ms": writeDelay})
 
 		readDelay := d.Get("read_delay_ms").(int)
 		if readDelay < 0 {
 			return nil, wrapErrors([]error{fmt.Errorf("read_delay_ms must be greater than or equal to 0ms")})
 		}
-		log.Printf("[DEBUG] Setting read_delay_ms to %d", readDelay)
+		tflog.Debug(ctx, "Setting read_delay_ms", map[string]any{"read_delay_ms": readDelay})
 
 		retryDelay := d.Get("read_delay_ms").(int)
 		if retryDelay < 0 {
-			return nil, diag.FromErr(fmt.Errorf("retry_delay_ms must be greater than or equal to 0ms"))
+			return nil, diag.Errorf("retry_delay_ms must be greater than or equal to 0ms")
 		}
-		log.Printf("[DEBUG] Setting retry_delay_ms to %d", retryDelay)
+		tflog.Debug(ctx, "Setting retry_delay_ms", map[string]any{"retry_delay_ms": retryDelay})
 
 		maxRetries := d.Get("max_retries").(int)
 		if maxRetries < 0 {
-			return nil, diag.FromErr(fmt.Errorf("max_retries must be greater than or equal to 0"))
+			return nil, diag.Errorf("max_retries must be greater than or equal to 0")
 		}
-		log.Printf("[DEBUG] Setting max_retries to %d", maxRetries)
+		tflog.Debug(ctx, "Setting max_retries", map[string]any{"max_retries": maxRetries})
 		retryableErrors := make(map[int]bool)
 		if maxRetries > 0 {
 			reParam := d.Get("retryable_errors").([]any)
@@ -464,19 +551,19 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 				}
 			}
 
-			log.Printf("[DEBUG] Setting retriableErrors to %v", retryableErrors)
+			tflog.Debug(ctx, "Setting retryable_errors", map[string]any{"retryable_errors": retryableErrors})
 		}
 
 		_maxPerPage := d.Get("max_per_page").(int)
 		if _maxPerPage <= 0 {
-			return nil, diag.FromErr(fmt.Errorf("max_per_page must be greater than than 0"))
+			return nil, diag.Errorf("max_per_page must be greater than than 0")
 		}
-		log.Printf("[DEBUG] Setting max_per_page to %d", _maxPerPage)
+		tflog.Debug(ctx, "Setting max_per_page", map[string]any{"max_per_page": _maxPerPage})
 		maxPerPage = _maxPerPage
 
 		parallelRequests := d.Get("parallel_requests").(bool)
 
-		log.Printf("[DEBUG] Setting parallel_requests to %t", parallelRequests)
+		tflog.Debug(ctx, "Setting parallel_requests", map[string]any{"parallel_requests": parallelRequests})
 
 		config := Config{
 			Token:            token,
@@ -497,8 +584,52 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 			return nil, wrapErrors([]error{err})
 		}
 
-		return meta, nil
+		return meta, diags
 	}
+}
+
+func getAppCredentials(d *schema.ResourceData) (appID, appInstallationID, appPemFile string) {
+	// Try top-level fields first
+	if v, ok := d.Get("app_id").(string); ok && v != "" {
+		appID = v
+	}
+	if v, ok := d.Get("app_installation_id").(string); ok && v != "" {
+		appInstallationID = v
+	}
+	if v, ok := d.Get("app_private_key").(string); ok && v != "" {
+		// The Go encoding/pem package only decodes PEM formatted blocks
+		// that contain new lines. Some platforms, like Terraform Cloud,
+		// do not support new lines within Environment Variables.
+		// Any occurrence of \n in the `app_private_key` argument's value
+		// (explicit value, or default value taken from
+		// GITHUB_APP_PRIVATE_KEY Environment Variable) is replaced with an
+		// actual new line character before decoding.
+		appPemFile = strings.ReplaceAll(v, `\n`, "\n")
+	}
+
+	// Fall back to app_auth block for any missing values
+	if appID == "" || appInstallationID == "" || appPemFile == "" {
+		if appAuth, ok := d.Get("app_auth").([]any); ok && len(appAuth) > 0 && appAuth[0] != nil {
+			appAuthAttr := appAuth[0].(map[string]any)
+			if appID == "" {
+				if v, ok := appAuthAttr["id"].(string); ok && v != "" {
+					appID = v
+				}
+			}
+			if appInstallationID == "" {
+				if v, ok := appAuthAttr["installation_id"].(string); ok && v != "" {
+					appInstallationID = v
+				}
+			}
+			if appPemFile == "" {
+				if v, ok := appAuthAttr["pem_file"].(string); ok && v != "" {
+					appPemFile = strings.ReplaceAll(v, `\n`, "\n")
+				}
+			}
+		}
+	}
+
+	return
 }
 
 // ghCLIHostFromAPIHost maps an API hostname to the corresponding
