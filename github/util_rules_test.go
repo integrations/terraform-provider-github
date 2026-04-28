@@ -1,6 +1,7 @@
 package github
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/google/go-github/v85/github"
@@ -1297,5 +1298,128 @@ func TestFlattenRulesetRepositoryPropertyTargetParameters_NilPropertyValues(t *t
 		if valSlice, ok := values.([]string); ok && len(valSlice) != 0 {
 			t.Errorf("Expected property_values to be nil or empty, got %v", values)
 		}
+	}
+}
+
+func TestFixReviewerStringIDs(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "converts quoted integer id to unquoted",
+			input:    `{"id": "12345", "type": "Team"}`,
+			expected: `{"id":12345, "type": "Team"}`,
+		},
+		{
+			name:     "leaves unquoted integer id unchanged",
+			input:    `{"id": 12345, "type": "Team"}`,
+			expected: `{"id": 12345, "type": "Team"}`,
+		},
+		{
+			name:     "converts id without spaces after colon",
+			input:    `{"id":"99999","type":"Team"}`,
+			expected: `{"id":99999,"type":"Team"}`,
+		},
+		{
+			name:     "handles multiple reviewer ids",
+			input:    `[{"id": "111"}, {"id": "222"}]`,
+			expected: `[{"id":111}, {"id":222}]`,
+		},
+		{
+			name:     "does not convert non-digit string ids",
+			input:    `{"id": "abc123", "type": "Team"}`,
+			expected: `{"id": "abc123", "type": "Team"}`,
+		},
+		{
+			name:     "does not convert empty string ids",
+			input:    `{"id": "", "type": "Team"}`,
+			expected: `{"id": "", "type": "Team"}`,
+		},
+		{
+			name:     "handles full ruleset response with nested reviewer",
+			input:    `{"id":1,"name":"test","rules":[{"type":"pull_request","parameters":{"required_reviewers":[{"reviewer":{"id":"12345","type":"Team"},"minimum_approvals":1}]}}]}`,
+			expected: `{"id":1,"name":"test","rules":[{"type":"pull_request","parameters":{"required_reviewers":[{"reviewer":{"id":12345,"type":"Team"},"minimum_approvals":1}]}}]}`,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := fixReviewerStringIDs([]byte(tc.input))
+			if string(result) != tc.expected {
+				t.Errorf("fixReviewerStringIDs(%q) = %q, want %q", tc.input, string(result), tc.expected)
+			}
+		})
+	}
+}
+
+func TestFixReviewerStringIDs_UnmarshalRoundTrip(t *testing.T) {
+	// Simulate the actual GitHub API response that causes the bug:
+	// reviewer.id is returned as a JSON string instead of a number.
+	apiResponse := `{
+		"id": 999,
+		"name": "test-ruleset",
+		"target": "branch",
+		"source_type": "Repository",
+		"source": "test-repo",
+		"enforcement": "active",
+		"rules": [
+			{
+				"type": "pull_request",
+				"parameters": {
+					"dismiss_stale_reviews_on_push": false,
+					"require_code_owner_review": false,
+					"require_last_push_approval": false,
+					"required_approving_review_count": 1,
+					"required_review_thread_resolution": false,
+					"required_reviewers": [
+						{
+							"reviewer": {
+								"id": "12345",
+								"type": "Team"
+							},
+							"file_patterns": ["*.go"],
+							"minimum_approvals": 1
+						}
+					]
+				}
+			}
+		]
+	}`
+
+	// Without the fix, this would fail with:
+	// json: cannot unmarshal string into Go struct field
+	// RulesetReviewer.id of type int64
+	fixed := fixReviewerStringIDs([]byte(apiResponse))
+
+	var rs github.RepositoryRuleset
+	if err := json.Unmarshal(fixed, &rs); err != nil {
+		t.Fatalf("Failed to unmarshal fixed response: %v", err)
+	}
+
+	if rs.GetID() != 999 {
+		t.Errorf("Expected ruleset ID 999, got %d", rs.GetID())
+	}
+
+	if rs.Rules == nil || rs.Rules.PullRequest == nil {
+		t.Fatal("Expected pull_request rule to be parsed")
+	}
+
+	reviewers := rs.Rules.PullRequest.RequiredReviewers
+	if len(reviewers) != 1 {
+		t.Fatalf("Expected 1 required reviewer, got %d", len(reviewers))
+	}
+
+	if reviewers[0].Reviewer == nil {
+		t.Fatal("Expected reviewer to be non-nil")
+	}
+
+	if reviewers[0].Reviewer.GetID() != 12345 {
+		t.Errorf("Expected reviewer ID 12345, got %d", reviewers[0].Reviewer.GetID())
+	}
+
+	if reviewers[0].Reviewer.GetType() == nil || *reviewers[0].Reviewer.GetType() != github.RulesetReviewerTypeTeam {
+		t.Errorf("Expected reviewer type Team, got %v", reviewers[0].Reviewer.GetType())
 	}
 }
