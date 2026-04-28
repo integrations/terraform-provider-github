@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-jose/go-jose/v3"
-	"github.com/go-jose/go-jose/v3/jwt"
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
 )
 
 const (
@@ -46,7 +46,7 @@ func TestGenerateAppJWT(t *testing.T) {
 	})
 
 	t.Run("produces a jwt with expected algorithm and type", func(t *testing.T) {
-		tok, err := jwt.ParseSigned(appJWT)
+		tok, err := jwt.ParseSigned(appJWT, []jose.SignatureAlgorithm{jose.RS256})
 		if err != nil {
 			t.Logf("Failed to decode JWT '%s': %s", appJWT, err)
 			t.Fail()
@@ -72,7 +72,7 @@ func TestGenerateAppJWT(t *testing.T) {
 	})
 
 	t.Run("produces a jwt with expected claims", func(t *testing.T) {
-		tok, err := jwt.ParseSigned(appJWT)
+		tok, err := jwt.ParseSigned(appJWT, []jose.SignatureAlgorithm{jose.RS256})
 		if err != nil {
 			t.Logf("Failed to decode JWT '%s': %s", appJWT, err)
 			t.Fail()
@@ -122,7 +122,7 @@ func TestGenerateAppJWT(t *testing.T) {
 			t.FailNow()
 		}
 
-		tok, err := jwt.ParseSigned(appJWT)
+		tok, err := jwt.ParseSigned(appJWT, []jose.SignatureAlgorithm{jose.RS256})
 		if err != nil {
 			t.Logf("Failed to decode JWT '%s': %s", appJWT, err)
 			t.Fail()
