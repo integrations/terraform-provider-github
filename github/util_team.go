@@ -2,9 +2,10 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v85/github"
 )
 
 // teamIdentity represents a GitHub team.
@@ -149,4 +150,28 @@ func lookupTeamID(ctx context.Context, client *github.Client, orgName, slug stri
 		return 0, err
 	}
 	return team.GetID(), nil
+}
+
+// Given a string that is either a team id or team slug, return the
+// team object it is referring to.
+func getTeam(ctx context.Context, meta *Owner, idOrSlug string) (*github.Team, error) {
+	client := meta.v3client
+	orgName := meta.name
+	orgId := meta.id
+
+	if id, ok := parseTeamID(idOrSlug); ok {
+		// The given id is an integer, assume it is the team ID.
+		team, _, err := client.Teams.GetTeamByID(ctx, orgId, id)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get team by ID (%d): %w", id, err)
+		}
+		return team, nil
+	}
+
+	// The given id not an integer, assume it is a team slug
+	team, _, err := client.Teams.GetTeamBySlug(ctx, orgName, idOrSlug)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get team by slug (%s): %w", idOrSlug, err)
+	}
+	return team, nil
 }
