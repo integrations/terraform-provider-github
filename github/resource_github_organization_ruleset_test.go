@@ -184,6 +184,53 @@ resource "github_organization_ruleset" "test" {
 		})
 	})
 
+	t.Run("create_branch_ruleset_with_empty_required_workflows", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		rulesetName := fmt.Sprintf("%s-empty-wf-ruleset-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_organization_ruleset" "test" {
+	name        = "%s"
+	target      = "branch"
+	enforcement = "active"
+
+	conditions {
+		repository_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+
+		ref_name {
+			include = ["~DEFAULT_BRANCH"]
+			exclude = []
+		}
+	}
+
+	rules {
+		required_workflows {
+			do_not_enforce_on_create = false
+		}
+	}
+}
+`, rulesetName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "enforcement", "active"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.required_workflows.0.do_not_enforce_on_create", "false"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.required_workflows.0.required_workflow.#", "0"),
+					),
+				},
+			},
+		})
+	})
+
 	t.Run("create_ruleset_with_repository_property", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		rulesetName := fmt.Sprintf("%s-repo-prop-ruleset-%s", testResourcePrefix, randomID)
