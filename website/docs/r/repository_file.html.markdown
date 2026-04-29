@@ -78,6 +78,8 @@ The following arguments are supported:
 
 - `commit_message` - (Optional) The commit message when creating, updating or deleting the managed file.
 
+~> **Note on signed commits:** delete commits are produced through GitHub's GraphQL `createCommitOnBranch` mutation so they are web-flow signed and satisfy rulesets that require signed commits. Create and update commits go through the REST Contents API, which is web-flow signed only when `commit_author` and `commit_email` are left unset.
+
 - `overwrite_on_create` - (Optional) Enable overwriting existing files. If set to `true` it will overwrite an existing file with the same name. If set to `false` it will fail if there is an existing file with the same name.
 
 - `autocreate_branch` - (Optional) **Deprecated** Automatically create the branch if it could not be found. Defaults to false. Subsequent reads if the branch is deleted will occur from 'autocreate_branch_source_branch'. Use the `github_branch` resource instead.
