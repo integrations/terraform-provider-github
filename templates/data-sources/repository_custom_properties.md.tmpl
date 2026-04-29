@@ -1,0 +1,23 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Get all custom properties of a repository
+---
+
+# {{.Name}} ({{.Type}})
+
+Use this data source to retrieve all custom properties of a repository.
+
+## Example Usage
+
+{{ tffile "examples/data-sources/repository_custom_properties/example_1.tf" }}
+
+## Argument Reference
+
+- `repository` - (Required) Name of the repository to retrieve the custom properties from.
+
+## Attributes Reference
+
+- `property` - The list of this repository's custom properties. Each element of `property` has the following attributes:
+  - `property_name` - Name of the property
+  - `property_value` - Value of the property

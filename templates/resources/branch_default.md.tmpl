@@ -1,0 +1,39 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Provides a GitHub branch default for a given repository.
+---
+
+# {{.Name}} ({{.Type}})
+
+Provides a GitHub branch default resource.
+
+This resource allows you to set the default branch for a given repository.
+
+Note that use of this resource is incompatible with the `default_branch` option of the `github_repository` resource. Using both will result in plans always showing a diff.
+
+## Example Usage
+
+Basic usage:
+
+{{ tffile "examples/resources/branch_default/example_1.tf" }}
+
+Renaming to a branch that doesn't exist:
+
+{{ tffile "examples/resources/branch_default/example_2.tf" }}
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `repository` - (Required) The GitHub repository
+- `branch` - (Required) The branch (e.g. `main`)
+- `rename` - (Optional) Indicate if it should rename the branch rather than use an existing branch. Defaults to `false`.
+
+## Import
+
+GitHub Branch Defaults can be imported using an ID made up of `repository`, e.g.
+
+```hcl
+$ terraform import github_branch_default.branch_default my-repo
+```

@@ -1,0 +1,25 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Get the labels for a given repository.
+---
+
+# {{.Name}} ({{.Type}})
+
+Use this data source to retrieve the labels for a given repository.
+
+## Example Usage
+
+{{ tffile "examples/data-sources/issue_labels/example_1.tf" }}
+
+## Arguments Reference
+
+- `repository` - (Required) The name of the repository.
+
+## Attributes Reference
+
+- `labels` - The list of this repository's labels. Each element of `labels` has the following attributes:
+  - `name` - The name of the label.
+  - `color` - The hexadecimal color code for the label, without the leading #.
+  - `description` - A short description of the label.
+  - `url` - The URL of the label.

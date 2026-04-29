@@ -1,0 +1,49 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Provides a GitHub issue resource.
+---
+
+# {{.Name}} ({{.Type}})
+
+Provides a GitHub issue resource.
+
+This resource allows you to create and manage issue within your GitHub repository.
+
+## Example Usage
+
+{{ tffile "examples/resources/issue/example_1.tf" }}
+
+## Example Usage with milestone and project assignment
+
+{{ tffile "examples/resources/issue/example_2.tf" }}
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `repository` - (Required) The GitHub repository name
+
+- `title` - (Required) Title of the issue
+
+- `body` - (Optional) Body of the issue
+
+- `labels` - (Optional) List of labels to attach to the issue
+
+- `assignees` - (Optional) List of Logins to assign the to the issue
+
+- `milestone_number` - (Optional) Milestone number to assign to the issue
+
+## Attributes Reference
+
+- `number` - (Computed) - The issue number
+
+- `issue_id` - (Computed) - The issue id
+
+## Import
+
+GitHub Issues can be imported using an ID made up of `repository:number`, e.g.
+
+```hcl
+$ terraform import github_issue.issue_15 myrepo:15
+```
