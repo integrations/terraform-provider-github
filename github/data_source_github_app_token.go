@@ -28,6 +28,12 @@ func dataSourceGithubAppToken() *schema.Resource {
 				Required:    true,
 				Description: descriptions["app_auth.pem_file"],
 			},
+			"repositories": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "List of repository names to scope the token to. If not specified, the token will have access to all repositories the installation has access to.",
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
 			"token": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -52,7 +58,14 @@ func dataSourceGithubAppTokenRead(ctx context.Context, d *schema.ResourceData, m
 	// actual new line character before decoding.
 	pemFile = strings.ReplaceAll(pemFile, `\n`, "\n")
 
-	token, err := GenerateOAuthTokenFromApp(meta.(*Owner).v3client.BaseURL, appID, installationID, pemFile)
+	var repositories []string
+	if v, ok := d.GetOk("repositories"); ok {
+		for _, repo := range v.([]any) {
+			repositories = append(repositories, repo.(string))
+		}
+	}
+
+	token, err := GenerateOAuthTokenFromAppWithRepositories(meta.(*Owner).v3client.BaseURL, appID, installationID, pemFile, repositories)
 	if err != nil {
 		return diag.FromErr(err)
 	}
