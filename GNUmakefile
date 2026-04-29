@@ -1,9 +1,10 @@
 SWEEP?=repositories,teams
 PKG_NAME=github
 TEST?=./$(PKG_NAME)/...
-WEBSITE_REPO=github.com/hashicorp/terraform-website
 
 COVERAGEARGS?=-race -coverprofile=coverage.txt -covermode=atomic
+
+RUMDL_ARGS?=--output-format text
 
 # VARIABLE REFERENCE:
 #
@@ -28,7 +29,7 @@ endif
 default: build
 
 tools:
-	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.10.1
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
 
 build: lintcheck
 	CGO_ENABLED=0 go build -ldflags="-s -w" ./...
@@ -65,18 +66,29 @@ sweep:
 	@echo "WARNING: This will destroy infrastructure. Use only in development accounts."
 	go test $(TEST) -v -sweep=$(SWEEP) $(SWEEPARGS)
 
-website:
-ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
-	echo "$(WEBSITE_REPO) not found in your GOPATH (necessary for layouts and assets), get-ting..."
-	git clone https://$(WEBSITE_REPO) $(GOPATH)/src/$(WEBSITE_REPO)
-endif
-	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
+generatedocs:
+	@cd tools; go generate ./...
 
-website-test:
-ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
-	echo "$(WEBSITE_REPO) not found in your GOPATH (necessary for layouts and assets), get-ting..."
-	git clone https://$(WEBSITE_REPO) $(GOPATH)/src/$(WEBSITE_REPO)
-endif
-	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider-test PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
+validatedocs:
+	@cd tools; go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs validate --provider-dir ..
 
-.PHONY: build test testacc fmt lint lintcheck tools website website-test sweep
+fmtdocs:
+	@rumdl fmt --fix ./docs
+
+lintdocs: validatedocs
+	@rumdl check $(RUMDL_ARGS) ./docs
+
+checkdocs: generatedocs
+	@git diff --quiet ||\
+		{ echo "New file modification detected in the Git working tree. Please check in before commit."; git --no-pager diff --name-only | uniq | awk '{print "  - " $$0}'; \
+		if [ "${CI}" = true ]; then\
+			exit 1;\
+		fi;}
+
+mdfmt:
+	@rumdl fmt --fix .
+
+mdlint:
+	@rumdl check $(RUMDL_ARGS) .
+
+.PHONY: build test testacc fmt lint lintcheck tools sweep generatedocs validatedocs fmtdocs lintdocs checkdocs mdfmt mdlint

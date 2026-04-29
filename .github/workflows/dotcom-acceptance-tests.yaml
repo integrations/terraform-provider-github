@@ -1,8 +1,8 @@
 name: Acceptance Tests (github.com)
 
 on:
-  workflow_dispatch:
-  # push:
+  workflow_dispatch: # push:
+
   #   branches:
   #     - main
   #     - release-v*
@@ -25,7 +25,9 @@ permissions: read-all
 jobs:
   test:
     name: Test ${{ matrix.mode }}
-    if: (github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || contains(github.event.pull_request.labels.*.name, 'acctest')
+    if: (github.event_name != 'pull_request' && github.event_name !=
+      'pull_request_target') ||
+      contains(github.event.pull_request.labels.*.name, 'acctest')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -34,7 +36,7 @@ jobs:
       deployment: false
     strategy:
       matrix:
-        mode: [anonymous, individual, organization] # team, enterprise
+        mode: [ anonymous, individual, organization ] # team, enterprise
       fail-fast: true
       max-parallel: 1
     defaults:
@@ -47,7 +49,8 @@ jobs:
       - name: Check secrets
         if: github.event_name == 'pull_request_target'
         env:
-          INPUT_ALLOWED_SECRETS: ${{ vars.DOTCOM_ACCEPTANCE_TESTS_ALLOWED_SECRETS || 'GH_TEST_TOKEN' }}
+          INPUT_ALLOWED_SECRETS: ${{ vars.DOTCOM_ACCEPTANCE_TESTS_ALLOWED_SECRETS ||
+            'GH_TEST_TOKEN' }}
           INPUT_SECRETS: ${{ toJSON(secrets) }}
         run: |
           set -eou pipefail
@@ -74,7 +77,7 @@ jobs:
           echo "token=${GH_TEST_TOKEN}" >> "${GITHUB_OUTPUT}"
 
       - name: Set-up Go
-        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
           go-version-file: go.mod
           cache: true
@@ -104,7 +107,8 @@ jobs:
           TF_LOG: WARN
           GITHUB_TOKEN: ${{ steps.credentials.outputs.token }}
           GITHUB_BASE_URL: https://api.github.com/
-          GITHUB_OWNER: ${{ (matrix.mode == 'individual' && vars.GH_TEST_LOGIN) || (matrix.mode == 'organization' && vars.GH_TEST_ORG_NAME) || '' }}
+          GITHUB_OWNER: ${{ (matrix.mode == 'individual' && vars.GH_TEST_LOGIN) ||
+            (matrix.mode == 'organization' && vars.GH_TEST_ORG_NAME) || '' }}
           GITHUB_USERNAME: ${{ vars.GH_TEST_LOGIN }}
           GITHUB_ENTERPRISE_SLUG: ${{ vars.GH_TEST_ENTERPRISE_SLUG }}
           GH_TEST_AUTH_MODE: ${{ matrix.mode }}

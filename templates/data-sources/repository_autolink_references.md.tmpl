@@ -1,0 +1,24 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Get autolink references for a Github repository.
+---
+
+# {{.Name}} ({{.Type}})
+
+Use this data source to retrieve autolink references for a repository.
+
+## Example Usage
+
+{{ tffile "examples/data-sources/repository_autolink_references/example_1.tf" }}
+
+## Argument Reference
+
+- `repository` - (Required) Name of the repository to retrieve the autolink references from.
+
+## Attributes Reference
+
+- `autolink_references` - The list of this repository's autolink references. Each element of `autolink_references` has the following attributes:
+  - `key_prefix` - Key prefix.
+  - `target_url_template` - Target url template.
+  - `is_alphanumeric` - True if alphanumeric.

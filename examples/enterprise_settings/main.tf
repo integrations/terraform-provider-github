@@ -25,9 +25,9 @@ variable "enterprise_slug" {
 # Basic Enterprise Actions Permissions - Allow all actions for all organizations
 resource "github_enterprise_actions_permissions" "basic" {
   enterprise_slug = var.enterprise_slug
-  
+
   enabled_organizations = "all"
-  allowed_actions      = "all"
+  allowed_actions       = "all"
 }
 
 # Basic Enterprise Workflow Permissions - Restrictive settings
@@ -41,17 +41,17 @@ resource "github_enterprise_actions_workflow_permissions" "basic" {
 # Advanced Enterprise Actions Permissions - Selective configuration
 resource "github_enterprise_actions_permissions" "advanced" {
   enterprise_slug = var.enterprise_slug
-  
+
   enabled_organizations = "selected"
-  allowed_actions      = "selected"
-  
+  allowed_actions       = "selected"
+
   # Configure allowed actions when "selected" policy is used
   allowed_actions_config {
     github_owned_allowed = true
     verified_allowed     = true
     patterns_allowed = [
       "actions/cache@*",
-      "actions/checkout@*", 
+      "actions/checkout@*",
       "actions/setup-node@*",
       "actions/setup-python@*",
       "actions/upload-artifact@*",
@@ -59,7 +59,7 @@ resource "github_enterprise_actions_permissions" "advanced" {
       "my-org/custom-action@v1"
     ]
   }
-  
+
   # Configure enabled organizations when "selected" policy is used
   enabled_organizations_config {
     organization_ids = [123456, 789012] # Replace with actual org IDs
@@ -77,12 +77,12 @@ resource "github_enterprise_actions_workflow_permissions" "advanced" {
 # Security Analysis Settings - Enable security features for new repositories
 resource "github_enterprise_security_analysis_settings" "example" {
   enterprise_slug = var.enterprise_slug
-  
-  advanced_security_enabled_for_new_repositories             = true
-  secret_scanning_enabled_for_new_repositories               = true
+
+  advanced_security_enabled_for_new_repositories               = true
+  secret_scanning_enabled_for_new_repositories                 = true
   secret_scanning_push_protection_enabled_for_new_repositories = true
-  secret_scanning_validity_checks_enabled                   = true
-  secret_scanning_push_protection_custom_link               = "https://octokit.com/security-help"
+  secret_scanning_validity_checks_enabled                      = true
+  secret_scanning_push_protection_custom_link                  = "https://octokit.com/security-help"
 }
 
 output "basic_enterprise_actions" {
@@ -90,7 +90,7 @@ output "basic_enterprise_actions" {
   value = {
     enterprise_slug       = github_enterprise_actions_permissions.basic.enterprise_slug
     enabled_organizations = github_enterprise_actions_permissions.basic.enabled_organizations
-    allowed_actions      = github_enterprise_actions_permissions.basic.allowed_actions
+    allowed_actions       = github_enterprise_actions_permissions.basic.allowed_actions
   }
 }
 
@@ -108,7 +108,7 @@ output "advanced_enterprise_actions" {
   value = {
     enterprise_slug       = github_enterprise_actions_permissions.advanced.enterprise_slug
     enabled_organizations = github_enterprise_actions_permissions.advanced.enabled_organizations
-    allowed_actions      = github_enterprise_actions_permissions.advanced.allowed_actions
+    allowed_actions       = github_enterprise_actions_permissions.advanced.allowed_actions
   }
 }
 

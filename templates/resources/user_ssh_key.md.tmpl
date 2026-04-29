@@ -1,0 +1,37 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Provides a GitHub user's SSH key resource.
+---
+
+# {{.Name}} ({{.Type}})
+
+Provides a GitHub user's SSH key resource.
+
+This resource allows you to add/remove SSH keys from your user account.
+
+## Example Usage
+
+{{ tffile "examples/resources/user_ssh_key/example_1.tf" }}
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `title` - (Required) A descriptive name for the new key. e.g. `Personal MacBook Air`
+- `key` - (Required) The public SSH key to add to your GitHub account.
+
+## Attributes Reference
+
+The following attributes are exported:
+
+- `id` - The ID of the SSH key
+- `url` - The URL of the SSH key
+
+## Import
+
+SSH keys can be imported using their ID e.g.
+
+```hcl
+$ terraform import github_user_ssh_key.example 1234567
+```

@@ -7,12 +7,12 @@ Resolves #ISSUE_NUMBER
 ### Before the change?
 <!-- Please describe the current behavior that you are modifying. -->
 
-- 
+-
 
 ### After the change?
 <!-- Please describe the behavior or changes that are being added by this PR. -->
 
-- 
+-
 
 ### Pull request checklist
 
