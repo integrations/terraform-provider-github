@@ -1,6 +1,6 @@
 ---
 layout: "github"
-page_title: "GitHub: github_app_installation_repository"
+page_title: "GitHub: github_app_installation_repositories"
 description: |-
   Manages the associations between app installations and repositories.
 ---
@@ -33,8 +33,8 @@ resource "github_repository" "another_repo" {
 
 resource "github_app_installation_repositories" "some_app_repos" {
   # The installation id of the app (in the organization).
-  installation_id        = "1234567"
-  selected_repositories  = [github_repository.some_repo.name, github_repository.another_repo.name]"
+  installation_id       = "1234567"
+  selected_repositories = [github_repository.some_repo.name, github_repository.another_repo.name]
 }
 ```
 
