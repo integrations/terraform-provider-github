@@ -12,7 +12,6 @@ linters:
     - errcheck
     - errname
     - errorlint
-    # - forcetypeassert TODO: Re-enable when we can fix the issues
     - godot
     - govet
     - ineffassign
@@ -27,6 +26,64 @@ linters:
     - unparam
     - unused
     - usetesting
+    - tfproviderlint
+
+  settings:
+    custom:
+      tfproviderlint:
+        type: module
+        description: Reports Terraform provider linting issues.
+        original-url: github.com/bflad/tfproviderlint/cmd/tfproviderlintx
+        settings:
+          # https://github.com/bflad/tfproviderlint/tree/main?tab=readme-ov-file#standard-acceptance-test-checks
+          enabled-checks:
+            - AT005 # https://github.com/bflad/tfproviderlint/tree/main/passes/AT005
+            - AT008 # https://github.com/bflad/tfproviderlint/tree/main/passes/AT008
+            - R005 # https://github.com/bflad/tfproviderlint/tree/main/passes/R005
+            - R006 # https://github.com/bflad/tfproviderlint/tree/main/passes/R006
+            - R011 # https://github.com/bflad/tfproviderlint/tree/main/passes/R011
+            - R012 # https://github.com/bflad/tfproviderlint/tree/main/passes/R012
+            - R013 # https://github.com/bflad/tfproviderlint/tree/main/passes/R013
+            - R015 # https://github.com/bflad/tfproviderlint/tree/main/passes/R015
+            - R016 # https://github.com/bflad/tfproviderlint/tree/main/passes/R016
+            - R017 # https://github.com/bflad/tfproviderlint/tree/main/passes/R017
+            - S001 # https://github.com/bflad/tfproviderlint/tree/main/passes/S001
+            - S002 # https://github.com/bflad/tfproviderlint/tree/main/passes/S002
+            - S003 # https://github.com/bflad/tfproviderlint/tree/main/passes/S003
+            - S004 # https://github.com/bflad/tfproviderlint/tree/main/passes/S004
+            - S005 # https://github.com/bflad/tfproviderlint/tree/main/passes/S005
+            - S007 # https://github.com/bflad/tfproviderlint/tree/main/passes/S007
+            - S008 # https://github.com/bflad/tfproviderlint/tree/main/passes/S008
+            - S009 # https://github.com/bflad/tfproviderlint/tree/main/passes/S009
+            - S010 # https://github.com/bflad/tfproviderlint/tree/main/passes/S010
+            - S011 # https://github.com/bflad/tfproviderlint/tree/main/passes/S011
+            - S012 # https://github.com/bflad/tfproviderlint/tree/main/passes/S012
+            - S014 # https://github.com/bflad/tfproviderlint/tree/main/passes/S014
+            - S015 # https://github.com/bflad/tfproviderlint/tree/main/passes/S015
+            - S016 # https://github.com/bflad/tfproviderlint/tree/main/passes/S016
+            - S017 # https://github.com/bflad/tfproviderlint/tree/main/passes/S017
+            - S018 # https://github.com/bflad/tfproviderlint/tree/main/passes/S018
+            - S021 # https://github.com/bflad/tfproviderlint/tree/main/passes/S021
+            - S022 # https://github.com/bflad/tfproviderlint/tree/main/passes/S022
+            - S023 # https://github.com/bflad/tfproviderlint/tree/main/passes/S023
+            - S024 # https://github.com/bflad/tfproviderlint/tree/main/passes/S024
+            - S025 # https://github.com/bflad/tfproviderlint/tree/main/passes/S025
+            - S026 # https://github.com/bflad/tfproviderlint/tree/main/passes/S026
+            - S027 # https://github.com/bflad/tfproviderlint/tree/main/passes/S027
+            - S028 # https://github.com/bflad/tfproviderlint/tree/main/passes/S028
+            - S029 # https://github.com/bflad/tfproviderlint/tree/main/passes/S029
+            - S030 # https://github.com/bflad/tfproviderlint/tree/main/passes/S030
+            - S031 # https://github.com/bflad/tfproviderlint/tree/main/passes/S031
+            - S032 # https://github.com/bflad/tfproviderlint/tree/main/passes/S032
+            - S033 # https://github.com/bflad/tfproviderlint/tree/main/passes/S033
+            - S035 # https://github.com/bflad/tfproviderlint/tree/main/passes/S035
+            - S036 # https://github.com/bflad/tfproviderlint/tree/main/passes/S036
+            - S037 # https://github.com/bflad/tfproviderlint/tree/main/passes/S037
+            - XR004 # https://github.com/bflad/tfproviderlint/tree/main/passes/XR004
+            - XR006 # https://github.com/bflad/tfproviderlint/tree/main/passes/XR006
+            - XR008 # https://github.com/bflad/tfproviderlint/tree/main/passes/XR008
+            # Custom local checks
+            - L001 # file:///./tools/tfproviderlint/checks/L001/L001.go
 
   exclusions:
     generated: lax

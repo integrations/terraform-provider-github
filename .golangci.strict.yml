@@ -1,0 +1,34 @@
+# This file is for linting rules we want to start enforcing, but can't enable for the whole codebase yet.
+# Always try adding new rules to .golangci.yml first. If they cause too many issues to fix, add them here.
+# Once a rule in here has been fixed across the codebase, remove it from here and add it to .golangci.yml.
+version: "2"
+
+linters:
+  enable:
+    - forcetypeassert
+    - revive
+
+  settings:
+    custom:
+      tfproviderlint:
+        settings:
+          # https://github.com/bflad/tfproviderlint/tree/main?tab=readme-ov-file#standard-acceptance-test-checks
+          enabled-checks:
+            - AT009 # https://github.com/bflad/tfproviderlint/tree/main/passes/AT009
+            - R002 # https://github.com/bflad/tfproviderlint/tree/main/passes/R002
+            - R004 # https://github.com/bflad/tfproviderlint/tree/main/passes/R004
+            - R009 # https://github.com/bflad/tfproviderlint/tree/main/passes/R009
+            - R010 # https://github.com/bflad/tfproviderlint/tree/main/passes/R010
+            - R018 # https://github.com/bflad/tfproviderlint/tree/main/passes/R018
+            - S006 # https://github.com/bflad/tfproviderlint/tree/main/passes/S006
+            - S013 # https://github.com/bflad/tfproviderlint/tree/main/passes/S013
+            - S019 # https://github.com/bflad/tfproviderlint/tree/main/passes/S019
+            - S020 # https://github.com/bflad/tfproviderlint/tree/main/passes/S020
+            - XR002 # https://github.com/bflad/tfproviderlint/tree/main/passes/XR002
+            - XR003 # https://github.com/bflad/tfproviderlint/tree/main/passes/XR003
+            - XR005 # https://github.com/bflad/tfproviderlint/tree/main/passes/XR005
+            - XR007 # https://github.com/bflad/tfproviderlint/tree/main/passes/XR007
+            - XS001 # https://github.com/bflad/tfproviderlint/tree/main/passes/XS001
+            # Custom local checks
+            - L002 # file:///./tools/tfproviderlint/checks/L002/L002.go
+            - L003 # file:///./tools/tfproviderlint/checks/L003/L003.go
