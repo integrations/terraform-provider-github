@@ -69,6 +69,9 @@ func resourceGithubRepositoryCustomPropertyCreate(d *schema.ResourceData, meta a
 	// The propertyValue can either be a list of strings or a string
 	switch propertyType {
 	case github.PropertyValueTypeString, github.PropertyValueTypeSingleSelect, github.PropertyValueTypeURL, github.PropertyValueTypeTrueFalse:
+		if len(propertyValue) == 0 {
+			return fmt.Errorf("property_value must contain at least one element for property_type %q", propertyType)
+		}
 		customProperty.Value = propertyValue[0]
 	case github.PropertyValueTypeMultiSelect:
 		customProperty.Value = propertyValue
