@@ -10,7 +10,7 @@ import (
 
 func TestAccGithubEnterpriseCustomPropertiesDataSource(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
-	propertyName := fmt.Sprintf("test-%s", randomID)
+	propertyName := fmt.Sprintf("%s-test-%s", testResourcePrefix, randomID)
 
 	config := fmt.Sprintf(`
 			resource "github_enterprise_custom_properties" "test" {
