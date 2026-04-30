@@ -33,24 +33,21 @@ func TestAccGithubEnterpriseCustomPropertiesDataSource(t *testing.T) {
 		testAccConf.enterpriseSlug,
 	)
 
-	check := resource.ComposeTestCheckFunc(
-		resource.TestCheckResourceAttr("data.github_enterprise_custom_properties.test", "enterprise_slug", testAccConf.enterpriseSlug),
-		resource.TestCheckResourceAttr("data.github_enterprise_custom_properties.test", "property_name", propertyName),
-		resource.TestCheckResourceAttr("data.github_enterprise_custom_properties.test", "allowed_values.#", "0"),
-		resource.TestCheckResourceAttr("data.github_enterprise_custom_properties.test", "value_type", "string"),
-		resource.TestCheckResourceAttr("data.github_enterprise_custom_properties.test", "required", "true"),
-		resource.TestCheckResourceAttr("data.github_enterprise_custom_properties.test", "default_value", "terraform"),
-		resource.TestCheckResourceAttr("data.github_enterprise_custom_properties.test", "description", "A test property"),
-		resource.TestCheckResourceAttr("data.github_enterprise_custom_properties.test", "values_editable_by", "org_and_repo_actors"),
-	)
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { skipUnlessEnterprise(t) },
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
-				Check:  check,
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue("data.github_enterprise_custom_properties.test", tfjsonpath.New("enterprise_slug"), knownvalue.StringExact(testAccConf.enterpriseSlug)),
+					statecheck.ExpectKnownValue("data.github_enterprise_custom_properties.test", tfjsonpath.New("property_name"), knownvalue.StringExact(propertyName)),
+					statecheck.ExpectKnownValue("data.github_enterprise_custom_properties.test", tfjsonpath.New("value_type"), knownvalue.StringExact("string")),
+					statecheck.ExpectKnownValue("data.github_enterprise_custom_properties.test", tfjsonpath.New("required"), knownvalue.BoolExact(true)),
+					statecheck.ExpectKnownValue("data.github_enterprise_custom_properties.test", tfjsonpath.New("default_value"), knownvalue.StringExact("terraform")),
+					statecheck.ExpectKnownValue("data.github_enterprise_custom_properties.test", tfjsonpath.New("description"), knownvalue.StringExact("A test property")),
+					statecheck.ExpectKnownValue("data.github_enterprise_custom_properties.test", tfjsonpath.New("values_editable_by"), knownvalue.StringExact("org_and_repo_actors")),
+				}
 			},
 		},
 	},
