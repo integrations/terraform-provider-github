@@ -9,6 +9,7 @@ import (
 
 func dataSourceGithubEnterpriseCustomProperties() *schema.Resource {
 	return &schema.Resource{
+		Description: "Lookup a GitHub Enterprise custom property by name.",
 		ReadContext: dataSourceGithubEnterpriseCustomPropertiesRead,
 
 		Schema: map[string]*schema.Schema{
@@ -22,31 +23,25 @@ func dataSourceGithubEnterpriseCustomProperties() *schema.Resource {
 			},
 			"value_type": {
 				Type:     schema.TypeString,
-				Optional: true,
 			},
 			"required": {
 				Type:     schema.TypeBool,
-				Optional: true,
 			},
 			"default_value": {
 				Type:     schema.TypeString,
-				Optional: true,
 				Computed: true,
 			},
 			"description": {
 				Type:     schema.TypeString,
-				Optional: true,
 				Computed: true,
 			},
 			"allowed_values": {
 				Type:     schema.TypeList,
-				Optional: true,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"values_editable_by": {
 				Type:     schema.TypeString,
-				Optional: true,
 				Computed: true,
 			},
 		},
