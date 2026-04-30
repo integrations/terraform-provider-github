@@ -15,6 +15,13 @@ import (
 	"github.com/go-jose/go-jose/v3/jwt"
 )
 
+// GenerateOAuthTokenFromJWT exchanges a pre-signed GitHub App JWT for an installation access token.
+// The JWT must be signed by the GitHub App's private key and contain the correct claims.
+// This allows signing to be handled externally (e.g., by a secrets manager or KMS).
+func GenerateOAuthTokenFromJWT(apiURL *url.URL, appInstallationID, appJWT string) (string, error) {
+	return getInstallationAccessToken(apiURL, appJWT, appInstallationID)
+}
+
 // GenerateOAuthTokenFromApp generates a GitHub OAuth access token from a set of valid GitHub App credentials.
 // The returned token can be used to interact with both GitHub's REST and GraphQL APIs.
 func GenerateOAuthTokenFromApp(apiURL *url.URL, appID, appInstallationID, pemData string) (string, error) {

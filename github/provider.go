@@ -103,7 +103,7 @@ func Provider() *schema.Provider {
 					Schema: map[string]*schema.Schema{
 						"id": {
 							Type:        schema.TypeString,
-							Required:    true,
+							Optional:    true,
 							DefaultFunc: schema.EnvDefaultFunc("GITHUB_APP_ID", nil),
 							Description: descriptions["app_auth.id"],
 						},
@@ -114,11 +114,20 @@ func Provider() *schema.Provider {
 							Description: descriptions["app_auth.installation_id"],
 						},
 						"pem_file": {
-							Type:        schema.TypeString,
-							Required:    true,
-							Sensitive:   true,
-							DefaultFunc: schema.EnvDefaultFunc("GITHUB_APP_PEM_FILE", nil),
-							Description: descriptions["app_auth.pem_file"],
+							Type:         schema.TypeString,
+							Optional:     true,
+							Sensitive:    true,
+							DefaultFunc:  schema.EnvDefaultFunc("GITHUB_APP_PEM_FILE", nil),
+							Description:  descriptions["app_auth.pem_file"],
+							ExactlyOneOf: []string{"app_auth.0.pem_file", "app_auth.0.jwt"},
+						},
+						"jwt": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							Sensitive:    true,
+							DefaultFunc:  schema.EnvDefaultFunc("GITHUB_APP_JWT", nil),
+							Description:  descriptions["app_auth.jwt"],
+							ExactlyOneOf: []string{"app_auth.0.pem_file", "app_auth.0.jwt"},
 						},
 					},
 				},
@@ -328,7 +337,8 @@ func init() {
 			"`token`. Anonymous mode is enabled if both `token` and `app_auth` are not set.",
 		"app_auth.id":              "The GitHub App ID.",
 		"app_auth.installation_id": "The GitHub App installation instance ID.",
-		"app_auth.pem_file":        "The GitHub App PEM file contents.",
+		"app_auth.pem_file":        "The GitHub App PEM file contents. Exactly one of `pem_file` or `jwt` must be set.",
+		"app_auth.jwt":             "A pre-signed GitHub App JWT. Exactly one of `pem_file` or `jwt` must be set.",
 		"write_delay_ms": "Amount of time in milliseconds to sleep in between writes to GitHub API. " +
 			"Defaults to 1000ms or 1s if not set.",
 		"read_delay_ms": "Amount of time in milliseconds to sleep in between non-write requests to GitHub API. " +
@@ -385,12 +395,10 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 		if appAuth, ok := d.Get("app_auth").([]any); ok && len(appAuth) > 0 && appAuth[0] != nil {
 			appAuthAttr := appAuth[0].(map[string]any)
 
-			var appID, appInstallationID, appPemFile string
+			var appID, appInstallationID string
 
 			if v, ok := appAuthAttr["id"].(string); ok && v != "" {
 				appID = v
-			} else {
-				return nil, wrapErrors([]error{fmt.Errorf("app_auth.id must be set and contain a non-empty value")})
 			}
 
 			if v, ok := appAuthAttr["installation_id"].(string); ok && v != "" {
@@ -399,7 +407,21 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 				return nil, wrapErrors([]error{fmt.Errorf("app_auth.installation_id must be set and contain a non-empty value")})
 			}
 
-			if v, ok := appAuthAttr["pem_file"].(string); ok && v != "" {
+			apiPath := ""
+			if isGHES {
+				apiPath = GHESRESTAPIPath
+			}
+			appAPIURL := baseURL.JoinPath(apiPath)
+
+			var appToken string
+			var err error
+
+			if v, ok := appAuthAttr["jwt"].(string); ok && v != "" {
+				appToken, err = GenerateOAuthTokenFromJWT(appAPIURL, appInstallationID, v)
+			} else if v, ok := appAuthAttr["pem_file"].(string); ok && v != "" {
+				if appID == "" {
+					return nil, wrapErrors([]error{fmt.Errorf("app_auth.id must be set when using pem_file")})
+				}
 				// The Go encoding/pem package only decodes PEM formatted blocks
 				// that contain new lines. Some platforms, like Terraform Cloud,
 				// do not support new lines within Environment Variables.
@@ -407,17 +429,12 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 				// (explicit value, or default value taken from
 				// GITHUB_APP_PEM_FILE Environment Variable) is replaced with an
 				// actual new line character before decoding.
-				appPemFile = strings.ReplaceAll(v, `\n`, "\n")
+				appPemFile := strings.ReplaceAll(v, `\n`, "\n")
+				appToken, err = GenerateOAuthTokenFromApp(appAPIURL, appID, appInstallationID, appPemFile)
 			} else {
-				return nil, wrapErrors([]error{fmt.Errorf("app_auth.pem_file must be set and contain a non-empty value")})
+				return nil, wrapErrors([]error{fmt.Errorf("exactly one of app_auth.pem_file or app_auth.jwt must be set")})
 			}
 
-			apiPath := ""
-			if isGHES {
-				apiPath = GHESRESTAPIPath
-			}
-
-			appToken, err := GenerateOAuthTokenFromApp(baseURL.JoinPath(apiPath), appID, appInstallationID, appPemFile)
 			if err != nil {
 				return nil, wrapErrors([]error{err})
 			}
