@@ -84,6 +84,7 @@ func resourceGithubOrganizationSettings() *schema.Resource {
 			"members_can_create_internal_repositories": {
 				Type:        schema.TypeBool,
 				Optional:    true,
+				Computed:    true,
 				Description: "Whether or not organization members can create new internal repositories. For Enterprise Organizations only.",
 			},
 			"members_can_create_private_repositories": {
@@ -291,9 +292,13 @@ func buildOrganizationSettings(d *schema.ResourceData, isEnterprise bool) *githu
 		settings.SecretScanningPushProtectionEnabledForNewRepos = new(d.Get("secret_scanning_push_protection_enabled_for_new_repositories").(bool))
 	}
 
-	// Enterprise-specific field
+	// Enterprise-specific field: use GetOkExists to correctly detect explicit false
 	if isEnterprise {
-		if shouldInclude("members_can_create_internal_repositories") {
+		if !isUpdate {
+			if _, ok := d.GetOkExists("members_can_create_internal_repositories"); ok { //nolint:staticcheck // SA1019 // GetOkExists needed for Computed+Optional bool fields
+				settings.MembersCanCreateInternalRepos = new(d.Get("members_can_create_internal_repositories").(bool))
+			}
+		} else if d.HasChange("members_can_create_internal_repositories") {
 			settings.MembersCanCreateInternalRepos = new(d.Get("members_can_create_internal_repositories").(bool))
 		}
 	}

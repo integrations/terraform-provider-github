@@ -60,7 +60,7 @@ The following arguments are supported:
 * `members_can_create_repositories` - (Optional) Whether or not organization members can create new repositories. Defaults to `true`.
 * `members_can_create_public_repositories` - (Optional) Whether or not organization members can create new public repositories. Defaults to `true`.
 * `members_can_create_private_repositories` - (Optional) Whether or not organization members can create new private repositories. Defaults to `true`.
-* `members_can_create_internal_repositories` - (Optional) Whether or not organization members can create new internal repositories. For Enterprise Organizations only.
+* `members_can_create_internal_repositories` - (Optional) Whether or not organization members can create new internal repositories. For Enterprise Organizations only. When an enterprise policy controls this setting, omit this attribute to avoid API validation errors.
 * `members_can_create_pages` - (Optional) Whether or not organization members can create new pages. Defaults to `true`.
 * `members_can_create_public_pages` - (Optional) Whether or not organization members can create new public pages. Defaults to `true`.
 * `members_can_create_private_pages` - (Optional) Whether or not organization members can create new private pages. Defaults to `true`.
