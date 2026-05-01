@@ -11,6 +11,7 @@ import (
 
 func dataSourceGithubEnterpriseActionsHostedRunners() *schema.Resource {
 	return &schema.Resource{
+		Description: "Use this data source to retrieve the list of GitHub Enterprise Actions hosted runners.",
 		ReadContext: dataSourceGithubEnterpriseActionsHostedRunnersRead,
 
 		Schema: map[string]*schema.Schema{
