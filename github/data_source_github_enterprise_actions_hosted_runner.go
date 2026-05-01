@@ -11,6 +11,7 @@ import (
 
 func dataSourceGithubEnterpriseActionsHostedRunner() *schema.Resource {
 	return &schema.Resource{
+		Description: "Use this data source to retrieve information about a specific GitHub Enterprise Actions hosted runner.",
 		ReadContext: dataSourceGithubEnterpriseActionsHostedRunnerRead,
 
 		Schema: map[string]*schema.Schema{
@@ -169,24 +170,35 @@ func dataSourceGithubEnterpriseActionsHostedRunnerRead(ctx context.Context, d *s
 	}
 	d.SetId(id)
 
-	runnerData := map[string]any{
-		"name":                 runner.GetName(),
-		"runner_group_id":      int(runner.GetRunnerGroupID()),
-		"platform":             runner.GetPlatform(),
-		"status":               runner.GetStatus(),
-		"maximum_runners":      int(runner.GetMaximumRunners()),
-		"public_ip_enabled":    runner.GetPublicIPEnabled(),
-		"image_details":        flattenHostedRunnerImage(runner.ImageDetails),
-		"machine_size_details": flattenHostedRunnerMachineSpec(runner.MachineSizeDetails),
-		"public_ips":           flattenHostedRunnerPublicIPs(runner.PublicIPs),
+	if err := d.Set("name", runner.GetName()); err != nil {
+		return diag.FromErr(err)
 	}
-
+	if err := d.Set("runner_group_id", int(runner.GetRunnerGroupID())); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("platform", runner.GetPlatform()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("status", runner.GetStatus()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("maximum_runners", int(runner.GetMaximumRunners())); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("public_ip_enabled", runner.GetPublicIPEnabled()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("image_details", flattenHostedRunnerImage(runner.ImageDetails)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("machine_size_details", flattenHostedRunnerMachineSpec(runner.MachineSizeDetails)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("public_ips", flattenHostedRunnerPublicIPs(runner.PublicIPs)); err != nil {
+		return diag.FromErr(err)
+	}
 	if runner.LastActiveOn != nil {
-		runnerData["last_active_on"] = runner.LastActiveOn.Format(time.RFC3339)
-	}
-
-	for k, v := range runnerData {
-		if err := d.Set(k, v); err != nil {
+		if err := d.Set("last_active_on", runner.LastActiveOn.Format(time.RFC3339)); err != nil {
 			return diag.FromErr(err)
 		}
 	}

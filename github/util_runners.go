@@ -1,7 +1,7 @@
 package github
 
 import (
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v85/github"
 )
 
 func expandHostedRunnerImage(imageList []any) *github.HostedRunnerImage {
@@ -9,6 +9,7 @@ func expandHostedRunnerImage(imageList []any) *github.HostedRunnerImage {
 		return nil
 	}
 
+	// The image schema is defined with MaxItems: 1, so there is always exactly one item.
 	imageMap := imageList[0].(map[string]any)
 	image := &github.HostedRunnerImage{}
 
@@ -61,10 +62,10 @@ func flattenHostedRunnerMachineSpec(spec *github.HostedRunnerMachineSpec) []any 
 	}
 
 	result := make(map[string]any)
-	result["id"] = spec.ID
-	result["cpu_cores"] = spec.CPUCores
-	result["memory_gb"] = spec.MemoryGB
-	result["storage_gb"] = spec.StorageGB
+	result["id"] = spec.GetID()
+	result["cpu_cores"] = spec.GetCPUCores()
+	result["memory_gb"] = spec.GetMemoryGB()
+	result["storage_gb"] = spec.GetStorageGB()
 
 	return []any{result}
 }
@@ -81,9 +82,9 @@ func flattenHostedRunnerPublicIPs(ips []*github.HostedRunnerPublicIP) []any {
 		}
 
 		ipResult := make(map[string]any)
-		ipResult["enabled"] = ip.Enabled
-		ipResult["prefix"] = ip.Prefix
-		ipResult["length"] = ip.Length
+		ipResult["enabled"] = ip.GetEnabled()
+		ipResult["prefix"] = ip.GetPrefix()
+		ipResult["length"] = ip.GetLength()
 		result = append(result, ipResult)
 	}
 

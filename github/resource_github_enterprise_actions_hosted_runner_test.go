@@ -11,40 +11,48 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
+func testAccGithubEnterpriseActionsHostedRunnerConfig(enterpriseSlug, randomID, name, size string, extraArgs string) string {
+	return fmt.Sprintf(`
+		data "github_enterprise" "enterprise" {
+			slug = "%s"
+		}
+
+		resource "github_enterprise_actions_runner_group" "test" {
+			enterprise_slug = data.github_enterprise.enterprise.slug
+			name            = "tf-acc-test-group-%s"
+			visibility      = "all"
+		}
+
+		resource "github_enterprise_actions_hosted_runner" "test" {
+			enterprise_slug = data.github_enterprise.enterprise.slug
+			name            = "%s"
+
+			# Image ID "2306" is the GitHub-owned Ubuntu Latest 24.04 image
+			# To list available images: GET /enterprises/{enterprise}/actions/hosted-runners/images/github-owned
+			image {
+				id     = "2306"
+				source = "github"
+			}
+
+			size            = "%s"
+			runner_group_id = github_enterprise_actions_runner_group.test.id
+			%s
+		}
+	`, enterpriseSlug, randomID, name, size, extraArgs)
+}
+
 func TestAccGithubEnterpriseActionsHostedRunner(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-	// Image ID "2306" is the GitHub-owned Ubuntu Latest 24.04 image
-	// This is a stable image ID used for acceptance testing
-	// To list available images: GET /enterprises/{enterprise}/actions/hosted-runners/images/github-owned
 	t.Run("creates enterprise hosted runners without error", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			data "github_enterprise" "enterprise" {
-				slug = "%s"
-			}
-
-			resource "github_enterprise_actions_runner_group" "test" {
-				enterprise_slug = data.github_enterprise.enterprise.slug
-				name            = "tf-acc-test-group-%s"
-				visibility      = "all"
-			}
-
-			resource "github_enterprise_actions_hosted_runner" "test" {
-				enterprise_slug = data.github_enterprise.enterprise.slug
-				name            = "tf-acc-test-%s"
-
-				image {
-					id     = "2306"  # GitHub-owned Ubuntu Latest 24.04
-					source = "github"
-				}
-
-				size            = "4-core"
-				runner_group_id = github_enterprise_actions_runner_group.test.id
-			}
-		`, testAccConf.enterpriseSlug, randomID, randomID)
+		config := testAccGithubEnterpriseActionsHostedRunnerConfig(
+			testAccConf.enterpriseSlug, randomID,
+			fmt.Sprintf("tf-acc-test-%s", randomID),
+			"4-core", "",
+		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -70,62 +78,20 @@ func TestAccGithubEnterpriseActionsHostedRunner(t *testing.T) {
 	})
 
 	t.Run("updates enterprise hosted runners without error", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			data "github_enterprise" "enterprise" {
-				slug = "%s"
-			}
+		config := testAccGithubEnterpriseActionsHostedRunnerConfig(
+			testAccConf.enterpriseSlug, randomID,
+			fmt.Sprintf("tf-acc-test-%s", randomID),
+			"4-core", "maximum_runners = 5\npublic_ip_enabled = false",
+		)
 
-			resource "github_enterprise_actions_runner_group" "test" {
-				enterprise_slug = data.github_enterprise.enterprise.slug
-				name            = "tf-acc-test-group-%s"
-				visibility      = "all"
-			}
-
-			resource "github_enterprise_actions_hosted_runner" "test" {
-				enterprise_slug = data.github_enterprise.enterprise.slug
-				name            = "tf-acc-test-%s"
-				
-				image {
-					id     = "2306"
-					source = "github"
-				}
-
-				size            = "4-core"
-				runner_group_id = github_enterprise_actions_runner_group.test.id
-				maximum_runners = 5
-				public_ip_enabled = false
-			}
-		`, testAccConf.enterpriseSlug, randomID, randomID)
-
-		configUpdated := fmt.Sprintf(`
-			data "github_enterprise" "enterprise" {
-				slug = "%s"
-			}
-
-			resource "github_enterprise_actions_runner_group" "test" {
-				enterprise_slug = data.github_enterprise.enterprise.slug
-				name            = "tf-acc-test-group-%s"
-				visibility      = "all"
-			}
-
-			resource "github_enterprise_actions_hosted_runner" "test" {
-				enterprise_slug = data.github_enterprise.enterprise.slug
-				name            = "tf-acc-test-updated-%s"
-				
-				image {
-					id     = "2306"
-					source = "github"
-				}
-
-				size            = "8-core"
-				runner_group_id = github_enterprise_actions_runner_group.test.id
-				maximum_runners = 10
-				public_ip_enabled = true
-			}
-		`, testAccConf.enterpriseSlug, randomID, randomID)
+		configUpdated := testAccGithubEnterpriseActionsHostedRunnerConfig(
+			testAccConf.enterpriseSlug, randomID,
+			fmt.Sprintf("tf-acc-test-updated-%s", randomID),
+			"8-core", "maximum_runners = 10\npublic_ip_enabled = true",
+		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -151,33 +117,14 @@ func TestAccGithubEnterpriseActionsHostedRunner(t *testing.T) {
 	})
 
 	t.Run("imports enterprise hosted runners without error", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			data "github_enterprise" "enterprise" {
-				slug = "%s"
-			}
-
-			resource "github_enterprise_actions_runner_group" "test" {
-				enterprise_slug = data.github_enterprise.enterprise.slug
-				name            = "tf-acc-test-group-%s"
-				visibility      = "all"
-			}
-
-			resource "github_enterprise_actions_hosted_runner" "test" {
-				enterprise_slug = data.github_enterprise.enterprise.slug
-				name            = "tf-acc-test-%s"
-				
-				image {
-					id     = "2306"
-					source = "github"
-				}
-
-				size            = "4-core"
-				runner_group_id = github_enterprise_actions_runner_group.test.id
-			}
-		`, testAccConf.enterpriseSlug, randomID, randomID)
+		config := testAccGithubEnterpriseActionsHostedRunnerConfig(
+			testAccConf.enterpriseSlug, randomID,
+			fmt.Sprintf("tf-acc-test-%s", randomID),
+			"4-core", "",
+		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

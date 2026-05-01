@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v85/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
@@ -17,6 +17,7 @@ import (
 
 func resourceGithubEnterpriseActionsHostedRunner() *schema.Resource {
 	return &schema.Resource{
+		Description:   "Manages a GitHub Enterprise Actions hosted runner.",
 		CreateContext: resourceGithubEnterpriseActionsHostedRunnerCreate,
 		ReadContext:   resourceGithubEnterpriseActionsHostedRunnerRead,
 		UpdateContext: resourceGithubEnterpriseActionsHostedRunnerUpdate,
@@ -39,13 +40,13 @@ func resourceGithubEnterpriseActionsHostedRunner() *schema.Resource {
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
-				ValidateFunc: validation.All(
+				ValidateDiagFunc: validation.ToDiagFunc(validation.All(
 					validation.StringLenBetween(1, 64),
 					validation.StringMatch(
 						regexp.MustCompile(`^[a-zA-Z0-9._-]+$`),
 						"name may only contain alphanumeric characters, '.', '-', and '_'",
 					),
-				),
+				)),
 				Description: "Name of the hosted runner. Must be between 1 and 64 characters and may only contain upper and lowercase letters a-z, numbers 0-9, '.', '-', and '_'.",
 			},
 			"image": {
@@ -90,10 +91,10 @@ func resourceGithubEnterpriseActionsHostedRunner() *schema.Resource {
 			"size": {
 				Type:     schema.TypeString,
 				Required: true,
-				ValidateFunc: validation.StringMatch(
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringMatch(
 					regexp.MustCompile(`^\d+-core$`),
 					"size must be in the format '<number>-core' (e.g., '4-core', '8-core')",
-				),
+				)),
 				Description: "Machine size for the hosted runner (e.g., '4-core', '8-core'). This determines the CPU, memory, and storage resources allocated to the runner. Can be updated to scale the runner. To list available sizes, use the GitHub API: GET /enterprises/{enterprise}/actions/hosted-runners/machine-sizes.",
 			},
 			"runner_group_id": {
@@ -105,7 +106,7 @@ func resourceGithubEnterpriseActionsHostedRunner() *schema.Resource {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Computed:     true,
-				ValidateFunc: validation.IntAtLeast(1),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(1)),
 				Description:  "Maximum number of runners to scale up to. Runners will not auto-scale above this number. Use this setting to limit costs. If not specified, GitHub will use a default limit.",
 			},
 			"public_ip_enabled": {
@@ -207,7 +208,6 @@ func resourceGithubEnterpriseActionsHostedRunnerCreate(ctx context.Context, d *s
 	client := meta.(*Owner).v3client
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 
-	// Build request using SDK struct
 	request := github.CreateHostedRunnerRequest{
 		Name:          d.Get("name").(string),
 		Size:          d.Get("size").(string),
@@ -220,7 +220,7 @@ func resourceGithubEnterpriseActionsHostedRunnerCreate(ctx context.Context, d *s
 
 	if v, ok := d.GetOk("maximum_runners"); ok {
 		maxRunners := int64(v.(int))
-		request.MaximumRunners = new(maxRunners)
+		request.MaximumRunners = &maxRunners
 	}
 
 	if v, ok := d.GetOk("public_ip_enabled"); ok {
@@ -233,23 +233,16 @@ func resourceGithubEnterpriseActionsHostedRunnerCreate(ctx context.Context, d *s
 		return diag.Errorf("error creating enterprise hosted runner: %s", err.Error())
 	}
 
-	if runner == nil || runner.ID == nil {
-		return diag.Errorf("no runner data returned from API")
-	}
-
-	// Set the ID in the format enterprise_slug/runner_id
 	id, err := buildID(enterpriseSlug, strconv.FormatInt(runner.GetID(), 10))
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	d.SetId(id)
 
-	// Populate computed fields directly from API response
 	if err := d.Set("enterprise_slug", enterpriseSlug); err != nil {
 		return diag.FromErr(err)
 	}
 
-	// runner.ID is guaranteed non-nil due to check above
 	if err := d.Set("runner_id", int(runner.GetID())); err != nil {
 		return diag.FromErr(err)
 	}
@@ -297,10 +290,8 @@ func resourceGithubEnterpriseActionsHostedRunnerCreate(ctx context.Context, d *s
 		return diag.FromErr(err)
 	}
 
-	if runner.PublicIPs != nil {
-		if err := d.Set("public_ips", flattenHostedRunnerPublicIPs(runner.PublicIPs)); err != nil {
-			return diag.FromErr(err)
-		}
+	if err := d.Set("public_ips", flattenHostedRunnerPublicIPs(runner.PublicIPs)); err != nil {
+		return diag.FromErr(err)
 	}
 
 	return nil
@@ -384,10 +375,8 @@ func resourceGithubEnterpriseActionsHostedRunnerRead(ctx context.Context, d *sch
 		return diag.FromErr(err)
 	}
 
-	if runner.PublicIPs != nil {
-		if err := d.Set("public_ips", flattenHostedRunnerPublicIPs(runner.PublicIPs)); err != nil {
-			return diag.FromErr(err)
-		}
+	if err := d.Set("public_ips", flattenHostedRunnerPublicIPs(runner.PublicIPs)); err != nil {
+		return diag.FromErr(err)
 	}
 
 	return nil
@@ -396,15 +385,8 @@ func resourceGithubEnterpriseActionsHostedRunnerRead(ctx context.Context, d *sch
 func resourceGithubEnterpriseActionsHostedRunnerUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
-	enterpriseSlug, runnerIDStr, err := parseID2(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	runnerID, err := strconv.ParseInt(runnerIDStr, 10, 64)
-	if err != nil {
-		return diag.Errorf("invalid runner ID %q: %s", runnerIDStr, err.Error())
-	}
+	enterpriseSlug := d.Get("enterprise_slug").(string)
+	runnerID := int64(d.Get("runner_id").(int))
 
 	name := d.Get("name").(string)
 	size := d.Get("size").(string)
@@ -419,26 +401,19 @@ func resourceGithubEnterpriseActionsHostedRunnerUpdate(ctx context.Context, d *s
 		EnableStaticIP: &enableStaticIP,
 	}
 
-	_, _, err = client.Enterprise.UpdateHostedRunner(ctx, enterpriseSlug, runnerID, request)
+	_, _, err := client.Enterprise.UpdateHostedRunner(ctx, enterpriseSlug, runnerID, request)
 	if err != nil {
 		return diag.Errorf("error updating enterprise hosted runner: %s", err.Error())
 	}
 
-	return resourceGithubEnterpriseActionsHostedRunnerRead(ctx, d, meta)
+	return nil
 }
 
 func resourceGithubEnterpriseActionsHostedRunnerDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
-	enterpriseSlug, runnerIDStr, err := parseID2(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	runnerID, err := strconv.ParseInt(runnerIDStr, 10, 64)
-	if err != nil {
-		return diag.Errorf("invalid runner ID %q: %s", runnerIDStr, err.Error())
-	}
+	enterpriseSlug := d.Get("enterprise_slug").(string)
+	runnerID := int64(d.Get("runner_id").(int))
 
 	_, resp, err := client.Enterprise.DeleteHostedRunner(ctx, enterpriseSlug, runnerID)
 

@@ -4,13 +4,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v85/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubEnterpriseActionsHostedRunners() *schema.Resource {
 	return &schema.Resource{
+		Description: "Use this data source to retrieve the list of GitHub Enterprise Actions hosted runners.",
 		ReadContext: dataSourceGithubEnterpriseActionsHostedRunnersRead,
 
 		Schema: map[string]*schema.Schema{
