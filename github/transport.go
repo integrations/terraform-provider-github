@@ -283,7 +283,9 @@ func (t *RetryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 			return resp, err
 		}
 
-		time.Sleep(t.retryDelay)
+		if retry < t.maxRetries {
+			sleep(req.Context(), t.retryDelay)
+		}
 	}
 
 	return resp, err
