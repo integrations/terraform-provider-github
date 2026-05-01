@@ -611,3 +611,35 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 		})
 	})
 }
+
+func TestAccGithubOrganizationSettings_omittedForkFieldProducesCleanPlan(t *testing.T) {
+	config := `
+	resource "github_organization_settings" "test" {
+		billing_email = "test@example.com"
+	}`
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { skipUnlessHasOrgs(t) },
+		ProviderFactories: providerFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"github_organization_settings.test",
+						"billing_email", "test@example.com",
+					),
+					resource.TestCheckResourceAttrSet(
+						"github_organization_settings.test",
+						"members_can_fork_private_repositories",
+					),
+				),
+			},
+			{
+				Config:             config,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
