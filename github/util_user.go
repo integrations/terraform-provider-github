@@ -21,10 +21,6 @@ func (u userCollaborator) flatten() any {
 		"permission": u.permission,
 	}
 
-	if u.invitationID != nil {
-		m["invitation_id"] = *u.invitationID
-	}
-
 	return m
 }
 
