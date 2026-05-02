@@ -41,6 +41,8 @@ func TestAccGithubOrganizationDataSource(t *testing.T) {
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "dependency_graph_enabled_for_new_repositories"),
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "secret_scanning_enabled_for_new_repositories"),
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "secret_scanning_push_protection_enabled_for_new_repositories"),
+			resource.TestCheckResourceAttrSet("data.github_organization.test", "secret_scanning_validity_checks_enabled"),
+			resource.TestCheckResourceAttrSet("data.github_organization.test", "default_repository_branch"),
 		)
 
 		resource.Test(t, resource.TestCase{
@@ -139,6 +141,8 @@ func TestAccGithubOrganizationDataSource(t *testing.T) {
 			resource.TestCheckNoResourceAttr("data.github_organization.test", "dependency_graph_enabled_for_new_repositories"),
 			resource.TestCheckNoResourceAttr("data.github_organization.test", "secret_scanning_enabled_for_new_repositories"),
 			resource.TestCheckNoResourceAttr("data.github_organization.test", "secret_scanning_push_protection_enabled_for_new_repositories"),
+			resource.TestCheckNoResourceAttr("data.github_organization.test", "secret_scanning_validity_checks_enabled"),
+			resource.TestCheckNoResourceAttr("data.github_organization.test", "default_repository_branch"),
 		)
 
 		resource.Test(t, resource.TestCase{
