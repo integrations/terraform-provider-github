@@ -39,6 +39,13 @@ resource "github_organization_settings" "test" {
     dependency_graph_enabled_for_new_repositories = false
     secret_scanning_enabled_for_new_repositories = false
     secret_scanning_push_protection_enabled_for_new_repositories = false
+    members_allowed_repository_creation_type = "private"
+    two_factor_requirement_enabled = false
+    members_can_delete_repositories = false
+    members_can_invite_outside_collaborators = false
+    members_can_delete_issues = false
+    display_commenter_full_name_setting_enabled = false
+    readers_can_create_discussions = true
 }
 ```
 
@@ -71,7 +78,14 @@ The following arguments are supported:
 * `dependabot_security_updates_enabled_for_new_repositories` - (Optional) Whether or not dependabot security updates are enabled for new repositories. Defaults to `false`.
 * `dependency_graph_enabled_for_new_repositories` - (Optional) Whether or not dependency graph is enabled for new repositories. Defaults to `false`.
 * `secret_scanning_enabled_for_new_repositories` - (Optional) Whether or not secret scanning is enabled for new repositories. Defaults to `false`.
-* `secret_scanning_push_protection_enabled_for_new_repositories` - (Optional) Whether or not secret scanning push protection is enabled for new repositories. Defaults to `false`. 
+* `secret_scanning_push_protection_enabled_for_new_repositories` - (Optional) Whether or not secret scanning push protection is enabled for new repositories. Defaults to `false`.
+* `members_allowed_repository_creation_type` - (Optional) Specifies which types of repositories non-admin organization members can create. Can be one of `all`, `private`, or `none`. This is a legacy field; prefer the per-visibility `members_can_create_*_repositories` attributes instead. The current value is read from the API when not set.
+* `two_factor_requirement_enabled` - (Optional) Whether or not two-factor authentication is required for all members of the organization. Enabling this requires that every member already has 2FA enabled, otherwise the GitHub API returns 422. The current value is read from the API when not set.
+* `members_can_delete_repositories` - (Optional) Whether or not organization members (with admin permissions on a repository) can delete or transfer repositories. The current value is read from the API when not set.
+* `members_can_invite_outside_collaborators` - (Optional) Whether or not organization members can invite outside collaborators to repositories. The current value is read from the API when not set.
+* `members_can_delete_issues` - (Optional) Whether or not organization members (with admin permissions on a repository) can delete issues. The current value is read from the API when not set.
+* `display_commenter_full_name_setting_enabled` - (Optional) Whether or not the full name of commenters is shown in addition to their username on issues, pull requests, and discussions. The current value is read from the API when not set.
+* `readers_can_create_discussions` - (Optional) Whether or not users with read access to the organization's repositories can create discussions. The current value is read from the API when not set.
 
 
 ## Attributes Reference
