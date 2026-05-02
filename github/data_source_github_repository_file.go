@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/google/go-github/v85/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -83,11 +83,16 @@ func dataSourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceD
 	// split and replace owner and repo
 	parts := strings.Split(repo, "/")
 	if len(parts) == 2 {
-		log.Printf("[DEBUG] repo has a slash, extracting owner from: %s", repo)
+		tflog.Debug(ctx, "repo has a slash, extracting owner from", map[string]any{
+			"repo": repo,
+		})
 		owner = parts[0]
 		repo = parts[1]
 
-		log.Printf("[DEBUG] owner: %s repo:%s", owner, repo)
+		tflog.Debug(ctx, "owner and repo", map[string]any{
+			"owner": owner,
+			"repo":  repo,
+		})
 	}
 
 	file := d.Get("file").(string)
@@ -102,7 +107,11 @@ func dataSourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceD
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[DEBUG] Missing GitHub repository file %s/%s/%s", owner, repo, file)
+				tflog.Debug(ctx, "Missing GitHub repository file", map[string]any{
+					"owner": owner,
+					"repo":  repo,
+					"file":  file,
+				})
 				d.SetId("")
 				return nil
 			}
@@ -145,12 +154,21 @@ func dataSourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceD
 		})
 	}
 
-	log.Printf("[DEBUG] Data Source fetching commit info for repository file: %s/%s/%s", owner, repo, file)
+	tflog.Debug(ctx, "Data Source fetching commit info for repository file", map[string]any{
+		"owner": owner,
+		"repo":  repo,
+		"file":  file,
+	})
 	commit, err := getFileCommit(ctx, client, owner, repo, file, ref)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	log.Printf("[DEBUG] Found file: %s/%s/%s, in commit SHA: %s ", owner, repo, file, commit.GetSHA())
+	tflog.Debug(ctx, "Found file, in commit SHA", map[string]any{
+		"owner": owner,
+		"repo":  repo,
+		"file":  file,
+		"sha":   commit.GetSHA(),
+	})
 
 	if err = d.Set("commit_sha", commit.GetSHA()); err != nil {
 		return diag.FromErr(err)
