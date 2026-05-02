@@ -57,3 +57,8 @@ data "github_organization" "example" {
  * `dependency_graph_enabled_for_new_repositories` - Whether dependency graph is automatically enabled for new repositories.
  * `secret_scanning_enabled_for_new_repositories` - Whether secret scanning is automatically enabled for new repositories.
  * `secret_scanning_push_protection_enabled_for_new_repositories` - Whether secret scanning push protection is automatically enabled for new repositories.
+ * `members_can_delete_repositories` - Whether organization members (with admin permissions on a repository) can delete or transfer repositories.
+ * `members_can_invite_outside_collaborators` - Whether organization members can invite outside collaborators to repositories.
+ * `members_can_delete_issues` - Whether organization members (with admin permissions on a repository) can delete issues.
+ * `display_commenter_full_name_setting_enabled` - Whether the full name of commenters is shown in addition to their username on issues, pull requests, and discussions.
+ * `readers_can_create_discussions` - Whether users with read access to the organization's repositories can create discussions.
