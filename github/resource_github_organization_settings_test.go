@@ -586,6 +586,32 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 			})
 		})
 
+		t.Run("test default_repository_branch and secret_scanning_validity_checks_enabled", func(t *testing.T) {
+			config := `
+			resource "github_organization_settings" "test" {
+				billing_email = "test@example.com"
+				default_repository_branch = "main"
+				secret_scanning_validity_checks_enabled = false
+			}`
+
+			check := resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr("github_organization_settings.test", "billing_email", "test@example.com"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "default_repository_branch", "main"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "secret_scanning_validity_checks_enabled", "false"),
+			)
+
+			resource.Test(t, resource.TestCase{
+				PreCheck:          func() { skipUnlessHasOrgs(t) },
+				ProviderFactories: providerFactories,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		})
+
 		t.Run("test enum field variations", func(t *testing.T) {
 			config := `
 			resource "github_organization_settings" "test" {

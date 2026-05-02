@@ -57,3 +57,5 @@ data "github_organization" "example" {
  * `dependency_graph_enabled_for_new_repositories` - Whether dependency graph is automatically enabled for new repositories.
  * `secret_scanning_enabled_for_new_repositories` - Whether secret scanning is automatically enabled for new repositories.
  * `secret_scanning_push_protection_enabled_for_new_repositories` - Whether secret scanning push protection is automatically enabled for new repositories.
+ * `secret_scanning_validity_checks_enabled` - Whether secret scanning automatic validity checks on supported partner tokens are enabled for the organization.
+ * `default_repository_branch` - The default branch name applied to new repositories created in the organization.

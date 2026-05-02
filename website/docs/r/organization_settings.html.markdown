@@ -39,6 +39,8 @@ resource "github_organization_settings" "test" {
     dependency_graph_enabled_for_new_repositories = false
     secret_scanning_enabled_for_new_repositories = false
     secret_scanning_push_protection_enabled_for_new_repositories = false
+    secret_scanning_validity_checks_enabled = false
+    default_repository_branch = "main"
 }
 ```
 
@@ -71,7 +73,9 @@ The following arguments are supported:
 * `dependabot_security_updates_enabled_for_new_repositories` - (Optional) Whether or not dependabot security updates are enabled for new repositories. Defaults to `false`.
 * `dependency_graph_enabled_for_new_repositories` - (Optional) Whether or not dependency graph is enabled for new repositories. Defaults to `false`.
 * `secret_scanning_enabled_for_new_repositories` - (Optional) Whether or not secret scanning is enabled for new repositories. Defaults to `false`.
-* `secret_scanning_push_protection_enabled_for_new_repositories` - (Optional) Whether or not secret scanning push protection is enabled for new repositories. Defaults to `false`. 
+* `secret_scanning_push_protection_enabled_for_new_repositories` - (Optional) Whether or not secret scanning push protection is enabled for new repositories. Defaults to `false`.
+* `secret_scanning_validity_checks_enabled` - (Optional) Whether or not secret scanning automatic validity checks on supported partner tokens are enabled for the organization. The current value is read from the API when not set.
+* `default_repository_branch` - (Optional) The default branch name applied to new repositories created in the organization (for example, `main`). The current value is read from the API when not set.
 
 
 ## Attributes Reference

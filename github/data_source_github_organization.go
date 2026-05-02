@@ -141,6 +141,14 @@ func dataSourceGithubOrganization() *schema.Resource {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
+			"secret_scanning_validity_checks_enabled": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"default_repository_branch": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"summary_only": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -265,6 +273,8 @@ func dataSourceGithubOrganizationRead(ctx context.Context, d *schema.ResourceDat
 		_ = d.Set("dependency_graph_enabled_for_new_repositories", organization.GetDependencyGraphEnabledForNewRepos())
 		_ = d.Set("secret_scanning_enabled_for_new_repositories", organization.GetSecretScanningEnabledForNewRepos())
 		_ = d.Set("secret_scanning_push_protection_enabled_for_new_repositories", organization.GetSecretScanningPushProtectionEnabledForNewRepos())
+		_ = d.Set("secret_scanning_validity_checks_enabled", organization.GetSecretScanningValidityChecksEnabled())
+		_ = d.Set("default_repository_branch", organization.GetDefaultRepositoryBranch())
 	}
 
 	d.SetId(strconv.FormatInt(organization.GetID(), 10))
