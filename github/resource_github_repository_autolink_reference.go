@@ -102,6 +102,26 @@ func resourceGithubRepositoryAutolinkReferenceCreate(d *schema.ResourceData, met
 	isAlphanumeric := d.Get("is_alphanumeric").(bool)
 	ctx := context.Background()
 
+	// Check if an autolink with this key prefix already exists.
+	// The GitHub API returns 422 when attempting to create a duplicate, so we
+	// handle it ourselves: import the existing one if its settings match, or
+	// delete and recreate it if they differ.
+	existing, err := getAutolinkByKeyPrefix(ctx, client, owner, repoName, keyPrefix)
+	if err == nil {
+		if existing.GetURLTemplate() == targetURLTemplate && existing.GetIsAlphanumeric() == isAlphanumeric {
+			log.Printf("[INFO] Autolink reference with key prefix %q already exists in %s/%s (id=%d), importing it",
+				keyPrefix, owner, repoName, existing.GetID())
+			d.SetId(strconv.FormatInt(existing.GetID(), 10))
+			return resourceGithubRepositoryAutolinkReferenceRead(d, meta)
+		}
+		// Settings differ – delete the existing autolink so we can recreate it below.
+		log.Printf("[INFO] Autolink reference with key prefix %q already exists in %s/%s (id=%d) but with different settings, replacing it",
+			keyPrefix, owner, repoName, existing.GetID())
+		if _, delErr := client.Repositories.DeleteAutolink(ctx, owner, repoName, existing.GetID()); delErr != nil {
+			return delErr
+		}
+	}
+
 	opts := &github.AutolinkOptions{
 		KeyPrefix:      &keyPrefix,
 		URLTemplate:    &targetURLTemplate,
