@@ -56,6 +56,12 @@ func resourceGithubTeamMembers() *schema.Resource {
 					},
 				},
 			},
+			"user_ids": {
+				Type:        schema.TypeMap,
+				Computed:    true,
+				Description: "Map of usernames to their numeric user IDs, used to resolve current usernames before membership updates in case the username changed (e.g. suspended EMU users).",
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
 		},
 	}
 }
@@ -107,6 +113,11 @@ func resourceGithubTeamMembersUpdate(ctx context.Context, d *schema.ResourceData
 		return diag.FromErr(err)
 	}
 
+	storedUserIds := make(map[string]string)
+	for k, v := range d.Get("user_ids").(map[string]any) {
+		storedUserIds[k] = v.(string)
+	}
+
 	o, n := d.GetChange("members")
 	vals := make(map[string]*MemberChange)
 	for _, raw := range o.(*schema.Set).List() {
@@ -143,9 +154,10 @@ func resourceGithubTeamMembersUpdate(ctx context.Context, d *schema.ResourceData
 		}
 
 		if del {
-			log.Printf("[DEBUG] Deleting team membership: %s/%s", teamIdString, username)
+			currentUsername := resolveUsernameByID(ctx, client, storedUserIds[username], username)
+			log.Printf("[DEBUG] Deleting team membership: %s/%s", teamIdString, currentUsername)
 
-			_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgId, teamId, username)
+			_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgId, teamId, currentUsername)
 			if err != nil {
 				return diag.FromErr(err)
 			}
@@ -204,7 +216,8 @@ func resourceGithubTeamMembersRead(ctx context.Context, d *schema.ResourceData, 
 				Members struct {
 					Edges []struct {
 						Node struct {
-							Login string
+							Login      string
+							DatabaseId int64
 						}
 						Role string
 					}
@@ -224,6 +237,7 @@ func resourceGithubTeamMembersRead(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	var teamMembersAndMaintainers []any
+	userIds := make(map[string]string)
 	for {
 		if err := client.Query(ctx, &q, variables); err != nil {
 			return diag.FromErr(err)
@@ -235,6 +249,7 @@ func resourceGithubTeamMembersRead(ctx context.Context, d *schema.ResourceData, 
 				"username": member.Node.Login,
 				"role":     strings.ToLower(member.Role),
 			})
+			userIds[member.Node.Login] = strconv.FormatInt(member.Node.DatabaseId, 10)
 		}
 		if !q.Organization.Team.Members.PageInfo.HasNextPage {
 			break
@@ -243,6 +258,10 @@ func resourceGithubTeamMembersRead(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	if err := d.Set("members", teamMembersAndMaintainers); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := d.Set("user_ids", userIds); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -260,15 +279,21 @@ func resourceGithubTeamMembersDelete(ctx context.Context, d *schema.ResourceData
 		return diag.FromErr(err)
 	}
 
+	storedUserIds := make(map[string]string)
+	for k, v := range d.Get("user_ids").(map[string]any) {
+		storedUserIds[k] = v.(string)
+	}
+
 	members := d.Get("members").(*schema.Set)
 
 	for _, member := range members.List() {
 		mem := member.(map[string]any)
 		username := mem["username"].(string)
+		currentUsername := resolveUsernameByID(ctx, client, storedUserIds[username], username)
 
-		log.Printf("[DEBUG] Deleting team membership: %s/%s", teamIdString, username)
+		log.Printf("[DEBUG] Deleting team membership: %s/%s", teamIdString, currentUsername)
 
-		_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgId, teamId, username)
+		_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgId, teamId, currentUsername)
 		if err != nil {
 			return diag.FromErr(err)
 		}

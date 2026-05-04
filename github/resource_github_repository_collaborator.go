@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/google/go-github/v85/github"
@@ -62,6 +63,11 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "ID of the invitation to be used in 'github_user_invitation_accepter'",
+			},
+			"user_id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The ID of the user, used to resolve the current username before collaborator updates in case the username changed (e.g. suspended EMU users).",
 			},
 		},
 	}
@@ -162,6 +168,9 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta any) 
 				if err = d.Set("permission", getPermission(c.GetRoleName())); err != nil {
 					return err
 				}
+				if err = d.Set("user_id", strconv.FormatInt(c.GetID(), 10)); err != nil {
+					return err
+				}
 				return nil
 			}
 		}
@@ -187,7 +196,12 @@ func resourceGithubRepositoryCollaboratorUpdate(d *schema.ResourceData, meta any
 func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
-	username := d.Get("username").(string)
+	username := resolveUsernameByID(
+		context.WithValue(context.Background(), ctxId, d.Id()),
+		client,
+		d.Get("user_id").(string),
+		d.Get("username").(string),
+	)
 	repoName := d.Get("repository").(string)
 
 	owner, repoNameWithoutOwner := parseRepoName(repoName, meta.(*Owner).name)

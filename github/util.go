@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"crypto/md5"
 	"errors"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"regexp"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/google/go-github/v85/github"
@@ -232,6 +234,29 @@ func validateSecretNameFunc(v any, path cty.Path) diag.Diagnostics {
 	}
 
 	return wrapErrors(errs)
+}
+
+// resolveUsernameByID resolves the current GitHub login for a user by their numeric ID.
+// This handles EMU username changes where a suspended user's username becomes an obfuscated hash.
+// If userID is empty or the lookup fails, the fallback username is returned unchanged.
+func resolveUsernameByID(ctx context.Context, client *github.Client, userID string, fallback string) string {
+	if userID == "" {
+		return fallback
+	}
+	id, err := strconv.ParseInt(userID, 10, 64)
+	if err != nil {
+		log.Printf("[WARN] Could not parse user_id %q: %s", userID, err)
+		return fallback
+	}
+	user, _, err := client.Users.GetByID(ctx, id)
+	if err != nil {
+		log.Printf("[WARN] Could not resolve username for user_id %d: %s. Using fallback %q", id, err, fallback)
+		return fallback
+	}
+	if user.GetLogin() != fallback {
+		log.Printf("[DEBUG] Resolved user_id %d to current username %q (stored username was %q)", id, user.GetLogin(), fallback)
+	}
+	return user.GetLogin()
 }
 
 // deleteResourceOn404AndSwallow304OtherwiseReturnError will log and delete resource if error is 404 which indicates resource (or any of its ancestors)
