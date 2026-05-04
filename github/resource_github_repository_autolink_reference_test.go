@@ -268,6 +268,47 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 		})
 	})
 
+	t.Run("imports existing autolink reference on create without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-autolink-%s", testResourcePrefix, randomID)
+
+		// Step 1: create the autolink once.
+		// Step 2: apply again with an identical resource – the provider should detect
+		// the existing autolink by key prefix and import it instead of failing.
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name        = "%s"
+				description = "Test autolink idempotent create"
+			}
+
+			resource "github_repository_autolink_reference" "autolink" {
+				repository          = github_repository.test.name
+				key_prefix          = "JIRA-"
+				target_url_template = "https://example.com/JIRA-<num>"
+			}
+		`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.TestCheckResourceAttr(
+						"github_repository_autolink_reference.autolink", "key_prefix", "JIRA-",
+					),
+				},
+				// Applying the same config a second time should succeed (idempotent).
+				{
+					Config: config,
+					Check: resource.TestCheckResourceAttr(
+						"github_repository_autolink_reference.autolink", "key_prefix", "JIRA-",
+					),
+				},
+			},
+		})
+	})
+
 	t.Run("deletes repository autolink reference without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-autolink-%s", testResourcePrefix, randomID)

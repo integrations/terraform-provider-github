@@ -9,6 +9,12 @@ description: |-
 
 This resource allows you to create and manage an autolink reference for a single repository.
 
+When a `github_repository_autolink_reference` resource is created, the provider first checks whether an autolink with the same `key_prefix` already exists in the repository:
+
+* If one exists **with identical settings**, it is imported into Terraform state rather than creating a duplicate (the GitHub API would otherwise return an error).
+* If one exists **with different settings** (`target_url_template` or `is_alphanumeric`), the existing autolink is deleted and recreated with the desired configuration.
+* If none exists, the autolink is created normally.
+
 ## Example Usage
 
 ```hcl
@@ -34,7 +40,7 @@ The following arguments are supported:
 
 * `repository` - (Required) The repository of the autolink reference.
 
-* `key_prefix` - (Required) This prefix appended by a number will generate a link any time it is found in an issue, pull request, or commit.
+* `key_prefix` - (Required) This prefix appended by a number will generate a link any time it is found in an issue, pull request, or commit. If an autolink reference with this key prefix already exists, the provider imports it when the settings match, or replaces it when the settings differ.
 
 * `target_url_template` - (Required) The template of the target URL used for the links; must be a valid URL and contain `<num>` for the reference number
 
