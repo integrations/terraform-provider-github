@@ -1,5 +1,5 @@
 ---
-page_title: "{{.Name}} ({{.Type}}) - {{.ProviderName}}"
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
 subcategory: ""
 description: |-
 {{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
@@ -9,10 +9,13 @@ description: |-
 
 {{ .Description | trimspace }}
 
-{{ if .HasExample -}}
+{{ if .HasExamples -}}
 ## Example Usage
 
-{{tffile .ExampleFile }}
+{{- range .ExampleFiles }}
+
+{{ tffile . }}
+{{- end }}
 {{- end }}
 
 {{ .SchemaMarkdown | trimspace }}
