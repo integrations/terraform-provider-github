@@ -47,7 +47,7 @@ The following arguments are supported:
 
 GitHub Team Membership can be imported using an ID made up of `teamid:username` or `teamname:username`, e.g.
 
-```hcl
-$ terraform import github_team_membership.member 1234567:someuser
+```shell
+terraform import github_team_membership.member 1234567:someuser
 $ terraform import github_team_membership.member Administrators:someuser
 ```

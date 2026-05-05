@@ -50,6 +50,6 @@ The `group` block consists of:
 
 GitHub Team Sync Group Mappings can be imported using the GitHub team `slug` e.g.
 
-```hcl
-$ terraform import github_team_sync_group_mapping.example some_team
+```shell
+terraform import github_team_sync_group_mapping.example some_team
 ```

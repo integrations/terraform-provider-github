@@ -4,7 +4,7 @@ description: |-
   Get information about a repository branch.
 ---
 
-# github\_branch
+# github_branch (Data Source)
 
 Use this data source to retrieve information about a repository branch.
 

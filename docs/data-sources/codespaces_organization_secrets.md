@@ -4,7 +4,7 @@ description: |-
   Get codespaces secrets of the organization
 ---
 
-# github\_codespaces\_organization\_secrets
+# github_codespaces_organization_secrets (Data Source)
 
 Use this data source to retrieve the list of codespaces secrets of the organization.
 

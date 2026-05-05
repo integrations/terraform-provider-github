@@ -82,6 +82,6 @@ The following additional attributes are exported:
 
 Organization settings can be imported using the `id` of the organization. The `id` of the organization can be found using the [get an organization](https://docs.github.com/en/rest/orgs/orgs#get-an-organization) API.
 
-```hcl
-$ terraform import github_organization_settings.test 123456789
+```shell
+terraform import github_organization_settings.test 123456789
 ```

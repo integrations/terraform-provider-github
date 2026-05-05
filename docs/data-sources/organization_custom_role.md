@@ -4,7 +4,7 @@ description: |-
   Get a custom role from a GitHub Organization for use in repositories.
 ---
 
-# github\_organization\_custom\_role
+# github_organization_custom_role (Data Source)
 
 ~> **Note:** This data source is deprecated, please use the `github_organization_repository_role` data source instead.
 

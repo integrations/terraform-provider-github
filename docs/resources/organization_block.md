@@ -26,6 +26,6 @@ The following arguments are supported:
 
 GitHub organization block can be imported using a username, e.g.
 
-```hcl
-$ terraform import github_github_organization_block.example someuser
+```shell
+terraform import github_github_organization_block.example someuser
 ```

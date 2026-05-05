@@ -30,18 +30,12 @@ resource "github_repository" "example" {
 ## Example Usage with Repository Forking
 
 ```terraform
-resource "github_repository" "example" {
-  name        = "example"
-  description = "My awesome web page"
-
-  private = false
-
-  pages {
-    source {
-      branch = "master"
-      path   = "/docs"
-    }
-  }
+resource "github_repository" "forked_repo" {
+  name         = "forked-repository"
+  description  = "This is a fork of another repository"
+  fork         = true
+  source_owner = "some-org"
+  source_repo  = "original-repository"
 }
 ```
 

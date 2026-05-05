@@ -4,7 +4,7 @@ description: |-
   Get information about multiple GitHub users.
 ---
 
-# github\_users
+# github_users (Data Source)
 
 Use this data source to retrieve information about multiple GitHub users at once.
 

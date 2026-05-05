@@ -4,7 +4,7 @@ description: |-
   Get Actions variables of the organization
 ---
 
-# github\_actions\_organization\_variables
+# github_actions_organization_variables (Data Source)
 
 Use this data source to retrieve the list of variables of the organization.
 

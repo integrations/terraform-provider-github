@@ -4,7 +4,7 @@ description: |-
   Get information about an app.
 ---
 
-# github\_app
+# github_app (Data Source)
 
 Use this data source to retrieve information about an app.
 

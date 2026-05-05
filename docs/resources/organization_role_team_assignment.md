@@ -38,6 +38,6 @@ The following arguments are supported:
 
 GitHub Team Organization Role Assignment can be imported using an ID made up of `team_slug:role_id`
 
-```hcl
-$ terraform import github_organization_role_team_assignment.role_assignment test-team:8132
+```shell
+terraform import github_organization_role_team_assignment.role_assignment test-team:8132
 ```

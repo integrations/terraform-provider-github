@@ -35,6 +35,6 @@ The following arguments are supported:
 
 Repository topics can be imported using the `name` of the repository.
 
-```hcl
-$ terraform import github_repository_topics.terraform terraform
+```shell
+terraform import github_repository_topics.terraform terraform
 ```

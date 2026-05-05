@@ -4,7 +4,7 @@ description: |-
   Get a GitHub Actions repository registration token.
 ---
 
-# actions_registration_token
+# github_actions_registration_token (Data Source)
 
 Use this data source to retrieve a GitHub Actions repository registration token. This token can then be used to register a self-hosted runner.
 

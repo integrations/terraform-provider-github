@@ -85,10 +85,13 @@ checkdocs: generatedocs
 			exit 1;\
 		fi;}
 
+yamlfmt:
+	@yamlfmt -continue_on_error .
+
 mdfmt:
 	@rumdl fmt --fix .
 
 mdlint:
 	@rumdl check $(RUMDL_ARGS) .
 
-.PHONY: build test testacc fmt lint lintcheck tools sweep generatedocs validatedocs fmtdocs lintdocs checkdocs mdfmt mdlint
+.PHONY: build test testacc fmt lint lintcheck tools sweep generatedocs validatedocs fmtdocs lintdocs checkdocs yamlfmt mdfmt mdlint

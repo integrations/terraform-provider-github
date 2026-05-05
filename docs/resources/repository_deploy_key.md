@@ -50,6 +50,6 @@ Changing any of the fields forces re-creating the resource.
 
 Repository deploy keys can be imported using a colon-separated pair of repository name and GitHub's key id. The latter can be obtained by GitHub's SDKs and API.
 
-```hcl
-$ terraform import github_repository_deploy_key.foo test-repo:23824728
+```shell
+terraform import github_repository_deploy_key.foo test-repo:23824728
 ```

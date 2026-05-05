@@ -4,7 +4,7 @@ description: |-
   Get dependabot secrets of the organization
 ---
 
-# github\_dependabot\_organization\_secrets
+# github_dependabot_organization_secrets (Data Source)
 
 Use this data source to retrieve the list of dependabot secrets of the organization.
 

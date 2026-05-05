@@ -32,6 +32,6 @@ The following arguments are supported:
 
 GitHub Membership can be imported using an ID made up of `organization:username`, e.g.
 
-```hcl
-$ terraform import github_membership.member hashicorp:someuser
+```shell
+terraform import github_membership.member hashicorp:someuser
 ```

@@ -55,6 +55,6 @@ The following arguments are supported:
 
 GitHub Issue Labels can be imported using the repository `name`, e.g.
 
-```hcl
-$ terraform import github_issue_labels.test_repo test_repo
+```shell
+terraform import github_issue_labels.test_repo test_repo
 ```

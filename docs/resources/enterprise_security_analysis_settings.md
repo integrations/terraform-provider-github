@@ -79,4 +79,4 @@ This resource manages the following security features:
 - **Push Protection**: Prevents secrets from being committed to repositories
 - **Validity Checks**: Verifies that detected secrets are actually valid
 
-These settings only apply to **new repositories*- created after the settings are enabled. Existing repositories are not affected and must be configured individually.
+These settings only apply to **new repositories** created after the settings are enabled. Existing repositories are not affected and must be configured individually.

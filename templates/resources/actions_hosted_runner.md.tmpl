@@ -74,7 +74,7 @@ terraform import github_actions_hosted_runner.example 123456
 
 ## Notes
 
-- This resource is **organization-only*- and cannot be used with individual accounts.
+- This resource is **organization-only** and cannot be used with individual accounts.
 - The `image` field cannot be changed after the runner is created. Changing it will force recreation of the runner.
 - The `size` field can be updated to scale the runner up or down as needed.
 - Image IDs for GitHub-owned images are numeric strings (e.g., "2306" for Ubuntu Latest 24.04), not names like "ubuntu-latest".

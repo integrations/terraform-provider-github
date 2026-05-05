@@ -4,7 +4,7 @@ description: |-
   Protects a GitHub branch.
 ---
 
-# github\_branch\_protection
+# github_branch_protection (Resource)
 
 Protects a GitHub branch.
 
@@ -136,6 +136,6 @@ The following arguments are supported:
 
 GitHub Branch Protection can be imported using an ID made up of `repository:pattern`, e.g.
 
-```hcl
-$ terraform import github_branch_protection.terraform terraform:main
+```shell
+terraform import github_branch_protection.terraform terraform:main
 ```

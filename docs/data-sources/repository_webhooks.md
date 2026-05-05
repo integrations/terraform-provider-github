@@ -4,7 +4,7 @@ description: |-
   Get information on all GitHub webhooks of the organization.
 ---
 
-# github\_repository\_webhooks
+# github_repository_webhooks (Data Source)
 
 Use this data source to retrieve webhooks for a given repository.
 

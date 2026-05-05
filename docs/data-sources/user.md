@@ -4,7 +4,7 @@ description: |-
   Get information on a GitHub user.
 ---
 
-# github\_user
+# github_user (Data Source)
 
 Use this data source to retrieve information about a GitHub user.
 

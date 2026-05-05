@@ -82,6 +82,6 @@ The following arguments are supported:
 
 GitHub Issues can be imported using an ID made up of `repository:number`, e.g.
 
-```hcl
-$ terraform import github_issue.issue_15 myrepo:15
+```shell
+terraform import github_issue.issue_15 myrepo:15
 ```

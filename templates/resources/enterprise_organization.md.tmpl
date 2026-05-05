@@ -43,6 +43,6 @@ The following additional attributes are exported:
 
 GitHub Enterprise Organization can be imported using the `slug` of the enterprise, combined with the `orgname` of the organization, separated by a `/` character.
 
-```hcl
-$ terraform import github_enterprise_organization.org enterp/some-awesome-org
+```shell
+terraform import github_enterprise_organization.org enterp/some-awesome-org
 ```

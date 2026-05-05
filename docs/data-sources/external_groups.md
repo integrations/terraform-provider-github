@@ -4,7 +4,7 @@ description: |-
   Retrieve external groups belonging to an organization.
 ---
 
-# github\_external\_groups
+# github_external_groups (Data Source)
 
 Use this data source to retrieve external groups belonging to an organization.
 

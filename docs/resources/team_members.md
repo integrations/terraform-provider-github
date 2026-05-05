@@ -77,7 +77,7 @@ The following arguments are supported:
 
 GitHub Team Membership can be imported using the team ID team id or team slug, e.g.
 
-```hcl
-$ terraform import github_team_members.some_team 1234567
+```shell
+terraform import github_team_members.some_team 1234567
 $ terraform import github_team_members.some_team Administrators
 ```

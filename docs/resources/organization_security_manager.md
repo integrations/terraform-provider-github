@@ -31,6 +31,6 @@ The following arguments are supported:
 
 GitHub Security Manager Teams can be imported using the GitHub team ID e.g.
 
-```hcl
-$ terraform import github_organization_security_manager.core 1234567
+```shell
+terraform import github_organization_security_manager.core 1234567
 ```

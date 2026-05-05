@@ -40,6 +40,6 @@ The following arguments are supported:
 
 GitHub App Installation Repository can be imported using an ID made up of `installation_id:repository`, e.g.
 
-```hcl
-$ terraform import github_app_installation_repository.terraform_repo 1234567:terraform
+```shell
+terraform import github_app_installation_repository.terraform_repo 1234567:terraform
 ```

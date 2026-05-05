@@ -29,15 +29,9 @@ jobs:
       - uses: actions/stale@997185467fa4f803885201cee163a9f38240193d # v10.1.1
         with:
           stale-issue-message: >
-            👋 Hey Friends, this issue has been automatically marked as `stale` because it has no recent activity.
-            It will be closed if no further activity occurs.
-            Please add the `Status: Pinned` label if you feel that this issue needs to remain open/active.
-            Thank you for your contributions and help in keeping things tidy!
+            👋 Hey Friends, this issue has been automatically marked as `stale` because it has no recent activity. It will be closed if no further activity occurs. Please add the `Status: Pinned` label if you feel that this issue needs to remain open/active. Thank you for your contributions and help in keeping things tidy!
           stale-pr-message: >
-            👋 Hey Friends, this pull request has been automatically marked as `stale` because it has no recent activity.
-            It will be closed if no further activity occurs.
-            Please add the `Status: Pinned` label if you feel that this issue needs to remain open/active.
-            Thank you for your contributions and help in keeping things tidy!
+            👋 Hey Friends, this pull request has been automatically marked as `stale` because it has no recent activity. It will be closed if no further activity occurs. Please add the `Status: Pinned` label if you feel that this issue needs to remain open/active. Thank you for your contributions and help in keeping things tidy!
           days-before-stale: 270
           days-before-close: 7
           exempt-issue-labels: "Status: Pinned"

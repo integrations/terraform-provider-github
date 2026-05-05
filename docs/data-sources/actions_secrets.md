@@ -4,7 +4,7 @@ description: |-
   Get actions secrets for a repository
 ---
 
-# github\_actions\_secrets
+# github_actions_secrets (Data Source)
 
 Use this data source to retrieve the list of secrets for a GitHub repository.
 

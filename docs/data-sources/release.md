@@ -4,7 +4,7 @@ description: |-
   Get information on a GitHub release.
 ---
 
-# github\_release
+# github_release (Data Source)
 
 Use this data source to retrieve information about a GitHub release in a specific repository.
 

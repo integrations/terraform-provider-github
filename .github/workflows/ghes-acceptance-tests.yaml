@@ -2,15 +2,16 @@ name: Acceptance Tests (GHES)
 
 on:
   workflow_dispatch:
-    # pull_request_target:
-    #   types:
-    #     - opened
-    #     - synchronize
-    #     - reopened
-    #     - labeled
-    #   branches:
-    #     - main
-    #     - release-v*
+
+  # pull_request_target:
+  #   types:
+  #     - opened
+  #     - synchronize
+  #     - reopened
+  #     - labeled
+  #   branches:
+  #     - main
+  #     - release-v*
 
 concurrency:
   group: acctest-ghes-${{ github.ref }}
@@ -37,8 +38,7 @@ jobs:
       - name: Check secrets
         if: github.event_name == 'pull_request_target'
         env:
-          INPUT_ALLOWED_SECRETS: ${{ vars.GHES_ACCEPTANCE_TESTS_ALLOWED_SECRETS ||
-            'GHES_TEST_USER_TOKEN' }}
+          INPUT_ALLOWED_SECRETS: ${{ vars.GHES_ACCEPTANCE_TESTS_ALLOWED_SECRETS || 'GHES_TEST_USER_TOKEN' }}
           INPUT_SECRETS: ${{ toJSON(secrets) }}
         run: |
           set -eou pipefail

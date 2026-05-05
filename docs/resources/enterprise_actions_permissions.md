@@ -58,6 +58,6 @@ The `enabled_organizations_config` block supports the following:
 
 This resource can be imported using the name of the GitHub enterprise:
 
-```hcl
-$ terraform import github_enterprise_actions_permissions.test github_enterprise_name
+```shell
+terraform import github_enterprise_actions_permissions.test github_enterprise_name
 ```

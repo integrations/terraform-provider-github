@@ -4,7 +4,7 @@ description: |-
   Get information on a GitHub release asset.
 ---
 
-# github\_release\_asset
+# github_release_asset (Data Source)
 
 Use this data source to retrieve information about a GitHub release asset.
 

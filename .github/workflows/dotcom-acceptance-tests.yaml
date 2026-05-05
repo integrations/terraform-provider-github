@@ -1,11 +1,13 @@
 name: Acceptance Tests (github.com)
 
 on:
-  workflow_dispatch: # push:
+  workflow_dispatch:
 
+  # push:
   #   branches:
   #     - main
   #     - release-v*
+
   pull_request:
     types:
       - opened
@@ -25,9 +27,7 @@ permissions: read-all
 jobs:
   test:
     name: Test ${{ matrix.mode }}
-    if: (github.event_name != 'pull_request' && github.event_name !=
-      'pull_request_target') ||
-      contains(github.event.pull_request.labels.*.name, 'acctest')
+    if: (github.event_name != 'pull_request' && github.event_name != 'pull_request_target') || contains(github.event.pull_request.labels.*.name, 'acctest')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -36,7 +36,7 @@ jobs:
       deployment: false
     strategy:
       matrix:
-        mode: [ anonymous, individual, organization ] # team, enterprise
+        mode: [anonymous, individual, organization] # team, enterprise
       fail-fast: true
       max-parallel: 1
     defaults:
@@ -49,8 +49,7 @@ jobs:
       - name: Check secrets
         if: github.event_name == 'pull_request_target'
         env:
-          INPUT_ALLOWED_SECRETS: ${{ vars.DOTCOM_ACCEPTANCE_TESTS_ALLOWED_SECRETS ||
-            'GH_TEST_TOKEN' }}
+          INPUT_ALLOWED_SECRETS: ${{ vars.DOTCOM_ACCEPTANCE_TESTS_ALLOWED_SECRETS || 'GH_TEST_TOKEN' }}
           INPUT_SECRETS: ${{ toJSON(secrets) }}
         run: |
           set -eou pipefail
@@ -107,8 +106,7 @@ jobs:
           TF_LOG: WARN
           GITHUB_TOKEN: ${{ steps.credentials.outputs.token }}
           GITHUB_BASE_URL: https://api.github.com/
-          GITHUB_OWNER: ${{ (matrix.mode == 'individual' && vars.GH_TEST_LOGIN) ||
-            (matrix.mode == 'organization' && vars.GH_TEST_ORG_NAME) || '' }}
+          GITHUB_OWNER: ${{ case(matrix.mode == 'individual', vars.GH_TEST_LOGIN, matrix.mode == 'organization', vars.GH_TEST_ORG_NAME, '') }}
           GITHUB_USERNAME: ${{ vars.GH_TEST_LOGIN }}
           GITHUB_ENTERPRISE_SLUG: ${{ vars.GH_TEST_ENTERPRISE_SLUG }}
           GH_TEST_AUTH_MODE: ${{ matrix.mode }}

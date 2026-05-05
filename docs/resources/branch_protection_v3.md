@@ -108,7 +108,7 @@ The following arguments are supported:
 
 - `dismiss_stale_reviews`: (Optional) Dismiss approved reviews automatically when a new commit is pushed. Defaults to `false`.
 - `dismissal_users`: (Optional) The list of user logins with dismissal access
-- `dismissal_teams`: (Optional) The list of team slugs with dismissal access. Always use `slug` of the team, **not*- its name. Each team already **has*- to have access to the repository.
+- `dismissal_teams`: (Optional) The list of team slugs with dismissal access. Always use `slug` of the team, **not** its name. Each team already **has** to have access to the repository.
 - `dismissal_apps`: (Optional) The list of app slugs with dismissal access.
 - `require_code_owner_reviews`: (Optional) Require an approved review in pull requests including files with a designated code owner. Defaults to `false`.
 - `required_approving_review_count`: (Optional) Require x number of approvals to satisfy branch protection requirements. If this is specified it must be a number between 0-6. This requirement matches GitHub's API, see the upstream [documentation](https://developer.github.com/v3/repos/branches/#parameters-1) for more information.
@@ -120,7 +120,7 @@ The following arguments are supported:
 `restrictions` supports the following arguments:
 
 - `users`: (Optional) The list of user logins with push access.
-- `teams`: (Optional) The list of team slugs with push access. Always use `slug` of the team, **not*- its name. Each team already **has*- to have access to the repository.
+- `teams`: (Optional) The list of team slugs with push access. Always use `slug` of the team, **not** its name. Each team already **has** to have access to the repository.
 - `apps`: (Optional) The list of app slugs with push access.
 
 `restrictions` is only available for organization-owned repositories.
@@ -137,6 +137,6 @@ The following arguments are supported:
 
 GitHub Branch Protection can be imported using an ID made up of `repository:branch`, e.g.
 
-```hcl
-$ terraform import github_branch_protection_v3.terraform terraform:main
+```shell
+terraform import github_branch_protection_v3.terraform terraform:main
 ```

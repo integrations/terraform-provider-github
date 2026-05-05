@@ -34,6 +34,6 @@ The following arguments are supported:
 
 This resource can be imported using the name of the GitHub repository:
 
-```hcl
-$ terraform import github_workflow_repository_permissions.test my-repository
+```shell
+terraform import github_workflow_repository_permissions.test my-repository
 ```
