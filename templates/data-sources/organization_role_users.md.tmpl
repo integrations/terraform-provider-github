@@ -1,0 +1,30 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Lookup all users assigned to a custom organization role.
+---
+
+# {{.Name}} ({{.Type}})
+
+Lookup all users assigned to a custom organization role.
+
+## Example Usage
+
+{{ tffile "examples/data-sources/organization_role_users/example_1.tf" }}
+
+## Schema
+
+### Required
+
+- `role_id` (Number) The ID of the organization role.
+
+### Read-Only
+
+- `users` (Set of Object, see [schema](#nested-schema-for-users)) Users assigned to the organization role.
+
+## Nested Schema for `users`
+
+### Read-Only
+
+- `user_id` (Number) The ID of the user.
+- `login` (String) The login for the GitHub user account.
