@@ -218,7 +218,7 @@ func flattenImage(image map[string]any) []any {
 	if source, ok := image["source"].(string); ok {
 		result["source"] = source
 	}
-	if size, ok := image["size"].(float64); ok {
+	if size, ok := image["size_gb"].(float64); ok {
 		result["size_gb"] = int(size)
 	}
 
@@ -399,7 +399,7 @@ func resourceGithubActionsHostedRunnerRead(d *schema.ResourceData, meta any) err
 		}
 	}
 
-	if image, ok := runner["image"].(map[string]any); ok {
+	if image, ok := runner["image_details"].(map[string]any); ok {
 		if err := d.Set("image", flattenImage(image)); err != nil {
 			return err
 		}
