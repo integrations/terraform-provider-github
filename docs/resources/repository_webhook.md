@@ -13,16 +13,16 @@ This resource allows you to create and manage webhooks for repositories within y
 ## Example Usage
 
 ```terraform
-resource "github_repository" "repo" {
-  name         = "foo"
+resource "github_repository" "example_repo" {
+  name         = "example-repo"
   description  = "Terraform acceptance tests"
   homepage_url = "http://example.com/"
 
   visibility = "public"
 }
 
-resource "github_repository_webhook" "foo" {
-  repository = github_repository.repo.name
+resource "github_repository_webhook" "example_webhook" {
+  repository = github_repository.example_repo.name
 
   configuration {
     url          = "https://google.de/"
@@ -66,12 +66,13 @@ The following additional attributes are exported:
 
 ## Import
 
-Repository webhooks can be imported using the `name` of the repository, combined with the `id` of the webhook, separated by a `/` character. The `id` of the webhook can be found in the URL of the webhook. For example: `"https://github.com/foo-org/foo-repo/settings/hooks/14711452"`.
+Repository webhooks can be imported using the `name` of the repository, combined with the `id` of the webhook, separated by a `/` character.
+The `id` of the webhook can be found in the URL of the webhook. For example: `"https://github.com/example-org/example-repo/settings/hooks/14711452"`, where `14711452` is the ID of the webhook.
 
 Importing uses the name of the repository, as well as the ID of the webhook, e.g.
 
-```shell
-terraform import github_repository_webhook.terraform terraform/11235813
+```sh
+terraform import github_repository_webhook.example_webhook example-repo/14711452
 ```
 
 If secret is populated in the webhook's configuration, the value will be imported as "********".
