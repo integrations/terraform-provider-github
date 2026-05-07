@@ -78,6 +78,10 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      - name: Set golangci-lint version in .custom-gcl.yml
+        run: |
+          GOLANGCI_LINT_VERSION=$(curl -s https://api.github.com/repos/golangci/golangci-lint/releases/latest | jq -r .name)
+          sed -i "s/version: .*/version: ${GOLANGCI_LINT_VERSION}/" .custom-gcl.yml
       - name: golangci-lint
         uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
         with:
@@ -101,6 +105,10 @@ jobs:
             tools/tfproviderlint/go.sum
             custom-gcl
       - run: make .golangci.new.yml
+      - name: Set golangci-lint version in .custom-gcl.yml
+        run: |
+          GOLANGCI_LINT_VERSION=$(curl -s https://api.github.com/repos/golangci/golangci-lint/releases/latest | jq -r .name)
+          sed -i "s/version: .*/version: ${GOLANGCI_LINT_VERSION}/" .custom-gcl.yml
       - name: golangci-lint
         uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
         with:

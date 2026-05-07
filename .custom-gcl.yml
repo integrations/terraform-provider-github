@@ -1,3 +1,5 @@
+version: latest # This is a placeholder. We pass in `--version` to the `golangci-lint custom` command from make and in CI we replace it.
+
 plugins:
   - module: "github.com/integrations/terraform-provider-github/tools/tfproviderlint"
     path: ./tools/tfproviderlint
