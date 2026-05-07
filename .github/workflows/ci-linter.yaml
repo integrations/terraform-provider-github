@@ -38,5 +38,8 @@ jobs:
           cache: true
           cache-dependency-path: |
             go.sum
-            tools/tfproviderlint/go.sum
-      - run: make test-tools
+            tools/tfproviderlint/**/*.sum
+      - name: Test Custom Linters
+        run: make test-tools --always-make
+        env:
+          MAKEFLAGS: '--debug=v'
