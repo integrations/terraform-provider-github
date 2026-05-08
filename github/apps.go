@@ -11,8 +11,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/go-jose/go-jose/v3"
-	"github.com/go-jose/go-jose/v3/jwt"
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
 )
 
 // GenerateOAuthTokenFromApp generates a GitHub OAuth access token from a set of valid GitHub App credentials.
@@ -95,7 +95,7 @@ func generateAppJWT(appID string, now time.Time, pemData []byte) (string, error)
 		Expiry: jwt.NewNumericDate(now.Add(time.Duration(5) * time.Minute)),
 	}
 
-	token, err := jwt.Signed(signer).Claims(claims).CompactSerialize()
+	token, err := jwt.Signed(signer).Claims(claims).Serialize()
 	if err != nil {
 		return "", err
 	}
