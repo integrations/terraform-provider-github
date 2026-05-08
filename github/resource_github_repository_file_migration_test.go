@@ -11,7 +11,7 @@ package github
 // 	"testing"
 
 // 	"github.com/google/go-cmp/cmp"
-// 	"github.com/google/go-github/v85/github"
+// 	"github.com/google/go-github/v86/github"
 // )
 
 // func buildMockResponsesForRepositoryFileMigrationV0toV1(mockOwner, mockRepo string, wantRepoID int) []*mockResponse {
