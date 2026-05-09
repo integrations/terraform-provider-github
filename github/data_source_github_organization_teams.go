@@ -4,7 +4,6 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/google/go-github/v85/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -98,7 +97,6 @@ func dataSourceGithubOrganizationTeamsRead(ctx context.Context, d *schema.Resour
 		return diag.FromErr(err)
 	}
 
-	clientv3 := meta.(*Owner).v3client
 	client := meta.(*Owner).v4client
 	orgName := meta.(*Owner).name
 	rootTeamsOnly := d.Get("root_teams_only").(bool)
@@ -122,7 +120,7 @@ func dataSourceGithubOrganizationTeamsRead(ctx context.Context, d *schema.Resour
 			return diag.FromErr(err)
 		}
 
-		additionalTeams, err := flattenGitHubTeams(clientv3, meta.(*Owner).StopContext, orgName, query)
++		additionalTeams, err := flattenGitHubTeams(query)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -143,7 +141,7 @@ func dataSourceGithubOrganizationTeamsRead(ctx context.Context, d *schema.Resour
 	return nil
 }
 
-func flattenGitHubTeams(client *github.Client, ctx context.Context, org string, tq TeamsQuery) ([]any, error) {
+func flattenGitHubTeams(tq TeamsQuery) ([]any, error) {
 	teams := tq.Organization.Teams.Nodes
 
 	if len(teams) == 0 {
@@ -171,21 +169,17 @@ func flattenGitHubTeams(client *github.Client, ctx context.Context, org string, 
 		t["members"] = flatMembers
 
 		var parentTeamId string
-		if len(team.Parent.Slug) != 0 {
-			parentTeam, _, err := client.Teams.GetTeamBySlug(ctx, org, string(team.Parent.Slug))
-			if err != nil {
-				return nil, err
-			}
-			parentTeamId = strconv.FormatInt(parentTeam.GetID(), 10)
-		}
-
-		t["parent_team_id"] = parentTeamId
-		t["parent_team_slug"] = team.Parent.Slug
 
 		parentTeam := make(map[string]any)
+		if team.Parent.DatabaseID != 0 {
+			parentTeamId = strconv.FormatInt(int64(team.Parent.DatabaseID), 10)
+		}
 		parentTeam["id"] = team.Parent.ID
 		parentTeam["slug"] = team.Parent.Slug
 		parentTeam["name"] = team.Parent.Name
+
+		t["parent_team_id"] = parentTeamId
+		t["parent_team_slug"] = team.Parent.Slug
 		t["parent"] = parentTeam
 
 		repositories := team.Repositories.Nodes

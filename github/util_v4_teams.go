@@ -14,9 +14,10 @@ type TeamsQuery struct {
 				Description githubv4.String
 				Privacy     githubv4.String
 				Parent      struct {
-					ID   githubv4.String
-					Slug githubv4.String
-					Name githubv4.String
+					ID         githubv4.String
+					DatabaseID githubv4.Int
+					Slug       githubv4.String
+					Name       githubv4.String
 				} `graphql:"parentTeam"`
 				Members struct {
 					Nodes []struct {
