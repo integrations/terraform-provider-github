@@ -242,7 +242,7 @@ func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceD
 		return diag.FromErr(err)
 	}
 
-	newResourceID, err := buildID(repo, file, branch)
+	newResourceID, err := buildID(repo, escapeIDPart(file), branch)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -392,7 +392,7 @@ func resourceGithubRepositoryFileUpdate(ctx context.Context, d *schema.ResourceD
 	}
 
 	if d.HasChanges("repository", "file", "branch") {
-		newResourceID, err := buildID(repo, file, branch)
+		newResourceID, err := buildID(repo, escapeIDPart(file), branch)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -468,7 +468,7 @@ func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceD
 		return nil, err
 	}
 
-	newResourceID, err := buildID(repo, filePath, branch)
+	newResourceID, err := buildID(repo, escapeIDPart(filePath), branch)
 	if err != nil {
 		return nil, err
 	}
