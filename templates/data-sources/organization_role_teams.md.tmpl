@@ -1,0 +1,32 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Lookup all teams assigned to a custom organization role.
+---
+
+# {{.Name}} ({{.Type}})
+
+Lookup all teams assigned to a custom organization role.
+
+## Example Usage
+
+{{ tffile "examples/data-sources/organization_role_teams/example_1.tf" }}
+
+## Schema
+
+### Required
+
+- `role_id` (Number) The ID of the organization role.
+
+### Read-Only
+
+- `teams` (Set of Object, see [schema](#nested-schema-for-teams)) Teams assigned to the organization role.
+
+## Nested Schema for `teams`
+
+### Read-Only
+
+- `team_id` (Number) The ID of the team.
+- `slug` (String) The Slug of the team name.
+- `name` (String) The name of the team.
+- `permission` (String) The permission that the team will have for its repositories.
