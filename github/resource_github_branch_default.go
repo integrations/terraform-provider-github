@@ -92,7 +92,7 @@ func resourceGithubBranchDefaultCreate(ctx context.Context, d *schema.ResourceDa
 		} else {
 			tflog.Debug(ctx, "Setting new default branch")
 			repository := &github.Repository{
-				DefaultBranch: github.Ptr(defaultBranch),
+				DefaultBranch: new(defaultBranch),
 			}
 
 			if _, _, err := client.Repositories.Edit(ctx, owner, repoName, repository); err != nil {
@@ -210,7 +210,7 @@ func resourceGithubBranchDefaultUpdate(ctx context.Context, d *schema.ResourceDa
 	} else {
 		tflog.Debug(ctx, "Setting new default branch")
 		repository := &github.Repository{
-			DefaultBranch: github.Ptr(defaultBranch),
+			DefaultBranch: new(defaultBranch),
 		}
 
 		if _, resp, err := client.Repositories.Edit(ctx, owner, repoName, repository); err != nil {
