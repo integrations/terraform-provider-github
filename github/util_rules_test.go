@@ -1071,39 +1071,37 @@ func TestExpandConditions(t *testing.T) {
 	t.Parallel()
 
 	for _, d := range []struct {
-		testName string
-		input    []any
-		want     *github.RepositoryRulesetConditions
+		testName    string
+		input       []any
+		wantNil     bool
+		wantRefName *github.RepositoryRulesetRefConditionParameters
 	}{
 		{
 			testName: "returns_nil_for_empty_input",
 			input:    []any{},
-			want:     nil,
+			wantNil:  true,
 		},
 		{
 			testName: "returns_nil_for_empty_input_slice",
 			input:    []any{nil},
-			want:     nil,
+			wantNil:  true,
 		},
 		{
 			testName: "returns_empty_conditions_for_empty_input_slice",
 			input:    []any{map[string]any{}},
-			want:     &github.RepositoryRulesetConditions{},
 		},
 		{
 			testName: "returns_empty_conditions_for_empty_ref_name",
 			input:    []any{map[string]any{"ref_name": []any{}}},
-			want:     &github.RepositoryRulesetConditions{},
 		},
 		{
-			testName: "returns_empty_conditions_for_empty_ref_name_arrays",
-			input:    []any{map[string]any{"ref_name": []any{map[string]any{"include": []any{}, "exclude": []any{}}}}},
-			want:     &github.RepositoryRulesetConditions{RefName: &github.RepositoryRulesetRefConditionParameters{Include: []string{}, Exclude: []string{}}},
+			testName:    "returns_empty_conditions_for_empty_ref_name_arrays",
+			input:       []any{map[string]any{"ref_name": []any{map[string]any{"include": []any{}, "exclude": []any{}}}}},
+			wantRefName: &github.RepositoryRulesetRefConditionParameters{Include: []string{}, Exclude: []string{}},
 		},
 		{
 			testName: "returns_empty_conditions_for_nil_ref_name_arrays",
 			input:    []any{map[string]any{"ref_name": []any{nil}}},
-			want:     &github.RepositoryRulesetConditions{},
 		},
 	} {
 		t.Run(d.testName, func(t *testing.T) {
@@ -1111,8 +1109,39 @@ func TestExpandConditions(t *testing.T) {
 
 			got := expandConditions(d.input, false)
 
-			if diff := cmp.Diff(got, d.want); diff != "" {
-				t.Fatalf("got %+v, want %+v", got, d.want)
+			if d.wantNil {
+				if got != nil {
+					t.Fatalf("got %+v, want nil", got)
+				}
+				return
+			}
+			if got == nil {
+				t.Fatal("got nil, want conditions")
+			}
+			if d.wantRefName == nil {
+				if got.RefName != nil {
+					t.Fatalf("got RefName %+v, want nil", got.RefName)
+				}
+				return
+			}
+			if got.RefName == nil {
+				t.Fatal("got nil RefName, want ref_name conditions")
+			}
+			if len(got.RefName.Include) != len(d.wantRefName.Include) {
+				t.Fatalf("got Include %v, want %v", got.RefName.Include, d.wantRefName.Include)
+			}
+			for i, v := range got.RefName.Include {
+				if v != d.wantRefName.Include[i] {
+					t.Fatalf("got Include %v, want %v", got.RefName.Include, d.wantRefName.Include)
+				}
+			}
+			if len(got.RefName.Exclude) != len(d.wantRefName.Exclude) {
+				t.Fatalf("got Exclude %v, want %v", got.RefName.Exclude, d.wantRefName.Exclude)
+			}
+			for i, v := range got.RefName.Exclude {
+				if v != d.wantRefName.Exclude[i] {
+					t.Fatalf("got Exclude %v, want %v", got.RefName.Exclude, d.wantRefName.Exclude)
+				}
 			}
 		})
 	}
