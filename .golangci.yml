@@ -64,8 +64,6 @@ formatters:
       rewrite-rules:
         - pattern: interface{}
           replacement: any
-        - pattern: a[b:len(a)]
-          replacement: a[b:]
         - pattern: skipUnlessMode(t, enterprise)
           replacement: skipUnlessEnterprise(t)
         - pattern: parseTwoPartID(a, b, c)
