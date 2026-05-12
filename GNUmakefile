@@ -52,17 +52,20 @@ fmt: tools
 	@echo "==> Fixing source code formatting..."
 	$(BIN)/custom-gcl fmt ./... ./tools/...
 
-lint: tools
-	@echo "==> Checking source code against linters and fixing..."
-	$(BIN)/custom-gcl run --fix ./...
+.golangci.custom.local.yml: .golangci.yml .golangci.custom.yml
+	@yq eval-all 'select(fileIndex == 0) *+ select(fileIndex == 1)' .golangci.yml .golangci.custom.yml > .golangci.custom.local.yml
 
-lintcheck: tools
+lint: tools .golangci.custom.local.yml
+	@echo "==> Checking source code against linters and fixing..."
+	$(BIN)/custom-gcl run --fix ./... --config .golangci.custom.local.yml
+
+lintcheck: tools .golangci.custom.local.yml
 	@branch=$$(git rev-parse --abbrev-ref HEAD); \
 	printf "==> Checking source code against linters on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
-	$(BIN)/custom-gcl run ./...
+	$(BIN)/custom-gcl run ./... --config .golangci.custom.local.yml
 
-.golangci.new.yml: .golangci.yml .golangci.strict.yml
-	@yq eval-all 'select(fileIndex == 0) *+ select(fileIndex == 1)' .golangci.yml .golangci.strict.yml > .golangci.new.yml 
+.golangci.new.yml: .golangci.yml .golangci.custom.yml .golangci.strict.yml
+	@yq eval-all 'select(fileIndex == 0) *+ select(fileIndex == 1) *+ select(fileIndex == 2)' .golangci.yml .golangci.custom.yml .golangci.strict.yml > .golangci.new.yml 
 
 lintcheck-new: tools .golangci.new.yml
 	@branch=$$(git rev-parse --abbrev-ref HEAD); \
