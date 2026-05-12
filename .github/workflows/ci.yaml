@@ -78,6 +78,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      - run: make .golangci.custom.local.yml
       - name: Set golangci-lint version in .custom-gcl.yml
         run: |
           GOLANGCI_LINT_VERSION=$(curl -s https://api.github.com/repos/golangci/golangci-lint/releases/latest | jq -r .name)
@@ -86,6 +87,7 @@ jobs:
         uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
         with:
           version: latest
+          args: --config=.golangci.custom.local.yml
   golangci-new:
     name: Strict linting of new code
     runs-on: ubuntu-latest
