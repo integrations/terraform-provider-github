@@ -14,6 +14,12 @@ Use this data source to retrieve information about GitHub's IP addresses.
 data "github_ip_ranges" "test" {}
 ```
 
+## Timeouts
+
+The `timeouts` block allows you to configure [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
+
+* `read` - (Defaults to 5 minutes) Used when reading the GitHub IP ranges from the metadata API.
+
 ## Attributes Reference
 
 - `actions` - An array of IP addresses in CIDR format specifying the addresses that incoming requests from GitHub Actions will originate from.
