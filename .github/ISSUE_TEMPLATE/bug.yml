@@ -25,7 +25,6 @@ body:
     validations:
       required: true
 
-
   - type: textarea
     id: terraform-version
     attributes:
@@ -45,8 +44,8 @@ body:
       description: |
         Please list the resources as a list. If this issue appears to affect multiple resources, it may be an issue with Terraform's core, so please mention this.
       placeholder: |
-         - github_repository
-         - github_branch_protection
+        - github_repository
+        - github_branch_protection
     validations:
       required: true
 
