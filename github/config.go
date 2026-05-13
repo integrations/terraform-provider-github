@@ -136,6 +136,8 @@ func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 		} else {
 			if err != nil {
 				log.Printf("[WARN] Unable to detect organization via Organizations.Get for %q: %s. Falling back to Users.Get.", owner.name, err)
+			} else {
+				log.Printf("[WARN] Organizations.Get for %q returned empty response. Falling back to Users.Get.", owner.name)
 			}
 			user, _, userErr := owner.v3client.Users.Get(ctx, owner.name)
 			if userErr == nil && user != nil && user.GetType() == "Organization" {
