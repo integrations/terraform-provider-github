@@ -35,6 +35,7 @@ type Owner struct {
 	v3client       *github.Client
 	v4client       *githubv4.Client
 	StopContext    context.Context
+	IsGHES         bool
 	IsOrganization bool
 }
 
@@ -164,6 +165,7 @@ func (c *Config) Meta() (any, error) {
 	owner.v4client = v4client
 	owner.v3client = v3client
 	owner.StopContext = context.Background()
+	owner.IsGHES = c.IsGHES
 
 	_, err = c.ConfigureOwner(&owner)
 	if err != nil {
