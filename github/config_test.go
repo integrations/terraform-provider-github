@@ -529,11 +529,12 @@ func TestConfigureOwner_OrgDetectionFallback(t *testing.T) {
 		wantID           int64
 	}{
 		{
-			name:      "org detected via Organizations.Get",
-			ownerName: "my-org",
-			orgStatus: http.StatusOK,
-			wantIsOrg: true,
-			wantID:    100,
+			name:       "org detected via Organizations.Get",
+			ownerName:  "my-org",
+			orgStatus:  http.StatusOK,
+			userStatus: http.StatusNotFound,
+			wantIsOrg:  true,
+			wantID:     100,
 		},
 		{
 			name:      "org detected via Users.Get fallback",
@@ -582,7 +583,7 @@ func TestConfigureOwner_OrgDetectionFallback(t *testing.T) {
 			})
 			mux.HandleFunc("/users/"+tc.ownerName, func(w http.ResponseWriter, r *http.Request) {
 				if tc.userStatus != http.StatusOK || tc.userResp == nil {
-					http.Error(w, `{"message":"Not Found"}`, http.StatusNotFound)
+					http.Error(w, `{"message":"Not Found"}`, tc.userStatus)
 					return
 				}
 				w.Header().Set("Content-Type", "application/json")

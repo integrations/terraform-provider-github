@@ -141,6 +141,8 @@ func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 			if userErr == nil && user != nil && user.GetType() == "Organization" {
 				owner.id = user.GetID()
 				owner.IsOrganization = true
+			} else if userErr != nil {
+				log.Printf("[WARN] Unable to detect owner type via Users.Get for %q: %s", owner.name, userErr)
 			}
 		}
 	}
