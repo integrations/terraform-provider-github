@@ -1,0 +1,74 @@
+---
+applyTo: "github/**/*.go"
+---
+
+# Provider Source Review (Schema, State, API)
+
+These rules apply to all provider Go source files under `github/`. Combine
+with the repo-wide checklist in `.github/copilot-instructions.md`.
+
+## Schema Changes Are User-Visible
+
+Any change to `schema.Schema` (`Type`, `Optional`, `Required`, `Computed`,
+`ForceNew`, `Default`, `Sensitive`, `Description`) is potentially breaking.
+Flag all schema diffs and verify:
+
+- Attribute removals or renames have a deprecation cycle or `moved`/state
+  migration guidance.
+- `Optional` → `Required` transitions are called out as breaking.
+- New `ForceNew` flags on existing attributes are called out as breaking
+  (forces resource replacement).
+- New attributes are `Optional` with a `Default` where reasonable to avoid
+  forcing existing users to update their configs.
+- All attributes carry a `Description` string (used for docs generation).
+- Attributes accepting bounded values declare `ValidateFunc` or
+  `ValidateDiagFunc` so invalid input fails at plan time, not apply time.
+- Attributes holding tokens, secrets, or private keys are marked
+  `Sensitive: true`.
+
+## State and Drift
+
+- Read functions must populate every state attribute from API responses so
+  `terraform import` works from the resource ID alone.
+- Verify the read path does not produce values that differ from what create/
+  update wrote (causes perpetual diffs).
+- Watch list/set ordering: prefer `schema.TypeSet` or stable sort when the
+  GitHub API does not return deterministic order.
+- Empty vs. null handling must be intentional and consistent between create,
+  read, and update.
+- Diff suppression (`DiffSuppressFunc`) and normalization should be reviewed
+  for correctness whenever schema is touched.
+
+## CRUD Behavior
+
+- Update paths must not accidentally force resource replacement or wipe
+  optional fields that the user did not change.
+- Nil-check API response fields before dereferencing.
+- Classify errors: 404 from GitHub typically means "remove from state" in
+  read; other errors should bubble up.
+- Respect `context.Context` cancellation and any configured timeouts.
+
+## Repository-Specific: No Read-After-Write
+
+**Do not flag** create or update functions that return `nil` instead of
+calling the resource's read function. This is intentional in this provider to
+minimize API calls against GitHub rate limits and to avoid stale reads from
+eventually-consistent endpoints. See
+[#2892](https://github.com/integrations/terraform-provider-github/issues/2892).
+
+## API Safety and Performance
+
+- Flag new N+1 access patterns over GitHub APIs.
+- Verify pagination is handled (`ListOptions` / `NextPage` loops) on any
+  endpoint that returns a list.
+- Check for rate-limit-sensitive loops; consider caching or batching where
+  appropriate.
+- Sensitive values must never appear in log output, even at debug/trace
+  level.
+
+## Security
+
+- Token, credential, and webhook secret handling must follow least
+  privilege.
+- New API calls should document the GitHub permission scope they require.
+- Do not hardcode secrets anywhere in source.
