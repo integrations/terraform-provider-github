@@ -13,8 +13,8 @@ Before judging Go code, anchor on the versions this repo actually uses.
 Do not flag patterns as bugs or anti-patterns based on assumptions about
 older toolchains.
 
-- **Go version: 1.24** (see `go 1.24.4` in `go.mod`). Treat anything
-  available in Go ≤ 1.24 as in-scope and idiomatic.
+- **Go version: 1.26** (see `go 1.26` in `go.mod`). Treat anything
+  available in Go ≤ 1.26 as in-scope and idiomatic.
 - **Loop variable scoping (Go 1.22+).** Each iteration of `for` loops has
   its own copy of the loop variable. Do **not** suggest the pre-1.22
   `x := x` shadowing pattern inside loops, and do **not** flag goroutines
@@ -55,7 +55,7 @@ single biggest cost to the project. Review feedback must respect that.
 - Report `MEDIUM`: missing test coverage for changed behavior, missing
   example for a new resource, missing docs update for a schema change,
   missing `Sensitive: true` on secret-bearing attributes, missing
-  `Description` on schema attributes, missing `ValidateFunc`/
+  `Description` on schema attributes, missing
   `ValidateDiagFunc` on bounded inputs, missing import docs.
 - **Do not report `LOW` findings or nits.** If the only thing you would
   say is `LOW`, say nothing.
@@ -81,9 +81,9 @@ least `MEDIUM` regardless of how small they look:
 
 - Secret-bearing attribute missing `Sensitive: true`.
 - Schema attribute missing `Description`.
-- Bounded input missing `ValidateFunc`/`ValidateDiagFunc`.
+- Bounded input missing `ValidateDiagFunc`.
 - New resource/data source without at least one example under
-  `examples/` or docs under `website/`.
+  `examples/` or docs under `docs/`.
 - Behavior change without a corresponding test change.
 - Resource that supports import but has no documented import ID format.
 
@@ -170,8 +170,9 @@ Use this background when judging schema, examples, or state changes.
 - Flag any behavior that may break existing state without migration
   notes/tests.
 - Watch for attribute rename/removal without a deprecation path.
-- New or changed attributes should include `ValidateFunc`/`ValidateDiagFunc`
+- New or changed attributes should include `ValidateDiagFunc`
   to catch invalid values at plan time rather than at apply time.
+  (`ValidateFunc` is deprecated and not allowed in this repo.)
 - All attributes should have a `Description` string.
 - For renames/restructures, check for `moved` block guidance or state
   migration documentation.
@@ -193,8 +194,8 @@ Use this background when judging schema, examples, or state changes.
 
 ### 5. Docs and Examples
 
-- If resource/data source behavior changed, review website docs updates under
-  `website/`.
+- If resource/data source behavior changed, review docs updates under
+  `docs/` and `templates/`.
 - If user workflow changed, review corresponding example updates under
   `examples/`.
 - Confirm examples still reflect current schema and argument names.

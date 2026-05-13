@@ -21,10 +21,32 @@ Flag all schema diffs and verify:
 - New attributes are `Optional` with a `Default` where reasonable to avoid
   forcing existing users to update their configs.
 - All attributes carry a `Description` string (used for docs generation).
-- Attributes accepting bounded values declare `ValidateFunc` or
-  `ValidateDiagFunc` so invalid input fails at plan time, not apply time.
+- Attributes accepting bounded values declare `ValidateDiagFunc` so
+  invalid input fails at plan time, not apply time. `ValidateFunc` is
+  deprecated and not allowed in this repo - do not suggest it.
 - Attributes holding tokens, secrets, or private keys are marked
   `Sensitive: true`.
+
+## Repository as a Required Argument
+
+When a resource accepts a repository name as a required argument, follow
+the provider's rename-safe convention so users can rename a repository
+without triggering a destroy/recreate cycle:
+
+- Name the attribute `repository` (not `repo`, not `repository_name`).
+- Do **not** mark `repository` as `ForceNew`, even when the underlying
+  resource needs to be recreated on most changes. The rename handling
+  below decides when replacement is actually required.
+- Add a `Computed` attribute called `repository_id` that holds the
+  GitHub repository's numeric ID.
+- Set `CustomizeDiff: diffRepository` on the resource (or include it via
+  `customdiff.All(...)` when multiple `CustomizeDiff` funcs are needed).
+  This compares the stored `repository_id` against the current ID for
+  the named repository and only forces replacement when the underlying
+  repository actually changed, not when it was merely renamed.
+
+Flag any new resource that takes a repository as required input but is
+missing this pattern.
 
 ## State and Drift
 
@@ -41,11 +63,20 @@ Flag all schema diffs and verify:
 
 ## CRUD Behavior
 
+- All CRUD functions (`Create`, `Read`, `Update`, `Delete`, and the
+  importer) must use their `*Context` variants
+  (`CreateContext`/`ReadContext`/`UpdateContext`/`DeleteContext` and
+  `StateContext` on importers) and return `diag.Diagnostics`. Flag any
+  new resource that uses the deprecated non-context variants.
 - Update paths must not accidentally force resource replacement or wipe
   optional fields that the user did not change.
 - Nil-check API response fields before dereferencing.
-- Classify errors: 404 from GitHub typically means "remove from state" in
-  read; other errors should bubble up.
+- Classify errors:
+  - In **Read**, a 404 from GitHub means "remove from state" - call
+    `d.SetId("")` and return nil. Other errors should bubble up.
+  - In **Delete**, a 404 from GitHub means the object is already gone -
+    treat it as success and return nil, not as an error.
+  - Other unexpected status codes should bubble up.
 - Respect `context.Context` cancellation and any configured timeouts.
 
 ## Repository-Specific: No Read-After-Write
