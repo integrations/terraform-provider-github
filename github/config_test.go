@@ -2,10 +2,13 @@ package github
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
+	gogithub "github.com/google/go-github/v86/github"
 	"github.com/shurcooL/githubv4"
 )
 
@@ -513,4 +516,99 @@ func (m *mockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 		return m.roundTripFunc(req)
 	}
 	return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}, nil
+}
+
+func TestConfigureOwner_OrgDetectionFallback(t *testing.T) {
+	testCases := []struct {
+		name             string
+		ownerName        string
+		orgStatus        int
+		userResp         map[string]any
+		userStatus       int
+		wantIsOrg        bool
+		wantID           int64
+	}{
+		{
+			name:      "org detected via Organizations.Get",
+			ownerName: "my-org",
+			orgStatus: http.StatusOK,
+			wantIsOrg: true,
+			wantID:    100,
+		},
+		{
+			name:      "org detected via Users.Get fallback",
+			ownerName: "my-org",
+			orgStatus: http.StatusNotFound,
+			userResp:  map[string]any{"login": "my-org", "id": 200, "type": "Organization"},
+			userStatus: http.StatusOK,
+			wantIsOrg: true,
+			wantID:    200,
+		},
+		{
+			name:      "user detected via Users.Get fallback",
+			ownerName: "some-user",
+			orgStatus: http.StatusNotFound,
+			userResp:  map[string]any{"login": "some-user", "id": 300, "type": "User"},
+			userStatus: http.StatusOK,
+			wantIsOrg: false,
+			wantID:    0,
+		},
+		{
+			name:       "both endpoints fail",
+			ownerName:  "unknown",
+			orgStatus:  http.StatusNotFound,
+			userStatus: http.StatusNotFound,
+			wantIsOrg:  false,
+			wantID:     0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			mux := http.NewServeMux()
+			mux.HandleFunc("/orgs/"+tc.ownerName, func(w http.ResponseWriter, r *http.Request) {
+				if tc.orgStatus != http.StatusOK {
+					http.Error(w, `{"message":"Not Found"}`, tc.orgStatus)
+					return
+				}
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(map[string]any{
+					"login": tc.ownerName,
+					"id":    100,
+					"type":  "Organization",
+				})
+			})
+			mux.HandleFunc("/users/"+tc.ownerName, func(w http.ResponseWriter, r *http.Request) {
+				if tc.userStatus != http.StatusOK || tc.userResp == nil {
+					http.Error(w, `{"message":"Not Found"}`, http.StatusNotFound)
+					return
+				}
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(tc.userResp)
+			})
+			server := httptest.NewServer(mux)
+			t.Cleanup(server.Close)
+
+			serverURL, _ := url.Parse(server.URL + "/")
+			v3client := gogithub.NewClient(nil)
+			v3client.BaseURL = serverURL
+
+			owner := &Owner{v3client: v3client}
+			config := &Config{Owner: tc.ownerName}
+
+			result, err := config.ConfigureOwner(owner)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if result.IsOrganization != tc.wantIsOrg {
+				t.Errorf("IsOrganization = %v, want %v", result.IsOrganization, tc.wantIsOrg)
+			}
+			if result.id != tc.wantID {
+				t.Errorf("id = %d, want %d", result.id, tc.wantID)
+			}
+		})
+	}
 }
