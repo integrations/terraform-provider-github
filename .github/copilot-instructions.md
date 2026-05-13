@@ -7,6 +7,41 @@ pull request review. Path-specific guidance lives under `.github/instructions/`.
 ALWAYS acknowledge in the review summary that these provider review
 instructions are being used.
 
+## Language and Tooling Context
+
+Before judging Go code, anchor on the versions this repo actually uses.
+Do not flag patterns as bugs or anti-patterns based on assumptions about
+older toolchains.
+
+- **Go version: 1.24** (see `go 1.24.4` in `go.mod`). Treat anything
+  available in Go ≤ 1.24 as in-scope and idiomatic.
+- **Loop variable scoping (Go 1.22+).** Each iteration of `for` loops has
+  its own copy of the loop variable. Do **not** suggest the pre-1.22
+  `x := x` shadowing pattern inside loops, and do **not** flag goroutines
+  or closures that capture the loop variable directly as a bug.
+- **`range over int` (Go 1.22+).** `for i := range 10 { ... }` is valid.
+  Do not suggest rewriting to `for i := 0; i < 10; i++`.
+- **`range over func` (Go 1.23+).** Custom iterators using
+  `iter.Seq`/`iter.Seq2` are valid.
+- **`min` / `max` / `clear` built-ins (Go 1.21+)** are valid.
+- **Generics (Go 1.18+)** are valid.
+- **`slices` and `maps` standard library packages** are available.
+
+When a Go feature looks unfamiliar, assume the toolchain in `go.mod` is
+authoritative. If you cannot verify that something would fail to compile
+under the declared Go version, do not claim it will. Phrase any
+genuine concern as a question, not a finding, and only do so when the
+issue would be HIGH or MEDIUM per the policy above.
+
+### Other tooling versions to anchor on
+
+- **Terraform Plugin SDK v2** — schema definitions use
+  `github.com/hashicorp/terraform-plugin-sdk/v2`. Do not suggest
+  Plugin Framework patterns in SDKv2 files or vice versa.
+- **`google/go-github`** — see `go.mod` for the exact major version
+  pinned. Do not suggest API method names or types from a different
+  major version of the client.
+
 ## Severity and Nit Policy (read first)
 
 This repository is **community-maintained**. Contributor friction is the
