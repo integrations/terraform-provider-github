@@ -296,6 +296,7 @@ func Provider() *schema.Provider {
 			"github_tree":                                                           dataSourceGithubTree(),
 			"github_user":                                                           dataSourceGithubUser(),
 			"github_user_external_identity":                                         dataSourceGithubUserExternalIdentity(),
+			"github_user_external_identity_by_saml":                                 dataSourceGithubUserExternalIdentityBySaml(),
 			"github_users":                                                          dataSourceGithubUsers(),
 			"github_enterprise":                                                     dataSourceGithubEnterprise(),
 			"github_repository_environment_deployment_policies":                     dataSourceGithubRepositoryEnvironmentDeploymentPolicies(),
