@@ -27,6 +27,28 @@ checklist in `.github/copilot-instructions.md`.
 - Avoid hardcoded secrets or tokens in test files; use environment variables
   or test helpers.
 
+## terraform-plugin-testing Conventions
+
+Tests in this repo use
+[`github.com/hashicorp/terraform-plugin-testing`](https://pkg.go.dev/github.com/hashicorp/terraform-plugin-testing)
+and follow its modern conventions. Hold new and changed tests to these
+patterns:
+
+- Prefer `ConfigStateChecks` (state-check functions from the
+  `statecheck` package) over the older `Check` /
+  `resource.ComposeTestCheckFunc` pattern. Flag new `TestStep`s that
+  use `Check` with the legacy `resource.TestCheckResourceAttr*` helpers
+  when an equivalent `statecheck` exists.
+- For comparing values across steps (e.g. to assert a value did or did
+  not change between Apply runs), use
+  [`ValueComparers`](https://developer.hashicorp.com/terraform/plugin/testing/acceptance-tests/value-comparers)
+  via `compare.ValuesSame` / `compare.ValuesDiffer` instead of the older
+  pattern of stashing pointers to attribute values in custom structs and
+  comparing them by hand.
+- Existing tests using the legacy `Check` pattern do not need to be
+  rewritten as part of an unrelated change. Only flag the legacy pattern
+  in new tests, or in tests that are being substantially modified.
+
 ## When Reviewing Test Changes
 
 - If a test was deleted or weakened, explain why in the report and flag as
