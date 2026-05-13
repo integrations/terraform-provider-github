@@ -7,6 +7,59 @@ pull request review. Path-specific guidance lives under `.github/instructions/`.
 ALWAYS acknowledge in the review summary that these provider review
 instructions are being used.
 
+## Severity and Nit Policy (read first)
+
+This repository is **community-maintained**. Contributor friction is the
+single biggest cost to the project. Review feedback must respect that.
+
+### Only report HIGH and MEDIUM findings
+
+- Report `HIGH`: correctness bugs, regressions, breaking schema/state
+  changes without migration, security issues, secret leakage, panics,
+  data loss risks.
+- Report `MEDIUM`: missing test coverage for changed behavior, missing
+  example for a new resource, missing docs update for a schema change,
+  missing `Sensitive: true` on secret-bearing attributes, missing
+  `Description` on schema attributes, missing `ValidateFunc`/
+  `ValidateDiagFunc` on bounded inputs, missing import docs.
+- **Do not report `LOW` findings or nits.** If the only thing you would
+  say is `LOW`, say nothing.
+
+### Do NOT comment on (defer to linters / human reviewers)
+
+- Code formatting, whitespace, import ordering, line length.
+- Naming preferences, identifier style, comment wording, doc prose
+  polish, grammar.
+- "Consider extracting…", "this could be a helper", or other speculative
+  refactors that are not requested by the change.
+- Style of existing surrounding code the PR did not touch.
+- Adding comments, docstrings, or type hints to code the PR did not
+  change.
+- Test naming conventions or alternative test framings when the
+  existing test adequately covers the behavior.
+- Hypothetical errors that cannot occur given the call sites.
+
+### Always report even if it looks like a nit
+
+These items affect end-user Terraform behavior and must be flagged as at
+least `MEDIUM` regardless of how small they look:
+
+- Secret-bearing attribute missing `Sensitive: true`.
+- Schema attribute missing `Description`.
+- Bounded input missing `ValidateFunc`/`ValidateDiagFunc`.
+- New resource/data source without at least one example under
+  `examples/` or docs under `website/`.
+- Behavior change without a corresponding test change.
+- Resource that supports import but has no documented import ID format.
+
+### Output discipline
+
+- If there are no HIGH or MEDIUM findings, the review must say
+  `No blocking findings found` and stop. Do not pad with low-value
+  observations.
+- Keep each finding to its impact, file reference, and a concise fix.
+  Do not lecture, restate the diff, or suggest unrelated improvements.
+
 ## Review Goals
 
 - Find correctness bugs, regressions, and provider behavior changes.
@@ -143,18 +196,20 @@ Use this background when judging schema, examples, or state changes.
 
 ## Review Report Format
 
-Return findings first, ordered by severity:
+Return findings first, HIGH before MEDIUM (no LOW — see Severity and Nit
+Policy above):
 
-1. `HIGH`/`MEDIUM`/`LOW` title — short impact statement
+1. `HIGH`/`MEDIUM` title — short impact statement
 2. File reference: `path/to/file.go:line`
 3. Why this is a problem (runtime behavior, Terraform UX, upgrade risk)
 4. Suggested fix (concise)
 
 Then include:
 
-- `Open Questions / Assumptions`
-- `Residual Risk`
+- `Open Questions / Assumptions` (only if non-trivial)
+- `Residual Risk` (only if non-trivial)
 - `Change Summary` (brief)
 
-If no issues are found, explicitly state `No blocking findings found` and list
-remaining risk areas.
+If no HIGH or MEDIUM findings exist, state `No blocking findings found`
+and stop. Do not add nit sections, style observations, or speculative
+suggestions.
