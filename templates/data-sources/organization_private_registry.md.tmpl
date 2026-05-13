@@ -1,0 +1,42 @@
+---
+page_title: "github_organization_private_registry (Data Source) - GitHub"
+description: |-
+  Retrieves information about a specific organization private registry.
+---
+
+# github_organization_private_registry (Data Source)
+
+Use this data source to retrieve information about a specific organization private registry.
+
+## Example Usage
+
+{{ tffile "examples/data-sources/github_organization_private_registry/data-source.tf" }}
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `name` - (Required) The name of the private registry.
+
+## Attributes Reference
+
+- `id` - The ID of the private registry.
+- `registry_type` - The registry type. Can be `maven_repository`, `nuget_feed`, `goproxy_server`, `npm_registry`, `rubygems_server`, `cargo_registry`, `composer_repository`, `docker_registry`, `git_source`, `helm_registry`, `pub_repository`, `python_index`, or `terraform_registry`.
+- `visibility` - Configures the access that repositories have to the organization private registry. Must be one of `all`, `private`, or `selected`.
+- `auth_type` - The authentication type for the private registry. Can be `token`, `username_password`, `oidc_azure`, `oidc_aws`, or `oidc_jfrog`.
+- `url` - The URL of the private registry.
+- `username` - The username to use when authenticating with the private registry.
+- `replaces_base` - Whether this registry replaces a base registry.
+- `selected_repository_ids` - An array of repository IDs that can access the organization private registry.
+- `created_at` - Timestamp of when the private registry was created.
+- `updated_at` - Timestamp of when the private registry was last updated.
+- `oidc_audience` - The OIDC audience.
+- `oidc_azure_tenant_id` - The Azure tenant ID.
+- `oidc_azure_client_id` - The Azure client ID.
+- `oidc_aws_account_id` - The AWS account ID.
+- `oidc_aws_region` - The AWS region.
+- `oidc_aws_role_name` - The AWS role name.
+- `oidc_aws_domain` - The AWS domain.
+- `oidc_aws_domain_owner` - The AWS domain owner.
+- `oidc_jfrog_provider_name` - The JFrog provider name.
+- `oidc_jfrog_identity_mapping_name` - The JFrog identity mapping name.
