@@ -468,7 +468,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 
 		_maxPerPage := d.Get("max_per_page").(int)
 		if _maxPerPage <= 0 {
-			return nil, diag.Errorf("max_per_page must be greater than than 0")
+			return nil, diag.Errorf("max_per_page must be greater than 0")
 		}
 		log.Printf("[DEBUG] Setting max_per_page to %d", _maxPerPage)
 		maxPerPage = _maxPerPage
