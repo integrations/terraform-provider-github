@@ -52,6 +52,12 @@ lintcheck:
 	@echo "==> Checking source code against linters..."
 	golangci-lint run ./...
 
+# Checks all code against the strict rules. This is expected to fail until all issues have been fixed, but it allows us to track progress on fixing the issues and ensures that no new issues are introduced.
+lintcheck-strict: .golangci.new.yml
+	@branch=$$(git rev-parse --abbrev-ref HEAD); \
+	printf "==> Checking source code against strict linters on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
+	golangci-lint run ./... --config .golangci.new.yml
+
 lintcheck-new: .golangci.new.yml
 	@branch=$$(git rev-parse --abbrev-ref HEAD); \
 	printf "==> Checking changed source code against linters on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
@@ -105,4 +111,4 @@ mdfmt:
 mdlint:
 	@rumdl check $(RUMDL_ARGS) .
 
-.PHONY: build test testacc fmt lint lintcheck lintcheck-new tools sweep generatedocs validatedocs fmtdocs lintdocs checkdocs yamlfmt mdfmt mdlint
+.PHONY: build test testacc fmt lint lintcheck lintcheck-strict lintcheck-new tools sweep generatedocs validatedocs fmtdocs lintdocs checkdocs yamlfmt mdfmt mdlint
