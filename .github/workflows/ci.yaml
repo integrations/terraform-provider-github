@@ -33,7 +33,6 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - run: make tools
       - run: make build -o lintcheck # Stop running `make lintcheck` before build. Linting is handled by a separate job
       - run: make test
 
