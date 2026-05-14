@@ -62,8 +62,6 @@ formatters:
     gofmt:
       simplify: true
       rewrite-rules:
-        - pattern: interface{}
-          replacement: any
         - pattern: skipUnlessMode(t, enterprise)
           replacement: skipUnlessEnterprise(t)
         - pattern: parseTwoPartID(a, b, c)
