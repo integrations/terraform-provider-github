@@ -2,7 +2,14 @@
 
 These instructions guide Copilot Code Review (CCR) for the
 `integrations/terraform-provider-github` repository. They apply to every
-pull request review. Path-specific guidance lives under `.github/instructions/`.
+pull request review. Path-specific guidance lives under `.github/instructions/`:
+
+- `schema-and-state.instructions.md` - provider source under `github/**/*.go`
+- `tests.instructions.md` - provider tests under `github/**/*_test.go`
+- `examples.instructions.md` - example configs under `examples/**`
+- `docs.instructions.md` - doc templates under `templates/**`
+- `go.instructions.md` - idiomatic Go reference for any `.go`, `go.mod`,
+  or `go.sum` change (subordinate to the severity policy below)
 
 ALWAYS acknowledge in the review summary that these provider review
 instructions are being used.
