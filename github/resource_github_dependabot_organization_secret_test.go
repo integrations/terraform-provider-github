@@ -1,7 +1,6 @@
 package github
 
 import (
-	"context"
 	"encoding/base64"
 	"fmt"
 	"regexp"
@@ -455,7 +454,7 @@ resource "github_dependabot_organization_secret" "test" {
 						}
 						client := meta.v3client
 						owner := meta.name
-						ctx := context.Background()
+						ctx := t.Context()
 
 						keyID, _, err := getOrganizationPublicKeyDetails(ctx, meta)
 						if err != nil {
@@ -533,7 +532,7 @@ resource "github_dependabot_organization_secret" "test" {
 						}
 						client := meta.v3client
 						owner := meta.name
-						ctx := context.Background()
+						ctx := t.Context()
 
 						keyID, _, err := getOrganizationPublicKeyDetails(ctx, meta)
 						if err != nil {

@@ -88,7 +88,7 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta any) err
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
-	repoName, idString, err := parseTwoPartID(d.Id(), "repository", "ID")
+	repoName, idString, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
@@ -142,7 +142,7 @@ func resourceGithubRepositoryDeployKeyDelete(d *schema.ResourceData, meta any) e
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
-	repoName, idString, err := parseTwoPartID(d.Id(), "repository", "ID")
+	repoName, idString, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}

@@ -119,7 +119,7 @@ func testAccCheckGithubMembershipDestroy(s *terraform.State) error {
 			continue
 		}
 
-		orgName, username, err := parseTwoPartID(rs.Primary.ID, "organization", "username")
+		orgName, username, err := parseID2(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
@@ -170,7 +170,7 @@ func testAccCheckGithubMembershipExists(ctx context.Context, n string, membershi
 		}
 		conn := meta.v3client
 
-		orgName, username, err := parseTwoPartID(rs.Primary.ID, "organization", "username")
+		orgName, username, err := parseID2(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
@@ -201,7 +201,7 @@ func testAccCheckGithubMembershipRoleState(ctx context.Context, n string, member
 		}
 		conn := meta.v3client
 
-		orgName, username, err := parseTwoPartID(rs.Primary.ID, "organization", "username")
+		orgName, username, err := parseID2(rs.Primary.ID)
 		if err != nil {
 			return err
 		}

@@ -96,7 +96,7 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta any
 func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
-	repoName, username, err := parseTwoPartID(d.Id(), "repository", "username")
+	repoName, username, err := parseID2(d.Id())
 	owner, repoNameWithoutOwner := parseRepoName(repoName, meta.(*Owner).name)
 	if err != nil {
 		return err
