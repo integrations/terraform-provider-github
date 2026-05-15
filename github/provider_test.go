@@ -167,7 +167,7 @@ data "github_ip_ranges" "test" {}
 
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() {
-				skipUnlessMode(t, enterprise)
+				skipUnlessEnterprise(t)
 				if testAccConf.baseURL.Host != "api.github.com" {
 					t.Skip("Skipping as test mode is not GHES")
 				}

@@ -36,7 +36,7 @@ func TestEtagTransport(t *testing.T) {
 	u, _ := url.Parse(ts.URL + "/")
 	client.BaseURL = u
 
-	ctx := context.WithValue(context.Background(), ctxEtag, "something")
+	ctx := context.WithValue(t.Context(), ctxEtag, "something")
 	r, _, err := client.Repositories.Get(ctx, "test", "blah")
 	if err != nil {
 		t.Fatal(err)
@@ -149,7 +149,7 @@ func TestRateLimitTransport_abuseLimit_get(t *testing.T) {
 	u, _ := url.Parse(ts.URL + "/")
 	client.BaseURL = u
 
-	ctx := context.WithValue(context.Background(), ctxId, t.Name())
+	ctx := context.WithValue(t.Context(), ctxId, t.Name())
 	r, _, err := client.Repositories.Get(ctx, "test", "blah")
 	if err != nil {
 		t.Fatal(err)
@@ -230,7 +230,7 @@ func TestRateLimitTransport_abuseLimit_post(t *testing.T) {
 	u, _ := url.Parse(ts.URL + "/")
 	client.BaseURL = u
 
-	ctx := context.WithValue(context.Background(), ctxId, t.Name())
+	ctx := context.WithValue(t.Context(), ctxId, t.Name())
 	r, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
 		Name:        new("radek-example-48"),
 		Description: new(""),
@@ -290,7 +290,7 @@ func TestRateLimitTransport_abuseLimit_post_error(t *testing.T) {
 	u, _ := url.Parse(ts.URL + "/")
 	client.BaseURL = u
 
-	ctx := context.WithValue(context.Background(), ctxId, t.Name())
+	ctx := context.WithValue(t.Context(), ctxId, t.Name())
 	_, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
 		Name:        new("radek-example-48"),
 		Description: new(""),
@@ -423,7 +423,7 @@ func TestRetryTransport_retry_post_error(t *testing.T) {
 	u, _ := url.Parse(ts.URL + "/")
 	client.BaseURL = u
 
-	ctx := context.WithValue(context.Background(), ctxId, t.Name())
+	ctx := context.WithValue(t.Context(), ctxId, t.Name())
 	_, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
 		Name:        new("radek-example-48"),
 		Description: new(""),
@@ -486,7 +486,7 @@ func TestRetryTransport_retry_post_success(t *testing.T) {
 	u, _ := url.Parse(ts.URL + "/")
 	client.BaseURL = u
 
-	ctx := context.WithValue(context.Background(), ctxId, t.Name())
+	ctx := context.WithValue(t.Context(), ctxId, t.Name())
 	_, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
 		Name:        new("radek-example-48"),
 		Description: new(""),
