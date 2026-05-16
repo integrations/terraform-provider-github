@@ -38,7 +38,7 @@ fmt:
 	@echo "==> Fixing source code formatting..."
 	golangci-lint fmt ./...
 
-# Merges the rules in .golangci.yml and .golangci.strict.yml into a new file .golangci.new.yml, which is used for checking only new code. 
+# Merges the rules in .golangci.yml and .golangci.strict.yml into a new file .golangci.new.yml, which is used for checking only new code.
 # This allows us to start enforcing new linting rules on new code without having to fix all existing issues in the codebase at once.
 # Only executes if either of the source files has changed, to avoid unnecessary work.
 .golangci.new.yml: .golangci.yml .golangci.strict.yml
