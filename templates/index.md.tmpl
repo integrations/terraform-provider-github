@@ -28,11 +28,12 @@ Terraform 0.12 and earlier:
 
 ## Authentication
 
-The GitHub provider offers multiple ways to authenticate with GitHub API.
+The GitHub provider offers multiple ways to authenticate with GitHub API. It uses the following authentication fallback chain (first match wins):
 
-### GitHub CLI
-
-The GitHub provider taps into [GitHub CLI](https://cli.github.com/) authentication, where it picks up the token issued by [`gh auth login`](https://cli.github.com/manual/gh_auth_login) command. It is possible to specify the path to the `gh` executable in the `GH_PATH` environment variable, which is useful for when the GitHub Terraform provider can not properly determine its the path to GitHub CLI such as in the cygwin terminal.
+1. [**Explicit Token**](#oauth--personal-access-token) — `token` argument or `GITHUB_TOKEN` environment variable
+2. [**GitHub App Installation**](#github-app-installation) — `app_auth` block with `id`, `installation_id`, and `pem_file`
+3. [**GitHub CLI**](#github-cli-authentication) — Falls back to `gh auth token` if neither token nor app_auth is set
+4. **Anonymous** — Read-only access when no credentials are available
 
 ### OAuth / Personal Access Token
 
@@ -52,11 +53,21 @@ Some API operations may not be available when using a GitHub App installation co
 
 {{ tffile "examples/example_5.tf" }}
 
+### GitHub CLI Authentication
+
+When using the GitHub CLI authentication fallback, you can optionally specify the path to the `gh` executable using the `GH_PATH` environment variable. This is useful when the provider cannot properly determine the path to GitHub CLI, such as in cygwin terminals. If not specified, the provider looks for `gh` in your system PATH.
+
+#### .env
+{{ codefile "shell" "examples/provider/gh_auth/.env" }}
+
+#### main.tf
+{{ tffile "examples/provider/gh_auth/main.tf" }}
+
 ## Argument Reference
 
 The following arguments are supported in the `provider` block:
 
-- `token` - (Optional) A GitHub OAuth / Personal Access Token. When not provided or made available via the `GITHUB_TOKEN` environment variable, the provider can only access resources available anonymously.
+- `token` - (Optional) A GitHub OAuth / Personal Access Token. When not provided or made available via the `GITHUB_TOKEN` environment variable, the provider will attempt to use `gh auth token` (GitHub CLI). If that is also not available, the provider falls back to anonymous access.
 
 - `base_url` - (Optional) This is the target GitHub base API endpoint. Providing a value is a requirement when working with GitHub Enterprise. It is optional to provide this value and it can also be sourced from the `GITHUB_BASE_URL` environment variable. The value must end with a slash, for example: `https://terraformtesting-ghe.westus.cloudapp.azure.com/`
 
@@ -64,7 +75,7 @@ The following arguments are supported in the `provider` block:
 
 - `organization` - (Deprecated) This behaves the same as `owner`, which should be used instead. This value can also be sourced from the `GITHUB_ORGANIZATION` environment variable.
 
-- `app_auth` - (Optional) Configuration block to use GitHub App installation token. When not provided, the provider can only access resources available anonymously.
+- `app_auth` - (Optional) Configuration block to use GitHub App installation token. When not provided, the provider will attempt to use a token from the `token` argument or environment variable, then fall back to `gh auth token` (GitHub CLI), and finally to anonymous access.
   - `id` - (Required) This is the ID of the GitHub App. It can sourced from the `GITHUB_APP_ID` environment variable.
   - `installation_id` - (Required) This is the ID of the GitHub App installation. It can sourced from the `GITHUB_APP_INSTALLATION_ID` environment variable.
   - `pem_file` - (Required) This is the contents of the GitHub App private key PEM file. It can also be sourced from the `GITHUB_APP_PEM_FILE` environment variable and may use `\n` instead of actual new lines.
