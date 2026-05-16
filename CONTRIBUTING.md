@@ -13,7 +13,7 @@ Before submitting an issue or a pull request, please search the repository for e
 1. Fork and clone the repository.
 2. Create a new branch: `git switch -c my-branch-name`.
 3. Make your change, add tests, and make sure the tests still pass.
-4. Make sure the documentation has been updated, and run `make generatedocs`.
+4. Make sure the [documentation has been updated](#documentation-update-checklist)
 5. Ensure formatting and linting are passing. (`make fmt` and `make lint` can be used to check this locally.)
 6. Push to your fork and submit a pull request.
 7. Pat yourself on the back and wait for your pull request to be reviewed and merged.
@@ -25,6 +25,20 @@ Here are a few things you can do that will increase the likelihood of your pull 
 - Write tests.
 - Keep your change as focused as possible. If there are multiple changes you would like to make that are not dependent upon each other, please submit them as separate pull requests.
 - Write a [good commit message](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html).
+
+## Documentation Update Checklist
+
+When your change impacts a resource, data source, or provider behavior, make sure documentation changes include all of the following:
+
+1. Ensure `Description` fields in Resource/Data Source schemas are up to date.
+2. Update the relevant template files when needed (for example, `templates/data-sources/users.md.tmpl`).
+3. Update `examples/**` where necessary.
+   - Always add at least one example for any new resource or data source.
+   - Ensure changed fields are reflected in examples.
+   - Ensure complex fields (such as List, Set, and Map fields) have examples.
+   - Ensure all examples are valid Terraform configuration.
+4. Regenerate docs with `make generatedocs`.
+5. Review generated output and confirm it matches expected behavior and schema.
 
 ## Quick End-To-End Example
 
