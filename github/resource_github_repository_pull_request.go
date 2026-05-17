@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v86/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -328,7 +328,7 @@ func resourceGithubRepositoryPullRequestDelete(d *schema.ResourceData, meta any)
 func parsePullRequestID(d *schema.ResourceData) (owner, repository string, number int, err error) {
 	var strNumber string
 
-	if owner, repository, strNumber, err = parseThreePartID(d.Id(), "owner", "base_repository", "number"); err != nil {
+	if owner, repository, strNumber, err = parseID3(d.Id()); err != nil {
 		return owner, repository, number, err
 	}
 

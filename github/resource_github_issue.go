@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v86/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -133,7 +133,7 @@ func resourceGithubIssueCreateOrUpdate(d *schema.ResourceData, meta any) error {
 
 func resourceGithubIssueRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
-	repoName, idNumber, err := parseTwoPartID(d.Id(), "repository", "issue_number")
+	repoName, idNumber, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}

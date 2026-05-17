@@ -6,7 +6,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v86/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -70,7 +70,7 @@ func resourceGithubOrganizationRoleUserRead(ctx context.Context, d *schema.Resou
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 
-	roleIdString, login, err := parseTwoPartID(d.Id(), "role_id", "login")
+	roleIdString, login, err := parseID2(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}

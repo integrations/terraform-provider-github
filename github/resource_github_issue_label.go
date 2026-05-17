@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v86/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -93,7 +93,7 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta any) er
 		originalName = name
 	} else {
 		var err error
-		_, originalName, err = parseTwoPartID(d.Id(), "repository", "name")
+		_, originalName, err = parseID2(d.Id())
 		if err != nil {
 			return err
 		}
@@ -115,7 +115,7 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta any) er
 			originalName = name
 		} else {
 			var err error
-			_, originalName, err = parseTwoPartID(d.Id(), "repository", "name")
+			_, originalName, err = parseID2(d.Id())
 			if err != nil {
 				return err
 			}
@@ -145,7 +145,7 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta any) er
 
 func resourceGithubIssueLabelRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
-	repoName, name, err := parseTwoPartID(d.Id(), "repository", "name")
+	repoName, name, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}

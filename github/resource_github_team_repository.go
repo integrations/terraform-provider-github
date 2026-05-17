@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v86/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -22,7 +22,7 @@ func resourceGithubTeamRepository() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
 				meta := m.(*Owner)
-				teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
+				teamIdString, username, err := parseID2(d.Id())
 				if err != nil {
 					return nil, err
 				}
@@ -114,7 +114,7 @@ func resourceGithubTeamRepositoryRead(ctx context.Context, d *schema.ResourceDat
 		return diag.FromErr(err)
 	}
 
-	teamIdString, repoName, err := parseTwoPartID(d.Id(), "team_id", "repository")
+	teamIdString, repoName, err := parseID2(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -173,7 +173,7 @@ func resourceGithubTeamRepositoryUpdate(ctx context.Context, d *schema.ResourceD
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 
-	teamIdString, repoName, err := parseTwoPartID(d.Id(), "team_id", "repository")
+	teamIdString, repoName, err := parseID2(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -211,7 +211,7 @@ func resourceGithubTeamRepositoryDelete(ctx context.Context, d *schema.ResourceD
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
 
-	teamIdString, repoName, err := parseTwoPartID(d.Id(), "team_id", "repository")
+	teamIdString, repoName, err := parseID2(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}

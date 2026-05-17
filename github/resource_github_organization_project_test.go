@@ -7,7 +7,7 @@ package github
 // 	"strings"
 // 	"testing"
 
-// 	"github.com/google/go-github/v84/github"
+// 	"github.com/google/go-github/v86/github"
 // 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 // 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 // )
@@ -68,7 +68,7 @@ package github
 // 			return err
 // 		}
 
-// 		project, res, err := conn.Projects.GetProject(context.Background(), projectID)
+// 		project, res, err := conn.Projects.GetProject(t.Context(), projectID)
 // 		if err == nil {
 // 			if project != nil &&
 // 				project.GetID() == projectID {
@@ -101,7 +101,7 @@ package github
 // 		}
 // 		conn := meta.v3client
 
-// 		gotProject, _, err := conn.Projects.GetProject(context.Background(), projectID)
+// 		gotProject, _, err := conn.Projects.GetProject(t.Context(), projectID)
 // 		if err != nil {
 // 			return err
 // 		}
