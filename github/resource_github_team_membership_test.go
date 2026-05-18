@@ -97,7 +97,7 @@ func testAccCheckGithubTeamMembershipDestroy(s *terraform.State) error {
 			continue
 		}
 
-		teamIdString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
+		teamIdString, username, err := parseID2(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
@@ -139,7 +139,7 @@ func testAccCheckGithubTeamMembershipExists(ctx context.Context, n string, membe
 		}
 		conn := meta.v3client
 		orgId := meta.id
-		teamIdString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
+		teamIdString, username, err := parseID2(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
@@ -175,7 +175,7 @@ func testAccCheckGithubTeamMembershipRoleState(ctx context.Context, n, expected 
 		}
 		conn := meta.v3client
 		orgId := meta.id
-		teamIdString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
+		teamIdString, username, err := parseID2(rs.Primary.ID)
 		if err != nil {
 			return err
 		}

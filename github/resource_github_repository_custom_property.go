@@ -90,7 +90,7 @@ func resourceGithubRepositoryCustomPropertyRead(d *schema.ResourceData, meta any
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
-	owner, repoName, propertyName, err := parseThreePartID(d.Id(), "owner", "repoName", "propertyName")
+	owner, repoName, propertyName, err := parseID3(d.Id())
 	if err != nil {
 		return err
 	}
@@ -117,7 +117,7 @@ func resourceGithubRepositoryCustomPropertyDelete(d *schema.ResourceData, meta a
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
-	owner, repoName, propertyName, err := parseThreePartID(d.Id(), "owner", "repoName", "propertyName")
+	owner, repoName, propertyName, err := parseID3(d.Id())
 	if err != nil {
 		return err
 	}

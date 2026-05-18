@@ -112,7 +112,7 @@ func resourceGithubCodespacesSecretRead(d *schema.ResourceData, meta any) error 
 	owner := meta.(*Owner).name
 	ctx := context.Background()
 
-	repoName, secretName, err := parseTwoPartID(d.Id(), "repository", "secret_name")
+	repoName, secretName, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
@@ -173,7 +173,7 @@ func resourceGithubCodespacesSecretDelete(d *schema.ResourceData, meta any) erro
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	repoName, secretName, err := parseTwoPartID(d.Id(), "repository", "secret_name")
+	repoName, secretName, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
@@ -196,7 +196,7 @@ func resourceGithubCodespacesSecretImport(d *schema.ResourceData, meta any) ([]*
 
 	d.SetId(buildTwoPartID(parts[0], parts[1]))
 
-	repoName, secretName, err := parseTwoPartID(d.Id(), "repository", "secret_name")
+	repoName, secretName, err := parseID2(d.Id())
 	if err != nil {
 		return nil, err
 	}

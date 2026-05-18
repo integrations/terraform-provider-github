@@ -122,7 +122,7 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta any) error {
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	repoName, branchName, err := parseTwoPartID(d.Id(), "repository", "branch")
+	repoName, branchName, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
@@ -171,7 +171,7 @@ func resourceGithubBranchDelete(d *schema.ResourceData, meta any) error {
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	repoName, branchName, err := parseTwoPartID(d.Id(), "repository", "branch")
+	repoName, branchName, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
@@ -194,7 +194,7 @@ func resourceGithubBranchUpdate(d *schema.ResourceData, meta any) error {
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	repoName, oldBranchName, err := parseTwoPartID(d.Id(), "repository", "branch")
+	repoName, oldBranchName, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
@@ -210,14 +210,14 @@ func resourceGithubBranchUpdate(d *schema.ResourceData, meta any) error {
 }
 
 func resourceGithubBranchImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	repoName, branchName, err := parseTwoPartID(d.Id(), "repository", "branch")
+	repoName, branchName, err := parseID2(d.Id())
 	if err != nil {
 		return nil, err
 	}
 
 	sourceBranch := "main"
 	if strings.Contains(branchName, ":") {
-		branchName, sourceBranch, err = parseTwoPartID(branchName, "branch", "source_branch")
+		branchName, sourceBranch, err = parseID2(branchName)
 		if err != nil {
 			return nil, err
 		}
