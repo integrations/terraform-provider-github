@@ -220,6 +220,7 @@ func Provider() *schema.Provider {
 			"github_actions_organization_workflow_permissions":                      resourceGithubActionsOrganizationWorkflowPermissions(),
 			"github_enterprise_security_analysis_settings":                          resourceGithubEnterpriseSecurityAnalysisSettings(),
 			"github_workflow_repository_permissions":                                resourceGithubWorkflowRepositoryPermissions(),
+			"github_enterprise_custom_properties":                                   resourceGithubEnterpriseCustomProperties(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
@@ -297,6 +298,7 @@ func Provider() *schema.Provider {
 			"github_user_external_identity":                                         dataSourceGithubUserExternalIdentity(),
 			"github_users":                                                          dataSourceGithubUsers(),
 			"github_enterprise":                                                     dataSourceGithubEnterprise(),
+			"github_enterprise_custom_properties":                                   dataSourceGithubEnterpriseCustomProperties(),
 			"github_repository_environment_deployment_policies":                     dataSourceGithubRepositoryEnvironmentDeploymentPolicies(),
 		},
 	}
