@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/google/go-github/v86/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -25,10 +26,20 @@ func resourceGithubMembership() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"username": {
 				Type:             schema.TypeString,
-				Required:         true,
+				Optional:         true,
+				Computed:         true,
 				ForceNew:         true,
 				DiffSuppressFunc: caseInsensitive(),
-				Description:      "The user to add to the organization.",
+				ExactlyOneOf:     []string{"username", "user_id"},
+				Description:      "The user (login) to add to the organization. Exactly one of `username` or `user_id` must be set.",
+			},
+			"user_id": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Computed:     true,
+				ForceNew:     true,
+				ExactlyOneOf: []string{"username", "user_id"},
+				Description:  "The GitHub numeric user ID to add to the organization. Stable across username changes; recommended over `username` for production usage. Exactly one of `username` or `user_id` must be set.",
 			},
 			"role": {
 				Type:             schema.TypeString,
@@ -58,13 +69,18 @@ func resourceGithubMembershipCreateOrUpdate(ctx context.Context, d *schema.Resou
 	}
 
 	client := meta.(*Owner).v3client
-
 	orgName := meta.(*Owner).name
-	username := d.Get("username").(string)
-	roleName := d.Get("role").(string)
+
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxId, d.Id())
 	}
+
+	username, userID, err := resolveMembershipIdentity(ctx, client, d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	roleName := d.Get("role").(string)
 
 	_, resp, err := client.Organizations.EditOrgMembership(ctx,
 		username,
@@ -77,8 +93,14 @@ func resourceGithubMembershipCreateOrUpdate(ctx context.Context, d *schema.Resou
 		return diag.FromErr(err)
 	}
 
-	d.SetId(buildTwoPartID(orgName, username))
+	d.SetId(buildTwoPartID(orgName, strconv.FormatInt(userID, 10)))
 
+	if err = d.Set("username", username); err != nil {
+		return diag.FromErr(err)
+	}
+	if err = d.Set("user_id", userID); err != nil {
+		return diag.FromErr(err)
+	}
 	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
 		return diag.FromErr(err)
 	}
@@ -93,19 +115,38 @@ func resourceGithubMembershipRead(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	client := meta.(*Owner).v3client
-
 	orgName := meta.(*Owner).name
-	_, username, err := parseID2(d.Id())
+
+	orgPart, secondPart, err := parseID2(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
+	username, userID, err := loginAndIDFromIDPart(ctx, client, secondPart)
+	if err != nil {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, fmt.Sprintf("Removing membership %s from state because the user no longer exists in GitHub", d.Id()), map[string]any{
+				"membership_id": d.Id(),
+			})
+			d.SetId("")
+			return nil
+		}
+		return diag.FromErr(err)
+	}
+
+	// Lazily migrate legacy IDs of the form `org:username` to `org:user_id`.
+	// New resources are always created with the numeric form (see Create).
+	if secondPart != strconv.FormatInt(userID, 10) {
+		d.SetId(buildTwoPartID(orgPart, strconv.FormatInt(userID, 10)))
+	}
+
 	ctx = context.WithValue(ctx, ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	membership, resp, err := client.Organizations.GetOrgMembership(ctx,
-		username, orgName)
+	membership, resp, err := client.Organizations.GetOrgMembership(ctx, username, orgName)
 	if err != nil {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
@@ -129,6 +170,9 @@ func resourceGithubMembershipRead(ctx context.Context, d *schema.ResourceData, m
 	if err = d.Set("username", username); err != nil {
 		return diag.FromErr(err)
 	}
+	if err = d.Set("user_id", userID); err != nil {
+		return diag.FromErr(err)
+	}
 	if err = d.Set("role", membership.GetRole()); err != nil {
 		return diag.FromErr(err)
 	}
@@ -146,6 +190,8 @@ func resourceGithubMembershipDelete(ctx context.Context, d *schema.ResourceData,
 	orgName := meta.(*Owner).name
 	ctx = context.WithValue(ctx, ctxId, d.Id())
 
+	// Username in state is kept fresh by Read, so it reflects the user's
+	// current login even after a rename.
 	username := d.Get("username").(string)
 	downgradeOnDestroy := d.Get("downgrade_on_destroy").(bool)
 	downgradeTo := "member"
@@ -211,4 +257,45 @@ func resourceGithubMembershipDelete(ctx context.Context, d *schema.ResourceData,
 	}
 
 	return diag.FromErr(err)
+}
+
+// resolveMembershipIdentity returns the (login, numeric_id) pair for the
+// configured membership, regardless of whether the user supplied `username`
+// or `user_id`. The GitHub org membership endpoints only accept the login, so
+// when `user_id` is provided we must resolve it via GET /user/{id} first.
+func resolveMembershipIdentity(ctx context.Context, client *github.Client, d *schema.ResourceData) (string, int64, error) {
+	if v, ok := d.GetOk("user_id"); ok {
+		userID := int64(v.(int))
+		user, _, err := client.Users.GetByID(ctx, userID)
+		if err != nil {
+			return "", 0, err
+		}
+		return user.GetLogin(), user.GetID(), nil
+	}
+
+	username := d.Get("username").(string)
+	user, _, err := client.Users.Get(ctx, username)
+	if err != nil {
+		return "", 0, err
+	}
+	return user.GetLogin(), user.GetID(), nil
+}
+
+// loginAndIDFromIDPart resolves the (login, numeric_id) pair from the second
+// segment of a resource ID. New resources use `org:<numeric_id>`; legacy
+// resources use `org:<username>` and are migrated on the next Read.
+func loginAndIDFromIDPart(ctx context.Context, client *github.Client, idPart string) (string, int64, error) {
+	if userID, err := strconv.ParseInt(idPart, 10, 64); err == nil {
+		user, _, err := client.Users.GetByID(ctx, userID)
+		if err != nil {
+			return "", 0, err
+		}
+		return user.GetLogin(), user.GetID(), nil
+	}
+
+	user, _, err := client.Users.Get(ctx, idPart)
+	if err != nil {
+		return "", 0, err
+	}
+	return user.GetLogin(), user.GetID(), nil
 }
