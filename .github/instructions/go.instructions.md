@@ -1,6 +1,6 @@
 ---
-description: 'Instructions for writing Go code following idiomatic Go practices and community standards'
-applyTo: '**/*.go,**/go.mod,**/go.sum'
+description: "Instructions for writing Go code following idiomatic Go practices and community standards"
+applyTo: "**/*.go,**/go.mod,**/go.sum"
 ---
 
 # Go Development Instructions
@@ -57,7 +57,7 @@ Follow idiomatic Go practices and community standards when writing Go code. Thes
 - Avoid generic names like `util`, `common`, or `base`
 - Package names should be singular, not plural
 
-#### Package Declaration Rules (CRITICAL):
+#### Package Declaration Rules (CRITICAL)
 - **NEVER duplicate `package` declarations** - each Go file must have exactly ONE `package` line
 - When editing an existing `.go` file:
   - **PRESERVE** the existing `package` declaration - do not add another one
@@ -98,8 +98,9 @@ Follow idiomatic Go practices and community standards when writing Go code. Thes
 
 ### Formatting
 
-- Always use `gofmt` to format code
-- Use `goimports` to manage imports automatically
+- Use `gofumpt` to quickly format code
+- Use `goimports` to quickly manage imports automatically
+- Use `golangci-lint fmt` to do final formatting pass
 - Keep line length reasonable (no hard limit, but consider readability)
 - Add blank lines to separate logical groups of code
 
@@ -224,6 +225,12 @@ Follow idiomatic Go practices and community standards when writing Go code. Thes
 - Handle errors at the appropriate level
 - Consider using structured errors for better debugging
 
+## Telemetry
+
+### Logging
+
+- Log messages should be sentences.
+
 ## API Design
 
 ### HTTP Handlers
@@ -310,11 +317,14 @@ Follow idiomatic Go practices and community standards when writing Go code. Thes
 
 ### Writing Tests
 
+- Name tests descriptively
+  - Use `TestFunctionName_scenario` for exported functions
+  - Use `Test_functionName_scenario` for un-exported functions
+  - Use `_` to separate logical parts of the test name
 - Use table-driven tests for multiple test cases
-- Name tests descriptively using `Test_functionName_scenario`
 - Use subtests with `t.Run` for better organization
 - Test both success and error cases
-- Consider using `testify` or similar libraries when they add value, but don't over-complicate simple tests
+- Consider using `google/go-cmp` if needed, but don't over-complicate simple tests
 
 ### Test Helpers
 
