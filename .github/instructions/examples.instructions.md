@@ -15,16 +15,24 @@ expectations differ - apply the right set:
 1. **`tfplugindocs` examples** - the single-file snippets that get
    embedded into the auto-generated docs. These live under:
 
-   - `examples/provider/provider.tf`
-   - `examples/resources/<resource_name>/example_N.tf`
-     (plus optional `import.sh` for the import section)
-   - `examples/data-sources/<data_source_name>/example_N.tf`
+   - `examples/example_*.tf` - root-level snippets used by the provider
+     landing page (`templates/index.md.tmpl`). These are full,
+     standalone snippets and **do** declare a `terraform { required_providers }`
+     block and a `provider "github"` block, because the landing page
+     is the first thing users see.
+   - `examples/resources/<resource_name>/example_N.tf` - per-resource
+     snippets (plus optional `import.sh` for the import section).
+   - `examples/data-sources/<data_source_name>/example_N.tf` -
+     per-data-source snippets.
 
-   These are not standalone Terraform modules. They are intentionally
+   The per-resource and per-data-source snippets are intentionally
    minimal HCL fragments meant to be rendered inline by
    `tfplugindocs`. They should **not** carry their own
    `variables.tf`, `outputs.tf`, or `README.md`, and they should not
-   declare `required_providers` or a `provider` block.
+   declare `required_providers` or a `provider` block (those would
+   re-render in every resource and data-source doc page). The
+   provider landing-page snippets under `examples/example_*.tf` are
+   the deliberate exception.
 
 2. **Root-module examples** - standalone, runnable Terraform
    configurations that demonstrate a more complete workflow (for
@@ -64,10 +72,13 @@ or outputs.
 - Each root-module example should declare `required_providers` with a
   minimum version constraint (`>=`) for the `integrations/github`
   provider.
-- `tfplugindocs` examples (single-file snippets under
-  `examples/resources/<name>/` etc.) should **not** declare
+- `tfplugindocs` per-resource and per-data-source snippets (single-file
+  snippets under `examples/resources/<name>/` and
+  `examples/data-sources/<name>/`) should **not** declare
   `required_providers` or a `provider` block - they are rendered into
-  the docs as fragments.
+  the docs as fragments. The provider landing-page snippets under
+  `examples/example_*.tf` are the deliberate exception and do include
+  both.
 
 ## Coverage
 

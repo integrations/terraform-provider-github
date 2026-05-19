@@ -22,10 +22,16 @@ sources:
     `templates/data-sources/<name>.md.tmpl` - per-resource and
     per-data-source pages
 - **Example HCL** under `examples/`, organized as:
-  - `examples/provider/provider.tf`
-  - `examples/resources/<name>/*.tf`
-  - `examples/data-sources/<name>/*.tf`
-  - Per-resource `import.sh` files for the import section
+  - `examples/example_*.tf` - root-level snippets used by the provider
+    landing page (`templates/index.md.tmpl`). These intentionally
+    declare `required_providers` and a `provider` block because the
+    landing page is the first thing users see.
+  - `examples/resources/<name>/*.tf` - per-resource snippets (no
+    `required_providers` or `provider` blocks; those would re-render in
+    every resource doc).
+  - `examples/data-sources/<name>/*.tf` - per-data-source snippets
+    (same: no `required_providers` or `provider` blocks).
+  - Per-resource `import.sh` files for the import section.
 - **Schema `Description` fields** in `github/**/*.go`, which become the
   argument and attribute reference rows.
 
