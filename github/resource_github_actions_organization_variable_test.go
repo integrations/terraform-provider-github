@@ -1,7 +1,6 @@
 package github
 
 import (
-	"context"
 	"fmt"
 	"regexp"
 	"testing"
@@ -356,7 +355,7 @@ resource "github_actions_organization_variable" "test" {
 						}
 						client := meta.v3client
 						owner := meta.name
-						ctx := context.Background()
+						ctx := t.Context()
 
 						_, err = client.Actions.CreateOrgVariable(ctx, owner, &github.ActionsVariable{
 							Name:       varName,
@@ -376,7 +375,7 @@ resource "github_actions_organization_variable" "test" {
 						}
 						client := meta.v3client
 						owner := meta.name
-						ctx := context.Background()
+						ctx := t.Context()
 
 						_, err = client.Actions.DeleteOrgVariable(ctx, owner, varName)
 						return err
