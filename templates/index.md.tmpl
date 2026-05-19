@@ -58,9 +58,11 @@ Some API operations may not be available when using a GitHub App installation co
 When using the GitHub CLI authentication fallback, you can optionally specify the path to the `gh` executable using the `GH_PATH` environment variable. This is useful when the provider cannot properly determine the path to GitHub CLI, such as in cygwin terminals. If not specified, the provider looks for `gh` in your system PATH.
 
 #### .env
+
 {{ codefile "shell" "examples/provider/gh_auth/.env" }}
 
 #### main.tf
+
 {{ tffile "examples/provider/gh_auth/main.tf" }}
 
 ## Argument Reference
