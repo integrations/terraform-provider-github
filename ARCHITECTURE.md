@@ -26,7 +26,6 @@ This document serves as a guide for contributors implementing new features and r
   - [Running Tests](#running-tests)
   - [Debugging Tests](#debugging-tests)
 - [Gotchas \& Known Issues](#gotchas--known-issues)
-  - [API Preview Headers](#api-preview-headers)
   - [Deprecated Resources](#deprecated-resources)
   - [Deprecated Data Sources](#deprecated-data-sources)
   - [Known Limitations](#known-limitations)
@@ -336,8 +335,7 @@ Handle 404s gracefully by removing from state:
 ```go
 resource, _, err := client.Resources.Get(ctx, owner, name)
 if err != nil {
-    var ghErr *github.ErrorResponse
-    if errors.As(err, &ghErr) {
+    if ghErr, ok := errors.AsType[github.ErrorResponse](err); ok {
         if ghErr.Response.StatusCode == http.StatusNotFound {
             tflog.Info(ctx, "Removing resource from state because it no longer exists", map[string]any{"name": name})
             d.SetId("")
@@ -459,6 +457,8 @@ func resourceExampleCreate(ctx context.Context, d *schema.ResourceData, m any) d
 
 ### Test Structure
 
+Our convetion for organizing acceptance tests is to use a single `func TestAcc...` per resource/data source and then nest test cases with `t.Run(..)` inside of it.
+
 Use `ConfigStateChecks` for post-apply state assertions and `ConfigPlanChecks` for plan-level assertions (e.g., verifying `ForceNew` triggers). These replace the legacy `Check:` + `resource.ComposeTestCheckFunc` pattern.
 
 ```go
@@ -572,11 +572,6 @@ TF_LOG=DEBUG make testacc T=TestAccGithubExample
 ## Gotchas & Known Issues
 
 This section documents provider-specific quirks and known limitations discovered through development.
-
-### API Preview Headers
-
-- Stone Crop preview header is still required for some GraphQL features (`config.go:64-65`)
-- The `previewHeaderInjectorTransport` handles automatic header injection for these cases
 
 ### Deprecated Resources
 

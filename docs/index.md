@@ -91,6 +91,16 @@ provider "github" {
 
 ~> **Note:** When using environment variables, an empty `app_auth` block is required to allow provider configurations from environment variables to be specified. See: <https://github.com/hashicorp/terraform-plugin-sdk/issues/142>
 
+#### .env
+
+```shell
+export GITHUB_APP_ID="12332432" # Required: The GitHub App ID for authentication
+export GITHUB_APP_INSTALLATION_ID="12435523" # Required: The GitHub App Installation ID for authentication
+export GITHUB_APP_PEM_FILE="..." # Required: Contents of the PEM file for the GitHub App, not the path to the PEM file
+```
+
+#### main.tf
+
 ```terraform
 provider "github" {
   owner = var.github_organization

@@ -32,7 +32,7 @@ Our goal in this project is to develop a stable and well-maintained provider lib
 
 You are encouraged to use tools that help you write good code, including AI tools. However, you always need to understand and explain the changes you're proposing to make, whether or not you used an LLM as part of your process to produce them. The answer to "Why did you make change X?" should never be "I'm not sure. The AI did it."
 
-**Do not submit an AI-generated PR you haven't personally understood and tested**, as this wastes maintainers' time. PRs that appear to violate this guideline will be closed without review. If you do submit a largely AI-generated PR, clearly mark it as such in the description — maintainers may still close it without further review if it does not seem worthwhile.
+**Do not submit an AI-generated PR you haven't personally understood and tested**, as this wastes maintainers' time. PRs that appear to violate this guideline will be closed without review. If you do submit a largely AI-generated PR, clearly mark it as such in the description. Note that maintainers may still close it without further review if it does not seem worthwhile.
 
 ### Using AI as a Coding Assistant
 
