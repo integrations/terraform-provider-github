@@ -31,7 +31,6 @@ This document serves as a guide for contributors implementing new features and r
   - [Deprecated Data Sources](#deprecated-data-sources)
   - [Known Limitations](#known-limitations)
   - [Workarounds in Code](#workarounds-in-code)
-  - [Pending go-github Updates](#pending-go-github-updates)
 - [Appendix](#appendix)
   - [Common Utilities](#common-utilities)
   - [Naming Conventions](#naming-conventions)
@@ -103,7 +102,7 @@ Each resource should use the minimum number of API calls necessary. Consolidate 
 **Do:**
 
 ```go
-func resourceExampleRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceExampleRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
     // Single API call to get all needed data
     resource, _, err := client.Resources.Get(ctx, owner, name)
     if err != nil {
@@ -119,7 +118,7 @@ func resourceExampleRead(ctx context.Context, d *schema.ResourceData, meta any) 
 **Don't:**
 
 ```go
-func resourceExampleRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceExampleRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
     // Don't make separate calls for each field
     field1, _ := client.Resources.GetField1(ctx, owner, name)
     field2, _ := client.Resources.GetField2(ctx, owner, name)
@@ -285,25 +284,26 @@ All authentication configuration is handled in `config.go`. See the [Explicit Au
 ### CRUD Function Signatures
 
 ```go
-func resourceGithubExampleCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-    client := meta.(*Owner).v3client
-    owner := meta.(*Owner).name
+func resourceGithubExampleCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+    meta := m.(*Owner)
+    client := meta.v3client
+    owner := meta.name
 
     // Implementation
     return nil // Never call Read at end of Create, set any Computed fields in Create
 }
 
-func resourceGithubExampleRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubExampleRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
     // Implementation
     return nil
 }
 
-func resourceGithubExampleUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubExampleUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
     // Implementation
     return nil // Never call Read at end of Update, set any Computed fields in Update
 }
 
-func resourceGithubExampleDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubExampleDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
     // Implementation
     return nil  // Never call Read after Delete
 }
@@ -371,7 +371,7 @@ Importer: &schema.ResourceImporter{
 For resources with composite IDs, the import function must parse the user-provided ID and populate any schema attributes that `Read` depends on:
 
 ```go
-func resourceGithubExampleImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubExampleImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
     owner, name, err := parseID2(d.Id())
     if err != nil {
         return nil, err
@@ -409,15 +409,15 @@ func resourceGithubExampleResourceV0() *schema.Resource {
 }
 
 // resourceGithubExampleInstanceStateUpgradeV0 migrates from version 0 to 1
-func resourceGithubExampleInstanceStateUpgradeV0(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
-    log.Printf("[DEBUG] State before migration: %#v", rawState)
+func resourceGithubExampleInstanceStateUpgradeV0(ctx context.Context, rawState map[string]any, m any) (map[string]any, error) {
+    tflog.Debug(ctx, "State before migration", rawState)
 
     // Add new field with default value
     if _, ok := rawState["new_field"]; !ok {
         rawState["new_field"] = "default_value"
     }
 
-    log.Printf("[DEBUG] State after migration: %#v", rawState)
+    tflog.Debug(ctx, "State after migration", rawState)
     return rawState, nil
 }
 ```
@@ -442,7 +442,7 @@ Use `tflog` for structured logging (replacing `log` package):
 ```go
 import "github.com/hashicorp/terraform-plugin-log/tflog"
 
-func resourceExampleCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceExampleCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
     tflog.Debug(ctx, "Creating resource", map[string]any{
         "name":  name,
         "owner": owner,
@@ -474,7 +474,7 @@ import (
 func TestAccGithubExample(t *testing.T) {
 
     t.Run("creates resource without error", func(t *testing.T) {
-        randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+        randomID := acctest.RandStrin(5)
         testResourceName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
         config := fmt.Sprintf(`
             resource "github_example" "test" {
@@ -612,13 +612,6 @@ The following resources are deprecated and will be removed in future versions:
 
 - **EMU with SSO**: Odd behavior with user tokens when using Enterprise Managed Users (`resource_github_enterprise_organization.go:122`)
 
-### Pending go-github Updates
-
-The following features are blocked waiting for upstream changes in [google/go-github#3364](https://github.com/google/go-github/issues/3364) (adds `assignment`, `parent_team_id`, `parent_team_slug` fields):
-
-- `data_source_github_organization_role_users.go:41`
-- `data_source_github_organization_role_teams.go:51`
-
 ---
 
 ## Appendix
@@ -640,13 +633,11 @@ The following features are blocked waiting for upstream changes in [google/go-gi
 
 | Function                                                    | Purpose                                        |
 | ----------------------------------------------------------- | ---------------------------------------------- |
-| `wrapErrors([]error)`                                       | Convert errors to diagnostics                  |
 | `checkOrganization(meta)`                                   | Verify org context                             |
 | `deleteResourceOn404AndSwallow304OtherwiseReturnError(...)` | Handle 404/304 responses                       |
 | `validateValueFunc(values)`                                 | Create enum validator from allowed values      |
 | `validateSecretNameFunc`                                    | Validate GitHub secret naming rules            |
 | `caseInsensitive()`                                         | `DiffSuppressFunc` for case-insensitive fields |
-| `isArchivedRepositoryError(err)`                            | Detect archived repo 403 errors                |
 
 **Data Conversion** (`util.go`):
 
