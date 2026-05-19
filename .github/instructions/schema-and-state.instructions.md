@@ -5,7 +5,11 @@ applyTo: "github/**/*.go"
 # Provider Source Review (Schema, State, API)
 
 These rules apply to all provider Go source files under `github/`. Combine
-with the repo-wide checklist in `.github/copilot-instructions.md`.
+with the repo-wide checklist in [`.github/copilot-instructions.md`](../copilot-instructions.md)
+and the idiomatic-Go reference in
+[`go.instructions.md`](go.instructions.md). Where this file disagrees
+with `go.instructions.md`, this file wins for provider source under
+`github/`.
 
 ## Schema Changes Are User-Visible
 
@@ -90,8 +94,24 @@ eventually-consistent endpoints. See
 ## API Safety and Performance
 
 - Flag new N+1 access patterns over GitHub APIs.
-- Verify pagination is handled (`ListOptions` / `NextPage` loops) on any
-  endpoint that returns a list.
+- Verify pagination is handled on any endpoint that returns a list.
+  Prefer the iterator pattern that `google/go-github` exposes via its
+  generated `*Iter` methods, which return `iter.Seq2[T, error]` and
+  walk every page automatically:
+
+  ```go
+  for item, err := range client.SomeService.ListSomethingIter(ctx, owner, repo, opts) {
+      if err != nil {
+          return err
+      }
+      // use item
+  }
+  ```
+
+  The older `ListOptions{} + resp.NextPage` loop is still acceptable
+  in existing code, but flag new pagination code that hand-rolls the
+  `NextPage` loop when a corresponding `*Iter` method exists on the
+  client.
 - Check for rate-limit-sensitive loops; consider caching or batching where
   appropriate.
 - Sensitive values must never appear in log output, even at debug/trace

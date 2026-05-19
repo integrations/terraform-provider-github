@@ -5,7 +5,10 @@ applyTo: "github/**/*_test.go"
 # Provider Test Review
 
 These rules apply to test files under `github/`. Combine with the repo-wide
-checklist in `.github/copilot-instructions.md`.
+checklist in [`.github/copilot-instructions.md`](../copilot-instructions.md)
+and the idiomatic-Go reference in
+[`go.instructions.md`](go.instructions.md). Schema and CRUD expectations
+come from [`schema-and-state.instructions.md`](schema-and-state.instructions.md).
 
 ## Coverage Expectations
 

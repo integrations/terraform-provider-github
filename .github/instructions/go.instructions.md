@@ -5,6 +5,14 @@ applyTo: "**/*.go,**/go.mod,**/go.sum"
 
 # Go Development Instructions
 
+These rules apply to all Go source files under `**/*.go`, `go.mod`, and
+`go.sum`. Combine with the repo-wide checklist in
+[`.github/copilot-instructions.md`](../copilot-instructions.md) and the
+path-scoped instructions in this directory (in particular,
+[`schema-and-state.instructions.md`](schema-and-state.instructions.md)
+and [`tests.instructions.md`](tests.instructions.md)) - this file does
+**not** override them.
+
 > **How Copilot Code Review should use this file.** This document is the
 > idiomatic-Go reference for any change touching `**/*.go`, `go.mod`, or
 > `go.sum`. It applies on top of `.github/copilot-instructions.md` and the
