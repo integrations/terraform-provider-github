@@ -1,6 +1,6 @@
 ---
 description: "Instructions for writing Go code following idiomatic Go practices and community standards"
-applyTo: "**/*.go,**/go.mod,**/go.sum"
+applyTo: "**/{*.go,go.mod,go.sum}"
 ---
 
 # Go Development Instructions

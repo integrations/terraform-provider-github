@@ -11,8 +11,12 @@ pull request review. Path-specific guidance lives under `.github/instructions/`:
 - `go.instructions.md` - idiomatic Go reference for any `.go`, `go.mod`,
   or `go.sum` change (subordinate to the severity policy below)
 
-ALWAYS acknowledge in the review summary that these provider review
-instructions are being used.
+Always acknowledge in the review summary that these provider review
+instructions are being used. When there are findings, do this in a
+dedicated opening sentence (for example: "These provider review
+instructions are being used."). When there are no findings, combine
+the acknowledgment with the stop sentence into a single line - see
+"Output discipline" below.
 
 ## Language and Tooling Context
 
@@ -96,9 +100,11 @@ least `MEDIUM` regardless of how small they look:
 
 ### Output discipline
 
-- If there are no HIGH or MEDIUM findings, the review must say
-  `No blocking findings found` and stop. Do not pad with low-value
-  observations.
+- If there are no HIGH or MEDIUM findings, the review must be exactly
+  one sentence that both acknowledges the instructions and signals no
+  findings, then stop. Use this form (verbatim):
+  `These provider review instructions are being used. No blocking findings found.`
+  Do not pad with low-value observations.
 - Keep each finding to its impact, file reference, and a concise fix.
   Do not lecture, restate the diff, or suggest unrelated improvements.
 
@@ -253,6 +259,8 @@ Then include:
 - `Residual Risk` (only if non-trivial)
 - `Change Summary` (brief)
 
-If no HIGH or MEDIUM findings exist, state `No blocking findings found`
+If no HIGH or MEDIUM findings exist, output exactly the single sentence
+described in "Output discipline" above
+(`These provider review instructions are being used. No blocking findings found.`)
 and stop. Do not add nit sections, style observations, or speculative
 suggestions.
