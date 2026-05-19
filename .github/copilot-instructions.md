@@ -7,7 +7,8 @@ pull request review. Path-specific guidance lives under `.github/instructions/`:
 - `schema-and-state.instructions.md` - provider source under `github/**/*.go`
 - `tests.instructions.md` - provider tests under `github/**/*_test.go`
 - `examples.instructions.md` - example configs under `examples/**`
-- `docs.instructions.md` - doc templates under `templates/**`
+- `docs.instructions.md` - generated docs and templates under
+  `docs/**` and `templates/**`
 - `go.instructions.md` - idiomatic Go reference for any `.go`, `go.mod`,
   or `go.sum` change (subordinate to the severity policy below)
 

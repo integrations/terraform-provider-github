@@ -1,10 +1,10 @@
 ---
-applyTo: "templates/**"
+applyTo: "{templates,docs}/**"
 ---
 
 # Docs and Templates Review
 
-These rules apply to changes under `templates/`. Combine with the
+These rules apply to changes under `templates/` and `docs/`. Combine with the
 repo-wide checklist in [`.github/copilot-instructions.md`](../copilot-instructions.md).
 
 ## How Doc Generation Works
