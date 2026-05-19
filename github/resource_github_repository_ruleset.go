@@ -849,7 +849,7 @@ func resourceGithubRepositoryRulesetDelete(ctx context.Context, d *schema.Resour
 }
 
 func resourceGithubRepositoryRulesetImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	repoName, rulesetIDStr, err := parseTwoPartID(d.Id(), "repository", "ruleset")
+	repoName, rulesetIDStr, err := parseID2(d.Id())
 	if err != nil {
 		return []*schema.ResourceData{d}, err
 	}
