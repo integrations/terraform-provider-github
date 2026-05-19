@@ -95,7 +95,7 @@ fmtdocs:
 lintdocs: validatedocs
 	@rumdl check $(RUMDL_ARGS) ./docs
 
-checkdocs: generatedocs
+checkdocs: generatedocs fmtdocs
 	@git diff --quiet ||\
 		{ echo "New file modification detected in the Git working tree. Please check in before commit."; git --no-pager diff --name-only | uniq | awk '{print "  - " $$0}'; \
 		if [ "${CI}" = true ]; then\
