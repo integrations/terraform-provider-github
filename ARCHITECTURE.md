@@ -265,7 +265,7 @@ owner, repo, env, name, err := parseID4(id)
 id, err := buildID(escapeIDPart(part1), part2)
 ```
 
-> **Note:** The legacy functions `buildTwoPartID`, `parseTwoPartID`, `buildThreePartID`, and `parseThreePartID` are deprecated. Use `buildID` and `parseID2`/`parseID3`/`parseID4` instead.
+> **Note:** The legacy functions `buildTwoPartID` and `buildThreePartID`, are deprecated. Use `buildID` instead.
 
 ---
 
