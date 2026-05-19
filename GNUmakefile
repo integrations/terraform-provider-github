@@ -38,6 +38,12 @@ fmt:
 	@echo "==> Fixing source code formatting..."
 	golangci-lint fmt ./...
 
+# Merges the rules in .golangci.yml and .golangci.strict.yml into a new file .golangci.new.yml, which is used for checking only new code.
+# This allows us to start enforcing new linting rules on new code without having to fix all existing issues in the codebase at once.
+# Only executes if either of the source files has changed, to avoid unnecessary work.
+.golangci.new.yml: .golangci.yml .golangci.strict.yml
+	@yq eval-all 'select(fileIndex == 0) *+ select(fileIndex == 1)' .golangci.yml .golangci.strict.yml > .golangci.new.yml 
+
 lint:
 	@echo "==> Checking source code against linters and fixing..."
 	golangci-lint run --fix ./...
@@ -45,6 +51,17 @@ lint:
 lintcheck:
 	@echo "==> Checking source code against linters..."
 	golangci-lint run ./...
+
+# Checks all code against the strict rules. This is expected to fail until all issues have been fixed, but it allows us to track progress on fixing the issues and ensures that no new issues are introduced.
+lintcheck-strict: .golangci.new.yml
+	@branch=$$(git rev-parse --abbrev-ref HEAD); \
+	printf "==> Checking source code against strict linters on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
+	golangci-lint run ./... --config .golangci.new.yml
+
+lintcheck-new: .golangci.new.yml
+	@branch=$$(git rev-parse --abbrev-ref HEAD); \
+	printf "==> Checking changed source code against linters on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
+	golangci-lint run ./... --new-from-merge-base main --config .golangci.new.yml
 
 test:
 	@branch=$$(git rev-parse --abbrev-ref HEAD); \
@@ -94,4 +111,4 @@ mdfmt:
 mdlint:
 	@rumdl check $(RUMDL_ARGS) .
 
-.PHONY: build test testacc fmt lint lintcheck tools sweep generatedocs validatedocs fmtdocs lintdocs checkdocs yamlfmt mdfmt mdlint
+.PHONY: build test testacc fmt lint lintcheck lintcheck-strict lintcheck-new tools sweep generatedocs validatedocs fmtdocs lintdocs checkdocs yamlfmt mdfmt mdlint
