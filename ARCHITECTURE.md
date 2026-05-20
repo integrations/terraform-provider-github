@@ -120,9 +120,9 @@ func resourceExampleRead(ctx context.Context, d *schema.ResourceData, m any) dia
 ```go
 func resourceExampleRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
     // Don't make separate calls for each field
-    field1, _ := client.Resources.GetField1(ctx, owner, name)
+    field1, err := client.Resources.GetField1(ctx, owner, name)
     // ...
-    field2, _ := client.Resources.GetField2(ctx, owner, name)
+    field2, err := client.Resources.GetField2(ctx, owner, name)
     // ...
 }
 ```
