@@ -457,7 +457,7 @@ func resourceExampleCreate(ctx context.Context, d *schema.ResourceData, m any) d
 
 ### Test Structure
 
-Our convetion for organizing acceptance tests is to use a single `func TestAcc...` per resource/data source and then nest test cases with `t.Run(..)` inside of it.
+Our convention for organizing acceptance tests is to define a single `TestAcc...` function per resource or data source, and then group scenario-specific cases under `t.Run(...)` subtests within that function. This keeps shared setup in one place while still making each test scenario explicit and easy to maintain.
 
 Use `ConfigStateChecks` for post-apply state assertions and `ConfigPlanChecks` for plan-level assertions (e.g., verifying `ForceNew` triggers). These replace the legacy `Check:` + `resource.ComposeTestCheckFunc` pattern.
 
