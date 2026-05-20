@@ -1,7 +1,6 @@
 package github
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -174,7 +173,7 @@ func TestAccConfigMeta(t *testing.T) {
 			t.Fatalf("failed to return meta without error: %s", err.Error())
 		}
 
-		ctx := context.Background()
+		ctx := t.Context()
 		client := meta.(*Owner).v3client
 		_, _, err = client.Meta.Get(ctx)
 		if err != nil {
@@ -194,7 +193,7 @@ func TestAccConfigMeta(t *testing.T) {
 			t.Fatalf("failed to return meta without error: %s", err.Error())
 		}
 
-		ctx := context.Background()
+		ctx := t.Context()
 		client := meta.(*Owner).v3client
 		_, _, err = client.Meta.Get(ctx)
 		if err != nil {
@@ -219,7 +218,7 @@ func TestAccConfigMeta(t *testing.T) {
 			t.Fatalf("failed to return meta without error: %s", err.Error())
 		}
 
-		ctx := context.Background()
+		ctx := t.Context()
 		client := meta.(*Owner).v3client
 		_, _, err = client.Meta.Get(ctx)
 		if err != nil {
@@ -245,7 +244,7 @@ func TestAccConfigMeta(t *testing.T) {
 				GitHubServicesSha githubv4.String
 			}
 		}
-		err = client.Query(context.Background(), &query, nil)
+		err = client.Query(t.Context(), &query, nil)
 		if err != nil {
 			t.Fatalf("failed to validate returned client without error: %s", err.Error())
 		}
@@ -264,7 +263,7 @@ func TestAccConfigMeta(t *testing.T) {
 			t.Fatalf("failed to return meta without error: %s", err.Error())
 		}
 
-		ctx := context.Background()
+		ctx := t.Context()
 		client := meta.(*Owner).v3client
 		_, _, err = client.Organizations.Get(ctx, testAccConf.owner)
 		if err != nil {
@@ -295,7 +294,7 @@ func TestAccConfigMeta(t *testing.T) {
 		variables := map[string]any{
 			"login": githubv4.String(testAccConf.owner),
 		}
-		err = client.Query(context.Background(), &query, variables)
+		err = client.Query(t.Context(), &query, variables)
 		if err != nil {
 			t.Fatalf("failed to validate returned client without error: %s", err.Error())
 		}
