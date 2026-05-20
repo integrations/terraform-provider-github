@@ -240,6 +240,7 @@ func Provider() *schema.Provider {
 			"github_app_token":                                                      dataSourceGithubAppToken(),
 			"github_branch":                                                         dataSourceGithubBranch(),
 			"github_branch_protection_rules":                                        dataSourceGithubBranchProtectionRules(),
+			"github_client_config":                                                  dataSourceGithubClientConfig(),
 			"github_collaborators":                                                  dataSourceGithubCollaborators(),
 			"github_codespaces_organization_public_key":                             dataSourceGithubCodespacesOrganizationPublicKey(),
 			"github_codespaces_organization_secrets":                                dataSourceGithubCodespacesOrganizationSecrets(),
