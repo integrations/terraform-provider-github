@@ -105,11 +105,22 @@ func resourceExampleRead(ctx context.Context, d *schema.ResourceData, m any) dia
     // Single API call to get all needed data
     resource, _, err := client.Resources.Get(ctx, owner, name)
     if err != nil {
+        if ghErr, ok := errors.AsType[github.ErrorResponse](err); ok {
+            if ghErr.Response.StatusCode == http.StatusNotFound {
+                tflog.Info(ctx, "Removing resource from state because it no longer exists", map[string]any{"name": name})
+                d.SetId("")
+                return nil
+            }
+        }
         return diag.FromErr(err)
     }
     // Set all attributes from single response
-    d.Set("field1", resource.Field1)
-    d.Set("field2", resource.Field2)
+    if err := d.Set("field1", resource.Field1); err != nil {
+        return diag.FromErr(err)
+    }
+    if err := d.Set("field2", resource.Field2); err != nil {
+        return diag.FromErr(err)
+    }
     return nil
 }
 ```
@@ -199,39 +210,39 @@ Full reference: [Schema Behaviors](https://developer.hashicorp.com/terraform/plu
 
 **Primitive options:**
 
-- `Type` — field type (`TypeString`, `TypeBool`, `TypeInt`, `TypeFloat`, `TypeList`, `TypeSet`, `TypeMap`)
-- `Description` — human-readable description (always include)
-- `Elem` — element type for `TypeList`, `TypeSet`, and `TypeMap` fields (e.g., `&schema.Schema{Type: schema.TypeString}` or a nested `&schema.Resource{}`)
-- `Default` — static default value when field is not set in config
-- `DefaultFunc` — dynamic default (e.g., read from env var via `schema.EnvDefaultFunc`)
+- `Type`: field type (`TypeString`, `TypeBool`, `TypeInt`, `TypeFloat`, `TypeList`, `TypeSet`, `TypeMap`)
+- `Description`: human-readable description (always include)
+- `Elem`: element type for `TypeList`, `TypeSet`, and `TypeMap` fields (e.g., `&schema.Schema{Type: schema.TypeString}` or a nested `&schema.Resource{}`)
+- `Default`: static default value when field is not set in config
+- `DefaultFunc`: dynamic default (e.g., read from env var via `schema.EnvDefaultFunc`)
 
 **Behavior flags:**
 
-- `Required` — must be provided in config (mutually exclusive with `Optional`, `Computed`)
-- `Optional` — may be omitted from config
-- `Computed` — set by the provider (API-derived); combine with `Optional` for optional fields with server defaults
-- `ForceNew` — changing this field destroys and recreates the resource
-- `Sensitive` — value is masked in plan/state output (secrets, tokens)
+- `Required`: must be provided in config (mutually exclusive with `Optional`, `Computed`)
+- `Optional`: may be omitted from config
+- `Computed`: set by the provider (API-derived); combine with `Optional` for optional fields with server defaults
+- `ForceNew`: changing this field destroys and recreates the resource
+- `Sensitive`: value is masked in plan/state output (secrets, tokens)
 
 **Validation:**
 
-- `ValidateDiagFunc` — validate field value with diagnostics (preferred)
+- `ValidateDiagFunc`: validate field value with diagnostics (preferred)
 
 **Constraints:**
 
-- `MaxItems` / `MinItems` — cardinality bounds for `TypeList` and `TypeSet`
-- `ConflictsWith` — list of field paths that cannot be set together with this field
-- `ExactlyOneOf` — exactly one of these fields must be set
-- `AtLeastOneOf` — at least one of these fields must be set
-- `RequiredWith` — these fields must all be set if this field is set
+- `MaxItems` / `MinItems`: cardinality bounds for `TypeList` and `TypeSet`
+- `ConflictsWith`: list of field paths that cannot be set together with this field
+- `ExactlyOneOf`: exactly one of these fields must be set
+- `AtLeastOneOf`: at least one of these fields must be set
+- `RequiredWith`: these fields must all be set if this field is set
 
 **Advanced:**
 
-- `StateFunc` — transform value before storing in state (e.g., normalize to lowercase)
-- `DiffSuppressFunc` — suppress plan diffs when old and new values are semantically equal
-- `DiffSuppressOnRefresh` — also apply `DiffSuppressFunc` during refresh
-- `Set` — custom hash function for `TypeSet` elements
-- `Deprecated` — marks field as deprecated with a message shown to users
+- `StateFunc`: transform value before storing in state (e.g., normalize to lowercase)
+- `DiffSuppressFunc`: suppress plan diffs when old and new values are semantically equal
+- `DiffSuppressOnRefresh`: also apply `DiffSuppressFunc` during refresh
+- `Set`: custom hash function for `TypeSet` elements
+- `Deprecated`: marks field as deprecated with a message shown to users
 
 ### ID Patterns
 
@@ -273,10 +284,10 @@ id, err := buildID(escapeIDPart(part1), part2)
 
 The provider resolves credentials using the following fallback chain (first match wins):
 
-1. **Token** — `token` attribute or `GITHUB_TOKEN` env var
-2. **GitHub App** — `app_auth` block with `id`, `installation_id`, and `pem_file`
-3. **GitHub CLI** — Falls back to `gh auth token` if neither token nor app_auth is set
-4. **Anonymous** — Read-only access when no credentials are available
+1. **Token**: `token` attribute or `GITHUB_TOKEN` env var
+2. **GitHub App**: `app_auth` block with `id`, `installation_id`, and `pem_file`
+3. **GitHub CLI**: Falls back to `gh auth token` if neither token nor app_auth is set
+4. **Anonymous**: Read-only access when no credentials are available
 
 All authentication configuration is handled in `config.go`. See the [Explicit Authentication Configuration](#explicit-authentication-configuration) decision for design rationale.
 
@@ -346,17 +357,9 @@ if err != nil {
 }
 ```
 
-Or use the helper function:
-
-```go
-if err := deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "resource %s", name); err != nil {
-    return diag.FromErr(err)
-}
-```
-
 ### Import
 
-Import is registered via the `Importer` field with a `StateContext` function. After import runs, Terraform **automatically calls `Read`** — so the import function's only job is to set enough state for `Read` to succeed. Do not duplicate `Read` logic in the import function.
+Import is registered via the `Importer` field with a `StateContext` function. After import runs, Terraform **automatically calls `Read`** and so the import function's only job is to set enough state for `Read` to succeed. Do not duplicate `Read` logic in the import function.
 
 The import function must parse the user-provided ID and populate any schema attributes that `Read` depends on:
 
@@ -522,14 +525,14 @@ func TestAccGithubExample(t *testing.T) {
 
 Use these skip functions to run tests in appropriate contexts:
 
-- `skipUnauthenticated(t)` — skips if anonymous mode
-- `skipUnlessHasOrgs(t)` — requires organization, team, or enterprise mode
-- `skipUnlessHasPaidOrgs(t)` — requires team or enterprise mode (paid orgs)
-- `skipUnlessEnterprise(t)` — requires enterprise mode
-- `skipUnlessHasAppInstallations(t)` — requires GitHub App installations
-- `skipUnlessEMUEnterprise(t)` — requires EMU enterprise
-- `skipIfEMUEnterprise(t)` — skips if EMU enterprise
-- `skipUnlessMode(t, testModes...)` — generic mode check
+- `skipUnauthenticated(t)`: skips if anonymous mode
+- `skipUnlessHasOrgs(t)`: requires organization, team, or enterprise mode
+- `skipUnlessHasPaidOrgs(t)`: requires team or enterprise mode (paid orgs)
+- `skipUnlessEnterprise(t)`: requires enterprise mode
+- `skipUnlessHasAppInstallations(t)`: requires GitHub App installations
+- `skipUnlessEMUEnterprise(t)`: requires EMU enterprise
+- `skipIfEMUEnterprise(t)`: skips if EMU enterprise
+- `skipUnlessMode(t, testModes...)`: generic mode check
 
 | Mode           | Environment Variables Required         |
 | -------------- | -------------------------------------- |
@@ -620,13 +623,12 @@ The following resources are deprecated and will be removed in future versions:
 
 **Error Handling & Validation** (`util.go`):
 
-| Function                                                    | Purpose                                        |
-| ----------------------------------------------------------- | ---------------------------------------------- |
-| `checkOrganization(meta)`                                   | Verify org context                             |
-| `deleteResourceOn404AndSwallow304OtherwiseReturnError(...)` | Handle 404/304 responses                       |
-| `validateValueFunc(values)`                                 | Create enum validator from allowed values      |
-| `validateSecretNameFunc`                                    | Validate GitHub secret naming rules            |
-| `caseInsensitive()`                                         | `DiffSuppressFunc` for case-insensitive fields |
+| Function                    | Purpose                                        |
+| --------------------------- | ---------------------------------------------- |
+| `checkOrganization(meta)`   | Verify org context                             |
+| `validateValueFunc(values)` | Create enum validator from allowed values      |
+| `validateSecretNameFunc`    | Validate GitHub secret naming rules            |
+| `caseInsensitive()`         | `DiffSuppressFunc` for case-insensitive fields |
 
 **Data Conversion** (`util.go`):
 
