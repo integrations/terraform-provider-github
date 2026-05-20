@@ -15,11 +15,12 @@ expectations differ - apply the right set:
 1. **`tfplugindocs` examples** - the single-file snippets that get
    embedded into the auto-generated docs. These live under:
 
-   - `examples/provider/**/*.tf` - root-level snippets used by the provider
+   - `examples/example_*.tf` (current layout) / `examples/provider/**/*.tf`
+     (post-#3196 layout) - root-level snippets used by the provider
      landing page (`templates/index.md.tmpl`). These are full,
      standalone snippets and **do** declare a `terraform { required_providers }`
      block and a `provider "github"` block, because the landing page
-     is the first thing users see. Files matching
+     is the first thing users see. Once #3196 lands, files matching
      `examples/provider/provider*.tf` can be automated via the
      `.Examples` templating capabilities.
    - `examples/resources/<resource_name>/resource*.tf` - per-resource
@@ -36,8 +37,9 @@ expectations differ - apply the right set:
    `outputs.tf`, or `README.md`, and they should not declare
    `required_providers` or a `provider` block (those would re-render
    in every resource and data-source doc page). The provider
-   landing-page snippets under `examples/provider/**/*.tf` are the
-   deliberate exception.
+   landing-page snippets (`examples/example_*.tf` today, moving to
+   `examples/provider/**/*.tf` once #3196 lands) are the deliberate
+   exception.
 
    The `example*.tf` pattern should only appear where the docs
    template explicitly calls for it; in that case the snippet should
@@ -86,9 +88,9 @@ or outputs.
   snippets under `examples/resources/<name>/` and
   `examples/data-sources/<name>/`) should **not** declare
   `required_providers` or a `provider` block - they are rendered into
-  the docs as fragments. The provider landing-page snippets under
-  `examples/provider/**/*.tf` are the deliberate exception and do include
-  both.
+  the docs as fragments. The provider landing-page snippets
+  (`examples/example_*.tf` today, `examples/provider/**/*.tf` after
+  #3196 lands) are the deliberate exception and do include both.
 
 ## Coverage
 
