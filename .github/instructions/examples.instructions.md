@@ -15,24 +15,34 @@ expectations differ - apply the right set:
 1. **`tfplugindocs` examples** - the single-file snippets that get
    embedded into the auto-generated docs. These live under:
 
-   - `examples/example_*.tf` - root-level snippets used by the provider
+   - `examples/provider/**/*.tf` - root-level snippets used by the provider
      landing page (`templates/index.md.tmpl`). These are full,
      standalone snippets and **do** declare a `terraform { required_providers }`
      block and a `provider "github"` block, because the landing page
-     is the first thing users see.
-   - `examples/resources/<resource_name>/example_N.tf` - per-resource
+     is the first thing users see. Files matching
+     `examples/provider/provider*.tf` can be automated via the
+     `.Examples` templating capabilities.
+   - `examples/resources/<resource_name>/resource*.tf` - per-resource
      snippets (plus optional `import.sh` for the import section).
-   - `examples/data-sources/<data_source_name>/example_N.tf` -
+   - `examples/data-sources/<data_source_name>/data-source*.tf` -
      per-data-source snippets.
 
    The per-resource and per-data-source snippets are intentionally
    minimal HCL fragments meant to be rendered inline by
-   `tfplugindocs`. They should **not** carry their own
-   `variables.tf`, `outputs.tf`, or `README.md`, and they should not
-   declare `required_providers` or a `provider` block (those would
-   re-render in every resource and data-source doc page). The
-   provider landing-page snippets under `examples/example_*.tf` are
-   the deliberate exception.
+   `tfplugindocs`. By default each resource or data source should
+   have a single example file (`resource*.tf` or `data-source*.tf`)
+   with any additional context placed in a comment at the top of the
+   file. They should **not** carry their own `variables.tf`,
+   `outputs.tf`, or `README.md`, and they should not declare
+   `required_providers` or a `provider` block (those would re-render
+   in every resource and data-source doc page). The provider
+   landing-page snippets under `examples/provider/**/*.tf` are the
+   deliberate exception.
+
+   The `example*.tf` pattern should only appear where the docs
+   template explicitly calls for it; in that case the snippet should
+   still be a single file with any additional context placed directly
+   in the template.
 
 2. **Root-module examples** - standalone, runnable Terraform
    configurations that demonstrate a more complete workflow (for
@@ -77,7 +87,7 @@ or outputs.
   `examples/data-sources/<name>/`) should **not** declare
   `required_providers` or a `provider` block - they are rendered into
   the docs as fragments. The provider landing-page snippets under
-  `examples/example_*.tf` are the deliberate exception and do include
+  `examples/provider/**/*.tf` are the deliberate exception and do include
   both.
 
 ## Coverage
