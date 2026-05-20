@@ -33,16 +33,6 @@ This document serves as a guide for contributors implementing new features and r
 - [Appendix](#appendix)
   - [Common Utilities](#common-utilities)
   - [Naming Conventions](#naming-conventions)
-- [Decision Log](#decision-log)
-  - [January 2026](#january-2026)
-    - [Use StateUpgraders for State Migrations](#use-stateupgraders-for-state-migrations)
-    - [Explicit Authentication Configuration](#explicit-authentication-configuration)
-    - [Transport Layer Rework](#transport-layer-rework)
-    - [Migrate to `terraform-plugin-testing`](#migrate-to-terraform-plugin-testing)
-    - [No Local Git CLI Support](#no-local-git-cli-support)
-  - [2025](#2025)
-    - [Replace `log` Package with `tflog`](#replace-log-package-with-tflog)
-    - [Finalize SDK v2 Migration](#finalize-sdk-v2-migration)
 
 ---
 
@@ -131,6 +121,7 @@ func resourceExampleRead(ctx context.Context, d *schema.ResourceData, m any) dia
 func resourceExampleRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
     // Don't make separate calls for each field
     field1, _ := client.Resources.GetField1(ctx, owner, name)
+    // ...
     field2, _ := client.Resources.GetField2(ctx, owner, name)
     // ...
 }
@@ -286,10 +277,10 @@ The provider resolves credentials using the following fallback chain (first matc
 
 1. **Token**: `token` attribute or `GITHUB_TOKEN` env var
 2. **GitHub App**: `app_auth` block with `id`, `installation_id`, and `pem_file`
-3. **GitHub CLI**: Falls back to `gh auth token` if neither token nor app_auth is set
+3. **GitHub CLI**: Falls back to `gh auth token` if neither token nor app_auth is set. This method will be deprecated in a future release, so users should not rely on it for long-term authentication.
 4. **Anonymous**: Read-only access when no credentials are available
 
-All authentication configuration is handled in `config.go`. See the [Explicit Authentication Configuration](#explicit-authentication-configuration) decision for design rationale.
+All authentication configuration is handled in `config.go`. See the [Explicit Authentication Configuration](./DECISIONS.md#explicit-authentication-configuration) decision for design rationale.
 
 ### CRUD Function Signatures
 
@@ -671,89 +662,3 @@ The following resources are deprecated and will be removed in future versions:
 | Schema function      | `resourceGithub<Entity>ResourceV<N>`             | `resourceGithubRepositoryResourceV0`             |
 | Test function        | `TestAccGithub<Entity>`                          | `TestAccGithubRepository`                        |
 | Utility file         | `util_<domain>.go`                               | `util_rules.go`                                  |
-
----
-
-## Decision Log
-
-### January 2026
-
-#### Use StateUpgraders for State Migrations
-
-**Decision:** Use `StateUpgraders` instead of the deprecated `MigrateState` function.
-
-**Rationale:** `StateUpgraders` provides a cleaner, more maintainable approach to state migrations that works better with the SDK v2 architecture.
-
-**Implementation:**
-
-- Create `resource_github_<entity>_migration.go` with versioned schema and upgrade functions
-- Register in resource with `SchemaVersion` and `StateUpgraders`
-- See [ARCHITECTURE.md](ARCHITECTURE.md#state-migrations) for implementation pattern
-
-#### Explicit Authentication Configuration
-
-**Decision:** Make all authentication concerns of the provider entirely explicit. Users must explicitly configure their authentication method.
-
-**Rationale:** Implicit auth detection can lead to confusion and security issues. Explicit configuration makes the provider's behavior predictable and auditable.
-
-**Reference:** <https://github.com/integrations/terraform-provider-github/issues/3116>
-
-#### Transport Layer Rework
-
-**Decision:** Rework the transport layer to utilize:
-
-- [`github-conditional-http-transport`](https://github.com/bored-engineer/github-conditional-http-transport) for conditional requests
-- [`go-github-ratelimit`](https://github.com/gofri/go-github-ratelimit) for rate limiting
-
-**Rationale:** These libraries provide better handling of GitHub API rate limits and conditional requests than our current custom implementation.
-
-**Reference:** <https://github.com/integrations/terraform-provider-github/issues/2709#issuecomment-3811466444>
-
-#### Migrate to `terraform-plugin-testing`
-
-**Decision:** Migrate from the SDK testing package (`github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource`) to `terraform-plugin-testing` (`github.com/hashicorp/terraform-plugin-testing`). Use `ConfigStateChecks` and `ConfigPlanChecks` as the preferred assertion patterns, replacing `Check:` + `resource.ComposeTestCheckFunc`.
-
-**Rationale:** `terraform-plugin-testing` is the standalone testing framework that decouples test utilities from the SDK. `ConfigStateChecks` and `ConfigPlanChecks` provide type-safe, composable assertions with better error messages.
-
-**Reference:** <https://developer.hashicorp.com/terraform/plugin/testing>
-
-#### No Local Git CLI Support
-
-**Decision:** Do not support using local git CLI to operate on repositories; use purely API operations.
-
-**Rationale:** API-only operations ensure consistency, security, and avoid environment dependencies. The provider should not assume git is installed or configured on the user's machine.
-
-### 2025
-
-#### Replace `log` Package with `tflog`
-
-**Decision:** Replace all usage of the standard `log` package with `tflog` from terraform-plugin-log.
-
-**Rationale:** `tflog` provides structured logging that integrates better with Terraform's logging infrastructure and supports log filtering, structured fields, and proper log levels.
-
-**Migration pattern:**
-
-```go
-// Before
-log.Printf("[DEBUG] Creating resource: %s", name)
-
-// After
-tflog.Debug(ctx, "Creating resource", map[string]any{"name": name})
-```
-
-#### Finalize SDK v2 Migration
-
-**Decision:** Complete migration to Terraform Plugin SDK v2.
-
-**Rationale:** SDK v2 provides better diagnostics, context-aware functions, and improved schema validation.
-
-**Key changes:**
-
-- Use `*Context` functions (`CreateContext`, `ReadContext`, etc.)
-- Use `ValidateDiagFunc` instead of `ValidateFunc`
-- Use `diag.Diagnostics` for error returns
-- Use `any` instead of `interface{}`
-
-**Reference:** <https://developer.hashicorp.com/terraform/plugin/sdkv2/guides/v2-upgrade-guide>
-
----
