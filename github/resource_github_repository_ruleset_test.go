@@ -29,6 +29,10 @@ resource "github_repository_environment" "example" {
 	repository   = github_repository.test.name
 }
 
+data "github_user" "current" {
+	username = "%[3]s"
+}
+
 resource "github_repository_ruleset" "test" {
 	name        = "test"
 	repository  = github_repository.test.id
@@ -43,6 +47,12 @@ resource "github_repository_ruleset" "test" {
 	bypass_actors {
 		actor_id    = 5
 		actor_type  = "RepositoryRole"
+		bypass_mode = "always"
+	}
+
+	bypass_actors {
+		actor_id    = tonumber(data.github_user.current.id)
+		actor_type  = "User"
 		bypass_mode = "always"
 	}
 
@@ -113,7 +123,7 @@ resource "github_repository_ruleset" "test" {
 		non_fast_forward = true
 	}
 }
-`, repoName, testAccConf.testRepositoryVisibility)
+`, repoName, testAccConf.testRepositoryVisibility, testAccConf.username)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -125,12 +135,15 @@ resource "github_repository_ruleset" "test" {
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", "test"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "target", "branch"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "enforcement", "active"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.#", "2"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.#", "3"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.0.actor_type", "DeployKey"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.0.bypass_mode", "always"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.1.actor_id", "5"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.1.actor_type", "RepositoryRole"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.1.bypass_mode", "always"),
+						resource.TestCheckResourceAttrPair("github_repository_ruleset.test", "bypass_actors.2.actor_id", "data.github_user.current", "id"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.2.actor_type", "User"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.2.bypass_mode", "always"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.allowed_merge_methods.#", "2"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.alerts_threshold", "errors"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.security_alerts_threshold", "high_or_higher"),
