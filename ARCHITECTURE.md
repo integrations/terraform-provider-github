@@ -429,10 +429,7 @@ Use `tflog` for structured logging (replacing `log` package):
 import "github.com/hashicorp/terraform-plugin-log/tflog"
 
 func resourceExampleCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-    tflog.Debug(ctx, "Creating resource", map[string]any{
-        "name":  name,
-        "owner": owner,
-    })
+    tflog.Debug(ctx, "Creating resource", map[string]any{ "name":  name, "owner": owner, })
     // ...
 }
 ```
