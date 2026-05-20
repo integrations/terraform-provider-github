@@ -358,15 +358,7 @@ if err := deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "resource
 
 Import is registered via the `Importer` field with a `StateContext` function. After import runs, Terraform **automatically calls `Read`** — so the import function's only job is to set enough state for `Read` to succeed. Do not duplicate `Read` logic in the import function.
 
-For resources with a single-part ID, the default passthrough importer is often sufficient:
-
-```go
-Importer: &schema.ResourceImporter{
-    StateContext: schema.ImportStatePassthroughContext,
-},
-```
-
-For resources with composite IDs, the import function must parse the user-provided ID and populate any schema attributes that `Read` depends on:
+The import function must parse the user-provided ID and populate any schema attributes that `Read` depends on:
 
 ```go
 func resourceGithubExampleImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
@@ -376,7 +368,9 @@ func resourceGithubExampleImport(ctx context.Context, d *schema.ResourceData, m 
     }
 
     // Set attributes that Read needs to make API calls
-    d.Set("owner", owner)
+    if err := d.Set("owner", owner); err != nil {
+        return nil, err
+    }
     // Re-build a normalized ID if needed
     id, err := buildID(owner, name)
     if err != nil {
