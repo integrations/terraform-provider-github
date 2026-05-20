@@ -11,6 +11,15 @@ and the idiomatic-Go reference in
 with `go.instructions.md`, this file wins for provider source under
 `github/`.
 
+The `applyTo` glob above also matches test files
+(`github/**/*_test.go`). That overlap is intentional: tests do exercise
+schema-shaped code paths and the rules here are still useful context.
+On test files, however, the test-focused guidance in
+[`tests.instructions.md`](tests.instructions.md) takes precedence, and
+the schema, CRUD, and API-safety bullets in this file should be treated
+as background - flag them only when the test really is touching that
+code (for example, hand-rolled pagination in an acceptance test).
+
 ## Schema Changes Are User-Visible
 
 Any change to `schema.Schema` (`Type`, `Optional`, `Required`, `Computed`,
