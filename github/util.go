@@ -123,11 +123,15 @@ func validateValueFunc(values []string) schema.SchemaValidateDiagFunc {
 }
 
 // format the strings into an id `a:b`.
+//
+// Deprecated: use buildID instead.
 func buildTwoPartID(a, b string) string {
 	return fmt.Sprintf("%s:%s", a, b)
 }
 
 // format the strings into an id `a:b:c`.
+//
+// Deprecated: use buildID instead.
 func buildThreePartID(a, b, c string) string {
 	return fmt.Sprintf("%s:%s:%s", a, b, c)
 }
