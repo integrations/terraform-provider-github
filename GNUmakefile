@@ -90,7 +90,7 @@ validatedocs:
 	@cd tools; go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs validate --provider-dir ..
 
 fmtdocs:
-	@rumdl fmt --fix ./docs
+	@rumdl fmt ./docs
 
 lintdocs: validatedocs
 	@rumdl check $(RUMDL_ARGS) ./docs
@@ -106,7 +106,7 @@ yamlfmt:
 	@yamlfmt -continue_on_error .
 
 mdfmt:
-	@rumdl fmt --fix .
+	@rumdl fmt .
 
 mdlint:
 	@rumdl check $(RUMDL_ARGS) .
