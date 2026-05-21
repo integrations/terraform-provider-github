@@ -16,17 +16,17 @@ func dataSourceGithubAppToken() *schema.Resource {
 			"app_id": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: descriptions["app_auth.id"],
+				Description: "The GitHub App's identifier.",
 			},
 			"installation_id": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: descriptions["app_auth.installation_id"],
+				Description: "The GitHub App installation's identifier.",
 			},
 			"pem_file": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: descriptions["app_auth.pem_file"],
+				Description: "The GitHub App's PEM file content; `\\n` can be used for newlines.",
 			},
 			"token": {
 				Type:        schema.TypeString,

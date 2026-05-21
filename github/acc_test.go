@@ -90,7 +90,7 @@ var testAccConf *testAccConfig
 var providerFactories = map[string]func() (*schema.Provider, error){
 	//nolint:unparam
 	"github": func() (*schema.Provider, error) {
-		return Provider(), nil
+		return NewProvider()(), nil
 	},
 }
 
