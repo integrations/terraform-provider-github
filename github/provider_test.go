@@ -11,7 +11,7 @@ import (
 
 func TestProvider(t *testing.T) {
 	t.Run("runs internal validation without error", func(t *testing.T) {
-		if err := Provider().InternalValidate(); err != nil {
+		if err := NewProvider()().InternalValidate(); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	})
@@ -22,7 +22,7 @@ func TestProvider(t *testing.T) {
 		// 	var _ terraform.ResourceProvider = Provider()
 		// }
 
-		_ = *Provider()
+		_ = *NewProvider()()
 	})
 }
 
