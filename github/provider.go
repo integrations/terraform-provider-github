@@ -94,13 +94,13 @@ func NewProvider() func() *schema.Provider {
 					Type:        schema.TypeInt,
 					Optional:    true,
 					Default:     1000,
-					Description: "The delay in milliseconds between retry attempts; this defaults to `1000`.",
+					Description: "The delay in milliseconds between retry attempts; this defaults to `1000`. This setting only applies when `max_retries` is greater than `0`.",
 				},
 				"retryable_errors": {
 					Type:        schema.TypeList,
 					Elem:        &schema.Schema{Type: schema.TypeInt},
 					Optional:    true,
-					Description: "List of HTTP status codes that should be retried; if not set this uses the provider defaults.",
+					Description: "List of HTTP status codes that should be retried; if not set this uses the provider defaults. This setting only applies when `max_retries` is greater than `0`.",
 				},
 				"max_retries": {
 					Type:        schema.TypeInt,

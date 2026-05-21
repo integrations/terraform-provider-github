@@ -128,8 +128,8 @@ provider "github" {
 - `owner` (String) GitHub organization or user account to manage; this is required when authenticating using a GitHub App. If the owner is not provided and a token is provided, the provider will attempt to auto-detect the owner associated with the token. This can also be set by the `GITHUB_OWNER` environment variable.
 - `parallel_requests` (Boolean) Allow the provider to make parallel API calls; this is experimental and may cause concurrency and rate limiting issues.
 - `read_delay_ms` (Number) The delay in milliseconds between read operations; this defaults to `0`. This can be used to mitigate rate limiting issues when performing a large number of read operations.
-- `retry_delay_ms` (Number) The delay in milliseconds between retry attempts; this defaults to `1000`.
-- `retryable_errors` (List of Number) List of HTTP status codes that should be retried; if not set this uses the provider defaults.
+- `retry_delay_ms` (Number) The delay in milliseconds between retry attempts; this defaults to `1000`. This setting only applies when `max_retries` is greater than `0`.
+- `retryable_errors` (List of Number) List of HTTP status codes that should be retried; if not set this uses the provider defaults. This setting only applies when `max_retries` is greater than `0`.
 - `token` (String) GitHub OAuth or Personal Access Token (PAT) to use for authentication. This can also be set by the `GITHUB_TOKEN` environment variable.
 - `write_delay_ms` (Number) The delay in milliseconds between write operations; this defaults to `1000`. This is used to mitigate the GitHub API's abuse rate limits when writing. Note that **ALL** requests to the GraphQL API are implemented as `POST` requests under the hood, so this setting affects those calls as well.
 
