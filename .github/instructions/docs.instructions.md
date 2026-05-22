@@ -31,7 +31,7 @@ sources:
     every resource doc).
   - `examples/data-sources/<name>/*.tf` - per-data-source snippets
     (same: no `required_providers` or `provider` blocks).
-  - Per-resource `import.sh` files for the import section.
+  - Per-resource `import.sh` & `import-by-string-id.tf` files for the import section.
 - **Schema `Description` fields** in `github/**/*.go`, which become the
   argument and attribute reference rows.
 
