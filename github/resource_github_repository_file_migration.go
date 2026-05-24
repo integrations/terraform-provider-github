@@ -105,12 +105,19 @@ func resourceGithubRepositoryFileStateUpgradeV0(ctx context.Context, rawState ma
 
 	rawState["repository_id"] = int(repo.GetID())
 
+	branch, ok := rawState["branch"].(string)
 	// If branch is missing or empty, fetch the default branch from the repository
-	if branch, ok := rawState["branch"].(string); !ok || branch == "" {
-		rawState["branch"] = repo.GetDefaultBranch()
+	if !ok || branch == "" {
+		branch = repo.GetDefaultBranch()
+		rawState["branch"] = branch
 	}
 
-	newResourceID, err := buildID(rawState["repository"].(string), escapeIDPart(rawState["file"].(string)), rawState["branch"].(string))
+	filePath, ok := rawState["file"].(string)
+	if !ok {
+		return nil, fmt.Errorf("state upgrade v0: file path is not a string")
+	}
+
+	newResourceID, err := buildID(repoName, escapeIDPart(filePath), branch)
 	if err != nil {
 		return nil, fmt.Errorf("state upgrade v0: failed to build ID: %w", err)
 	}
