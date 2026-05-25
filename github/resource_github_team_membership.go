@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v85/github"
+	"github.com/google/go-github/v86/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -21,7 +21,7 @@ func resourceGithubTeamMembership() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
 				meta := m.(*Owner)
-				teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
+				teamIdString, username, err := parseID2(d.Id())
 				if err != nil {
 					return nil, err
 				}
@@ -101,7 +101,7 @@ func resourceGithubTeamMembershipRead(ctx context.Context, d *schema.ResourceDat
 	client := meta.v3client
 	orgId := meta.id
 
-	teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
+	teamIdString, username, err := parseID2(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}

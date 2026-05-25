@@ -1,12 +1,11 @@
 package github
 
 import (
-	"context"
 	"encoding/base64"
 	"fmt"
 	"testing"
 
-	"github.com/google/go-github/v85/github"
+	"github.com/google/go-github/v86/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
@@ -252,7 +251,7 @@ resource "github_dependabot_secret" "test" {
 						}
 						client := meta.v3client
 						owner := meta.name
-						ctx := context.Background()
+						ctx := t.Context()
 
 						keyID, _, err := getDependabotPublicKeyDetails(ctx, meta, repoName)
 						if err != nil {
@@ -333,7 +332,7 @@ resource "github_dependabot_secret" "test" {
 						}
 						client := meta.v3client
 						owner := meta.name
-						ctx := context.Background()
+						ctx := t.Context()
 
 						keyID, _, err := getDependabotPublicKeyDetails(ctx, meta, repoName)
 						if err != nil {

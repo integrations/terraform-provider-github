@@ -11,7 +11,7 @@ import (
 
 func TestProvider(t *testing.T) {
 	t.Run("runs internal validation without error", func(t *testing.T) {
-		if err := Provider().InternalValidate(); err != nil {
+		if err := NewProvider()().InternalValidate(); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	})
@@ -22,7 +22,7 @@ func TestProvider(t *testing.T) {
 		// 	var _ terraform.ResourceProvider = Provider()
 		// }
 
-		_ = *Provider()
+		_ = *NewProvider()()
 	})
 }
 
@@ -167,7 +167,7 @@ data "github_ip_ranges" "test" {}
 
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() {
-				skipUnlessMode(t, enterprise)
+				skipUnlessEnterprise(t)
 				if testAccConf.baseURL.Host != "api.github.com" {
 					t.Skip("Skipping as test mode is not GHES")
 				}
