@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v85/github"
+	"github.com/google/go-github/v86/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -93,7 +93,7 @@ func resourceGithubRepositoryCustomPropertyRead(d *schema.ResourceData, meta any
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
-	owner, repoName, propertyName, err := parseThreePartID(d.Id(), "owner", "repoName", "propertyName")
+	owner, repoName, propertyName, err := parseID3(d.Id())
 	if err != nil {
 		return err
 	}
@@ -120,7 +120,7 @@ func resourceGithubRepositoryCustomPropertyDelete(d *schema.ResourceData, meta a
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
-	owner, repoName, propertyName, err := parseThreePartID(d.Id(), "owner", "repoName", "propertyName")
+	owner, repoName, propertyName, err := parseID3(d.Id())
 	if err != nil {
 		return err
 	}

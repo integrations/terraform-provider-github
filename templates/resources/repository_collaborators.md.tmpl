@@ -1,0 +1,79 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+~> This resource (`github_repository_collaborators`) cannot be used in conjunction with [`github_repository_collaborator`](repository_collaborator) or [`github_team_repository`](team_repository) as they will conflict over the management of collaborators.
+
+This resource manages the complete set of collaborators for a repository, which includes both users and teams, in an authoritative manner. When applied, the provider will ensure that the set of collaborators for the repository matches the set defined in Terraform configuration. This means that if a collaborator is removed from the configuration, it will be removed from the repository, and if a collaborator is added to the configuration, it will be added to the repository.
+
+~> **Archived Repositories** When a repository is archived, GitHub makes it read-only, preventing collaborator modifications. If you attempt to destroy resources associated with archived repositories, the provider will gracefully handle the operation by logging an informational message and removing the resource from Terraform state without attempting to modify the archived repository.
+
+## Organization Repositories
+
+For repositories owned by an organization, collaborators can have explicit (and differing levels of) read, write, or administrator access to specific repositories, without giving the user full organization membership.
+
+### Teams
+
+Teams will be added to the repository on apply, and removed if removed from the configuration or on destroy. Teams added to the repository outside of Terraform can be managed by adding them to the configuration, or ignored by using the `ignore_team` argument. This is particularly important for organization/enterprise teams, which either need to be added to the configuration or ignored, as otherwise they will cause perpetual drift.
+
+## Personal Repositories
+
+For personal repositories, collaborators can only be granted [write](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/repository-access-and-collaboration/permission-levels-for-a-personal-account-repository#collaborator-access-for-a-repository-owned-by-a-personal-account) permission.
+
+!> If the repository owner is not added as a collaborator with admin access, the provider will churn this resource on every plan/apply. To prevent this, ensure that the repository owner is included in the set of user collaborators.
+
+## Users
+
+When applied, an invitation will be sent to the user to become a collaborators on a repository. When destroyed, either the invitation will be cancelled or the collaborators will be removed from the repository.
+
+## Documentation
+
+Further documentation on GitHub collaborators.
+
+- [Adding outside collaborators to your personal repositories](https://help.github.com/en/github/setting-up-and-managing-your-github-user-account/managing-access-to-your-personal-repositories)
+- [Adding outside collaborators to repositories in your organization](https://help.github.com/articles/adding-outside-collaborators-to-repositories-in-your-organization/)
+- [Converting an organization member to an outside collaborators](https://help.github.com/articles/converting-an-organization-member-to-an-outside-collaborator/)
+
+{{ if .HasExamples -}}
+## Example Usage
+
+{{- range .ExampleFiles }}
+
+{{ tffile . }}
+{{- end }}
+{{- end }}
+
+{{ .SchemaMarkdown | trimspace }}
+{{- if or .HasImport .HasImportIDConfig .HasImportIdentityConfig }}
+
+## Import
+
+Import is supported using the following syntax:
+{{- end }}
+{{- if .HasImportIdentityConfig }}
+
+In Terraform v1.12.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `identity` attribute, for example:
+
+{{tffile .ImportIdentityConfigFile }}
+
+{{ .IdentitySchemaMarkdown | trimspace }}
+{{- end }}
+{{- if .HasImportIDConfig }}
+
+In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `id` attribute, for example:
+
+{{tffile .ImportIDConfigFile }}
+{{- end }}
+{{- if .HasImport }}
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+{{codefile "shell" .ImportFile }}
+{{- end }}
