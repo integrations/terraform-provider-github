@@ -185,6 +185,7 @@ func NewProvider() func() *schema.Provider {
 				"github_repository":                                                     resourceGithubRepository(),
 				"github_repository_autolink_reference":                                  resourceGithubRepositoryAutolinkReference(),
 				"github_repository_dependabot_security_updates":                         resourceGithubRepositoryDependabotSecurityUpdates(),
+				"github_repository_immutable_releases":                                  resourceGithubRepositoryImmutableReleases(),
 				"github_repository_collaborator":                                        resourceGithubRepositoryCollaborator(),
 				"github_repository_collaborators":                                       resourceGithubRepositoryCollaborators(),
 				"github_repository_custom_property":                                     resourceGithubRepositoryCustomProperty(),
