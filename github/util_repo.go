@@ -150,13 +150,3 @@ func handleArchivedRepositoryError(err error, operation, resource, owner, repo s
 func handleArchivedRepoDelete(err error, resourceType, resourceName, owner, repo string) error {
 	return handleArchivedRepositoryError(err, "deletion", fmt.Sprintf("%s %s", resourceType, resourceName), owner, repo)
 }
-
-// get the list of retriable errors.
-func getDefaultRetriableErrors() map[int]bool {
-	return map[int]bool{
-		500: true,
-		502: true,
-		503: true,
-		504: true,
-	}
-}
