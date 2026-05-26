@@ -2,15 +2,19 @@ package github
 
 import (
 	"context"
-	"log"
+	"fmt"
+	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/integrations/terraform-provider-github/v6/internal/ghclient"
 )
 
 func init() {
@@ -37,7 +41,6 @@ func NewProvider() func() *schema.Provider {
 				"organization": {
 					Type:        schema.TypeString,
 					Optional:    true,
-					DefaultFunc: schema.EnvDefaultFunc("GITHUB_ORGANIZATION", nil),
 					Description: "GitHub organization to manage. This can also be set by the `GITHUB_ORGANIZATION` environment variable.",
 					Deprecated:  "This argument is deprecated and will be removed in a future major release; use `owner` instead.",
 				},
@@ -82,13 +85,13 @@ func NewProvider() func() *schema.Provider {
 					Type:        schema.TypeInt,
 					Optional:    true,
 					Default:     0,
-					Description: "The delay in milliseconds between read operations; this defaults to `0`. This can be used to mitigate rate limiting issues when performing a large number of read operations.",
+					Description: "The delay in milliseconds between read operations; this defaults to `0`. This can be used to mitigate rate limiting issues when performing a large number of read operations. This is ignored for the REST API when `legacy_client` is `false` since the new client implementation is GitHub rate limit aware.",
 				},
 				"write_delay_ms": {
 					Type:        schema.TypeInt,
 					Optional:    true,
 					Default:     1000,
-					Description: "The delay in milliseconds between write operations; this defaults to `1000`. This is used to mitigate the GitHub API's abuse rate limits when writing. Note that **ALL** requests to the GraphQL API are implemented as `POST` requests under the hood, so this setting affects those calls as well.",
+					Description: "The delay in milliseconds between write operations; this defaults to `1000`. This is used to mitigate the GitHub API's abuse rate limits when writing. Note that **ALL** requests to the GraphQL API are implemented as `POST` requests under the hood, so this setting affects those calls as well. This is ignored for the REST API when `legacy_client` is `false` since the new client implementation is GitHub rate limit aware.",
 				},
 				"retry_delay_ms": {
 					Type:        schema.TypeInt,
@@ -100,7 +103,7 @@ func NewProvider() func() *schema.Provider {
 					Type:        schema.TypeList,
 					Elem:        &schema.Schema{Type: schema.TypeInt},
 					Optional:    true,
-					Description: "List of HTTP status codes that should be retried; if not set this uses the provider defaults. This setting only applies when `max_retries` is greater than `0`.",
+					Description: "List of HTTP status codes that should be retried; if not set this uses the provider defaults. This setting only applies when `max_retries` is greater than `0`. This is ignored for the REST API when `legacy_client` is `false` since the new client implementation handles the retry logic.",
 				},
 				"max_retries": {
 					Type:        schema.TypeInt,
@@ -118,13 +121,26 @@ func NewProvider() func() *schema.Provider {
 					Type:        schema.TypeBool,
 					Optional:    true,
 					Default:     false,
-					Description: "Allow the provider to make parallel API calls; this is experimental and may cause concurrency and rate limiting issues.",
+					Description: "Allow the provider to make parallel API calls; this is experimental and may cause concurrency and rate limiting issues. This is ignored for the REST API when `legacy_client` is `false` since the new client implementation is designed to safely handle parallel requests.",
 				},
 				"insecure": {
 					Type:        schema.TypeBool,
 					Optional:    true,
 					Default:     false,
 					Description: "Allow insecure server connections when using SSL.",
+					Deprecated:  "This argument is deprecated as it's currently not used and will be removed in the next major version.",
+				},
+				"legacy_client": {
+					Type:        schema.TypeBool,
+					Optional:    true,
+					DefaultFunc: schema.EnvDefaultFunc("GITHUB_LEGACY_CLIENT", true),
+					Description: "Use the legacy GitHub client implementation; if set to `false`, the new client implementation is used. This can also be set by the `GITHUB_LEGACY_CLIENT` environment variable.",
+				},
+				"cache_path": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					DefaultFunc: schema.EnvDefaultFunc("GITHUB_CACHE_PATH", ""),
+					Description: "The path to the cache directory for persisting GitHub API requests between runs; if not set there will be no caching between runs. This can also be set by the `GITHUB_CACHE_PATH` environment variable.",
 				},
 			},
 
@@ -302,156 +318,282 @@ func NewProvider() func() *schema.Provider {
 	}
 }
 
+// configureProvider initializes the provider meta parameter with the necessary clients and owner information based on the provided configuration. It returns the initialized meta parameter or an error if the configuration is invalid or if there are issues initializing the clients.
 func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.Diagnostics) {
 	return func(ctx context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
-		owner := d.Get("owner").(string)
-		token := d.Get("token").(string)
-		insecure := d.Get("insecure").(bool)
-
-		// BEGIN backwards compatibility
-		// OwnerOrOrgEnvDefaultFunc used to be the default value for both
-		// 'owner' and 'organization'. This meant that if 'owner' and
-		// 'GITHUB_OWNER' were set, 'GITHUB_OWNER' would be used as the default
-		// value of 'organization' and therefore override 'owner'.
-		//
-		// This seems undesirable (an environment variable should not override
-		// an explicitly set value in a provider block), but is necessary
-		// for backwards compatibility. We could remove this backwards compatibility
-		// code in a future major release.
-		env := ownerOrOrgEnvDefaultFunc()
-		if env.(string) != "" {
-			owner = env.(string)
-		}
-		// END backwards compatibility
-
-		baseURL, isGHES, err := getBaseURL(d.Get("base_url").(string))
-		if err != nil {
-			return nil, diag.FromErr(err)
+		config := &Config{
+			LegacyClient:   d.Get("legacy_client").(bool),
+			GraphQLAPIPath: "graphql",
 		}
 
-		org := d.Get("organization").(string)
-		if org != "" {
-			log.Printf("[INFO] Selecting organization attribute as owner: %s", org)
-			owner = org
-		}
+		if v, ok := d.GetOk("base_url"); ok {
+			if s, ok := v.(string); ok && s != "" {
+				baseURL, isGHES, err := getBaseURL(s)
+				if err != nil {
+					return nil, diag.FromErr(err)
+				}
 
-		if appAuth, ok := d.Get("app_auth").([]any); ok && len(appAuth) > 0 && appAuth[0] != nil {
-			appAuthAttr := appAuth[0].(map[string]any)
+				tflog.Info(ctx, "Using base URL from provider configuration.", map[string]any{"base_url": baseURL.String()})
+				config.BaseURL = baseURL
 
-			var appID, appInstallationID, appPemFile string
-
-			if v, ok := appAuthAttr["id"].(string); ok && v != "" {
-				appID = v
-			} else {
-				return nil, diag.Errorf("app_auth.id must be set and contain a non-empty value")
-			}
-
-			if v, ok := appAuthAttr["installation_id"].(string); ok && v != "" {
-				appInstallationID = v
-			} else {
-				return nil, diag.Errorf("app_auth.installation_id must be set and contain a non-empty value")
-			}
-
-			if v, ok := appAuthAttr["pem_file"].(string); ok && v != "" {
-				// The Go encoding/pem package only decodes PEM formatted blocks
-				// that contain new lines. Some platforms, like Terraform Cloud,
-				// do not support new lines within Environment Variables.
-				// Any occurrence of \n in the `pem_file` argument's value
-				// (explicit value, or default value taken from
-				// GITHUB_APP_PEM_FILE Environment Variable) is replaced with an
-				// actual new line character before decoding.
-				appPemFile = strings.ReplaceAll(v, `\n`, "\n")
-			} else {
-				return nil, diag.Errorf("app_auth.pem_file must be set and contain a non-empty value")
-			}
-
-			apiPath := ""
-			if isGHES {
-				apiPath = GHESRESTAPIPath
-			}
-
-			appToken, err := GenerateOAuthTokenFromApp(baseURL.JoinPath(apiPath), appID, appInstallationID, appPemFile)
-			if err != nil {
-				return nil, diag.FromErr(err)
-			}
-
-			token = appToken
-		}
-
-		if token == "" {
-			log.Printf("[INFO] No token found, using GitHub CLI to get token from hostname %s", baseURL.Host)
-			token = tokenFromGHCLI(baseURL)
-		}
-
-		writeDelay := d.Get("write_delay_ms").(int)
-		if writeDelay <= 0 {
-			return nil, diag.Errorf("write_delay_ms must be greater than 0ms")
-		}
-		log.Printf("[INFO] Setting write_delay_ms to %d", writeDelay)
-
-		readDelay := d.Get("read_delay_ms").(int)
-		if readDelay < 0 {
-			return nil, diag.Errorf("read_delay_ms must be greater than or equal to 0ms")
-		}
-		log.Printf("[DEBUG] Setting read_delay_ms to %d", readDelay)
-
-		retryDelay, _ := d.Get("retry_delay_ms").(int)
-		if retryDelay < 0 {
-			return nil, diag.Errorf("retry_delay_ms must be greater than or equal to 0ms")
-		}
-		log.Printf("[DEBUG] Setting retry_delay_ms to %d", retryDelay)
-
-		maxRetries := d.Get("max_retries").(int)
-		if maxRetries < 0 {
-			return nil, diag.Errorf("max_retries must be greater than or equal to 0")
-		}
-		log.Printf("[DEBUG] Setting max_retries to %d", maxRetries)
-		retryableErrors := make(map[int]bool)
-		if maxRetries > 0 {
-			reParam := d.Get("retryable_errors").([]any)
-			if len(reParam) == 0 {
-				retryableErrors = getDefaultRetryableErrors()
-			} else {
-				for _, status := range reParam {
-					retryableErrors[status.(int)] = true
+				if isGHES {
+					tflog.Info(ctx, "Base URL indicates GitHub Enterprise Server (GHES) usage; enabling GHES mode.", map[string]any{"base_url": baseURL.String()})
+					config.RESTAPIPath = GHESRESTAPIPath
+					config.GraphQLAPIPath = GHESGraphQLAPIPath
 				}
 			}
-
-			log.Printf("[DEBUG] Setting retryableErrors to %v", retryableErrors)
 		}
 
-		_maxPerPage := d.Get("max_per_page").(int)
-		if _maxPerPage <= 0 {
-			return nil, diag.Errorf("max_per_page must be greater than 0")
-		}
-		log.Printf("[DEBUG] Setting max_per_page to %d", _maxPerPage)
-		maxPerPage = _maxPerPage
-
-		parallelRequests := d.Get("parallel_requests").(bool)
-
-		log.Printf("[DEBUG] Setting parallel_requests to %t", parallelRequests)
-
-		config := Config{
-			Token:            token,
-			BaseURL:          baseURL,
-			Insecure:         insecure,
-			Owner:            owner,
-			WriteDelay:       time.Duration(writeDelay) * time.Millisecond,
-			ReadDelay:        time.Duration(readDelay) * time.Millisecond,
-			RetryDelay:       time.Duration(retryDelay) * time.Millisecond,
-			RetryableErrors:  retryableErrors,
-			MaxRetries:       maxRetries,
-			ParallelRequests: parallelRequests,
-			IsGHES:           isGHES,
+		// TODO: In v7 remove organization and the associated backwards compatibility code, and require owner to be set either via the provider configuration or GITHUB_OWNER environment variable with the provider configuration taking precedence.
+		if v, ok := d.GetOk("organization"); ok {
+			if s, ok := v.(string); ok && s != "" {
+				tflog.Info(ctx, "Using organization environment variable or attribute as owner.", map[string]any{"owner": s})
+				config.Owner = s
+			}
 		}
 
-		meta, err := config.Meta()
+		if config.Owner == "" {
+			if s, ok := os.LookupEnv("GITHUB_OWNER"); ok && s != "" {
+				tflog.Info(ctx, "Using GITHUB_OWNER environment variable as owner.", map[string]any{"owner": s})
+				config.Owner = s
+			}
+		}
+
+		if config.Owner == "" {
+			if v, ok := d.GetOk("owner"); ok {
+				if s, ok := v.(string); ok && s != "" {
+					tflog.Info(ctx, "Using owner attribute as owner.", map[string]any{"owner": s})
+					config.Owner = s
+				}
+			}
+		}
+
+		if appID, appInstallationID, appPEM, ok := getAppAuth(d); ok {
+			tflog.Info(ctx, "Using GitHub App authentication.", map[string]any{"app_id": appID, "app_installation_id": appInstallationID})
+			config.AppID = appID
+			config.AppInstallationID = appInstallationID
+			config.AppPEM = appPEM
+		}
+
+		if config.AppID == nil {
+			if _, ok := d.GetOk("app_auth"); ok {
+				return nil, diag.Errorf("app_auth block is set but required fields are missing or contains empty values")
+			}
+
+			if v, ok := d.GetOk("token"); ok {
+				if s, ok := v.(string); ok && s != "" {
+					tflog.Info(ctx, "Using token from provider configuration.", map[string]any{"token": "****"})
+					config.Token = s
+				}
+			}
+		}
+
+		if config.Owner == "" && config.AppID != nil {
+			return nil, diag.Errorf("owner must be set for github app authentication")
+		}
+
+		if config.LegacyClient {
+			if config.AppID != nil {
+				appToken, err := GenerateOAuthTokenFromApp(config.BaseURL.JoinPath(config.RESTAPIPath), *config.AppID, *config.AppInstallationID, string(config.AppPEM))
+				if err != nil {
+					return nil, diag.FromErr(err)
+				}
+				config.Token = appToken
+			}
+
+			if config.Token == "" {
+				tflog.Info(ctx, "No token found, using GitHub CLI to get token from base URL.", map[string]any{"base_url": config.BaseURL.String()})
+				config.Token = tokenFromGHCLI(ctx, config.BaseURL)
+			}
+		}
+
+		if v, ok := d.GetOk("read_delay_ms"); ok {
+			if i, ok := v.(int); ok {
+				if i < 0 {
+					return nil, diag.Errorf("read_delay_ms must be greater than or equal to 0")
+				}
+
+				tflog.Info(ctx, "Using read delay from provider configuration.", map[string]any{"read_delay_ms": i})
+				config.ReadDelay = time.Duration(i) * time.Millisecond
+			}
+		}
+
+		if v, ok := d.GetOk("write_delay_ms"); ok {
+			if i, ok := v.(int); ok {
+				if i <= 0 {
+					return nil, diag.Errorf("write_delay_ms must be greater than 0")
+				}
+
+				tflog.Info(ctx, "Using write delay from provider configuration.", map[string]any{"write_delay_ms": i})
+				config.WriteDelay = time.Duration(i) * time.Millisecond
+			}
+		}
+
+		if v, ok := d.GetOk("retry_delay_ms"); ok {
+			if i, ok := v.(int); ok {
+				if i < 0 {
+					return nil, diag.Errorf("retry_delay_ms must be greater than or equal to 0")
+				}
+
+				tflog.Info(ctx, "Using retry delay from provider configuration.", map[string]any{"retry_delay_ms": i})
+				config.RetryDelay = time.Duration(i) * time.Millisecond
+			}
+		}
+
+		if v, ok := d.GetOk("retryable_errors"); ok {
+			if c, ok := v.([]any); ok && len(c) > 0 {
+				retryableErrors := make(map[int]bool)
+				for _, status := range c {
+					i, ok := status.(int)
+					if !ok {
+						return nil, diag.Errorf("retryable_errors must be a list of integers")
+					}
+					retryableErrors[i] = true
+				}
+
+				tflog.Info(ctx, "Using retryable errors from provider configuration.", map[string]any{"retryable_errors": retryableErrors})
+				config.RetryableErrors = retryableErrors
+			}
+		}
+
+		if config.RetryableErrors == nil {
+			config.RetryableErrors = getDefaultRetryableErrors()
+		}
+
+		if v, ok := d.GetOk("max_retries"); ok {
+			if i, ok := v.(int); ok {
+				if i < 0 {
+					return nil, diag.Errorf("max_retries must be greater than or equal to 0")
+				}
+
+				tflog.Info(ctx, "Using max retries from provider configuration.", map[string]any{"max_retries": i})
+				config.MaxRetries = i
+			}
+		}
+
+		if v, ok := d.GetOk("max_per_page"); ok {
+			if i, ok := v.(int); ok {
+				if i <= 0 {
+					return nil, diag.Errorf("max_per_page must be greater than 0")
+				}
+
+				tflog.Info(ctx, "Using max per page from provider configuration.", map[string]any{"max_per_page": i})
+				// TODO: Move max per page to the provider metadata and remove the global variable.
+				maxPerPage = i
+			}
+		}
+
+		if d.Get("parallel_requests").(bool) {
+			tflog.Warn(ctx, "Parallel requests are enabled; this may cause concurrency and rate limiting issues.")
+			config.ParallelRequests = true
+		}
+
+		if d.Get("insecure").(bool) {
+			tflog.Warn(ctx, "Insecure mode enabled; SSL certificate verification is disabled. This is not recommended for production environments.")
+			config.Insecure = true
+		}
+
+		if v, ok := d.GetOk("cache_path"); ok {
+			if s, ok := v.(string); ok && s != "" {
+				tflog.Info(ctx, "Using cache path from provider configuration.", map[string]any{"cache_path": s})
+				config.CachePath = &s
+			}
+		}
+
+		meta, err := configureProviderMeta(ctx, config)
 		if err != nil {
 			return nil, diag.FromErr(err)
 		}
 
 		return meta, nil
 	}
+}
+
+// configureProviderMeta initializes the provider metadata, including setting up the GitHub API clients based on the provided configuration. It returns the initialized metadata or an error if the configuration is invalid or if there are issues initializing the clients.
+func configureProviderMeta(ctx context.Context, c *Config) (any, error) {
+	owner := &Owner{
+		name:        c.Owner,
+		StopContext: context.Background(),
+	}
+
+	if c.LegacyClient {
+		var client *http.Client
+		if c.Anonymous() {
+			client = c.AnonymousHTTPClient()
+		} else {
+			client = c.AuthenticatedHTTPClient()
+		}
+
+		v3client, err := c.NewRESTClient(client)
+		if err != nil {
+			return nil, err
+		}
+		owner.v3client = v3client
+
+		v4client, err := c.NewGraphQLClient(client)
+		if err != nil {
+			return nil, err
+		}
+		owner.v4client = v4client
+	} else {
+		options := ghclient.Options{
+			RESTAPIURL:   new(c.BaseURL.JoinPath(c.RESTAPIPath).String()),
+			GraphQLURL:   new(c.BaseURL.JoinPath(c.GraphQLAPIPath).String()),
+			CachePath:    c.CachePath,
+			RetryMax:     c.MaxRetries,
+			RetryWaitMin: c.RetryDelay,
+			RetryWaitMax: c.RetryDelay,
+		}
+
+		var source ghclient.Source
+		if c.AppID != nil {
+			appSource, err := ghclient.NewAppSource(*c.AppID, c.AppPEM, options)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create app source: %w", err)
+			}
+			source = appSource
+		} else if c.Token != "" {
+			tokenSource, err := ghclient.NewTokenSource(c.Token, options)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create token source: %w", err)
+			}
+			source = tokenSource
+		} else {
+			anonymousSource, err := ghclient.NewAnonymousSource(options)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create anonymous source: %w", err)
+			}
+			source = anonymousSource
+		}
+
+		v3client, err := source.OwnerRESTClient(ctx, owner.name)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create rest client for owner %q: %w", owner.name, err)
+		}
+
+		v4client, err := source.OwnerGraphQLClient(ctx, owner.name)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create graphql client for owner %q: %w", owner.name, err)
+		}
+
+		owner.v3client = v3client
+		owner.v4client = v4client
+	}
+
+	if owner.name == "" && c.Token != "" {
+		user, _, err := owner.v3client.Users.Get(ctx, "")
+		if err != nil {
+			return nil, err
+		}
+		owner.name = user.GetLogin()
+	}
+
+	if org, _, err := owner.v3client.Organizations.Get(ctx, owner.name); err == nil && org != nil {
+		owner.id = org.GetID()
+		owner.IsOrganization = true
+	}
+
+	return owner, nil
 }
 
 // ghCLIHostFromAPIHost maps an API hostname to the corresponding
@@ -468,34 +610,75 @@ func ghCLIHostFromAPIHost(host string) string {
 }
 
 // See https://github.com/integrations/terraform-provider-github/issues/1822
-func tokenFromGHCLI(u *url.URL) string {
-	ghCliPath := os.Getenv("GH_PATH")
-	if ghCliPath == "" {
+func tokenFromGHCLI(ctx context.Context, u *url.URL) string {
+	ghCliPath, ok := os.LookupEnv("GH_PATH")
+	if !ok {
 		ghCliPath = "gh"
 	}
 
 	host := ghCLIHostFromAPIHost(u.Host)
 
-	out, err := exec.Command(ghCliPath, "auth", "token", "--hostname", host).Output()
+	out, err := exec.CommandContext(ctx, ghCliPath, "auth", "token", "--hostname", host).Output()
 	if err != nil {
-		log.Printf("[DEBUG] Error getting token from GitHub CLI: %s", err.Error())
+		tflog.Debug(ctx, "Error getting token from GitHub CLI; ensure GitHub CLI is installed and authenticated if you intend to use it for authentication.", map[string]any{"error": err.Error()})
 		// GH CLI is either not installed or there was no `gh auth login` command issued,
 		// which is fine. don't return the error to keep the flow going
 		return ""
 	}
 
-	log.Printf("[INFO] Using the token from GitHub CLI")
+	tflog.Info(ctx, "Using the token from GitHub CLI.")
 	return strings.TrimSpace(string(out))
 }
 
-func ownerOrOrgEnvDefaultFunc() any {
-	if organization := os.Getenv("GITHUB_ORGANIZATION"); organization != "" {
-		log.Printf("[INFO] Selecting owner %s from GITHUB_ORGANIZATION environment variable", organization)
-		return organization
+// getAppAuth retrieves GitHub App authentication parameters from the provider configuration, environment variables, or defaults, and validates them. It returns the app ID, installation ID, PEM file content, and a boolean indicating whether valid app authentication parameters were found.
+func getAppAuth(d *schema.ResourceData) (*string, *string, []byte, bool) {
+	appID := os.Getenv("GITHUB_APP_ID")
+	appInstallationID := os.Getenv("GITHUB_APP_INSTALLATION_ID")
+	appPEM := os.Getenv("GITHUB_APP_PEM_FILE")
+
+	v, ok := d.GetOk("app_auth")
+	if !ok {
+		return validateAppAuth(appID, appInstallationID, appPEM)
 	}
-	owner := os.Getenv("GITHUB_OWNER")
-	log.Printf("[INFO] Selecting owner %s from GITHUB_OWNER environment variable", owner)
-	return owner
+
+	c, ok := v.([]any)
+	if !ok || len(c) == 0 || c[0] == nil {
+		return validateAppAuth(appID, appInstallationID, appPEM)
+	}
+
+	appAuthAttr, ok := c[0].(map[string]any)
+	if !ok {
+		return validateAppAuth(appID, appInstallationID, appPEM)
+	}
+
+	if o, ok := appAuthAttr["id"]; ok {
+		if s, ok := o.(string); ok && s != "" {
+			appID = s
+		}
+	}
+
+	if o, ok := appAuthAttr["installation_id"]; ok {
+		if s, ok := o.(string); ok && s != "" {
+			appInstallationID = s
+		}
+	}
+
+	if o, ok := appAuthAttr["pem_file"]; ok {
+		if s, ok := o.(string); ok && s != "" {
+			appPEM = s
+		}
+	}
+
+	return validateAppAuth(appID, appInstallationID, appPEM)
+}
+
+// validateAppAuth checks if the provided app authentication parameters are valid (non-empty) and returns them along with a boolean indicating validity.
+func validateAppAuth(appID, appInstallationID, appPEM string) (*string, *string, []byte, bool) {
+	if appID == "" || appInstallationID == "" || appPEM == "" {
+		return nil, nil, nil, false
+	}
+
+	return &appID, &appInstallationID, []byte(strings.ReplaceAll(appPEM, `\n`, "\n")), true
 }
 
 // getDefaultRetryableErrors returns the default set of retryable errors.
