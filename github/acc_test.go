@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v86/github"
+	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
@@ -90,7 +90,7 @@ var testAccConf *testAccConfig
 var providerFactories = map[string]func() (*schema.Provider, error){
 	//nolint:unparam
 	"github": func() (*schema.Provider, error) {
-		return Provider(), nil
+		return NewProvider()(), nil
 	},
 }
 
