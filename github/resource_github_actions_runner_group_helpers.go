@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -14,13 +14,13 @@ type runnerGroupNetworking struct {
 }
 
 func getRunnerGroupNetworking(client *github.Client, ctx context.Context, path string) (*runnerGroupNetworking, *github.Response, error) {
-	req, err := client.NewRequest("GET", path, nil)
+	req, err := client.NewRequest(ctx, "GET", path, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	var runnerGroup runnerGroupNetworking
-	resp, err := client.Do(ctx, req, &runnerGroup)
+	resp, err := client.Do(req, &runnerGroup)
 	if err != nil {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) && ghErr.Response != nil && ghErr.Response.StatusCode == http.StatusNotModified {
@@ -38,12 +38,12 @@ func updateRunnerGroupNetworking(client *github.Client, ctx context.Context, pat
 		"network_configuration_id": networkConfigurationID,
 	}
 
-	req, err := client.NewRequest("PATCH", path, payload)
+	req, err := client.NewRequest(ctx, "PATCH", path, payload)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := client.Do(ctx, req, nil)
+	resp, err := client.Do(req, nil)
 	if err != nil {
 		return resp, err
 	}

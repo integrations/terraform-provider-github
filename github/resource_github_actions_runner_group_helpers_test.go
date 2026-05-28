@@ -3,10 +3,9 @@ package github
 import (
 	"context"
 	"net/http"
-	"net/url"
 	"testing"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -23,9 +22,11 @@ func TestGetRunnerGroupNetworking(t *testing.T) {
 		defer ts.Close()
 
 		httpClient := http.DefaultClient
-		client := github.NewClient(httpClient)
-		u, _ := url.Parse(ts.URL + "/")
-		client.BaseURL = u
+		baseURL := ts.URL + "/"
+		client, err := github.NewClient(github.WithHTTPClient(httpClient), github.WithURLs(&baseURL, nil))
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		runnerGroup, resp, err := getRunnerGroupNetworking(client, context.Background(), "orgs/test/actions/runner-groups/123")
 		if err != nil {
@@ -56,11 +57,12 @@ func TestGetRunnerGroupNetworking(t *testing.T) {
 		})
 		defer ts.Close()
 
-		httpClient := http.DefaultClient
-		httpClient.Transport = NewEtagTransport(http.DefaultTransport)
-		client := github.NewClient(httpClient)
-		u, _ := url.Parse(ts.URL + "/")
-		client.BaseURL = u
+		httpClient := &http.Client{Transport: NewEtagTransport(http.DefaultTransport)}
+		baseURL := ts.URL + "/"
+		client, err := github.NewClient(github.WithHTTPClient(httpClient), github.WithURLs(&baseURL, nil))
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		ctx := context.WithValue(context.Background(), ctxEtag, "etag-123")
 		runnerGroup, resp, err := getRunnerGroupNetworking(client, ctx, "orgs/test/actions/runner-groups/123")
@@ -90,9 +92,11 @@ func TestUpdateRunnerGroupNetworking(t *testing.T) {
 		defer ts.Close()
 
 		httpClient := http.DefaultClient
-		client := github.NewClient(httpClient)
-		u, _ := url.Parse(ts.URL + "/")
-		client.BaseURL = u
+		baseURL := ts.URL + "/"
+		client, err := github.NewClient(github.WithHTTPClient(httpClient), github.WithURLs(&baseURL, nil))
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		networkConfigurationID := "network-123"
 		resp, err := updateRunnerGroupNetworking(client, context.Background(), "orgs/test/actions/runner-groups/123", &networkConfigurationID)
@@ -117,9 +121,11 @@ func TestUpdateRunnerGroupNetworking(t *testing.T) {
 		defer ts.Close()
 
 		httpClient := http.DefaultClient
-		client := github.NewClient(httpClient)
-		u, _ := url.Parse(ts.URL + "/")
-		client.BaseURL = u
+		baseURL := ts.URL + "/"
+		client, err := github.NewClient(github.WithHTTPClient(httpClient), github.WithURLs(&baseURL, nil))
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		resp, err := updateRunnerGroupNetworking(client, context.Background(), "orgs/test/actions/runner-groups/123", nil)
 		if err != nil {
