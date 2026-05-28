@@ -1,9 +1,13 @@
 package github
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
@@ -238,4 +242,109 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 			},
 		})
 	})
+}
+
+func TestGithubActionsOrganizationPermissionsOmitsAllowedActionsForNone(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPut && r.URL.Path == "/orgs/test-org/actions/permissions":
+			var body map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatalf("decoding request body: %s", err)
+			}
+			if _, ok := body["allowed_actions"]; ok {
+				t.Fatalf("allowed_actions should be omitted when enabled_repositories is none, got %#v", body)
+			}
+			if got := body["enabled_repositories"]; got != "none" {
+				t.Fatalf("enabled_repositories = %#v, want none", got)
+			}
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"enabled_repositories":"none","sha_pinning_required":false}`))
+		case r.Method == http.MethodGet && r.URL.Path == "/orgs/test-org/actions/permissions":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"enabled_repositories":"none","sha_pinning_required":false}`))
+		default:
+			t.Fatalf("unexpected request %s %s", r.Method, r.URL.String())
+		}
+	}))
+	defer server.Close()
+
+	resource := resourceGithubActionsOrganizationPermissions()
+	data := schema.TestResourceDataRaw(t, resource.Schema, map[string]any{
+		"enabled_repositories": "none",
+	})
+	meta := &Owner{
+		name:           "test-org",
+		IsOrganization: true,
+		v3client:       mustGitHubClient(t, server.URL+"/"),
+	}
+
+	if err := resourceGithubActionsOrganizationPermissionsCreateOrUpdate(data, meta); err != nil {
+		t.Fatalf("creating actions organization permissions: %s", err)
+	}
+}
+
+func TestGithubActionsEnabledRepositoriesObjectAllowsEmptyConfig(t *testing.T) {
+	resource := resourceGithubActionsOrganizationPermissions()
+	data := schema.TestResourceDataRaw(t, resource.Schema, map[string]any{
+		"enabled_repositories_config": []any{nil},
+	})
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("empty enabled_repositories_config should not panic: %v", r)
+		}
+	}()
+
+	ids, err := resourceGithubActionsEnabledRepositoriesObject(data)
+	if err != nil {
+		t.Fatalf("empty enabled_repositories_config returned error: %s", err)
+	}
+	if len(ids) != 0 {
+		t.Fatalf("repository ids = %#v, want empty", ids)
+	}
+}
+
+func TestGithubActionsOrganizationPermissionsReadPreservesEmptySelectedRepositories(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/orgs/test-org/actions/permissions":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"enabled_repositories":"selected","allowed_actions":"local_only","sha_pinning_required":false}`))
+		case r.Method == http.MethodGet && r.URL.Path == "/orgs/test-org/actions/permissions/repositories":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"total_count":0,"repositories":[]}`))
+		default:
+			t.Fatalf("unexpected request %s %s", r.Method, r.URL.String())
+		}
+	}))
+	defer server.Close()
+
+	resource := resourceGithubActionsOrganizationPermissions()
+	data := schema.TestResourceDataRaw(t, resource.Schema, map[string]any{
+		"allowed_actions":      "local_only",
+		"enabled_repositories": "selected",
+		"enabled_repositories_config": []any{
+			map[string]any{"repository_ids": []any{}},
+		},
+	})
+	data.SetId("test-org")
+	meta := &Owner{
+		name:           "test-org",
+		IsOrganization: true,
+		v3client:       mustGitHubClient(t, server.URL+"/"),
+	}
+
+	if err := resourceGithubActionsOrganizationPermissionsRead(data, meta); err != nil {
+		t.Fatalf("reading actions organization permissions: %s", err)
+	}
+
+	config := data.Get("enabled_repositories_config").([]any)
+	if len(config) != 1 {
+		t.Fatalf("enabled_repositories_config length = %d, want 1", len(config))
+	}
+	repositoryIDs := config[0].(map[string]any)["repository_ids"].(*schema.Set)
+	if repositoryIDs.Len() != 0 {
+		t.Fatalf("repository_ids length = %d, want 0", repositoryIDs.Len())
+	}
 }
