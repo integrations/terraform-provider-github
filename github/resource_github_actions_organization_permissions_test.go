@@ -1,9 +1,14 @@
 package github
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	gogithub "github.com/google/go-github/v88/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
@@ -238,4 +243,80 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 			},
 		})
 	})
+}
+
+func TestGithubActionsOrganizationPermissionsSendsEmptyPatternsAllowed(t *testing.T) {
+	resource := resourceGithubActionsOrganizationPermissions()
+	var selectedActionsPayload map[string]any
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/orgs/test-org/actions/permissions", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPut:
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"enabled_repositories":"all","allowed_actions":"selected","sha_pinning_required":true}`))
+		case http.MethodGet:
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"enabled_repositories":"all","allowed_actions":"selected","sha_pinning_required":true}`))
+		default:
+			t.Fatalf("unexpected method %s for %s", r.Method, r.URL.Path)
+		}
+	})
+	mux.HandleFunc("/orgs/test-org/actions/permissions/selected-actions", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPut:
+			if err := json.NewDecoder(r.Body).Decode(&selectedActionsPayload); err != nil {
+				t.Fatalf("decode selected actions payload: %v", err)
+			}
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"github_owned_allowed":true,"patterns_allowed":[],"verified_allowed":true}`))
+		case http.MethodGet:
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"github_owned_allowed":true,"patterns_allowed":[],"verified_allowed":true}`))
+		default:
+			t.Fatalf("unexpected method %s for %s", r.Method, r.URL.Path)
+		}
+	})
+
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	baseURL := server.URL + "/"
+	client, err := gogithub.NewClient(gogithub.WithURLs(&baseURL, &baseURL))
+	if err != nil {
+		t.Fatalf("create GitHub client: %v", err)
+	}
+
+	d := schema.TestResourceDataRaw(t, resource.Schema, map[string]any{
+		"allowed_actions":      "selected",
+		"enabled_repositories": "all",
+		"allowed_actions_config": []any{
+			map[string]any{
+				"github_owned_allowed": true,
+				"patterns_allowed":     []any{},
+				"verified_allowed":     true,
+			},
+		},
+		"sha_pinning_required": true,
+	})
+
+	err = resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d, &Owner{
+		name:           "test-org",
+		v3client:       client,
+		IsOrganization: true,
+	})
+	if err != nil {
+		t.Fatalf("create/update actions organization permissions: %v", err)
+	}
+
+	patterns, ok := selectedActionsPayload["patterns_allowed"]
+	if !ok {
+		t.Fatalf("selected actions payload omitted patterns_allowed: %#v", selectedActionsPayload)
+	}
+	if got := len(patterns.([]any)); got != 0 {
+		t.Fatalf("patterns_allowed length = %d, want 0", got)
+	}
+	if got := selectedActionsPayload["verified_allowed"]; got != true {
+		t.Fatalf("verified_allowed = %v, want true", got)
+	}
 }
