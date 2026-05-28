@@ -2,12 +2,9 @@ package github
 
 import (
 	"fmt"
-	"net/http"
-	"net/url"
 	"os"
 	"testing"
 
-	"github.com/google/go-github/v85/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -35,12 +32,7 @@ func TestAccGithubAppTokenDataSource(t *testing.T) {
 		})
 		defer ts.Close()
 
-		httpCl := http.DefaultClient
-		httpCl.Transport = http.DefaultTransport
-
-		client := github.NewClient(httpCl)
-		u, _ := url.Parse(ts.URL + "/")
-		client.BaseURL = u
+		client := mustGitHubClient(t, ts.URL)
 
 		meta := &Owner{
 			name:     owner,
