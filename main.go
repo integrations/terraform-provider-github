@@ -7,7 +7,10 @@ import (
 )
 
 func main() {
-	plugin.Serve(&plugin.ServeOpts{
-		ProviderFunc: github.Provider,
-	})
+	opts := &plugin.ServeOpts{
+		ProviderAddr: "registry.terraform.io/integrations/github",
+		ProviderFunc: github.NewProvider(),
+	}
+
+	plugin.Serve(opts)
 }

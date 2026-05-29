@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -26,6 +26,8 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 				Version: 0,
 			},
 		},
+
+		Description: "Manage the complete set of collaborators (users and teams) for a GitHub repository.",
 
 		CreateContext: resourceGithubRepositoryCollaboratorsCreate,
 		ReadContext:   resourceGithubRepositoryCollaboratorsRead,
@@ -49,19 +51,20 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 			"user": {
 				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: "List of users.",
+				Description: "Users to grant access to the repository.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"username": {
 							Type:             schema.TypeString,
-							Description:      "(Required) The user to add to the repository as a collaborator.",
+							Description:      "Login for the user to add to the repository as a collaborator.",
 							Required:         true,
 							DiffSuppressFunc: caseInsensitive(),
 						},
 						"permission": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "push",
+							Type:        schema.TypeString,
+							Description: "Permission to grant to the user. Must be one of `pull`, `triage`, `push`, `maintain`, `admin` or the name of an existing [custom repository role](https://docs.github.com/en/enterprise-cloud@latest/organizations/managing-peoples-access-to-your-organization-with-roles/managing-custom-repository-roles-for-an-organization) within the organization. Must be `push` for personal repositories. Defaults to `push`.",
+							Optional:    true,
+							Default:     "push",
 						},
 					},
 				},
@@ -69,25 +72,26 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 			"team": {
 				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: "List of teams.",
+				Description: "Teams to grant access to the repository.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"team_id": {
 							Type:        schema.TypeString,
-							Description: "Team ID or slug to add to the repository as a collaborator.",
+							Description: "ID or slug of the team to add to the repository as a collaborator.",
 							Required:    true,
 						},
 						"permission": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "push",
+							Type:        schema.TypeString,
+							Description: "Permission to grant to the team. Must be one of `pull`, `triage`, `push`, `maintain`, `admin` or the name of an existing [custom repository role](https://docs.github.com/en/enterprise-cloud@latest/organizations/managing-peoples-access-to-your-organization-with-roles/managing-custom-repository-roles-for-an-organization) within the organization. Defaults to `push`.",
+							Optional:    true,
+							Default:     "push",
 						},
 					},
 				},
 			},
 			"invitation_ids": {
 				Type:        schema.TypeMap,
-				Description: "Map of usernames to invitation ID for any users added",
+				Description: "Map of usernames to invitation ID for users that haven't yet accepted their invitation to become a collaborator. This is only set on read, and is used internally to track pending invitations for users that aren't yet collaborators.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -96,7 +100,7 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 			"ignore_team": {
 				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: "List of teams to ignore.",
+				Description: "Teams to ignore when managing repository collaborators.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"team_id": {
@@ -117,6 +121,7 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 }
 
 func resourceGithubRepositoryCollaboratorsDiff(ctx context.Context, d *schema.ResourceDiff, m any) error {
+	tflog.Debug(ctx, "Diffing user collaborators")
 	if d.HasChange("user") {
 		users := d.Get("user").(*schema.Set).List()
 		seen := make(map[string]any)
@@ -181,6 +186,11 @@ func resourceGithubRepositoryCollaboratorsCreate(ctx context.Context, d *schema.
 	teams := d.Get("team").(*schema.Set).List()
 	ignoreTeams := d.Get("ignore_team").(*schema.Set).List()
 
+	tflog.Debug(ctx, "Creating repository collaborators", map[string]any{
+		"users":       users,
+		"teams":       teams,
+		"ignoreTeams": ignoreTeams,
+	})
 	inUsers, err := getUserCollaborators(users)
 	if err != nil {
 		return diag.FromErr(err)
@@ -226,6 +236,7 @@ func resourceGithubRepositoryCollaboratorsCreate(ctx context.Context, d *schema.
 }
 
 func resourceGithubRepositoryCollaboratorsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	tflog.Debug(ctx, "Reading repository collaborators")
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
@@ -255,10 +266,6 @@ func resourceGithubRepositoryCollaboratorsRead(ctx context.Context, d *schema.Re
 		return diag.FromErr(err)
 	}
 
-	if err := d.Set("user", ghUsers.flatten()); err != nil {
-		return diag.FromErr(err)
-	}
-
 	if isOrg {
 		ghTeams, err := listTeamCollaborators(ctx, client, owner, repoName, inTeams, inIgnoreTeams)
 		if err != nil {
@@ -280,6 +287,11 @@ func resourceGithubRepositoryCollaboratorsRead(ctx context.Context, d *schema.Re
 		return diag.FromErr(err)
 	}
 
+	combinedUsersAndInvitations := slices.Concat(ghUsers, ghInvitations)
+	if err := d.Set("user", combinedUsersAndInvitations.flatten()); err != nil {
+		return diag.FromErr(err)
+	}
+
 	if err = d.Set("invitation_ids", ghInvitations.flattenInvitations()); err != nil {
 		return diag.FromErr(err)
 	}
@@ -288,6 +300,7 @@ func resourceGithubRepositoryCollaboratorsRead(ctx context.Context, d *schema.Re
 }
 
 func resourceGithubRepositoryCollaboratorsUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	tflog.Debug(ctx, "Updating repository collaborators")
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
@@ -333,6 +346,7 @@ func resourceGithubRepositoryCollaboratorsUpdate(ctx context.Context, d *schema.
 }
 
 func resourceGithubRepositoryCollaboratorsDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	tflog.Debug(ctx, "Deleting repository collaborators")
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
@@ -364,6 +378,7 @@ func resourceGithubRepositoryCollaboratorsDelete(ctx context.Context, d *schema.
 }
 
 func resourceGithubRepositoryCollaboratorsImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+	tflog.Debug(ctx, "Importing repository collaborators")
 	meta := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
@@ -496,7 +511,10 @@ func getTeamIdentity(d any) (teamIdentity, error) {
 
 func listUserCollaborators(ctx context.Context, client *github.Client, owner, repoName string) (userCollaborators, error) {
 	col := make([]userCollaborator, 0)
-
+	tflog.Debug(ctx, "Listing user collaborators", map[string]any{
+		"owner":    owner,
+		"repoName": repoName,
+	})
 	affiliations := []string{"direct", "outside"}
 	for _, affiliation := range affiliations {
 		opt := &github.ListCollaboratorsOptions{
@@ -633,6 +651,14 @@ func updateUserCollaboratorsAndInvites(ctx context.Context, client *github.Clien
 		lookup[inUser.login] = inUser
 	}
 
+	tflog.Debug(ctx, "Updating user collaborators and invitations", map[string]any{
+		"repoName": repoName,
+		"inUsers":  inUsers,
+		"lookup":   lookup,
+		"seen":     seen,
+		"remove":   remove,
+	})
+
 	ghUsers, err := listUserCollaborators(ctx, client, owner, repoName)
 	if err != nil {
 		return nil, err
@@ -691,8 +717,13 @@ func updateUserCollaboratorsAndInvites(ctx context.Context, client *github.Clien
 		if err != nil {
 			return nil, err
 		}
-		inUser.invitationID = inv.ID
-		ghInvites = append(ghInvites, inUser)
+		// AddCollaborator returns 204 No Content (inv == nil) when the invitee
+		// is an organization member gaining direct access without an
+		// invitation. In that case there is no invitation ID to record.
+		if inv != nil {
+			inUser.invitationID = inv.ID
+			ghInvites = append(ghInvites, inUser)
+		}
 	}
 
 	for _, l := range remove {

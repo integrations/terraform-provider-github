@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -81,7 +81,7 @@ func flattenAndSetRequiredStatusChecks(d *schema.ResourceData, protection *githu
 func requireSignedCommitsRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
-	repoName, branch, err := parseTwoPartID(d.Id(), "repository", "branch")
+	repoName, branch, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
@@ -107,7 +107,7 @@ func requireSignedCommitsUpdate(d *schema.ResourceData, meta any) (err error) {
 	requiredSignedCommit := d.Get("require_signed_commits").(bool)
 	client := meta.(*Owner).v3client
 
-	repoName, branch, err := parseTwoPartID(d.Id(), "repository", "branch")
+	repoName, branch, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}

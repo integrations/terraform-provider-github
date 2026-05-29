@@ -5,7 +5,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -67,7 +67,7 @@ func resourceGithubAppInstallationRepositoryCreate(d *schema.ResourceData, meta 
 
 func resourceGithubAppInstallationRepositoryRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
-	installationIDString, repoName, err := parseTwoPartID(d.Id(), "installation_id", "repository")
+	installationIDString, repoName, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
