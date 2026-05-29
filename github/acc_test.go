@@ -337,11 +337,8 @@ func skipUnauthenticated(t *testing.T) {
 	}
 }
 
-func skipNoApp(t *testing.T) {
-	if testAccConf.authMode == anonymous {
-		t.Skip("Skipping as test mode not authenticated")
-	}
-	if testAccConf.appID == "" {
+func skipApp(t *testing.T) {
+	if testAccConf.appID != "" {
 		t.Skip("Skipping as app not configured")
 	}
 }
