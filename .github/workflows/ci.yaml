@@ -34,7 +34,7 @@ jobs:
           go-version-file: go.mod
           cache: true
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
+        uses: golangci/golangci-lint-action@82606bf257cbaff209d206a39f5134f0cfbfd2ee # v9.2.1
         with:
           version: latest
       - run: make build -o lintcheck # Stop running `make lintcheck` before build. Linting is handled separately
@@ -57,7 +57,7 @@ jobs:
           cache: true
       - run: make .golangci.new.yml
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
+        uses: golangci/golangci-lint-action@82606bf257cbaff209d206a39f5134f0cfbfd2ee # v9.2.1
         with:
           version: latest
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -87,7 +87,7 @@ jobs:
           terraform_wrapper: false
       - run: make checkdocs
       - run: make validatedocs
-      - uses: rvben/rumdl@73f3a8c02f7b513546ca67df3a1e1c9702062b5d # v0.1.96
+      - uses: rvben/rumdl@a5a0c2d5d6d631393c5ca773872742726d4fa4db # v0.2.3
         with:
           path: ./docs
           report-type: annotations
