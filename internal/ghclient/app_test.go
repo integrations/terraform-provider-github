@@ -57,7 +57,7 @@ func Test_appSource(t *testing.T) {
 	t.Run("OwnerClient_cache_by_owner", func(t *testing.T) {
 		t.Parallel()
 
-		testCases := []struct {
+		for _, tt := range []struct {
 			name       string
 			callClient func(context.Context, *appSource, string) (any, error)
 		}{
@@ -73,11 +73,8 @@ func Test_appSource(t *testing.T) {
 					return source.OwnerGraphQLClient(ctx, owner)
 				},
 			},
-		}
-
-		for _, tc := range testCases {
-			tc := tc
-			t.Run(tc.name, func(t *testing.T) {
+		} {
+			t.Run(tt.name, func(t *testing.T) {
 				t.Parallel()
 
 				var orgRequests atomic.Int32
@@ -92,12 +89,12 @@ func Test_appSource(t *testing.T) {
 					w.WriteHeader(http.StatusNotFound)
 				}))
 
-				firstClient, err := tc.callClient(context.Background(), source, "acme")
+				firstClient, err := tt.callClient(context.Background(), source, "acme")
 				if err != nil {
 					t.Fatalf("failed to get first owner client: %v", err)
 				}
 
-				secondClient, err := tc.callClient(context.Background(), source, "acme")
+				secondClient, err := tt.callClient(context.Background(), source, "acme")
 				if err != nil {
 					t.Fatalf("failed to get second owner client: %v", err)
 				}
@@ -118,7 +115,7 @@ func Test_appSource(t *testing.T) {
 
 		fallbackID := int64(2002)
 
-		testCases := []struct {
+		for _, tt := range []struct {
 			name            string
 			owner           string
 			handleRequest   func(w http.ResponseWriter, r *http.Request, orgRequests, userRequests *atomic.Int32)
@@ -181,41 +178,39 @@ func Test_appSource(t *testing.T) {
 				errorContains:  `no installation found for owner "acme"`,
 				expectedOrgReq: 1,
 			},
-		}
-
-		for _, tc := range testCases {
-			tc := tc
-			t.Run(tc.name, func(t *testing.T) {
+		} {
+			tt := tt
+			t.Run(tt.name, func(t *testing.T) {
 				t.Parallel()
 
 				var orgRequests atomic.Int32
 				var userRequests atomic.Int32
 				source := mustTestAppSource(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					tc.handleRequest(w, r, &orgRequests, &userRequests)
+					tt.handleRequest(w, r, &orgRequests, &userRequests)
 				}))
 
-				installationID, err := source.GetInstallationID(context.Background(), tc.owner)
-				if tc.expectError {
+				installationID, err := source.GetInstallationID(context.Background(), tt.owner)
+				if tt.expectError {
 					if err == nil {
 						t.Fatal("expected error")
 					}
-					if tc.errorContains != "" && !strings.Contains(err.Error(), tc.errorContains) {
-						t.Fatalf("expected error containing %q, got %v", tc.errorContains, err)
+					if tt.errorContains != "" && !strings.Contains(err.Error(), tt.errorContains) {
+						t.Fatalf("expected error containing %q, got %v", tt.errorContains, err)
 					}
 				} else {
 					if err != nil {
 						t.Fatalf("expected success, got error: %v", err)
 					}
-					if tc.expectedID != nil && (installationID == nil || *installationID != *tc.expectedID) {
-						t.Fatalf("expected installation id %d, got %v", *tc.expectedID, installationID)
+					if tt.expectedID != nil && (installationID == nil || *installationID != *tt.expectedID) {
+						t.Fatalf("expected installation id %d, got %v", *tt.expectedID, installationID)
 					}
 				}
 
-				if orgRequests.Load() != tc.expectedOrgReq {
-					t.Fatalf("expected %d org requests, got %d", tc.expectedOrgReq, orgRequests.Load())
+				if orgRequests.Load() != tt.expectedOrgReq {
+					t.Fatalf("expected %d org requests, got %d", tt.expectedOrgReq, orgRequests.Load())
 				}
-				if userRequests.Load() != tc.expectedUserReq {
-					t.Fatalf("expected %d user requests, got %d", tc.expectedUserReq, userRequests.Load())
+				if userRequests.Load() != tt.expectedUserReq {
+					t.Fatalf("expected %d user requests, got %d", tt.expectedUserReq, userRequests.Load())
 				}
 			})
 		}

@@ -344,11 +344,11 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 					return nil, diag.FromErr(err)
 				}
 
-				tflog.Info(ctx, "Using base URL from provider configuration.", map[string]any{"base_url": baseURL.String()})
+				tflog.Debug(ctx, "Using base URL from provider configuration.", map[string]any{"base_url": baseURL.String()})
 				config.BaseURL = baseURL
 
 				if isGHES {
-					tflog.Info(ctx, "Base URL indicates GitHub Enterprise Server (GHES) usage; enabling GHES mode.", map[string]any{"base_url": baseURL.String()})
+					tflog.Debug(ctx, "Base URL indicates GitHub Enterprise Server (GHES) usage; enabling GHES mode.", map[string]any{"base_url": baseURL.String()})
 					config.RESTAPIPath = GHESRESTAPIPath
 					config.GraphQLAPIPath = GHESGraphQLAPIPath
 				}
@@ -358,14 +358,14 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 		// TODO: In v7 remove organization and the associated backwards compatibility code, and require owner to be set either via the provider configuration or GITHUB_OWNER environment variable with the provider configuration taking precedence.
 		if v, ok := d.GetOk("organization"); ok {
 			if s, ok := v.(string); ok && s != "" {
-				tflog.Info(ctx, "Using organization environment variable or attribute as owner.", map[string]any{"owner": s})
+				tflog.Debug(ctx, "Using organization environment variable or attribute as owner.", map[string]any{"owner": s})
 				config.Owner = s
 			}
 		}
 
 		if config.Owner == "" {
 			if s, ok := os.LookupEnv("GITHUB_OWNER"); ok && s != "" {
-				tflog.Info(ctx, "Using GITHUB_OWNER environment variable as owner.", map[string]any{"owner": s})
+				tflog.Debug(ctx, "Using GITHUB_OWNER environment variable as owner.", map[string]any{"owner": s})
 				config.Owner = s
 			}
 		}
@@ -373,14 +373,14 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 		if config.Owner == "" {
 			if v, ok := d.GetOk("owner"); ok {
 				if s, ok := v.(string); ok && s != "" {
-					tflog.Info(ctx, "Using owner attribute as owner.", map[string]any{"owner": s})
+					tflog.Debug(ctx, "Using owner attribute as owner.", map[string]any{"owner": s})
 					config.Owner = s
 				}
 			}
 		}
 
 		if appID, appInstallationID, appPEM, ok := getAppAuth(d); ok {
-			tflog.Info(ctx, "Using GitHub App authentication.", map[string]any{"app_id": appID, "app_installation_id": appInstallationID})
+			tflog.Debug(ctx, "Using GitHub App authentication.", map[string]any{"app_id": appID, "app_installation_id": appInstallationID})
 			config.AppID = appID
 			config.AppInstallationID = appInstallationID
 			config.AppPEM = appPEM
@@ -393,7 +393,7 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 
 			if v, ok := d.GetOk("token"); ok {
 				if s, ok := v.(string); ok && s != "" {
-					tflog.Info(ctx, "Using token from provider configuration.")
+					tflog.Debug(ctx, "Using token from provider configuration.")
 					config.Token = s
 				}
 			}
@@ -413,28 +413,28 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 			}
 
 			if config.Token == "" {
-				tflog.Info(ctx, "No token found, using GitHub CLI to get token from base URL.", map[string]any{"base_url": config.BaseURL.String()})
+				tflog.Debug(ctx, "No token found, using GitHub CLI to get token from base URL.", map[string]any{"base_url": config.BaseURL.String()})
 				config.Token = tokenFromGHCLI(ctx, config.BaseURL)
 			}
 		}
 
 		if v, ok := d.GetOk("read_delay_ms"); ok {
 			if i, ok := v.(int); ok {
-				tflog.Info(ctx, "Using read delay from provider configuration.", map[string]any{"read_delay_ms": i})
+				tflog.Debug(ctx, "Using read delay from provider configuration.", map[string]any{"read_delay_ms": i})
 				config.ReadDelay = time.Duration(i) * time.Millisecond
 			}
 		}
 
 		if v, ok := d.GetOk("write_delay_ms"); ok {
 			if i, ok := v.(int); ok {
-				tflog.Info(ctx, "Using write delay from provider configuration.", map[string]any{"write_delay_ms": i})
+				tflog.Debug(ctx, "Using write delay from provider configuration.", map[string]any{"write_delay_ms": i})
 				config.WriteDelay = time.Duration(i) * time.Millisecond
 			}
 		}
 
 		if v, ok := d.GetOk("retry_delay_ms"); ok {
 			if i, ok := v.(int); ok {
-				tflog.Info(ctx, "Using retry delay from provider configuration.", map[string]any{"retry_delay_ms": i})
+				tflog.Debug(ctx, "Using retry delay from provider configuration.", map[string]any{"retry_delay_ms": i})
 				config.RetryDelay = time.Duration(i) * time.Millisecond
 			}
 		}
@@ -450,7 +450,7 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 					retryableErrors[i] = true
 				}
 
-				tflog.Info(ctx, "Using retryable errors from provider configuration.", map[string]any{"retryable_errors": retryableErrors})
+				tflog.Debug(ctx, "Using retryable errors from provider configuration.", map[string]any{"retryable_errors": retryableErrors})
 				config.RetryableErrors = retryableErrors
 			}
 		}
@@ -461,14 +461,14 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 
 		if v, ok := d.GetOk("max_retries"); ok {
 			if i, ok := v.(int); ok {
-				tflog.Info(ctx, "Using max retries from provider configuration.", map[string]any{"max_retries": i})
+				tflog.Debug(ctx, "Using max retries from provider configuration.", map[string]any{"max_retries": i})
 				config.MaxRetries = i
 			}
 		}
 
 		if v, ok := d.GetOk("max_per_page"); ok {
 			if i, ok := v.(int); ok {
-				tflog.Info(ctx, "Using max per page from provider configuration.", map[string]any{"max_per_page": i})
+				tflog.Debug(ctx, "Using max per page from provider configuration.", map[string]any{"max_per_page": i})
 				// TODO: Move max per page to the provider metadata and remove the global variable.
 				maxPerPage = i
 			}
@@ -490,7 +490,7 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 
 		if v, ok := d.GetOk("cache_path"); ok {
 			if s, ok := v.(string); ok && s != "" {
-				tflog.Info(ctx, "Using cache path from provider configuration.", map[string]any{"cache_path": s})
+				tflog.Debug(ctx, "Using cache path from provider configuration.", map[string]any{"cache_path": s})
 				config.CachePath = &s
 			}
 		}

@@ -20,7 +20,7 @@ func Test_createCacheStore(t *testing.T) {
 		t.Fatalf("failed to create invalid path fixture: %v", err)
 	}
 
-	testCases := []struct {
+	for _, tt := range []struct {
 		name        string
 		path        *string
 		ref         *string
@@ -47,13 +47,11 @@ func Test_createCacheStore(t *testing.T) {
 			path:        &invalidPath,
 			expectError: true,
 		},
-	}
-
-	for _, tc := range testCases {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			store, err := createCacheStore(tc.path, tc.ref)
-			if tc.expectError {
+	} {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			store, err := createCacheStore(tt.path, tt.ref)
+			if tt.expectError {
 				if err == nil {
 					t.Fatal("expected error")
 				}
@@ -64,8 +62,8 @@ func Test_createCacheStore(t *testing.T) {
 				t.Fatalf("expected store to be created, got error: %v", err)
 			}
 
-			if tc.verify != nil {
-				tc.verify(t)
+			if tt.verify != nil {
+				tt.verify(t)
 			}
 
 			if closer, ok := store.(interface{ Close() error }); ok {

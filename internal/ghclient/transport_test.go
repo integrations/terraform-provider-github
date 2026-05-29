@@ -11,7 +11,7 @@ import (
 func Test_cloneTransport(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
+	for _, tt := range []struct {
 		name                string
 		original            http.RoundTripper
 		expectSamePointer   bool
@@ -29,25 +29,23 @@ func Test_cloneTransport(t *testing.T) {
 			expectSamePointer:   true,
 			expectHTTPTransport: false,
 		},
-	}
-
-	for _, tc := range testCases {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
+	} {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			cloned := cloneTransport(tc.original)
+			cloned := cloneTransport(tt.original)
 
-			if tc.expectSamePointer && cloned != tc.original {
+			if tt.expectSamePointer && cloned != tt.original {
 				t.Fatal("expected cloned transport to match original pointer")
 			}
 
-			if !tc.expectSamePointer && cloned == tc.original {
+			if !tt.expectSamePointer && cloned == tt.original {
 				t.Fatal("expected cloned transport to have a different pointer")
 			}
 
 			_, ok := cloned.(*http.Transport)
-			if ok != tc.expectHTTPTransport {
+			if ok != tt.expectHTTPTransport {
 				t.Fatalf("unexpected transport type: got %T", cloned)
 			}
 		})
@@ -57,7 +55,7 @@ func Test_cloneTransport(t *testing.T) {
 func Test_newTransport(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
+	for _, tt := range []struct {
 		name                 string
 		opts                 Options
 		firstStatusCode      int
@@ -81,26 +79,24 @@ func Test_newTransport(t *testing.T) {
 			expectedStatusCode:   http.StatusOK,
 			expectedRequestCount: 2,
 		},
-	}
-
-	for _, tc := range testCases {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
+	} {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
 			var requestCount atomic.Int32
 			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				count := requestCount.Add(1)
 				if count == 1 {
-					w.WriteHeader(tc.firstStatusCode)
+					w.WriteHeader(tt.firstStatusCode)
 					return
 				}
 
-				w.WriteHeader(tc.retryStatusCode)
+				w.WriteHeader(tt.retryStatusCode)
 			}))
 			defer ts.Close()
 
-			tr, err := newTransport(nil, tc.opts)
+			tr, err := newTransport(nil, tt.opts)
 			if err != nil {
 				t.Fatalf("failed to create transport: %v", err)
 			}
@@ -112,12 +108,12 @@ func Test_newTransport(t *testing.T) {
 			}
 			defer resp.Body.Close()
 
-			if resp.StatusCode != tc.expectedStatusCode {
-				t.Fatalf("expected status code %d, got %d", tc.expectedStatusCode, resp.StatusCode)
+			if resp.StatusCode != tt.expectedStatusCode {
+				t.Fatalf("expected status code %d, got %d", tt.expectedStatusCode, resp.StatusCode)
 			}
 
-			if requestCount.Load() != tc.expectedRequestCount {
-				t.Fatalf("expected %d requests, got %d", tc.expectedRequestCount, requestCount.Load())
+			if requestCount.Load() != tt.expectedRequestCount {
+				t.Fatalf("expected %d requests, got %d", tt.expectedRequestCount, requestCount.Load())
 			}
 		})
 	}
