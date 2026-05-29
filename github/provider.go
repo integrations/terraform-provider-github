@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/integrations/terraform-provider-github/v6/internal/ghclient"
 )
@@ -82,22 +83,25 @@ func NewProvider() func() *schema.Provider {
 					},
 				},
 				"read_delay_ms": {
-					Type:        schema.TypeInt,
-					Optional:    true,
-					Default:     0,
-					Description: "The delay in milliseconds between read operations; this defaults to `0`. This can be used to mitigate rate limiting issues when performing a large number of read operations. This is ignored for the REST API when `legacy_client` is `false` since the new client implementation is GitHub rate limit aware.",
+					Type:             schema.TypeInt,
+					Optional:         true,
+					Default:          0,
+					ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(0)),
+					Description:      "The delay in milliseconds between read operations; this defaults to `0`. This can be used to mitigate rate limiting issues when performing a large number of read operations. This is ignored for the REST API when `legacy_client` is `false` since the new client implementation is GitHub rate limit aware.",
 				},
 				"write_delay_ms": {
-					Type:        schema.TypeInt,
-					Optional:    true,
-					Default:     1000,
-					Description: "The delay in milliseconds between write operations; this defaults to `1000`. This is used to mitigate the GitHub API's abuse rate limits when writing. Note that **ALL** requests to the GraphQL API are implemented as `POST` requests under the hood, so this setting affects those calls as well. This is ignored for the REST API when `legacy_client` is `false` since the new client implementation is GitHub rate limit aware.",
+					Type:             schema.TypeInt,
+					Optional:         true,
+					Default:          1000,
+					ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(0)),
+					Description:      "The delay in milliseconds between write operations; this defaults to `1000`. This is used to mitigate the GitHub API's abuse rate limits when writing. Note that **ALL** requests to the GraphQL API are implemented as `POST` requests under the hood, so this setting affects those calls as well. This is ignored for the REST API when `legacy_client` is `false` since the new client implementation is GitHub rate limit aware.",
 				},
 				"retry_delay_ms": {
-					Type:        schema.TypeInt,
-					Optional:    true,
-					Default:     1000,
-					Description: "The delay in milliseconds between retry attempts; this defaults to `1000`. This setting only applies when `max_retries` is greater than `0`.",
+					Type:             schema.TypeInt,
+					Optional:         true,
+					Default:          1000,
+					ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(0)),
+					Description:      "The delay in milliseconds between retry attempts; this defaults to `1000`. This setting only applies when `max_retries` is greater than `0`.",
 				},
 				"retryable_errors": {
 					Type:        schema.TypeList,
@@ -106,16 +110,18 @@ func NewProvider() func() *schema.Provider {
 					Description: "List of HTTP status codes that should be retried; if not set this uses the provider defaults. This setting only applies when `max_retries` is greater than `0`. This is ignored for the REST API when `legacy_client` is `false` since the new client implementation handles the retry logic.",
 				},
 				"max_retries": {
-					Type:        schema.TypeInt,
-					Optional:    true,
-					Default:     3,
-					Description: "The maximum number of retries for failed requests; this defaults to `3`.",
+					Type:             schema.TypeInt,
+					Optional:         true,
+					Default:          3,
+					ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(0)),
+					Description:      "The maximum number of retries for failed requests; this defaults to `3`.",
 				},
 				"max_per_page": {
-					Type:        schema.TypeInt,
-					Optional:    true,
-					DefaultFunc: schema.EnvDefaultFunc("GITHUB_MAX_PER_PAGE", 100),
-					Description: "The maximum number of results per page for paginated API requests; this defaults to `100`. This can also be set by the `GITHUB_MAX_PER_PAGE` environment variable.",
+					Type:             schema.TypeInt,
+					Optional:         true,
+					DefaultFunc:      schema.EnvDefaultFunc("GITHUB_MAX_PER_PAGE", 100),
+					ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(1)),
+					Description:      "The maximum number of results per page for paginated API requests; this defaults to `100`. This can also be set by the `GITHUB_MAX_PER_PAGE` environment variable.",
 				},
 				"parallel_requests": {
 					Type:        schema.TypeBool,
@@ -322,8 +328,13 @@ func NewProvider() func() *schema.Provider {
 func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.Diagnostics) {
 	return func(ctx context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
 		config := &Config{
-			LegacyClient:   d.Get("legacy_client").(bool),
 			GraphQLAPIPath: "graphql",
+		}
+
+		if v, ok := d.GetOk("legacy_client"); ok {
+			if b, ok := v.(bool); ok {
+				config.LegacyClient = b
+			}
 		}
 
 		if v, ok := d.GetOk("base_url"); ok {
@@ -382,7 +393,7 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 
 			if v, ok := d.GetOk("token"); ok {
 				if s, ok := v.(string); ok && s != "" {
-					tflog.Info(ctx, "Using token from provider configuration.", map[string]any{"token": "****"})
+					tflog.Info(ctx, "Using token from provider configuration.")
 					config.Token = s
 				}
 			}
@@ -409,10 +420,6 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 
 		if v, ok := d.GetOk("read_delay_ms"); ok {
 			if i, ok := v.(int); ok {
-				if i < 0 {
-					return nil, diag.Errorf("read_delay_ms must be greater than or equal to 0")
-				}
-
 				tflog.Info(ctx, "Using read delay from provider configuration.", map[string]any{"read_delay_ms": i})
 				config.ReadDelay = time.Duration(i) * time.Millisecond
 			}
@@ -420,10 +427,6 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 
 		if v, ok := d.GetOk("write_delay_ms"); ok {
 			if i, ok := v.(int); ok {
-				if i <= 0 {
-					return nil, diag.Errorf("write_delay_ms must be greater than 0")
-				}
-
 				tflog.Info(ctx, "Using write delay from provider configuration.", map[string]any{"write_delay_ms": i})
 				config.WriteDelay = time.Duration(i) * time.Millisecond
 			}
@@ -431,10 +434,6 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 
 		if v, ok := d.GetOk("retry_delay_ms"); ok {
 			if i, ok := v.(int); ok {
-				if i < 0 {
-					return nil, diag.Errorf("retry_delay_ms must be greater than or equal to 0")
-				}
-
 				tflog.Info(ctx, "Using retry delay from provider configuration.", map[string]any{"retry_delay_ms": i})
 				config.RetryDelay = time.Duration(i) * time.Millisecond
 			}
@@ -462,10 +461,6 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 
 		if v, ok := d.GetOk("max_retries"); ok {
 			if i, ok := v.(int); ok {
-				if i < 0 {
-					return nil, diag.Errorf("max_retries must be greater than or equal to 0")
-				}
-
 				tflog.Info(ctx, "Using max retries from provider configuration.", map[string]any{"max_retries": i})
 				config.MaxRetries = i
 			}
@@ -473,24 +468,24 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 
 		if v, ok := d.GetOk("max_per_page"); ok {
 			if i, ok := v.(int); ok {
-				if i <= 0 {
-					return nil, diag.Errorf("max_per_page must be greater than 0")
-				}
-
 				tflog.Info(ctx, "Using max per page from provider configuration.", map[string]any{"max_per_page": i})
 				// TODO: Move max per page to the provider metadata and remove the global variable.
 				maxPerPage = i
 			}
 		}
 
-		if d.Get("parallel_requests").(bool) {
-			tflog.Warn(ctx, "Parallel requests are enabled; this may cause concurrency and rate limiting issues.")
-			config.ParallelRequests = true
+		if v, ok := d.GetOk("parallel_requests"); ok {
+			if b, ok := v.(bool); ok && b {
+				tflog.Warn(ctx, "Parallel requests are enabled; this may cause concurrency and rate limiting issues.")
+				config.ParallelRequests = true
+			}
 		}
 
-		if d.Get("insecure").(bool) {
-			tflog.Warn(ctx, "Insecure mode enabled; SSL certificate verification is disabled. This is not recommended for production environments.")
-			config.Insecure = true
+		if v, ok := d.GetOk("insecure"); ok {
+			if b, ok := v.(bool); ok && b {
+				tflog.Warn(ctx, "Insecure mode enabled; SSL certificate verification is disabled. This is not recommended for production environments.")
+				config.Insecure = true
+			}
 		}
 
 		if v, ok := d.GetOk("cache_path"); ok {
@@ -512,8 +507,7 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 // configureProviderMeta initializes the provider metadata, including setting up the GitHub API clients based on the provided configuration. It returns the initialized metadata or an error if the configuration is invalid or if there are issues initializing the clients.
 func configureProviderMeta(ctx context.Context, c *Config) (any, error) {
 	owner := &Owner{
-		name:        c.Owner,
-		StopContext: context.Background(),
+		name: c.Owner,
 	}
 
 	if c.LegacyClient {

@@ -16,23 +16,23 @@ import (
 )
 
 type Config struct {
-	LegacyClient      bool
-	BaseURL           *url.URL
-	RESTAPIPath       string
-	GraphQLAPIPath    string
-	Owner             string
 	AppID             *string
-	AppPEM            []byte
 	AppInstallationID *string
-	Token             string
-	ReadDelay         time.Duration
-	WriteDelay        time.Duration
-	RetryDelay        time.Duration
-	RetryableErrors   map[int]bool
-	MaxRetries        int
-	ParallelRequests  bool
-	Insecure          bool
+	AppPEM            []byte
+	BaseURL           *url.URL
 	CachePath         *string
+	GraphQLAPIPath    string
+	Insecure          bool
+	LegacyClient      bool
+	MaxRetries        int
+	Owner             string
+	ParallelRequests  bool
+	ReadDelay         time.Duration
+	RESTAPIPath       string
+	RetryableErrors   map[int]bool
+	RetryDelay        time.Duration
+	Token             string
+	WriteDelay        time.Duration
 }
 
 type Owner struct {
