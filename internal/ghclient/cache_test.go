@@ -9,10 +9,7 @@ import (
 func Test_createCacheStore(t *testing.T) {
 	t.Parallel()
 
-	tempPath, err := os.MkdirTemp("", "ghclient-cache-store-*")
-	if err != nil {
-		t.Fatalf("failed to create temporary directory: %v", err)
-	}
+	tempPath := t.TempDir()
 	basePath := filepath.Join(tempPath, "cache-root")
 	ref := "feature-branch"
 	invalidPath := filepath.Join(tempPath, "not-a-dir")
@@ -48,7 +45,6 @@ func Test_createCacheStore(t *testing.T) {
 			expectError: true,
 		},
 	} {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			store, err := createCacheStore(tt.path, tt.ref)
 			if tt.expectError {

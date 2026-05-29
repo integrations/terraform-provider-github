@@ -30,7 +30,6 @@ func Test_cloneTransport(t *testing.T) {
 			expectHTTPTransport: false,
 		},
 	} {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -80,7 +79,6 @@ func Test_newTransport(t *testing.T) {
 			expectedRequestCount: 2,
 		},
 	} {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 

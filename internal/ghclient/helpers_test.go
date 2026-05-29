@@ -9,12 +9,6 @@ import (
 	"testing"
 )
 
-type roundTripFunc func(req *http.Request) (*http.Response, error)
-
-func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
-	return f(req)
-}
-
 type staticRoundTripper struct{}
 
 func (s *staticRoundTripper) RoundTrip(_ *http.Request) (*http.Response, error) {

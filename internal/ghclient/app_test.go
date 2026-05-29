@@ -179,7 +179,6 @@ func Test_appSource(t *testing.T) {
 				expectedOrgReq: 1,
 			},
 		} {
-			tt := tt
 			t.Run(tt.name, func(t *testing.T) {
 				t.Parallel()
 
