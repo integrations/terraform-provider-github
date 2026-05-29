@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/shurcooL/githubv4"
 )
 
 func TestProvider(t *testing.T) {
@@ -258,6 +259,83 @@ data "github_ip_ranges" "test" {}
 			},
 		})
 	})
+}
+
+func Test_configureProviderMeta(t *testing.T) {
+	baseURL, _, err := getBaseURL(DotComAPIURL)
+	if err != nil {
+		t.Fatalf("failed to parse test base URL: %s", err.Error())
+	}
+
+	for _, tt := range []struct {
+		name         string
+		legacyClient bool
+	}{
+		{
+			name:         "client",
+			legacyClient: false,
+		},
+		{
+			name:         "legacy_client",
+			legacyClient: true,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Run("anonymous", func(t *testing.T) {
+				config := &Config{
+					BaseURL:      baseURL,
+					LegacyClient: tt.legacyClient,
+				}
+
+				meta, err := configureProviderMeta(t.Context(), config)
+				if err != nil {
+					t.Fatalf("failed to return meta without error: %s", err.Error())
+				}
+
+				t.Run("rest_client", func(t *testing.T) {
+					_, _, err = meta.v3client.Meta.Get(t.Context())
+					if err != nil {
+						t.Fatalf("failed to validate returned client without error: %s", err.Error())
+					}
+				})
+			})
+
+			t.Run("authenticated", func(t *testing.T) {
+				skipUnauthenticated(t)
+
+				config := &Config{
+					GraphQLAPIPath: "graphql",
+					BaseURL:        baseURL,
+					Owner:          testAccConf.owner,
+					Token:          testAccConf.token,
+					LegacyClient:   tt.legacyClient,
+				}
+
+				meta, err := configureProviderMeta(t.Context(), config)
+				if err != nil {
+					t.Fatalf("failed to return meta without error: %s", err.Error())
+				}
+
+				t.Run("rest_client", func(t *testing.T) {
+					if _, _, err = meta.v3client.Meta.Get(t.Context()); err != nil {
+						t.Fatalf("failed to validate returned client without error: %s", err.Error())
+					}
+				})
+
+				t.Run("graphql_client", func(t *testing.T) {
+					client := meta.v4client
+					var query struct {
+						Meta struct {
+							GitHubServicesSha githubv4.String
+						}
+					}
+					if err := client.Query(t.Context(), &query, nil); err != nil {
+						t.Fatalf("failed to validate returned client without error: %s", err.Error())
+					}
+				})
+			})
+		})
+	}
 }
 
 func Test_ghCLIHostFromAPIHost(t *testing.T) {

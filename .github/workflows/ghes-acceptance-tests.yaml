@@ -120,6 +120,7 @@ jobs:
           GITHUB_OWNER: ""
           GITHUB_USERNAME: ""
           GITHUB_ENTERPRISE_SLUG: ""
+          GITHUB_LEGACY_CLIENT: "false"
           GH_TEST_AUTH_MODE: enterprise
         run: |
           set -eou pipefail

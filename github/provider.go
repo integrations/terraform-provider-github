@@ -505,7 +505,7 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 }
 
 // configureProviderMeta initializes the provider metadata, including setting up the GitHub API clients based on the provided configuration. It returns the initialized metadata or an error if the configuration is invalid or if there are issues initializing the clients.
-func configureProviderMeta(ctx context.Context, c *Config) (any, error) {
+func configureProviderMeta(ctx context.Context, c *Config) (*Owner, error) {
 	owner := &Owner{
 		name: c.Owner,
 	}

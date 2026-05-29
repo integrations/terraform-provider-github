@@ -190,18 +190,15 @@ func TestMain(m *testing.M) {
 }
 
 func getTestMeta() (*Owner, error) {
-	config := Config{
-		Token:   testAccConf.token,
-		Owner:   testAccConf.owner,
-		BaseURL: testAccConf.baseURL,
+	config := &Config{
+		GraphQLAPIPath: "graphql",
+		Token:          testAccConf.token,
+		Owner:          testAccConf.owner,
+		BaseURL:        testAccConf.baseURL,
+		LegacyClient:   os.Getenv("GITHUB_LEGACY_CLIENT") != "false",
 	}
 
-	meta, err := config.Meta()
-	if err != nil {
-		return nil, fmt.Errorf("error getting GitHub meta parameter")
-	}
-
-	return meta.(*Owner), nil
+	return configureProviderMeta(context.Background(), config)
 }
 
 func configureSweepers() {
