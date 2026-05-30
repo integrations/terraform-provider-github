@@ -20,6 +20,16 @@ The following arguments are supported:
 
 - `username` - (Required, Forces new resource) The login of the organization member to assign a Copilot seat.
 
+## Attributes Reference
+
+In addition to the arguments above, the following attributes are exported:
+
+- `created_at` - Timestamp of when the seat was first assigned.
+- `pending_cancellation_date` - Date on which the seat will be cancelled, if a cancellation is pending.
+- `last_activity_at` - Timestamp of the user's last Copilot activity.
+- `last_activity_editor` - Editor used in the user's last Copilot activity.
+- `plan_type` - The Copilot plan type for this seat (e.g. `business`, `enterprise`).
+
 ## Import
 
 Copilot organization seat assignments can be imported using the username, e.g.
