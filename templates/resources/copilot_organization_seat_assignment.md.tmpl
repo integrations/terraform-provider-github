@@ -1,0 +1,29 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Assigns a Copilot seat to an organization member.
+---
+
+# {{.Name}} ({{.Type}})
+
+Assigns a GitHub Copilot seat to an organization member.
+
+This resource requires the organization to have a Copilot Business or Enterprise subscription with seat management set to **Selected users and teams** (not **All members**).
+
+## Example Usage
+
+{{ tffile "examples/resources/copilot_organization_seat_assignment/example_1.tf" }}
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `username` - (Required, Forces new resource) The login of the organization member to assign a Copilot seat.
+
+## Import
+
+Copilot organization seat assignments can be imported using the username, e.g.
+
+```shell
+terraform import github_copilot_organization_seat_assignment.example someuser
+```

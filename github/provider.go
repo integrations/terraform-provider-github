@@ -157,6 +157,8 @@ func NewProvider() func() *schema.Provider {
 				"github_codespaces_organization_secret_repositories":                    resourceGithubCodespacesOrganizationSecretRepositories(),
 				"github_codespaces_secret":                                              resourceGithubCodespacesSecret(),
 				"github_codespaces_user_secret":                                         resourceGithubCodespacesUserSecret(),
+				"github_copilot_organization_seat_assignment":                           resourceGithubCopilotOrganizationSeatAssignment(),
+				"github_copilot_team_seat_assignment":                                   resourceGithubCopilotTeamSeatAssignment(),
 				"github_dependabot_organization_secret":                                 resourceGithubDependabotOrganizationSecret(),
 				"github_dependabot_organization_secret_repositories":                    resourceGithubDependabotOrganizationSecretRepositories(),
 				"github_dependabot_organization_secret_repository":                      resourceGithubDependabotOrganizationSecretRepository(),
