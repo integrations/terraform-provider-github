@@ -246,6 +246,7 @@ func NewProvider() func() *schema.Provider {
 				"github_codespaces_secrets":                                             dataSourceGithubCodespacesSecrets(),
 				"github_codespaces_user_public_key":                                     dataSourceGithubCodespacesUserPublicKey(),
 				"github_codespaces_user_secrets":                                        dataSourceGithubCodespacesUserSecrets(),
+				"github_copilot_organization_settings":                                  dataSourceGithubCopilotOrganizationSettings(),
 				"github_dependabot_organization_public_key":                             dataSourceGithubDependabotOrganizationPublicKey(),
 				"github_dependabot_organization_secrets":                                dataSourceGithubDependabotOrganizationSecrets(),
 				"github_dependabot_public_key":                                          dataSourceGithubDependabotPublicKey(),
