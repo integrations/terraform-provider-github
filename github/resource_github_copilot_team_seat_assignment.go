@@ -59,7 +59,7 @@ func resourceGithubCopilotTeamSeatAssignmentRead(ctx context.Context, d *schema.
 	// The Copilot API has no single-team seat lookup; scan all seats for a team assignee matching our slug.
 	opts := &github.ListOptions{PerPage: 100}
 	for {
-		resp_data, resp, err := client.Copilot.ListCopilotSeats(ctx, org, opts)
+		respData, resp, err := client.Copilot.ListCopilotSeats(ctx, org, opts)
 		if err != nil {
 			if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
 				tflog.Info(ctx, "Copilot team seat assignment no longer exists, removing from state", map[string]any{"team": teamSlug})
@@ -69,7 +69,7 @@ func resourceGithubCopilotTeamSeatAssignmentRead(ctx context.Context, d *schema.
 			return diag.FromErr(err)
 		}
 
-		for _, seat := range resp_data.Seats {
+		for _, seat := range respData.Seats {
 			if t, ok := seat.GetTeam(); ok && t.GetSlug() == teamSlug {
 				if err := d.Set("team", teamSlug); err != nil {
 					return diag.FromErr(err)
