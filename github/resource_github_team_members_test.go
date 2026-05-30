@@ -75,6 +75,55 @@ resource "github_team_members" "test" {
 			},
 		})
 	})
+
+	t.Run("succeeds when parent team is deleted out-of-band before destroy", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		teamName := fmt.Sprintf("%steam-members-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_team" "test" {
+  name = "%s"
+}
+
+resource "github_team_members" "test" {
+  team_id = github_team.test.id
+
+  members {
+    username = "%s"
+    role     = "maintainer"
+  }
+}
+`, teamName, testAccConf.testOrgUser)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_team_members.test", "members.#", "1"),
+					),
+				},
+				{
+					// Delete the team out-of-band so it is gone before Terraform runs its destroy.
+					// The github_team_members delete should no-op instead of returning a 404 error.
+					PreConfig: func() {
+						meta, err := getTestMeta()
+						if err != nil {
+							t.Fatal(err.Error())
+						}
+						ctx := context.Background()
+						if _, err := meta.v3client.Teams.DeleteTeamBySlug(ctx, meta.name, teamName); err != nil {
+							t.Fatalf("failed to delete team out-of-band: %s", err)
+						}
+					},
+					Config:  config,
+					Destroy: true,
+				},
+			},
+		})
+	})
 }
 
 func testAccCheckGithubTeamMembersDestroy(s *terraform.State) error {

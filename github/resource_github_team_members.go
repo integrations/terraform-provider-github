@@ -2,12 +2,15 @@ package github
 
 import (
 	"context"
+	"errors"
 	"log"
+	"net/http"
 	"reflect"
 	"strconv"
 	"strings"
 
 	"github.com/google/go-github/v88/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
@@ -187,6 +190,11 @@ func resourceGithubTeamMembersRead(ctx context.Context, d *schema.ResourceData, 
 
 	teamSlug, err := getTeamSlug(ctx, meta, teamIdString)
 	if err != nil {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Team no longer exists, removing from state", map[string]any{"team_id": teamIdString})
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
@@ -201,7 +209,8 @@ func resourceGithubTeamMembersRead(ctx context.Context, d *schema.ResourceData, 
 	var q struct {
 		Organization struct {
 			Team struct {
-				Members struct {
+				DatabaseId int
+				Members    struct {
 					Edges []struct {
 						Node struct {
 							Login string
@@ -227,6 +236,12 @@ func resourceGithubTeamMembersRead(ctx context.Context, d *schema.ResourceData, 
 	for {
 		if err := client.Query(ctx, &q, variables); err != nil {
 			return diag.FromErr(err)
+		}
+
+		if q.Organization.Team.DatabaseId == 0 {
+			tflog.Info(ctx, "Team no longer exists, removing from state", map[string]any{"team_id": teamIdString})
+			d.SetId("")
+			return nil
 		}
 
 		// Add all members to the list
@@ -257,6 +272,10 @@ func resourceGithubTeamMembersDelete(ctx context.Context, d *schema.ResourceData
 	teamIdString := d.Get("team_id").(string)
 	teamId, err := getTeamID(ctx, meta, teamIdString)
 	if err != nil {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Team no longer exists, skipping member deletion", map[string]any{"team_id": teamIdString})
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
@@ -270,6 +289,10 @@ func resourceGithubTeamMembersDelete(ctx context.Context, d *schema.ResourceData
 
 		_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgId, teamId, username)
 		if err != nil {
+			if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+				tflog.Info(ctx, "Team no longer exists, skipping remaining member deletions", map[string]any{"team_id": teamIdString})
+				return nil
+			}
 			return diag.FromErr(err)
 		}
 	}
