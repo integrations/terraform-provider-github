@@ -170,6 +170,12 @@ func resourceGithubActionsEnterpriseRunnerGroupCreate(ctx context.Context, d *sc
 
 	ctx = context.WithValue(ctx, ctxId, d.Id())
 
+	var networkConfigurationIDPtr *string
+	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
+		value := networkConfigurationID.(string)
+		networkConfigurationIDPtr = &value
+	}
+
 	enterpriseRunnerGroup, resp, err := client.Enterprise.CreateEnterpriseRunnerGroup(ctx,
 		enterpriseSlug,
 		github.CreateEnterpriseRunnerGroupRequest{
@@ -179,33 +185,17 @@ func resourceGithubActionsEnterpriseRunnerGroupCreate(ctx context.Context, d *sc
 			AllowsPublicRepositories: &allowsPublicRepositories,
 			RestrictedToWorkflows:    &restrictedToWorkflows,
 			SelectedWorkflows:        selectedWorkflows,
+			NetworkConfigurationID:   networkConfigurationIDPtr,
 		},
 	)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	d.SetId(strconv.FormatInt(enterpriseRunnerGroup.GetID(), 10))
-	ctx = context.WithValue(ctx, ctxId, d.Id())
 	if err = setGithubActionsEnterpriseRunnerGroupState(d, enterpriseRunnerGroup, normalizeEtag(resp.Header.Get("ETag")), enterpriseSlug, selectedOrganizationIDs); err != nil {
 		return diag.FromErr(err)
 	}
-
-	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
-		networkConfigurationIDValue := networkConfigurationID.(string)
-		// The create endpoint does not accept network_configuration_id, so private networking
-		// must be attached with a follow-up PATCH after the runner group has been created.
-		if _, err = updateRunnerGroupNetworking(client, ctx, fmt.Sprintf("enterprises/%s/actions/runner-groups/%d", enterpriseSlug, enterpriseRunnerGroup.GetID()), &networkConfigurationIDValue); err != nil {
-			return diag.FromErr(err)
-		}
-
-		if err = setRunnerGroupNetworkingState(d, &runnerGroupNetworking{NetworkConfigurationID: &networkConfigurationIDValue}); err != nil {
-			return diag.FromErr(err)
-		}
-
-		return nil
-	}
-
-	if err = setRunnerGroupNetworkingState(d, nil); err != nil {
+	if err = d.Set("network_configuration_id", enterpriseRunnerGroup.NetworkConfigurationID); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -257,11 +247,6 @@ func resourceGithubActionsEnterpriseRunnerGroupRead(ctx context.Context, d *sche
 
 	runnerGroupEtag := normalizeEtag(resp.Header.Get("ETag"))
 
-	runnerGroupNetworking, _, err := getRunnerGroupNetworking(client, ctx, fmt.Sprintf("enterprises/%s/actions/runner-groups/%d", enterpriseSlug, runnerGroupID))
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
 	selectedOrganizationIDs := []int64{}
 	optionsOrgs := github.ListOptions{
 		PerPage: maxPerPage,
@@ -287,10 +272,8 @@ func resourceGithubActionsEnterpriseRunnerGroupRead(ctx context.Context, d *sche
 	if err = setGithubActionsEnterpriseRunnerGroupState(d, enterpriseRunnerGroup, runnerGroupEtag, enterpriseSlug, selectedOrganizationIDs); err != nil {
 		return diag.FromErr(err)
 	}
-	if runnerGroupNetworking != nil {
-		if err = setRunnerGroupNetworkingState(d, runnerGroupNetworking); err != nil {
-			return diag.FromErr(err)
-		}
+	if err = d.Set("network_configuration_id", enterpriseRunnerGroup.NetworkConfigurationID); err != nil {
+		return diag.FromErr(err)
 	}
 
 	return nil
@@ -311,12 +294,24 @@ func resourceGithubActionsEnterpriseRunnerGroupUpdate(ctx context.Context, d *sc
 		}
 	}
 
+	var networkConfigurationIDPtr *string
+	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
+		value := networkConfigurationID.(string)
+		networkConfigurationIDPtr = &value
+	} else if d.HasChange("network_configuration_id") {
+		// Field was removed — send empty string to clear it.
+		// go-github's omitempty omits nil pointers, so empty string is used as a workaround.
+		empty := ""
+		networkConfigurationIDPtr = &empty
+	}
+
 	options := github.UpdateEnterpriseRunnerGroupRequest{
 		Name:                     &name,
 		Visibility:               &visibility,
 		RestrictedToWorkflows:    &restrictedToWorkflows,
 		SelectedWorkflows:        selectedWorkflows,
 		AllowsPublicRepositories: &allowsPublicRepositories,
+		NetworkConfigurationID:   networkConfigurationIDPtr,
 	}
 
 	runnerGroupID, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -329,23 +324,6 @@ func resourceGithubActionsEnterpriseRunnerGroupUpdate(ctx context.Context, d *sc
 	runnerGroup, resp, err := client.Enterprise.UpdateEnterpriseRunnerGroup(ctx, enterpriseSlug, runnerGroupID, options)
 	if err != nil {
 		return diag.FromErr(err)
-	}
-
-	var networkConfigurationIDValue *string
-	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
-		value := networkConfigurationID.(string)
-		networkConfigurationIDValue = &value
-	}
-
-	if d.HasChange("network_configuration_id") {
-		if _, err := updateRunnerGroupNetworking(client, ctx, fmt.Sprintf("enterprises/%s/actions/runner-groups/%d", enterpriseSlug, runnerGroupID), networkConfigurationIDValue); err != nil {
-			return diag.FromErr(err)
-		}
-	}
-
-	var networkingState *runnerGroupNetworking
-	if networkConfigurationIDValue != nil {
-		networkingState = &runnerGroupNetworking{NetworkConfigurationID: networkConfigurationIDValue}
 	}
 
 	selectedOrganizations, hasSelectedOrganizations := d.GetOk("selected_organization_ids")
@@ -370,7 +348,7 @@ func resourceGithubActionsEnterpriseRunnerGroupUpdate(ctx context.Context, d *sc
 	if err := setGithubActionsEnterpriseRunnerGroupState(d, runnerGroup, runnerGroupEtag, enterpriseSlug, selectedOrganizationIDs); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := setRunnerGroupNetworkingState(d, networkingState); err != nil {
+	if err := d.Set("network_configuration_id", runnerGroup.NetworkConfigurationID); err != nil {
 		return diag.FromErr(err)
 	}
 
