@@ -106,11 +106,11 @@ func Test_getBaseURL(t *testing.T) {
 			errors:      false,
 		},
 		{
-			name:        "empty url returns dotcom",
+			name:        "empty url errors",
 			url:         "",
-			expectedURL: "https://api.github.com/",
+			expectedURL: "",
 			isGHES:      false,
-			errors:      false,
+			errors:      true,
 		},
 		{
 			name:        "not absolute url errors",

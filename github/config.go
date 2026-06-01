@@ -177,8 +177,8 @@ func (injector *previewHeaderInjectorTransport) RoundTrip(req *http.Request) (*h
 
 // getBaseURL returns a correctly configured base URL and a bool as to if this is GitHub Enterprise Server.
 func getBaseURL(s string) (*url.URL, bool, error) {
-	if len(s) == 0 {
-		s = DotComAPIURL
+	if s == "" {
+		return nil, false, fmt.Errorf("base url must not be empty")
 	}
 
 	u, err := url.Parse(s)

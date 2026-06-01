@@ -328,7 +328,13 @@ func NewProvider() func() *schema.Provider {
 // configureProvider initializes the provider meta parameter with the necessary clients and owner information based on the provided configuration. It returns the initialized meta parameter or an error if the configuration is invalid or if there are issues initializing the clients.
 func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.Diagnostics) {
 	return func(ctx context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
+		baseURL, err := url.Parse(DotComAPIURL)
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+
 		config := &Config{
+			BaseURL:        baseURL,
 			GraphQLAPIPath: "graphql",
 		}
 
@@ -609,7 +615,7 @@ func ghCLIHostFromAPIHost(host string) string {
 // See https://github.com/integrations/terraform-provider-github/issues/1822
 func tokenFromGHCLI(ctx context.Context, u *url.URL) string {
 	ghCliPath, ok := os.LookupEnv("GH_PATH")
-	if !ok {
+	if !ok || ghCliPath == "" {
 		ghCliPath = "gh"
 	}
 
