@@ -46,7 +46,7 @@ func newTransport(tokenSource oauth2.TokenSource, opts Options) (http.RoundTripp
 		// Wrap with retry transport
 		retryClient := retryablehttp.NewClient()
 		retryClient.Logger = nil
-		retryClient.HTTPClient = &http.Client{Transport: tr}
+		retryClient.HTTPClient = &http.Client{Transport: tr, Timeout: clientTimeout}
 		retryClient.RetryMax = opts.RetryMax
 		retryClient.RetryWaitMin = opts.RetryWaitMin
 		retryClient.RetryWaitMax = opts.RetryWaitMax
