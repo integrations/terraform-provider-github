@@ -433,10 +433,12 @@ func autoBranchDiffSuppressFunc(k, _, _ string, d *schema.ResourceData) bool {
 }
 
 func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	repo, filePath, branch, err := parseID3(d.Id())
+	repo, filePathPart, branch, err := parseID3(d.Id())
 	if err != nil {
 		return nil, fmt.Errorf("invalid ID specified. Supplied ID must be written as <repository>:<file path>: (when branch is default) or <repository>:<file path>:<branch>. %w", err)
 	}
+
+	filePath := unescapeIDPart(filePathPart)
 
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
