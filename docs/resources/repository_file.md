@@ -98,7 +98,7 @@ The following additional attributes are exported:
 
 ## Import
 
-Repository files can be imported using a combination of the `repo`, `file` and `branch` or empty branch for the default branch, e.g.
+Repository files can be imported using a combination of the `repo`, `file path` (any `:` in the file path need to be escaped as `??`) and `branch` or empty branch for the default branch, e.g.
 
 ```sh
 terraform import github_repository_file.gitignore example:.gitignore:feature-branch
