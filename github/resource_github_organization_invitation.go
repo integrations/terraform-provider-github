@@ -142,7 +142,10 @@ func resourceGithubOrganizationInvitationRead(ctx context.Context, d *schema.Res
 	if err := d.Set("login", found.GetLogin()); err != nil {
 		return diag.FromErr(err)
 	}
-	if found.GetEmail() != "" {
+	// Only set email if the resource was created with email — the API always
+	// returns the invitee's email even for invitee_id-based invitations, which
+	// would cause a perpetual diff when invitee_id is the configured field.
+	if _, usingEmail := d.GetOk("email"); usingEmail {
 		if err := d.Set("email", found.GetEmail()); err != nil {
 			return diag.FromErr(err)
 		}
