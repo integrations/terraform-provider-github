@@ -583,9 +583,11 @@ func configureProviderMeta(ctx context.Context, c *Config) (*Owner, error) {
 		owner.name = user.GetLogin()
 	}
 
-	if org, _, err := owner.v3client.Organizations.Get(ctx, owner.name); err == nil && org != nil {
-		owner.id = org.GetID()
-		owner.IsOrganization = true
+	if owner.name != "" {
+		if org, _, err := owner.v3client.Organizations.Get(ctx, owner.name); err == nil && org != nil {
+			owner.id = org.GetID()
+			owner.IsOrganization = true
+		}
 	}
 
 	return owner, nil

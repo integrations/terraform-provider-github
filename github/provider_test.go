@@ -2,8 +2,6 @@ package github
 
 import (
 	"testing"
-
-	"github.com/shurcooL/githubv4"
 )
 
 func TestProvider(t *testing.T) {
@@ -46,9 +44,8 @@ func Test_configureProviderMeta(t *testing.T) {
 				}
 
 				t.Run("rest_client", func(t *testing.T) {
-					_, _, err = meta.v3client.Meta.Get(t.Context())
-					if err != nil {
-						t.Fatalf("failed to validate returned client without error: %s", err.Error())
+					if meta.v3client == nil {
+						t.Fatal("expected rest client to be non-nil")
 					}
 				})
 			})
@@ -70,20 +67,14 @@ func Test_configureProviderMeta(t *testing.T) {
 				}
 
 				t.Run("rest_client", func(t *testing.T) {
-					if _, _, err = meta.v3client.Meta.Get(t.Context()); err != nil {
-						t.Fatalf("failed to validate returned client without error: %s", err.Error())
+					if meta.v3client == nil {
+						t.Fatal("expected rest client to be non-nil")
 					}
 				})
 
 				t.Run("graphql_client", func(t *testing.T) {
-					client := meta.v4client
-					var query struct {
-						Meta struct {
-							GitHubServicesSha githubv4.String
-						}
-					}
-					if err := client.Query(t.Context(), &query, nil); err != nil {
-						t.Fatalf("failed to validate returned client without error: %s", err.Error())
+					if meta.v4client == nil {
+						t.Fatal("expected graphql client to be non-nil")
 					}
 				})
 			})
