@@ -89,12 +89,12 @@ func Test_appSource(t *testing.T) {
 					w.WriteHeader(http.StatusNotFound)
 				}))
 
-				firstClient, err := tt.callClient(context.Background(), source, "acme")
+				firstClient, err := tt.callClient(t.Context(), source, "acme")
 				if err != nil {
 					t.Fatalf("failed to get first owner client: %v", err)
 				}
 
-				secondClient, err := tt.callClient(context.Background(), source, "acme")
+				secondClient, err := tt.callClient(t.Context(), source, "acme")
 				if err != nil {
 					t.Fatalf("failed to get second owner client: %v", err)
 				}
@@ -188,7 +188,7 @@ func Test_appSource(t *testing.T) {
 					tt.handleRequest(w, r, &orgRequests, &userRequests)
 				}))
 
-				installationID, err := source.GetInstallationID(context.Background(), tt.owner)
+				installationID, err := source.GetInstallationID(t.Context(), tt.owner)
 				if tt.expectError {
 					if err == nil {
 						t.Fatal("expected error")

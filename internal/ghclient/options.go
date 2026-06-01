@@ -8,7 +8,7 @@ type Options struct {
 	RESTUploadURL *string
 	GraphQLURL    *string
 	CachePath     *string
-	CacheRef      *string
+	cacheRef      *string
 	RetryMax      int
 	RetryWaitMin  time.Duration
 	RetryWaitMax  time.Duration

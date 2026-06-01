@@ -16,11 +16,13 @@ type tokenSource struct {
 
 // NewTokenSource creates a new tokenSource that provides a GitHub client authenticated with the provided personal access token.
 func NewTokenSource(token string, options Options) (*tokenSource, error) {
+	options.cacheRef = new("token-rest")
 	client, err := NewTokenRESTClient(token, options)
 	if err != nil {
 		return nil, err
 	}
 
+	options.cacheRef = new("token-graphql")
 	graphQLClient, err := NewTokenGraphQLClient(token, options)
 	if err != nil {
 		return nil, err

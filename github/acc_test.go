@@ -140,16 +140,6 @@ func TestMain(m *testing.M) {
 		testRepositoryVisibility:          "public",
 	}
 
-	if config.token != "" && config.appID != "" {
-		fmt.Println("Both token and app auth configured")
-		os.Exit(1)
-	}
-
-	if config.appID != "" && (config.appInstallationID == "" || config.appPEM == "") {
-		fmt.Println("App auth configured without all required parameters")
-		os.Exit(1)
-	}
-
 	if config.authMode != anonymous {
 		config.owner = os.Getenv("GITHUB_OWNER")
 		config.username = os.Getenv("GITHUB_USERNAME")
@@ -170,6 +160,16 @@ func TestMain(m *testing.M) {
 
 		if config.token == "" && config.appID == "" {
 			fmt.Println("authentication not configured")
+			os.Exit(1)
+		}
+
+		if config.token != "" && config.appID != "" {
+			fmt.Println("Both token and app auth configured")
+			os.Exit(1)
+		}
+
+		if config.appID != "" && (config.appInstallationID == "" || config.appPEM == "") {
+			fmt.Println("App auth configured without all required parameters")
 			os.Exit(1)
 		}
 	}

@@ -51,7 +51,7 @@ func (s *appSource) RESTClient() (*github.Client, error) {
 	}
 
 	opts := s.options
-	opts.CacheRef = new(s.clientID)
+	opts.cacheRef = new("app-rest-" + s.clientID)
 
 	c, err := NewAppRESTClient(s.clientID, s.privateKey, nil, opts)
 	if err != nil {
@@ -75,7 +75,7 @@ func (s *appSource) OwnerRESTClient(ctx context.Context, owner string) (*github.
 	}
 
 	opts := s.options
-	opts.CacheRef = new(fmt.Sprintf("%s-%s", s.clientID, owner))
+	opts.cacheRef = new(fmt.Sprintf("app-rest-%s-%s", s.clientID, owner))
 
 	c, err := NewAppRESTClient(s.clientID, s.privateKey, installationID, opts)
 	if err != nil {
@@ -94,7 +94,7 @@ func (s *appSource) GraphQLClient() (*githubv4.Client, error) {
 	}
 
 	opts := s.options
-	opts.CacheRef = new(s.clientID)
+	opts.cacheRef = new("app-graphql-" + s.clientID)
 
 	c, err := NewAppGraphQLClient(s.clientID, s.privateKey, nil, opts)
 	if err != nil {
@@ -118,7 +118,7 @@ func (s *appSource) OwnerGraphQLClient(ctx context.Context, owner string) (*gith
 	}
 
 	opts := s.options
-	opts.CacheRef = new(fmt.Sprintf("%s-%s", s.clientID, owner))
+	opts.cacheRef = new(fmt.Sprintf("app-graphql-%s-%s", s.clientID, owner))
 
 	c, err := NewAppGraphQLClient(s.clientID, s.privateKey, installationID, opts)
 	if err != nil {

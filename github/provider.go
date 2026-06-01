@@ -42,6 +42,7 @@ func NewProvider() func() *schema.Provider {
 				"organization": {
 					Type:        schema.TypeString,
 					Optional:    true,
+					DefaultFunc: schema.EnvDefaultFunc("GITHUB_ORGANIZATION", nil),
 					Description: "GitHub organization to manage. This can also be set by the `GITHUB_ORGANIZATION` environment variable.",
 					Deprecated:  "This argument is deprecated and will be removed in a future major release; use `owner` instead.",
 				},

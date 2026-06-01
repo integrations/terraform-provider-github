@@ -33,7 +33,7 @@ func newTransport(tokenSource oauth2.TokenSource, opts Options) (http.RoundTripp
 	}
 
 	// Create a cache store.
-	store, err := createCacheStore(opts.CachePath, opts.CacheRef)
+	store, err := createCacheStore(opts.CachePath, opts.cacheRef)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create cache store: %w", err)
 	}

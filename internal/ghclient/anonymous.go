@@ -15,11 +15,13 @@ type anonymousSource struct {
 
 // NewAnonymousSource creates a new anonymousSource that provides an unauthenticated GitHub client. This client will have limited access to public resources and will be subject to stricter rate limits compared to authenticated clients.
 func NewAnonymousSource(options Options) (*anonymousSource, error) {
+	options.cacheRef = new("anonymous-rest")
 	client, err := NewAnonymousRESTClient(options)
 	if err != nil {
 		return nil, err
 	}
 
+	options.cacheRef = new("anonymous-graphql")
 	graphQLClient, err := NewAnonymousGraphQLClient(options)
 	if err != nil {
 		return nil, err

@@ -1,7 +1,6 @@
 package ghclient
 
 import (
-	"context"
 	"testing"
 )
 
@@ -52,7 +51,7 @@ func Test_anonymousSource(t *testing.T) {
 			t.Fatalf("failed to get default rest client: %v", err)
 		}
 
-		ownerClient, err := source.OwnerRESTClient(context.Background(), "octocat")
+		ownerClient, err := source.OwnerRESTClient(t.Context(), "octocat")
 		if err != nil {
 			t.Fatalf("failed to get owner rest client: %v", err)
 		}
@@ -93,7 +92,7 @@ func Test_anonymousSource(t *testing.T) {
 			t.Fatalf("failed to get default graphql client: %v", err)
 		}
 
-		ownerClient, err := source.OwnerGraphQLClient(context.Background(), "octocat")
+		ownerClient, err := source.OwnerGraphQLClient(t.Context(), "octocat")
 		if err != nil {
 			t.Fatalf("failed to get owner graphql client: %v", err)
 		}
