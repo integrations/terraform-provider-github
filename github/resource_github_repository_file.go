@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/shurcooL/githubv4"
 )
 
 func resourceGithubRepositoryFile() *schema.Resource {
@@ -403,23 +404,92 @@ func resourceGithubRepositoryFileUpdate(ctx context.Context, d *schema.ResourceD
 }
 
 func resourceGithubRepositoryFileDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+	v4 := meta.(*Owner).v4client
 	owner := meta.(*Owner).name
 
 	repo := d.Get("repository").(string)
 	file := d.Get("file").(string)
+	branch := d.Get("branch").(string)
 
-	opts := resourceGithubRepositoryFileOptions(d)
+	ctx = tflog.SetField(ctx, "repository", repo)
+	ctx = tflog.SetField(ctx, "file", file)
+	ctx = tflog.SetField(ctx, "owner", owner)
+	ctx = tflog.SetField(ctx, "branch", branch)
 
-	if *opts.Message == fmt.Sprintf("Add %s", file) {
-		opts.Message = new(fmt.Sprintf("Delete %s", file))
+	// The Contents REST endpoint DELETE /repos/{owner}/{repo}/contents/{path}
+	// does not trigger GitHub's server-side web-flow commit signing, whereas
+	// PUT on the same endpoint does. Using the GraphQL createCommitOnBranch
+	// mutation produces a web-flow signed commit for deletions as well, which
+	// is required by rulesets that enforce signed commits on protected
+	// branches.
+	headOid, err := getBranchHeadOid(ctx, v4, owner, repo, branch)
+	if err != nil {
+		return diag.FromErr(handleArchivedRepoDelete(err, "repository file", file, owner, repo))
 	}
 
-	branch := d.Get("branch").(string)
-	opts.Branch = new(branch)
+	message := fmt.Sprintf("Delete %s", file)
+	if cm, ok := d.GetOk("commit_message"); ok {
+		if v := cm.(string); v != "" && v != fmt.Sprintf("Add %s", file) {
+			message = v
+		}
+	}
 
-	_, _, err := client.Repositories.DeleteFile(ctx, owner, repo, file, opts)
-	return diag.FromErr(handleArchivedRepoDelete(err, "repository file", file, owner, repo))
+	nameWithOwner := githubv4.String(fmt.Sprintf("%s/%s", owner, repo))
+	branchName := githubv4.String(branch)
+	path := githubv4.String(file)
+
+	input := githubv4.CreateCommitOnBranchInput{
+		Branch: githubv4.CommittableBranch{
+			RepositoryNameWithOwner: &nameWithOwner,
+			BranchName:              &branchName,
+		},
+		Message: githubv4.CommitMessage{
+			Headline: githubv4.String(message),
+		},
+		ExpectedHeadOid: githubv4.GitObjectID(headOid),
+		FileChanges: &githubv4.FileChanges{
+			Deletions: &[]githubv4.FileDeletion{{Path: path}},
+		},
+	}
+
+	var mutation struct {
+		CreateCommitOnBranch struct {
+			Commit struct {
+				Oid githubv4.String
+			}
+		} `graphql:"createCommitOnBranch(input: $input)"`
+	}
+
+	if err := v4.Mutate(ctx, &mutation, input, nil); err != nil {
+		return diag.FromErr(handleArchivedRepoDelete(err, "repository file", file, owner, repo))
+	}
+
+	return nil
+}
+
+func getBranchHeadOid(ctx context.Context, client *githubv4.Client, owner, repo, branch string) (string, error) {
+	var query struct {
+		Repository struct {
+			Ref struct {
+				Target struct {
+					Oid githubv4.String
+				}
+			} `graphql:"ref(qualifiedName: $ref)"`
+		} `graphql:"repository(owner: $owner, name: $repo)"`
+	}
+	variables := map[string]any{
+		"owner": githubv4.String(owner),
+		"repo":  githubv4.String(repo),
+		"ref":   githubv4.String("refs/heads/" + branch),
+	}
+	if err := client.Query(ctx, &query, variables); err != nil {
+		return "", err
+	}
+	oid := string(query.Repository.Ref.Target.Oid)
+	if oid == "" {
+		return "", fmt.Errorf("could not resolve HEAD of branch %q on %s/%s", branch, owner, repo)
+	}
+	return oid, nil
 }
 
 func autoBranchDiffSuppressFunc(k, _, _ string, d *schema.ResourceData) bool {
