@@ -1,14 +1,12 @@
 ---
 page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
 description: |-
-  Creates a GitHub organization ruleset.
+  {{ $arr := split .Description "\n"}}{{ index $arr 0 | plainmarkdown | trimspace }}
 ---
 
 # {{.Name}} ({{.Type}})
 
-Creates a GitHub organization ruleset.
-
-This resource allows you to create and manage rulesets on the organization level. When applied, a new ruleset will be created. When destroyed, that ruleset will be removed.
+{{ .Description | trimspace }}
 
 ## Example Usage
 
