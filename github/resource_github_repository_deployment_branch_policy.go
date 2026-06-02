@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v86/github"
+	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -168,7 +168,7 @@ func resourceGithubRepositoryDeploymentBranchPolicyDelete(d *schema.ResourceData
 }
 
 func resourceGithubRepositoryDeploymentBranchPolicyImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	repoName, environmentName, id, err := parseThreePartID(d.Id(), "repository", "environment_name", "id")
+	repoName, environmentName, id, err := parseID3(d.Id())
 	if err != nil {
 		return nil, err
 	}

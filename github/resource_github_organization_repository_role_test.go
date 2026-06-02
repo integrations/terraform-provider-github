@@ -30,7 +30,7 @@ func TestAccGithubOrganizationRepositoryRole(t *testing.T) {
 		`, name, description, baseRole, permission0, permission1)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -67,7 +67,7 @@ func TestAccGithubOrganizationRepositoryRole(t *testing.T) {
 		`, name, permission0)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

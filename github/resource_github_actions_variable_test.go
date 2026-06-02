@@ -1,12 +1,11 @@
 package github
 
 import (
-	"context"
 	"fmt"
 	"regexp"
 	"testing"
 
-	"github.com/google/go-github/v86/github"
+	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
@@ -318,7 +317,7 @@ resource "github_actions_variable" "test" {
 						}
 						client := meta.v3client
 						owner := meta.name
-						ctx := context.Background()
+						ctx := t.Context()
 
 						_, err = client.Actions.CreateRepoVariable(ctx, owner, repoName, &github.ActionsVariable{
 							Name:  varName,
@@ -337,7 +336,7 @@ resource "github_actions_variable" "test" {
 						}
 						client := meta.v3client
 						owner := meta.name
-						ctx := context.Background()
+						ctx := t.Context()
 
 						_, err = client.Actions.DeleteRepoVariable(ctx, owner, repoName, varName)
 						return err
