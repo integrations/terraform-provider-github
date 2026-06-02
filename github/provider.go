@@ -224,6 +224,7 @@ func NewProvider() func() *schema.Provider {
 				"github_actions_environment_secrets":                                    dataSourceGithubActionsEnvironmentSecrets(),
 				"github_actions_environment_variables":                                  dataSourceGithubActionsEnvironmentVariables(),
 				"github_actions_organization_oidc_subject_claim_customization_template": dataSourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate(),
+				"github_actions_organization_permissions":                               dataSourceGithubActionsOrganizationPermissions(),
 				"github_actions_organization_public_key":                                dataSourceGithubActionsOrganizationPublicKey(),
 				"github_actions_organization_registration_token":                        dataSourceGithubActionsOrganizationRegistrationToken(),
 				"github_actions_organization_secrets":                                   dataSourceGithubActionsOrganizationSecrets(),
