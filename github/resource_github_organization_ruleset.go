@@ -32,6 +32,8 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 
 		CustomizeDiff: resourceGithubOrganizationRulesetDiff,
 
+		Description: "Creates a GitHub organization ruleset.\n\nThis resource allows you to create and manage rulesets on the organization level. When applied, a new ruleset will be created. When destroyed, that ruleset will be removed.",
+
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:             schema.TypeString,
