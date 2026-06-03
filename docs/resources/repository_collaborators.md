@@ -86,6 +86,7 @@ resource "github_repository_collaborators" "some_repo_collaborators" {
 
 - `id` (String) The ID of this resource.
 - `invitation_ids` (Map of String) Map of usernames to invitation ID for users that haven't yet accepted their invitation to become a collaborator. This is only set on read, and is used internally to track pending invitations for users that aren't yet collaborators.
+- `owner_configured` (Boolean) Indicates whether the owner of a personal repository is configured as a collaborator.
 - `repository_id` (Number) ID of the repository.
 
 <a id="nestedblock--ignore_team"></a>

@@ -134,6 +134,83 @@ resource "github_repository_collaborators" "test" {
 		})
 	})
 
+	t.Run("personal_repo_ignores_owner_when_not_configured", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name       = "%s"
+	visibility = "private"
+}
+
+resource "github_repository_collaborators" "test" {
+	repository = github_repository.test.name
+}
+`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, individual) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("user"), knownvalue.SetSizeExact(0)),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("team"), knownvalue.SetSizeExact(0)),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("invitation_ids"), knownvalue.MapSizeExact(0)),
+					},
+				},
+				{
+					Config:             config,
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
+				},
+			},
+		})
+	})
+
+	t.Run("personal_repo_keeps_owner_when_configured", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name       = "%s"
+	visibility = "private"
+}
+
+resource "github_repository_collaborators" "test" {
+	repository = github_repository.test.name
+
+	user {
+		username   = "%s"
+		permission = "admin"
+	}
+}
+`, repoName, testAccConf.owner)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, individual) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("user"), knownvalue.SetExact([]knownvalue.Check{
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"username":   knownvalue.StringExact(testAccConf.owner),
+								"permission": knownvalue.StringExact("admin"),
+							}),
+						})),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("team"), knownvalue.SetSizeExact(0)),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("invitation_ids"), knownvalue.MapSizeExact(0)),
+					},
+				},
+			},
+		})
+	})
+
 	t.Run("update_teams", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
