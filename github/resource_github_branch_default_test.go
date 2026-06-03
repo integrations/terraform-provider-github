@@ -296,4 +296,45 @@ func TestAccGithubBranchDefault(t *testing.T) {
 			},
 		})
 	})
+	t.Run("regression_prevent_trying_rename_to_same_name", func(t *testing.T) {
+		randomID := acctest.RandString(5)
+		repoName := fmt.Sprintf("%sbranch-def-%s", testResourcePrefix, randomID)
+		config := `
+			resource "github_repository" "test" {
+				name      = "%s"
+				auto_init = true
+			}
+
+			resource "github_branch_default" "test"{
+				repository = github_repository.test.name
+				branch     = "development"
+				rename     = %t
+			}
+		`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, repoName, true),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("branch"), knownvalue.StringExact("development")),
+					},
+				},
+				{
+					Config: fmt.Sprintf(config, repoName, false),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("branch"), knownvalue.StringExact("development")),
+					},
+				},
+				{
+					Config: fmt.Sprintf(config, repoName, true),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("branch"), knownvalue.StringExact("development")),
+					},
+				},
+			},
+		})
+	})
 }

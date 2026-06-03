@@ -228,14 +228,17 @@ func resourceGithubBranchDefaultUpdate(ctx context.Context, d *schema.ResourceDa
 	var etag string
 
 	if rename {
-		tflog.Debug(ctx, "Renaming branch to new default")
+		tflog.Debug(ctx, "Rename enabled, checking if branch rename is needed")
 		repository, resp, err := client.Repositories.Get(ctx, owner, repoName)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		etag = resp.Header.Get("ETag")
-		if _, _, err := client.Repositories.RenameBranch(ctx, owner, repoName, repository.GetDefaultBranch(), defaultBranch); err != nil {
-			return diag.FromErr(err)
+		if repository.GetDefaultBranch() != defaultBranch {
+			tflog.Debug(ctx, "Renaming branch to new default")
+			etag = resp.Header.Get("ETag")
+			if _, _, err := client.Repositories.RenameBranch(ctx, owner, repoName, repository.GetDefaultBranch(), defaultBranch); err != nil {
+				return diag.FromErr(err)
+			}
 		}
 	} else {
 		tflog.Debug(ctx, "Setting new default branch")
