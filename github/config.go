@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -131,10 +132,21 @@ func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 		owner.name = user.GetLogin()
 	} else {
 		remoteOrg, _, err := owner.v3client.Organizations.Get(ctx, owner.name)
-		if err == nil {
-			if remoteOrg != nil {
-				owner.id = remoteOrg.GetID()
+		if err == nil && remoteOrg != nil {
+			owner.id = remoteOrg.GetID()
+			owner.IsOrganization = true
+		} else {
+			if err != nil {
+				log.Printf("[WARN] Unable to detect organization via Organizations.Get for %q: %s. Falling back to Users.Get.", owner.name, err)
+			} else {
+				log.Printf("[WARN] Organizations.Get for %q returned empty response. Falling back to Users.Get.", owner.name)
+			}
+			user, _, userErr := owner.v3client.Users.Get(ctx, owner.name)
+			if userErr == nil && user != nil && user.GetType() == "Organization" {
+				owner.id = user.GetID()
 				owner.IsOrganization = true
+			} else if userErr != nil {
+				log.Printf("[WARN] Unable to detect owner type via Users.Get for %q: %s", owner.name, userErr)
 			}
 		}
 	}
