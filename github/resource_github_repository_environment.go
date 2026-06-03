@@ -128,18 +128,26 @@ func resourceGithubRepositoryEnvironmentDiff(_ context.Context, d *schema.Resour
 	}
 
 	if v, ok := d.GetOk("reviewers"); ok {
-		count := 0
-		o := v.([]any)[0]
-		if t, ok := o.(map[string]any)["teams"]; ok {
-			count += t.(*schema.Set).Len()
-		}
+		if c, ok := v.([]any); ok && len(c) > 0 {
+			if o, ok := c[0].(map[string]any); ok {
+				count := 0
 
-		if t, ok := o.(map[string]any)["users"]; ok {
-			count += t.(*schema.Set).Len()
-		}
+				if t, ok := o["teams"]; ok {
+					if s, ok := t.(*schema.Set); ok {
+						count += s.Len()
+					}
+				}
 
-		if count > 6 {
-			return fmt.Errorf("a maximum of 6 reviewers (users and teams combined) can be set for an environment")
+				if u, ok := o["users"]; ok {
+					if s, ok := u.(*schema.Set); ok {
+						count += s.Len()
+					}
+				}
+
+				if count > 6 {
+					return fmt.Errorf("a maximum of 6 reviewers (users and teams combined) can be set for an environment")
+				}
+			}
 		}
 	}
 
