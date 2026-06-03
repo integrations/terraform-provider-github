@@ -59,13 +59,25 @@ func resourceGithubBranchDefault() *schema.Resource {
 }
 
 func resourceGithubBranchDefaultCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, ok := m.(*Owner)
+	if !ok {
+		return diag.FromErr(errors.New("unexpected meta type, expected *Owner"))
+	}
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	defaultBranch := d.Get("branch").(string)
-	rename := d.Get("rename").(bool)
+	repoName, ok := d.Get("repository").(string)
+	if !ok {
+		return diag.FromErr(errors.New("repository must be a string"))
+	}
+	defaultBranch, ok := d.Get("branch").(string)
+	if !ok {
+		return diag.FromErr(errors.New("branch must be a string"))
+	}
+	rename, ok := d.Get("rename").(bool)
+	if !ok {
+		return diag.FromErr(errors.New("rename must be a boolean"))
+	}
 
 	tflog.Trace(ctx, "Creating default branch resource", map[string]any{
 		"owner":      owner,
@@ -121,11 +133,17 @@ func resourceGithubBranchDefaultCreate(ctx context.Context, d *schema.ResourceDa
 
 func resourceGithubBranchDefaultRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	ctx = tflog.SetField(ctx, "resource_id", d.Id())
-	meta := m.(*Owner)
+	meta, ok := m.(*Owner)
+	if !ok {
+		return diag.FromErr(errors.New("unexpected meta type, expected *Owner"))
+	}
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
+	repoName, ok := d.Get("repository").(string)
+	if !ok {
+		return diag.FromErr(errors.New("repository must be a string"))
+	}
 
 	tflog.Trace(ctx, "Reading default branch resource", map[string]any{
 		"owner":      owner,
@@ -180,13 +198,25 @@ func resourceGithubBranchDefaultRead(ctx context.Context, d *schema.ResourceData
 
 func resourceGithubBranchDefaultUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	ctx = tflog.SetField(ctx, "resource_id", d.Id())
-	meta := m.(*Owner)
+	meta, ok := m.(*Owner)
+	if !ok {
+		return diag.FromErr(errors.New("unexpected meta type, expected *Owner"))
+	}
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	defaultBranch := d.Get("branch").(string)
-	rename := d.Get("rename").(bool)
+	repoName, ok := d.Get("repository").(string)
+	if !ok {
+		return diag.FromErr(errors.New("repository must be a string"))
+	}
+	defaultBranch, ok := d.Get("branch").(string)
+	if !ok {
+		return diag.FromErr(errors.New("branch must be a string"))
+	}
+	rename, ok := d.Get("rename").(bool)
+	if !ok {
+		return diag.FromErr(errors.New("rename must be a boolean"))
+	}
 
 	tflog.Trace(ctx, "Updating default branch resource", map[string]any{
 		"owner":      owner,
@@ -229,10 +259,16 @@ func resourceGithubBranchDefaultUpdate(ctx context.Context, d *schema.ResourceDa
 
 func resourceGithubBranchDefaultDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	ctx = tflog.SetField(ctx, "resource_id", d.Id())
-	meta := m.(*Owner)
+	meta, ok := m.(*Owner)
+	if !ok {
+		return diag.FromErr(errors.New("unexpected meta type, expected *Owner"))
+	}
 	client := meta.v3client
 	owner := meta.name
-	repoName := d.Get("repository").(string)
+	repoName, ok := d.Get("repository").(string)
+	if !ok {
+		return diag.FromErr(errors.New("repository must be a string"))
+	}
 
 	tflog.Trace(ctx, "Deleting default branch resource", map[string]any{
 		"owner":      owner,
