@@ -295,8 +295,8 @@ func resourceGithubRepositoryCollaboratorsCreate(ctx context.Context, d *schema.
 				inIgnoreUsers = append(inIgnoreUsers, strings.ToLower(owner))
 			}
 
-			if !ownerConfigured {
-				inIgnoreUsers = append(inIgnoreUsers, strings.ToLower(owner))
+			if err := d.Set("owner_configured", ownerConfigured); err != nil {
+				return diag.FromErr(err)
 			}
 		}
 	}
