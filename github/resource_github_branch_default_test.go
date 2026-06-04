@@ -296,6 +296,138 @@ func TestAccGithubBranchDefault(t *testing.T) {
 			},
 		})
 	})
+	t.Run("destroys_without_error", func(t *testing.T) {
+		randomID := acctest.RandString(5)
+		repoName := fmt.Sprintf("%sbranch-def-%s", testResourcePrefix, randomID)
+
+		repoOnlyConfig := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name      = "%s"
+				auto_init = true
+			}
+		`, repoName)
+
+		fullConfig := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name      = "%s"
+				auto_init = true
+			}
+
+			resource "github_branch_default" "test" {
+				repository = github_repository.test.name
+				branch     = "main"
+			}
+		`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fullConfig,
+				},
+				{
+					Config: repoOnlyConfig,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("default_branch"), knownvalue.StringExact("main")),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("destroys_does_not_modify_remote_branch", func(t *testing.T) {
+		// The Delete function sends a nil DefaultBranch in the PATCH body, which
+		// go-github omits via omitempty — making it a no-op on the GitHub side.
+		// This test pins that behavior: the remote default branch must be unchanged
+		// after the resource is removed from Terraform state.
+		randomID := acctest.RandString(5)
+		repoName := fmt.Sprintf("%sbranch-def-%s", testResourcePrefix, randomID)
+
+		repoOnlyConfig := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name      = "%s"
+				auto_init = true
+			}
+		`, repoName)
+
+		fullConfig := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name      = "%s"
+				auto_init = true
+			}
+
+			resource "github_branch_default" "test" {
+				repository = github_repository.test.name
+				branch     = "development"
+				rename     = true
+			}
+		`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fullConfig,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("branch"), knownvalue.StringExact("development")),
+					},
+				},
+				{
+					Config: repoOnlyConfig,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("default_branch"), knownvalue.StringExact("development")),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("gracefully_handles_repository_deleted_out_of_band", func(t *testing.T) {
+		// This tests the Read 404 path: when the repository is deleted externally,
+		// a state refresh discovers the 404, removes both resources from state
+		// without error, and does not attempt to call Delete.
+		randomID := acctest.RandString(5)
+		repoName := fmt.Sprintf("%sbranch-def-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name      = "%s"
+				auto_init = true
+			}
+
+			resource "github_branch_default" "test" {
+				repository = github_repository.test.name
+				branch     = "main"
+			}
+		`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+				},
+				{
+					PreConfig: func() {
+						meta, err := getTestMeta()
+						if err != nil {
+							t.Errorf("failed to get test meta: %s", err)
+							return
+						}
+						if _, err := meta.v3client.Repositories.Delete(t.Context(), meta.name, repoName); err != nil {
+							t.Errorf("failed to delete repository out-of-band: %s", err)
+						}
+					},
+					RefreshState:       true,
+					ExpectNonEmptyPlan: true,
+				},
+			},
+		})
+	})
+
 	t.Run("regression_prevent_trying_rename_to_same_name", func(t *testing.T) {
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%sbranch-def-%s", testResourcePrefix, randomID)

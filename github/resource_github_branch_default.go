@@ -284,6 +284,13 @@ func resourceGithubBranchDefaultDelete(ctx context.Context, d *schema.ResourceDa
 
 	_, _, err := client.Repositories.Edit(ctx, owner, repoName, repository)
 	if err != nil {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				tflog.Info(ctx, "Removing resource from state because repository no longer exists upstream", map[string]any{"owner": owner, "repository": repoName})
+				d.SetId("")
+				return nil
+			}
+		}
 		return diag.FromErr(err)
 	}
 
