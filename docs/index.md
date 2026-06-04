@@ -1,20 +1,16 @@
 ---
 page_title: "GitHub Provider"
 description: |-
-  The GitHub provider is used to interact with GitHub resources.
+  The GitHub Terraform provider is used to interact with GitHub resources either as an authenticated client or anonymously.
 ---
 
 # GitHub Provider
 
-The GitHub provider is used to interact with GitHub resources.
+The GitHub Terraform provider is used to interact with GitHub resources either as an authenticated client or anonymously.
 
-The provider allows you to manage your GitHub organization's members and teams easily. It needs to be configured with the proper credentials before it can be used.
-
-Use the navigation to the left to read about the available resources.
+!> You **must** add a `required_providers` block to every module that will create resources with this provider. If you do not explicitly require `integrations/github` in a submodule, your Terraform code run may [break in hard-to-troubleshoot ways](https://github.com/integrations/terraform-provider-github/issues/876#issuecomment-1303790559).
 
 ## Example Usage
-
-Terraform 0.13 and later:
 
 ```terraform
 terraform {
@@ -26,42 +22,36 @@ terraform {
   }
 }
 
-# Configure the GitHub Provider
-provider "github" {}
-
-# Add a user to the organization
-resource "github_membership" "membership_for_user_x" {
-  # ...
-}
-```
-
-- You **must** add a `required_providers` block to every module that will create resources with this provider. If you do not explicitly require `integrations/github` in a submodule, your terraform run may [break in hard-to-troubleshoot ways](https://github.com/integrations/terraform-provider-github/issues/876#issuecomment-1303790559).
-
-Terraform 0.12 and earlier:
-
-```terraform
-# Configure the GitHub Provider
 provider "github" {
-  version = "~> 5.0"
+  owner = "integrations"
 }
 
-# Add a user to the organization
-resource "github_membership" "membership_for_user_x" {
-  # ...
+data "github_repository" "example" {
+  name = "terraform-provider-github"
 }
 ```
 
-~> **Note:** When upgrading from `hashicorp/github` to `integrations/github`, use `terraform state replace-provider`. Otherwise, Terraform will still require the old provider to interact with the state file.
+## Owner
+
+For backwards compatibility; if more than one of `owner`, `organization`, `GITHUB_OWNER` and `GITHUB_ORGANIZATION` are set the first in this list takes priority.
+
+1. Setting `organization` in the GitHub provider configuration.
+2. Setting the `GITHUB_ORGANIZATION` environment variable.
+3. Setting the `GITHUB_OWNER` environment variable.
+4. Setting `owner` in the GitHub provider configuration.
+
+!> It is a bug that `GITHUB_OWNER` takes precedence over `owner`; this will be fixed in a future major release. For compatibility with future releases, please set only one of `GITHUB_OWNER` and `owner`.
 
 ## Authentication
 
-The GitHub provider offers multiple ways to authenticate with GitHub API.
+The GitHub provider offers multiple ways to authenticate with GitHub API. It uses the following authentication fallback chain (first match wins):
 
-### GitHub CLI
+1. [**Explicit Token**](#oauth-or-personal-access-token-pat) — `token` argument or `GITHUB_TOKEN` environment variable
+2. [**GitHub App Installation**](#github-app-installation) — `app_auth` block with `id`, `installation_id`, and `pem_file`
+3. [**GitHub CLI**](#github-cli-authentication) — Falls back to `gh auth token` if neither token nor app_auth is set
+4. **Anonymous** — Read-only access when no credentials are available
 
-The GitHub provider taps into [GitHub CLI](https://cli.github.com/) authentication, where it picks up the token issued by [`gh auth login`](https://cli.github.com/manual/gh_auth_login) command. It is possible to specify the path to the `gh` executable in the `GH_PATH` environment variable, which is useful for when the GitHub Terraform provider can not properly determine its the path to GitHub CLI such as in the cygwin terminal.
-
-### OAuth / Personal Access Token
+### OAuth or Personal Access Token (PAT)
 
 To authenticate using OAuth tokens, ensure that the `token` argument or the `GITHUB_TOKEN` environment variable is set.
 
@@ -88,7 +78,17 @@ provider "github" {
 }
 ```
 
-~> **Note:** When using environment variables, an empty `app_auth` block is required to allow provider configurations from environment variables to be specified. See: <https://github.com/hashicorp/terraform-plugin-sdk/issues/142>
+~> When using environment variables, an empty `app_auth` block is required to allow provider configurations from environment variables to be specified. See: <https://github.com/hashicorp/terraform-plugin-sdk/issues/142>
+
+#### .env
+
+```shell
+export GITHUB_APP_ID="12332432" # Required: The GitHub App ID for authentication
+export GITHUB_APP_INSTALLATION_ID="12435523" # Required: The GitHub App Installation ID for authentication
+export GITHUB_APP_PEM_FILE="..." # Required: Contents of the PEM file for the GitHub App, not the path to the PEM file
+```
+
+#### main.tf
 
 ```terraform
 provider "github" {
@@ -97,40 +97,49 @@ provider "github" {
 }
 ```
 
-## Argument Reference
+### GitHub CLI Authentication
 
-The following arguments are supported in the `provider` block:
+When using the GitHub CLI authentication fallback, you can optionally specify the path to the `gh` executable using the `GH_PATH` environment variable. This is useful when the provider cannot properly determine the path to GitHub CLI, such as in cygwin terminals. If not specified, the provider looks for `gh` in your system PATH.
 
-- `token` - (Optional) A GitHub OAuth / Personal Access Token. When not provided or made available via the `GITHUB_TOKEN` environment variable, the provider can only access resources available anonymously.
+#### .env
 
-- `base_url` - (Optional) This is the target GitHub base API endpoint. Providing a value is a requirement when working with GitHub Enterprise. It is optional to provide this value and it can also be sourced from the `GITHUB_BASE_URL` environment variable. The value must end with a slash, for example: `https://terraformtesting-ghe.westus.cloudapp.azure.com/`
+```shell
+export GH_PATH="/path/to/gh" # Optional: Specify the path to the GitHub CLI executable if not in system PATH
+```
 
-- `owner` - (Optional) This is the target GitHub organization or individual user account to manage. For example, `torvalds` and `github` are valid owners. It is optional to provide this value and it can also be sourced from the `GITHUB_OWNER` environment variable. When not provided and a `token` is available, the individual user account owning the `token` will be used. When not provided and no `token` is available, the provider may not function correctly. It is required in case of GitHub App Installation.
+#### main.tf
 
-- `organization` - (Deprecated) This behaves the same as `owner`, which should be used instead. This value can also be sourced from the `GITHUB_ORGANIZATION` environment variable.
+```terraform
+provider "github" {
+}
+```
 
-- `app_auth` - (Optional) Configuration block to use GitHub App installation token. When not provided, the provider can only access resources available anonymously.
-  - `id` - (Required) This is the ID of the GitHub App. It can sourced from the `GITHUB_APP_ID` environment variable.
-  - `installation_id` - (Required) This is the ID of the GitHub App installation. It can sourced from the `GITHUB_APP_INSTALLATION_ID` environment variable.
-  - `pem_file` - (Required) This is the contents of the GitHub App private key PEM file. It can also be sourced from the `GITHUB_APP_PEM_FILE` environment variable and may use `\n` instead of actual new lines.
+<!-- schema generated by tfplugindocs -->
+## Schema
 
-- `write_delay_ms` - (Optional) The number of milliseconds to sleep in between write operations in order to satisfy the GitHub API rate limits. Note that requests to the GraphQL API are implemented as `POST` requests under the hood, so this setting affects those calls as well. Defaults to 1000ms or 1 second if not provided.
+### Optional
 
-- `retry_delay_ms` - (Optional) Amount of time in milliseconds to sleep in between requests to GitHub API after an error response. Defaults to 1000ms or 1 second if not provided, the max_retries must be set to greater than zero.
+- `app_auth` (Block List, Max: 1) Authenticate using a GitHub App. (see [below for nested schema](#nestedblock--app_auth))
+- `base_url` (String) The base URL for the GitHub API; this defaults to the GitHub API URL. If you are using GitHub Enterprise Server (GHES) or GitHub Enterprise Cloud with Data Residency (GHEC-DR), this is required. This can also be set by the `GITHUB_BASE_URL` environment variable.
+- `cache_path` (String) The path to the cache directory for persisting GitHub API requests between runs; if not set there will be no caching between runs. This can also be set by the `GITHUB_CACHE_PATH` environment variable.
+- `insecure` (Boolean, Deprecated) Allow insecure server connections when using SSL.
+- `legacy_client` (Boolean) Use the legacy GitHub client implementation; if set to `false`, the new client implementation is used. This can also be set by the `GITHUB_LEGACY_CLIENT` environment variable.
+- `max_per_page` (Number) The maximum number of results per page for paginated API requests; this defaults to `100`. This can also be set by the `GITHUB_MAX_PER_PAGE` environment variable.
+- `max_retries` (Number) The maximum number of retries for failed requests; this defaults to `3`.
+- `organization` (String, Deprecated) GitHub organization to manage. This can also be set by the `GITHUB_ORGANIZATION` environment variable.
+- `owner` (String) GitHub organization or user account to manage; this is required when authenticating using a GitHub App. If the owner is not provided and a token is provided, the provider will attempt to auto-detect the owner associated with the token. This can also be set by the `GITHUB_OWNER` environment variable.
+- `parallel_requests` (Boolean) Allow the provider to make parallel API calls; this is experimental and may cause concurrency and rate limiting issues. This is ignored for the REST API when `legacy_client` is `false` since the new client implementation is designed to safely handle parallel requests.
+- `read_delay_ms` (Number) The delay in milliseconds between read operations; this defaults to `0`. This can be used to mitigate rate limiting issues when performing a large number of read operations. This is ignored for the REST API when `legacy_client` is `false` since the new client implementation is GitHub rate limit aware.
+- `retry_delay_ms` (Number) The delay in milliseconds between retry attempts; this defaults to `1000`. This setting only applies when `max_retries` is greater than `0`.
+- `retryable_errors` (List of Number) List of HTTP status codes that should be retried; if not set this uses the provider defaults. This setting only applies when `max_retries` is greater than `0`. This is ignored for the REST API when `legacy_client` is `false` since the new client implementation handles the retry logic.
+- `token` (String) GitHub OAuth or Personal Access Token (PAT) to use for authentication. This can also be set by the `GITHUB_TOKEN` environment variable.
+- `write_delay_ms` (Number) The delay in milliseconds between write operations; this defaults to `1000`. This is used to mitigate the GitHub API's abuse rate limits when writing. Note that **ALL** requests to the GraphQL API are implemented as `POST` requests under the hood, so this setting affects those calls as well. This is ignored for the REST API when `legacy_client` is `false` since the new client implementation is GitHub rate limit aware.
 
-- `read_delay_ms` - (Optional) The number of milliseconds to sleep in between non-write operations in order to satisfy the GitHub API rate limits. Defaults to 0ms.
+<a id="nestedblock--app_auth"></a>
+### Nested Schema for `app_auth`
 
-- `retryable_errors` - (Optional) "Allow the provider to retry after receiving an error status code, the max_retries should be set for this to work. Defaults to [500, 502, 503, 504]
+Required:
 
-- `max_retries` - (Optional) Number of times to retry a request after receiving an error status code. Defaults to 3
-
-Note: If you have a PEM file on disk, you can pass it in via `pem_file = file("path/to/file.pem")`.
-
-For backwards compatibility, if more than one of `owner`, `organization`, `GITHUB_OWNER` and `GITHUB_ORGANIZATION` are set, the first in this list takes priority.
-
-1. Setting `organization` in the GitHub provider configuration.
-2. Setting the `GITHUB_ORGANIZATION` environment variable.
-3. Setting the `GITHUB_OWNER` environment variable.
-4. Setting `owner` in the GitHub provider configuration.
-
-~> It is a bug that `GITHUB_OWNER` takes precedence over `owner`, which may be fixed in a future major release. For compatibility with future releases, please set only one of `GITHUB_OWNER` and `owner`.
+- `id` (String) The GitHub App's identifier. This can also be set by the `GITHUB_APP_ID` environment variable.
+- `installation_id` (String) The GitHub App's installation identifier. This can also be set by the `GITHUB_APP_INSTALLATION_ID` environment variable.
+- `pem_file` (String, Sensitive) The GitHub App's PEM file content; `\n` can be used for newlines. This can also be set by the `GITHUB_APP_PEM_FILE` environment variable.

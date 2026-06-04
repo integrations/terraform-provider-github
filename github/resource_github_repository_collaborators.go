@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v85/github"
+	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -26,6 +26,8 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 				Version: 0,
 			},
 		},
+
+		Description: "Manage the complete set of collaborators (users and teams) for a GitHub repository.",
 
 		CreateContext: resourceGithubRepositoryCollaboratorsCreate,
 		ReadContext:   resourceGithubRepositoryCollaboratorsRead,
@@ -49,19 +51,20 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 			"user": {
 				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: "List of users.",
+				Description: "Users to grant access to the repository.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"username": {
 							Type:             schema.TypeString,
-							Description:      "(Required) The user to add to the repository as a collaborator.",
+							Description:      "Login for the user to add to the repository as a collaborator.",
 							Required:         true,
 							DiffSuppressFunc: caseInsensitive(),
 						},
 						"permission": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "push",
+							Type:        schema.TypeString,
+							Description: "Permission to grant to the user. Must be one of `pull`, `triage`, `push`, `maintain`, `admin` or the name of an existing [custom repository role](https://docs.github.com/en/enterprise-cloud@latest/organizations/managing-peoples-access-to-your-organization-with-roles/managing-custom-repository-roles-for-an-organization) within the organization. Must be `push` for personal repositories. Defaults to `push`.",
+							Optional:    true,
+							Default:     "push",
 						},
 					},
 				},
@@ -69,25 +72,26 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 			"team": {
 				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: "List of teams.",
+				Description: "Teams to grant access to the repository.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"team_id": {
 							Type:        schema.TypeString,
-							Description: "Team ID or slug to add to the repository as a collaborator.",
+							Description: "ID or slug of the team to add to the repository as a collaborator.",
 							Required:    true,
 						},
 						"permission": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "push",
+							Type:        schema.TypeString,
+							Description: "Permission to grant to the team. Must be one of `pull`, `triage`, `push`, `maintain`, `admin` or the name of an existing [custom repository role](https://docs.github.com/en/enterprise-cloud@latest/organizations/managing-peoples-access-to-your-organization-with-roles/managing-custom-repository-roles-for-an-organization) within the organization. Defaults to `push`.",
+							Optional:    true,
+							Default:     "push",
 						},
 					},
 				},
 			},
 			"invitation_ids": {
 				Type:        schema.TypeMap,
-				Description: "Map of usernames to invitation ID for any users added",
+				Description: "Map of usernames to invitation ID for users that haven't yet accepted their invitation to become a collaborator. This is only set on read, and is used internally to track pending invitations for users that aren't yet collaborators.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -96,7 +100,7 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 			"ignore_team": {
 				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: "List of teams to ignore.",
+				Description: "Teams to ignore when managing repository collaborators.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"team_id": {
