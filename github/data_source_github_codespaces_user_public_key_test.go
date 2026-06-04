@@ -19,7 +19,7 @@ func TestAccGithubCodespacesUserPublicKeyDataSource(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
+			PreCheck:          func() { skipUnauthenticated(t); skipApp(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

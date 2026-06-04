@@ -90,7 +90,7 @@ The following arguments are supported:
 
 ## Import
 
-This resource can be imported using an ID made of the repository name, environment name (URL escaped), and secret name all separated by a `:`.
+This resource can be imported using an ID made of the repository name, environment name (any `:` in the environment name need to be escaped as `??`), and secret name all separated by a `:`.
 
 ~> **Note**: When importing secrets, the `value`, `value_encrypted`, `encrypted_value`, or `plaintext_value` fields will not be populated in the state. You may need to ignore changes for these as a workaround if you're not planning on updating the secret through Terraform.
 

@@ -35,13 +35,19 @@ resource "github_repository_file" "foo" {
 ### Auto Created Branch
 
 ```terraform
-resource "github_repository" "foo" {
-  name      = "example"
+resource "github_repository" "bar" {
+  name      = "example2"
   auto_init = true
 }
 
-resource "github_repository_file" "foo" {
-  repository          = github_repository.foo.name
+resource "github_branch" "bar" {
+  branch     = "does/not/exist"
+  repository = github_repository.bar.name
+
+}
+
+resource "github_repository_file" "bar" {
+  repository          = github_repository.bar.name
   branch              = "does/not/exist"
   file                = ".gitignore"
   content             = "**/*.tfstate"
@@ -49,7 +55,6 @@ resource "github_repository_file" "foo" {
   commit_author       = "Terraform User"
   commit_email        = "terraform@example.com"
   overwrite_on_create = true
-  autocreate_branch   = true
 }
 ```
 
@@ -93,7 +98,7 @@ The following additional attributes are exported:
 
 ## Import
 
-Repository files can be imported using a combination of the `repo`, `file` and `branch` or empty branch for the default branch, e.g.
+Repository files can be imported using a combination of the `repo`, `file path` (any `:` in the file path need to be escaped as `??`) and `branch` or empty branch for the default branch, e.g.
 
 ```sh
 terraform import github_repository_file.gitignore example:.gitignore:feature-branch
