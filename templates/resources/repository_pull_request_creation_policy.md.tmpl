@@ -8,6 +8,8 @@ description: |-
 
 This resource allows you to manage the pull request creation policy for a repository. The policy controls who is allowed to create pull requests in the repository.
 
+Destroying this resource does not delete anything on GitHub; it resets the repository's pull request creation policy to `all`.
+
 ## Example Usage
 
 {{ tffile "examples/resources/repository_pull_request_creation_policy/example_1.tf" }}

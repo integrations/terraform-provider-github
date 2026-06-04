@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -60,6 +61,11 @@ func resourceGithubRepositoryPullRequestCreationPolicyRead(ctx context.Context, 
 
 	policy, err := getRepositoryPullRequestCreationPolicy(ctx, owner, repoName, meta)
 	if err != nil {
+		if isRepositoryNotFoundError(err) {
+			log.Printf("[INFO] Removing pull request creation policy for %s/%s from state because the repository no longer exists in GitHub", owner, repoName)
+			d.SetId("")
+			return nil
+		}
 		return diag.Errorf("error reading pull request creation policy for %s/%s: %s", owner, repoName, err)
 	}
 

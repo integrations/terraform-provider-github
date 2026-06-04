@@ -3,6 +3,7 @@ package github
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -202,7 +203,7 @@ func TestPullRequestCreationPolicyMapping(t *testing.T) {
 		}{
 			{name: "all", input: PullRequestCreationPolicyAll, want: "all"},
 			{name: "collaborators_only", input: PullRequestCreationPolicyCollaboratorsOnly, want: "collaborators_only"},
-			{name: "empty", input: "", want: ""},
+			{name: "empty", input: "", wantErr: true},
 			{name: "invalid", input: PullRequestCreationPolicy("NOPE"), wantErr: true},
 		}
 
@@ -289,6 +290,49 @@ func TestRepositoryPullRequestCreationPolicyGraphQL(t *testing.T) {
 
 	if err := updateRepositoryPullRequestCreationPolicy(ctx, githubv4.ID("R_kgDOGGmaaw"), "all", &meta); err != nil {
 		t.Fatalf("unexpected update error: %v", err)
+	}
+}
+
+func TestIsRepositoryNotFoundError(t *testing.T) {
+	cases := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{name: "nil", err: nil, want: false},
+		{name: "unrelated", err: errors.New("something else went wrong"), want: false},
+		{name: "github not found message", err: errors.New("Could not resolve to a Repository with the name 'integrations/does-not-exist'."), want: true},
+	}
+
+	for _, tc := range cases {
+		if got := isRepositoryNotFoundError(tc.err); got != tc.want {
+			t.Fatalf("%s: got %v want %v", tc.name, got, tc.want)
+		}
+	}
+}
+
+// TestRepositoryPullRequestCreationPolicyNotFound pins the assumption behind
+// isRepositoryNotFoundError to the real wire format: it feeds the GraphQL
+// error payload GitHub returns for a missing repository through the actual v4
+// client and asserts the surfaced error is recognized as not-found.
+func TestRepositoryPullRequestCreationPolicyNotFound(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/graphql", func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		mustWrite(w, `{"data":{"repository":null},"errors":[{"type":"NOT_FOUND","path":["repository"],"locations":[{"line":3,"column":7}],"message":"Could not resolve to a Repository with the name 'integrations/does-not-exist'."}]}`)
+	})
+
+	meta := Owner{
+		v4client: githubv4.NewClient(&http.Client{Transport: localRoundTripper{handler: mux}}),
+		name:     "integrations",
+	}
+
+	_, err := getRepositoryPullRequestCreationPolicy(context.Background(), "integrations", "does-not-exist", &meta)
+	if err == nil {
+		t.Fatal("expected a not-found error, got nil")
+	}
+	if !isRepositoryNotFoundError(err) {
+		t.Fatalf("expected error to be recognized as repository-not-found, got %v", err)
 	}
 }
 

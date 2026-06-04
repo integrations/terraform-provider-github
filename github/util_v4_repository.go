@@ -5,9 +5,20 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/shurcooL/githubv4"
 )
+
+// isRepositoryNotFoundError reports whether err is the GitHub GraphQL error
+// returned when a repository cannot be resolved by owner and name. The v4
+// client (shurcooL/graphql) discards the structured "type: NOT_FOUND"
+// extension and surfaces only the error message, so matching the stable part
+// of that message is the only signal available. This mirrors how other
+// GraphQL-backed resources in this provider detect out-of-band deletions.
+func isRepositoryNotFoundError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "Could not resolve to a Repository")
+}
 
 // PullRequestCreationPolicy mirrors the GitHub GraphQL enum type of the same
 // name so we can query and mutate the field even when the vendored client
@@ -92,7 +103,7 @@ func flattenPullRequestCreationPolicy(policy PullRequestCreationPolicy) (string,
 	case PullRequestCreationPolicyCollaboratorsOnly:
 		return "collaborators_only", nil
 	case "":
-		return "", nil
+		return "", errors.New("GitHub returned an empty pull request creation policy; the repository may not exist or the token may lack permission to read it")
 	default:
 		return "", fmt.Errorf("unsupported GraphQL pull request creation policy %q", policy)
 	}
