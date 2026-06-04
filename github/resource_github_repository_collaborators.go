@@ -18,12 +18,17 @@ import (
 
 func resourceGithubRepositoryCollaborators() *schema.Resource {
 	return &schema.Resource{
-		SchemaVersion: 1,
+		SchemaVersion: 2,
 		StateUpgraders: []schema.StateUpgrader{
 			{
 				Type:    resourceGithubRepositoryCollaboratorsV0().CoreConfigSchema().ImpliedType(),
 				Upgrade: resourceGithubRepositoryCollaboratorsStateUpgradeV0,
 				Version: 0,
+			},
+			{
+				Type:    resourceGithubRepositoryCollaboratorsV1().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceGithubRepositoryCollaboratorsStateUpgradeV1,
+				Version: 1,
 			},
 		},
 
@@ -145,32 +150,6 @@ func resourceGithubRepositoryCollaboratorsDiff(ctx context.Context, d *schema.Re
 		}
 	}
 
-	if meta.IsOrganization {
-		if err := d.SetNew("owner_configured", false); err != nil {
-			return fmt.Errorf("error setting owner_configured: %w", err)
-		}
-	} else if d.NewValueKnown("user") {
-		users := d.Get("user").(*schema.Set).List()
-		ownerConfigured := false
-		owner := strings.ToLower(meta.name)
-
-		for _, u := range users {
-			user := u.(map[string]any)
-			if strings.ToLower(user["username"].(string)) == owner {
-				ownerConfigured = true
-				break
-			}
-		}
-
-		if err := d.SetNew("owner_configured", ownerConfigured); err != nil {
-			return fmt.Errorf("error setting owner_configured: %w", err)
-		}
-	} else {
-		if err := d.SetNewComputed("owner_configured"); err != nil {
-			return fmt.Errorf("error setting owner_configured to computed: %w", err)
-		}
-	}
-
 	if d.HasChange("team") && d.NewValueKnown("team") {
 		v, diags := d.GetRawConfigAt(cty.GetAttrPath("team"))
 		if diags.HasError() {
@@ -196,7 +175,61 @@ func resourceGithubRepositoryCollaboratorsDiff(ctx context.Context, d *schema.Re
 		}
 	}
 
-	if len(d.Id()) == 0 {
+	if meta.IsOrganization {
+		// If the repository belongs to an organization the owner cannot be a,
+		// collaborator, so owner_configured is always false.
+
+		if err := d.SetNew("owner_configured", false); err != nil {
+			return fmt.Errorf("error setting owner_configured: %w", err)
+		}
+	} else if d.NewValueKnown("user") {
+		// If the repository belongs to a user and we know the new value of user,
+		// then we can determine the value of owner_configured by checking if
+		// the owner is included in the list of users.
+
+		ownerConfigured := false
+		owner := strings.ToLower(meta.name)
+
+		usersVal := d.Get("user")
+		if users, ok := usersVal.(*schema.Set); ok {
+			for _, u := range users.List() {
+				user, ok := u.(map[string]any)
+				if !ok {
+					continue
+				}
+
+				usernameVal, ok := user["username"]
+				if !ok {
+					continue
+				}
+
+				username, ok := usernameVal.(string)
+				if !ok {
+					continue
+				}
+
+				if strings.ToLower(username) == owner {
+					ownerConfigured = true
+					break
+				}
+			}
+		}
+
+		if err := d.SetNew("owner_configured", ownerConfigured); err != nil {
+			return fmt.Errorf("error setting owner_configured: %w", err)
+		}
+	} else {
+		// If the repository belongs to a user but we don't know the new value of user,
+		// then we don't know if the owner is configured as a collaborator or not,
+		// so we set owner_configured to computed to indicate that Terraform should
+		// determine the value during apply.
+
+		if err := d.SetNewComputed("owner_configured"); err != nil {
+			return fmt.Errorf("error setting owner_configured to computed: %w", err)
+		}
+	}
+
+	if d.Id() == "" {
 		return nil
 	}
 
@@ -227,9 +260,23 @@ func resourceGithubRepositoryCollaboratorsCreate(ctx context.Context, d *schema.
 		return diag.FromErr(err)
 	}
 
+	ownerConfigured := false
 	inIgnoreUsers := make([]string, 0)
-	if !isOrg && !d.Get("owner_configured").(bool) {
-		inIgnoreUsers = append(inIgnoreUsers, strings.ToLower(owner))
+	if !isOrg {
+		ownerConfigured, _ = d.Get("owner_configured").(bool)
+
+		if !ownerConfigured {
+			for _, u := range inUsers {
+				if strings.EqualFold(u.login, owner) {
+					ownerConfigured = true
+					break
+				}
+			}
+
+			if !ownerConfigured {
+				inIgnoreUsers = append(inIgnoreUsers, strings.ToLower(owner))
+			}
+		}
 	}
 
 	inTeams, err := getTeamCollaborators(teams)
@@ -281,9 +328,10 @@ func resourceGithubRepositoryCollaboratorsRead(ctx context.Context, d *schema.Re
 	repoName := d.Get("repository").(string)
 	teams := d.Get("team").(*schema.Set).List()
 	ignoreTeams := d.Get("ignore_team").(*schema.Set).List()
+	ownerConfigured, _ := d.Get("owner_configured").(bool)
 
 	inIgnoreUsers := make([]string, 0)
-	if !isOrg && !d.Get("owner_configured").(bool) {
+	if !isOrg && !ownerConfigured {
 		inIgnoreUsers = append(inIgnoreUsers, strings.ToLower(owner))
 	}
 
@@ -357,9 +405,23 @@ func resourceGithubRepositoryCollaboratorsUpdate(ctx context.Context, d *schema.
 		return diag.FromErr(err)
 	}
 
+	ownerConfigured := false
 	inIgnoreUsers := make([]string, 0)
-	if !isOrg && !d.Get("owner_configured").(bool) {
-		inIgnoreUsers = append(inIgnoreUsers, strings.ToLower(owner))
+	if !isOrg {
+		ownerConfigured, _ = d.Get("owner_configured").(bool)
+
+		if !ownerConfigured {
+			for _, u := range inUsers {
+				if strings.EqualFold(u.login, owner) {
+					ownerConfigured = true
+					break
+				}
+			}
+
+			if !ownerConfigured {
+				inIgnoreUsers = append(inIgnoreUsers, strings.ToLower(owner))
+			}
+		}
 	}
 
 	inTeams, err := getTeamCollaborators(teams)

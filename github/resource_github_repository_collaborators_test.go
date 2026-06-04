@@ -88,7 +88,7 @@ resource "github_repository_collaborators" "test" {
 					ImportState:             true,
 					ImportStateId:           repoName,
 					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"user", "team", "invitation_ids"},
+					ImportStateVerifyIgnore: []string{"user", "team", "invitation_ids", "owner_configured"},
 				},
 			},
 		})
@@ -140,8 +140,7 @@ resource "github_repository_collaborators" "test" {
 
 		config := fmt.Sprintf(`
 resource "github_repository" "test" {
-	name       = "%s"
-	visibility = "private"
+	name = "%s"
 }
 
 resource "github_repository_collaborators" "test" {
@@ -159,6 +158,7 @@ resource "github_repository_collaborators" "test" {
 						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("user"), knownvalue.SetSizeExact(0)),
 						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("team"), knownvalue.SetSizeExact(0)),
 						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("invitation_ids"), knownvalue.MapSizeExact(0)),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("owner_configured"), knownvalue.Bool(false)),
 					},
 				},
 				{
@@ -176,8 +176,7 @@ resource "github_repository_collaborators" "test" {
 
 		config := fmt.Sprintf(`
 resource "github_repository" "test" {
-	name       = "%s"
-	visibility = "private"
+	name = "%s"
 }
 
 resource "github_repository_collaborators" "test" {
@@ -205,7 +204,13 @@ resource "github_repository_collaborators" "test" {
 						})),
 						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("team"), knownvalue.SetSizeExact(0)),
 						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("invitation_ids"), knownvalue.MapSizeExact(0)),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("owner_configured"), knownvalue.Bool(true)),
 					},
+				},
+				{
+					Config:             config,
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
 				},
 			},
 		})
@@ -348,7 +353,7 @@ resource "github_repository_collaborators" "test" {
 `, configPre)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
