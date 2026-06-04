@@ -290,8 +290,18 @@ func resourceGithubTeamMembersDelete(ctx context.Context, d *schema.ResourceData
 		_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgId, teamId, username)
 		if err != nil {
 			if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "Team no longer exists, skipping remaining member deletions", map[string]any{"team_id": teamIdString})
-				return nil
+				// 404 can mean the membership was already removed out-of-band (drift)
+				// or the team itself is gone. Check the team to distinguish.
+				_, _, teamErr := client.Teams.GetTeamByID(ctx, orgId, teamId) //nolint:staticcheck
+				if teamErr != nil {
+					if teamGhErr, ok := errors.AsType[*github.ErrorResponse](teamErr); ok && teamGhErr.Response.StatusCode == http.StatusNotFound {
+						tflog.Info(ctx, "Team no longer exists, skipping remaining member deletions", map[string]any{"team_id": teamIdString})
+						return nil
+					}
+				}
+				// Team still exists — this membership was removed out-of-band, continue.
+				tflog.Info(ctx, "Team membership no longer exists, skipping", map[string]any{"team_id": teamIdString, "username": username})
+				continue
 			}
 			return diag.FromErr(err)
 		}
