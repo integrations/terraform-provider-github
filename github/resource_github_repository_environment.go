@@ -127,28 +127,44 @@ func resourceGithubRepositoryEnvironmentDiff(_ context.Context, d *schema.Resour
 		return nil
 	}
 
-	if v, ok := d.GetOk("reviewers"); ok {
-		if c, ok := v.([]any); ok && len(c) > 0 {
-			if o, ok := c[0].(map[string]any); ok {
-				count := 0
+	reviewersVal, ok := d.GetOk("reviewers")
+	if !ok {
+		return nil
+	}
 
-				if t, ok := o["teams"]; ok {
-					if s, ok := t.(*schema.Set); ok {
-						count += s.Len()
-					}
-				}
+	reviewersCol, ok := reviewersVal.([]any)
+	if !ok || len(reviewersCol) == 0 || reviewersCol[0] == nil {
+		return nil
+	}
 
-				if u, ok := o["users"]; ok {
-					if s, ok := u.(*schema.Set); ok {
-						count += s.Len()
-					}
-				}
+	reviewers, ok := reviewersCol[0].(map[string]any)
+	if !ok {
+		return nil
+	}
 
-				if count > 6 {
-					return fmt.Errorf("a maximum of 6 reviewers (users and teams combined) can be set for an environment")
-				}
-			}
+	teamsVal, teamsOk := reviewers["teams"]
+	usersVal, usersOk := reviewers["users"]
+
+	if !teamsOk && !usersOk {
+		return nil
+	}
+
+	reviewersCount := 0
+
+	if teamsOk {
+		if teamsCol, ok := teamsVal.(*schema.Set); ok {
+			reviewersCount += teamsCol.Len()
 		}
+	}
+
+	if usersOk {
+		if usersCol, ok := usersVal.(*schema.Set); ok {
+			reviewersCount += usersCol.Len()
+		}
+	}
+
+	if reviewersCount > 6 {
+		return fmt.Errorf("a maximum of 6 reviewers (users and teams combined) can be set for an environment")
 	}
 
 	return nil
