@@ -88,15 +88,14 @@ resource "github_repository_collaborators" "some_repo_collaborators" {
 - `repository_id` (Number) ID of the repository.
 
 <a id="nestedblock--ignore_team"></a>
-
 ### Nested Schema for `ignore_team`
 
 Required:
 
 - `team_id` (String) ID or slug of the team to ignore.
 
-<a id="nestedblock--team"></a>
 
+<a id="nestedblock--team"></a>
 ### Nested Schema for `team`
 
 Required:
@@ -107,8 +106,8 @@ Optional:
 
 - `permission` (String) Permission to grant to the team. Must be one of `pull`, `triage`, `push`, `maintain`, `admin` or the name of an existing [custom repository role](https://docs.github.com/en/enterprise-cloud@latest/organizations/managing-peoples-access-to-your-organization-with-roles/managing-custom-repository-roles-for-an-organization) within the organization. Defaults to `push`.
 
-<a id="nestedblock--user"></a>
 
+<a id="nestedblock--user"></a>
 ### Nested Schema for `user`
 
 Required:

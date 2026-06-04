@@ -133,16 +133,32 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 func resourceGithubRepositoryCollaboratorsDiff(ctx context.Context, d *schema.ResourceDiff, m any) error {
 	tflog.Debug(ctx, "Diffing collaborators")
 
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 
 	if d.HasChange("user") {
-		users := d.Get("user").(*schema.Set).List()
+		users, ok := d.Get("user").(*schema.Set)
+		if !ok {
+			return fmt.Errorf("error reading user config")
+		}
+
 		seen := make(map[string]any)
+		for _, u := range users.List() {
+			user, ok := u.(map[string]any)
+			if !ok {
+				return fmt.Errorf("error reading user config")
+			}
 
-		for _, u := range users {
-			user := u.(map[string]any)
-			username := strings.ToLower(user["username"].(string))
+			usernameVal, ok := user["username"]
+			if !ok {
+				return fmt.Errorf("error reading user config")
+			}
 
+			username, ok := usernameVal.(string)
+			if !ok {
+				return fmt.Errorf("error reading user config")
+			}
+
+			username = strings.ToLower(username)
 			if _, ok := seen[username]; ok {
 				return fmt.Errorf("duplicate username %s found in user collaborators", username)
 			}
@@ -188,30 +204,32 @@ func resourceGithubRepositoryCollaboratorsDiff(ctx context.Context, d *schema.Re
 		// the owner is included in the list of users.
 
 		ownerConfigured := false
-		owner := strings.ToLower(meta.name)
+		owner := meta.name
 
-		usersVal := d.Get("user")
-		if users, ok := usersVal.(*schema.Set); ok {
-			for _, u := range users.List() {
-				user, ok := u.(map[string]any)
-				if !ok {
-					continue
-				}
+		users, ok := d.Get("user").(*schema.Set)
+		if !ok {
+			return fmt.Errorf("error reading user config")
+		}
 
-				usernameVal, ok := user["username"]
-				if !ok {
-					continue
-				}
+		for _, u := range users.List() {
+			user, ok := u.(map[string]any)
+			if !ok {
+				return fmt.Errorf("error reading user config")
+			}
 
-				username, ok := usernameVal.(string)
-				if !ok {
-					continue
-				}
+			usernameVal, ok := user["username"]
+			if !ok {
+				return fmt.Errorf("error reading user config")
+			}
 
-				if strings.ToLower(username) == owner {
-					ownerConfigured = true
-					break
-				}
+			username, ok := usernameVal.(string)
+			if !ok {
+				return fmt.Errorf("error reading user config")
+			}
+
+			if strings.EqualFold(username, owner) {
+				ownerConfigured = true
+				break
 			}
 		}
 
@@ -271,6 +289,10 @@ func resourceGithubRepositoryCollaboratorsCreate(ctx context.Context, d *schema.
 					ownerConfigured = true
 					break
 				}
+			}
+
+			if !ownerConfigured {
+				inIgnoreUsers = append(inIgnoreUsers, strings.ToLower(owner))
 			}
 
 			if !ownerConfigured {
@@ -420,6 +442,10 @@ func resourceGithubRepositoryCollaboratorsUpdate(ctx context.Context, d *schema.
 
 			if !ownerConfigured {
 				inIgnoreUsers = append(inIgnoreUsers, strings.ToLower(owner))
+			}
+
+			if err := d.Set("owner_configured", ownerConfigured); err != nil {
+				return diag.FromErr(err)
 			}
 		}
 	}

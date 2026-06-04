@@ -207,7 +207,7 @@ func resourceGithubRepositoryCollaboratorsStateUpgradeV1(_ context.Context, rawS
 		// is included in the list of users.
 
 		ownerConfigured := false
-		owner := strings.ToLower(meta.name)
+		owner := meta.name
 
 		if usersVal, ok := rawState["user"]; ok {
 			if users, ok := usersVal.([]any); ok {
@@ -227,7 +227,7 @@ func resourceGithubRepositoryCollaboratorsStateUpgradeV1(_ context.Context, rawS
 						continue
 					}
 
-					if strings.ToLower(username) == owner {
+					if strings.EqualFold(username, owner) {
 						ownerConfigured = true
 						break
 					}
