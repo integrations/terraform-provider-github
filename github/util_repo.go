@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v85/github"
+	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
@@ -149,14 +149,4 @@ func handleArchivedRepositoryError(err error, operation, resource, owner, repo s
 // specifically for delete operations, which is the most common use case.
 func handleArchivedRepoDelete(err error, resourceType, resourceName, owner, repo string) error {
 	return handleArchivedRepositoryError(err, "deletion", fmt.Sprintf("%s %s", resourceType, resourceName), owner, repo)
-}
-
-// get the list of retriable errors.
-func getDefaultRetriableErrors() map[int]bool {
-	return map[int]bool{
-		500: true,
-		502: true,
-		503: true,
-		504: true,
-	}
 }

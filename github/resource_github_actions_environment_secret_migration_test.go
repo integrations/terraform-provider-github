@@ -40,7 +40,7 @@ package github
 // 		t.Run(d.testName, func(t *testing.T) {
 // 			t.Parallel()
 
-// 			got, err := resourceGithubActionsEnvironmentSecretStateUpgradeV0(context.Background(), d.rawState, nil)
+// 			got, err := resourceGithubActionsEnvironmentSecretStateUpgradeV0(t.Context(), d.rawState, nil)
 // 			if (err != nil) != d.shouldError {
 // 				t.Fatalf("unexpected error state")
 // 			}
