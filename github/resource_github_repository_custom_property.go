@@ -78,6 +78,10 @@ func resourceGithubRepositoryCustomProperty() *schema.Resource {
 func resourceGithubRepositoryCustomPropertyDiff(ctx context.Context, d *schema.ResourceDiff, _ any) error {
 	tflog.Debug(ctx, "Diffing GitHub repository custom property")
 
+	if !d.NewValueKnown("property_type") || !d.NewValueKnown("property_value") {
+		return nil
+	}
+
 	propertyTypeVal, _ := d.Get("property_type").(string)
 	propertyType := github.PropertyValueType(propertyTypeVal)
 	propertyValueVal, _ := d.Get("property_value").(*schema.Set)
@@ -248,6 +252,9 @@ func resourceGithubRepositoryCustomPropertyDelete(ctx context.Context, d *schema
 
 	_, err := client.Repositories.CreateOrUpdateCustomProperties(ctx, owner, repoName, []*github.CustomPropertyValue{&customProperty})
 	if err != nil {
+		if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == 404 {
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
