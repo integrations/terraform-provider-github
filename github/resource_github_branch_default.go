@@ -138,8 +138,7 @@ func resourceGithubBranchDefaultRead(ctx context.Context, d *schema.ResourceData
 
 	repository, resp, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				tflog.Debug(ctx, "Repository not modified, skipping read")
 				return nil
