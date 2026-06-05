@@ -5,6 +5,9 @@ import "strconv"
 // userIdentity represents a GitHub user by their login.
 type userIdentity struct {
 	login string
+	// id is the numeric GitHub user ID, used to resolve the current login
+	// when the username may have changed (e.g. suspended EMU users).
+	id int64
 }
 
 // userCollaborator represents a GitHub user collaborator with its identity and permission level.

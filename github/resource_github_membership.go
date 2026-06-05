@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -46,6 +47,11 @@ func resourceGithubMembership() *schema.Resource {
 				Optional:    true,
 				Default:     false,
 				Description: "Instead of removing the member from the org, you can choose to downgrade their membership to 'member' when this resource is destroyed. This is useful when wanting to downgrade admins while keeping them in the organization",
+			},
+			"user_id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The ID of the user, used to resolve the current username before membership updates in case the username changed (e.g. suspended EMU users).",
 			},
 		},
 	}
@@ -133,6 +139,13 @@ func resourceGithubMembershipRead(ctx context.Context, d *schema.ResourceData, m
 		return diag.FromErr(err)
 	}
 
+	user, _, err := client.Users.Get(ctx, username)
+	if err == nil {
+		if err = d.Set("user_id", strconv.FormatInt(user.GetID(), 10)); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
 	return nil
 }
 
@@ -146,7 +159,7 @@ func resourceGithubMembershipDelete(ctx context.Context, d *schema.ResourceData,
 	orgName := meta.(*Owner).name
 	ctx = context.WithValue(ctx, ctxId, d.Id())
 
-	username := d.Get("username").(string)
+	username := resolveUsernameByID(ctx, client, d.Get("user_id").(string), d.Get("username").(string))
 	downgradeOnDestroy := d.Get("downgrade_on_destroy").(bool)
 	downgradeTo := "member"
 

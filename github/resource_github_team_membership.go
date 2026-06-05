@@ -61,6 +61,11 @@ func resourceGithubTeamMembership() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"user_id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The ID of the user, used to resolve the current username before membership updates in case the username changed (e.g. suspended EMU users).",
+			},
 		},
 	}
 }
@@ -150,6 +155,13 @@ func resourceGithubTeamMembershipRead(ctx context.Context, d *schema.ResourceDat
 		return diag.FromErr(err)
 	}
 
+	user, _, err := client.Users.Get(ctx, username)
+	if err == nil {
+		if err = d.Set("user_id", strconv.FormatInt(user.GetID(), 10)); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
 	return nil
 }
 
@@ -163,7 +175,8 @@ func resourceGithubTeamMembershipDelete(ctx context.Context, d *schema.ResourceD
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	username := d.Get("username").(string)
+
+	username := resolveUsernameByID(ctx, client, d.Get("user_id").(string), d.Get("username").(string))
 
 	_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgId, teamId, username)
 	if err != nil {
