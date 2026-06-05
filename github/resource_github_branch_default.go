@@ -21,6 +21,15 @@ func resourceGithubBranchDefault() *schema.Resource {
 			StateContext: resourceGithubBranchDefaultImport,
 		},
 
+		SchemaVersion: 1,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceGithubBranchDefaultV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceGithubBranchDefaultStateUpgradeV0,
+				Version: 0,
+			},
+		},
+
 		CustomizeDiff: diffRepository,
 
 		Schema: map[string]*schema.Schema{
