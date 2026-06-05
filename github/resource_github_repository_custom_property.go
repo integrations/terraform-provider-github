@@ -3,10 +3,13 @@ package github
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/google/go-github/v88/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -21,7 +24,7 @@ func resourceGithubRepositoryCustomProperty() *schema.Resource {
 			StateContext: resourceGithubRepositoryCustomPropertyImport,
 		},
 
-		CustomizeDiff: diffRepository,
+		CustomizeDiff: customdiff.All(diffRepository, resourceGithubRepositoryCustomPropertyDiff),
 
 		SchemaVersion: 1,
 		StateUpgraders: []schema.StateUpgrader{
@@ -72,6 +75,30 @@ func resourceGithubRepositoryCustomProperty() *schema.Resource {
 	}
 }
 
+func resourceGithubRepositoryCustomPropertyDiff(ctx context.Context, d *schema.ResourceDiff, _ any) error {
+	tflog.Debug(ctx, "Diffing GitHub repository custom property")
+
+	propertyTypeVal, _ := d.Get("property_type").(string)
+	propertyType := github.PropertyValueType(propertyTypeVal)
+	propertyValueVal, _ := d.Get("property_value").(*schema.Set)
+	propertyValue := expandStringList(propertyValueVal.List())
+	propertyCount := len(propertyValue)
+
+	// The propertyValue can either be a list of strings or a string
+	switch propertyType {
+	case github.PropertyValueTypeMultiSelect:
+		if propertyCount < 1 {
+			return fmt.Errorf("custom property type %v requires at least one value", propertyType)
+		}
+	default:
+		if propertyCount != 1 {
+			return fmt.Errorf("custom property type %v requires exactly one value", propertyType)
+		}
+	}
+
+	return nil
+}
+
 func resourceGithubRepositoryCustomPropertyCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	client := meta.v3client
@@ -90,12 +117,10 @@ func resourceGithubRepositoryCustomPropertyCreate(ctx context.Context, d *schema
 
 	// The propertyValue can either be a list of strings or a string
 	switch propertyType {
-	case github.PropertyValueTypeString, github.PropertyValueTypeSingleSelect, github.PropertyValueTypeURL, github.PropertyValueTypeTrueFalse:
-		customProperty.Value = propertyValue[0]
 	case github.PropertyValueTypeMultiSelect:
 		customProperty.Value = propertyValue
 	default:
-		return diag.Errorf("custom property type is not valid: %v", propertyType)
+		customProperty.Value = propertyValue[0]
 	}
 
 	_, err := client.Repositories.CreateOrUpdateCustomProperties(ctx, owner, repoName, []*github.CustomPropertyValue{&customProperty})
@@ -188,12 +213,10 @@ func resourceGithubRepositoryCustomPropertyUpdate(ctx context.Context, d *schema
 
 	// The propertyValue can either be a list of strings or a string
 	switch propertyType {
-	case github.PropertyValueTypeString, github.PropertyValueTypeSingleSelect, github.PropertyValueTypeURL, github.PropertyValueTypeTrueFalse:
-		customProperty.Value = propertyValue[0]
 	case github.PropertyValueTypeMultiSelect:
 		customProperty.Value = propertyValue
 	default:
-		return diag.Errorf("custom property type is not valid: %v", propertyType)
+		customProperty.Value = propertyValue[0]
 	}
 
 	_, err := client.Repositories.CreateOrUpdateCustomProperties(ctx, owner, repoName, []*github.CustomPropertyValue{&customProperty})
