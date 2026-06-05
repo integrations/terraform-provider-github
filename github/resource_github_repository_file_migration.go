@@ -85,7 +85,7 @@ func resourceGithubRepositoryFileV0() *schema.Resource {
 }
 
 func resourceGithubRepositoryFileStateUpgradeV0(ctx context.Context, rawState map[string]any, m any) (map[string]any, error) {
-	tflog.Debug(ctx, "GitHub Repository File State before migration", map[string]any{
+	tflog.Debug(ctx, "GitHub Repository File State before v0 migration", map[string]any{
 		"rawState": rawState,
 	})
 
@@ -93,30 +93,54 @@ func resourceGithubRepositoryFileStateUpgradeV0(ctx context.Context, rawState ma
 	client := meta.v3client
 	owner := meta.name
 
-	repoName, ok := rawState["repository"].(string)
-	if !ok {
-		return nil, fmt.Errorf("repository not found or is not a string")
+	repoName := ""
+	if v, ok := rawState["repository"]; ok {
+		if s, ok := v.(string); ok && s != "" {
+			repoName = s
+		}
+	}
+	if repoName == "" {
+		return nil, fmt.Errorf("state upgrade v0: repository is not a string or not set")
 	}
 
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve repository '%s': %w", repoName, err)
+		return nil, fmt.Errorf("state upgrade v0: failed to retrieve repository '%s': %w", repoName, err)
 	}
 
 	rawState["repository_id"] = int(repo.GetID())
 
-	// If branch is missing or empty, fetch the default branch from the repository
-	if branch, ok := rawState["branch"].(string); !ok || branch == "" {
-		rawState["branch"] = repo.GetDefaultBranch()
+	branch := ""
+	if v, ok := rawState["branch"]; ok {
+		if s, ok := v.(string); ok && s != "" {
+			branch = s
+		}
 	}
 
-	newResourceID, err := buildID(rawState["repository"].(string), rawState["file"].(string), rawState["branch"].(string))
+	// If branch is empty, fetch the default branch from the repository
+	if branch == "" {
+		branch = repo.GetDefaultBranch()
+		rawState["branch"] = branch
+	}
+
+	filePath := ""
+	if v, ok := rawState["file"]; ok {
+		if s, ok := v.(string); ok && s != "" {
+			filePath = s
+		}
+	}
+
+	if filePath == "" {
+		return nil, fmt.Errorf("state upgrade v0: file path is not a string")
+	}
+
+	newResourceID, err := buildID(repoName, escapeIDPart(filePath), branch)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build ID: %w", err)
+		return nil, fmt.Errorf("state upgrade v0: failed to build ID: %w", err)
 	}
 	rawState["id"] = newResourceID
 
-	tflog.Debug(ctx, "GitHub Repository File State after migration", map[string]any{
+	tflog.Debug(ctx, "GitHub Repository File State after v0 migration", map[string]any{
 		"rawState": rawState,
 	})
 	return rawState, nil
