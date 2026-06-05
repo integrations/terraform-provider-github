@@ -32,32 +32,35 @@ func resourceGithubBranchDefault() *schema.Resource {
 
 		CustomizeDiff: diffRepository,
 
+		Description: "Configures the default branch for a GitHub repository.",
+
 		Schema: map[string]*schema.Schema{
 			"branch": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The branch (e.g. 'main').",
+				Description: "The name of the branch to set as the default (e.g. 'main').",
 			},
 			"repository": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The GitHub repository.",
+				Description: "The name of the GitHub repository.",
 			},
 			"repository_id": {
 				Type:        schema.TypeInt,
 				Computed:    true,
-				Description: "The GitHub repository ID.",
+				Description: "The ID of the GitHub repository.",
 			},
 			"rename": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
-				Description: "Indicate if it should rename the branch rather than use an existing branch. Defaults to 'false'.",
+				Description: "Indicate if the current default branch should be renamed rather than switching to an existing branch. Defaults to 'false'.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "The ETag header for the repository API response.",
 				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
 					return true
 				},
