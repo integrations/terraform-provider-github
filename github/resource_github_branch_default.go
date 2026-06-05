@@ -63,10 +63,7 @@ func resourceGithubBranchDefaultCreate(ctx context.Context, d *schema.ResourceDa
 	client := meta.v3client
 	owner := meta.name
 
-	repoName, ok := d.Get("repository").(string)
-	if !ok {
-		return diag.FromErr(errors.New("repository must be a string"))
-	}
+	repoName, _ := d.Get("repository").(string)
 	defaultBranch, ok := d.Get("branch").(string)
 	if !ok {
 		return diag.FromErr(errors.New("branch must be a string"))
@@ -83,6 +80,8 @@ func resourceGithubBranchDefaultCreate(ctx context.Context, d *schema.ResourceDa
 		return diag.FromErr(err)
 	}
 
+	etag := resp.Header.Get("ETag")
+
 	tflog.Debug(ctx, "Fetched repository", map[string]any{"current_default_branch": repository.GetDefaultBranch()})
 
 	if repository.GetDefaultBranch() != defaultBranch {
@@ -97,9 +96,12 @@ func resourceGithubBranchDefaultCreate(ctx context.Context, d *schema.ResourceDa
 				DefaultBranch: new(defaultBranch),
 			}
 
-			if _, _, err := client.Repositories.Edit(ctx, owner, repoName, repository); err != nil {
+			if _, resp, err := client.Repositories.Edit(ctx, owner, repoName, repository); err != nil {
 				return diag.FromErr(err)
+			} else {
+				etag = resp.Header.Get("ETag")
 			}
+
 		}
 	} else {
 		tflog.Debug(ctx, "Default branch already set to desired branch, skipping update")
@@ -110,7 +112,7 @@ func resourceGithubBranchDefaultCreate(ctx context.Context, d *schema.ResourceDa
 	if err := d.Set("repository_id", int(repository.GetID())); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+	if err := d.Set("etag", etag); err != nil {
 		return diag.FromErr(err)
 	}
 
