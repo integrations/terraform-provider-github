@@ -3,9 +3,9 @@ package github
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/google/go-github/v88/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -53,7 +53,7 @@ func resourceGithubRepositoryCustomPropertyStateUpgradeV0(ctx context.Context, r
 	client := meta.v3client
 	owner := meta.name
 
-	log.Printf("[DEBUG] GitHub Repository Custom Property Attributes before migration: %#v", rawState)
+	tflog.Debug(ctx, "GitHub Repository Custom Property Attributes before migration: %#v", rawState)
 
 	repoName, ok := rawState["repository"].(string)
 	if !ok {
@@ -68,7 +68,7 @@ func resourceGithubRepositoryCustomPropertyStateUpgradeV0(ctx context.Context, r
 	repoID := int(repo.GetID())
 	rawState["repository_id"] = repoID
 
-	log.Printf("[DEBUG] GitHub Repository Custom Property Attributes after migration: %#v", rawState)
+	tflog.Debug(ctx, "GitHub Repository Custom Property Attributes after migration: %#v", rawState)
 
 	return rawState, nil
 }

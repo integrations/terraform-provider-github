@@ -186,12 +186,6 @@ func resourceGithubRepositoryCustomPropertyRead(ctx context.Context, d *schema.R
 		return diag.FromErr(err)
 	}
 
-	id, err := buildID(owner, repoName, propertyName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	d.SetId(id)
-
 	if err := d.Set("property_value", propertyValue); err != nil {
 		return diag.FromErr(err)
 	}
