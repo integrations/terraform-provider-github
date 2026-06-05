@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"testing"
@@ -11,6 +12,31 @@ import (
 )
 
 const testRandomIDLength = 5
+
+func mustGetTestMockResponse(t *testing.T, uri string, statusCode int, body any) *mockResponse {
+	resp := &mockResponse{
+		ExpectedUri: uri,
+		StatusCode:  statusCode,
+	}
+
+	if body != nil {
+		bodyBytes, err := json.Marshal(body)
+		if err != nil {
+			t.Fatalf("failed to marshal mock response body: %v", err)
+		}
+		resp.ResponseBody = string(bodyBytes)
+	}
+
+	return resp
+}
+
+func mustCreateTestGitHubClient(t *testing.T, baseURL string, opts ...github.ClientOptionsFunc) *github.Client {
+	client, err := github.NewClient(append([]github.ClientOptionsFunc{github.WithURLs(&baseURL, nil)}, opts...)...)
+	if err != nil {
+		t.Fatalf("failed to create GitHub client: %s", err)
+	}
+	return client
+}
 
 func mustCreateTestOrganizationRepositoryCustomProperty(t *testing.T, valType string, allowed []string) *github.CustomProperty {
 	t.Helper()
