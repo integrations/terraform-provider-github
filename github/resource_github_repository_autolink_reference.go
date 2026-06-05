@@ -24,48 +24,7 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 		DeleteContext: resourceGithubRepositoryAutolinkReferenceDelete,
 
 		Importer: &schema.ResourceImporter{
-			StateContext: func(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-				parts := strings.Split(d.Id(), "/")
-				if len(parts) != 2 {
-					return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository>/<autolink_reference_id>")
-				}
-
-				repository := parts[0]
-				id := parts[1]
-
-				client := meta.(*Owner).v3client
-				owner := meta.(*Owner).name
-
-				// If the second part of the provided ID isn't an integer, assume that the
-				// caller provided the key prefix for the autolink reference, and look up
-				// the autolink by the key prefix.
-
-				_, err := strconv.Atoi(id)
-				if err != nil {
-					autolink, err := getAutolinkByKeyPrefix(ctx, client, owner, repository, id)
-					if err != nil {
-						return nil, err
-					}
-
-					id = strconv.FormatInt(*autolink.ID, 10)
-				}
-
-				d.SetId(id)
-
-				repo, _, err := client.Repositories.Get(ctx, owner, repository)
-				if err != nil {
-					return nil, fmt.Errorf("failed to retrieve repository %s: %w", repository, err)
-				}
-
-				if err = d.Set("repository", repository); err != nil {
-					return nil, err
-				}
-				if err = d.Set("repository_id", int(repo.GetID())); err != nil {
-					return nil, err
-				}
-
-				return []*schema.ResourceData{d}, nil
-			},
+			StateContext: resourceGithubRepositoryAutolinkReferenceImport,
 		},
 
 		CustomizeDiff: diffRepository,
@@ -112,6 +71,49 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 			},
 		},
 	}
+}
+
+func resourceGithubRepositoryAutolinkReferenceImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+	parts := strings.Split(d.Id(), "/")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository>/<autolink_reference_id>")
+	}
+
+	repository := parts[0]
+	id := parts[1]
+
+	client := meta.(*Owner).v3client
+	owner := meta.(*Owner).name
+
+	// If the second part of the provided ID isn't an integer, assume that the
+	// caller provided the key prefix for the autolink reference, and look up
+	// the autolink by the key prefix.
+
+	_, err := strconv.Atoi(id)
+	if err != nil {
+		autolink, err := getAutolinkByKeyPrefix(ctx, client, owner, repository, id)
+		if err != nil {
+			return nil, err
+		}
+
+		id = strconv.FormatInt(*autolink.ID, 10)
+	}
+
+	d.SetId(id)
+
+	repo, _, err := client.Repositories.Get(ctx, owner, repository)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve repository %s: %w", repository, err)
+	}
+
+	if err = d.Set("repository", repository); err != nil {
+		return nil, err
+	}
+	if err = d.Set("repository_id", int(repo.GetID())); err != nil {
+		return nil, err
+	}
+
+	return []*schema.ResourceData{d}, nil
 }
 
 func resourceGithubRepositoryAutolinkReferenceCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
