@@ -236,6 +236,11 @@ func resourceGithubBranchDefaultUpdate(ctx context.Context, d *schema.ResourceDa
 			etag = resp.Header.Get("ETag")
 		}
 	}
+
+	if d.HasChange("repository") {
+		d.SetId(repoName)
+	}
+
 	if err := d.Set("etag", etag); err != nil {
 		return diag.FromErr(err)
 	}
