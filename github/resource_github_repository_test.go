@@ -73,6 +73,100 @@ func TestAccGithubRepository(t *testing.T) {
 		})
 	})
 
+	t.Run("manages pull request settings without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%spr-settings-%s", testResourcePrefix, randomID)
+
+		// Restrict pull request creation to collaborators only.
+		configRestricted := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name                         = "%s"
+				description                  = "Terraform acceptance tests %[1]s"
+				has_pull_requests            = true
+				pull_request_creation_policy = "collaborators_only"
+				visibility                   = "%s"
+			}
+		`, testRepoName, testAccConf.testRepositoryVisibility)
+
+		// Disable pull requests entirely.
+		configDisabled := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name              = "%s"
+				description       = "Terraform acceptance tests %[1]s"
+				has_pull_requests = false
+				visibility        = "%s"
+			}
+		`, testRepoName, testAccConf.testRepositoryVisibility)
+
+		checks := map[string]resource.TestCheckFunc{
+			"restricted": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "has_pull_requests",
+					"true",
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "pull_request_creation_policy",
+					"collaborators_only",
+				),
+			),
+			"disabled": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "has_pull_requests",
+					"false",
+				),
+			),
+		}
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: configRestricted,
+					Check:  checks["restricted"],
+				},
+				{
+					Config: configDisabled,
+					Check:  checks["disabled"],
+				},
+			},
+		})
+	})
+
+	t.Run("defaults pull request settings without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%spr-defaults-%s", testResourcePrefix, randomID)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name         = "%s"
+				description  = "Terraform acceptance tests %[1]s"
+				visibility   = "%s"
+			}
+		`, testRepoName, testAccConf.testRepositoryVisibility)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "has_pull_requests",
+				"true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "pull_request_creation_policy",
+				"all",
+			),
+		)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
+				},
+			},
+		})
+	})
+
 	t.Run("updates a repositories name without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		oldName := fmt.Sprintf(`%srename-%s`, testResourcePrefix, randomID)
