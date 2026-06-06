@@ -219,6 +219,19 @@ func resourceGithubRepository() *schema.Resource {
 				Optional:    true,
 				Description: "Set to 'true' to enable the GitHub Wiki features on the repository.",
 			},
+			"has_pull_requests": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+				Description: "Set to 'false' to disable pull requests on the repository, hiding the pull requests tab. Defaults to 'true'.",
+			},
+			"pull_request_creation_policy": {
+				Type:             schema.TypeString,
+				Optional:         true,
+				Default:          "all",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"all", "collaborators_only"}, false)),
+				Description:      "Restricts who can create pull requests on the repository. Can be 'all' (default) to allow any user, or 'collaborators_only' to restrict creation to collaborators with write access.",
+			},
 			"is_template": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -597,6 +610,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		HasDiscussions:      new(d.Get("has_discussions").(bool)),
 		HasProjects:         new(d.Get("has_projects").(bool)),
 		HasWiki:             new(d.Get("has_wiki").(bool)),
+		HasPullRequests:     new(d.Get("has_pull_requests").(bool)),
 		IsTemplate:          new(d.Get("is_template").(bool)),
 		AllowMergeCommit:    new(d.Get("allow_merge_commit").(bool)),
 		AllowSquashMerge:    new(d.Get("allow_squash_merge").(bool)),
@@ -627,6 +641,14 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		if allowSquashMerge {
 			repository.SquashMergeCommitTitle = new(d.Get("squash_merge_commit_title").(string))
 			repository.SquashMergeCommitMessage = new(d.Get("squash_merge_commit_message").(string))
+		}
+	}
+
+	// only configure the pull request creation policy when pull requests are enabled
+	hasPullRequests, ok := d.Get("has_pull_requests").(bool)
+	if ok && hasPullRequests {
+		if policy, ok := d.Get("pull_request_creation_policy").(string); ok {
+			repository.PullRequestCreationPolicy = &policy
 		}
 	}
 
@@ -830,6 +852,8 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 	_ = d.Set("has_discussions", repo.GetHasDiscussions())
 	_ = d.Set("has_projects", repo.GetHasProjects())
 	_ = d.Set("has_wiki", repo.GetHasWiki())
+	_ = d.Set("has_pull_requests", repo.GetHasPullRequests())
+	_ = d.Set("pull_request_creation_policy", repo.GetPullRequestCreationPolicy())
 	_ = d.Set("is_template", repo.GetIsTemplate())
 	_ = d.Set("full_name", repo.GetFullName())
 	_ = d.Set("default_branch", repo.GetDefaultBranch())
