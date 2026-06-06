@@ -111,7 +111,7 @@ func TestFlattenRequiredReviewers(t *testing.T) {
 	if result[0]["minimum_approvals"] != 2 {
 		t.Errorf("Expected first reviewer minimum approvals to be 2, got %v", result[0]["minimum_approvals"])
 	}
-	filePatterns := result[0]["file_patterns"].([]string)
+	filePatterns := requireStringSlice(t, result[0]["file_patterns"])
 	if len(filePatterns) != 2 {
 		t.Fatalf("Expected first reviewer to have 2 file patterns, got %d", len(filePatterns))
 	}
@@ -119,7 +119,7 @@ func TestFlattenRequiredReviewers(t *testing.T) {
 		t.Errorf("Unexpected file patterns for first reviewer: %v", filePatterns)
 	}
 
-	reviewerBlock := result[0]["reviewer"].([]map[string]any)
+	reviewerBlock := requireMapSlice(t, result[0]["reviewer"])
 	if len(reviewerBlock) != 1 {
 		t.Fatalf("Expected 1 reviewer block, got %d", len(reviewerBlock))
 	}
@@ -178,12 +178,12 @@ func TestRoundTripRequiredReviewers(t *testing.T) {
 		t.Errorf("Expected minimum_approvals to be 2 after round trip, got %v", flattened[0]["minimum_approvals"])
 	}
 
-	filePatterns := flattened[0]["file_patterns"].([]string)
+	filePatterns := requireStringSlice(t, flattened[0]["file_patterns"])
 	if len(filePatterns) != 2 {
 		t.Fatalf("Expected 2 file patterns after round trip, got %d", len(filePatterns))
 	}
 
-	reviewerBlock := flattened[0]["reviewer"].([]map[string]any)
+	reviewerBlock := requireMapSlice(t, flattened[0]["reviewer"])
 	if len(reviewerBlock) != 1 {
 		t.Fatalf("Expected 1 reviewer block after round trip, got %d", len(reviewerBlock))
 	}

@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
 	"github.com/google/go-github/v88/github"
@@ -13,23 +14,23 @@ func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions
 		return nil
 	}
 	rulesetConditions := &github.RepositoryRulesetConditions{}
-	inputConditions := input[0].(map[string]any)
+	inputConditions := mustRulesetMap(input[0])
 
 	// ref_name is available for both repo and org rulesets
 	if v, ok := inputConditions["ref_name"].([]any); ok && v != nil && len(v) != 0 && v[0] != nil {
-		inputRefName := v[0].(map[string]any)
+		inputRefName := mustRulesetMap(v[0])
 		include := make([]string, 0)
 		exclude := make([]string, 0)
 
-		for _, v := range inputRefName["include"].([]any) {
+		for _, v := range mustRulesetAnySlice(inputRefName["include"]) {
 			if v != nil {
-				include = append(include, v.(string))
+				include = append(include, mustRulesetString(v))
 			}
 		}
 
-		for _, v := range inputRefName["exclude"].([]any) {
+		for _, v := range mustRulesetAnySlice(inputRefName["exclude"]) {
 			if v != nil {
-				exclude = append(exclude, v.(string))
+				exclude = append(exclude, mustRulesetString(v))
 			}
 		}
 
@@ -43,23 +44,23 @@ func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions
 	if org {
 		// repository_name and repository_id
 		if v, ok := inputConditions["repository_name"].([]any); ok && v != nil && len(v) != 0 && v[0] != nil {
-			inputRepositoryName := v[0].(map[string]any)
+			inputRepositoryName := mustRulesetMap(v[0])
 			include := make([]string, 0)
 			exclude := make([]string, 0)
 
-			for _, v := range inputRepositoryName["include"].([]any) {
+			for _, v := range mustRulesetAnySlice(inputRepositoryName["include"]) {
 				if v != nil {
-					include = append(include, v.(string))
+					include = append(include, mustRulesetString(v))
 				}
 			}
 
-			for _, v := range inputRepositoryName["exclude"].([]any) {
+			for _, v := range mustRulesetAnySlice(inputRepositoryName["exclude"]) {
 				if v != nil {
-					exclude = append(exclude, v.(string))
+					exclude = append(exclude, mustRulesetString(v))
 				}
 			}
 
-			protected := inputRepositoryName["protected"].(bool)
+			protected := mustRulesetBool(inputRepositoryName["protected"])
 
 			rulesetConditions.RepositoryName = &github.RepositoryRulesetRepositoryNamesConditionParameters{
 				Include:   include,
@@ -76,7 +77,7 @@ func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions
 			}
 
 			rulesetConditions.RepositoryID = &github.RepositoryRulesetRepositoryIDsConditionParameters{RepositoryIDs: repositoryIDs}
-		} else if v, ok := inputConditions["repository_property"].([]any); ok && v != nil && len(v) != 0 {
+		} else if v, ok := inputConditions["repository_property"].([]any); ok && v != nil && len(v) != 0 && v[0] != nil {
 			rulesetConditions.RepositoryProperty = expandRepositoryPropertyConditions(v)
 		}
 	}
@@ -85,40 +86,42 @@ func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions
 }
 
 func expandRepositoryPropertyConditions(v []any) *github.RepositoryRulesetRepositoryPropertyConditionParameters {
-	repositoryProperties := v[0].(map[string]any)
+	repositoryProperties := mustRulesetMap(v[0])
 	include := make([]*github.RepositoryRulesetRepositoryPropertyTargetParameters, 0)
 	exclude := make([]*github.RepositoryRulesetRepositoryPropertyTargetParameters, 0)
 
-	for _, v := range repositoryProperties["include"].([]any) {
+	for _, v := range mustRulesetAnySlice(repositoryProperties["include"]) {
 		if v != nil {
-			propertyMap := v.(map[string]any)
+			propertyMap := mustRulesetMap(v)
 			propertyValues := make([]string, 0)
-			for _, pv := range propertyMap["property_values"].([]any) {
+			for _, pv := range mustRulesetAnySlice(propertyMap["property_values"]) {
 				if pv != nil {
-					propertyValues = append(propertyValues, pv.(string))
+					propertyValues = append(propertyValues, mustRulesetString(pv))
 				}
 			}
+			source := mustRulesetString(propertyMap["source"])
 			property := &github.RepositoryRulesetRepositoryPropertyTargetParameters{
-				Name:           propertyMap["name"].(string),
-				Source:         new(propertyMap["source"].(string)),
+				Name:           mustRulesetString(propertyMap["name"]),
+				Source:         &source,
 				PropertyValues: propertyValues,
 			}
 			include = append(include, property)
 		}
 	}
 
-	for _, v := range repositoryProperties["exclude"].([]any) {
+	for _, v := range mustRulesetAnySlice(repositoryProperties["exclude"]) {
 		if v != nil {
-			propertyMap := v.(map[string]any)
+			propertyMap := mustRulesetMap(v)
 			propertyValues := make([]string, 0)
-			for _, pv := range propertyMap["property_values"].([]any) {
+			for _, pv := range mustRulesetAnySlice(propertyMap["property_values"]) {
 				if pv != nil {
-					propertyValues = append(propertyValues, pv.(string))
+					propertyValues = append(propertyValues, mustRulesetString(pv))
 				}
 			}
+			source := mustRulesetString(propertyMap["source"])
 			property := &github.RepositoryRulesetRepositoryPropertyTargetParameters{
-				Name:           propertyMap["name"].(string),
-				Source:         new(propertyMap["source"].(string)),
+				Name:           mustRulesetString(propertyMap["name"]),
+				Source:         &source,
 				PropertyValues: propertyValues,
 			}
 			exclude = append(exclude, property)
@@ -201,5 +204,37 @@ func flattenRulesetRepositoryPropertyTargetParameters(input []*github.Repository
 		result = append(result, propertyMap)
 	}
 
+	return result
+}
+
+func mustRulesetMap(value any) map[string]any {
+	result, ok := value.(map[string]any)
+	if !ok {
+		panic(fmt.Sprintf("expected map[string]any, got %T", value))
+	}
+	return result
+}
+
+func mustRulesetAnySlice(value any) []any {
+	result, ok := value.([]any)
+	if !ok {
+		panic(fmt.Sprintf("expected []any, got %T", value))
+	}
+	return result
+}
+
+func mustRulesetString(value any) string {
+	result, ok := value.(string)
+	if !ok {
+		panic(fmt.Sprintf("expected string, got %T", value))
+	}
+	return result
+}
+
+func mustRulesetBool(value any) bool {
+	result, ok := value.(bool)
+	if !ok {
+		panic(fmt.Sprintf("expected bool, got %T", value))
+	}
 	return result
 }

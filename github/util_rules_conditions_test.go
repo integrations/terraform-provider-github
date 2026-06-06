@@ -300,6 +300,11 @@ func TestExpandConditions(t *testing.T) {
 			input:    []any{map[string]any{"repository_name": []any{nil}}},
 			org:      true,
 		},
+		{
+			testName: "returns_empty_conditions_for_nil_repository_property_arrays",
+			input:    []any{map[string]any{"repository_property": []any{nil}}},
+			org:      true,
+		},
 	} {
 		t.Run(d.testName, func(t *testing.T) {
 			t.Parallel()
@@ -342,6 +347,9 @@ func TestExpandConditions(t *testing.T) {
 			if d.wantRepositoryName == nil && got.RepositoryName != nil {
 				t.Fatalf("got RepositoryName %+v, want nil", got.RepositoryName)
 			}
+			if got.RepositoryProperty != nil {
+				t.Fatalf("got RepositoryProperty %+v, want nil", got.RepositoryProperty)
+			}
 		})
 	}
 }
@@ -373,7 +381,7 @@ func TestFlattenRulesetRepositoryPropertyTargetParameters(t *testing.T) {
 	if result[0]["source"] != "custom" {
 		t.Errorf("Expected first property source to be 'custom', got %v", result[0]["source"])
 	}
-	values := result[0]["property_values"].([]string)
+	values := requireStringSlice(t, result[0]["property_values"])
 	if len(values) != 2 || values[0] != "prod" || values[1] != "staging" {
 		t.Errorf("Expected first property values to be ['prod', 'staging'], got %v", values)
 	}
@@ -448,7 +456,7 @@ func TestRoundTripRepositoryPropertyConditions(t *testing.T) {
 	if flattenedInclude[0]["source"] != "custom" {
 		t.Errorf("Expected first include source to be 'custom', got %v", flattenedInclude[0]["source"])
 	}
-	includeValues := flattenedInclude[0]["property_values"].([]string)
+	includeValues := requireStringSlice(t, flattenedInclude[0]["property_values"])
 	if len(includeValues) != 2 || includeValues[0] != "prod" || includeValues[1] != "staging" {
 		t.Errorf("Expected first include values to be ['prod', 'staging'], got %v", includeValues)
 	}
@@ -465,7 +473,7 @@ func TestRoundTripRepositoryPropertyConditions(t *testing.T) {
 	if flattenedExclude[0]["name"] != "region" {
 		t.Errorf("Expected exclude name to be 'region', got %v", flattenedExclude[0]["name"])
 	}
-	excludeValues := flattenedExclude[0]["property_values"].([]string)
+	excludeValues := requireStringSlice(t, flattenedExclude[0]["property_values"])
 	if len(excludeValues) != 1 || excludeValues[0] != "us-west" {
 		t.Errorf("Expected exclude values to be ['us-west'], got %v", excludeValues)
 	}
@@ -508,7 +516,7 @@ func TestFlattenRulesetRepositoryPropertyTargetParameters_SingleProperty(t *test
 		t.Errorf("Expected source to be 'system', got %v", result[0]["source"])
 	}
 
-	values := result[0]["property_values"].([]string)
+	values := requireStringSlice(t, result[0]["property_values"])
 	if len(values) != 2 || values[0] != "prod" || values[1] != "staging" {
 		t.Errorf("Expected property_values to be ['prod', 'staging'], got %v", values)
 	}
@@ -550,7 +558,7 @@ func TestFlattenRulesetRepositoryPropertyTargetParameters_EmptyPropertyValues(t 
 		t.Fatalf("Expected 1 property, got %d", len(result))
 	}
 
-	values := result[0]["property_values"].([]string)
+	values := requireStringSlice(t, result[0]["property_values"])
 	if len(values) != 0 {
 		t.Errorf("Expected property_values to be empty array, got %v", values)
 	}

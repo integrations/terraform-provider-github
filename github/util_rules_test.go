@@ -7,6 +7,26 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
+func requireStringSlice(t *testing.T, value any) []string {
+	t.Helper()
+
+	result, ok := value.([]string)
+	if !ok {
+		t.Fatalf("expected []string, got %T", value)
+	}
+	return result
+}
+
+func requireMapSlice(t *testing.T, value any) []map[string]any {
+	t.Helper()
+
+	result, ok := value.([]map[string]any)
+	if !ok {
+		t.Fatalf("expected []map[string]any, got %T", value)
+	}
+	return result
+}
+
 func TestExpandRulesBasicRules(t *testing.T) {
 	// Test expanding basic boolean rules with RepositoryRulesetRules
 	rulesMap := map[string]any{
