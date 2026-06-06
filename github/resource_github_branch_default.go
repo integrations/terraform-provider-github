@@ -76,14 +76,8 @@ func resourceGithubBranchDefaultCreate(ctx context.Context, d *schema.ResourceDa
 	owner := meta.name
 
 	repoName, _ := d.Get("repository").(string)
-	defaultBranch, ok := d.Get("branch").(string)
-	if !ok {
-		return diag.FromErr(errors.New("branch must be a string"))
-	}
-	rename, ok := d.Get("rename").(bool)
-	if !ok {
-		return diag.FromErr(errors.New("rename must be a boolean"))
-	}
+	defaultBranch, _ := d.Get("branch").(string)
+	rename, _ := d.Get("rename").(bool)
 
 	tflog.Trace(ctx, "Creating default branch resource", map[string]any{"owner": owner, "repository": repoName, "branch": defaultBranch, "rename": rename})
 
@@ -139,10 +133,7 @@ func resourceGithubBranchDefaultRead(ctx context.Context, d *schema.ResourceData
 	client := meta.v3client
 	owner := meta.name
 
-	repoName, ok := d.Get("repository").(string)
-	if !ok {
-		return diag.FromErr(errors.New("repository must be a string"))
-	}
+	repoName, _ := d.Get("repository").(string)
 
 	tflog.Trace(ctx, "Reading default branch resource", map[string]any{"owner": owner, "repository": repoName})
 
@@ -194,18 +185,9 @@ func resourceGithubBranchDefaultUpdate(ctx context.Context, d *schema.ResourceDa
 	client := meta.v3client
 	owner := meta.name
 
-	repoName, ok := d.Get("repository").(string)
-	if !ok {
-		return diag.FromErr(errors.New("repository must be a string"))
-	}
-	defaultBranch, ok := d.Get("branch").(string)
-	if !ok {
-		return diag.FromErr(errors.New("branch must be a string"))
-	}
-	rename, ok := d.Get("rename").(bool)
-	if !ok {
-		return diag.FromErr(errors.New("rename must be a boolean"))
-	}
+	repoName, _ := d.Get("repository").(string)
+	defaultBranch, _ := d.Get("branch").(string)
+	rename, _ := d.Get("rename").(bool)
 
 	tflog.Trace(ctx, "Updating default branch resource", map[string]any{"owner": owner, "repository": repoName, "branch": defaultBranch, "rename": rename})
 
@@ -254,10 +236,7 @@ func resourceGithubBranchDefaultDelete(ctx context.Context, d *schema.ResourceDa
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
-	repoName, ok := d.Get("repository").(string)
-	if !ok {
-		return diag.FromErr(errors.New("repository must be a string"))
-	}
+	repoName, _ := d.Get("repository").(string)
 
 	tflog.Trace(ctx, "Deleting default branch resource", map[string]any{"owner": owner, "repository": repoName})
 
