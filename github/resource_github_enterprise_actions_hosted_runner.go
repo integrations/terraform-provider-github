@@ -103,11 +103,11 @@ func resourceGithubEnterpriseActionsHostedRunner() *schema.Resource {
 				Description: "The ID of the runner group to assign this runner to. Runner groups help organize runners and control which repositories or workflows can use them. You can get runner group IDs from the github_enterprise_actions_runner_group resource or data source.",
 			},
 			"maximum_runners": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				Computed:     true,
+				Type:             schema.TypeInt,
+				Optional:         true,
+				Computed:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(1)),
-				Description:  "Maximum number of runners to scale up to. Runners will not auto-scale above this number. Use this setting to limit costs. If not specified, GitHub will use a default limit.",
+				Description:      "Maximum number of runners to scale up to. Runners will not auto-scale above this number. Use this setting to limit costs. If not specified, GitHub will use a default limit.",
 			},
 			"public_ip_enabled": {
 				Type:        schema.TypeBool,
