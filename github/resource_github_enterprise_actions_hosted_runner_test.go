@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
-func testAccGithubEnterpriseActionsHostedRunnerConfig(enterpriseSlug, randomID, name, size string, extraArgs string) string {
+func testAccGithubEnterpriseActionsHostedRunnerConfig(enterpriseSlug, randomID, name, size, extraArgs string) string {
 	return fmt.Sprintf(`
 		data "github_enterprise" "enterprise" {
 			slug = "%s"
