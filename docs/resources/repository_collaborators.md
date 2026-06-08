@@ -25,9 +25,7 @@ Teams will be added to the repository on apply, and removed if removed from the 
 
 ## Personal Repositories
 
-For personal repositories, collaborators can only be granted [write](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/repository-access-and-collaboration/permission-levels-for-a-personal-account-repository#collaborator-access-for-a-repository-owned-by-a-personal-account) permission.
-
-!> If the repository owner is not added as a collaborator with admin access, the provider will churn this resource on every plan/apply. To prevent this, ensure that the repository owner is included in the set of user collaborators.
+For personal repositories, non-owner collaborators can only be granted [write](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/repository-access-and-collaboration/permission-levels-for-a-personal-account-repository#collaborator-access-for-a-repository-owned-by-a-personal-account) permission. Owners will be ignored unless they are explicitly added, in which case they must be granted `admin` permission.
 
 ## Users
 
@@ -86,6 +84,7 @@ resource "github_repository_collaborators" "some_repo_collaborators" {
 
 - `id` (String) The ID of this resource.
 - `invitation_ids` (Map of String) Map of usernames to invitation ID for users that haven't yet accepted their invitation to become a collaborator. This is only set on read, and is used internally to track pending invitations for users that aren't yet collaborators.
+- `owner_configured` (Boolean) Indicates whether the owner of a personal repository is configured as a collaborator.
 - `repository_id` (Number) ID of the repository.
 
 <a id="nestedblock--ignore_team"></a>
