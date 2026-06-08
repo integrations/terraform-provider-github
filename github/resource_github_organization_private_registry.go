@@ -24,7 +24,7 @@ func resourceGithubOrganizationPrivateRegistry() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "The name of the private registry.",
+				Description: "The auto-generated name of the private registry (computed by GitHub).",
 			},
 			"registry_type": {
 				Type:             schema.TypeString,

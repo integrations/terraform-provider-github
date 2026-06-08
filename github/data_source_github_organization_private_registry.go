@@ -10,9 +10,10 @@ import (
 func dataSourceGithubOrganizationPrivateRegistry() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceGithubOrganizationPrivateRegistryRead,
+		Description: "Use this data source to retrieve information about a specific organization private registry.",
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Description: "The name of the private registry.",
+				Description: "The auto-generated name of the private registry (computed by GitHub).",
 				Type:        schema.TypeString,
 				Required:    true,
 			},
