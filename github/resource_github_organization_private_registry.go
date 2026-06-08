@@ -442,6 +442,11 @@ func resourceGithubOrganizationPrivateRegistryDelete(ctx context.Context, d *sch
 
 	_, err := client.PrivateRegistries.DeleteOrganizationPrivateRegistry(ctx, org, d.Id())
 	if err != nil {
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == 404 {
+			return nil
+		}
+
 		return diag.FromErr(err)
 	}
 
