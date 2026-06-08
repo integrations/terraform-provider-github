@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"fmt"
 
 	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -17,6 +19,7 @@ func resourceGithubOrganizationPrivateRegistry() *schema.Resource {
 		ReadContext:   resourceGithubOrganizationPrivateRegistryRead,
 		UpdateContext: resourceGithubOrganizationPrivateRegistryUpdate,
 		DeleteContext: resourceGithubOrganizationPrivateRegistryDelete,
+		CustomizeDiff: customdiff.All(resourceGithubOrganizationPrivateRegistryDiff),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -50,18 +53,18 @@ func resourceGithubOrganizationPrivateRegistry() *schema.Resource {
 				Description: "Indicates whether this private registry should replace the base registry.",
 			},
 			"secret": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Sensitive:    true,
-				ExactlyOneOf: []string{"secret", "encrypted_value"},
-				Description:  "The plaintext secret to be encrypted and sent to GitHub. This is used for a token when auth_type is token, and for a password when auth_type is username_password. Required when auth_type is token or username_password.",
+				Type:          schema.TypeString,
+				Optional:      true,
+				Sensitive:     true,
+				ConflictsWith: []string{"encrypted_value"},
+				Description:   "The plaintext secret to be encrypted and sent to GitHub. This is used for a token when auth_type is token, and for a password when auth_type is username_password. Required when auth_type is token or username_password.",
 			},
 			"encrypted_value": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Sensitive:    true,
-				ExactlyOneOf: []string{"secret", "encrypted_value"},
-				Description:  "The encrypted value of the secret using the GitHub public key in Base64 format.",
+				Type:          schema.TypeString,
+				Optional:      true,
+				Sensitive:     true,
+				ConflictsWith: []string{"secret"},
+				Description:   "The encrypted value of the secret using the GitHub public key in Base64 format.",
 			},
 			"key_id": {
 				Type:        schema.TypeString,
@@ -152,6 +155,22 @@ func resourceGithubOrganizationPrivateRegistry() *schema.Resource {
 			},
 		},
 	}
+}
+
+func resourceGithubOrganizationPrivateRegistryDiff(_ context.Context, d *schema.ResourceDiff, _ any) error {
+	authType := d.Get("auth_type").(string)
+	if authType != "token" && authType != "username_password" {
+		return nil
+	}
+
+	if _, ok := d.GetOk("secret"); ok {
+		return nil
+	}
+	if _, ok := d.GetOk("encrypted_value"); ok {
+		return nil
+	}
+
+	return fmt.Errorf("one of `secret,encrypted_value` must be specified when auth_type is %q", authType)
 }
 
 func resourceGithubOrganizationPrivateRegistryCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
