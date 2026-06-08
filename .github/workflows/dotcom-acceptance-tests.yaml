@@ -109,6 +109,7 @@ jobs:
           GITHUB_OWNER: ${{ case(matrix.mode == 'individual', vars.GH_TEST_LOGIN, matrix.mode == 'organization', vars.GH_TEST_ORG_NAME, '') }}
           GITHUB_USERNAME: ${{ vars.GH_TEST_LOGIN }}
           GITHUB_ENTERPRISE_SLUG: ${{ vars.GH_TEST_ENTERPRISE_SLUG }}
+          GITHUB_LEGACY_CLIENT: "false"
           GH_TEST_AUTH_MODE: ${{ matrix.mode }}
           GH_TEST_USER_REPOSITORY: ${{ vars.GH_TEST_USER_REPOSITORY }}
           GH_TEST_ORG_USER: ${{ vars.GH_TEST_ORG_USER }}
