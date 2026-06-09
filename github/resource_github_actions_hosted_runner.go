@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -310,13 +310,13 @@ func resourceGithubActionsHostedRunnerCreate(d *schema.ResourceData, meta any) e
 	}
 
 	// Create HTTP request
-	req, err := client.NewRequest("POST", fmt.Sprintf("orgs/%s/actions/hosted-runners", orgName), payload)
+	req, err := client.NewRequest(ctx, "POST", fmt.Sprintf("orgs/%s/actions/hosted-runners", orgName), payload)
 	if err != nil {
 		return err
 	}
 
 	var runner map[string]any
-	_, err = client.Do(ctx, req, &runner)
+	_, err = client.Do(req, &runner)
 	if err != nil {
 		var acceptedErr *github.AcceptedError
 		if !errors.As(err, &acceptedErr) {
@@ -350,13 +350,13 @@ func resourceGithubActionsHostedRunnerRead(d *schema.ResourceData, meta any) err
 	ctx := context.WithValue(context.Background(), ctxId, runnerID)
 
 	// Create GET request
-	req, err := client.NewRequest("GET", fmt.Sprintf("orgs/%s/actions/hosted-runners/%s", orgName, runnerID), nil)
+	req, err := client.NewRequest(ctx, "GET", fmt.Sprintf("orgs/%s/actions/hosted-runners/%s", orgName, runnerID), nil)
 	if err != nil {
 		return err
 	}
 
 	var runner map[string]any
-	_, err = client.Do(ctx, req, &runner)
+	_, err = client.Do(req, &runner)
 	if err != nil {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
@@ -478,13 +478,13 @@ func resourceGithubActionsHostedRunnerUpdate(d *schema.ResourceData, meta any) e
 	}
 
 	// Create PATCH request
-	req, err := client.NewRequest("PATCH", fmt.Sprintf("orgs/%s/actions/hosted-runners/%s", orgName, runnerID), payload)
+	req, err := client.NewRequest(ctx, "PATCH", fmt.Sprintf("orgs/%s/actions/hosted-runners/%s", orgName, runnerID), payload)
 	if err != nil {
 		return err
 	}
 
 	var runner map[string]any
-	_, err = client.Do(ctx, req, &runner)
+	_, err = client.Do(req, &runner)
 	if err != nil {
 		var acceptedErr *github.AcceptedError
 		if !errors.As(err, &acceptedErr) {
@@ -508,12 +508,12 @@ func resourceGithubActionsHostedRunnerDelete(d *schema.ResourceData, meta any) e
 	runnerID := d.Id()
 
 	// Send DELETE request
-	req, err := client.NewRequest("DELETE", fmt.Sprintf("orgs/%s/actions/hosted-runners/%s", orgName, runnerID), nil)
+	req, err := client.NewRequest(ctx, "DELETE", fmt.Sprintf("orgs/%s/actions/hosted-runners/%s", orgName, runnerID), nil)
 	if err != nil {
 		return err
 	}
 
-	resp, err := client.Do(ctx, req, nil)
+	resp, err := client.Do(req, nil)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			return nil
@@ -537,12 +537,12 @@ func waitForRunnerDeletion(ctx context.Context, client *github.Client, orgName, 
 		Pending: []string{"deleting", "active"},
 		Target:  []string{"deleted"},
 		Refresh: func() (any, string, error) {
-			req, err := client.NewRequest("GET", fmt.Sprintf("orgs/%s/actions/hosted-runners/%s", orgName, runnerID), nil)
+			req, err := client.NewRequest(ctx, "GET", fmt.Sprintf("orgs/%s/actions/hosted-runners/%s", orgName, runnerID), nil)
 			if err != nil {
 				return nil, "", err
 			}
 
-			resp, err := client.Do(ctx, req, nil)
+			resp, err := client.Do(req, nil)
 			if resp != nil && resp.StatusCode == http.StatusNotFound {
 				return "deleted", "deleted", nil
 			}
