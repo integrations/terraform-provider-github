@@ -153,12 +153,80 @@ resource "github_repository_environment" "test" {
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_repository_environment.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_repository_environment.test", tfjsonpath.New("reviewers"), knownvalue.ListSizeExact(1)),
 					},
 				},
 				{
 					Config: configUpdated,
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_repository_environment.test", tfjsonpath.New("reviewers"), knownvalue.ListSizeExact(0)),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("update_to_add_reviewers", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+		envName := "test"
+
+		preConfig := fmt.Sprintf(`
+resource "github_team" "test" {
+	name        = "%[1]s"
+	description = "test"
+	privacy     = "closed"
+}
+
+resource "github_repository" "test" {
+	name      = "%[1]s"
+	visibility = "public"
+}
+
+resource "github_team_repository" "test" {
+	team_id    = github_team.test.id
+	repository = github_repository.test.name
+	permission = "pull"
+}
+`, repoName)
+
+		config := fmt.Sprintf(`
+%s
+
+resource "github_repository_environment" "test" {
+	repository  = github_repository.test.name
+	environment = "%s"
+}
+`, preConfig, envName)
+
+		configUpdated := fmt.Sprintf(`
+%s
+
+resource "github_repository_environment" "test" {
+	repository  = github_repository.test.name
+	environment = "%s"
+
+	reviewers {
+		teams = [github_team_repository.test.team_id]
+	}
+}
+`, preConfig, envName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_environment.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_repository_environment.test", tfjsonpath.New("reviewers"), knownvalue.ListSizeExact(0)),
+					},
+				},
+				{
+					Config: configUpdated,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_environment.test", tfjsonpath.New("reviewers"), knownvalue.ListSizeExact(1)),
 					},
 				},
 			},

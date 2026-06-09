@@ -107,6 +107,7 @@ Once you have the repository cloned, there's a couple of additional steps you'll
   export GITHUB_OWNER="<name of an organization>"
   export GITHUB_USERNAME="<username of the user who created the token>"
   export GITHUB_TOKEN="<token of a user with an organization account>"
+  export GITHUB_LEGACY_CLIENT="false"
   ```
 
 - Build the project with `make build`
@@ -239,6 +240,9 @@ export TF_ACC="1"
 # Configure the URL override for GHES.
 export GITHUB_BASE_URL=
 
+# Use the modern client for testing.
+export GITHUB_LEGACY_CLIENT="false"
+
 # Configure acceptance testing mode; one of anonymous, individual, organization, team or enterprise. If not set will default to anonymous
 export GH_TEST_AUTH_MODE=
 
@@ -286,6 +290,7 @@ To run acceptance tests the `TF_ACC` environment variable must be set. Below is 
     "GITHUB_ENTERPRISE_SLUG": "",
     "GITHUB_OWNER": "<ORGANIZATION>",
     "GITHUB_USERNAME": "<USERNAME>",
+    "GITHUB_LEGACY_CLIENT": "false",
     "GH_TEST_AUTH_MODE": "organization",
     "GH_TEST_USER_REPOSITORY": "",
     "GH_TEST_ORG_USER": "",
