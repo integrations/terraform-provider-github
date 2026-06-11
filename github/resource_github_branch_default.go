@@ -180,7 +180,6 @@ func resourceGithubBranchDefaultRead(ctx context.Context, d *schema.ResourceData
 }
 
 func resourceGithubBranchDefaultUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	ctx = tflog.SetField(ctx, "resource_id", d.Id())
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name

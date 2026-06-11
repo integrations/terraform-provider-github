@@ -8,7 +8,7 @@ description: |-
 
 Configures the default branch for a GitHub repository.
 
-~> **Note:** This resource is incompatible with the `default_branch` option of the `github_repository` resource. Using both will result in plans always showing a diff.
+~> This resource is incompatible with the `default_branch` option of the [`github_repository`](repository) resource. Using both will result in plans always showing a diff.
 
 ## Example Usage
 
@@ -68,7 +68,18 @@ resource "github_branch_default" "default" {
 
 ## Import
 
-GitHub Branch Defaults can be imported using the repository name with the [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import), for example:
+Import is supported using the following syntax:
+
+In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `id` attribute, for example:
+
+```terraform
+import {
+  to = github_branch_default.default
+  id = "example"
+}
+```
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
 terraform import github_branch_default.branch_default my-repo
