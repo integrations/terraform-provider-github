@@ -51,7 +51,7 @@ func resourceGithubRepositoryPullRequestCreationPolicyCreate(ctx context.Context
 	}
 
 	d.SetId(repoName)
-	return resourceGithubRepositoryPullRequestCreationPolicyRead(ctx, d, meta)
+	return nil
 }
 
 func resourceGithubRepositoryPullRequestCreationPolicyRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
@@ -94,7 +94,7 @@ func resourceGithubRepositoryPullRequestCreationPolicyUpdate(ctx context.Context
 		return diag.Errorf("error updating pull request creation policy for %s: %s", repoName, err)
 	}
 
-	return resourceGithubRepositoryPullRequestCreationPolicyRead(ctx, d, meta)
+	return nil
 }
 
 func resourceGithubRepositoryPullRequestCreationPolicyDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
