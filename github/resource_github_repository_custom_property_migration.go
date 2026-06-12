@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -53,22 +52,14 @@ func resourceGithubRepositoryCustomPropertyStateUpgradeV0(ctx context.Context, r
 	client := meta.v3client
 	owner := meta.name
 
-	tflog.Debug(ctx, "GitHub Repository Custom Property Attributes before migration: %#v", rawState)
+	tflog.Debug(ctx, "Migrating GitHub Repository Custom Property from v0 to v1.", map[string]any{"raw_state": rawState})
 
-	repoName, ok := rawState["repository"].(string)
-	if !ok {
-		return nil, fmt.Errorf("repository not found or is not a string")
-	}
-
-	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
+	state, err := migrateRepositoryWithID(ctx, client, owner, rawState)
 	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve repository %s: %w", repoName, err)
+		return nil, err
 	}
 
-	repoID := int(repo.GetID())
-	rawState["repository_id"] = repoID
+	tflog.Debug(ctx, "GitHub Repository Custom Property migrated to v1.", map[string]any{"raw_state": state})
 
-	tflog.Debug(ctx, "GitHub Repository Custom Property Attributes after migration: %#v", rawState)
-
-	return rawState, nil
+	return state, nil
 }
