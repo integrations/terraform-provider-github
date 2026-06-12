@@ -45,7 +45,7 @@ func resourceGithubRepositoryEnvironmentV0() *schema.Resource {
 			"reviewers": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				MaxItems:    1,
+				MaxItems:    6,
 				Description: "The environment reviewers configuration.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -53,14 +53,12 @@ func resourceGithubRepositoryEnvironmentV0() *schema.Resource {
 							Type:        schema.TypeSet,
 							Elem:        &schema.Schema{Type: schema.TypeInt},
 							Optional:    true,
-							MaxItems:    6,
 							Description: "Up to 6 IDs for teams who may review jobs that reference the environment. Reviewers must have at least read access to the repository. Only one of the required reviewers needs to approve the job for it to proceed.",
 						},
 						"users": {
 							Type:        schema.TypeSet,
 							Elem:        &schema.Schema{Type: schema.TypeInt},
 							Optional:    true,
-							MaxItems:    6,
 							Description: "Up to 6 IDs for users who may review jobs that reference the environment. Reviewers must have at least read access to the repository. Only one of the required reviewers needs to approve the job for it to proceed.",
 						},
 					},
