@@ -2,9 +2,8 @@ package github
 
 import (
 	"context"
-	"fmt"
-	"log"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -18,7 +17,7 @@ func resourceGithubRepositoryPullRequestCreationPolicy() *schema.Resource {
 		UpdateContext: resourceGithubRepositoryPullRequestCreationPolicyUpdate,
 		DeleteContext: resourceGithubRepositoryPullRequestCreationPolicyDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: resourceGithubRepositoryPullRequestCreationPolicyImport,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -62,7 +61,10 @@ func resourceGithubRepositoryPullRequestCreationPolicyRead(ctx context.Context, 
 	policy, err := getRepositoryPullRequestCreationPolicy(ctx, owner, repoName, meta)
 	if err != nil {
 		if isRepositoryNotFoundError(err) {
-			log.Printf("[INFO] Removing pull request creation policy for %s/%s from state because the repository no longer exists in GitHub", owner, repoName)
+			tflog.Info(ctx, "Repository no longer exists, removing pull request creation policy from state", map[string]any{
+				"owner":      owner,
+				"repository": repoName,
+			})
 			d.SetId("")
 			return nil
 		}
@@ -100,6 +102,12 @@ func resourceGithubRepositoryPullRequestCreationPolicyDelete(ctx context.Context
 
 	nodeID, err := getRepositoryID(repoName, meta)
 	if err != nil {
+		if isRepositoryNotFoundError(err) {
+			tflog.Info(ctx, "Repository no longer exists, nothing to reset for the pull request creation policy", map[string]any{
+				"repository": repoName,
+			})
+			return nil
+		}
 		return diag.Errorf("error resolving repository node ID for %s: %s", repoName, err)
 	}
 
@@ -108,19 +116,4 @@ func resourceGithubRepositoryPullRequestCreationPolicyDelete(ctx context.Context
 	}
 
 	return nil
-}
-
-func resourceGithubRepositoryPullRequestCreationPolicyImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	repoName := d.Id()
-
-	if err := d.Set("repository", repoName); err != nil {
-		return nil, err
-	}
-
-	diags := resourceGithubRepositoryPullRequestCreationPolicyRead(ctx, d, meta)
-	if diags.HasError() {
-		return nil, fmt.Errorf("%s", diags[0].Summary)
-	}
-
-	return []*schema.ResourceData{d}, nil
 }
