@@ -6,16 +6,19 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubRepositoryPullRequestCreationPolicy(t *testing.T) {
 	t.Run("sets policy without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-pr-policy-%s", testResourcePrefix, randomID)
-		initial := `policy = "collaborators_only"`
-		updated := `policy = "all"`
+		initial := "collaborators_only"
+		updated := "all"
 
-		config := fmt.Sprintf(`
+		config := `
 			resource "github_repository" "test" {
 				name       = "%s"
 				visibility = "private"
@@ -24,36 +27,33 @@ func TestAccGithubRepositoryPullRequestCreationPolicy(t *testing.T) {
 
 			resource "github_repository_pull_request_creation_policy" "test" {
 				repository = github_repository.test.name
-				%%s
+				policy     = "%s"
 			}
-		`, repoName)
-
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository_pull_request_creation_policy.test", "policy",
-					"collaborators_only",
-				),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository_pull_request_creation_policy.test", "policy",
-					"all",
-				),
-			),
-		}
+		`
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: fmt.Sprintf(config, initial),
-					Check:  checks["before"],
+					Config: fmt.Sprintf(config, repoName, initial),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue(
+							"github_repository_pull_request_creation_policy.test",
+							tfjsonpath.New("policy"),
+							knownvalue.StringExact(initial),
+						),
+					},
 				},
 				{
-					Config: fmt.Sprintf(config, updated),
-					Check:  checks["after"],
+					Config: fmt.Sprintf(config, repoName, updated),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue(
+							"github_repository_pull_request_creation_policy.test",
+							tfjsonpath.New("policy"),
+							knownvalue.StringExact(updated),
+						),
+					},
 				},
 			},
 		})
@@ -76,18 +76,24 @@ func TestAccGithubRepositoryPullRequestCreationPolicy(t *testing.T) {
 			}
 		`, repoName)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet("github_repository_pull_request_creation_policy.test", "repository"),
-			resource.TestCheckResourceAttr("github_repository_pull_request_creation_policy.test", "policy", "collaborators_only"),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue(
+							"github_repository_pull_request_creation_policy.test",
+							tfjsonpath.New("repository"),
+							knownvalue.StringExact(repoName),
+						),
+						statecheck.ExpectKnownValue(
+							"github_repository_pull_request_creation_policy.test",
+							tfjsonpath.New("policy"),
+							knownvalue.StringExact("collaborators_only"),
+						),
+					},
 				},
 				{
 					ResourceName:      "github_repository_pull_request_creation_policy.test",
