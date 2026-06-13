@@ -169,6 +169,48 @@ func resourceGithubOrganizationSettings() *schema.Resource {
 				Default:     false,
 				Description: "Whether or not secret scanning push protection is enabled for new repositories.",
 			},
+			"members_allowed_repository_creation_type": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "Specifies which types of repositories non-admin organization members can create. Can be one of: 'all', 'private', or 'none'. This is a legacy field; prefer the per-visibility 'members_can_create_*_repositories' attributes instead.",
+			},
+			"two_factor_requirement_enabled": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether or not two-factor authentication is required for all members of the organization. Enabling this requires that every member already has 2FA enabled, otherwise the API returns 422.",
+			},
+			"members_can_delete_repositories": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether or not organization members (with admin permissions on a repository) can delete or transfer repositories.",
+			},
+			"members_can_invite_outside_collaborators": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether or not organization members can invite outside collaborators to repositories.",
+			},
+			"members_can_delete_issues": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether or not organization members (with admin permissions on a repository) can delete issues.",
+			},
+			"display_commenter_full_name_setting_enabled": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether or not the full name of commenters is shown in addition to their username on issues, pull requests, and discussions.",
+			},
+			"readers_can_create_discussions": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether or not users with read access to the organization's repositories can create discussions.",
+			},
 		},
 	}
 }
@@ -290,6 +332,29 @@ func buildOrganizationSettings(d *schema.ResourceData, isEnterprise bool) *githu
 	if shouldInclude("secret_scanning_push_protection_enabled_for_new_repositories") {
 		settings.SecretScanningPushProtectionEnabledForNewRepos = new(d.Get("secret_scanning_push_protection_enabled_for_new_repositories").(bool))
 	}
+	if shouldInclude("members_allowed_repository_creation_type") {
+		if v, ok := d.GetOk("members_allowed_repository_creation_type"); ok {
+			settings.MembersAllowedRepositoryCreationType = new(v.(string))
+		}
+	}
+	if shouldInclude("two_factor_requirement_enabled") {
+		settings.TwoFactorRequirementEnabled = new(d.Get("two_factor_requirement_enabled").(bool))
+	}
+	if shouldInclude("members_can_delete_repositories") {
+		settings.MembersCanDeleteRepositories = new(d.Get("members_can_delete_repositories").(bool))
+	}
+	if shouldInclude("members_can_invite_outside_collaborators") {
+		settings.MembersCanInviteOutsideCollaborators = new(d.Get("members_can_invite_outside_collaborators").(bool))
+	}
+	if shouldInclude("members_can_delete_issues") {
+		settings.MembersCanDeleteIssues = new(d.Get("members_can_delete_issues").(bool))
+	}
+	if shouldInclude("display_commenter_full_name_setting_enabled") {
+		settings.DisplayCommenterFullNameSettingEnabled = new(d.Get("display_commenter_full_name_setting_enabled").(bool))
+	}
+	if shouldInclude("readers_can_create_discussions") {
+		settings.ReadersCanCreateDiscussions = new(d.Get("readers_can_create_discussions").(bool))
+	}
 
 	// Enterprise-specific field
 	if isEnterprise {
@@ -398,6 +463,27 @@ func resourceGithubOrganizationSettingsCreateOrUpdate(d *schema.ResourceData, me
 	}
 	if settings.SecretScanningPushProtectionEnabledForNewRepos != nil {
 		log.Printf("[DEBUG]   SecretScanningPushProtectionEnabledForNewRepos: %v", *settings.SecretScanningPushProtectionEnabledForNewRepos)
+	}
+	if settings.MembersAllowedRepositoryCreationType != nil {
+		log.Printf("[DEBUG]   MembersAllowedRepositoryCreationType: %s", *settings.MembersAllowedRepositoryCreationType)
+	}
+	if settings.TwoFactorRequirementEnabled != nil {
+		log.Printf("[DEBUG]   TwoFactorRequirementEnabled: %v", *settings.TwoFactorRequirementEnabled)
+	}
+	if settings.MembersCanDeleteRepositories != nil {
+		log.Printf("[DEBUG]   MembersCanDeleteRepositories: %v", *settings.MembersCanDeleteRepositories)
+	}
+	if settings.MembersCanInviteOutsideCollaborators != nil {
+		log.Printf("[DEBUG]   MembersCanInviteOutsideCollaborators: %v", *settings.MembersCanInviteOutsideCollaborators)
+	}
+	if settings.MembersCanDeleteIssues != nil {
+		log.Printf("[DEBUG]   MembersCanDeleteIssues: %v", *settings.MembersCanDeleteIssues)
+	}
+	if settings.DisplayCommenterFullNameSettingEnabled != nil {
+		log.Printf("[DEBUG]   DisplayCommenterFullNameSettingEnabled: %v", *settings.DisplayCommenterFullNameSettingEnabled)
+	}
+	if settings.ReadersCanCreateDiscussions != nil {
+		log.Printf("[DEBUG]   ReadersCanCreateDiscussions: %v", *settings.ReadersCanCreateDiscussions)
 	}
 
 	orgSettings, _, err := client.Organizations.Edit(ctx, org, settings)
@@ -511,6 +597,27 @@ func resourceGithubOrganizationSettingsRead(d *schema.ResourceData, meta any) er
 		return err
 	}
 	if err = d.Set("secret_scanning_push_protection_enabled_for_new_repositories", orgSettings.GetSecretScanningPushProtectionEnabledForNewRepos()); err != nil {
+		return err
+	}
+	if err = d.Set("members_allowed_repository_creation_type", orgSettings.GetMembersAllowedRepositoryCreationType()); err != nil {
+		return err
+	}
+	if err = d.Set("two_factor_requirement_enabled", orgSettings.GetTwoFactorRequirementEnabled()); err != nil {
+		return err
+	}
+	if err = d.Set("members_can_delete_repositories", orgSettings.GetMembersCanDeleteRepositories()); err != nil {
+		return err
+	}
+	if err = d.Set("members_can_invite_outside_collaborators", orgSettings.GetMembersCanInviteOutsideCollaborators()); err != nil {
+		return err
+	}
+	if err = d.Set("members_can_delete_issues", orgSettings.GetMembersCanDeleteIssues()); err != nil {
+		return err
+	}
+	if err = d.Set("display_commenter_full_name_setting_enabled", orgSettings.GetDisplayCommenterFullNameSettingEnabled()); err != nil {
+		return err
+	}
+	if err = d.Set("readers_can_create_discussions", orgSettings.GetReadersCanCreateDiscussions()); err != nil {
 		return err
 	}
 	return nil
