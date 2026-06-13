@@ -117,12 +117,12 @@ func dataSourceGithubOrganizationTeamsRead(ctx context.Context, d *schema.Resour
 
 	var teams []any
 	for {
-		err = client.Query(meta.(*Owner).StopContext, &query, variables)
+		err = client.Query(ctx, &query, variables)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 
-		additionalTeams, err := flattenGitHubTeams(clientv3, meta.(*Owner).StopContext, orgName, query)
+		additionalTeams, err := flattenGitHubTeams(clientv3, ctx, orgName, query)
 		if err != nil {
 			return diag.FromErr(err)
 		}
