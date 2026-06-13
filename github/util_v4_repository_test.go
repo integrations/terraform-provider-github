@@ -261,11 +261,11 @@ func TestRepositoryPullRequestCreationPolicyGraphQL(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 
 		switch {
-		case strings.Contains(body, "repository(owner:$owner, name:$name){pullRequestCreationPolicy}"):
+		case strings.Contains(body, "repository(owner:$owner, name:$name){databaseId,pullRequestCreationPolicy}"):
 			if !strings.Contains(body, `"owner":"integrations"`) {
 				t.Fatalf("expected resolved owner in GraphQL body, got %s", body)
 			}
-			mustWrite(w, `{"data":{"repository":{"pullRequestCreationPolicy":"COLLABORATORS_ONLY"}}}`)
+			mustWrite(w, `{"data":{"repository":{"databaseId":1296269,"pullRequestCreationPolicy":"COLLABORATORS_ONLY"}}}`)
 		case strings.Contains(body, "mutation($input:UpdateRepositoryInput!){updateRepository(input:$input){repository{id}}}"):
 			mustWrite(w, `{"data":{"updateRepository":{"repository":{"id":"R_kgDOGGmaaw"}}}}`)
 		default:
@@ -280,16 +280,48 @@ func TestRepositoryPullRequestCreationPolicyGraphQL(t *testing.T) {
 
 	ctx := context.Background()
 
-	got, err := getRepositoryPullRequestCreationPolicy(ctx, "integrations", "terraform-provider-github", &meta)
+	got, databaseID, err := getRepositoryPullRequestCreationPolicy(ctx, "integrations", "terraform-provider-github", &meta)
 	if err != nil {
 		t.Fatalf("unexpected read error: %v", err)
 	}
 	if got != "collaborators_only" {
 		t.Fatalf("got %q want %q", got, "collaborators_only")
 	}
+	if databaseID != 1296269 {
+		t.Fatalf("got database ID %d want %d", databaseID, 1296269)
+	}
 
 	if err := updateRepositoryPullRequestCreationPolicy(ctx, githubv4.ID("R_kgDOGGmaaw"), "all", &meta); err != nil {
 		t.Fatalf("unexpected update error: %v", err)
+	}
+}
+
+func TestGetRepositoryNodeAndDatabaseID(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/graphql", func(w http.ResponseWriter, req *http.Request) {
+		body := mustRead(req.Body)
+		w.Header().Set("Content-Type", "application/json")
+
+		if !strings.Contains(body, "repository(owner:$owner, name:$name){id,databaseId}") {
+			t.Fatalf("unexpected GraphQL body: %s", body)
+		}
+		mustWrite(w, `{"data":{"repository":{"id":"R_kgDOGGmaaw","databaseId":1296269}}}`)
+	})
+
+	meta := Owner{
+		v4client: githubv4.NewClient(&http.Client{Transport: localRoundTripper{handler: mux}}),
+		name:     "integrations",
+	}
+
+	nodeID, databaseID, err := getRepositoryNodeAndDatabaseID(context.Background(), "integrations", "terraform-provider-github", &meta)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if nodeID != githubv4.ID("R_kgDOGGmaaw") {
+		t.Fatalf("got node ID %v want %q", nodeID, "R_kgDOGGmaaw")
+	}
+	if databaseID != 1296269 {
+		t.Fatalf("got database ID %d want %d", databaseID, 1296269)
 	}
 }
 
@@ -327,7 +359,7 @@ func TestRepositoryPullRequestCreationPolicyNotFound(t *testing.T) {
 		name:     "integrations",
 	}
 
-	_, err := getRepositoryPullRequestCreationPolicy(context.Background(), "integrations", "does-not-exist", &meta)
+	_, _, err := getRepositoryPullRequestCreationPolicy(context.Background(), "integrations", "does-not-exist", &meta)
 	if err == nil {
 		t.Fatal("expected a not-found error, got nil")
 	}

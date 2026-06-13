@@ -28,9 +28,15 @@ resource "github_repository_pull_request_creation_policy" "example" {
 
 The following arguments are supported:
 
-- `repository` - (Required) The name of the GitHub repository. Changing this forces a new resource to be created.
+- `repository` - (Required) The name of the GitHub repository. Renaming the repository is supported without recreating this resource.
 
 - `policy` - (Required) Controls who can create pull requests in the repository. Can be `all` or `collaborators_only`.
+
+## Attribute Reference
+
+In addition to the above arguments, the following attributes are exported:
+
+- `repository_id` - The numeric ID of the GitHub repository.
 
 ## Import
 

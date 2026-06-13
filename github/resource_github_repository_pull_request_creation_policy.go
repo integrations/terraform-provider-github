@@ -19,13 +19,18 @@ func resourceGithubRepositoryPullRequestCreationPolicy() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
+		CustomizeDiff: diffRepository,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "The name of the GitHub repository.",
+			},
+			"repository_id": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The numeric ID of the GitHub repository.",
 			},
 			"policy": {
 				Type:             schema.TypeString,
@@ -38,12 +43,13 @@ func resourceGithubRepositoryPullRequestCreationPolicy() *schema.Resource {
 }
 
 func resourceGithubRepositoryPullRequestCreationPolicyCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	policy := d.Get("policy").(string)
 
-	nodeID, err := getRepositoryID(repoName, meta)
+	nodeID, databaseID, err := getRepositoryNodeAndDatabaseID(ctx, owner, repoName, meta)
 	if err != nil {
-		return diag.Errorf("error resolving repository node ID for %s: %s", repoName, err)
+		return diag.Errorf("error resolving repository ID for %s: %s", repoName, err)
 	}
 
 	if err := updateRepositoryPullRequestCreationPolicy(ctx, nodeID, policy, meta); err != nil {
@@ -51,6 +57,10 @@ func resourceGithubRepositoryPullRequestCreationPolicyCreate(ctx context.Context
 	}
 
 	d.SetId(repoName)
+	if err := d.Set("repository_id", databaseID); err != nil {
+		return diag.FromErr(err)
+	}
+
 	return nil
 }
 
@@ -58,7 +68,7 @@ func resourceGithubRepositoryPullRequestCreationPolicyRead(ctx context.Context, 
 	owner := meta.(*Owner).name
 	repoName := d.Id()
 
-	policy, err := getRepositoryPullRequestCreationPolicy(ctx, owner, repoName, meta)
+	policy, databaseID, err := getRepositoryPullRequestCreationPolicy(ctx, owner, repoName, meta)
 	if err != nil {
 		if isRepositoryNotFoundError(err) {
 			tflog.Info(ctx, "Repository no longer exists, removing pull request creation policy from state", map[string]any{
@@ -77,21 +87,30 @@ func resourceGithubRepositoryPullRequestCreationPolicyRead(ctx context.Context, 
 	if err := d.Set("repository", repoName); err != nil {
 		return diag.FromErr(err)
 	}
+	if err := d.Set("repository_id", databaseID); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
 
 func resourceGithubRepositoryPullRequestCreationPolicyUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	repoName := d.Id()
+	owner := meta.(*Owner).name
+	repoName := d.Get("repository").(string)
 	policy := d.Get("policy").(string)
 
-	nodeID, err := getRepositoryID(repoName, meta)
+	nodeID, databaseID, err := getRepositoryNodeAndDatabaseID(ctx, owner, repoName, meta)
 	if err != nil {
-		return diag.Errorf("error resolving repository node ID for %s: %s", repoName, err)
+		return diag.Errorf("error resolving repository ID for %s: %s", repoName, err)
 	}
 
 	if err := updateRepositoryPullRequestCreationPolicy(ctx, nodeID, policy, meta); err != nil {
 		return diag.Errorf("error updating pull request creation policy for %s: %s", repoName, err)
+	}
+
+	d.SetId(repoName)
+	if err := d.Set("repository_id", databaseID); err != nil {
+		return diag.FromErr(err)
 	}
 
 	return nil

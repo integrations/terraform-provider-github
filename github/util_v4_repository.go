@@ -120,9 +120,10 @@ func expandPullRequestCreationPolicy(policy string) (PullRequestCreationPolicy, 
 	}
 }
 
-func getRepositoryPullRequestCreationPolicy(ctx context.Context, owner, name string, meta any) (string, error) {
+func getRepositoryPullRequestCreationPolicy(ctx context.Context, owner, name string, meta any) (string, int, error) {
 	var query struct {
 		Repository struct {
+			DatabaseID                githubv4.Int
 			PullRequestCreationPolicy PullRequestCreationPolicy
 		} `graphql:"repository(owner:$owner, name:$name)"`
 	}
@@ -134,10 +135,40 @@ func getRepositoryPullRequestCreationPolicy(ctx context.Context, owner, name str
 
 	client := meta.(*Owner).v4client
 	if err := client.Query(ctx, &query, variables); err != nil {
-		return "", err
+		return "", 0, err
 	}
 
-	return flattenPullRequestCreationPolicy(query.Repository.PullRequestCreationPolicy)
+	policy, err := flattenPullRequestCreationPolicy(query.Repository.PullRequestCreationPolicy)
+	if err != nil {
+		return "", 0, err
+	}
+
+	return policy, int(query.Repository.DatabaseID), nil
+}
+
+// getRepositoryNodeAndDatabaseID resolves a repository by owner and name to
+// both its GraphQL node ID (used for mutations) and its numeric database ID
+// (stored in state for the rename-safe diff). Resolving by name in a single
+// query avoids the node-ID probe calls that getRepositoryID makes.
+func getRepositoryNodeAndDatabaseID(ctx context.Context, owner, name string, meta any) (githubv4.ID, int, error) {
+	var query struct {
+		Repository struct {
+			ID         githubv4.ID
+			DatabaseID githubv4.Int
+		} `graphql:"repository(owner:$owner, name:$name)"`
+	}
+
+	variables := map[string]any{
+		"owner": githubv4.String(owner),
+		"name":  githubv4.String(name),
+	}
+
+	client := meta.(*Owner).v4client
+	if err := client.Query(ctx, &query, variables); err != nil {
+		return nil, 0, err
+	}
+
+	return query.Repository.ID, int(query.Repository.DatabaseID), nil
 }
 
 func updateRepositoryPullRequestCreationPolicy(ctx context.Context, repositoryID githubv4.ID, policy string, meta any) error {
