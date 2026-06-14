@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v85/github"
+	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -252,7 +252,7 @@ func resourceGithubReleaseDelete(ctx context.Context, d *schema.ResourceData, me
 }
 
 func resourceGithubReleaseImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	repoName, releaseIDStr, err := parseTwoPartID(d.Id(), "repository", "release")
+	repoName, releaseIDStr, err := parseID2(d.Id())
 	if err != nil {
 		return []*schema.ResourceData{d}, err
 	}
