@@ -1,0 +1,1 @@
+terraform import github_organization_repository_custom_property.environment environment
