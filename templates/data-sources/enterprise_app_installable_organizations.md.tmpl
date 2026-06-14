@@ -1,0 +1,30 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Get the organizations in an enterprise that a GitHub App can be installed on.
+---
+
+# {{.Name}} ({{.Type}})
+
+Use this data source to retrieve the enterprise-owned organizations that a GitHub
+App can be installed on.
+
+## Example Usage
+
+{{ tffile "examples/data-sources/enterprise_app_installable_organizations/example_1.tf" }}
+
+## Argument Reference
+
+- `enterprise_slug` - (Required) The slug of the enterprise.
+
+## Attributes Reference
+
+- `organizations` - List of organizations. Each `organization` block consists of the fields documented below.
+
+---
+
+The `organization` block consists of:
+
+- `id` - The ID of the organization.
+- `login` - The login (slug) of the organization.
+- `accessible_repositories_url` - The URL for the repositories the app can access on the organization.

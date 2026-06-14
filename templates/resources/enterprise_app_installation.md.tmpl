@@ -1,0 +1,43 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Install and manage a GitHub App on an enterprise-owned organization.
+---
+
+# {{.Name}} ({{.Type}})
+
+This resource installs a GitHub App on an enterprise-owned organization and manages
+the installation's repository access. Deleting the resource uninstalls the app from
+the organization.
+
+The token used by the provider must have permission to administer the enterprise,
+and the organization must be owned by the enterprise.
+
+## Example Usage
+
+{{ tffile "examples/resources/enterprise_app_installation/example_1.tf" }}
+
+## Argument Reference
+
+- `enterprise_slug` - (Required, ForceNew) The slug of the enterprise that owns the organization.
+- `organization` - (Required, ForceNew) The login of the enterprise-owned organization to install the app on.
+- `client_id` - (Required, ForceNew) The Client ID of the GitHub App to install.
+- `repository_selection` - (Required) Which repositories the app can access. One of `all`, `selected`, or `none`.
+- `repositories` - (Optional) Repository names the installation should have access to. Only used when `repository_selection` is `selected`.
+
+## Attributes Reference
+
+The following additional attributes are exported:
+
+- `installation_id` - The ID of the GitHub App installation.
+- `app_id` - The ID of the installed GitHub App.
+- `app_slug` - The URL-friendly name of the GitHub App.
+
+## Import
+
+Enterprise App Installations can be imported using a composite ID of
+`<enterprise_slug>:<organization>:<installation_id>`:
+
+```shell
+terraform import github_enterprise_app_installation.example my-enterprise:my-org:12345678
+```
