@@ -14,11 +14,12 @@ import (
 
 func resourceGithubOrganizationCustomProperties() *schema.Resource {
 	return &schema.Resource{
-		Description:   "Creates and manages a custom property for a GitHub Organization.",
-		CreateContext: resourceGithubCustomPropertiesCreate,
-		ReadContext:   resourceGithubCustomPropertiesRead,
-		UpdateContext: resourceGithubCustomPropertiesUpdate,
-		DeleteContext: resourceGithubCustomPropertiesDelete,
+		DeprecationMessage: "This resource is deprecated and will be removed in a future release. Use github_organization_repository_custom_property (singular) instead.",
+		Description:        "Creates and manages a custom property for a GitHub Organization.",
+		CreateContext:      resourceGithubCustomPropertiesCreate,
+		ReadContext:        resourceGithubCustomPropertiesRead,
+		UpdateContext:      resourceGithubCustomPropertiesUpdate,
+		DeleteContext:      resourceGithubCustomPropertiesDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceGithubCustomPropertiesImport,
 		},
