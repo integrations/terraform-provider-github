@@ -11,6 +11,7 @@ import (
 
 func resourceGithubOrganizationCustomProperties() *schema.Resource {
 	return &schema.Resource{
+		DeprecationMessage: "This resource is deprecated and will be removed in a future release. Use github_organization_repository_custom_property instead.",
 		Create: resourceGithubCustomPropertiesCreate,
 		Read:   resourceGithubCustomPropertiesRead,
 		Update: resourceGithubCustomPropertiesUpdate,
