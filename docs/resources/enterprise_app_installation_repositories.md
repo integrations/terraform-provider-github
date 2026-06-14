@@ -1,0 +1,47 @@
+---
+page_title: "github_enterprise_app_installation_repositories (Resource) - GitHub"
+description: |-
+  Manage the repositories an enterprise-owned organization's GitHub App installation can access.
+---
+
+# github_enterprise_app_installation_repositories (Resource)
+
+This resource manages the set of repositories accessible to a GitHub App installation
+on an enterprise-owned organization. It only applies when the installation's
+`repository_selection` is `selected`.
+
+Use [`github_enterprise_app_installation`](enterprise_app_installation.md) to control
+installation lifecycle and `repository_selection`; use this resource to drift-detect
+and reconcile the repository list.
+
+## Example Usage
+
+```terraform
+resource "github_enterprise_app_installation_repositories" "example" {
+  enterprise_slug       = "my-enterprise"
+  organization          = "my-org"
+  installation_id       = "12345678"
+  selected_repositories = ["repo-a", "repo-b"]
+}
+```
+
+## Argument Reference
+
+- `enterprise_slug` - (Required, ForceNew) The slug of the enterprise that owns the organization.
+- `organization` - (Required, ForceNew) The login of the enterprise-owned organization the app is installed on.
+- `installation_id` - (Required, ForceNew) The ID of the GitHub App installation.
+- `selected_repositories` - (Required) The set of repository names the installation should have access to.
+
+~> **Note**: Deleting this resource removes every repository currently selected for
+the installation, which leaves the installation with no accessible repositories.
+Either uninstall the app via the parent `github_enterprise_app_installation` resource
+or switch the installation's `repository_selection` to `all` instead.
+
+## Import
+
+Enterprise App Installation Repositories can be imported using a composite ID of
+`<enterprise_slug>:<organization>:<installation_id>`:
+
+```shell
+terraform import github_enterprise_app_installation_repositories.example my-enterprise:my-org:12345678
+```
