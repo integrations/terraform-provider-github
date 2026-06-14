@@ -1,0 +1,32 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Manages a GitHub organization custom property definition.
+---
+
+# {{.Name}} ({{.Type}})
+
+Manages a single GitHub organization custom property definition. Repositories
+in the organization can subsequently be tagged with values for this property
+via the `github_repository_custom_property` resource or directly through the
+GitHub UI / API.
+
+## Example Usage
+
+{{ tffile "examples/resources/organization_repository_custom_property/example_1.tf" }}
+
+## Example Usage - Allow Repository Actors to Edit
+
+{{ tffile "examples/resources/organization_repository_custom_property/example_2.tf" }}
+
+## Example Usage - Boolean Property
+
+{{ tffile "examples/resources/organization_repository_custom_property/example_3.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+Organization custom properties can be imported using the property name:
+
+{{ codefile "shell" "examples/resources/organization_repository_custom_property/import.sh" }}

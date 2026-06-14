@@ -1,0 +1,15 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Looks up a GitHub organization custom property definition.
+---
+
+# {{.Name}} ({{.Type}})
+
+Looks up a single GitHub organization custom property definition by name.
+
+## Example Usage
+
+{{ tffile "examples/data-sources/organization_repository_custom_property/example_1.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}
