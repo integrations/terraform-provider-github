@@ -1,10 +1,138 @@
 package github
 
 import (
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 )
+
+func TestAuthenticatedHTTPClientAppAuthRefresh(t *testing.T) {
+	t.Parallel()
+
+	appID := testGitHubAppID
+	installationID := testGitHubAppInstallationID
+
+	t.Run("reuses a valid token", func(t *testing.T) {
+		t.Parallel()
+
+		var tokenRequests atomic.Int32
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, fmt.Sprintf("/app/installations/%s/access_tokens", installationID)) {
+				tokenRequests.Add(1)
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusCreated)
+				_, _ = io.WriteString(w, fmt.Sprintf(`{"token":"valid-token","expires_at":%q}`, time.Now().Add(time.Hour).UTC().Format(time.RFC3339)))
+				return
+			}
+			if r.Method == http.MethodGet && r.URL.Path == "/test" {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+			http.NotFound(w, r)
+		}))
+		t.Cleanup(ts.Close)
+
+		serverURL, err := url.Parse(ts.URL + "/")
+		if err != nil {
+			t.Fatalf("failed to parse test server URL: %v", err)
+		}
+
+		cfg := &Config{
+			AppID:             &appID,
+			AppInstallationID: &installationID,
+			AppPEM:            testGitHubAppPrivateKeyPemData,
+			BaseURL:           serverURL,
+		}
+
+		client, err := cfg.AuthenticatedHTTPClient()
+		if err != nil {
+			t.Fatalf("failed to create authenticated HTTP client: %v", err)
+		}
+
+		for i := range 2 {
+			resp, err := client.Get(ts.URL + "/test")
+			if err != nil {
+				t.Fatalf("request %d failed: %v", i+1, err)
+			}
+			_ = resp.Body.Close()
+			if resp.StatusCode != http.StatusOK {
+				t.Fatalf("request %d: expected status 200, got %d", i+1, resp.StatusCode)
+			}
+		}
+
+		if got := tokenRequests.Load(); got != 1 {
+			t.Fatalf("expected 1 installation token request, got %d", got)
+		}
+	})
+
+	t.Run("refreshes an expired token", func(t *testing.T) {
+		t.Parallel()
+
+		var tokenRequests atomic.Int32
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, fmt.Sprintf("/app/installations/%s/access_tokens", installationID)) {
+				count := tokenRequests.Add(1)
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusCreated)
+				var expiresAt time.Time
+				var token string
+				if count == 1 {
+					expiresAt = time.Now().Add(-time.Hour)
+					token = "expired-token"
+				} else {
+					expiresAt = time.Now().Add(time.Hour)
+					token = "refreshed-token"
+				}
+				_, _ = io.WriteString(w, fmt.Sprintf(`{"token":%q,"expires_at":%q}`, token, expiresAt.UTC().Format(time.RFC3339)))
+				return
+			}
+			if r.Method == http.MethodGet && r.URL.Path == "/test" {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+			http.NotFound(w, r)
+		}))
+		t.Cleanup(ts.Close)
+
+		serverURL, err := url.Parse(ts.URL + "/")
+		if err != nil {
+			t.Fatalf("failed to parse test server URL: %v", err)
+		}
+
+		cfg := &Config{
+			AppID:             &appID,
+			AppInstallationID: &installationID,
+			AppPEM:            testGitHubAppPrivateKeyPemData,
+			BaseURL:           serverURL,
+		}
+
+		client, err := cfg.AuthenticatedHTTPClient()
+		if err != nil {
+			t.Fatalf("failed to create authenticated HTTP client: %v", err)
+		}
+
+		for i := range 2 {
+			resp, err := client.Get(ts.URL + "/test")
+			if err != nil {
+				t.Fatalf("request %d failed: %v", i+1, err)
+			}
+			_ = resp.Body.Close()
+			if resp.StatusCode != http.StatusOK {
+				t.Fatalf("request %d: expected status 200, got %d", i+1, resp.StatusCode)
+			}
+		}
+
+		if got := tokenRequests.Load(); got != 2 {
+			t.Fatalf("expected 2 installation token requests, got %d", got)
+		}
+	})
+}
 
 func Test_getBaseURL(t *testing.T) {
 	testCases := []struct {

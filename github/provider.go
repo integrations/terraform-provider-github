@@ -411,15 +411,7 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 		}
 
 		if config.LegacyClient {
-			if config.AppID != nil {
-				appToken, err := GenerateOAuthTokenFromApp(config.BaseURL.JoinPath(config.RESTAPIPath), *config.AppID, *config.AppInstallationID, string(config.AppPEM))
-				if err != nil {
-					return nil, diag.FromErr(err)
-				}
-				config.Token = appToken
-			}
-
-			if config.Token == "" {
+			if config.AppID == nil && config.Token == "" {
 				tflog.Debug(ctx, "No token found, using GitHub CLI to get token from base URL.", map[string]any{"base_url": config.BaseURL.String()})
 				config.Token = tokenFromGHCLI(ctx, config.BaseURL)
 			}
@@ -522,7 +514,11 @@ func configureProviderMeta(ctx context.Context, c *Config) (*Owner, error) {
 		if c.Anonymous() {
 			client = c.AnonymousHTTPClient()
 		} else {
-			client = c.AuthenticatedHTTPClient()
+			var err error
+			client, err = c.AuthenticatedHTTPClient()
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		v3client, err := c.NewRESTClient(client)
