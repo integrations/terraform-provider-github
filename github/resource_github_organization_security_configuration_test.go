@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-testing/compare"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
@@ -104,6 +105,10 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 			advanced_security = "enabled"
 		}`, configNameUpdated)
 
+		// configuration_id must be identical across both steps, proving the change is an
+		// in-place update rather than a destroy-and-recreate.
+		configurationIDUnchanged := statecheck.CompareValue(compare.ValuesSame())
+
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
@@ -112,6 +117,8 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 				{
 					Config: configBefore,
 					ConfigStateChecks: []statecheck.StateCheck{
+						configurationIDUnchanged.AddStateValue("github_organization_security_configuration.test",
+							tfjsonpath.New("configuration_id")),
 						statecheck.ExpectKnownValue("github_organization_security_configuration.test",
 							tfjsonpath.New("name"), knownvalue.StringExact(configName)),
 						statecheck.ExpectKnownValue("github_organization_security_configuration.test",
@@ -121,6 +128,8 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 				{
 					Config: configAfter,
 					ConfigStateChecks: []statecheck.StateCheck{
+						configurationIDUnchanged.AddStateValue("github_organization_security_configuration.test",
+							tfjsonpath.New("configuration_id")),
 						statecheck.ExpectKnownValue("github_organization_security_configuration.test",
 							tfjsonpath.New("name"), knownvalue.StringExact(configNameUpdated)),
 						statecheck.ExpectKnownValue("github_organization_security_configuration.test",
