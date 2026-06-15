@@ -209,6 +209,10 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 		configName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
+		resource "github_team" "test" {
+			name = "%s"
+		}
+
 		resource "github_organization_security_configuration" "test" {
 			name = "%s"
 			description = "Test configuration with delegated bypass"
@@ -218,11 +222,11 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 			secret_scanning_delegated_bypass = "enabled"
 			secret_scanning_delegated_bypass_options {
 				reviewers {
-					reviewer_id   = 1
+					reviewer_id   = github_team.test.id
 					reviewer_type = "TEAM"
 				}
 			}
-		}`, configName)
+		}`, configName, configName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },

@@ -314,6 +314,13 @@ func resourceGithubOrganizationSecurityConfigurationCreate(ctx context.Context, 
 	config := expandCodeSecurityConfigurationCommon(d)
 	expandSecretScanningDelegatedBypass(d, &config)
 
+	// The GitHub API returns HTTP 500 when secret_scanning_delegated_bypass_options reviewers
+	// are sent in the initial create request, even though the configuration is created. Setting
+	// the reviewers via a follow-up update succeeds, so we defer them: create without the bypass
+	// options, then apply them with an update if any were specified.
+	bypassOptions := config.SecretScanningDelegatedBypassOptions
+	config.SecretScanningDelegatedBypassOptions = nil
+
 	configuration, _, err := client.Organizations.CreateCodeSecurityConfiguration(ctx, org, config)
 	if err != nil {
 		tflog.Error(ctx, "Failed to create organization code security configuration", map[string]any{
@@ -325,6 +332,20 @@ func resourceGithubOrganizationSecurityConfigurationCreate(ctx context.Context, 
 	}
 
 	d.SetId(strconv.FormatInt(configuration.GetID(), 10))
+
+	if bypassOptions != nil {
+		config.SecretScanningDelegatedBypassOptions = bypassOptions
+		configuration, _, err = client.Organizations.UpdateCodeSecurityConfiguration(ctx, org, configuration.GetID(), config)
+		if err != nil {
+			tflog.Error(ctx, "Failed to set secret scanning delegated bypass options on organization code security configuration", map[string]any{
+				"organization": org,
+				"name":         name,
+				"id":           configuration.GetID(),
+				"error":        err.Error(),
+			})
+			return diag.FromErr(err)
+		}
+	}
 
 	if diags := setCodeSecurityConfigurationState(d, configuration); diags.HasError() {
 		return diags
