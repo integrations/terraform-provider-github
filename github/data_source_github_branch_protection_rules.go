@@ -58,7 +58,7 @@ func dataSourceGithubBranchProtectionRulesRead(ctx context.Context, d *schema.Re
 
 	var rules []any
 	for {
-		err := client.Query(meta.(*Owner).StopContext, &query, variables)
+		err := client.Query(ctx, &query, variables)
 		if err != nil {
 			return diag.FromErr(err)
 		}
