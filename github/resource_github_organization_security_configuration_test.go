@@ -159,6 +159,9 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 				runner_type = "labeled"
 				runner_label = "code-scanning"
 			}
+			code_scanning_options {
+				allow_advanced = true
+			}
 			secret_scanning = "enabled"
 			secret_scanning_push_protection = "enabled"
 		}`, configName)
@@ -179,6 +182,8 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 							tfjsonpath.New("code_scanning_default_setup_options").AtSliceIndex(0).AtMapKey("runner_type"), knownvalue.StringExact("labeled")),
 						statecheck.ExpectKnownValue("github_organization_security_configuration.test",
 							tfjsonpath.New("code_scanning_default_setup_options").AtSliceIndex(0).AtMapKey("runner_label"), knownvalue.StringExact("code-scanning")),
+						statecheck.ExpectKnownValue("github_organization_security_configuration.test",
+							tfjsonpath.New("code_scanning_options").AtSliceIndex(0).AtMapKey("allow_advanced"), knownvalue.Bool(true)),
 					},
 				},
 			},
