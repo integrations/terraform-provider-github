@@ -7,24 +7,26 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v88/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubTeamMembership() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubTeamMembershipCreateOrUpdate,
-		Read:   resourceGithubTeamMembershipRead,
-		Update: resourceGithubTeamMembershipCreateOrUpdate,
-		Delete: resourceGithubTeamMembershipDelete,
+		CreateContext: resourceGithubTeamMembershipCreateOrUpdate,
+		ReadContext:   resourceGithubTeamMembershipRead,
+		UpdateContext: resourceGithubTeamMembershipCreateOrUpdate,
+		DeleteContext: resourceGithubTeamMembershipDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-				teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
+			StateContext: func(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+				meta := m.(*Owner)
+				teamIdString, username, err := parseID2(d.Id())
 				if err != nil {
 					return nil, err
 				}
 
-				teamId, err := getTeamID(teamIdString, meta)
+				teamId, err := getTeamID(ctx, meta, teamIdString)
 				if err != nil {
 					return nil, err
 				}
@@ -68,16 +70,16 @@ func resourceGithubTeamMembership() *schema.Resource {
 	}
 }
 
-func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
+func resourceGithubTeamMembershipCreateOrUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
+	orgId := meta.id
 
 	teamIdString := d.Get("team_id").(string)
-	teamId, err := getTeamID(teamIdString, meta)
+	teamId, err := getTeamID(ctx, meta, teamIdString)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	ctx := context.Background()
 
 	username := d.Get("username").(string)
 	role := d.Get("role").(string)
@@ -91,38 +93,39 @@ func resourceGithubTeamMembershipCreateOrUpdate(d *schema.ResourceData, meta any
 		},
 	)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(buildTwoPartID(teamIdString, username))
 
-	return resourceGithubTeamMembershipRead(d, meta)
+	return resourceGithubTeamMembershipRead(ctx, d, meta)
 }
 
-func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
-	teamIdString, username, err := parseTwoPartID(d.Id(), "team_id", "username")
+func resourceGithubTeamMembershipRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
+	orgId := meta.id
+
+	teamIdString, username, err := parseID2(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	teamId, err := getTeamID(teamIdString, meta)
+	teamId, err := getTeamID(ctx, meta, teamIdString)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// We intentionally set these early to allow reconciliation
 	// from an upstream bug which emptied team_id in state
 	// See https://github.com/integrations/terraform-provider-github/issues/323
 	if err = d.Set("team_id", teamIdString); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("username", username); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
@@ -142,31 +145,35 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta any) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("role", membership.GetRole()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubTeamMembershipDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
+func resourceGithubTeamMembershipDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta := m.(*Owner)
+	client := meta.v3client
+	orgId := meta.id
+
 	teamIdString := d.Get("team_id").(string)
-	teamId, err := getTeamID(teamIdString, meta)
+	teamId, err := getTeamID(ctx, meta, teamIdString)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	username := d.Get("username").(string)
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgId, teamId, username)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
-	return err
+	return nil
 }

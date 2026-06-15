@@ -3,7 +3,7 @@ package github
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubCodespacesUserPublicKeyDataSource(t *testing.T) {
@@ -19,7 +19,7 @@ func TestAccGithubCodespacesUserPublicKeyDataSource(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
+			PreCheck:          func() { skipUnauthenticated(t); skipApp(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

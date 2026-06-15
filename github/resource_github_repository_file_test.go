@@ -6,8 +6,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubRepositoryFile(t *testing.T) {
@@ -451,6 +454,49 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 					ImportState:             true,
 					ImportStateVerify:       true,
 					ImportStateVerifyIgnore: []string{"commit_author", "commit_email"}, // For some reason `d` doesn't contain the commit author and email when importing.
+				},
+			},
+		})
+	})
+
+	t.Run("verify_that_id_can_contain_colon_in_file_path", func(t *testing.T) {
+		randomID := acctest.RandString(5)
+		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
+		filePathWithColon := "repro/example:one.yaml"
+		config := fmt.Sprintf(`
+
+			resource "github_repository" "test" {
+				name                 = "%s"
+				auto_init            = true
+				vulnerability_alerts = true
+			}
+
+			resource "github_repository_file" "test" {
+				repository     = github_repository.test.name
+				branch         = "main"
+				file           = "%s"
+				content        = "bar"
+				commit_message = "Managed by Terraform"
+				commit_author  = "Terraform User"
+				commit_email   = "terraform@example.com"
+			}
+		`, repoName, filePathWithColon)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_file.test", tfjsonpath.New("id"), knownvalue.StringFunc(func(v string) error {
+							if strings.Contains(v, escapeIDPart(filePathWithColon)) {
+								return nil
+							}
+							return fmt.Errorf("expected id to contain escaped file path, got: %s", v)
+						})),
+						statecheck.ExpectKnownValue("github_repository_file.test", tfjsonpath.New("file"), knownvalue.StringExact(filePathWithColon)),
+					},
 				},
 			},
 		})

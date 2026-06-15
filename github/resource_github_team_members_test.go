@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccGithubTeamMembers(t *testing.T) {
@@ -92,7 +92,7 @@ func testAccCheckGithubTeamMembersDestroy(s *terraform.State) error {
 
 		teamIdString := rs.Primary.ID
 
-		teamId, err := getTeamID(teamIdString, meta)
+		teamId, err := getTeamID(context.Background(), meta, teamIdString)
 		if err != nil {
 			return unconvertibleIdErr(teamIdString, err)
 		}

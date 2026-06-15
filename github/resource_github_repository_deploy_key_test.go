@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestSuppressDeployKeyDiff(t *testing.T) {
@@ -98,7 +98,7 @@ func testAccCheckGithubRepositoryDeployKeyDestroy(s *terraform.State) error {
 		}
 
 		owner := meta.name
-		repoName, idString, err := parseTwoPartID(rs.Primary.ID, "repository", "ID")
+		repoName, idString, err := parseID2(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
@@ -136,7 +136,7 @@ func testAccCheckGithubRepositoryDeployKeyExists(ctx context.Context, n string) 
 		}
 		conn := meta.v3client
 		owner := meta.name
-		repoName, idString, err := parseTwoPartID(rs.Primary.ID, "repository", "ID")
+		repoName, idString, err := parseID2(rs.Primary.ID)
 		if err != nil {
 			return err
 		}

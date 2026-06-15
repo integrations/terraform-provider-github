@@ -1,15 +1,15 @@
 package github
 
 import (
-	"context"
 	"encoding/base64"
 	"fmt"
 	"testing"
 
-	"github.com/google/go-github/v82/github"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/google/go-github/v88/github"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
+
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubDependabotSecret(t *testing.T) {
@@ -25,9 +25,9 @@ resource "github_repository" "test" {
 }
 
 resource "github_dependabot_secret" "test" {
-	repository      = github_repository.test.name
-	secret_name     = "%s"
-	plaintext_value = "%s"
+	repository  = github_repository.test.name
+	secret_name = "%s"
+	value       = "%s"
 }
 `, repoName, secretName, value)
 
@@ -40,8 +40,8 @@ resource "github_dependabot_secret" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttrPair("github_dependabot_secret.test", "repository", "github_repository.test", "name"),
 						resource.TestCheckResourceAttr("github_dependabot_secret.test", "secret_name", secretName),
-						resource.TestCheckResourceAttr("github_dependabot_secret.test", "plaintext_value", value),
-						resource.TestCheckNoResourceAttr("github_dependabot_secret.test", "encrypted_value"),
+						resource.TestCheckResourceAttr("github_dependabot_secret.test", "value", value),
+						resource.TestCheckNoResourceAttr("github_dependabot_secret.test", "value_encrypted"),
 						resource.TestCheckResourceAttrSet("github_dependabot_secret.test", "key_id"),
 						resource.TestCheckResourceAttrSet("github_dependabot_secret.test", "created_at"),
 						resource.TestCheckResourceAttrSet("github_dependabot_secret.test", "updated_at"),
@@ -64,9 +64,9 @@ resource "github_repository" "test" {
 }
 
 resource "github_dependabot_secret" "test" {
-	repository       = github_repository.test.name
-	secret_name      = "%s"
-	plaintext_value  = "%s"
+	repository  = github_repository.test.name
+	secret_name = "%s"
+	value       = "%s"
 }
 `
 
@@ -79,8 +79,8 @@ resource "github_dependabot_secret" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttrPair("github_dependabot_secret.test", "repository", "github_repository.test", "name"),
 						resource.TestCheckResourceAttr("github_dependabot_secret.test", "secret_name", secretName),
-						resource.TestCheckResourceAttr("github_dependabot_secret.test", "plaintext_value", value),
-						resource.TestCheckNoResourceAttr("github_dependabot_secret.test", "encrypted_value"),
+						resource.TestCheckResourceAttr("github_dependabot_secret.test", "value", value),
+						resource.TestCheckNoResourceAttr("github_dependabot_secret.test", "value_encrypted"),
 						resource.TestCheckResourceAttrSet("github_dependabot_secret.test", "key_id"),
 						resource.TestCheckResourceAttrSet("github_dependabot_secret.test", "created_at"),
 						resource.TestCheckResourceAttrSet("github_dependabot_secret.test", "updated_at"),
@@ -91,8 +91,8 @@ resource "github_dependabot_secret" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttrPair("github_dependabot_secret.test", "repository", "github_repository.test", "name"),
 						resource.TestCheckResourceAttr("github_dependabot_secret.test", "secret_name", secretName),
-						resource.TestCheckResourceAttr("github_dependabot_secret.test", "plaintext_value", updatedValue),
-						resource.TestCheckNoResourceAttr("github_dependabot_secret.test", "encrypted_value"),
+						resource.TestCheckResourceAttr("github_dependabot_secret.test", "value", updatedValue),
+						resource.TestCheckNoResourceAttr("github_dependabot_secret.test", "value_encrypted"),
 						resource.TestCheckResourceAttrSet("github_dependabot_secret.test", "key_id"),
 						resource.TestCheckResourceAttrSet("github_dependabot_secret.test", "created_at"),
 						resource.TestCheckResourceAttrSet("github_dependabot_secret.test", "updated_at"),
@@ -117,7 +117,7 @@ resource "github_repository" "test" {
 resource "github_dependabot_secret" "test" {
 	repository      = github_repository.test.name
 	secret_name     = "%s"
-	encrypted_value = "%s"
+	value_encrypted = "%s"
 }
 `
 
@@ -130,8 +130,8 @@ resource "github_dependabot_secret" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttrPair("github_dependabot_secret.test", "repository", "github_repository.test", "name"),
 						resource.TestCheckResourceAttr("github_dependabot_secret.test", "secret_name", secretName),
-						resource.TestCheckNoResourceAttr("github_dependabot_secret.test", "plaintext_value"),
-						resource.TestCheckResourceAttr("github_dependabot_secret.test", "encrypted_value", value),
+						resource.TestCheckNoResourceAttr("github_dependabot_secret.test", "value"),
+						resource.TestCheckResourceAttr("github_dependabot_secret.test", "value_encrypted", value),
 						resource.TestCheckResourceAttrSet("github_dependabot_secret.test", "key_id"),
 						resource.TestCheckResourceAttrSet("github_dependabot_secret.test", "created_at"),
 						resource.TestCheckResourceAttrSet("github_dependabot_secret.test", "updated_at"),
@@ -142,8 +142,8 @@ resource "github_dependabot_secret" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttrPair("github_dependabot_secret.test", "repository", "github_repository.test", "name"),
 						resource.TestCheckResourceAttr("github_dependabot_secret.test", "secret_name", secretName),
-						resource.TestCheckNoResourceAttr("github_dependabot_secret.test", "plaintext_value"),
-						resource.TestCheckResourceAttr("github_dependabot_secret.test", "encrypted_value", updatedValue),
+						resource.TestCheckNoResourceAttr("github_dependabot_secret.test", "value"),
+						resource.TestCheckResourceAttr("github_dependabot_secret.test", "value_encrypted", updatedValue),
 						resource.TestCheckResourceAttrSet("github_dependabot_secret.test", "key_id"),
 						resource.TestCheckResourceAttrSet("github_dependabot_secret.test", "created_at"),
 						resource.TestCheckResourceAttrSet("github_dependabot_secret.test", "updated_at"),
@@ -170,10 +170,10 @@ data "github_dependabot_public_key" "test" {
 }
 
 resource "github_dependabot_secret" "test" {
-	repository       = github_repository.test.name
-	key_id           = data.github_dependabot_public_key.test.key_id
-	secret_name      = "%s"
-	encrypted_value  = "%s"
+	repository      = github_repository.test.name
+	key_id          = data.github_dependabot_public_key.test.key_id
+	secret_name     = "%s"
+	value_encrypted = "%s"
 }
 `
 
@@ -186,8 +186,8 @@ resource "github_dependabot_secret" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttrPair("github_dependabot_secret.test", "repository", "github_repository.test", "name"),
 						resource.TestCheckResourceAttr("github_dependabot_secret.test", "secret_name", secretName),
-						resource.TestCheckNoResourceAttr("github_dependabot_secret.test", "plaintext_value"),
-						resource.TestCheckResourceAttr("github_dependabot_secret.test", "encrypted_value", value),
+						resource.TestCheckNoResourceAttr("github_dependabot_secret.test", "value"),
+						resource.TestCheckResourceAttr("github_dependabot_secret.test", "value_encrypted", value),
 						resource.TestCheckResourceAttrSet("github_dependabot_secret.test", "key_id"),
 						resource.TestCheckResourceAttrSet("github_dependabot_secret.test", "created_at"),
 						resource.TestCheckResourceAttrSet("github_dependabot_secret.test", "updated_at"),
@@ -198,8 +198,8 @@ resource "github_dependabot_secret" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttrPair("github_dependabot_secret.test", "repository", "github_repository.test", "name"),
 						resource.TestCheckResourceAttr("github_dependabot_secret.test", "secret_name", secretName),
-						resource.TestCheckNoResourceAttr("github_dependabot_secret.test", "plaintext_value"),
-						resource.TestCheckResourceAttr("github_dependabot_secret.test", "encrypted_value", updatedValue),
+						resource.TestCheckNoResourceAttr("github_dependabot_secret.test", "value"),
+						resource.TestCheckResourceAttr("github_dependabot_secret.test", "value_encrypted", updatedValue),
 						resource.TestCheckResourceAttrSet("github_dependabot_secret.test", "key_id"),
 						resource.TestCheckResourceAttrSet("github_dependabot_secret.test", "created_at"),
 						resource.TestCheckResourceAttrSet("github_dependabot_secret.test", "updated_at"),
@@ -220,9 +220,9 @@ resource "github_repository" "test" {
 }
 
 resource "github_dependabot_secret" "test" {
-	repository      = github_repository.test.name
-	secret_name     = "%s"
-	plaintext_value = "test"
+	repository  = github_repository.test.name
+	secret_name = "%s"
+	value       = "test"
 }
 `, repoName, secretName)
 
@@ -251,7 +251,7 @@ resource "github_dependabot_secret" "test" {
 						}
 						client := meta.v3client
 						owner := meta.name
-						ctx := context.Background()
+						ctx := t.Context()
 
 						keyID, _, err := getDependabotPublicKeyDetails(ctx, meta, repoName)
 						if err != nil {
@@ -297,9 +297,9 @@ resource "github_repository" "test" {
 }
 
 resource "github_dependabot_secret" "test" {
-	repository      = github_repository.test.name
-	secret_name     = "%s"
-	plaintext_value = "test"
+	repository  = github_repository.test.name
+	secret_name = "%s"
+	value       = "test"
 
 	lifecycle {
 		ignore_changes = [remote_updated_at]
@@ -332,7 +332,7 @@ resource "github_dependabot_secret" "test" {
 						}
 						client := meta.v3client
 						owner := meta.name
-						ctx := context.Background()
+						ctx := t.Context()
 
 						keyID, _, err := getDependabotPublicKeyDetails(ctx, meta, repoName)
 						if err != nil {
@@ -378,9 +378,9 @@ resource "github_repository" "test" {
 }
 
 resource "github_dependabot_secret" "test" {
-	repository      = github_repository.test.name
-	secret_name     = "test"
-	plaintext_value = "test"
+	repository  = github_repository.test.name
+	secret_name = "test"
+	value       = "test"
 }
 `
 
@@ -434,9 +434,9 @@ resource "github_repository" "test2" {
 }
 
 resource "github_dependabot_secret" "test" {
-	repository      = github_repository.test.name
-	secret_name     = "test"
-	plaintext_value = "test"
+	repository  = github_repository.test.name
+	secret_name = "test"
+	value       = "test"
 }
 `, repoName, repoName2)
 
@@ -450,9 +450,9 @@ resource "github_repository" "test2" {
 }
 
 resource "github_dependabot_secret" "test" {
-	repository      = github_repository.test2.name
-	secret_name     = "test"
-	plaintext_value = "test"
+	repository  = github_repository.test2.name
+	secret_name = "test"
+	value       = "test"
 }
 `, repoName, repoName2)
 
@@ -501,9 +501,9 @@ resource "github_dependabot_secret" "test" {
 	}
 
 	resource "github_dependabot_secret" "test" {
-		repository      = github_repository.test.name
-		secret_name     = "test"
-		plaintext_value = "test"
+		repository  = github_repository.test.name
+		secret_name = "test"
+		value       = "test"
 	}
 `, repoName)
 
@@ -533,9 +533,9 @@ resource "github_repository" "test" {
 }
 
 resource "github_dependabot_secret" "test" {
-	repository      = github_repository.test.name
-	secret_name     = "%s"
-	plaintext_value = "test"
+	repository  = github_repository.test.name
+	secret_name = "%s"
+	value       = "test"
 }
 `, repoName, secretName)
 
@@ -550,7 +550,7 @@ resource "github_dependabot_secret" "test" {
 					ResourceName:            "github_dependabot_secret.test",
 					ImportState:             true,
 					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"key_id", "plaintext_value"},
+					ImportStateVerifyIgnore: []string{"key_id", "value"},
 				},
 			},
 		})

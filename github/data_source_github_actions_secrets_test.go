@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubActionsSecretsDataSource(t *testing.T) {
@@ -20,9 +20,9 @@ func TestAccGithubActionsSecretsDataSource(t *testing.T) {
 			}
 
 			resource "github_actions_secret" "test" {
-				secret_name 		= "secret_1"
-				repository  		= github_repository.test.name
-				plaintext_value = "foo"
+				secret_name = "secret_1"
+				repository  = github_repository.test.name
+				value       = "foo"
 			}
 		`, repoName)
 

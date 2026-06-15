@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -74,9 +74,9 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta any) e
 	ctx := context.Background()
 
 	resultKey, _, err := client.Repositories.CreateKey(ctx, owner, repoName, &github.Key{
-		Key:      github.Ptr(key),
-		Title:    github.Ptr(title),
-		ReadOnly: github.Ptr(readOnly),
+		Key:      new(key),
+		Title:    new(title),
+		ReadOnly: new(readOnly),
 	})
 	if err != nil {
 		return err
@@ -93,7 +93,7 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta any) err
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
-	repoName, idString, err := parseTwoPartID(d.Id(), "repository", "ID")
+	repoName, idString, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
@@ -147,7 +147,7 @@ func resourceGithubRepositoryDeployKeyDelete(d *schema.ResourceData, meta any) e
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
-	repoName, idString, err := parseTwoPartID(d.Id(), "repository", "ID")
+	repoName, idString, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}

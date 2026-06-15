@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-github/v82/github"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/google/go-github/v88/github"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccGithubTeamMembership(t *testing.T) {
@@ -97,12 +97,12 @@ func testAccCheckGithubTeamMembershipDestroy(s *terraform.State) error {
 			continue
 		}
 
-		teamIdString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
+		teamIdString, username, err := parseID2(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
 
-		teamId, err := getTeamID(teamIdString, meta)
+		teamId, err := getTeamID(context.Background(), meta, teamIdString)
 		if err != nil {
 			return unconvertibleIdErr(teamIdString, err)
 		}
@@ -139,12 +139,12 @@ func testAccCheckGithubTeamMembershipExists(ctx context.Context, n string, membe
 		}
 		conn := meta.v3client
 		orgId := meta.id
-		teamIdString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
+		teamIdString, username, err := parseID2(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
 
-		teamId, err := getTeamID(teamIdString, meta)
+		teamId, err := getTeamID(context.Background(), meta, teamIdString)
 		if err != nil {
 			return unconvertibleIdErr(teamIdString, err)
 		}
@@ -175,11 +175,11 @@ func testAccCheckGithubTeamMembershipRoleState(ctx context.Context, n, expected 
 		}
 		conn := meta.v3client
 		orgId := meta.id
-		teamIdString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
+		teamIdString, username, err := parseID2(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
-		teamId, err := getTeamID(teamIdString, meta)
+		teamId, err := getTeamID(context.Background(), meta, teamIdString)
 		if err != nil {
 			return unconvertibleIdErr(teamIdString, err)
 		}

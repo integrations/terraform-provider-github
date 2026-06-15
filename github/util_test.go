@@ -5,6 +5,7 @@ import (
 	"unicode"
 
 	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func Test_escapeIDPart(t *testing.T) {
@@ -397,6 +398,75 @@ func Test_parseID4(t *testing.T) {
 	}
 }
 
+func Test_resourceKeysGetOk_string(t *testing.T) {
+	t.Parallel()
+
+	key0, key1 := "foo", "bar"
+	expect := "bar"
+	unwanted := "baz"
+	s := map[string]*schema.Schema{
+		key0: {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		key1: {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+	}
+
+	for _, d := range []struct {
+		testName string
+		data     *schema.ResourceData
+		keys     []string
+		found    bool
+	}{
+		{
+			testName: "none",
+			data:     schema.TestResourceDataRaw(t, s, map[string]any{}),
+			keys:     []string{key0, key1},
+			found:    false,
+		},
+		{
+			testName: "only_first_key",
+			data:     schema.TestResourceDataRaw(t, s, map[string]any{key0: expect}),
+			keys:     []string{key0, key1},
+			found:    true,
+		},
+		{
+			testName: "only_second_key",
+			data:     schema.TestResourceDataRaw(t, s, map[string]any{key1: expect}),
+			keys:     []string{key0, key1},
+			found:    true,
+		},
+		{
+			testName: "first_key",
+			data:     schema.TestResourceDataRaw(t, s, map[string]any{key0: expect, key1: unwanted}),
+			keys:     []string{key0, key1},
+			found:    true,
+		},
+		{
+			testName: "second_key",
+			data:     schema.TestResourceDataRaw(t, s, map[string]any{key0: "", key1: expect}),
+			keys:     []string{key0, key1},
+			found:    true,
+		},
+	} {
+		t.Run(d.testName, func(t *testing.T) {
+			t.Parallel()
+
+			got, found := resourceKeysGetOk[string](d.data, d.keys...)
+
+			if found != d.found {
+				t.Fatalf("expected found to be %v but got %v", d.found, found)
+			}
+			if found && got != expect {
+				t.Fatalf("expected value to be %q but got %q", expect, got)
+			}
+		})
+	}
+}
+
 func TestGithubUtilRole_validation(t *testing.T) {
 	cases := []struct {
 		Value    string
@@ -424,29 +494,6 @@ func TestGithubUtilRole_validation(t *testing.T) {
 		if len(diags) != tc.ErrCount {
 			t.Fatalf("Expected 1 validation error")
 		}
-	}
-}
-
-func TestGithubUtilTwoPartID(t *testing.T) {
-	partOne, partTwo := "foo", "bar"
-
-	id := buildTwoPartID(partOne, partTwo)
-
-	if id != "foo:bar" {
-		t.Fatalf("Expected two part id to be foo:bar, actual: %s", id)
-	}
-
-	parsedPartOne, parsedPartTwo, err := parseTwoPartID(id, "left", "right")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if parsedPartOne != "foo" {
-		t.Fatalf("Expected parsed part one foo, actual: %s", parsedPartOne)
-	}
-
-	if parsedPartTwo != "bar" {
-		t.Fatalf("Expected parsed part two bar, actual: %s", parsedPartTwo)
 	}
 }
 
@@ -504,6 +551,39 @@ func TestGithubUtilValidateSecretName(t *testing.T) {
 
 	for _, tc := range cases {
 		var name any = tc.Name
+		diags := validateSecretNameFunc(name, cty.Path{cty.GetAttrStep{Name: ""}})
+
+		if tc.Error != (len(diags) != 0) {
+			if tc.Error {
+				t.Fatalf("expected error, got none (%s)", tc.Name)
+			} else {
+				t.Fatalf("unexpected error(s): %v (%s)", diags, tc.Name)
+			}
+		}
+	}
+}
+
+func TestGithubUtilValidateSecretName_invalid_input(t *testing.T) {
+	cases := []struct {
+		Name  any
+		Error bool
+	}{
+		{
+			Name:  1,
+			Error: true,
+		},
+		{
+			Name:  []string{"v"},
+			Error: true,
+		},
+		{
+			Name:  map[string]string{"_valid_underscore_": "valid_underscore"},
+			Error: true,
+		},
+	}
+
+	for _, tc := range cases {
+		name := tc.Name
 		diags := validateSecretNameFunc(name, cty.Path{cty.GetAttrStep{Name: ""}})
 
 		if tc.Error != (len(diags) != 0) {

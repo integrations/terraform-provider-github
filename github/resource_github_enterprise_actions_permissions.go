@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -30,13 +30,13 @@ func resourceGithubActionsEnterprisePermissions() *schema.Resource {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Description:      "The permissions policy that controls the actions that are allowed to run. Can be one of: 'all', 'local_only', or 'selected'.",
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"all", "local_only", "selected"}, false), "allowed_actions"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"all", "local_only", "selected"}, false)),
 			},
 			"enabled_organizations": {
 				Type:             schema.TypeString,
 				Required:         true,
 				Description:      "The policy that controls the organizations in the enterprise that are allowed to run GitHub Actions. Can be one of: 'all', 'none', or 'selected'.",
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"all", "none", "selected"}, false), "enabled_organizations"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"all", "none", "selected"}, false)),
 			},
 			"allowed_actions_config": {
 				Type:        schema.TypeList,
@@ -280,8 +280,8 @@ func resourceGithubActionsEnterprisePermissionsDelete(d *schema.ResourceData, me
 	_, _, err := client.Actions.UpdateActionsPermissionsInEnterprise(ctx,
 		d.Get("enterprise_slug").(string),
 		github.ActionsPermissionsEnterprise{
-			AllowedActions:       github.Ptr("all"),
-			EnabledOrganizations: github.Ptr("all"),
+			AllowedActions:       new("all"),
+			EnabledOrganizations: new("all"),
 		})
 	if err != nil {
 		return err

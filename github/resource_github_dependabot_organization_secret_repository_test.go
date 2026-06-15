@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubDependabotOrganizationSecretRepository(t *testing.T) {
@@ -19,7 +19,7 @@ func TestAccGithubDependabotOrganizationSecretRepository(t *testing.T) {
 		config := fmt.Sprintf(`
 resource "github_dependabot_organization_secret" "test" {
 	secret_name     = "%s"
-	encrypted_value = "%s"
+	value_encrypted = "%s"
 	visibility      = "selected"
 }
 

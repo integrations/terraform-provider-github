@@ -1,16 +1,15 @@
 package github
 
 import (
-	"context"
 	"fmt"
 	"net/url"
 	"regexp"
 	"testing"
 
-	"github.com/google/go-github/v82/github"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/google/go-github/v88/github"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccGithubActionsEnvironmentVariable(t *testing.T) {
@@ -434,7 +433,7 @@ resource "github_actions_environment_variable" "test" {
 						}
 						client := meta.v3client
 						owner := meta.name
-						ctx := context.Background()
+						ctx := t.Context()
 
 						_, err = client.Actions.CreateEnvVariable(ctx, owner, repoName, url.PathEscape(envName), &github.ActionsVariable{
 							Name:  varName,
@@ -453,7 +452,7 @@ resource "github_actions_environment_variable" "test" {
 						}
 						client := meta.v3client
 						owner := meta.name
-						ctx := context.Background()
+						ctx := t.Context()
 
 						_, err = client.Actions.DeleteEnvVariable(ctx, owner, repoName, url.PathEscape(envName), varName)
 						return err

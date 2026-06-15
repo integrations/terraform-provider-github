@@ -1,15 +1,14 @@
 package github
 
 import (
-	"context"
 	"fmt"
 	"regexp"
 	"testing"
 
-	"github.com/google/go-github/v82/github"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/google/go-github/v88/github"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccGithubActionsOrganizationVariable(t *testing.T) {
@@ -356,12 +355,12 @@ resource "github_actions_organization_variable" "test" {
 						}
 						client := meta.v3client
 						owner := meta.name
-						ctx := context.Background()
+						ctx := t.Context()
 
 						_, err = client.Actions.CreateOrgVariable(ctx, owner, &github.ActionsVariable{
 							Name:       varName,
 							Value:      "test",
-							Visibility: github.Ptr("all"),
+							Visibility: new("all"),
 						})
 						return err
 					},
@@ -376,7 +375,7 @@ resource "github_actions_organization_variable" "test" {
 						}
 						client := meta.v3client
 						owner := meta.name
-						ctx := context.Background()
+						ctx := t.Context()
 
 						_, err = client.Actions.DeleteOrgVariable(ctx, owner, varName)
 						return err

@@ -20,19 +20,19 @@ package github
 // 		{
 // 			testName: "migrates v0 to v1",
 // 			rawState: map[string]any{
-// 				"id":          "my-repo:my-environment:MY_SECRET",
-// 				"repository":  "my-repo",
-// 				"environment": "my-environment",
-// 				"secret_name": "MY_SECRET",
-// 				"value":       "my-value",
+// 				"id":              "my-repo:my-environment:MY_SECRET",
+// 				"repository":      "my-repo",
+// 				"environment":     "my-environment",
+// 				"secret_name":     "MY_SECRET",
+// 				"plaintext_value": "my-value",
 // 			},
 // 			want: map[string]any{
-// 				"id":            "my-repo:my-environment:MY_SECRET",
-// 				"repository":    "my-repo",
-//				"repository_id": 123456,
-// 				"environment":   "my-environment",
-// 				"secret_name":   "MY_SECRET",
-// 				"value":         "my-value",
+// 				"id":              "my-repo:my-environment:MY_SECRET",
+// 				"repository":      "my-repo",
+//				"repository_id":   123456,
+// 				"environment":     "my-environment",
+// 				"secret_name":     "MY_SECRET",
+// 				"plaintext_value": "my-value",
 // 			},
 // 			shouldError: false,
 // 		},
@@ -40,7 +40,7 @@ package github
 // 		t.Run(d.testName, func(t *testing.T) {
 // 			t.Parallel()
 
-// 			got, err := resourceGithubActionsEnvironmentSecretStateUpgradeV0(context.Background(), d.rawState, nil)
+// 			got, err := resourceGithubActionsEnvironmentSecretStateUpgradeV0(t.Context(), d.rawState, nil)
 // 			if (err != nil) != d.shouldError {
 // 				t.Fatalf("unexpected error state")
 // 			}

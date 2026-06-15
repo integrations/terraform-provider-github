@@ -1,13 +1,17 @@
 package github
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
 
 type PageInfo struct {
-	EndCursor   githubv4.String
-	HasNextPage bool
+	StartCursor     githubv4.String
+	EndCursor       githubv4.String
+	HasNextPage     githubv4.Boolean
+	HasPreviousPage githubv4.Boolean
 }
 
 func expandNestedSet(m map[string]any, target string) []string {
@@ -45,6 +49,21 @@ func githubv4IDSliceEmpty(ss []string) []githubv4.ID {
 	return vGh4
 }
 
-func githubv4NewStringSlice(v []githubv4.String) *[]githubv4.String { return &v }
+func getEnterpriseID(ctx context.Context, client *githubv4.Client, enterpriseSlug string) (string, error) {
+	var query struct {
+		Enterprise struct {
+			ID githubv4.ID
+		} `graphql:"enterprise(slug: $slug)"`
+	}
 
-func githubv4NewIDSlice(v []githubv4.ID) *[]githubv4.ID { return &v }
+	variables := map[string]any{
+		"slug": githubv4.String(enterpriseSlug),
+	}
+
+	err := client.Query(ctx, &query, variables)
+	if err != nil {
+		return "", err
+	}
+
+	return query.Enterprise.ID.(string), nil
+}

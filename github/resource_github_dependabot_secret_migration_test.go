@@ -20,17 +20,17 @@ package github
 // 		{
 // 			testName: "migrates v0 to v1",
 // 			rawState: map[string]any{
-// 				"id":            "my-repo:MY_VARIABLE",
-// 				"repository":    "my-repo",
-// 				"variable_name": "MY_VARIABLE",
-// 				"value":         "my-value",
+// 				"id":              "my-repo:MY_VARIABLE",
+// 				"repository":      "my-repo",
+// 				"variable_name":   "MY_VARIABLE",
+// 				"plaintext_value": "my-value",
 // 			},
 // 			want: map[string]any{
-// 				"id":            "my-repo:MY_VARIABLE",
-// 				"repository":    "my-repo",
-// 				"repository_id": 123456,
-// 				"variable_name": "MY_VARIABLE",
-// 				"value":         "my-value",
+// 				"id":              "my-repo:MY_VARIABLE",
+// 				"repository":      "my-repo",
+// 				"repository_id":   123456,
+// 				"variable_name":   "MY_VARIABLE",
+// 				"plaintext_value": "my-value",
 // 			},
 // 			shouldError: false,
 // 		},
@@ -38,7 +38,7 @@ package github
 // 		t.Run(d.testName, func(t *testing.T) {
 // 			t.Parallel()
 
-// 			got, err := resourceGithubDependabotSecretStateUpgradeV0(context.Background(), d.rawState, nil)
+// 			got, err := resourceGithubDependabotSecretStateUpgradeV0(t.Context(), d.rawState, nil)
 // 			if (err != nil) != d.shouldError {
 // 				t.Fatalf("unexpected error state")
 // 			}

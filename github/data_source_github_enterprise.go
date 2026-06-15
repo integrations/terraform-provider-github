@@ -2,15 +2,15 @@ package github
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
 
 func dataSourceGithubEnterprise() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubEnterpriseRead,
+		ReadContext: dataSourceGithubEnterpriseRead,
 		Schema: map[string]*schema.Schema{
 			"database_id": {
 				Type:     schema.TypeInt,
@@ -40,7 +40,7 @@ func dataSourceGithubEnterprise() *schema.Resource {
 	}
 }
 
-func dataSourceGithubEnterpriseRead(data *schema.ResourceData, meta any) error {
+func dataSourceGithubEnterpriseRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	var query struct {
 		Enterprise struct {
 			ID          githubv4.String
@@ -52,38 +52,38 @@ func dataSourceGithubEnterpriseRead(data *schema.ResourceData, meta any) error {
 		} `graphql:"enterprise(slug: $slug)"`
 	}
 
-	slug := data.Get("slug").(string)
+	slug := d.Get("slug").(string)
 	client := meta.(*Owner).v4client
 	variables := map[string]any{
 		"slug": githubv4.String(slug),
 	}
-	err := client.Query(context.Background(), &query, variables)
+	err := client.Query(ctx, &query, variables)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if query.Enterprise.ID == "" {
-		return fmt.Errorf("could not find enterprise %v", slug)
+		return diag.Errorf("could not find enterprise %v", slug)
 	}
-	data.SetId(string(query.Enterprise.ID))
-	err = data.Set("name", query.Enterprise.Name)
+	d.SetId(string(query.Enterprise.ID))
+	err = d.Set("name", query.Enterprise.Name)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	err = data.Set("description", query.Enterprise.Description)
+	err = d.Set("description", query.Enterprise.Description)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	err = data.Set("created_at", query.Enterprise.CreatedAt)
+	err = d.Set("created_at", query.Enterprise.CreatedAt)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	err = data.Set("url", query.Enterprise.Url)
+	err = d.Set("url", query.Enterprise.Url)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	err = data.Set("database_id", query.Enterprise.DatabaseId)
+	err = d.Set("database_id", query.Enterprise.DatabaseId)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

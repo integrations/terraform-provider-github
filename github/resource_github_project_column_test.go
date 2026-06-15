@@ -6,9 +6,9 @@ package github
 // 	"strconv"
 // 	"testing"
 
-// 	"github.com/google/go-github/v82/github"
-// 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-// 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+// 	"github.com/google/go-github/v88/github"
+// 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+// 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 // )
 
 // func TestAccGithubProjectColumn_basic(t *testing.T) {
@@ -69,7 +69,7 @@ package github
 // 			return err
 // 		}
 
-// 		column, res, err := conn.Projects.GetProjectColumn(context.Background(), columnID)
+// 		column, res, err := conn.Projects.GetProjectColumn(t.Context(), columnID)
 // 		if err == nil {
 // 			if column != nil &&
 // 				column.GetID() == columnID {
@@ -101,7 +101,7 @@ package github
 // 		}
 // 		conn := meta.v3client
 
-// 		gotColumn, _, err := conn.Projects.GetProjectColumn(context.Background(), columnID)
+// 		gotColumn, _, err := conn.Projects.GetProjectColumn(t.Context(), columnID)
 // 		if err != nil {
 // 			return err
 // 		}

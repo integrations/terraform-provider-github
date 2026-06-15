@@ -1,15 +1,13 @@
 package github
 
 import (
-	"context"
 	"fmt"
-	"reflect"
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccGithubBranchProtectionV4(t *testing.T) {
@@ -747,34 +745,5 @@ func importBranchProtectionByRepoID(repoLogicalName, pattern string) resource.Im
 			return "", fmt.Errorf("repository %s does not have a node_id in terraform state", repo.Primary.ID)
 		}
 		return fmt.Sprintf("%s:%s", repoID, pattern), nil
-	}
-}
-
-func testGithubBranchProtectionStateDataV1() map[string]any {
-	return map[string]any{
-		"blocks_creations":  true,
-		"push_restrictions": [...]string{"/example-user"},
-	}
-}
-
-func testGithubBranchProtectionStateDataV2() map[string]any {
-	restrictions := []any{map[string]any{
-		"blocks_creations": true,
-		"push_allowances":  [...]string{"/example-user"},
-	}}
-	return map[string]any{
-		"restrict_pushes": restrictions,
-	}
-}
-
-func TestAccGithubBranchProtectionV4StateUpgradeV1(t *testing.T) {
-	expected := testGithubBranchProtectionStateDataV2()
-	actual, err := resourceGithubBranchProtectionUpgradeV1(context.Background(), testGithubBranchProtectionStateDataV1(), nil)
-	if err != nil {
-		t.Fatalf("error migrating state: %s", err)
-	}
-
-	if !reflect.DeepEqual(expected, actual) {
-		t.Fatalf("\n\nexpected:\n\n%#v\n\ngot:\n\n%#v\n\n", expected, actual)
 	}
 }

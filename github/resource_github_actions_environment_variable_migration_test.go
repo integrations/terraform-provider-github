@@ -24,15 +24,15 @@ package github
 // 				"repository":    "my-repo",
 // 				"environment":   "my-environment",
 // 				"variable_name": "MY_VARIABLE",
-// 				"value":         "my-value",
+// 				"plaintext_value": "my-value",
 // 			},
 // 			want: map[string]any{
-// 				"id":            "my-repo:my-environment:MY_VARIABLE",
-// 				"repository":    "my-repo",
-// 				"repository_id": 123456,
-// 				"environment":   "my-environment",
-// 				"variable_name": "MY_VARIABLE",
-// 				"value":         "my-value",
+// 				"id":              "my-repo:my-environment:MY_VARIABLE",
+// 				"repository":      "my-repo",
+// 				"repository_id":   123456,
+// 				"environment":     "my-environment",
+// 				"variable_name":   "MY_VARIABLE",
+// 				"plaintext_value": "my-value",
 // 			},
 // 			shouldError: false,
 // 		},
@@ -40,7 +40,7 @@ package github
 // 		t.Run(d.testName, func(t *testing.T) {
 // 			t.Parallel()
 
-// 			got, err := resourceGithubActionsEnvironmentVariableStateUpgradeV0(context.Background(), d.rawState, nil)
+// 			got, err := resourceGithubActionsEnvironmentVariableStateUpgradeV0(t.Context(), d.rawState, nil)
 // 			if (err != nil) != d.shouldError {
 // 				t.Fatalf("unexpected error state")
 // 			}

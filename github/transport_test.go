@@ -8,11 +8,10 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 	"time"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v88/github"
 )
 
 func TestEtagTransport(t *testing.T) {
@@ -29,14 +28,8 @@ func TestEtagTransport(t *testing.T) {
 	})
 	defer ts.Close()
 
-	httpClient := http.DefaultClient
-	httpClient.Transport = NewEtagTransport(http.DefaultTransport)
-
-	client := github.NewClient(httpClient)
-	u, _ := url.Parse(ts.URL + "/")
-	client.BaseURL = u
-
-	ctx := context.WithValue(context.Background(), ctxEtag, "something")
+	client := mustGitHubClient(t, ts.URL, github.WithTransport(NewEtagTransport(http.DefaultTransport)))
+	ctx := context.WithValue(t.Context(), ctxEtag, "something")
 	r, _, err := client.Repositories.Get(ctx, "test", "blah")
 	if err != nil {
 		t.Fatal(err)
@@ -48,7 +41,7 @@ func TestEtagTransport(t *testing.T) {
 }
 
 func githubApiMock(responseSequence []*mockResponse) *httptest.Server {
-	position := github.Ptr(0)
+	position := new(0)
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.Header().Set("Server", "GitHub.com")
@@ -106,7 +99,7 @@ func githubApiMock(responseSequence []*mockResponse) *httptest.Server {
 		fmt.Fprintln(w, tc.ResponseBody)
 
 		// Treat response as disposable
-		position = github.Ptr(i + 1)
+		position = new(i + 1)
 	}))
 }
 
@@ -142,14 +135,9 @@ func TestRateLimitTransport_abuseLimit_get(t *testing.T) {
 	})
 	defer ts.Close()
 
-	httpClient := http.DefaultClient
-	httpClient.Transport = NewRateLimitTransport(http.DefaultTransport)
+	client := mustGitHubClient(t, ts.URL, github.WithTransport(NewRateLimitTransport(http.DefaultTransport)))
 
-	client := github.NewClient(httpClient)
-	u, _ := url.Parse(ts.URL + "/")
-	client.BaseURL = u
-
-	ctx := context.WithValue(context.Background(), ctxId, t.Name())
+	ctx := context.WithValue(t.Context(), ctxId, t.Name())
 	r, _, err := client.Repositories.Get(ctx, "test", "blah")
 	if err != nil {
 		t.Fatal(err)
@@ -176,12 +164,7 @@ func TestRateLimitTransport_abuseLimit_get_cancelled(t *testing.T) {
 	})
 	defer ts.Close()
 
-	httpClient := http.DefaultClient
-	httpClient.Transport = NewRateLimitTransport(http.DefaultTransport)
-
-	client := github.NewClient(httpClient)
-	u, _ := url.Parse(ts.URL + "/")
-	client.BaseURL = u
+	client := mustGitHubClient(t, ts.URL, github.WithTransport(NewRateLimitTransport(http.DefaultTransport)))
 
 	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
 	defer cancel()
@@ -223,17 +206,12 @@ func TestRateLimitTransport_abuseLimit_post(t *testing.T) {
 	})
 	defer ts.Close()
 
-	httpClient := http.DefaultClient
-	httpClient.Transport = NewRateLimitTransport(http.DefaultTransport)
+	client := mustGitHubClient(t, ts.URL, github.WithTransport(NewRateLimitTransport(http.DefaultTransport)))
 
-	client := github.NewClient(httpClient)
-	u, _ := url.Parse(ts.URL + "/")
-	client.BaseURL = u
-
-	ctx := context.WithValue(context.Background(), ctxId, t.Name())
+	ctx := context.WithValue(t.Context(), ctxId, t.Name())
 	r, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
-		Name:        github.Ptr("radek-example-48"),
-		Description: github.Ptr(""),
+		Name:        new("radek-example-48"),
+		Description: new(""),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -283,17 +261,12 @@ func TestRateLimitTransport_abuseLimit_post_error(t *testing.T) {
 	})
 	defer ts.Close()
 
-	httpClient := http.DefaultClient
-	httpClient.Transport = NewRateLimitTransport(http.DefaultTransport)
+	client := mustGitHubClient(t, ts.URL, github.WithTransport(NewRateLimitTransport(http.DefaultTransport)))
 
-	client := github.NewClient(httpClient)
-	u, _ := url.Parse(ts.URL + "/")
-	client.BaseURL = u
-
-	ctx := context.WithValue(context.Background(), ctxId, t.Name())
+	ctx := context.WithValue(t.Context(), ctxId, t.Name())
 	_, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
-		Name:        github.Ptr("radek-example-48"),
-		Description: github.Ptr(""),
+		Name:        new("radek-example-48"),
+		Description: new(""),
 	})
 	if err == nil {
 		t.Fatal("Expected 422 error, got nil")
@@ -416,17 +389,12 @@ func TestRetryTransport_retry_post_error(t *testing.T) {
 	})
 	defer ts.Close()
 
-	httpClient := http.DefaultClient
-	httpClient.Transport = NewRetryTransport(http.DefaultTransport, WithMaxRetries(1))
+	client := mustGitHubClient(t, ts.URL, github.WithTransport(NewRetryTransport(http.DefaultTransport, WithMaxRetries(1))))
 
-	client := github.NewClient(httpClient)
-	u, _ := url.Parse(ts.URL + "/")
-	client.BaseURL = u
-
-	ctx := context.WithValue(context.Background(), ctxId, t.Name())
+	ctx := context.WithValue(t.Context(), ctxId, t.Name())
 	_, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
-		Name:        github.Ptr("radek-example-48"),
-		Description: github.Ptr(""),
+		Name:        new("radek-example-48"),
+		Description: new(""),
 	})
 	if err == nil {
 		t.Fatal("Expected error not to be nil")
@@ -479,17 +447,12 @@ func TestRetryTransport_retry_post_success(t *testing.T) {
 	})
 	defer ts.Close()
 
-	httpClient := http.DefaultClient
-	httpClient.Transport = NewRetryTransport(http.DefaultTransport, WithMaxRetries(2), WithRetryDelay(time.Second))
+	client := mustGitHubClient(t, ts.URL, github.WithTransport(NewRetryTransport(http.DefaultTransport, WithMaxRetries(2), WithRetryDelay(time.Second))))
 
-	client := github.NewClient(httpClient)
-	u, _ := url.Parse(ts.URL + "/")
-	client.BaseURL = u
-
-	ctx := context.WithValue(context.Background(), ctxId, t.Name())
+	ctx := context.WithValue(t.Context(), ctxId, t.Name())
 	_, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
-		Name:        github.Ptr("radek-example-48"),
-		Description: github.Ptr(""),
+		Name:        new("radek-example-48"),
+		Description: new(""),
 	})
 	if err != nil {
 		t.Fatalf("Expected error to be nil, got %v", err)

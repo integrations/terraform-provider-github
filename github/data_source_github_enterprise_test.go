@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubEnterpriseDataSource(t *testing.T) {
@@ -24,7 +24,7 @@ func TestAccGithubEnterpriseDataSource(t *testing.T) {
 	)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { skipUnlessMode(t, enterprise) },
+		PreCheck:          func() { skipUnlessEnterprise(t) },
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{

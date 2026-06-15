@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubActionsOrganizationSecretsDataSource(t *testing.T) {
@@ -15,9 +15,9 @@ func TestAccGithubActionsOrganizationSecretsDataSource(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_actions_organization_secret" "test" {
-				secret_name 		= "org_secret_1_%s"
-				plaintext_value = "foo"
-				visibility      = "all" # going with all as it does not require a paid subscrption
+				secret_name = "org_secret_1_%s"
+				value       = "foo"
+				visibility  = "all" # going with all as it does not require a paid subscrption
 			}
 	`, randomID)
 

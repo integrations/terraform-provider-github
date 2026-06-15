@@ -1,9 +1,10 @@
 SWEEP?=repositories,teams
 PKG_NAME=github
 TEST?=./$(PKG_NAME)/...
-WEBSITE_REPO=github.com/hashicorp/terraform-website
 
 COVERAGEARGS?=-race -coverprofile=coverage.txt -covermode=atomic
+
+RUMDL_ARGS?=--output-format text
 
 # VARIABLE REFERENCE:
 #
@@ -28,8 +29,7 @@ endif
 default: build
 
 tools:
-	go install github.com/client9/misspell/cmd/misspell@v0.3.4
-	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.0
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
 
 build: lintcheck
 	CGO_ENABLED=0 go build -ldflags="-s -w" ./...
@@ -38,6 +38,12 @@ fmt:
 	@echo "==> Fixing source code formatting..."
 	golangci-lint fmt ./...
 
+# Merges the rules in .golangci.yml and .golangci.strict.yml into a new file .golangci.new.yml, which is used for checking only new code.
+# This allows us to start enforcing new linting rules on new code without having to fix all existing issues in the codebase at once.
+# Only executes if either of the source files has changed, to avoid unnecessary work.
+.golangci.new.yml: .golangci.yml .golangci.strict.yml
+	@yq eval-all 'select(fileIndex == 0) *+ select(fileIndex == 1)' .golangci.yml .golangci.strict.yml > .golangci.new.yml 
+
 lint:
 	@echo "==> Checking source code against linters and fixing..."
 	golangci-lint run --fix ./...
@@ -45,6 +51,17 @@ lint:
 lintcheck:
 	@echo "==> Checking source code against linters..."
 	golangci-lint run ./...
+
+# Checks all code against the strict rules. This is expected to fail until all issues have been fixed, but it allows us to track progress on fixing the issues and ensures that no new issues are introduced.
+lintcheck-strict: .golangci.new.yml
+	@branch=$$(git rev-parse --abbrev-ref HEAD); \
+	printf "==> Checking source code against strict linters on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
+	golangci-lint run ./... --config .golangci.new.yml
+
+lintcheck-new: .golangci.new.yml
+	@branch=$$(git rev-parse --abbrev-ref HEAD); \
+	printf "==> Checking changed source code against linters on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
+	golangci-lint run ./... --new-from-merge-base main --config .golangci.new.yml
 
 test:
 	@branch=$$(git rev-parse --abbrev-ref HEAD); \
@@ -66,22 +83,32 @@ sweep:
 	@echo "WARNING: This will destroy infrastructure. Use only in development accounts."
 	go test $(TEST) -v -sweep=$(SWEEP) $(SWEEPARGS)
 
-website:
-ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
-	echo "$(WEBSITE_REPO) not found in your GOPATH (necessary for layouts and assets), get-ting..."
-	git clone https://$(WEBSITE_REPO) $(GOPATH)/src/$(WEBSITE_REPO)
-endif
-	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
+generatedocs:
+	@cd tools; go generate ./...
 
-website-lint:
-	@echo "==> Checking website against linters..."
-	@misspell -error -source=text website/
+validatedocs:
+	@cd tools; go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs validate --provider-dir ..
 
-website-test:
-ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
-	echo "$(WEBSITE_REPO) not found in your GOPATH (necessary for layouts and assets), get-ting..."
-	git clone https://$(WEBSITE_REPO) $(GOPATH)/src/$(WEBSITE_REPO)
-endif
-	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider-test PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
+fmtdocs:
+	@rumdl fmt ./docs
 
-.PHONY: build test testacc fmt lint lintcheck tools website website-lint website-test sweep
+lintdocs: validatedocs
+	@rumdl check $(RUMDL_ARGS) ./docs
+
+checkdocs: generatedocs
+	@git diff --quiet ||\
+		{ echo "New file modification detected in the Git working tree. Please check in before commit."; git --no-pager diff --name-only | uniq | awk '{print "  - " $$0}'; \
+		if [ "${CI}" = true ]; then\
+			exit 1;\
+		fi;}
+
+yamlfmt:
+	@yamlfmt -continue_on_error .
+
+mdfmt:
+	@rumdl fmt .
+
+mdlint:
+	@rumdl check $(RUMDL_ARGS) .
+
+.PHONY: build test testacc fmt lint lintcheck lintcheck-strict lintcheck-new tools sweep generatedocs validatedocs fmtdocs lintdocs checkdocs yamlfmt mdfmt mdlint

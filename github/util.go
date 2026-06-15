@@ -1,7 +1,6 @@
 package github
 
 import (
-	"context"
 	"crypto/md5"
 	"errors"
 	"fmt"
@@ -10,10 +9,9 @@ import (
 	"regexp"
 	"slices"
 	"sort"
-	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -112,88 +110,28 @@ func caseInsensitive() schema.SchemaDiffSuppressFunc {
 	}
 }
 
-// wrapErrors is provided to easily turn errors into diag.Diagnostics
-// until we go through the provider and replace error usage.
-func wrapErrors(errs []error) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	for _, err := range errs {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Error",
-			Detail:   err.Error(),
-		})
-	}
-
-	return diags
-}
-
-// toDiagFunc is a helper that operates on Hashicorp's helper/validation functions
-// and converts them to the diag.Diagnostic format
-// --> nolint: oldFunc needs to be schema.SchemaValidateFunc to keep compatibility with
-// the old code until all uses of schema.SchemaValidateFunc are gone.
-func toDiagFunc(oldFunc schema.SchemaValidateFunc, keyName string) schema.SchemaValidateDiagFunc { //nolint:staticcheck
-	return func(i any, path cty.Path) diag.Diagnostics {
-		warnings, errors := oldFunc(i, keyName)
-		var diags diag.Diagnostics
-
-		for _, err := range errors {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  err.Error(),
-			})
-		}
-
-		for _, warn := range warnings {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Warning,
-				Summary:  warn,
-			})
-		}
-
-		return diags
-	}
-}
-
 func validateValueFunc(values []string) schema.SchemaValidateDiagFunc {
 	return func(v any, k cty.Path) diag.Diagnostics {
-		errs := make([]error, 0)
 		value := v.(string)
 		valid := slices.Contains(values, value)
 
 		if !valid {
-			errs = append(errs, fmt.Errorf("%s is an invalid value for argument %s", value, k))
+			return diag.Errorf("%s is an invalid value for argument %s", value, k)
 		}
-		return wrapErrors(errs)
+		return nil
 	}
-}
-
-// return the pieces of id `left:right` as left, right.
-func parseTwoPartID(id, left, right string) (string, string, error) {
-	parts := strings.SplitN(id, ":", 2)
-	if len(parts) != 2 {
-		return "", "", fmt.Errorf("unexpected ID format (%q); expected %s:%s", id, left, right)
-	}
-
-	return parts[0], parts[1], nil
 }
 
 // format the strings into an id `a:b`.
+//
+// Deprecated: use buildID instead.
 func buildTwoPartID(a, b string) string {
 	return fmt.Sprintf("%s:%s", a, b)
 }
 
-// return the pieces of id `left:center:right` as left, center, right.
-func parseThreePartID(id, left, center, right string) (string, string, string, error) {
-	parts := strings.SplitN(id, ":", 3)
-	if len(parts) != 3 {
-		return "", "", "", fmt.Errorf("unexpected ID format (%q). Expected %s:%s:%s", id, left, center, right)
-	}
-
-	return parts[0], parts[1], parts[2], nil
-}
-
 // format the strings into an id `a:b:c`.
+//
+// Deprecated: use buildID instead.
 func buildThreePartID(a, b, c string) string {
 	return fmt.Sprintf("%s:%s:%s", a, b, c)
 }
@@ -242,80 +180,35 @@ func (e *unconvertibleIdError) Error() string {
 		e.OriginalId, e.OriginalError.Error())
 }
 
-func getTeamID(teamIDString string, meta any) (int64, error) {
-	// Given a string that is either a team id or team slug, return the
-	// id of the team it is referring to.
-	ctx := context.Background()
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
-
-	teamId, parseIntErr := strconv.ParseInt(teamIDString, 10, 64)
-	if parseIntErr == nil {
-		return teamId, nil
-	}
-
-	// The given id not an integer, assume it is a team slug
-	team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
-	if slugErr != nil {
-		return -1, errors.New(parseIntErr.Error() + slugErr.Error())
-	}
-	return team.GetID(), nil
-}
-
-func getTeamSlug(teamIDString string, meta any) (string, error) {
-	ctx := context.Background()
-	return getTeamSlugContext(ctx, teamIDString, meta)
-}
-
-func getTeamSlugContext(ctx context.Context, teamIDString string, meta any) (string, error) {
-	// Given a string that is either a team id or team slug, return the
-	// team slug it is referring to.
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
-	orgId := meta.(*Owner).id
-
-	teamId, parseIntErr := strconv.ParseInt(teamIDString, 10, 64)
-	if parseIntErr != nil {
-		// The given id not an integer, assume it is a team slug
-		team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
-		if slugErr != nil {
-			return "", errors.New(parseIntErr.Error() + slugErr.Error())
-		}
-		return team.GetSlug(), nil
-	}
-
-	// The given id is an integer, assume it is a team id
-	team, _, teamIdErr := client.Teams.GetTeamByID(ctx, orgId, teamId)
-	if teamIdErr != nil {
-		// There isn't a team with the given ID, assume it is a teamslug
-		team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
-		if slugErr != nil {
-			return "", errors.New(teamIdErr.Error() + slugErr.Error())
-		}
-		return team.GetSlug(), nil
-	}
-	return team.GetSlug(), nil
-}
-
 // https://docs.github.com/en/actions/reference/encrypted-secrets#naming-your-secrets
 var secretNameRegexp = regexp.MustCompile("^[a-zA-Z_][a-zA-Z0-9_]*$")
 
 func validateSecretNameFunc(v any, path cty.Path) diag.Diagnostics {
-	errs := make([]error, 0)
+	var diags diag.Diagnostics
 	name, ok := v.(string)
 	if !ok {
-		return wrapErrors([]error{fmt.Errorf("expected type of %s to be string", path)})
+		return diag.Errorf("expected type of %s to be string", path)
 	}
 
 	if !secretNameRegexp.MatchString(name) {
-		errs = append(errs, errors.New("secret names can only contain alphanumeric characters or underscores and must not start with a number"))
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Detail:        "secret names can only contain alphanumeric characters or underscores and must not start with a number",
+			Summary:       "Error",
+			AttributePath: path,
+		})
 	}
 
 	if strings.HasPrefix(strings.ToUpper(name), "GITHUB_") {
-		errs = append(errs, errors.New("secret names must not start with the GITHUB_ prefix"))
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Detail:        "secret names must not start with the GITHUB_ prefix",
+			Summary:       "Error",
+			AttributePath: path,
+		})
 	}
 
-	return wrapErrors(errs)
+	return diags
 }
 
 // deleteResourceOn404AndSwallow304OtherwiseReturnError will log and delete resource if error is 404 which indicates resource (or any of its ancestors)
@@ -326,6 +219,7 @@ func deleteResourceOn404AndSwallow304OtherwiseReturnError(err error, d *schema.R
 	var ghErr *github.ErrorResponse
 	if errors.As(err, &ghErr) {
 		if ghErr.Response.StatusCode == http.StatusNotModified {
+			log.Printf("[INFO] Resource %s not modified, skipping", resourceDescription)
 			return nil
 		}
 		if ghErr.Response.StatusCode == http.StatusNotFound {
@@ -366,14 +260,15 @@ func toInt64(v any) int64 {
 	}
 }
 
-// lookupTeamID looks up the ID of a team by its slug.
-func lookupTeamID(ctx context.Context, meta *Owner, slug string) (int64, error) {
-	client := meta.v3client
-	owner := meta.name
-
-	team, _, err := client.Teams.GetTeamBySlug(ctx, owner, slug)
-	if err != nil {
-		return 0, err
+// resourceKeysGetOk is a helper function that checks multiple keys in the ResourceData and returns the first one that is set and a boolean indicating if any were set.
+func resourceKeysGetOk[T any](d *schema.ResourceData, keys ...string) (T, bool) {
+	var empty T
+	for _, key := range keys {
+		if v, ok := d.GetOk(key); ok {
+			if vv, ok := v.(T); ok {
+				return vv, true
+			}
+		}
 	}
-	return team.GetID(), nil
+	return empty, false
 }

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -75,7 +75,7 @@ func resourceGithubMembershipCreateOrUpdate(ctx context.Context, d *schema.Resou
 		username,
 		orgName,
 		&github.Membership{
-			Role: github.Ptr(roleName),
+			Role: new(roleName),
 		},
 	)
 	if err != nil {
@@ -100,7 +100,7 @@ func resourceGithubMembershipRead(ctx context.Context, d *schema.ResourceData, m
 	client := meta.(*Owner).v3client
 
 	orgName := meta.(*Owner).name
-	_, username, err := parseTwoPartID(d.Id(), "organization", "username")
+	_, username, err := parseID2(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -191,7 +191,7 @@ func resourceGithubMembershipDelete(ctx context.Context, d *schema.ResourceData,
 		}
 
 		_, _, err = client.Organizations.EditOrgMembership(ctx, username, orgName, &github.Membership{
-			Role: github.Ptr(downgradeTo),
+			Role: new(downgradeTo),
 		})
 	} else {
 		tflog.Info(ctx, fmt.Sprintf("Revoking '%s' membership for '%s'", orgName, username), map[string]any{

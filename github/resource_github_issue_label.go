@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -78,8 +78,8 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta any) er
 	color := d.Get("color").(string)
 
 	label := &github.Label{
-		Name:  github.Ptr(name),
-		Color: github.Ptr(color),
+		Name:  new(name),
+		Color: new(color),
 	}
 	ctx := context.Background()
 	if !d.IsNewResource() {
@@ -93,7 +93,7 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta any) er
 		originalName = name
 	} else {
 		var err error
-		_, originalName, err = parseTwoPartID(d.Id(), "repository", "name")
+		_, originalName, err = parseID2(d.Id())
 		if err != nil {
 			return err
 		}
@@ -106,7 +106,7 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta any) er
 	}
 
 	if existing != nil {
-		label.Description = github.Ptr(d.Get("description").(string))
+		label.Description = new(d.Get("description").(string))
 
 		// Pull out the original name. If we already have a resource, this is the
 		// parsed ID. If not, it's the value given to the resource.
@@ -115,7 +115,7 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta any) er
 			originalName = name
 		} else {
 			var err error
-			_, originalName, err = parseTwoPartID(d.Id(), "repository", "name")
+			_, originalName, err = parseID2(d.Id())
 			if err != nil {
 				return err
 			}
@@ -128,7 +128,7 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta any) er
 		}
 	} else {
 		if v, ok := d.GetOk("description"); ok {
-			label.Description = github.Ptr(v.(string))
+			label.Description = new(v.(string))
 		}
 
 		_, _, err := client.Issues.CreateLabel(ctx,
@@ -145,7 +145,7 @@ func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta any) er
 
 func resourceGithubIssueLabelRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
-	repoName, name, err := parseTwoPartID(d.Id(), "repository", "name")
+	repoName, name, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}

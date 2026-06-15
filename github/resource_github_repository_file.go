@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -141,23 +141,23 @@ func resourceGithubRepositoryFileOptions(d *schema.ResourceData) *github.Reposit
 	}
 
 	if branch, ok := d.GetOk("branch"); ok {
-		opts.Branch = github.Ptr(branch.(string))
+		opts.Branch = new(branch.(string))
 	}
 
 	if commitMessage, hasCommitMessage := d.GetOk("commit_message"); hasCommitMessage {
-		opts.Message = github.Ptr(commitMessage.(string))
+		opts.Message = new(commitMessage.(string))
 	}
 
 	if SHA, hasSHA := d.GetOk("sha"); hasSHA {
-		opts.SHA = github.Ptr(SHA.(string))
+		opts.SHA = new(SHA.(string))
 	}
 
 	commitAuthor, hasCommitAuthor := d.GetOk("commit_author")
 	commitEmail, hasCommitEmail := d.GetOk("commit_email")
 
 	if hasCommitAuthor && hasCommitEmail {
-		name := github.Ptr(commitAuthor.(string))
-		mail := github.Ptr(commitEmail.(string))
+		name := new(commitAuthor.(string))
+		mail := new(commitEmail.(string))
 		opts.Author = &github.CommitAuthor{Name: name, Email: mail}
 		opts.Committer = &github.CommitAuthor{Name: name, Email: mail}
 	}
@@ -207,7 +207,7 @@ func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceD
 	opts := resourceGithubRepositoryFileOptions(d)
 
 	if opts.Message == nil {
-		opts.Message = github.Ptr(fmt.Sprintf("Add %s", file))
+		opts.Message = new(fmt.Sprintf("Add %s", file))
 	}
 
 	tflog.Debug(ctx, "Checking if overwriting a repository file")
@@ -242,7 +242,7 @@ func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceD
 		return diag.FromErr(err)
 	}
 
-	newResourceID, err := buildID(repo, file, branch)
+	newResourceID, err := buildID(repo, escapeIDPart(file), branch)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -379,7 +379,7 @@ func resourceGithubRepositoryFileUpdate(ctx context.Context, d *schema.ResourceD
 	opts := resourceGithubRepositoryFileOptions(d)
 
 	if *opts.Message == fmt.Sprintf("Add %s", file) {
-		opts.Message = github.Ptr(fmt.Sprintf("Update %s", file))
+		opts.Message = new(fmt.Sprintf("Update %s", file))
 	}
 
 	update, _, err := client.Repositories.UpdateFile(ctx, owner, repo, file, opts)
@@ -392,7 +392,7 @@ func resourceGithubRepositoryFileUpdate(ctx context.Context, d *schema.ResourceD
 	}
 
 	if d.HasChanges("repository", "file", "branch") {
-		newResourceID, err := buildID(repo, file, branch)
+		newResourceID, err := buildID(repo, escapeIDPart(file), branch)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -412,11 +412,11 @@ func resourceGithubRepositoryFileDelete(ctx context.Context, d *schema.ResourceD
 	opts := resourceGithubRepositoryFileOptions(d)
 
 	if *opts.Message == fmt.Sprintf("Add %s", file) {
-		opts.Message = github.Ptr(fmt.Sprintf("Delete %s", file))
+		opts.Message = new(fmt.Sprintf("Delete %s", file))
 	}
 
 	branch := d.Get("branch").(string)
-	opts.Branch = github.Ptr(branch)
+	opts.Branch = new(branch)
 
 	_, _, err := client.Repositories.DeleteFile(ctx, owner, repo, file, opts)
 	return diag.FromErr(handleArchivedRepoDelete(err, "repository file", file, owner, repo))
@@ -433,10 +433,12 @@ func autoBranchDiffSuppressFunc(k, _, _ string, d *schema.ResourceData) bool {
 }
 
 func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	repo, filePath, branch, err := parseID3(d.Id())
+	repo, filePathPart, branch, err := parseID3(d.Id())
 	if err != nil {
 		return nil, fmt.Errorf("invalid ID specified. Supplied ID must be written as <repository>:<file path>: (when branch is default) or <repository>:<file path>:<branch>. %w", err)
 	}
+
+	filePath := unescapeIDPart(filePathPart)
 
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
@@ -468,7 +470,7 @@ func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceD
 		return nil, err
 	}
 
-	newResourceID, err := buildID(repo, filePath, branch)
+	newResourceID, err := buildID(repo, escapeIDPart(filePath), branch)
 	if err != nil {
 		return nil, err
 	}

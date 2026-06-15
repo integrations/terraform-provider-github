@@ -1,16 +1,18 @@
 package github
 
 import (
+	"context"
 	"strconv"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v88/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
 
 func dataSourceGithubOrganization() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubOrganizationRead,
+		ReadContext: dataSourceGithubOrganizationRead,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -148,16 +150,15 @@ func dataSourceGithubOrganization() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubOrganizationRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	name := d.Get("name").(string)
 
 	client4 := meta.(*Owner).v4client
 	client3 := meta.(*Owner).v3client
-	ctx := meta.(*Owner).StopContext
 
 	organization, _, err := client3.Organizations.Get(ctx, name)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	var planName string
@@ -178,7 +179,7 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta any) error {
 		for {
 			repos, resp, err := client3.Repositories.ListByOrg(ctx, name, opts)
 			if err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 			allRepos = append(allRepos, repos...)
 
@@ -226,7 +227,7 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta any) error {
 		for {
 			err := client4.Query(ctx, &query, variables)
 			if err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 			for _, edge := range query.Organization.MembersWithRole.Edges {
 				members = append(members, string(edge.Node.Login))
@@ -240,7 +241,7 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta any) error {
 			if !query.Organization.MembersWithRole.PageInfo.HasNextPage {
 				break
 			}
-			variables["after"] = githubv4.NewString(query.Organization.MembersWithRole.PageInfo.EndCursor)
+			variables["after"] = new(query.Organization.MembersWithRole.PageInfo.EndCursor)
 		}
 
 		_ = d.Set("repositories", repoList)
@@ -253,7 +254,7 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta any) error {
 		_ = d.Set("members_can_create_public_repositories", organization.GetMembersCanCreatePublicRepos())
 		_ = d.Set("members_can_create_private_repositories", organization.GetMembersCanCreatePrivateRepos())
 		_ = d.Set("members_can_create_internal_repositories", organization.GetMembersCanCreateInternalRepos())
-		_ = d.Set("members_can_fork_private_repositories", organization.GetMembersCanCreatePrivateRepos())
+		_ = d.Set("members_can_fork_private_repositories", organization.GetMembersCanForkPrivateRepos())
 		_ = d.Set("web_commit_signoff_required", organization.GetWebCommitSignoffRequired())
 		_ = d.Set("members_can_create_pages", organization.GetMembersCanCreatePages())
 		_ = d.Set("members_can_create_public_pages", organization.GetMembersCanCreatePublicPages())

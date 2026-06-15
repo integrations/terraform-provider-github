@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -257,7 +257,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 															"type": {
 																Type:             schema.TypeString,
 																Required:         true,
-																ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"Team"}, false), "type"),
+																ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"Team"}, false)),
 																Description:      "The type of reviewer. Currently only `Team` is supported.",
 															},
 														},
@@ -854,7 +854,7 @@ func resourceGithubRepositoryRulesetDelete(ctx context.Context, d *schema.Resour
 }
 
 func resourceGithubRepositoryRulesetImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	repoName, rulesetIDStr, err := parseTwoPartID(d.Id(), "repository", "ruleset")
+	repoName, rulesetIDStr, err := parseID2(d.Id())
 	if err != nil {
 		return []*schema.ResourceData{d}, err
 	}

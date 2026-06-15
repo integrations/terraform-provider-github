@@ -4,7 +4,8 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v88/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/shurcooL/githubv4"
@@ -12,7 +13,7 @@ import (
 
 func dataSourceGithubOrganizationTeams() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubOrganizationTeamsRead,
+		ReadContext: dataSourceGithubOrganizationTeamsRead,
 
 		Schema: map[string]*schema.Schema{
 			"root_teams_only": {
@@ -29,7 +30,7 @@ func dataSourceGithubOrganizationTeams() *schema.Resource {
 				Type:             schema.TypeInt,
 				Optional:         true,
 				Default:          100,
-				ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 100), "results_per_page"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 100)),
 			},
 			"teams": {
 				Type:     schema.TypeList,
@@ -91,10 +92,10 @@ func dataSourceGithubOrganizationTeams() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationTeamsRead(d *schema.ResourceData, meta any) error {
+func dataSourceGithubOrganizationTeamsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	clientv3 := meta.(*Owner).v3client
@@ -116,27 +117,27 @@ func dataSourceGithubOrganizationTeamsRead(d *schema.ResourceData, meta any) err
 
 	var teams []any
 	for {
-		err = client.Query(meta.(*Owner).StopContext, &query, variables)
+		err = client.Query(ctx, &query, variables)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
-		additionalTeams, err := flattenGitHubTeams(clientv3, meta.(*Owner).StopContext, orgName, query)
+		additionalTeams, err := flattenGitHubTeams(clientv3, ctx, orgName, query)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		teams = append(teams, additionalTeams...)
 
 		if !query.Organization.Teams.PageInfo.HasNextPage {
 			break
 		}
-		variables["cursor"] = githubv4.NewString(query.Organization.Teams.PageInfo.EndCursor)
+		variables["cursor"] = new(query.Organization.Teams.PageInfo.EndCursor)
 	}
 
 	d.SetId(string(query.Organization.ID))
 	err = d.Set("teams", teams)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
