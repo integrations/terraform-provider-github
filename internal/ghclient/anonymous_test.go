@@ -7,7 +7,7 @@ import (
 func TestNewAnonymousSource(t *testing.T) {
 	t.Parallel()
 
-	source, err := NewAnonymousSource(Options{})
+	source, err := NewAnonymousSource(testOptions(t))
 	if err != nil {
 		t.Fatalf("failed to create anonymous source: %v", err)
 	}
@@ -23,7 +23,7 @@ func Test_anonymousSource(t *testing.T) {
 	t.Run("RESTClient", func(t *testing.T) {
 		t.Parallel()
 
-		source, err := NewAnonymousSource(Options{})
+		source, err := NewAnonymousSource(testOptions(t))
 		if err != nil {
 			t.Fatalf("failed to create anonymous source: %v", err)
 		}
@@ -41,7 +41,7 @@ func Test_anonymousSource(t *testing.T) {
 	t.Run("OwnerRESTClient", func(t *testing.T) {
 		t.Parallel()
 
-		source, err := NewAnonymousSource(Options{})
+		source, err := NewAnonymousSource(testOptions(t))
 		if err != nil {
 			t.Fatalf("failed to create anonymous source: %v", err)
 		}
@@ -64,7 +64,7 @@ func Test_anonymousSource(t *testing.T) {
 	t.Run("GraphQLClient", func(t *testing.T) {
 		t.Parallel()
 
-		source, err := NewAnonymousSource(Options{})
+		source, err := NewAnonymousSource(testOptions(t))
 		if err != nil {
 			t.Fatalf("failed to create anonymous source: %v", err)
 		}
@@ -82,7 +82,7 @@ func Test_anonymousSource(t *testing.T) {
 	t.Run("OwnerGraphQLClient", func(t *testing.T) {
 		t.Parallel()
 
-		source, err := NewAnonymousSource(Options{})
+		source, err := NewAnonymousSource(testOptions(t))
 		if err != nil {
 			t.Fatalf("failed to create anonymous source: %v", err)
 		}

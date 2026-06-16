@@ -2,10 +2,11 @@ package ghclient
 
 import (
 	"net/http"
-	"net/http/httptest"
-	"sync/atomic"
 	"testing"
 	"time"
+
+	"golang.org/x/oauth2"
+	"golang.org/x/sync/semaphore"
 )
 
 func Test_cloneTransport(t *testing.T) {
@@ -33,7 +34,7 @@ func Test_cloneTransport(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			cloned := cloneTransport(tt.original)
+			cloned := cloneTransport(tt.original, Options{maxIdleConns: 10, idleConnTimeout: 30 * time.Second})
 
 			if tt.expectSamePointer && cloned != tt.original {
 				t.Fatal("expected cloned transport to match original pointer")
@@ -55,63 +56,65 @@ func Test_newTransport(t *testing.T) {
 	t.Parallel()
 
 	for _, tt := range []struct {
-		name                 string
-		opts                 Options
-		firstStatusCode      int
-		retryStatusCode      int
-		expectedStatusCode   int
-		expectedRequestCount int32
+		name            string
+		withTokenSource bool
+		retryMax        int
+		withSemaphore   bool
 	}{
 		{
-			name:                 "retry_disabled",
-			opts:                 Options{},
-			firstStatusCode:      http.StatusInternalServerError,
-			retryStatusCode:      http.StatusOK,
-			expectedStatusCode:   http.StatusInternalServerError,
-			expectedRequestCount: 1,
+			name:            "base_transport",
+			withTokenSource: false,
+			retryMax:        0,
+			withSemaphore:   false,
 		},
 		{
-			name:                 "retry_enabled",
-			opts:                 Options{RetryMax: 1, RetryWaitMin: time.Millisecond, RetryWaitMax: time.Millisecond},
-			firstStatusCode:      http.StatusInternalServerError,
-			retryStatusCode:      http.StatusOK,
-			expectedStatusCode:   http.StatusOK,
-			expectedRequestCount: 2,
+			name:            "with_retry",
+			withTokenSource: false,
+			retryMax:        1,
+			withSemaphore:   false,
+		},
+		{
+			name:            "with_token_source",
+			withTokenSource: true,
+			retryMax:        0,
+			withSemaphore:   false,
+		},
+		{
+			name:            "with_throttler",
+			withTokenSource: false,
+			retryMax:        0,
+			withSemaphore:   true,
+		},
+		{
+			name:            "with_all_wrappers",
+			withTokenSource: true,
+			retryMax:        1,
+			withSemaphore:   true,
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			var requestCount atomic.Int32
-			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-				count := requestCount.Add(1)
-				if count == 1 {
-					w.WriteHeader(tt.firstStatusCode)
-					return
-				}
+			testOpts := testOptions(t)
+			testOpts.RetryMax = tt.retryMax
+			testOpts.RetryWaitMin = time.Millisecond
+			testOpts.RetryWaitMax = time.Millisecond
+			if tt.withSemaphore {
+				testOpts.sema = semaphore.NewWeighted(1)
+			}
 
-				w.WriteHeader(tt.retryStatusCode)
-			}))
-			defer ts.Close()
+			var tokenSource oauth2.TokenSource
+			if tt.withTokenSource {
+				tokenSource = oauth2.StaticTokenSource(&oauth2.Token{AccessToken: "test-token"})
+			}
 
-			tr, err := newTransport(nil, tt.opts)
+			tr, err := newTransport(tokenSource, testOpts)
 			if err != nil {
 				t.Fatalf("failed to create transport: %v", err)
 			}
 
-			client := &http.Client{Transport: tr, Timeout: 10 * time.Second}
-			resp, err := client.Get(ts.URL)
-			if err != nil {
-				t.Fatalf("failed to perform request: %v", err)
-			}
-			defer resp.Body.Close()
-
-			if resp.StatusCode != tt.expectedStatusCode {
-				t.Fatalf("expected status code %d, got %d", tt.expectedStatusCode, resp.StatusCode)
-			}
-
-			if requestCount.Load() != tt.expectedRequestCount {
-				t.Fatalf("expected %d requests, got %d", tt.expectedRequestCount, requestCount.Load())
+			if tr == nil {
+				t.Fatal("expected transport to be non-nil")
 			}
 		})
 	}

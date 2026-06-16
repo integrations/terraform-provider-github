@@ -20,7 +20,7 @@ type Config struct {
 	AppInstallationID *string
 	AppPEM            []byte
 	BaseURL           *url.URL
-	CachePath         *string
+	CachePath         string
 	GraphQLAPIPath    string
 	Insecure          bool
 	LegacyClient      bool

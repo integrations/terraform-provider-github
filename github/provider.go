@@ -498,7 +498,7 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 		if v, ok := d.GetOk("cache_path"); ok {
 			if s, ok := v.(string); ok && s != "" {
 				tflog.Debug(ctx, "Using cache path from provider configuration.", map[string]any{"cache_path": s})
-				config.CachePath = &s
+				config.CachePath = s
 			}
 		}
 
@@ -538,8 +538,8 @@ func configureProviderMeta(ctx context.Context, c *Config) (*Owner, error) {
 		owner.v4client = v4client
 	} else {
 		options := ghclient.Options{
-			RESTAPIURL:   new(c.BaseURL.JoinPath(c.RESTAPIPath).String()),
-			GraphQLURL:   new(c.BaseURL.JoinPath(c.GraphQLAPIPath).String()),
+			RESTAPIURL:   c.BaseURL.JoinPath(c.RESTAPIPath).String(),
+			GraphQLURL:   c.BaseURL.JoinPath(c.GraphQLAPIPath).String(),
 			CachePath:    c.CachePath,
 			RetryMax:     c.MaxRetries,
 			RetryWaitMin: c.RetryDelay,

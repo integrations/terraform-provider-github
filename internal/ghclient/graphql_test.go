@@ -5,38 +5,41 @@ import "testing"
 func Test_newGraphQLClient(t *testing.T) {
 	t.Parallel()
 
-	t.Run("default_URL", func(t *testing.T) {
-		t.Parallel()
+	for _, tt := range []struct {
+		name       string
+		graphQLURL string
+	}{
+		{
+			name:       "default_URL",
+			graphQLURL: "https://api.github.com/graphql",
+		},
+		{
+			name:       "enterprise_URL",
+			graphQLURL: "https://ghe.example.com/api/graphql",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-		client, err := newGraphQLClient(nil, Options{})
-		if err != nil {
-			t.Fatalf("failed to create graphql client with default url: %v", err)
-		}
+			opts := testOptions(t)
+			opts.GraphQLURL = tt.graphQLURL
 
-		if client == nil {
-			t.Fatal("expected graphql client to be non-nil")
-		}
-	})
+			client, err := newGraphQLClient(nil, opts)
+			if err != nil {
+				t.Fatalf("failed to create graphql client: %v", err)
+			}
 
-	t.Run("enterprise_URL", func(t *testing.T) {
-		t.Parallel()
-
-		graphQLURL := "https://ghe.example.com/api/graphql"
-		client, err := newGraphQLClient(nil, Options{GraphQLURL: &graphQLURL})
-		if err != nil {
-			t.Fatalf("failed to create graphql client with enterprise url: %v", err)
-		}
-
-		if client == nil {
-			t.Fatal("expected graphql client to be non-nil")
-		}
-	})
+			if client == nil {
+				t.Fatal("expected graphql client to be non-nil")
+			}
+		})
+	}
 }
 
 func TestNewAnonymousGraphQLClient(t *testing.T) {
 	t.Parallel()
 
-	client, err := NewAnonymousGraphQLClient(Options{})
+	client, err := NewAnonymousGraphQLClient(testOptions(t))
 	if err != nil {
 		t.Fatalf("failed to create anonymous graphql client: %v", err)
 	}
@@ -48,28 +51,42 @@ func TestNewAnonymousGraphQLClient(t *testing.T) {
 
 func TestNewAppGraphQLClient(t *testing.T) {
 	t.Parallel()
+	privateKeyData := mustReadTestAppPrivateKey(t)
 
-	t.Run("invalid_private_key", func(t *testing.T) {
-		t.Parallel()
+	for _, tt := range []struct {
+		name       string
+		privateKey []byte
+		expectErr  bool
+	}{
+		{
+			name:       "invalid_private_key",
+			privateKey: []byte("invalid-private-key"),
+			expectErr:  true,
+		},
+		{
+			name:       "valid_private_key",
+			privateKey: privateKeyData,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-		_, err := NewAppGraphQLClient("123456789", []byte("invalid-private-key"), nil, Options{})
-		if err == nil {
-			t.Fatal("expected app graphql client creation to fail for invalid private key")
-		}
-	})
+			client, err := NewAppGraphQLClient("123456789", tt.privateKey, nil, testOptions(t))
+			if tt.expectErr {
+				if err == nil {
+					t.Fatal("expected app graphql client creation to fail for invalid private key")
+				}
 
-	t.Run("valid_private_key", func(t *testing.T) {
-		t.Parallel()
+				return
+			}
 
-		privateKeyData := mustReadTestAppPrivateKey(t)
+			if err != nil {
+				t.Fatalf("failed to create app graphql client: %v", err)
+			}
 
-		client, err := NewAppGraphQLClient("123456789", privateKeyData, nil, Options{})
-		if err != nil {
-			t.Fatalf("failed to create app graphql client: %v", err)
-		}
-
-		if client == nil {
-			t.Fatal("expected app graphql client to be non-nil")
-		}
-	})
+			if client == nil {
+				t.Fatal("expected app graphql client to be non-nil")
+			}
+		})
+	}
 }

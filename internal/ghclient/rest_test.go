@@ -7,7 +7,7 @@ import (
 func Test_newRESTClient(t *testing.T) {
 	t.Parallel()
 
-	client, err := newRESTClient(nil, Options{})
+	client, err := newRESTClient(nil, testOptions(t))
 	if err != nil {
 		t.Fatalf("failed to create rest client: %v", err)
 	}
@@ -20,7 +20,7 @@ func Test_newRESTClient(t *testing.T) {
 func TestNewAnonymousRESTClient(t *testing.T) {
 	t.Parallel()
 
-	client, err := NewAnonymousRESTClient(Options{})
+	client, err := NewAnonymousRESTClient(testOptions(t))
 	if err != nil {
 		t.Fatalf("failed to create anonymous rest client: %v", err)
 	}
@@ -32,28 +32,42 @@ func TestNewAnonymousRESTClient(t *testing.T) {
 
 func TestNewAppRESTClient(t *testing.T) {
 	t.Parallel()
+	privateKeyData := mustReadTestAppPrivateKey(t)
 
-	t.Run("invalid_private_key", func(t *testing.T) {
-		t.Parallel()
+	for _, tt := range []struct {
+		name       string
+		privateKey []byte
+		expectErr  bool
+	}{
+		{
+			name:       "invalid_private_key",
+			privateKey: []byte("invalid-private-key"),
+			expectErr:  true,
+		},
+		{
+			name:       "valid_private_key",
+			privateKey: privateKeyData,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-		_, err := NewAppRESTClient("123456789", []byte("invalid-private-key"), nil, Options{})
-		if err == nil {
-			t.Fatal("expected app rest client creation to fail for invalid private key")
-		}
-	})
+			client, err := NewAppRESTClient("123456789", tt.privateKey, nil, testOptions(t))
+			if tt.expectErr {
+				if err == nil {
+					t.Fatal("expected app rest client creation to fail for invalid private key")
+				}
 
-	t.Run("valid_private_key", func(t *testing.T) {
-		t.Parallel()
+				return
+			}
 
-		privateKeyData := mustReadTestAppPrivateKey(t)
+			if err != nil {
+				t.Fatalf("failed to create app rest client: %v", err)
+			}
 
-		client, err := NewAppRESTClient("123456789", privateKeyData, nil, Options{})
-		if err != nil {
-			t.Fatalf("failed to create app rest client: %v", err)
-		}
-
-		if client == nil {
-			t.Fatal("expected app rest client to be non-nil")
-		}
-	})
+			if client == nil {
+				t.Fatal("expected app rest client to be non-nil")
+			}
+		})
+	}
 }

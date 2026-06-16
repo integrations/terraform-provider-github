@@ -1,7 +1,6 @@
 package ghclient
 
 import (
-	"context"
 	"net/http"
 	"strings"
 	"sync/atomic"
@@ -13,7 +12,7 @@ func TestNewAppSource(t *testing.T) {
 
 	privateKeyData := mustReadTestAppPrivateKey(t)
 
-	source, err := NewAppSource("123456789", privateKeyData, Options{})
+	source, err := NewAppSource("123456789", privateKeyData, testOptions(t))
 	if err != nil {
 		t.Fatalf("failed to create app source: %v", err)
 	}
@@ -56,57 +55,52 @@ func Test_appSource(t *testing.T) {
 
 	t.Run("OwnerClient_cache_by_owner", func(t *testing.T) {
 		t.Parallel()
+		var orgRequests atomic.Int32
+		source := mustTestAppSource(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if strings.HasSuffix(r.URL.Path, "/orgs/acme/installation") {
+				orgRequests.Add(1)
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"id": 1001}`))
+				return
+			}
 
-		for _, tt := range []struct {
-			name       string
-			callClient func(context.Context, *appSource, string) (any, error)
-		}{
-			{
-				name: "rest",
-				callClient: func(ctx context.Context, source *appSource, owner string) (any, error) {
-					return source.OwnerRESTClient(ctx, owner)
-				},
-			},
-			{
-				name: "graphql",
-				callClient: func(ctx context.Context, source *appSource, owner string) (any, error) {
-					return source.OwnerGraphQLClient(ctx, owner)
-				},
-			},
-		} {
-			t.Run(tt.name, func(t *testing.T) {
-				t.Parallel()
+			w.WriteHeader(http.StatusNotFound)
+		}))
 
-				var orgRequests atomic.Int32
-				source := mustTestAppSource(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if strings.HasSuffix(r.URL.Path, "/orgs/acme/installation") {
-						orgRequests.Add(1)
-						w.WriteHeader(http.StatusOK)
-						_, _ = w.Write([]byte(`{"id": 1001}`))
-						return
-					}
+		firstRESTClient, err := source.OwnerRESTClient(t.Context(), "acme")
+		if err != nil {
+			t.Fatalf("failed to get first owner rest client: %v", err)
+		}
 
-					w.WriteHeader(http.StatusNotFound)
-				}))
+		secondRESTClient, err := source.OwnerRESTClient(t.Context(), "acme")
+		if err != nil {
+			t.Fatalf("failed to get second owner rest client: %v", err)
+		}
 
-				firstClient, err := tt.callClient(t.Context(), source, "acme")
-				if err != nil {
-					t.Fatalf("failed to get first owner client: %v", err)
-				}
+		if firstRESTClient != secondRESTClient {
+			t.Fatal("expected owner rest client to be cached")
+		}
 
-				secondClient, err := tt.callClient(t.Context(), source, "acme")
-				if err != nil {
-					t.Fatalf("failed to get second owner client: %v", err)
-				}
+		if orgRequests.Load() != 1 {
+			t.Fatalf("expected one organization installation lookup after rest client requests, got %d", orgRequests.Load())
+		}
 
-				if firstClient != secondClient {
-					t.Fatal("expected owner client to be cached")
-				}
+		firstGraphQLClient, err := source.OwnerGraphQLClient(t.Context(), "acme")
+		if err != nil {
+			t.Fatalf("failed to get first owner graphql client: %v", err)
+		}
 
-				if orgRequests.Load() != 1 {
-					t.Fatalf("expected one organization installation lookup, got %d", orgRequests.Load())
-				}
-			})
+		secondGraphQLClient, err := source.OwnerGraphQLClient(t.Context(), "acme")
+		if err != nil {
+			t.Fatalf("failed to get second owner graphql client: %v", err)
+		}
+
+		if firstGraphQLClient != secondGraphQLClient {
+			t.Fatal("expected owner graphql client to be cached")
+		}
+
+		if orgRequests.Load() != 2 {
+			t.Fatalf("expected one organization installation lookup per client type, got %d", orgRequests.Load())
 		}
 	})
 
@@ -115,103 +109,108 @@ func Test_appSource(t *testing.T) {
 
 		fallbackID := int64(2002)
 
-		for _, tt := range []struct {
-			name            string
-			owner           string
-			handleRequest   func(w http.ResponseWriter, r *http.Request, orgRequests, userRequests *atomic.Int32)
-			expectError     bool
-			errorContains   string
-			expectedID      *int64
-			expectedOrgReq  int32
-			expectedUserReq int32
-		}{
-			{
-				name:  "fallback_to_user",
-				owner: "octocat",
-				handleRequest: func(w http.ResponseWriter, r *http.Request, orgRequests, userRequests *atomic.Int32) {
-					if strings.HasSuffix(r.URL.Path, "/orgs/octocat/installation") {
-						orgRequests.Add(1)
-						w.WriteHeader(http.StatusNotFound)
-						return
-					}
-					if strings.HasSuffix(r.URL.Path, "/users/octocat/installation") {
-						userRequests.Add(1)
-						w.WriteHeader(http.StatusOK)
-						_, _ = w.Write([]byte(`{"id": 2002}`))
-						return
-					}
-					w.WriteHeader(http.StatusNotFound)
-				},
-				expectedID:      &fallbackID,
-				expectedOrgReq:  1,
-				expectedUserReq: 1,
-			},
-			{
-				name:  "org_lookup_error",
-				owner: "acme",
-				handleRequest: func(w http.ResponseWriter, r *http.Request, orgRequests, _ *atomic.Int32) {
-					if strings.HasSuffix(r.URL.Path, "/orgs/acme/installation") {
-						orgRequests.Add(1)
-						w.WriteHeader(http.StatusInternalServerError)
-						_, _ = w.Write([]byte(`{"message": "boom"}`))
-						return
-					}
-					w.WriteHeader(http.StatusNotFound)
-				},
-				expectError:    true,
-				errorContains:  `failed to get installation for owner "acme"`,
-				expectedOrgReq: 1,
-			},
-			{
-				name:  "no_installation_id",
-				owner: "acme",
-				handleRequest: func(w http.ResponseWriter, r *http.Request, orgRequests, _ *atomic.Int32) {
-					if strings.HasSuffix(r.URL.Path, "/orgs/acme/installation") {
-						orgRequests.Add(1)
-						w.WriteHeader(http.StatusOK)
-						_, _ = w.Write([]byte(`{}`))
-						return
-					}
-					w.WriteHeader(http.StatusNotFound)
-				},
-				expectError:    true,
-				errorContains:  `no installation found for owner "acme"`,
-				expectedOrgReq: 1,
-			},
-		} {
-			t.Run(tt.name, func(t *testing.T) {
-				t.Parallel()
+		t.Run("fallback_to_user", func(t *testing.T) {
+			t.Parallel()
 
-				var orgRequests atomic.Int32
-				var userRequests atomic.Int32
-				source := mustTestAppSource(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					tt.handleRequest(w, r, &orgRequests, &userRequests)
-				}))
+			var orgRequests atomic.Int32
+			var userRequests atomic.Int32
+			source := mustTestAppSource(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if strings.HasSuffix(r.URL.Path, "/orgs/octocat/installation") {
+					orgRequests.Add(1)
+					w.WriteHeader(http.StatusNotFound)
+					return
+				}
+				if strings.HasSuffix(r.URL.Path, "/users/octocat/installation") {
+					userRequests.Add(1)
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(`{"id": 2002}`))
+					return
+				}
+				w.WriteHeader(http.StatusNotFound)
+			}))
 
-				installationID, err := source.GetInstallationID(t.Context(), tt.owner)
-				if tt.expectError {
-					if err == nil {
-						t.Fatal("expected error")
-					}
-					if tt.errorContains != "" && !strings.Contains(err.Error(), tt.errorContains) {
-						t.Fatalf("expected error containing %q, got %v", tt.errorContains, err)
-					}
-				} else {
-					if err != nil {
-						t.Fatalf("expected success, got error: %v", err)
-					}
-					if tt.expectedID != nil && (installationID == nil || *installationID != *tt.expectedID) {
-						t.Fatalf("expected installation id %d, got %v", *tt.expectedID, installationID)
-					}
-				}
+			installationID, err := source.GetInstallationID(t.Context(), "octocat")
+			if err != nil {
+				t.Fatalf("expected success, got error: %v", err)
+			}
 
-				if orgRequests.Load() != tt.expectedOrgReq {
-					t.Fatalf("expected %d org requests, got %d", tt.expectedOrgReq, orgRequests.Load())
+			if installationID == nil || *installationID != fallbackID {
+				t.Fatalf("expected installation id %d, got %v", fallbackID, installationID)
+			}
+
+			if orgRequests.Load() != 1 {
+				t.Fatalf("expected 1 org request, got %d", orgRequests.Load())
+			}
+
+			if userRequests.Load() != 1 {
+				t.Fatalf("expected 1 user request, got %d", userRequests.Load())
+			}
+		})
+
+		t.Run("org_lookup_error", func(t *testing.T) {
+			t.Parallel()
+
+			var orgRequests atomic.Int32
+			var userRequests atomic.Int32
+			source := mustTestAppSource(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if strings.HasSuffix(r.URL.Path, "/orgs/acme/installation") {
+					orgRequests.Add(1)
+					w.WriteHeader(http.StatusInternalServerError)
+					_, _ = w.Write([]byte(`{"message": "boom"}`))
+					return
 				}
-				if userRequests.Load() != tt.expectedUserReq {
-					t.Fatalf("expected %d user requests, got %d", tt.expectedUserReq, userRequests.Load())
+				w.WriteHeader(http.StatusNotFound)
+			}))
+
+			_, err := source.GetInstallationID(t.Context(), "acme")
+			if err == nil {
+				t.Fatal("expected error")
+			}
+
+			if !strings.Contains(err.Error(), `failed to get installation for owner "acme"`) {
+				t.Fatalf("expected installation lookup error, got %v", err)
+			}
+
+			if orgRequests.Load() != 1 {
+				t.Fatalf("expected 1 org request, got %d", orgRequests.Load())
+			}
+
+			if userRequests.Load() != 0 {
+				t.Fatalf("expected 0 user requests, got %d", userRequests.Load())
+			}
+		})
+
+		t.Run("no_installation_id", func(t *testing.T) {
+			t.Parallel()
+
+			var orgRequests atomic.Int32
+			var userRequests atomic.Int32
+			source := mustTestAppSource(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if strings.HasSuffix(r.URL.Path, "/orgs/acme/installation") {
+					orgRequests.Add(1)
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(`{}`))
+					return
 				}
-			})
-		}
+				w.WriteHeader(http.StatusNotFound)
+			}))
+
+			_, err := source.GetInstallationID(t.Context(), "acme")
+			if err == nil {
+				t.Fatal("expected error")
+			}
+
+			if !strings.Contains(err.Error(), `no installation found for owner "acme"`) {
+				t.Fatalf("expected missing installation error, got %v", err)
+			}
+
+			if orgRequests.Load() != 1 {
+				t.Fatalf("expected 1 org request, got %d", orgRequests.Load())
+			}
+
+			if userRequests.Load() != 0 {
+				t.Fatalf("expected 0 user requests, got %d", userRequests.Load())
+			}
+		})
 	})
 }

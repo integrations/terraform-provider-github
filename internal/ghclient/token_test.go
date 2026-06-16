@@ -7,7 +7,7 @@ import (
 func TestNewTokenSource(t *testing.T) {
 	t.Parallel()
 
-	source, err := NewTokenSource("test-token", Options{})
+	source, err := NewTokenSource("test-token", testOptions(t))
 	if err != nil {
 		t.Fatalf("failed to create token source: %v", err)
 	}
@@ -20,7 +20,7 @@ func TestNewTokenSource(t *testing.T) {
 func TestNewTokenRESTClient(t *testing.T) {
 	t.Parallel()
 
-	client, err := NewTokenRESTClient("test-token", Options{})
+	client, err := NewTokenRESTClient("test-token", testOptions(t))
 	if err != nil {
 		t.Fatalf("failed to create token rest client: %v", err)
 	}
@@ -33,7 +33,7 @@ func TestNewTokenRESTClient(t *testing.T) {
 func TestNewTokenGraphQLClient(t *testing.T) {
 	t.Parallel()
 
-	client, err := NewTokenGraphQLClient("test-token", Options{})
+	client, err := NewTokenGraphQLClient("test-token", testOptions(t))
 	if err != nil {
 		t.Fatalf("failed to create token graphql client: %v", err)
 	}
@@ -49,7 +49,7 @@ func Test_tokenSource(t *testing.T) {
 	t.Run("RESTClient", func(t *testing.T) {
 		t.Parallel()
 
-		source, err := NewTokenSource("test-token", Options{})
+		source, err := NewTokenSource("test-token", testOptions(t))
 		if err != nil {
 			t.Fatalf("failed to create token source: %v", err)
 		}
@@ -67,7 +67,7 @@ func Test_tokenSource(t *testing.T) {
 	t.Run("OwnerRESTClient", func(t *testing.T) {
 		t.Parallel()
 
-		source, err := NewTokenSource("test-token", Options{})
+		source, err := NewTokenSource("test-token", testOptions(t))
 		if err != nil {
 			t.Fatalf("failed to create token source: %v", err)
 		}
@@ -90,7 +90,7 @@ func Test_tokenSource(t *testing.T) {
 	t.Run("GraphQLClient", func(t *testing.T) {
 		t.Parallel()
 
-		source, err := NewTokenSource("test-token", Options{})
+		source, err := NewTokenSource("test-token", testOptions(t))
 		if err != nil {
 			t.Fatalf("failed to create token source: %v", err)
 		}
@@ -108,7 +108,7 @@ func Test_tokenSource(t *testing.T) {
 	t.Run("OwnerGraphQLClient", func(t *testing.T) {
 		t.Parallel()
 
-		source, err := NewTokenSource("test-token", Options{})
+		source, err := NewTokenSource("test-token", testOptions(t))
 		if err != nil {
 			t.Fatalf("failed to create token source: %v", err)
 		}
