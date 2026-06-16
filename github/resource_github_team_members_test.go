@@ -100,7 +100,7 @@ resource "github_team_members" "test" {
 			if err != nil {
 				t.Fatal(err.Error())
 			}
-			ctx := context.Background()
+			ctx := t.Context()
 			if _, err := meta.v3client.Teams.DeleteTeamBySlug(ctx, meta.name, teamName); err != nil {
 				t.Fatalf("failed to delete team out-of-band: %s", err)
 			}
