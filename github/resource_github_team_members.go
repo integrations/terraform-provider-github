@@ -268,16 +268,10 @@ func resourceGithubTeamMembersDelete(ctx context.Context, d *schema.ResourceData
 	meta := m.(*Owner)
 	client := meta.v3client
 	orgId := meta.id
+	orgName := meta.name
 
 	teamIdString := d.Get("team_id").(string)
-	teamId, err := getTeamID(ctx, meta, teamIdString)
-	if err != nil {
-		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
-			tflog.Info(ctx, "Team no longer exists, skipping member deletion", map[string]any{"team_id": teamIdString})
-			return nil
-		}
-		return diag.FromErr(err)
-	}
+	team := newLegacyTeamIdentity(teamIdString)
 
 	members := d.Get("members").(*schema.Set)
 
@@ -287,7 +281,12 @@ func resourceGithubTeamMembersDelete(ctx context.Context, d *schema.ResourceData
 
 		log.Printf("[DEBUG] Deleting team membership: %s/%s", teamIdString, username)
 
-		_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgId, teamId, username)
+		var err error
+		if slug, ok := team.getSlugOK(); ok {
+			_, err = client.Teams.RemoveTeamMembershipBySlug(ctx, orgName, slug, username)
+		} else {
+			_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgId, team.getID(), username)
+		}
 		if err != nil {
 			if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
 				// The GitHub API returns 204 (not 404) when the membership doesn't exist,
