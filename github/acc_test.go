@@ -109,7 +109,7 @@ func TestMain(m *testing.M) {
 		u = DotComAPIURL
 	}
 
-	baseURL, err := url.Parse(u)
+	baseURL, _, err := getBaseURL(u)
 	if err != nil {
 		fmt.Printf("Error parsing base URL: %s\n", err)
 		os.Exit(1)
