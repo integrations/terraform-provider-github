@@ -270,8 +270,7 @@ func resourceGithubTeamMembersDelete(ctx context.Context, d *schema.ResourceData
 		}
 		if err != nil {
 			if ghErr, ok := err.(*github.ErrorResponse); ok && ghErr.Response.StatusCode == http.StatusNotFound {
-				// The GitHub API returns 204 (not 404) when the membership doesn't exist,
-				// so a 404 here exclusively means the team itself is gone mid-delete.
+				// 404 means the team is gone (API returns 204 for missing memberships).
 				tflog.Info(ctx, "Team no longer exists, skipping remaining member deletions", map[string]any{"team_id": teamIdString})
 				return nil
 			}
