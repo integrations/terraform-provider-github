@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-testing/compare"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
@@ -102,6 +103,10 @@ func TestAccGithubEnterpriseSecurityConfiguration(t *testing.T) {
 		configBefore := fmt.Sprintf(tmpl, testAccConf.enterpriseSlug, configName, "Test configuration", "disabled")
 		configAfter := fmt.Sprintf(tmpl, testAccConf.enterpriseSlug, configNameUpdated, "Test configuration updated", "enabled")
 
+		// configuration_id must be identical across both steps, proving the change is an
+		// in-place update rather than a destroy-and-recreate.
+		configurationIDUnchanged := statecheck.CompareValue(compare.ValuesSame())
+
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
@@ -110,6 +115,8 @@ func TestAccGithubEnterpriseSecurityConfiguration(t *testing.T) {
 				{
 					Config: configBefore,
 					ConfigStateChecks: []statecheck.StateCheck{
+						configurationIDUnchanged.AddStateValue("github_enterprise_security_configuration.test",
+							tfjsonpath.New("configuration_id")),
 						statecheck.ExpectKnownValue("github_enterprise_security_configuration.test",
 							tfjsonpath.New("name"), knownvalue.StringExact(configName)),
 						statecheck.ExpectKnownValue("github_enterprise_security_configuration.test",
@@ -119,6 +126,8 @@ func TestAccGithubEnterpriseSecurityConfiguration(t *testing.T) {
 				{
 					Config: configAfter,
 					ConfigStateChecks: []statecheck.StateCheck{
+						configurationIDUnchanged.AddStateValue("github_enterprise_security_configuration.test",
+							tfjsonpath.New("configuration_id")),
 						statecheck.ExpectKnownValue("github_enterprise_security_configuration.test",
 							tfjsonpath.New("name"), knownvalue.StringExact(configNameUpdated)),
 						statecheck.ExpectKnownValue("github_enterprise_security_configuration.test",

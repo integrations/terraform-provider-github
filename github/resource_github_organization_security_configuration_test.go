@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-testing/compare"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
@@ -104,6 +105,10 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 			advanced_security = "enabled"
 		}`, configNameUpdated)
 
+		// configuration_id must be identical across both steps, proving the change is an
+		// in-place update rather than a destroy-and-recreate.
+		configurationIDUnchanged := statecheck.CompareValue(compare.ValuesSame())
+
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
@@ -112,6 +117,8 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 				{
 					Config: configBefore,
 					ConfigStateChecks: []statecheck.StateCheck{
+						configurationIDUnchanged.AddStateValue("github_organization_security_configuration.test",
+							tfjsonpath.New("configuration_id")),
 						statecheck.ExpectKnownValue("github_organization_security_configuration.test",
 							tfjsonpath.New("name"), knownvalue.StringExact(configName)),
 						statecheck.ExpectKnownValue("github_organization_security_configuration.test",
@@ -121,6 +128,8 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 				{
 					Config: configAfter,
 					ConfigStateChecks: []statecheck.StateCheck{
+						configurationIDUnchanged.AddStateValue("github_organization_security_configuration.test",
+							tfjsonpath.New("configuration_id")),
 						statecheck.ExpectKnownValue("github_organization_security_configuration.test",
 							tfjsonpath.New("name"), knownvalue.StringExact(configNameUpdated)),
 						statecheck.ExpectKnownValue("github_organization_security_configuration.test",
@@ -150,6 +159,9 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 				runner_type = "labeled"
 				runner_label = "code-scanning"
 			}
+			code_scanning_options {
+				allow_advanced = true
+			}
 			secret_scanning = "enabled"
 			secret_scanning_push_protection = "enabled"
 		}`, configName)
@@ -170,6 +182,8 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 							tfjsonpath.New("code_scanning_default_setup_options").AtSliceIndex(0).AtMapKey("runner_type"), knownvalue.StringExact("labeled")),
 						statecheck.ExpectKnownValue("github_organization_security_configuration.test",
 							tfjsonpath.New("code_scanning_default_setup_options").AtSliceIndex(0).AtMapKey("runner_label"), knownvalue.StringExact("code-scanning")),
+						statecheck.ExpectKnownValue("github_organization_security_configuration.test",
+							tfjsonpath.New("code_scanning_options").AtSliceIndex(0).AtMapKey("allow_advanced"), knownvalue.Bool(true)),
 					},
 				},
 			},
@@ -209,6 +223,10 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 		configName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
+		resource "github_team" "test" {
+			name = "%s"
+		}
+
 		resource "github_organization_security_configuration" "test" {
 			name = "%s"
 			description = "Test configuration with delegated bypass"
@@ -218,11 +236,11 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 			secret_scanning_delegated_bypass = "enabled"
 			secret_scanning_delegated_bypass_options {
 				reviewers {
-					reviewer_id   = 1
+					reviewer_id   = github_team.test.id
 					reviewer_type = "TEAM"
 				}
 			}
-		}`, configName)
+		}`, configName, configName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -237,6 +255,13 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 						statecheck.ExpectKnownValue("github_organization_security_configuration.test",
 							tfjsonpath.New("secret_scanning_delegated_bypass_options").AtSliceIndex(0).AtMapKey("reviewers").AtSliceIndex(0).AtMapKey("reviewer_type"), knownvalue.StringExact("TEAM")),
 					},
+				},
+				{
+					// Verify the nested delegated-bypass blocks round-trip through import,
+					// not just the simple configuration covered by the import-only sub-test.
+					ResourceName:      "github_organization_security_configuration.test",
+					ImportState:       true,
+					ImportStateVerify: true,
 				},
 			},
 		})
