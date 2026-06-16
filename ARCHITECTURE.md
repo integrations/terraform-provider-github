@@ -178,7 +178,10 @@ func resourceGithubExample() *schema.Resource {
             StateContext: resourceGithubExampleImport,
         },
 
-        // Include SchemaVersion and StateUpgraders if state migrations exist
+        // Only if required.
+        CustomizeDiff: diffExample,
+
+        // Include SchemaVersion and StateUpgraders if state migrations exist.
         SchemaVersion: 1,
         StateUpgraders: []schema.StateUpgrader{
             {
@@ -188,8 +191,10 @@ func resourceGithubExample() *schema.Resource {
             },
         },
 
+        Description: "Manages an example GitHub resource.",
+
         Schema: map[string]*schema.Schema{
-            // Schema definition
+            // Schema definition.
         },
     }
 }
