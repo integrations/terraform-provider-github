@@ -30,7 +30,7 @@ func Test_createCacheStore(t *testing.T) {
 		},
 		{
 			name:      "errors_with_invalid_path",
-			path:      "a/b\x00c",
+			path:      "\x00c",
 			wantError: "failed to create cache directory",
 		},
 	} {
