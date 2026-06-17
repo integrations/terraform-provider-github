@@ -1,66 +1,77 @@
 ---
 page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+subcategory: ""
 description: |-
-  Provides a GitHub repository collaborators resource.
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
 ---
 
 # {{.Name}} ({{.Type}})
 
-Provides a GitHub repository collaborators resource.
+{{ .Description | trimspace }}
 
-~> Note: github_repository_collaborators cannot be used in conjunction with github_repository_collaborator and github_team_repository or they will fight over what your policy should be.
+~> This resource (`github_repository_collaborators`) cannot be used in conjunction with [`github_repository_collaborator`](repository_collaborator) or [`github_team_repository`](team_repository) as they will conflict over the management of collaborators.
 
-This resource allows you to manage all collaborators for repositories in your organization or personal account. For organization repositories, collaborators can have explicit (and differing levels of) read, write, or administrator access to specific repositories, without giving the user full organization membership. For personal repositories, collaborators can only be granted write (implicitly includes read) permission.
+This resource manages the complete set of collaborators for a repository, which includes both users and teams, in an authoritative manner. When applied, the provider will ensure that the set of collaborators for the repository matches the set defined in Terraform configuration. This means that if a collaborator is removed from the configuration, it will be removed from the repository, and if a collaborator is added to the configuration, it will be added to the repository.
+
+~> **Archived Repositories** When a repository is archived, GitHub makes it read-only, preventing collaborator modifications. If you attempt to destroy resources associated with archived repositories, the provider will gracefully handle the operation by logging an informational message and removing the resource from Terraform state without attempting to modify the archived repository.
+
+## Organization Repositories
+
+For repositories owned by an organization, collaborators can have explicit (and differing levels of) read, write, or administrator access to specific repositories, without giving the user full organization membership.
+
+### Teams
+
+Teams will be added to the repository on apply, and removed if removed from the configuration or on destroy. Teams added to the repository outside of Terraform can be managed by adding them to the configuration, or ignored by using the `ignore_team` argument. This is particularly important for organization/enterprise teams, which either need to be added to the configuration or ignored, as otherwise they will cause perpetual drift.
+
+## Personal Repositories
+
+For personal repositories, non-owner collaborators can only be granted [write](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/repository-access-and-collaboration/permission-levels-for-a-personal-account-repository#collaborator-access-for-a-repository-owned-by-a-personal-account) permission. Owners will be ignored unless they are explicitly added, in which case they must be granted `admin` permission.
+
+## Users
 
 When applied, an invitation will be sent to the user to become a collaborators on a repository. When destroyed, either the invitation will be cancelled or the collaborators will be removed from the repository.
 
-~> **Note on Archived Repositories**: When a repository is archived, GitHub makes it read-only, preventing collaborator modifications. If you attempt to destroy resources associated with archived repositories, the provider will gracefully handle the operation by logging an informational message and removing the resource from Terraform state without attempting to modify the archived repository.
+## Documentation
 
-This resource is authoritative. For adding a collaborator to a repo in a non-authoritative manner, use github_repository_collaborator instead.
-
-Further documentation on GitHub collaborators:
+Further documentation on GitHub collaborators.
 
 - [Adding outside collaborators to your personal repositories](https://help.github.com/en/github/setting-up-and-managing-your-github-user-account/managing-access-to-your-personal-repositories)
 - [Adding outside collaborators to repositories in your organization](https://help.github.com/articles/adding-outside-collaborators-to-repositories-in-your-organization/)
 - [Converting an organization member to an outside collaborators](https://help.github.com/articles/converting-an-organization-member-to-an-outside-collaborator/)
 
+{{ if .HasExamples -}}
 ## Example Usage
 
-{{ tffile "examples/resources/repository_collaborators/example_1.tf" }}
+{{- range .ExampleFiles }}
 
-## Argument Reference
+{{ tffile . }}
+{{- end }}
+{{- end }}
 
-The following arguments are supported:
-
-- `repository` - (Required) The GitHub repository.
-- `user` - (Optional) List of users to grant access to the repository.
-- `team` - (Optional) List of teams to grant access to the repository.
-- `ignore_team` - (Optional) List of teams to ignore when checking for repository access. This supports ignoring teams granted access at an organizational level.
-
-The `user` block supports:
-
-- `username` - (Required) The user to add to the repository as a collaborator.
-- `permission` - (Optional) The permission of the outside collaborators for the repository. Must be one of `pull`, `push`, `maintain`, `triage` or `admin` or the name of an existing [custom repository role](https://docs.github.com/en/enterprise-cloud@latest/organizations/managing-peoples-access-to-your-organization-with-roles/managing-custom-repository-roles-for-an-organization) within the organization for organization-owned repositories. Must be `push` for personal repositories. Defaults to `push`.
-
-The `team` block supports:
-
-- `team_id` - (Required) The GitHub team id or the GitHub team slug.
-- `permission` - (Optional) The permission of the outside collaborators for the repository. Must be one of `pull`, `triage`, `push`, `maintain`, `admin` or the name of an existing [custom repository role](https://docs.github.com/en/enterprise-cloud@latest/organizations/managing-peoples-access-to-your-organization-with-roles/managing-custom-repository-roles-for-an-organization) within the organisation. Defaults to `pull`. Must be `push` for personal repositories. Defaults to `push`.
-
-The `ignore_team` block supports:
-
-- `team_id` - (Required) The GitHub team id or the GitHub team slug.
-
-## Attribute Reference
-
-In addition to the above arguments, the following attributes are exported:
-
-- `invitation_ids` - Map of usernames to invitation ID for any users added as part of creation of this resource to be used in `github_user_invitation_accepter`.
+{{ .SchemaMarkdown | trimspace }}
+{{- if or .HasImport .HasImportIDConfig .HasImportIdentityConfig }}
 
 ## Import
 
-GitHub Repository Collaborators can be imported using the name `name`, e.g.
+Import is supported using the following syntax:
+{{- end }}
+{{- if .HasImportIdentityConfig }}
 
-```shell
-terraform import github_repository_collaborators.collaborators terraform
-```
+In Terraform v1.12.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `identity` attribute, for example:
+
+{{tffile .ImportIdentityConfigFile }}
+
+{{ .IdentitySchemaMarkdown | trimspace }}
+{{- end }}
+{{- if .HasImportIDConfig }}
+
+In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `id` attribute, for example:
+
+{{tffile .ImportIDConfigFile }}
+{{- end }}
+{{- if .HasImport }}
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+{{codefile "shell" .ImportFile }}
+{{- end }}
