@@ -44,5 +44,9 @@ func newGraphQLClient(tokenSource oauth2.TokenSource, opts Options) (*githubv4.C
 
 	client := &http.Client{Transport: tr, Timeout: clientTimeout}
 
+	if opts.GraphQLURL == "" {
+		return githubv4.NewClient(client), nil
+	}
+
 	return githubv4.NewEnterpriseClient(opts.GraphQLURL, client), nil
 }

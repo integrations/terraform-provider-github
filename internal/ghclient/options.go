@@ -10,6 +10,7 @@ import (
 type Options struct {
 	RESTAPIURL   string
 	GraphQLURL   string
+	UserAgent    string
 	CachePath    string
 	RetryMax     int
 	RetryWaitMin time.Duration

@@ -41,5 +41,19 @@ func newRESTClient(tokenSource oauth2.TokenSource, opts Options) (*github.Client
 		return nil, fmt.Errorf("failed to create transport: %w", err)
 	}
 
-	return github.NewClient(github.WithTransport(tr), github.WithTimeout(clientTimeout), github.WithDisableRateLimitCheck(), github.WithURLs(&opts.RESTAPIURL, nil))
+	clientOpts := []github.ClientOptionsFunc{
+		github.WithTransport(tr),
+		github.WithTimeout(clientTimeout),
+		github.WithDisableRateLimitCheck(),
+	}
+
+	if opts.UserAgent != "" {
+		clientOpts = append(clientOpts, github.WithUserAgent(opts.UserAgent))
+	}
+
+	if opts.RESTAPIURL != "" {
+		clientOpts = append(clientOpts, github.WithURLs(&opts.RESTAPIURL, nil))
+	}
+
+	return github.NewClient(clientOpts...)
 }

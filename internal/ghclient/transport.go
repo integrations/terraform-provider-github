@@ -1,7 +1,6 @@
 package ghclient
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 
@@ -49,15 +48,6 @@ func newTransport(tokenSource oauth2.TokenSource, opts Options) (http.RoundTripp
 		retryClient.RetryMax = opts.RetryMax
 		retryClient.RetryWaitMin = opts.RetryWaitMin
 		retryClient.RetryWaitMax = opts.RetryWaitMax
-		retryClient.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
-			if err != nil {
-				return retryablehttp.DefaultRetryPolicy(ctx, resp, err)
-			}
-			if resp.StatusCode == 0 || (resp.StatusCode >= 500 && resp.StatusCode != http.StatusNotImplemented) {
-				return true, nil
-			}
-			return false, nil
-		}
 
 		tr = &retryablehttp.RoundTripper{Client: retryClient}
 	}

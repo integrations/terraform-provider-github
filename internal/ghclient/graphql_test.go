@@ -10,9 +10,7 @@ import (
 func TestNewAnonymousGraphQLClient(t *testing.T) {
 	t.Parallel()
 
-	opts := Options{
-		GraphQLURL: "https://api.github.com/graphql",
-	}
+	opts := Options{}
 
 	client, err := NewAnonymousGraphQLClient(opts)
 	if err != nil {
@@ -40,19 +38,19 @@ func TestNewAppGraphQLClient(t *testing.T) {
 			name:           "app_client",
 			privateKey:     privateKeyData,
 			installationID: nil,
-			opts:           Options{GraphQLURL: "https://api.github.com/graphql"},
+			opts:           Options{},
 		},
 		{
 			name:           "installation_client",
 			privateKey:     privateKeyData,
 			installationID: new(int64(8888)),
-			opts:           Options{GraphQLURL: "https://api.github.com/graphql"},
+			opts:           Options{},
 		},
 		{
 			name:           "handles_token_source_error",
 			privateKey:     []byte("invalid-private-key"),
 			installationID: nil,
-			opts:           Options{GraphQLURL: "https://api.github.com/graphql"},
+			opts:           Options{},
 			wantErr:        "failed to create app token source",
 		},
 	} {
@@ -86,9 +84,7 @@ func TestNewAppGraphQLClient(t *testing.T) {
 func TestNewTokenGraphQLClient(t *testing.T) {
 	t.Parallel()
 
-	opts := Options{
-		GraphQLURL: "https://api.github.com/graphql",
-	}
+	opts := Options{}
 
 	client, err := NewTokenGraphQLClient("test-token", opts)
 	if err != nil {
@@ -110,19 +106,24 @@ func Test_newGraphQLClient(t *testing.T) {
 		wantErr     string
 	}{
 		{
-			name:        "with_token_source",
-			tokenSource: oauth2.StaticTokenSource(&oauth2.Token{AccessToken: "test-token"}),
-			opts:        Options{GraphQLURL: "https://api.github.com/graphql"},
+			name:        "minimal",
+			tokenSource: nil,
+			opts:        Options{},
 		},
 		{
-			name:        "without_token_source",
+			name:        "with_token_source",
+			tokenSource: oauth2.StaticTokenSource(&oauth2.Token{AccessToken: "test-token"}),
+			opts:        Options{},
+		},
+		{
+			name:        "with_url",
 			tokenSource: nil,
 			opts:        Options{GraphQLURL: "https://api.github.com/graphql"},
 		},
 		{
 			name:        "errors_if_transport_cannot_be_created",
 			tokenSource: nil,
-			opts:        Options{GraphQLURL: "https://api.github.com/graphql", CachePath: "\x00c"},
+			opts:        Options{CachePath: "\x00c"},
 			wantErr:     "failed to create transport",
 		},
 	} {
