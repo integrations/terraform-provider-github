@@ -3,8 +3,11 @@ package ghclient
 import "time"
 
 const (
+	// githubSecondaryRateLimitMaxConcurrency defines the maximum number of concurrent requests allowed to the GitHub API under secondary rate limits.
+	githubSecondaryRateLimitMaxConcurrency int64 = 100
+
 	// maxConcurrentRequests defines the maximum number of concurrent requests allowed to the GitHub API.
-	maxConcurrentRequests int64 = 100
+	maxConcurrentRequests int64 = githubSecondaryRateLimitMaxConcurrency
 
 	// maxIdleConnsREST defines the maximum number of idle connections for REST API requests.
 	maxIdleConnsREST int = 100

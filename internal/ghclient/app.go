@@ -19,6 +19,7 @@ const appClientCacheSize = 8
 type appSource struct {
 	clientID           string
 	privateKey         []byte
+	semaCache          *lru.Cache[string, *semaphore.Weighted]
 	restClientCache    *lru.Cache[string, *github.Client]
 	graphQLClientCache *lru.Cache[string, *githubv4.Client]
 	opts               Options
@@ -26,6 +27,11 @@ type appSource struct {
 
 // NewAppSource creates a new appSource that provides GitHub clients authenticated as either the app itself or as an installation.
 func NewAppSource(clientID string, privateKey []byte, opts Options) (*appSource, error) {
+	semaCache, err := lru.New[string, *semaphore.Weighted](appClientCacheSize)
+	if err != nil {
+		return nil, err
+	}
+
 	restClientCache, err := lru.New[string, *github.Client](appClientCacheSize)
 	if err != nil {
 		return nil, err
@@ -44,11 +50,10 @@ func NewAppSource(clientID string, privateKey []byte, opts Options) (*appSource,
 		opts.CachePath = s
 	}
 
-	opts.sema = semaphore.NewWeighted(maxConcurrentRequests)
-
 	return &appSource{
 		clientID:           clientID,
 		privateKey:         privateKey,
+		semaCache:          semaCache,
 		restClientCache:    restClientCache,
 		graphQLClientCache: graphQLClientCache,
 		opts:               opts,
@@ -62,7 +67,14 @@ func (s *appSource) RESTClient() (*github.Client, error) {
 		return c, nil
 	}
 
+	sema, ok := s.semaCache.Get(key)
+	if !ok {
+		sema = semaphore.NewWeighted(maxConcurrentRequests)
+		s.semaCache.Add(key, sema)
+	}
+
 	opts := s.opts
+	opts.sema = sema
 	opts.maxIdleConns = maxIdleConnsREST
 	opts.idleConnTimeout = idleConnTimeoutREST
 	opts.cacheRef = "app-rest-" + s.clientID
@@ -83,12 +95,19 @@ func (s *appSource) OwnerRESTClient(ctx context.Context, owner string) (*github.
 		return c, nil
 	}
 
+	sema, ok := s.semaCache.Get(key)
+	if !ok {
+		sema = semaphore.NewWeighted(maxConcurrentRequests)
+		s.semaCache.Add(key, sema)
+	}
+
 	installationID, err := s.GetInstallationID(ctx, owner)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get installation id for owner %q: %w", owner, err)
 	}
 
 	opts := s.opts
+	opts.sema = sema
 	opts.cacheRef = fmt.Sprintf("app-rest-%s-%s", s.clientID, owner)
 	opts.maxIdleConns = maxIdleConnsREST
 	opts.idleConnTimeout = idleConnTimeoutREST
@@ -109,7 +128,14 @@ func (s *appSource) GraphQLClient() (*githubv4.Client, error) {
 		return c, nil
 	}
 
+	sema, ok := s.semaCache.Get(key)
+	if !ok {
+		sema = semaphore.NewWeighted(maxConcurrentRequests)
+		s.semaCache.Add(key, sema)
+	}
+
 	opts := s.opts
+	opts.sema = sema
 	opts.maxIdleConns = maxIdleConnsGraphQL
 	opts.idleConnTimeout = idleConnTimeoutGraphQL
 	opts.cacheRef = "app-graphql-" + s.clientID
@@ -130,12 +156,19 @@ func (s *appSource) OwnerGraphQLClient(ctx context.Context, owner string) (*gith
 		return c, nil
 	}
 
+	sema, ok := s.semaCache.Get(key)
+	if !ok {
+		sema = semaphore.NewWeighted(maxConcurrentRequests)
+		s.semaCache.Add(key, sema)
+	}
+
 	installationID, err := s.GetInstallationID(ctx, owner)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get installation id for owner %q: %w", owner, err)
 	}
 
 	opts := s.opts
+	opts.sema = sema
 	opts.cacheRef = fmt.Sprintf("app-graphql-%s-%s", s.clientID, owner)
 	opts.maxIdleConns = maxIdleConnsGraphQL
 	opts.idleConnTimeout = idleConnTimeoutGraphQL
