@@ -36,6 +36,7 @@ type testAccConfig struct {
 	// Target configuration
 	legacyClient bool
 	baseURL      *url.URL
+	isGHES       bool
 
 	// Auth configuration
 	authMode          testMode
@@ -109,7 +110,7 @@ func TestMain(m *testing.M) {
 		u = DotComAPIURL
 	}
 
-	baseURL, err := url.Parse(u)
+	baseURL, isGHES, err := getBaseURL(u)
 	if err != nil {
 		fmt.Printf("Error parsing base URL: %s\n", err)
 		os.Exit(1)
@@ -118,6 +119,7 @@ func TestMain(m *testing.M) {
 	config := testAccConfig{
 		legacyClient:                      os.Getenv("GITHUB_LEGACY_CLIENT") != "false",
 		baseURL:                           baseURL,
+		isGHES:                            isGHES,
 		authMode:                          authMode,
 		testPublicRepository:              "terraform-provider-github",
 		testPublicRepositoryOwner:         "integrations",
@@ -210,7 +212,12 @@ func getTestAppToken() (string, error) {
 		return "", fmt.Errorf("app auth not configured")
 	}
 
-	appToken, err := GenerateOAuthTokenFromApp(testAccConf.baseURL, testAccConf.appID, testAccConf.appInstallationID, testAccConf.appPEM)
+	restAPIPath := ""
+	if testAccConf.isGHES {
+		restAPIPath = GHESRESTAPIPath
+	}
+
+	appToken, err := GenerateOAuthTokenFromApp(testAccConf.baseURL.JoinPath(restAPIPath), testAccConf.appID, testAccConf.appInstallationID, testAccConf.appPEM)
 	if err != nil {
 		return "", err
 	}
@@ -228,10 +235,16 @@ func getTestToken() (string, error) {
 
 func getTestMeta() (*Owner, error) {
 	config := &Config{
+		RESTAPIPath:    "",
 		GraphQLAPIPath: "graphql",
 		LegacyClient:   testAccConf.legacyClient,
 		BaseURL:        testAccConf.baseURL,
 		Owner:          testAccConf.owner,
+	}
+
+	if testAccConf.isGHES {
+		config.RESTAPIPath = GHESRESTAPIPath
+		config.GraphQLAPIPath = GHESGraphQLAPIPath
 	}
 
 	if config.LegacyClient || testAccConf.appID == "" {
