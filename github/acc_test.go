@@ -94,7 +94,7 @@ var testAccConf *testAccConfig
 var providerFactories = map[string]func() (*schema.Provider, error){
 	//nolint:unparam
 	"github": func() (*schema.Provider, error) {
-		return NewProvider()(), nil
+		return NewProvider("acctest", "none")(), nil
 	},
 }
 
@@ -246,7 +246,7 @@ func getTestMeta() (*Owner, error) {
 		config.AppPEM = []byte(testAccConf.appPEM)
 	}
 
-	return configureProviderMeta(context.Background(), config)
+	return configureProviderMeta(context.Background(), "test", config)
 }
 
 func configureSweepers() {
