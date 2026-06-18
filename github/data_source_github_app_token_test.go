@@ -32,7 +32,7 @@ func TestAccGithubAppTokenDataSource(t *testing.T) {
 		})
 		defer ts.Close()
 
-		client := mustGitHubClient(t, ts.URL)
+		client := mustCreateTestGitHubClient(t, ts.URL)
 
 		meta := &Owner{
 			name:     owner,
