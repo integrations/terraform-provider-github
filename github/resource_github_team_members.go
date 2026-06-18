@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"iter"
 	"log"
 	"net/http"
@@ -213,7 +214,7 @@ func resourceGithubTeamMembersRead(ctx context.Context, d *schema.ResourceData, 
 
 		for member, err := range seq {
 			if err != nil {
-				if ghErr, ok := err.(*github.ErrorResponse); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+				if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
 					tflog.Info(ctx, "Team no longer exists, removing from state", map[string]any{"team_id": teamIdString})
 					d.SetId("")
 					return nil
@@ -258,8 +259,8 @@ func resourceGithubTeamMembersDelete(ctx context.Context, d *schema.ResourceData
 			_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgId, team.getID(), username)
 		}
 		if err != nil {
-			if ghErr, ok := err.(*github.ErrorResponse); ok && ghErr.Response.StatusCode == http.StatusNotFound {
-				// 404 means the team is gone (API returns 204 for missing memberships).
+			// 404 means the team is gone (API returns 204 for missing memberships).
+			if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
 				tflog.Info(ctx, "Team no longer exists, skipping remaining member deletions", map[string]any{"team_id": teamIdString})
 				return nil
 			}
