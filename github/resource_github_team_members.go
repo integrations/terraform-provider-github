@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"iter"
 	"log"
 	"net/http"
 	"reflect"
@@ -92,7 +93,7 @@ func resourceGithubTeamMembersCreate(ctx context.Context, d *schema.ResourceData
 
 	d.SetId(teamIdString)
 
-	return resourceGithubTeamMembersRead(ctx, d, meta)
+	return nil
 }
 
 func resourceGithubTeamMembersUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
@@ -169,7 +170,7 @@ func resourceGithubTeamMembersUpdate(ctx context.Context, d *schema.ResourceData
 
 	d.SetId(teamIdString)
 
-	return resourceGithubTeamMembersRead(ctx, d, meta)
+	return nil
 }
 
 func resourceGithubTeamMembersRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
@@ -203,18 +204,14 @@ func resourceGithubTeamMembersRead(ctx context.Context, d *schema.ResourceData, 
 			ListOptions: github.ListOptions{PerPage: maxPerPage},
 		}
 
-		for {
-			var (
-				members []*github.User
-				resp    *github.Response
-				err     error
-			)
+		var seq iter.Seq2[*github.User, error]
+		if slug, ok := team.getSlugOK(); ok {
+			seq = client.Teams.ListTeamMembersBySlugIter(ctx, orgName, slug, opts)
+		} else {
+			seq = client.Teams.ListTeamMembersByIDIter(ctx, orgId, team.getID(), opts)
+		}
 
-			if slug, ok := team.getSlugOK(); ok {
-				members, resp, err = client.Teams.ListTeamMembersBySlug(ctx, orgName, slug, opts)
-			} else {
-				members, resp, err = client.Teams.ListTeamMembersByID(ctx, orgId, team.getID(), opts)
-			}
+		for member, err := range seq {
 			if err != nil {
 				if ghErr, ok := err.(*github.ErrorResponse); ok && ghErr.Response.StatusCode == http.StatusNotFound {
 					tflog.Info(ctx, "Team no longer exists, removing from state", map[string]any{"team_id": teamIdString})
@@ -223,18 +220,10 @@ func resourceGithubTeamMembersRead(ctx context.Context, d *schema.ResourceData, 
 				}
 				return diag.FromErr(err)
 			}
-
-			for _, member := range members {
-				teamMembersAndMaintainers = append(teamMembersAndMaintainers, map[string]any{
-					"username": strings.ToLower(member.GetLogin()),
-					"role":     role,
-				})
-			}
-
-			if resp.NextPage == 0 {
-				break
-			}
-			opts.Page = resp.NextPage
+			teamMembersAndMaintainers = append(teamMembersAndMaintainers, map[string]any{
+				"username": strings.ToLower(member.GetLogin()),
+				"role":     role,
+			})
 		}
 	}
 
