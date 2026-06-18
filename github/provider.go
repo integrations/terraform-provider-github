@@ -314,6 +314,8 @@ func NewProvider(version, commit string) func() *schema.Provider {
 				"github_repository_pages":                                               dataSourceGithubRepositoryPages(),
 				"github_repository_pull_request":                                        dataSourceGithubRepositoryPullRequest(),
 				"github_repository_pull_requests":                                       dataSourceGithubRepositoryPullRequests(),
+				"github_repository_ruleset":                                             dataSourceGithubRepositoryRuleset(),
+				"github_repository_rulesets":                                            dataSourceGithubRepositoryRulesets(),
 				"github_repository_teams":                                               dataSourceGithubRepositoryTeams(),
 				"github_repository_webhooks":                                            dataSourceGithubRepositoryWebhooks(),
 				"github_rest_api":                                                       dataSourceGithubRestApi(),
