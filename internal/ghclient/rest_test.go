@@ -1,26 +1,18 @@
 package ghclient
 
 import (
+	"regexp"
 	"testing"
+
+	"golang.org/x/oauth2"
 )
-
-func Test_newRESTClient(t *testing.T) {
-	t.Parallel()
-
-	client, err := newRESTClient(nil, Options{})
-	if err != nil {
-		t.Fatalf("failed to create rest client: %v", err)
-	}
-
-	if client == nil {
-		t.Fatal("expected rest client to be non-nil")
-	}
-}
 
 func TestNewAnonymousRESTClient(t *testing.T) {
 	t.Parallel()
 
-	client, err := NewAnonymousRESTClient(Options{})
+	opts := Options{}
+
+	client, err := NewAnonymousRESTClient(opts)
 	if err != nil {
 		t.Fatalf("failed to create anonymous rest client: %v", err)
 	}
@@ -33,27 +25,136 @@ func TestNewAnonymousRESTClient(t *testing.T) {
 func TestNewAppRESTClient(t *testing.T) {
 	t.Parallel()
 
-	t.Run("invalid_private_key", func(t *testing.T) {
-		t.Parallel()
+	privateKeyData := mustReadAppPrivateKey(t)
 
-		_, err := NewAppRESTClient("123456789", []byte("invalid-private-key"), nil, Options{})
-		if err == nil {
-			t.Fatal("expected app rest client creation to fail for invalid private key")
-		}
-	})
+	for _, tt := range []struct {
+		name           string
+		privateKey     []byte
+		installationID *int64
+		opts           Options
+		wantErr        string
+	}{
+		{
+			name:           "app_client",
+			privateKey:     privateKeyData,
+			installationID: nil,
+			opts:           Options{},
+		},
+		{
+			name:           "installation_client",
+			privateKey:     privateKeyData,
+			installationID: new(int64(8888)),
+			opts:           Options{},
+		},
+		{
+			name:           "handles_token_source_error",
+			privateKey:     []byte("invalid-private-key"),
+			installationID: nil,
+			opts:           Options{},
+			wantErr:        "failed to create app token source",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	t.Run("valid_private_key", func(t *testing.T) {
-		t.Parallel()
+			client, err := NewAppRESTClient("123456789", tt.privateKey, tt.installationID, tt.opts)
+			if err != nil {
+				if tt.wantErr == "" {
+					t.Fatalf("failed to create app rest client: %v", err)
+				}
 
-		privateKeyData := mustReadTestAppPrivateKey(t)
+				if !regexp.MustCompile(regexp.QuoteMeta(tt.wantErr)).MatchString(err.Error()) {
+					t.Fatalf("expected error to match %q, got %v", tt.wantErr, err)
+				}
 
-		client, err := NewAppRESTClient("123456789", privateKeyData, nil, Options{})
-		if err != nil {
-			t.Fatalf("failed to create app rest client: %v", err)
-		}
+				return
+			}
 
-		if client == nil {
-			t.Fatal("expected app rest client to be non-nil")
-		}
-	})
+			if tt.wantErr != "" {
+				t.Fatalf("expected error %q, got nil", tt.wantErr)
+			}
+
+			if client == nil {
+				t.Fatal("expected app rest client to be non-nil")
+			}
+		})
+	}
+}
+
+func TestNewTokenRESTClient(t *testing.T) {
+	t.Parallel()
+
+	opts := Options{}
+
+	client, err := NewTokenRESTClient("test-token", opts)
+	if err != nil {
+		t.Fatalf("failed to create token rest client: %v", err)
+	}
+
+	if client == nil {
+		t.Fatal("expected token rest client to be non-nil")
+	}
+}
+
+func Test_newRESTClient(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name        string
+		tokenSource oauth2.TokenSource
+		opts        Options
+		wantErr     string
+	}{
+		{
+			name:        "minimal",
+			tokenSource: nil,
+			opts:        Options{},
+		},
+		{
+			name:        "with_token_source",
+			tokenSource: oauth2.StaticTokenSource(&oauth2.Token{AccessToken: "test-token"}),
+			opts:        Options{},
+		},
+		{
+			name:        "with_user_agent",
+			tokenSource: nil,
+			opts:        Options{UserAgent: "test-user-agent"},
+		},
+		{
+			name:        "with_url",
+			tokenSource: nil,
+			opts:        Options{RESTAPIURL: "https://api.github.com/"},
+		},
+		{
+			name:        "errors_if_transport_cannot_be_created",
+			tokenSource: nil,
+			opts:        Options{CachePath: "\x00c"},
+			wantErr:     "failed to create transport",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := newRESTClient(tt.tokenSource, tt.opts)
+			if err != nil {
+				if tt.wantErr == "" {
+					t.Fatalf("failed to create rest client: %v", err)
+				}
+
+				if !regexp.MustCompile(regexp.QuoteMeta(tt.wantErr)).MatchString(err.Error()) {
+					t.Fatalf("expected error to match %q, got %v", tt.wantErr, err)
+				}
+
+				return
+			}
+
+			if tt.wantErr != "" {
+				t.Fatalf("expected error %q, got nil", tt.wantErr)
+			}
+
+			if got == nil {
+				t.Fatal("expected rest client to be non-nil")
+			}
+		})
+	}
 }
