@@ -1,53 +1,53 @@
 ---
 page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+subcategory: ""
 description: |-
-  Provides an authoritative GitHub team members resource.
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
 ---
 
 # {{.Name}} ({{.Type}})
 
-Provides a GitHub team members resource.
+~> This resource is not compatible with [`github_team_membership`](team_membership); use either `github_team_members` or `github_team_membership`.
 
-This resource allows you to manage members of teams in your organization. It sets the requested team members for the team and removes all users not managed by Terraform.
+{{ .Description | trimspace }}
 
-When applied, if the user hasn't accepted their invitation to the organization, they won't be part of the team until they do.
+This resource allows you to manage members of teams in your organization; it sets the requested team members for the team and removes all users not managed by Terraform. If an organization owner is given the `member` role they will be granted `maintainer` instead which will result in a perpetual diff. If a user who hasn't accepted their invitation to the organization is added to the team, they will not be a team member until they've accepted the invitation. When this resource is deleted all users will be removed from the team.
 
-When destroyed, all users will be removed from the team.
-
-~> **Note** This resource is not compatible with `github_team_membership`. Use either `github_team_members` or `github_team_membership`.
-
-~> **Note** You can accidentally lock yourself out of your team using this resource. Deleting a `github_team_members` resource removes access from anyone without organization-level access to the team. Proceed with caution. It should generally only be used with teams fully managed by Terraform.
-
-~> **Note** Attempting to set a user who is an organization owner to "member" will result in the user being granted "maintainer" instead; this can result in a perpetual `terraform plan` diff that changes their status back to "member".
-
+{{ if .HasExamples -}}
 ## Example Usage
 
-{{ tffile "examples/resources/team_members/example_1.tf" }}
+{{- range .ExampleFiles }}
 
-## Argument Reference
+{{ tffile . }}
+{{- end }}
+{{- end }}
 
-The following arguments are supported:
-
-- `team_id` - (Required) The team id or the team slug
-
-~> **Note** Although the team id or team slug can be used it is recommended to use the team id. Using the team slug will cause the team members associations to the team to be destroyed and recreated if the team name is updated.
-
-- `members` - (Required) List of team members. See [Members](#members) below for details.
-
-### Members
-
-`members` supports the following arguments:
-
-- `username` - (Required) The user to add to the team.
-- `role` - (Optional) The role of the user within the team. Must be one of `member` or `maintainer`. Defaults to `member`.
+{{ .SchemaMarkdown | trimspace }}
+{{- if or .HasImport .HasImportIDConfig .HasImportIdentityConfig }}
 
 ## Import
 
-~> **Note** Although the team id or team slug can be used it is recommended to use the team id. Using the team slug will result in terraform doing conversions between the team slug and team id. This will cause team members associations to the team to be destroyed and recreated on import.
+This resource can be imported either by the team slug or team ID; it is recommended to use the team slug in combination with the `team_slug` resource attribute.
 
-GitHub Team Membership can be imported using the team ID team id or team slug, e.g.
+Import is supported using the following syntax:
+{{- end }}
+{{- if .HasImportIdentityConfig }}
 
-```shell
-terraform import github_team_members.some_team 1234567
-$ terraform import github_team_members.some_team Administrators
-```
+In Terraform v1.12.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `identity` attribute, for example:
+
+{{tffile .ImportIdentityConfigFile }}
+
+{{ .IdentitySchemaMarkdown | trimspace }}
+{{- end }}
+{{- if .HasImportIDConfig }}
+
+In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `id` attribute, for example:
+
+{{tffile .ImportIDConfigFile }}
+{{- end }}
+{{- if .HasImport }}
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+{{codefile "shell" .ImportFile }}
+{{- end }}

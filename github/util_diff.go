@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -119,6 +120,83 @@ func diffSecretVariableVisibility(ctx context.Context, d *schema.ResourceDiff, _
 	return nil
 }
 
+// diffLegacyTeam compares the team_id and team_slug fields to determine if the team has changed.
+func diffLegacyTeam(ctx context.Context, diff *schema.ResourceDiff, m any) error {
+	// Skip for new resources - no existing team_id to compare against
+	if len(diff.Id()) == 0 || diff.GetRawConfig().IsNull() {
+		return nil
+	}
+
+	ctx = tflog.SetField(ctx, "id", diff.Id())
+
+	meta := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
+	if diff.GetRawConfig().AsValueMap()["team_id"].IsNull() {
+		teamIDStr, _ := diff.Get("team_id").(string)
+		if _, err := strconv.ParseInt(teamIDStr, 10, 64); err != nil {
+			tflog.Debug(ctx, "Computing team_id from old slug.", map[string]any{"team_slug": teamIDStr})
+
+			team, _, err := client.Teams.GetTeamBySlug(ctx, owner, teamIDStr)
+			if err != nil {
+				if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == http.StatusNotFound {
+					tflog.Debug(ctx, "Team not found so set ID as computed.", map[string]any{"team_slug": teamIDStr})
+
+					if err := diff.SetNewComputed("team_id"); err != nil {
+						return fmt.Errorf("failed to set new computed for team_id: %w", err)
+					}
+
+					return nil
+				}
+
+				return fmt.Errorf("failed to lookup team id from slug (%s): %w", teamIDStr, err)
+			}
+
+			if err := diff.SetNew("team_id", strconv.FormatInt(team.GetID(), 10)); err != nil {
+				return fmt.Errorf("failed to set new for team_id: %w", err)
+			}
+		}
+	}
+
+	if diff.HasChange("team_id") {
+		oldTeamIDV, newTeamIDV := diff.GetChange("team_id")
+		oldTeamIDStr, _ := oldTeamIDV.(string)
+		newTeamIDStr, _ := newTeamIDV.(string)
+
+		oldTeam, err := getTeam(ctx, meta, oldTeamIDStr)
+		if err != nil {
+			if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == http.StatusNotFound {
+				tflog.Debug(ctx, "Old team not found for legacy team_id so stop calculating diff.", map[string]any{"team_id": oldTeamIDStr})
+
+				return nil
+			}
+
+			return fmt.Errorf("failed to lookup old team (%s): %w", oldTeamIDStr, err)
+		}
+
+		newTeam, err := getTeam(ctx, meta, newTeamIDStr)
+		if err != nil {
+			if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == http.StatusNotFound {
+				tflog.Debug(ctx, "New team not found for legacy team_id so stop calculating diff.", map[string]any{"team_id": newTeamIDStr})
+
+				return nil
+			}
+
+			return fmt.Errorf("failed to lookup new team (%s): %w", newTeamIDStr, err)
+		}
+
+		if oldTeam.GetID() != newTeam.GetID() {
+			tflog.Debug(ctx, "Team ID changed, forcing new resource", map[string]any{"old_team_id": oldTeam.GetID(), "new_team_id": newTeam.GetID()})
+			if err := diff.ForceNew("team_id"); err != nil {
+				return fmt.Errorf("failed to force new for team_id: %w", err)
+			}
+		}
+	}
+
+	return nil
+}
+
 // diffTeam compares the team_id and team_slug fields to determine if the team has changed.
 func diffTeam(ctx context.Context, diff *schema.ResourceDiff, m any) error {
 	// Skip for new resources - no existing team_id to compare against
@@ -128,45 +206,42 @@ func diffTeam(ctx context.Context, diff *schema.ResourceDiff, m any) error {
 
 	ctx = tflog.SetField(ctx, "id", diff.Id())
 
-	if diff.HasChange("team_slug") {
-		if isNewTeamID(ctx, diff, m) {
-			return diff.ForceNew("team_slug")
+	if !diff.HasChanges("team_slug") {
+		return nil
+	}
+
+	meta := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
+	teamIDV := diff.Get("team_id")
+	teamIDStr, _ := teamIDV.(string)
+	teamID, _ := strconv.ParseInt(teamIDStr, 10, 64)
+
+	if teamID == 0 {
+		tflog.Debug(ctx, "No team ID set so skipping team diff.", map[string]any{"team_slug": diff.Get("team_slug"), "team_id": teamIDStr})
+		return nil
+	}
+
+	oldSlugV, newSlugV := diff.GetChange("team_slug")
+	newSlug, _ := newSlugV.(string)
+
+	team, _, err := client.Teams.GetTeamBySlug(ctx, owner, newSlug)
+	if err != nil {
+		if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == http.StatusNotFound {
+			tflog.Debug(ctx, "New team not found when checking team change, skipping team diff.", map[string]any{"team_slug": newSlug})
+			return nil
+		}
+
+		return fmt.Errorf("failed to lookup new team id from slug (%s): %w", newSlug, err)
+	}
+
+	if team.GetID() != teamID {
+		tflog.Debug(ctx, "Team slug changed, forcing new resource", map[string]any{"old_team_slug": oldSlugV, "old_team_id": teamIDStr, "new_team_slug": newSlug, "new_team_id": team.GetID()})
+		if err := diff.ForceNew("team_slug"); err != nil {
+			return fmt.Errorf("failed to force new for team_slug: %w", err)
 		}
 	}
 
 	return nil
-}
-
-// helper function to determine if the team has changed or was renamed.
-func isNewTeamID(ctx context.Context, diff *schema.ResourceDiff, m any) bool {
-	// Get old team_id from state
-	oldTeamID := toInt64(diff.Get("team_id"))
-	if oldTeamID == 0 {
-		return false
-	}
-	meta := m.(*Owner)
-
-	// Resolve new team_slug to team ID via API
-	oldTeamSlug, newTeamSlug := diff.GetChange("team_slug")
-	newTeamID, err := lookupTeamID(ctx, meta.v3client, meta.name, newTeamSlug.(string))
-	if err != nil {
-		// If team doesn't exist or API fails, skip ForceNew check and let Read handle it
-		tflog.Debug(ctx, "Unable to resolve new team_slug to team ID, skipping ForceNew check", map[string]any{
-			"new_team_slug": newTeamSlug,
-			"error":         err.Error(),
-		})
-		return false
-	}
-
-	if newTeamID != oldTeamID {
-		tflog.Debug(ctx, "Team ID changed, forcing new resource", map[string]any{
-			"old_team_id":   oldTeamID,
-			"new_team_id":   newTeamID,
-			"new_team_slug": newTeamSlug,
-			"old_team_slug": oldTeamSlug,
-		})
-		return true
-	}
-
-	return false
 }

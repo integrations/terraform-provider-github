@@ -55,8 +55,8 @@ type testAccConfig struct {
 	testPublicRepository              string
 	testPublicRepositoryOwner         string
 	testPublicReleaseId               int
-	testPublicRelaseAssetId           string
-	testPublicRelaseAssetName         string
+	testPublicReleaseAssetId          string
+	testPublicReleaseAssetName        string
 	testPublicReleaseAssetContent     string
 	testPublicTemplateRepository      string
 	testPublicTemplateRepositoryOwner string
@@ -67,6 +67,7 @@ type testAccConfig struct {
 
 	// Org test configuration
 	testOrgUser               string
+	testOrgUser2              string
 	testOrgSecretName         string
 	testOrgRepository         string
 	testOrgTemplateRepository string
@@ -124,14 +125,15 @@ func TestMain(m *testing.M) {
 		testPublicRepository:              "terraform-provider-github",
 		testPublicRepositoryOwner:         "integrations",
 		testPublicReleaseId:               186531906, // The terraform-provider-github_6.4.0_manifest.json asset ID from https://github.com/integrations/terraform-provider-github/releases/tag/v6.4.0
-		testPublicRelaseAssetId:           "207956097",
-		testPublicRelaseAssetName:         "terraform-provider-github_6.4.0_manifest.json",
+		testPublicReleaseAssetId:          "207956097",
+		testPublicReleaseAssetName:        "terraform-provider-github_6.4.0_manifest.json",
 		testPublicReleaseAssetContent:     "{\n  \"version\": 1,\n  \"metadata\": {\n    \"protocol_versions\": [\n      \"5.0\"\n    ]\n  }\n}",
 		testPublicTemplateRepository:      "template-repository",
 		testPublicTemplateRepositoryOwner: "template-repository",
 		testGHActionsAppInstallationId:    15368,
 		testUserRepository:                os.Getenv("GH_TEST_USER_REPOSITORY"),
 		testOrgUser:                       os.Getenv("GH_TEST_ORG_USER"),
+		testOrgUser2:                      os.Getenv("GH_TEST_ORG_USER2"),
 		testOrgSecretName:                 os.Getenv("GH_TEST_ORG_SECRET_NAME"),
 		testOrgRepository:                 os.Getenv("GH_TEST_ORG_REPOSITORY"),
 		testOrgTemplateRepository:         os.Getenv("GH_TEST_ORG_TEMPLATE_REPOSITORY"),
@@ -407,5 +409,17 @@ func skipIfEMUEnterprise(t *testing.T) {
 func skipUnlessMode(t *testing.T, testModes ...testMode) {
 	if !slices.Contains(testModes, testAccConf.authMode) {
 		t.Skip("Skipping as not supported test mode")
+	}
+}
+
+func skipUnlessHasOrgUser(t *testing.T) {
+	if testAccConf.testOrgUser == "" {
+		t.Skip("Skipping as no test org user is configured")
+	}
+}
+
+func skipUnlessHasOrgUser2(t *testing.T) {
+	if testAccConf.testOrgUser2 == "" {
+		t.Skip("Skipping as no test org user 2 is configured")
 	}
 }
