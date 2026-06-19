@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/google/go-github/v88/github"
@@ -61,7 +62,6 @@ func resourceGithubIssueLabel() *schema.Resource {
 	}
 }
 
-// resourceGithubIssueLabelCreate creates an issue label.
 func resourceGithubIssueLabelCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	client := meta.v3client
@@ -91,7 +91,8 @@ func resourceGithubIssueLabelCreate(ctx context.Context, d *schema.ResourceData,
 		}
 		label.Description = &description
 	}
-	githubLabel, resp, err := client.Issues.GetLabel(ctx, orgName, repoName, name)
+	var githubLabel *github.Label
+	_, resp, err := client.Issues.GetLabel(ctx, orgName, repoName, name)
 	if err != nil {
 		if resp == nil || resp.StatusCode != http.StatusNotFound {
 			return diag.FromErr(err)
@@ -247,7 +248,7 @@ func resourceGithubIssueLabelDelete(ctx context.Context, d *schema.ResourceData,
 func resourceGithubIssueLabelImport(_ context.Context, d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
 	repoName, name, err := parseID2(d.Id())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid import ID %q; expected format %q: %w", d.Id(), "<repository name>:<label name>", err)
 	}
 
 	if err := d.Set("repository", repoName); err != nil {
