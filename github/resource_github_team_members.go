@@ -2,15 +2,18 @@ package github
 
 import (
 	"context"
+	"errors"
+	"iter"
 	"log"
+	"net/http"
 	"reflect"
 	"strconv"
 	"strings"
 
 	"github.com/google/go-github/v88/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/shurcooL/githubv4"
 )
 
 type MemberChange struct {
@@ -64,12 +67,10 @@ func resourceGithubTeamMembersCreate(ctx context.Context, d *schema.ResourceData
 	meta := m.(*Owner)
 	client := meta.v3client
 	orgId := meta.id
+	orgName := meta.name
 
 	teamIdString := d.Get("team_id").(string)
-	teamId, err := getTeamID(ctx, meta, teamIdString)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	team := newLegacyTeamIdentity(teamIdString)
 
 	members := d.Get("members").(*schema.Set)
 	for _, mMap := range members.List() {
@@ -78,14 +79,14 @@ func resourceGithubTeamMembersCreate(ctx context.Context, d *schema.ResourceData
 		role := memb["role"].(string)
 
 		log.Printf("[DEBUG] Creating team membership: %s/%s (%s)", teamIdString, username, role)
-		_, _, err = client.Teams.AddTeamMembershipByID(ctx,
-			orgId,
-			teamId,
-			username,
-			&github.TeamAddTeamMembershipOptions{
-				Role: role,
-			},
-		)
+
+		opts := &github.TeamAddTeamMembershipOptions{Role: role}
+		var err error
+		if slug, ok := team.getSlugOK(); ok {
+			_, _, err = client.Teams.AddTeamMembershipBySlug(ctx, orgName, slug, username, opts)
+		} else {
+			_, _, err = client.Teams.AddTeamMembershipByID(ctx, orgId, team.getID(), username, opts)
+		}
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -93,19 +94,17 @@ func resourceGithubTeamMembersCreate(ctx context.Context, d *schema.ResourceData
 
 	d.SetId(teamIdString)
 
-	return resourceGithubTeamMembersRead(ctx, d, meta)
+	return nil
 }
 
 func resourceGithubTeamMembersUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta := m.(*Owner)
 	client := meta.v3client
 	orgId := meta.id
+	orgName := meta.name
 
 	teamIdString := d.Get("team_id").(string)
-	teamId, err := getTeamID(ctx, meta, teamIdString)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	team := newLegacyTeamIdentity(teamIdString)
 
 	o, n := d.GetChange("members")
 	vals := make(map[string]*MemberChange)
@@ -127,16 +126,12 @@ func resourceGithubTeamMembersUpdate(ctx context.Context, d *schema.ResourceData
 		var create, del bool
 
 		switch {
-		// create a new one if old is nil
 		case change.Old == nil:
 			create = true
-		// delete existing if new is nil
 		case change.New == nil:
 			del = true
-			// no change
 		case reflect.DeepEqual(change.Old, change.New):
 			continue
-			// recreate - role changed
 		default:
 			del = true
 			create = true
@@ -145,7 +140,12 @@ func resourceGithubTeamMembersUpdate(ctx context.Context, d *schema.ResourceData
 		if del {
 			log.Printf("[DEBUG] Deleting team membership: %s/%s", teamIdString, username)
 
-			_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgId, teamId, username)
+			var err error
+			if slug, ok := team.getSlugOK(); ok {
+				_, err = client.Teams.RemoveTeamMembershipBySlug(ctx, orgName, slug, username)
+			} else {
+				_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgId, team.getID(), username)
+			}
 			if err != nil {
 				return diag.FromErr(err)
 			}
@@ -155,14 +155,14 @@ func resourceGithubTeamMembersUpdate(ctx context.Context, d *schema.ResourceData
 			role := change.New["role"].(string)
 
 			log.Printf("[DEBUG] Creating team membership: %s/%s (%s)", teamIdString, username, role)
-			_, _, err = client.Teams.AddTeamMembershipByID(ctx,
-				orgId,
-				teamId,
-				username,
-				&github.TeamAddTeamMembershipOptions{
-					Role: role,
-				},
-			)
+
+			opts := &github.TeamAddTeamMembershipOptions{Role: role}
+			var err error
+			if slug, ok := team.getSlugOK(); ok {
+				_, _, err = client.Teams.AddTeamMembershipBySlug(ctx, orgName, slug, username, opts)
+			} else {
+				_, _, err = client.Teams.AddTeamMembershipByID(ctx, orgId, team.getID(), username, opts)
+			}
 			if err != nil {
 				return diag.FromErr(err)
 			}
@@ -171,12 +171,13 @@ func resourceGithubTeamMembersUpdate(ctx context.Context, d *schema.ResourceData
 
 	d.SetId(teamIdString)
 
-	return resourceGithubTeamMembersRead(ctx, d, meta)
+	return nil
 }
 
 func resourceGithubTeamMembersRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta := m.(*Owner)
-	client := meta.v4client
+	client := meta.v3client
+	orgId := meta.id
 	orgName := meta.name
 
 	teamIdString := d.Get("team_id").(string)
@@ -185,10 +186,7 @@ func resourceGithubTeamMembersRead(ctx context.Context, d *schema.ResourceData, 
 		teamIdString = d.Id()
 	}
 
-	teamSlug, err := getTeamSlug(ctx, meta, teamIdString)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	team := newLegacyTeamIdentity(teamIdString)
 
 	// We intentionally set these early to allow reconciliation
 	// from an upstream bug which emptied team_id in state
@@ -198,48 +196,36 @@ func resourceGithubTeamMembersRead(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	log.Printf("[DEBUG] Reading team members: %s", teamIdString)
-	var q struct {
-		Organization struct {
-			Team struct {
-				Members struct {
-					Edges []struct {
-						Node struct {
-							Login string
-						}
-						Role string
-					}
-					PageInfo struct {
-						EndCursor   githubv4.String
-						HasNextPage bool
-					}
-				} `graphql:"members(membership:IMMEDIATE, first:100, after: $after)"`
-			} `graphql:"team(slug:$teamSlug)"`
-		} `graphql:"organization(login:$orgName)"`
-	}
-
-	variables := map[string]any{
-		"teamSlug": githubv4.String(teamSlug),
-		"orgName":  githubv4.String(orgName),
-		"after":    (*githubv4.String)(nil),
-	}
 
 	var teamMembersAndMaintainers []any
-	for {
-		if err := client.Query(ctx, &q, variables); err != nil {
-			return diag.FromErr(err)
+
+	for _, role := range []string{"member", "maintainer"} {
+		opts := &github.TeamListTeamMembersOptions{
+			Role:        role,
+			ListOptions: github.ListOptions{PerPage: maxPerPage},
 		}
 
-		// Add all members to the list
-		for _, member := range q.Organization.Team.Members.Edges {
+		var seq iter.Seq2[*github.User, error]
+		if slug, ok := team.getSlugOK(); ok {
+			seq = client.Teams.ListTeamMembersBySlugIter(ctx, orgName, slug, opts)
+		} else {
+			seq = client.Teams.ListTeamMembersByIDIter(ctx, orgId, team.getID(), opts)
+		}
+
+		for member, err := range seq {
+			if err != nil {
+				if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+					tflog.Info(ctx, "Team no longer exists, removing from state", map[string]any{"team_id": teamIdString})
+					d.SetId("")
+					return nil
+				}
+				return diag.FromErr(err)
+			}
 			teamMembersAndMaintainers = append(teamMembersAndMaintainers, map[string]any{
-				"username": member.Node.Login,
-				"role":     strings.ToLower(member.Role),
+				"username": strings.ToLower(member.GetLogin()),
+				"role":     role,
 			})
 		}
-		if !q.Organization.Team.Members.PageInfo.HasNextPage {
-			break
-		}
-		variables["after"] = new(q.Organization.Team.Members.PageInfo.EndCursor)
 	}
 
 	if err := d.Set("members", teamMembersAndMaintainers); err != nil {
@@ -253,12 +239,10 @@ func resourceGithubTeamMembersDelete(ctx context.Context, d *schema.ResourceData
 	meta := m.(*Owner)
 	client := meta.v3client
 	orgId := meta.id
+	orgName := meta.name
 
 	teamIdString := d.Get("team_id").(string)
-	teamId, err := getTeamID(ctx, meta, teamIdString)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	team := newLegacyTeamIdentity(teamIdString)
 
 	members := d.Get("members").(*schema.Set)
 
@@ -268,8 +252,18 @@ func resourceGithubTeamMembersDelete(ctx context.Context, d *schema.ResourceData
 
 		log.Printf("[DEBUG] Deleting team membership: %s/%s", teamIdString, username)
 
-		_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgId, teamId, username)
+		var err error
+		if slug, ok := team.getSlugOK(); ok {
+			_, err = client.Teams.RemoveTeamMembershipBySlug(ctx, orgName, slug, username)
+		} else {
+			_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgId, team.getID(), username)
+		}
 		if err != nil {
+			// 404 means the team is gone (API returns 204 for missing memberships).
+			if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+				tflog.Info(ctx, "Team no longer exists, skipping remaining member deletions", map[string]any{"team_id": teamIdString})
+				return nil
+			}
 			return diag.FromErr(err)
 		}
 	}

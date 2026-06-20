@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 
@@ -18,12 +19,17 @@ import (
 	"github.com/integrations/terraform-provider-github/v6/internal/ghclient"
 )
 
+const (
+	providerName = "terraform-provider-github"
+	providerURL  = "https://github.com/integrations/terraform-provider-github"
+)
+
 func init() {
 	schema.DescriptionKind = schema.StringMarkdown
 }
 
 // NewProvider returns a function that returns the schema.Provider for this provider.
-func NewProvider() func() *schema.Provider {
+func NewProvider(version, commit string) func() *schema.Provider {
 	return func() *schema.Provider {
 		return &schema.Provider{
 			Schema: map[string]*schema.Schema{
@@ -323,14 +329,16 @@ func NewProvider() func() *schema.Provider {
 				"github_repository_environment_deployment_policies":                     dataSourceGithubRepositoryEnvironmentDeploymentPolicies(),
 			},
 
-			ConfigureContextFunc: configureProvider(),
+			ConfigureContextFunc: configureProvider(version, commit),
 		}
 	}
 }
 
 // configureProvider initializes the provider meta parameter with the necessary clients and owner information based on the provided configuration. It returns the initialized meta parameter or an error if the configuration is invalid or if there are issues initializing the clients.
-func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.Diagnostics) {
+func configureProvider(version, commit string) func(context.Context, *schema.ResourceData) (any, diag.Diagnostics) {
 	return func(ctx context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
+		tflog.Debug(ctx, "Configuring provider.", map[string]any{"name": providerName, "url": providerURL, "version": version, "commit": commit})
+
 		baseURL, err := url.Parse(DotComAPIURL)
 		if err != nil {
 			return nil, diag.FromErr(err)
@@ -501,11 +509,11 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 		if v, ok := d.GetOk("cache_path"); ok {
 			if s, ok := v.(string); ok && s != "" {
 				tflog.Debug(ctx, "Using cache path from provider configuration.", map[string]any{"cache_path": s})
-				config.CachePath = &s
+				config.CachePath = s
 			}
 		}
 
-		meta, err := configureProviderMeta(ctx, config)
+		meta, err := configureProviderMeta(ctx, version, config)
 		if err != nil {
 			return nil, diag.FromErr(err)
 		}
@@ -515,7 +523,7 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 }
 
 // configureProviderMeta initializes the provider metadata, including setting up the GitHub API clients based on the provided configuration. It returns the initialized metadata or an error if the configuration is invalid or if there are issues initializing the clients.
-func configureProviderMeta(ctx context.Context, c *Config) (*Owner, error) {
+func configureProviderMeta(ctx context.Context, version string, c *Config) (*Owner, error) {
 	owner := &Owner{
 		name: c.Owner,
 	}
@@ -541,8 +549,9 @@ func configureProviderMeta(ctx context.Context, c *Config) (*Owner, error) {
 		owner.v4client = v4client
 	} else {
 		options := ghclient.Options{
-			RESTAPIURL:   new(c.BaseURL.JoinPath(c.RESTAPIPath).String()),
-			GraphQLURL:   new(c.BaseURL.JoinPath(c.GraphQLAPIPath).String()),
+			RESTAPIURL:   c.BaseURL.JoinPath(c.RESTAPIPath).String(),
+			GraphQLURL:   c.BaseURL.JoinPath(c.GraphQLAPIPath).String(),
+			UserAgent:    fmt.Sprintf("%s/%s (+%s; go/%s; os/%s; arch/%s)", providerName, version, providerURL, runtime.Version(), runtime.GOOS, runtime.GOARCH),
 			CachePath:    c.CachePath,
 			RetryMax:     c.MaxRetries,
 			RetryWaitMin: c.RetryDelay,
