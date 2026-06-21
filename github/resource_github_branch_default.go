@@ -96,6 +96,7 @@ func resourceGithubBranchDefaultCreate(ctx context.Context, d *schema.ResourceDa
 			if _, _, err := client.Repositories.RenameBranch(ctx, owner, repoName, repository.GetDefaultBranch(), defaultBranch); err != nil {
 				return diag.FromErr(err)
 			}
+			etag = ""
 		} else {
 			tflog.Debug(ctx, "Setting new default branch")
 			repository := &github.Repository{
@@ -194,16 +195,16 @@ func resourceGithubBranchDefaultUpdate(ctx context.Context, d *schema.ResourceDa
 
 	if rename {
 		tflog.Debug(ctx, "Rename enabled, checking if branch rename is needed")
-		repository, resp, err := client.Repositories.Get(ctx, owner, repoName)
+		repository, _, err := client.Repositories.Get(ctx, owner, repoName)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 		if repository.GetDefaultBranch() != defaultBranch {
 			tflog.Debug(ctx, "Renaming branch to new default")
-			etag = resp.Header.Get("ETag")
 			if _, _, err := client.Repositories.RenameBranch(ctx, owner, repoName, repository.GetDefaultBranch(), defaultBranch); err != nil {
 				return diag.FromErr(err)
 			}
+			etag = ""
 		}
 	} else {
 		tflog.Debug(ctx, "Setting new default branch")
@@ -261,8 +262,25 @@ func resourceGithubBranchDefaultDelete(ctx context.Context, d *schema.ResourceDa
 
 func resourceGithubBranchDefaultImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
 	repoName := d.Id()
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
+	repository, resp, err := client.Repositories.Get(ctx, owner, repoName)
+	if err != nil {
+		return nil, err
+	}
 
 	if err := d.Set("repository", repoName); err != nil {
+		return nil, err
+	}
+	if err := d.Set("branch", repository.GetDefaultBranch()); err != nil {
+		return nil, err
+	}
+	if err := d.Set("repository_id", int(repository.GetID())); err != nil {
+		return nil, err
+	}
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
 		return nil, err
 	}
 
