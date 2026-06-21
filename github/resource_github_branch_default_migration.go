@@ -35,7 +35,7 @@ func resourceGithubBranchDefaultV0() *schema.Resource {
 }
 
 func resourceGithubBranchDefaultStateUpgradeV0(ctx context.Context, rawState map[string]any, m any) (map[string]any, error) {
-	tflog.Debug(ctx, "state upgrade v0: State before v0 migration", rawState)
+	tflog.Debug(ctx, "Migrating GitHub Branch Default from v0 to v1.", rawState)
 
 	meta, _ := m.(*Owner)
 	client := meta.v3client
@@ -55,18 +55,16 @@ func resourceGithubBranchDefaultStateUpgradeV0(ctx context.Context, rawState map
 		}
 	}
 	if repoName == "" {
-		return nil, fmt.Errorf("state upgrade v0: repository is not a string or not set")
-	}
-
-	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
-	if err != nil {
-		return nil, fmt.Errorf("state upgrade v0: failed to retrieve repository '%s': %w", repoName, err)
+		return nil, fmt.Errorf("repository is not a string or not set")
 	}
 
 	rawState["repository"] = repoName
-	rawState["repository_id"] = int(repo.GetID())
 
-	tflog.Debug(ctx, "state upgrade v0: State after v0 migration", rawState)
+	migratedState, err := migrateRepositoryWithID(ctx, client, owner, rawState)
+	if err != nil {
+		return nil, err
+	}
 
-	return rawState, nil
+	tflog.Debug(ctx, "Migrated GitHub Branch Default from v1.", migratedState)
+	return migratedState, nil
 }

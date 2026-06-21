@@ -1,45 +1,31 @@
 package github
 
 import (
-	"encoding/json"
-	"fmt"
-	"net/http"
+	"regexp"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-github/v88/github"
 )
 
-func buildMockResponsesForBranchDefaultMigrationV0toV1(mockOwner, mockRepo string, wantRepoID int) []*mockResponse {
-	responseBodyJSON, err := json.Marshal(github.Repository{
-		ID:   new(int64(wantRepoID)),
-		Name: new(mockRepo),
-	})
-	if err != nil {
-		panic(fmt.Sprintf("error marshalling repository response: %s", err))
-	}
-
-	return []*mockResponse{{
-		ExpectedUri: fmt.Sprintf("/repos/%s/%s", mockOwner, mockRepo),
-		ExpectedHeaders: map[string]string{
-			"Accept": "application/vnd.github.scarlet-witch-preview+json, application/vnd.github.mercy-preview+json, application/vnd.github.baptiste-preview+json, application/vnd.github.nebula-preview+json",
-		},
-		ResponseBody: string(responseBodyJSON),
-		StatusCode:   http.StatusOK,
-	}}
-}
-
 func Test_resourceGithubBranchDefaultStateUpgradeV0toV1(t *testing.T) {
 	t.Parallel()
 
-	for _, d := range []struct {
-		testName    string
-		rawState    map[string]any
-		want        map[string]any
-		shouldError bool
+	for _, tt := range []struct {
+		testName   string
+		statusCode int
+		body       *github.Repository
+		rawState   map[string]any
+		want       map[string]any
+		wantErr    *string
 	}{
 		{
-			testName: "adds_repository_id",
+			testName:   "adds_repository_id",
+			statusCode: 200,
+			body: &github.Repository{
+				ID:   new(int64(1234567890)),
+				Name: new("test-repo"),
+			},
 			rawState: map[string]any{
 				"id":         "test-repo",
 				"repository": "test-repo",
@@ -57,7 +43,12 @@ func Test_resourceGithubBranchDefaultStateUpgradeV0toV1(t *testing.T) {
 			},
 		},
 		{
-			testName: "falls_back_to_id_for_imported_state",
+			testName:   "falls_back_to_id_for_imported_state",
+			statusCode: 200,
+			body: &github.Repository{
+				ID:   new(int64(1234567890)),
+				Name: new("test-repo"),
+			},
 			rawState: map[string]any{
 				"id":     "test-repo",
 				"branch": "main",
@@ -71,25 +62,49 @@ func Test_resourceGithubBranchDefaultStateUpgradeV0toV1(t *testing.T) {
 				"rename":        true,
 			},
 		},
+		{
+			testName:   "fails_if_repo_not_found",
+			statusCode: 404,
+			body:       nil,
+			rawState: map[string]any{
+				"repository": "test-repo",
+			},
+			wantErr: new("failed to retrieve repository"),
+		},
+		{
+			testName:   "fails_if_repository_empty_and_id_missing",
+			statusCode: 404,
+			body:       nil,
+			rawState: map[string]any{
+				"branch": "main",
+			},
+			wantErr: new("state upgrade v0: repository is not a string or not set"),
+		},
 	} {
-		t.Run(d.testName, func(t *testing.T) {
+		t.Run(tt.testName, func(t *testing.T) {
 			t.Parallel()
 
-			meta := &Owner{name: "test-org"}
-			ts := githubApiMock(buildMockResponsesForBranchDefaultMigrationV0toV1(meta.name, "test-repo", 1234567890))
+			ts := githubApiMock([]*mockResponse{mustGetTestMockResponse(t, "/repos/test-org/test-repo", tt.statusCode, tt.body)})
 			defer ts.Close()
+			meta := &Owner{name: "test-org", v3client: mustCreateTestGitHubClient(t, ts.URL)}
 
-			meta.v3client = mustCreateTestGitHubClient(t, ts.URL)
-
-			// ctx := tflogtest.RootLogger(t.Context(), log.Writer()) // This pattern can be used to capture logs during testing if needed
-
-			got, err := resourceGithubBranchDefaultStateUpgradeV0(t.Context(), d.rawState, meta)
-			if (err != nil) != d.shouldError {
-				t.Fatalf("unexpected error state: got error %v, shouldError %v", err, d.shouldError)
+			got, err := resourceGithubBranchDefaultStateUpgradeV0(t.Context(), tt.rawState, meta)
+			if err != nil {
+				if tt.wantErr == nil {
+					t.Fatalf("unexpected error: %s", err)
+				}
+				if !regexp.MustCompile(regexp.QuoteMeta(*tt.wantErr)).MatchString(err.Error()) {
+					t.Fatalf("unexpected error: %s", err)
+				}
+				return
 			}
 
-			if diff := cmp.Diff(got, d.want); diff != "" && !d.shouldError {
-				t.Fatalf("got %+v, want %+v, diff %s", got, d.want, diff)
+			if tt.wantErr != nil {
+				t.Fatalf("expected error: %s", *tt.wantErr)
+			}
+
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Fatalf("got %+v, want %+v, diff %s", got, tt.want, diff)
 			}
 		})
 	}
