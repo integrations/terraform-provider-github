@@ -79,7 +79,7 @@ func Test_resourceGithubBranchDefaultStateUpgradeV0toV1(t *testing.T) {
 			ts := githubApiMock(buildMockResponsesForBranchDefaultMigrationV0toV1(meta.name, "test-repo", 1234567890))
 			defer ts.Close()
 
-			meta.v3client = mustGitHubClient(t, ts.URL)
+			meta.v3client = mustCreateTestGitHubClient(t, ts.URL)
 
 			// ctx := tflogtest.RootLogger(t.Context(), log.Writer()) // This pattern can be used to capture logs during testing if needed
 
