@@ -2,6 +2,8 @@ version: 2
 
 updates:
   - package-ecosystem: github-actions
+    cooldown:
+      default-days: 7
     directories:
       - /
     groups:
@@ -23,6 +25,8 @@ updates:
       interval: weekly
 
   - package-ecosystem: gomod
+    cooldown:
+      default-days: 7
     directories:
       - /
       - /tools
