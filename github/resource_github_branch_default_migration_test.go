@@ -43,26 +43,6 @@ func Test_resourceGithubBranchDefaultStateUpgradeV0toV1(t *testing.T) {
 			},
 		},
 		{
-			testName:   "falls_back_to_id_for_imported_state",
-			statusCode: 200,
-			body: &github.Repository{
-				ID:   new(int64(1234567890)),
-				Name: new("test-repo"),
-			},
-			rawState: map[string]any{
-				"id":     "test-repo",
-				"branch": "main",
-				"rename": true,
-			},
-			want: map[string]any{
-				"id":            "test-repo",
-				"repository":    "test-repo",
-				"repository_id": 1234567890,
-				"branch":        "main",
-				"rename":        true,
-			},
-		},
-		{
 			testName:   "fails_if_repo_not_found",
 			statusCode: 404,
 			body:       nil,
@@ -78,7 +58,7 @@ func Test_resourceGithubBranchDefaultStateUpgradeV0toV1(t *testing.T) {
 			rawState: map[string]any{
 				"branch": "main",
 			},
-			wantErr: new("state upgrade v0: repository is not a string or not set"),
+			wantErr: new("repository name not found in state"),
 		},
 	} {
 		t.Run(tt.testName, func(t *testing.T) {
