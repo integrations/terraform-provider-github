@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/compare"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -473,5 +474,45 @@ func TestAccGithubBranchDefault(t *testing.T) {
 				},
 			},
 		})
+	})
+}
+
+func TestGithubBranchDefault(t *testing.T) {
+	// Test verifies that waitForDefaultBranch
+	// is not called when wait_for_rename is false (the default). The mock server
+	// is set up with exactly two responses: the initial GET and the rename POST.
+	// Any additional request (i.e. a polling GET from waitForDefaultBranch) would
+	// receive a 400 from the mock, causing the resource function to return an error.
+	t.Run("skips_wait_for_rename_when_not_configured", func(t *testing.T) {
+		ts := githubApiMock([]*mockResponse{
+			{
+				ExpectedUri:    "/repos/owner/repo",
+				ExpectedMethod: "GET",
+				StatusCode:     200,
+				ResponseBody:   `{"id": 42, "name": "repo", "default_branch": "main"}`,
+			},
+			{
+				ExpectedUri:    "/repos/owner/repo/branches/main/rename",
+				ExpectedMethod: "POST",
+				StatusCode:     201,
+				ResponseBody:   `{"name": "development"}`,
+			},
+		})
+		defer ts.Close()
+
+		client := mustCreateTestGitHubClient(t, ts.URL)
+		meta := &Owner{name: "owner", v3client: client}
+
+		d := schema.TestResourceDataRaw(t, resourceGithubBranchDefault().Schema, map[string]any{
+			"repository":      "repo",
+			"branch":          "development",
+			"rename":          true,
+			"wait_for_rename": false,
+		})
+
+		diags := resourceGithubBranchDefaultCreate(t.Context(), d, meta)
+		if diags.HasError() {
+			t.Fatalf("expected no error, got: %v", diags)
+		}
 	})
 }
