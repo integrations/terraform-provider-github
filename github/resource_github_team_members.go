@@ -343,15 +343,16 @@ func updateTeamMembers(ctx context.Context, client *github.Client, orgName, slug
 	}
 
 	for _, member := range wantMembers {
-		if current, ok := lookup[member.login]; !ok || current.role != member.role {
-			tflog.Debug(ctx, "Adding/updating team member.", map[string]any{"team_slug": slug, "username": member.login, "role": member.role})
+		login := strings.ToLower(member.login)
+		if current, ok := lookup[login]; !ok || current.role != member.role {
+			tflog.Debug(ctx, "Adding/updating team member.", map[string]any{"team_slug": slug, "username": login, "role": member.role})
 
-			if _, _, err := client.Teams.AddTeamMembershipBySlug(ctx, orgName, slug, member.login, &github.TeamAddTeamMembershipOptions{Role: member.role}); err != nil {
-				return fmt.Errorf("could not add team member %q: %w", member.login, err)
+			if _, _, err := client.Teams.AddTeamMembershipBySlug(ctx, orgName, slug, login, &github.TeamAddTeamMembershipOptions{Role: member.role}); err != nil {
+				return fmt.Errorf("could not add team member %q: %w", login, err)
 			}
 		}
 
-		want[member.login] = struct{}{}
+		want[login] = struct{}{}
 	}
 
 	for _, member := range currentMembers {
