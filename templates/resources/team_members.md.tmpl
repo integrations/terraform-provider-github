@@ -13,6 +13,8 @@ description: |-
 
 This resource allows you to manage members of teams in your organization; it sets the requested team members for the team and removes all users not managed by Terraform. If an organization owner is given the `member` role they will be granted `maintainer` instead which will result in a perpetual diff. If a user who hasn't accepted their invitation to the organization is added to the team, they will not be a team member until they've accepted the invitation. When this resource is deleted all users will be removed from the team.
 
+!> If you don't have a member with the `maintainer` set then this resource may end up with a perpetual diff as the GitHub API will automatically promote a member to `maintainer` if there are no maintainers in the team. To avoid this, ensure that at least one member has the `maintainer` role.
+
 {{ if .HasExamples -}}
 ## Example Usage
 
