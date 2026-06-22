@@ -3,8 +3,9 @@ package github
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
-	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -15,10 +16,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
-
-type MemberChange struct {
-	Old, New map[string]any
-}
 
 func resourceGithubTeamMembers() *schema.Resource {
 	return &schema.Resource{
@@ -122,17 +119,13 @@ func resourceGithubTeamMembersCreate(ctx context.Context, d *schema.ResourceData
 
 	tflog.Debug(ctx, "Creating team members.", map[string]any{"team_slug": slug, "team_id": teamID})
 
-	for _, mMap := range members.List() {
-		memb, _ := mMap.(map[string]any)
-		username, _ := memb["username"].(string)
-		role, _ := memb["role"].(string)
+	teamMembers, err := newUserMembers(members.List())
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("failed to parse team members: %w", err))
+	}
 
-		tflog.Debug(ctx, "Adding member to team.", map[string]any{"team_slug": slug, "username": username, "role": role})
-
-		_, _, err := client.Teams.AddTeamMembershipBySlug(ctx, orgName, slug, username, &github.TeamAddTeamMembershipOptions{Role: role})
-		if err != nil {
-			return diag.FromErr(err)
-		}
+	if err := updateTeamMembers(ctx, client, orgName, slug, teamMembers); err != nil {
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(teamID, 10))
@@ -146,6 +139,8 @@ func resourceGithubTeamMembersCreate(ctx context.Context, d *schema.ResourceData
 			return diag.FromErr(err)
 		}
 	}
+
+	tflog.Debug(ctx, "Created team members.", map[string]any{"team_slug": slug, "team_id": teamID})
 
 	return nil
 }
@@ -172,30 +167,17 @@ func resourceGithubTeamMembersRead(ctx context.Context, d *schema.ResourceData, 
 
 	tflog.Debug(ctx, "Reading team members.", map[string]any{"team_slug": slug})
 
-	var teamMembersAndMaintainers []any
-	for _, role := range []string{"member", "maintainer"} {
-		opts := &github.TeamListTeamMembersOptions{
-			Role:        role,
-			ListOptions: github.ListOptions{PerPage: maxPerPage},
+	teamMembers, err := getTeamMembers(ctx, client, orgName, slug)
+	if err != nil {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Team not found during read, removing from state.", map[string]any{"team_slug": slug})
+			d.SetId("")
+			return nil
 		}
-
-		for member, err := range client.Teams.ListTeamMembersBySlugIter(ctx, orgName, slug, opts) {
-			if err != nil {
-				if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
-					tflog.Info(ctx, "Team no longer exists, removing from state.", map[string]any{"team_slug": slug})
-					d.SetId("")
-					return nil
-				}
-				return diag.FromErr(err)
-			}
-			teamMembersAndMaintainers = append(teamMembersAndMaintainers, map[string]any{
-				"username": strings.ToLower(member.GetLogin()),
-				"role":     role,
-			})
-		}
+		return diag.FromErr(err)
 	}
 
-	if err := d.Set("members", teamMembersAndMaintainers); err != nil {
+	if err := d.Set("members", teamMembers.flatten()); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -208,6 +190,7 @@ func resourceGithubTeamMembersUpdate(ctx context.Context, d *schema.ResourceData
 	orgName := meta.name
 
 	slug, _ := d.Get("team_slug").(string)
+	members, _ := d.Get("members").(*schema.Set)
 
 	if idStr, _ := d.Get("team_id").(string); idStr == "" {
 		tflog.Debug(ctx, "Looking up team ID from slug.", map[string]any{"team_slug": slug})
@@ -221,57 +204,13 @@ func resourceGithubTeamMembersUpdate(ctx context.Context, d *schema.ResourceData
 		}
 	}
 
-	o, n := d.GetChange("members")
-	vals := make(map[string]*MemberChange)
-	for _, raw := range o.(*schema.Set).List() {
-		obj := raw.(map[string]any)
-		k := obj["username"].(string)
-		vals[k] = &MemberChange{Old: obj}
-	}
-	for _, raw := range n.(*schema.Set).List() {
-		obj := raw.(map[string]any)
-		k := obj["username"].(string)
-		if _, ok := vals[k]; !ok {
-			vals[k] = &MemberChange{}
-		}
-		vals[k].New = obj
+	teamMembers, err := newUserMembers(members.List())
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("failed to parse team members: %w", err))
 	}
 
-	for username, change := range vals {
-		var create, del bool
-
-		switch {
-		case change.Old == nil:
-			create = true
-		case change.New == nil:
-			del = true
-		case reflect.DeepEqual(change.Old, change.New):
-			continue
-		default:
-			del = true
-			create = true
-		}
-
-		if del {
-			tflog.Debug(ctx, "Removing member from team.", map[string]any{"team_slug": slug, "username": username})
-
-			_, err := client.Teams.RemoveTeamMembershipBySlug(ctx, orgName, slug, username)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-		}
-
-		if create {
-			role := change.New["role"].(string)
-
-			tflog.Debug(ctx, "Adding member to team.", map[string]any{"team_slug": slug, "username": username, "role": role})
-
-			opts := &github.TeamAddTeamMembershipOptions{Role: role}
-			_, _, err := client.Teams.AddTeamMembershipBySlug(ctx, orgName, slug, username, opts)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-		}
+	if err := updateTeamMembers(ctx, client, orgName, slug, teamMembers); err != nil {
+		return diag.FromErr(err)
 	}
 
 	return nil
@@ -286,24 +225,16 @@ func resourceGithubTeamMembersDelete(ctx context.Context, d *schema.ResourceData
 
 	tflog.Debug(ctx, "Removing all members from team.", map[string]any{"team_slug": slug})
 
-	members := d.Get("members").(*schema.Set)
-
-	for _, member := range members.List() {
-		mem := member.(map[string]any)
-		username := mem["username"].(string)
-
-		tflog.Debug(ctx, "Removing member from team.", map[string]any{"team_slug": slug, "username": username})
-
-		_, err := client.Teams.RemoveTeamMembershipBySlug(ctx, orgName, slug, username)
-		if err != nil {
-			// 404 means the team is gone (API returns 204 for missing memberships).
-			if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "Team no longer exists, skipping remaining member deletions", map[string]any{"team_slug": slug})
-				return nil
-			}
-			return diag.FromErr(err)
+	if err := updateTeamMembers(ctx, client, orgName, slug, nil); err != nil {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Team not found during delete, assuming already removed.", map[string]any{"team_slug": slug})
+			return nil
 		}
+
+		return diag.FromErr(err)
 	}
+
+	tflog.Debug(ctx, "Removed all members from team.", map[string]any{"team_slug": slug})
 
 	return nil
 }
@@ -340,11 +271,99 @@ func resourceGithubTeamMembersImport(ctx context.Context, d *schema.ResourceData
 		}
 	}
 
+	teamMembers, err := getTeamMembers(ctx, meta.v3client, meta.name, slug)
+	if err != nil {
+		return nil, err
+	}
+
 	d.SetId(strconv.FormatInt(teamID, 10))
 
 	if err := d.Set("team_slug", slug); err != nil {
 		return nil, err
 	}
 
+	if err := d.Set("members", teamMembers.flatten()); err != nil {
+		return nil, err
+	}
+
 	return []*schema.ResourceData{d}, nil
+}
+
+func getTeamMembers(ctx context.Context, client *github.Client, orgName, slug string) (userMembers, error) {
+	tflog.Debug(ctx, "Getting team members.", map[string]any{"team_slug": slug})
+
+	var teamMembers userMembers
+	for _, role := range []string{"maintainer", "member"} {
+		opts := &github.TeamListTeamMembersOptions{
+			Role:        role,
+			ListOptions: github.ListOptions{PerPage: maxPerPage},
+		}
+
+		for member, err := range client.Teams.ListTeamMembersBySlugIter(ctx, orgName, slug, opts) {
+			if err != nil {
+				return nil, err
+			}
+
+			teamMembers = append(teamMembers, userMember{
+				userIdentity: userIdentity{
+					login: strings.ToLower(member.GetLogin()),
+				},
+				role: role,
+			})
+		}
+	}
+
+	tflog.Debug(ctx, "Got team members.", map[string]any{"team_slug": slug, "team_members": teamMembers})
+
+	return teamMembers, nil
+}
+
+func updateTeamMembers(ctx context.Context, client *github.Client, orgName, slug string, wantMembers userMembers) error {
+	tflog.Debug(ctx, "Updating team members.", map[string]any{"team_slug": slug, "members": wantMembers.flatten()})
+
+	roleLookup := map[string]int{
+		"maintainer": 1,
+		"member":     2,
+	}
+
+	slices.SortFunc(wantMembers, func(a, b userMember) int {
+		return roleLookup[a.role] - roleLookup[b.role]
+	})
+
+	currentMembers, err := getTeamMembers(ctx, client, orgName, slug)
+	if err != nil {
+		return err
+	}
+
+	lookup := make(map[string]userMember, len(currentMembers))
+	want := make(map[string]struct{}, len(wantMembers))
+
+	for _, member := range currentMembers {
+		lookup[member.login] = member
+	}
+
+	for _, member := range wantMembers {
+		if current, ok := lookup[member.login]; !ok || current.role != member.role {
+			tflog.Debug(ctx, "Adding/updating team member.", map[string]any{"team_slug": slug, "username": member.login, "role": member.role})
+
+			if _, _, err := client.Teams.AddTeamMembershipBySlug(ctx, orgName, slug, member.login, &github.TeamAddTeamMembershipOptions{Role: member.role}); err != nil {
+				return fmt.Errorf("could not add team member %q: %w", member.login, err)
+			}
+		}
+
+		want[member.login] = struct{}{}
+	}
+
+	for _, member := range currentMembers {
+		if _, ok := want[member.login]; !ok {
+			tflog.Debug(ctx, "Removing team member.", map[string]any{"team_slug": slug, "username": member.login})
+
+			if _, err := client.Teams.RemoveTeamMembershipBySlug(ctx, orgName, slug, member.login); err != nil {
+				return fmt.Errorf("could not remove existing team member %q: %w", member.login, err)
+			}
+		}
+	}
+
+	tflog.Debug(ctx, "Updated team members.", map[string]any{"team_slug": slug})
+	return nil
 }

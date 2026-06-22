@@ -42,7 +42,6 @@ resource "github_team_members" "test" {
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("team_id"), knownvalue.StringExact(strconv.FormatInt(team.GetID(), 10))),
-						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("team_slug"), knownvalue.StringExact(team.GetSlug())),
 						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
 					},
 				},
@@ -52,8 +51,7 @@ resource "github_team_members" "test" {
 					ImportStateIdFunc: func(s *terraform.State) (string, error) {
 						return s.RootModule().Resources["github_team_members.test"].Primary.Attributes["team_slug"], nil
 					},
-					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"members"},
+					ImportStateVerify: true,
 				},
 			},
 		})
@@ -92,7 +90,7 @@ resource "github_team_members" "test" {
 						return s.RootModule().Resources["github_team_members.test"].Primary.Attributes["team_id"], nil
 					},
 					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"team_id", "members"},
+					ImportStateVerifyIgnore: []string{"team_id"},
 				},
 			},
 		})
@@ -130,8 +128,7 @@ resource "github_team_members" "test" {
 					ImportStateIdFunc: func(s *terraform.State) (string, error) {
 						return s.RootModule().Resources["github_team_members.test"].Primary.Attributes["team_id"], nil
 					},
-					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"members"},
+					ImportStateVerify: true,
 				},
 			},
 		})
@@ -243,6 +240,44 @@ resource "github_team_members" "test" {
 		})
 	})
 
+	t.Run("team_with_existing_members", func(t *testing.T) {
+		t.Parallel()
+
+		skipUnlessHasOrgUser2(t)
+
+		team := mustCreateTestTeam(t, nil)
+		mustAddTeamMember(t, team, testAccConf.testOrgUser2)
+
+		config := fmt.Sprintf(`
+resource "github_team_members" "test" {
+  team_slug = "%s"
+
+  members {
+    username = "%s"
+    role     = "maintainer"
+  }
+}
+`, team.GetSlug(), testAccConf.testOrgUser1)
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
+					},
+				}, {
+					PreConfig: func() { mustAddTeamMember(t, team, testAccConf.testOrgUser2) },
+					Config:    config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
+					},
+				},
+			},
+		})
+	})
+
 	t.Run("team_with_child_team", func(t *testing.T) {
 		t.Parallel()
 
@@ -271,15 +306,6 @@ resource "github_team_members" "test" {
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
 					},
-				},
-				{
-					ResourceName: "github_team_members.test",
-					ImportState:  true,
-					ImportStateIdFunc: func(s *terraform.State) (string, error) {
-						return s.RootModule().Resources["github_team_members.test"].Primary.Attributes["team_slug"], nil
-					},
-					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"members"},
 				},
 			},
 		})
