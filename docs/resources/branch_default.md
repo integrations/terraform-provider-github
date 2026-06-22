@@ -60,6 +60,7 @@ resource "github_branch_default" "default" {
 
 - `etag` (String) The ETag header for the repository API response.
 - `rename` (Boolean) If `true` rename the existing branch when the `branch` input is changed. Defaults to 'false'.
+- `wait_for_rename` (Boolean) If `true`, poll until GitHub propagates the renamed default branch before proceeding. Only has effect when `rename` is also `true`. Defaults to 'false'.
 
 ### Read-Only
 
