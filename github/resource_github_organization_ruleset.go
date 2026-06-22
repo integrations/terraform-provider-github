@@ -32,6 +32,8 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 
 		CustomizeDiff: resourceGithubOrganizationRulesetDiff,
 
+		Description: "Creates a GitHub organization ruleset.\n\nThis resource allows you to create and manage rulesets on the organization level. When applied, a new ruleset will be created. When destroyed, that ruleset will be removed.",
+
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:             schema.TypeString,
@@ -63,19 +65,19 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Type:        schema.TypeInt,
 							Optional:    true,
 							Default:     nil,
-							Description: "The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `1`. Some resources such as DeployKey do not have an ID and this should be omitted.",
+							Description: "The ID of the actor that can bypass a ruleset. Required for `Integration`, `RepositoryRole`, `Team`, and `User` actor types. If actor_type is `OrganizationAdmin`, actor_id is ignored. If actor_type is `DeployKey`, this should be omitted. For `RepositoryRole` the following `actor_id` values are known: 2 = Maintain, 4 = Write, 5 = Admin.",
 						},
 						"actor_type": {
 							Type:             schema.TypeString,
 							Required:         true,
-							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"Integration", "OrganizationAdmin", "RepositoryRole", "Team", "DeployKey"}, false)),
-							Description:      "The type of actor that can bypass a ruleset. Can be one of: `Integration`, `OrganizationAdmin`, `RepositoryRole`, `Team`, or `DeployKey`.",
+							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"Integration", "OrganizationAdmin", "RepositoryRole", "Team", "DeployKey", "User"}, false)),
+							Description:      "The type of actor that can bypass a ruleset. Can be one of: `Integration`, `OrganizationAdmin`, `RepositoryRole`, `Team`, `DeployKey`, or `User`.",
 						},
 						"bypass_mode": {
 							Type:             schema.TypeString,
 							Required:         true,
 							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"always", "pull_request", "exempt"}, false)),
-							Description:      "When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`, `exempt`.",
+							Description:      "When the specified actor can bypass the ruleset. `pull_request` means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`, `exempt`.",
 						},
 					},
 				},
@@ -94,14 +96,14 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Parameters for an organization ruleset condition.The branch and tag rulesets conditions object should contain both repository_name and ref_name properties, or both repository_id and ref_name properties, or both repository_property and ref_name properties. The push rulesets conditions object does not require the ref_name property.",
+				Description: "Parameters for an organization ruleset condition.The branch and tag rulesets conditions object should contain both repository_name and ref_name properties, or both repository_id and ref_name properties, or both repository_property and ref_name properties. The push rulesets conditions object does not require the ref_name property. Exactly one of `repository_id`, `repository_name`, or `repository_property` must be set for the ruleset to target repositories.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ref_name": {
 							Type:        schema.TypeList,
 							Optional:    true,
 							MaxItems:    1,
-							Description: "Targets refs that match the specified patterns. Required for `branch` and `tag` targets.",
+							Description: "Targets refs that match the specified patterns. Required for `branch` and `tag` targets.\n  ~> **Note:** For `push` targets, do not include `ref_name` in conditions. Push rulesets operate on file content, not on refs.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -246,7 +248,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Type:        schema.TypeList,
 				Required:    true,
 				MaxItems:    1,
-				Description: "Rules within the ruleset.",
+				Description: "Rules within the ruleset.\n  ~> **Note:** Rules are target-specific. `branch` and `tag` targets support rules like `creation`, `deletion`, `pull_request`, `required_status_checks`, etc. `push` targets only support `file_path_restriction`, `max_file_size`, `max_file_path_length`, and `file_extension_restriction`. Using the wrong rules for a target will result in a validation error.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"creation": {

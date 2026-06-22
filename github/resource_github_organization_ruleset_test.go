@@ -72,7 +72,6 @@ resource "github_organization_ruleset" "test" {
 	}
 
 	bypass_actors {
-		actor_id    = 1
 		actor_type  = "OrganizationAdmin"
 		bypass_mode = "always"
 	}
@@ -167,7 +166,6 @@ resource "github_organization_ruleset" "test" {
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.1.actor_id", "5"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.1.actor_type", "RepositoryRole"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.1.bypass_mode", "always"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.2.actor_id", "1"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.2.actor_type", "OrganizationAdmin"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.2.bypass_mode", "always"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.pull_request.0.allowed_merge_methods.#", "3"),
@@ -179,6 +177,102 @@ resource "github_organization_ruleset" "test" {
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.copilot_code_review.0.review_on_push", "true"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.copilot_code_review.0.review_draft_pull_requests", "false"),
 					),
+				},
+			},
+		})
+	})
+
+	t.Run("creates_branch_ruleset_with_user_bypass_actor", func(t *testing.T) {
+		randomID := acctest.RandString(5)
+		repoName := fmt.Sprintf("%srepo-org-ruleset-%s", testResourcePrefix, randomID)
+		rulesetName := fmt.Sprintf("%s-branch-ruleset-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name = "%s"
+	visibility = "private"
+	auto_init = true
+}
+
+data "github_user" "current" {
+	username = "%[3]s"
+}
+
+resource "github_organization_ruleset" "test" {
+	name        = "%[2]s"
+	target      = "branch"
+	enforcement = "active"
+
+	bypass_actors {
+		actor_type  = "User"
+		bypass_mode = "always"
+		actor_id    = tonumber(data.github_user.current.id)
+	}
+
+	conditions {
+		repository_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+
+		ref_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	rules {
+		creation = true
+
+		update = true
+
+		deletion                = true
+		required_linear_history = true
+
+		required_signatures = false
+
+		pull_request {
+			required_approving_review_count   = 2
+			required_review_thread_resolution = true
+			require_code_owner_review         = true
+			dismiss_stale_reviews_on_push     = true
+			require_last_push_approval        = true
+		}
+
+		copilot_code_review {
+			review_on_push             = true
+			review_draft_pull_requests = false
+		}
+
+		required_status_checks {
+
+			required_check {
+				context = "ci"
+			}
+
+			strict_required_status_checks_policy = true
+			do_not_enforce_on_create             = true
+		}
+
+		non_fast_forward = true
+	}
+}
+`, repoName, rulesetName, testAccConf.username)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(rulesetName)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("target"), knownvalue.StringExact("branch")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("enforcement"), knownvalue.StringExact("active")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("actor_type"), knownvalue.StringExact("User")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("bypass_mode"), knownvalue.StringExact("always")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("actor_id"), knownvalue.NotNull()),
+					},
 				},
 			},
 		})
@@ -500,7 +594,6 @@ resource "github_organization_ruleset" "test" {
 	}
 
 	bypass_actors {
-		actor_id    = 1
 		actor_type  = "OrganizationAdmin"
 		bypass_mode = "always"
 	}
@@ -544,7 +637,6 @@ resource "github_organization_ruleset" "test" {
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.1.actor_id", "5"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.1.actor_type", "RepositoryRole"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.1.bypass_mode", "always"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.2.actor_id", "1"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.2.actor_type", "OrganizationAdmin"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "bypass_actors.2.bypass_mode", "always"),
 						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.file_path_restriction.0.restricted_file_paths.0", "test.txt"),
@@ -627,7 +719,6 @@ resource "github_organization_ruleset" "test" {
 	}
 
 	bypass_actors {
-		actor_id    = 1
 		actor_type  = "OrganizationAdmin"
 		bypass_mode = "always"
 	}
@@ -707,7 +798,6 @@ resource "github_organization_ruleset" "test" {
 	enforcement = "active"
 
 	bypass_actors {
-		actor_id    = 1
 		actor_type  = "OrganizationAdmin"
 		bypass_mode = "%s"
 	}
