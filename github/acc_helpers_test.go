@@ -89,7 +89,7 @@ func mustCreateTestTeam(t *testing.T, parentID *int64) *github.Team {
 	}
 
 	t.Cleanup(func() {
-		if _, err := meta.v3client.Teams.DeleteTeamBySlug(context.Background(), meta.name, name); err != nil {
+		if _, err := meta.v3client.Teams.DeleteTeamByID(context.Background(), meta.id, team.GetID()); err != nil {
 			if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == 404 {
 				return
 			}
