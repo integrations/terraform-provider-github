@@ -120,8 +120,8 @@ func diffSecretVariableVisibility(ctx context.Context, d *schema.ResourceDiff, _
 	return nil
 }
 
-// diffLegacyTeam compares the team_id and team_slug fields to determine if the team has changed.
-func diffLegacyTeam(ctx context.Context, diff *schema.ResourceDiff, m any) error {
+// diffLegacyTeamID checks for an unset team_id previously storing a team slug and updates this to carry the numeric ID.
+func diffLegacyTeamID(ctx context.Context, diff *schema.ResourceDiff, m any) error {
 	// Skip for new resources - no existing team_id to compare against
 	if len(diff.Id()) == 0 || diff.GetRawConfig().IsNull() {
 		return nil
@@ -197,20 +197,20 @@ func diffLegacyTeam(ctx context.Context, diff *schema.ResourceDiff, m any) error
 	return nil
 }
 
-// diffTeam compares the team_id and team_slug fields to determine if the team has changed.
-func diffTeam(ctx context.Context, diff *schema.ResourceDiff, m any) error {
+// diffLegacyTeam compares the legacy team_id string and team_slug fields to determine if the team has changed.
+func diffLegacyTeam(ctx context.Context, diff *schema.ResourceDiff, m any) error {
 	// Skip for new resources - no existing team_id to compare against
 	if len(diff.Id()) == 0 {
 		return nil
 	}
 
-	ctx = tflog.SetField(ctx, "id", diff.Id())
-
 	if !diff.HasChanges("team_slug") {
 		return nil
 	}
 
-	meta := m.(*Owner)
+	ctx = tflog.SetField(ctx, "id", diff.Id())
+
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -223,25 +223,73 @@ func diffTeam(ctx context.Context, diff *schema.ResourceDiff, m any) error {
 		return nil
 	}
 
-	oldSlugV, newSlugV := diff.GetChange("team_slug")
-	newSlug, _ := newSlugV.(string)
+	slug, _ := diff.Get("team_slug").(string)
 
-	team, _, err := client.Teams.GetTeamBySlug(ctx, owner, newSlug)
+	changed, err := diffTeamCheck(ctx, client, owner, teamID, slug)
 	if err != nil {
-		if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == http.StatusNotFound {
-			tflog.Debug(ctx, "New team not found when checking team change, skipping team diff.", map[string]any{"team_slug": newSlug})
-			return nil
-		}
-
-		return fmt.Errorf("failed to lookup new team id from slug (%s): %w", newSlug, err)
+		return err
 	}
 
-	if team.GetID() != teamID {
-		tflog.Debug(ctx, "Team slug changed, forcing new resource", map[string]any{"old_team_slug": oldSlugV, "old_team_id": teamIDStr, "new_team_slug": newSlug, "new_team_id": team.GetID()})
+	if changed {
 		if err := diff.ForceNew("team_slug"); err != nil {
 			return fmt.Errorf("failed to force new for team_slug: %w", err)
 		}
 	}
 
 	return nil
+}
+
+// diffTeam compares the team_id and team_slug fields to determine if the team has changed.
+func diffTeam(ctx context.Context, diff *schema.ResourceDiff, m any) error {
+	// Skip for new resources - no existing team_id to compare against
+	if len(diff.Id()) == 0 {
+		return nil
+	}
+
+	if !diff.HasChanges("team_slug") {
+		return nil
+	}
+
+	ctx = tflog.SetField(ctx, "id", diff.Id())
+
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
+	teamID := toInt64(diff.Get("team_id"))
+	slug, _ := diff.Get("team_slug").(string)
+
+	changed, err := diffTeamCheck(ctx, client, owner, teamID, slug)
+	if err != nil {
+		return err
+	}
+
+	if changed {
+		if err := diff.ForceNew("team_slug"); err != nil {
+			return fmt.Errorf("failed to force new for team_slug: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func diffTeamCheck(ctx context.Context, client *github.Client, owner string, teamID int64, slug string) (bool, error) {
+	team, _, err := client.Teams.GetTeamBySlug(ctx, owner, slug)
+	if err != nil {
+		if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == http.StatusNotFound {
+			tflog.Debug(ctx, "Team not found when checking team change, skipping diff.", map[string]any{"team_slug": slug})
+
+			return false, nil
+		}
+
+		return false, fmt.Errorf("failed to lookup team from slug: %w", err)
+	}
+
+	if team.GetID() != teamID {
+		tflog.Debug(ctx, "Team ID changed, forcing new resource.", map[string]any{"old_team_id": teamID, "new_team_slug": slug, "new_team_id": team.GetID()})
+
+		return true, nil
+	}
+
+	return false, nil
 }

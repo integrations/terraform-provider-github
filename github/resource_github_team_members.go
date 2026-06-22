@@ -27,7 +27,7 @@ func resourceGithubTeamMembers() *schema.Resource {
 			StateContext: resourceGithubTeamMembersImport,
 		},
 
-		CustomizeDiff: customdiff.Sequence(diffLegacyTeam, diffTeam),
+		CustomizeDiff: customdiff.Sequence(diffLegacyTeamID, diffLegacyTeam),
 
 		SchemaVersion: 1,
 		StateUpgraders: []schema.StateUpgrader{
