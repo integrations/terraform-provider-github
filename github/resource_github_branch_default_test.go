@@ -337,8 +337,7 @@ func TestAccGithubBranchDefault(t *testing.T) {
 	})
 
 	t.Run("destroys_does_not_modify_remote_branch", func(t *testing.T) {
-		// The Delete function sends a nil DefaultBranch in the PATCH body, which
-		// go-github omits via omitempty — making it a no-op on the GitHub side.
+		// The Delete function is no-op since there is no way to "reset" the default branch via the API.
 		// This test pins that behavior: the remote default branch must be unchanged
 		// after the resource is removed from Terraform state.
 		randomID := acctest.RandString(5)

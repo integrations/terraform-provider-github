@@ -20,8 +20,7 @@ import (
 const defaultBranchRenameTimeout = 2 * time.Minute
 
 // waitForDefaultBranch polls the repository until GitHub reports the expected
-// default branch, then returns the ETag of that converged response. The polling
-// GET is unconditional so a stale 304 cannot mask an unpropagated rename.
+// default branch. The polling GET is unconditional so a stale 304 cannot mask an unpropagated rename.
 // This is necessary because the GitHub API is eventually consistent for default branch renames,
 // and a read immediately after a rename may return the old default branch with a new ETag.
 func waitForDefaultBranch(ctx context.Context, client *github.Client, owner, repoName, expected string, timeout time.Duration) error {
