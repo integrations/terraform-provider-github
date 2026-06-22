@@ -13,7 +13,7 @@ import (
 )
 
 func TestAccGithubTeamMembership(t *testing.T) {
-	if len(testAccConf.testOrgUser) == 0 {
+	if len(testAccConf.testOrgUser1) == 0 {
 		t.Skip("No test user provided")
 	}
 
@@ -29,7 +29,7 @@ func TestAccGithubTeamMembership(t *testing.T) {
 			CheckDestroy:      testAccCheckGithubTeamMembershipDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: testAccGithubTeamMembershipConfig(randString, testAccConf.testOrgUser, "member"),
+					Config: testAccGithubTeamMembershipConfig(randString, testAccConf.testOrgUser1, "member"),
 					Check: resource.ComposeTestCheckFunc(
 						testAccCheckGithubTeamMembershipExists(ctx, "github_team_membership.test_team_membership", &membership),
 						testAccCheckGithubTeamMembershipRoleState(ctx, "github_team_membership.test_team_membership", "member", &membership),
@@ -38,7 +38,7 @@ func TestAccGithubTeamMembership(t *testing.T) {
 					),
 				},
 				{
-					Config: testAccGithubTeamMembershipConfig(randString, testAccConf.testOrgUser, "maintainer"),
+					Config: testAccGithubTeamMembershipConfig(randString, testAccConf.testOrgUser1, "maintainer"),
 					Check: resource.ComposeTestCheckFunc(
 						testAccCheckGithubTeamMembershipExists(ctx, "github_team_membership.test_team_membership", &membership),
 						testAccCheckGithubTeamMembershipRoleState(ctx, "github_team_membership.test_team_membership", "maintainer", &membership),
@@ -59,7 +59,7 @@ func TestAccGithubTeamMembership(t *testing.T) {
 		rn := "github_team_membership.test_team_membership"
 		randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
-		otherCase := flipUsernameCase(testAccConf.testOrgUser)
+		otherCase := flipUsernameCase(testAccConf.testOrgUser1)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -67,7 +67,7 @@ func TestAccGithubTeamMembership(t *testing.T) {
 			CheckDestroy:      testAccCheckGithubTeamMembershipDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: testAccGithubTeamMembershipConfig(randString, testAccConf.testOrgUser, "member"),
+					Config: testAccGithubTeamMembershipConfig(randString, testAccConf.testOrgUser1, "member"),
 					Check: resource.ComposeTestCheckFunc(
 						testAccCheckGithubTeamMembershipExists(ctx, rn, &membership),
 					),

@@ -17,7 +17,7 @@ func TestAccGithubTeamMembers(t *testing.T) {
 	t.Parallel()
 
 	skipUnlessHasOrgs(t)
-	skipUnlessHasOrgUser(t)
+	skipUnlessHasOrgUser1(t)
 
 	t.Run("team_by_slug", func(t *testing.T) {
 		t.Parallel()
@@ -33,7 +33,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetSlug(), testAccConf.testOrgUser)
+`, team.GetSlug(), testAccConf.testOrgUser1)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -73,7 +73,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetSlug(), testAccConf.testOrgUser)
+`, team.GetSlug(), testAccConf.testOrgUser1)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -112,7 +112,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetID(), testAccConf.testOrgUser)
+`, team.GetID(), testAccConf.testOrgUser1)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -151,7 +151,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetSlug(), testAccConf.testOrgUser)
+`, team.GetSlug(), testAccConf.testOrgUser1)
 
 		configMigrate := fmt.Sprintf(`
 resource "github_team_members" "test" {
@@ -162,7 +162,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetSlug(), testAccConf.testOrgUser)
+`, team.GetSlug(), testAccConf.testOrgUser1)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -204,7 +204,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetID(), testAccConf.testOrgUser)
+`, team.GetID(), testAccConf.testOrgUser1)
 
 		configMigrate := fmt.Sprintf(`
 resource "github_team_members" "test" {
@@ -215,7 +215,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetSlug(), testAccConf.testOrgUser)
+`, team.GetSlug(), testAccConf.testOrgUser1)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -261,7 +261,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetSlug(), testAccConf.testOrgUser)
+`, team.GetSlug(), testAccConf.testOrgUser1)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -300,7 +300,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, testAccConf.testOrgUser)
+`, testAccConf.testOrgUser1)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -338,7 +338,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetSlug(), testAccConf.testOrgUser)
+`, team.GetSlug(), testAccConf.testOrgUser1)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -377,7 +377,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, testAccConf.testOrgUser)
+`, testAccConf.testOrgUser1)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,

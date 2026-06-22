@@ -52,7 +52,6 @@ resource "github_team_members" "example" {
 - `id` (String) The ID of this resource.
 
 <a id="nestedblock--members"></a>
-
 ### Nested Schema for `members`
 
 Required:

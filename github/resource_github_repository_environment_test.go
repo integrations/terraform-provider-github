@@ -270,7 +270,7 @@ resource "github_repository_environment" "test" {
 	})
 
 	t.Run("errors_with_more_than_six_reviewers", func(t *testing.T) {
-		if len(testAccConf.testOrgUser) == 0 {
+		if len(testAccConf.testOrgUser1) == 0 {
 			t.Skip("skipping test that requires GH_TEST_ORG_USER env var to be set")
 		}
 
@@ -322,7 +322,7 @@ resource "github_repository_environment" "test" {
 		users = [data.github_user.org.id]
 	}
 }
-`, testAccConf.testOrgUser, repoName)
+`, testAccConf.testOrgUser1, repoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },

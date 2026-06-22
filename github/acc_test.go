@@ -66,17 +66,18 @@ type testAccConfig struct {
 	testUserRepository string
 
 	// Org test configuration
-	testOrgUser               string
+	testOrgUser1              string
 	testOrgUser2              string
+	testOrgUser3              string
 	testOrgSecretName         string
 	testOrgRepository         string
 	testOrgTemplateRepository string
 	testOrgAppInstallationId  int
 
 	// External test configuration
-	testExternalUser      string
-	testExternalUserToken string
-	testExternalUser2     string
+	testExternalUser1      string
+	testExternalUser1Token string
+	testExternalUser2      string
 
 	// Enterprise test configuration
 	testEnterpriseEMUGroupId int
@@ -132,13 +133,14 @@ func TestMain(m *testing.M) {
 		testPublicTemplateRepositoryOwner: "template-repository",
 		testGHActionsAppInstallationId:    15368,
 		testUserRepository:                os.Getenv("GH_TEST_USER_REPOSITORY"),
-		testOrgUser:                       os.Getenv("GH_TEST_ORG_USER"),
+		testOrgUser1:                      os.Getenv("GH_TEST_ORG_USER1"),
 		testOrgUser2:                      os.Getenv("GH_TEST_ORG_USER2"),
+		testOrgUser3:                      os.Getenv("GH_TEST_ORG_USER3"),
 		testOrgSecretName:                 os.Getenv("GH_TEST_ORG_SECRET_NAME"),
 		testOrgRepository:                 os.Getenv("GH_TEST_ORG_REPOSITORY"),
 		testOrgTemplateRepository:         os.Getenv("GH_TEST_ORG_TEMPLATE_REPOSITORY"),
-		testExternalUser:                  os.Getenv("GH_TEST_EXTERNAL_USER"),
-		testExternalUserToken:             os.Getenv("GH_TEST_EXTERNAL_USER_TOKEN"),
+		testExternalUser1:                 os.Getenv("GH_TEST_EXTERNAL_USER1"),
+		testExternalUser1Token:            os.Getenv("GH_TEST_EXTERNAL_USER1_TOKEN"),
 		testExternalUser2:                 os.Getenv("GH_TEST_EXTERNAL_USER2"),
 		testAdvancedSecurity:              os.Getenv("GH_TEST_ADVANCED_SECURITY") == "true",
 		testRepositoryVisibility:          "public",
@@ -412,8 +414,8 @@ func skipUnlessMode(t *testing.T, testModes ...testMode) {
 	}
 }
 
-func skipUnlessHasOrgUser(t *testing.T) {
-	if testAccConf.testOrgUser == "" {
+func skipUnlessHasOrgUser1(t *testing.T) {
+	if testAccConf.testOrgUser1 == "" {
 		t.Skip("Skipping as no test org user is configured")
 	}
 }
@@ -423,3 +425,9 @@ func skipUnlessHasOrgUser2(t *testing.T) {
 		t.Skip("Skipping as no test org user 2 is configured")
 	}
 }
+
+// func skipUnlessHasOrgUser3(t *testing.T) {
+// 	if testAccConf.testOrgUser3 == "" {
+// 		t.Skip("Skipping as no test org user 3 is configured")
+// 	}
+// }

@@ -129,7 +129,7 @@ func diffLegacyTeam(ctx context.Context, diff *schema.ResourceDiff, m any) error
 
 	ctx = tflog.SetField(ctx, "id", diff.Id())
 
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 

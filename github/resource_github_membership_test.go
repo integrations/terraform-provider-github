@@ -12,7 +12,7 @@ import (
 )
 
 func TestAccGithubMembership(t *testing.T) {
-	if len(testAccConf.testExternalUser) == 0 {
+	if len(testAccConf.testExternalUser1) == 0 {
 		t.Skip("No external user provided")
 	}
 
@@ -28,7 +28,7 @@ func TestAccGithubMembership(t *testing.T) {
 			CheckDestroy:      testAccCheckGithubMembershipDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: testAccGithubMembershipConfig(testAccConf.testExternalUser),
+					Config: testAccGithubMembershipConfig(testAccConf.testExternalUser1),
 					Check: resource.ComposeTestCheckFunc(
 						testAccCheckGithubMembershipExists(ctx, rn, &membership),
 						testAccCheckGithubMembershipRoleState(ctx, rn, &membership),
@@ -55,7 +55,7 @@ func TestAccGithubMembership(t *testing.T) {
 			CheckDestroy:      testAccCheckGithubMembershipDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: testAccGithubMembershipConfigDowngradable(testAccConf.testExternalUser),
+					Config: testAccGithubMembershipConfigDowngradable(testAccConf.testExternalUser1),
 					Check: resource.ComposeTestCheckFunc(
 						testAccCheckGithubMembershipExists(ctx, rn, &membership),
 						testAccCheckGithubMembershipRoleState(ctx, rn, &membership),
@@ -76,7 +76,7 @@ func TestAccGithubMembership(t *testing.T) {
 		var otherMembership github.Membership
 
 		rn := "github_membership.test_org_membership"
-		otherCase := flipUsernameCase(testAccConf.testExternalUser)
+		otherCase := flipUsernameCase(testAccConf.testExternalUser1)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -84,7 +84,7 @@ func TestAccGithubMembership(t *testing.T) {
 			CheckDestroy:      testAccCheckGithubMembershipDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: testAccGithubMembershipConfig(testAccConf.testExternalUser),
+					Config: testAccGithubMembershipConfig(testAccConf.testExternalUser1),
 					Check: resource.ComposeTestCheckFunc(
 						testAccCheckGithubMembershipExists(ctx, rn, &membership),
 					),
