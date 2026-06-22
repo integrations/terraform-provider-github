@@ -59,7 +59,7 @@ resource "github_branch_default" "default" {
 ### Optional
 
 - `etag` (String) The ETag header for the repository API response.
-- `rename` (Boolean) Indicate if the current default branch should be renamed rather than switching to an existing branch. Defaults to 'false'.
+- `rename` (Boolean) If `true` rename the existing branch when the `branch` input is changed. Defaults to 'false'.
 
 ### Read-Only
 
