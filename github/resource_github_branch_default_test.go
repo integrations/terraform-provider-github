@@ -106,6 +106,7 @@ func TestAccGithubBranchDefault(t *testing.T) {
 				repository     = github_repository.test.name
 				branch         = "main"
 				rename         = true
+				wait_for_rename = true
 			}
 		`, repoName)
 
@@ -136,9 +137,10 @@ func TestAccGithubBranchDefault(t *testing.T) {
 			}
 
 			resource "github_branch_default" "test"{
-				repository = github_repository.test.name
-				branch     = "development"
-				rename     = true
+				repository      = github_repository.test.name
+				branch          = "development"
+				rename          = true
+				wait_for_rename = true
 			}
 		`, repoName)
 
@@ -227,9 +229,10 @@ func TestAccGithubBranchDefault(t *testing.T) {
 			}
 
 			resource "github_branch_default" "test" {
-				repository = github_repository.test.name
-				branch     = "%s"
-				rename     = true
+				repository      = github_repository.test.name
+				branch          = "%s"
+				rename          = true
+				wait_for_rename = true
 			}
 		`
 
@@ -271,9 +274,10 @@ func TestAccGithubBranchDefault(t *testing.T) {
 			}
 
 			resource "github_branch_default" "test"{
-				repository = github_repository.test.name
-				branch     = "development"
-				rename     = true
+				repository      = github_repository.test.name
+				branch          = "development"
+				rename          = true
+				wait_for_rename = true
 			}
 		`, repoName)
 
@@ -291,7 +295,7 @@ func TestAccGithubBranchDefault(t *testing.T) {
 					ResourceName:            "github_branch_default.test",
 					ImportState:             true,
 					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"rename", "etag"},
+					ImportStateVerifyIgnore: []string{"rename", "wait_for_rename", "etag"},
 				},
 			},
 		})
@@ -357,9 +361,10 @@ func TestAccGithubBranchDefault(t *testing.T) {
 			}
 
 			resource "github_branch_default" "test" {
-				repository = github_repository.test.name
-				branch     = "development"
-				rename     = true
+				repository      = github_repository.test.name
+				branch          = "development"
+				rename          = true
+				wait_for_rename = true
 			}
 		`, repoName)
 
@@ -437,9 +442,10 @@ func TestAccGithubBranchDefault(t *testing.T) {
 			}
 
 			resource "github_branch_default" "test"{
-				repository = github_repository.test.name
-				branch     = "development"
-				rename     = %t
+				repository      = github_repository.test.name
+				branch          = "development"
+				rename          = %t
+				wait_for_rename = true
 			}
 		`
 

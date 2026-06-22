@@ -94,6 +94,12 @@ func resourceGithubBranchDefault() *schema.Resource {
 				Default:     false,
 				Description: "If `true` rename the existing branch when the `branch` input is changed. Defaults to 'false'.",
 			},
+			"wait_for_rename": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "If `true`, poll until GitHub propagates the renamed default branch before proceeding. Only has effect when `rename` is also `true`. Defaults to 'false'.",
+			},
 			"etag": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -116,6 +122,7 @@ func resourceGithubBranchDefaultCreate(ctx context.Context, d *schema.ResourceDa
 	repoName, _ := d.Get("repository").(string)
 	defaultBranch, _ := d.Get("branch").(string)
 	rename, _ := d.Get("rename").(bool)
+	waitForRename, _ := d.Get("wait_for_rename").(bool)
 
 	tflog.Trace(ctx, "Creating default branch resource", map[string]any{"owner": owner, "repository": repoName, "branch": defaultBranch, "rename": rename})
 
@@ -134,9 +141,10 @@ func resourceGithubBranchDefaultCreate(ctx context.Context, d *schema.ResourceDa
 			if _, _, err := client.Repositories.RenameBranch(ctx, owner, repoName, repository.GetDefaultBranch(), defaultBranch); err != nil {
 				return diag.FromErr(err)
 			}
-			err := waitForDefaultBranch(ctx, client, owner, repoName, defaultBranch, defaultBranchRenameTimeout)
-			if err != nil {
-				return diag.FromErr(err)
+			if waitForRename {
+				if err := waitForDefaultBranch(ctx, client, owner, repoName, defaultBranch, defaultBranchRenameTimeout); err != nil {
+					return diag.FromErr(err)
+				}
 			}
 			etag = ""
 		} else {
@@ -229,6 +237,7 @@ func resourceGithubBranchDefaultUpdate(ctx context.Context, d *schema.ResourceDa
 	repoName, _ := d.Get("repository").(string)
 	defaultBranch, _ := d.Get("branch").(string)
 	rename, _ := d.Get("rename").(bool)
+	waitForRename, _ := d.Get("wait_for_rename").(bool)
 
 	tflog.Trace(ctx, "Updating default branch resource", map[string]any{"owner": owner, "repository": repoName, "branch": defaultBranch, "rename": rename, "resource_id": d.Id()})
 
@@ -246,9 +255,10 @@ func resourceGithubBranchDefaultUpdate(ctx context.Context, d *schema.ResourceDa
 			if _, _, err := client.Repositories.RenameBranch(ctx, owner, repoName, repository.GetDefaultBranch(), defaultBranch); err != nil {
 				return diag.FromErr(err)
 			}
-			err := waitForDefaultBranch(ctx, client, owner, repoName, defaultBranch, defaultBranchRenameTimeout)
-			if err != nil {
-				return diag.FromErr(err)
+			if waitForRename {
+				if err := waitForDefaultBranch(ctx, client, owner, repoName, defaultBranch, defaultBranchRenameTimeout); err != nil {
+					return diag.FromErr(err)
+				}
 			}
 			etag = ""
 		}
