@@ -409,3 +409,19 @@ func skipUnlessMode(t *testing.T, testModes ...testMode) {
 		t.Skip("Skipping as not supported test mode")
 	}
 }
+
+func skipUnlessCopilotSeatManagementEnabled(t *testing.T) {
+	t.Helper()
+	skipUnlessHasOrgs(t)
+	meta, err := getTestMeta()
+	if err != nil {
+		t.Fatalf("failed to get test meta: %s", err)
+	}
+	billing, _, err := meta.v3client.Copilot.GetCopilotBilling(context.Background(), meta.name)
+	if err != nil {
+		t.Skipf("Skipping: Copilot billing not available for org %s: %s", meta.name, err)
+	}
+	if billing.GetSeatManagementSetting() != "assign_selected" {
+		t.Skipf("Skipping: Copilot seat management is %q, must be %q", billing.GetSeatManagementSetting(), "assign_selected")
+	}
+}
