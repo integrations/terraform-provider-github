@@ -271,7 +271,7 @@ resource "github_repository_environment" "test" {
 
 	t.Run("errors_with_more_than_six_reviewers", func(t *testing.T) {
 		if len(testAccConf.testOrgUser1) == 0 {
-			t.Skip("skipping test that requires GH_TEST_ORG_USER env var to be set")
+			t.Skip("skipping test that requires GH_TEST_ORG_USER1 env var to be set")
 		}
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
