@@ -4,12 +4,51 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+// defaultBranchRenameTimeout bounds how long to wait for GitHub to converge on a
+// renamed default branch. RenameBranch is subject to read-after-write eventual
+// consistency: a GET can briefly return the previous default branch (and a new
+// ETag) before the rename propagates.
+const defaultBranchRenameTimeout = 2 * time.Minute
+
+// waitForDefaultBranch polls the repository until GitHub reports the expected
+// default branch, then returns the ETag of that converged response. The polling
+// GET is unconditional so a stale 304 cannot mask an unpropagated rename.
+// This is necessary because the GitHub API is eventually consistent for default branch renames,
+// and a read immediately after a rename may return the old default branch with a new ETag.
+func waitForDefaultBranch(ctx context.Context, client *github.Client, owner, repoName, expected string, timeout time.Duration) error {
+	conf := &retry.StateChangeConf{
+		Pending: []string{"pending"},
+		Target:  []string{"converged"},
+		Refresh: func() (any, string, error) {
+			repository, _, err := client.Repositories.Get(ctx, owner, repoName)
+			if err != nil {
+				return nil, "", err
+			}
+			if repository.GetDefaultBranch() != expected {
+				return repository, "pending", nil
+			}
+			return repository, "converged", nil
+		},
+		Timeout:    timeout,
+		Delay:      1 * time.Second,
+		MinTimeout: 1 * time.Second,
+	}
+
+	if _, err := conf.WaitForStateContext(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func resourceGithubBranchDefault() *schema.Resource {
 	return &schema.Resource{
@@ -94,6 +133,10 @@ func resourceGithubBranchDefaultCreate(ctx context.Context, d *schema.ResourceDa
 		if rename {
 			tflog.Debug(ctx, "Renaming branch to new default")
 			if _, _, err := client.Repositories.RenameBranch(ctx, owner, repoName, repository.GetDefaultBranch(), defaultBranch); err != nil {
+				return diag.FromErr(err)
+			}
+			err := waitForDefaultBranch(ctx, client, owner, repoName, defaultBranch, defaultBranchRenameTimeout)
+			if err != nil {
 				return diag.FromErr(err)
 			}
 			etag = ""
@@ -195,13 +238,18 @@ func resourceGithubBranchDefaultUpdate(ctx context.Context, d *schema.ResourceDa
 
 	if rename {
 		tflog.Debug(ctx, "Rename enabled, checking if branch rename is needed")
-		repository, _, err := client.Repositories.Get(ctx, owner, repoName)
+		repository, resp, err := client.Repositories.Get(ctx, owner, repoName)
 		if err != nil {
 			return diag.FromErr(err)
 		}
+		etag = resp.Header.Get("ETag")
 		if repository.GetDefaultBranch() != defaultBranch {
 			tflog.Debug(ctx, "Renaming branch to new default")
 			if _, _, err := client.Repositories.RenameBranch(ctx, owner, repoName, repository.GetDefaultBranch(), defaultBranch); err != nil {
+				return diag.FromErr(err)
+			}
+			err := waitForDefaultBranch(ctx, client, owner, repoName, defaultBranch, defaultBranchRenameTimeout)
+			if err != nil {
 				return diag.FromErr(err)
 			}
 			etag = ""
