@@ -10,8 +10,8 @@ import (
 func TestAccGithubReleaseAssetDataSource(t *testing.T) {
 	testRepositoryOwner := testAccConf.testPublicRepositoryOwner
 	testReleaseRepository := testAccConf.testPublicRepository
-	testReleaseAssetID := testAccConf.testPublicRelaseAssetId
-	testReleaseAssetName := testAccConf.testPublicRelaseAssetName
+	testReleaseAssetID := testAccConf.testPublicReleaseAssetId
+	testReleaseAssetName := testAccConf.testPublicReleaseAssetName
 	testReleaseAssetContent := testAccConf.testPublicReleaseAssetContent
 
 	t.Run("queries and downloads specified asset ID", func(t *testing.T) {
