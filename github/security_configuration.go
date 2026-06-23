@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-// flattenDependencyGraphAutosubmitActionOptions converts DependencyGraphAutosubmitActionOptions to a Terraform-compatible format
+// flattenDependencyGraphAutosubmitActionOptions converts DependencyGraphAutosubmitActionOptions to a Terraform-compatible format.
 func flattenDependencyGraphAutosubmitActionOptions(options *github.DependencyGraphAutosubmitActionOptions) []any {
 	if options == nil {
 		return []any{}
@@ -18,7 +18,7 @@ func flattenDependencyGraphAutosubmitActionOptions(options *github.DependencyGra
 	return []any{autosubmitOpts}
 }
 
-// flattenCodeScanningDefaultSetupOptions converts CodeScanningDefaultSetupOptions to a Terraform-compatible format
+// flattenCodeScanningDefaultSetupOptions converts CodeScanningDefaultSetupOptions to a Terraform-compatible format.
 func flattenCodeScanningDefaultSetupOptions(options *github.CodeScanningDefaultSetupOptions) []any {
 	if options == nil {
 		return []any{}
@@ -33,7 +33,7 @@ func flattenCodeScanningDefaultSetupOptions(options *github.CodeScanningDefaultS
 	return []any{setupOpts}
 }
 
-// flattenCodeScanningOptions converts CodeScanningOptions to a Terraform-compatible format
+// flattenCodeScanningOptions converts CodeScanningOptions to a Terraform-compatible format.
 func flattenCodeScanningOptions(options *github.CodeScanningOptions) []any {
 	if options == nil {
 		return []any{}
@@ -45,7 +45,7 @@ func flattenCodeScanningOptions(options *github.CodeScanningOptions) []any {
 	return []any{scanOpts}
 }
 
-// flattenSecretScanningDelegatedBypassOptions converts SecretScanningDelegatedBypassOptions to a Terraform-compatible format
+// flattenSecretScanningDelegatedBypassOptions converts SecretScanningDelegatedBypassOptions to a Terraform-compatible format.
 func flattenSecretScanningDelegatedBypassOptions(options *github.SecretScanningDelegatedBypassOptions) []any {
 	if options == nil {
 		return []any{}
@@ -153,55 +153,55 @@ func expandCodeSecurityConfigurationCommon(d *schema.ResourceData) github.CodeSe
 	}
 
 	if val, ok := d.GetOk("advanced_security"); ok {
-		config.AdvancedSecurity = github.Ptr(val.(string))
+		config.AdvancedSecurity = new(val.(string))
 	}
 	if val, ok := d.GetOk("dependency_graph"); ok {
-		config.DependencyGraph = github.Ptr(val.(string))
+		config.DependencyGraph = new(val.(string))
 	}
 	if val, ok := d.GetOk("dependency_graph_autosubmit_action"); ok {
-		config.DependencyGraphAutosubmitAction = github.Ptr(val.(string))
+		config.DependencyGraphAutosubmitAction = new(val.(string))
 	}
 	if val, ok := d.GetOk("dependabot_alerts"); ok {
-		config.DependabotAlerts = github.Ptr(val.(string))
+		config.DependabotAlerts = new(val.(string))
 	}
 	if val, ok := d.GetOk("dependabot_security_updates"); ok {
-		config.DependabotSecurityUpdates = github.Ptr(val.(string))
+		config.DependabotSecurityUpdates = new(val.(string))
 	}
 	if val, ok := d.GetOk("code_scanning_default_setup"); ok {
-		config.CodeScanningDefaultSetup = github.Ptr(val.(string))
+		config.CodeScanningDefaultSetup = new(val.(string))
 	}
 	if val, ok := d.GetOk("code_scanning_delegated_alert_dismissal"); ok {
-		config.CodeScanningDelegatedAlertDismissal = github.Ptr(val.(string))
+		config.CodeScanningDelegatedAlertDismissal = new(val.(string))
 	}
 	if val, ok := d.GetOk("code_security"); ok {
-		config.CodeSecurity = github.Ptr(val.(string))
+		config.CodeSecurity = new(val.(string))
 	}
 	if val, ok := d.GetOk("secret_scanning"); ok {
-		config.SecretScanning = github.Ptr(val.(string))
+		config.SecretScanning = new(val.(string))
 	}
 	if val, ok := d.GetOk("secret_scanning_push_protection"); ok {
-		config.SecretScanningPushProtection = github.Ptr(val.(string))
+		config.SecretScanningPushProtection = new(val.(string))
 	}
 	if val, ok := d.GetOk("secret_scanning_validity_checks"); ok {
-		config.SecretScanningValidityChecks = github.Ptr(val.(string))
+		config.SecretScanningValidityChecks = new(val.(string))
 	}
 	if val, ok := d.GetOk("secret_scanning_non_provider_patterns"); ok {
-		config.SecretScanningNonProviderPatterns = github.Ptr(val.(string))
+		config.SecretScanningNonProviderPatterns = new(val.(string))
 	}
 	if val, ok := d.GetOk("secret_scanning_generic_secrets"); ok {
-		config.SecretScanningGenericSecrets = github.Ptr(val.(string))
+		config.SecretScanningGenericSecrets = new(val.(string))
 	}
 	if val, ok := d.GetOk("secret_scanning_delegated_alert_dismissal"); ok {
-		config.SecretScanningDelegatedAlertDismissal = github.Ptr(val.(string))
+		config.SecretScanningDelegatedAlertDismissal = new(val.(string))
 	}
 	if val, ok := d.GetOk("secret_protection"); ok {
-		config.SecretProtection = github.Ptr(val.(string))
+		config.SecretProtection = new(val.(string))
 	}
 	if val, ok := d.GetOk("private_vulnerability_reporting"); ok {
-		config.PrivateVulnerabilityReporting = github.Ptr(val.(string))
+		config.PrivateVulnerabilityReporting = new(val.(string))
 	}
 	if val, ok := d.GetOk("enforcement"); ok {
-		config.Enforcement = github.Ptr(val.(string))
+		config.Enforcement = new(val.(string))
 	}
 
 	if val, ok := d.GetOk("dependency_graph_autosubmit_action_options"); ok {
@@ -209,7 +209,7 @@ func expandCodeSecurityConfigurationCommon(d *schema.ResourceData) github.CodeSe
 		if len(optionsList) > 0 {
 			autosubmitOpts := optionsList[0].(map[string]any)
 			config.DependencyGraphAutosubmitActionOptions = &github.DependencyGraphAutosubmitActionOptions{
-				LabeledRunners: github.Ptr(autosubmitOpts["labeled_runners"].(bool)),
+				LabeledRunners: new(autosubmitOpts["labeled_runners"].(bool)),
 			}
 		}
 	}
@@ -222,7 +222,7 @@ func expandCodeSecurityConfigurationCommon(d *schema.ResourceData) github.CodeSe
 				RunnerType: setupOpts["runner_type"].(string),
 			}
 			if runnerLabel, ok := setupOpts["runner_label"].(string); ok && runnerLabel != "" {
-				config.CodeScanningDefaultSetupOptions.RunnerLabel = github.Ptr(runnerLabel)
+				config.CodeScanningDefaultSetupOptions.RunnerLabel = new(runnerLabel)
 			}
 		}
 	}
@@ -232,7 +232,7 @@ func expandCodeSecurityConfigurationCommon(d *schema.ResourceData) github.CodeSe
 		if len(optionsList) > 0 {
 			scanOpts := optionsList[0].(map[string]any)
 			config.CodeScanningOptions = &github.CodeScanningOptions{
-				AllowAdvanced: github.Ptr(scanOpts["allow_advanced"].(bool)),
+				AllowAdvanced: new(scanOpts["allow_advanced"].(bool)),
 			}
 		}
 	}
@@ -244,7 +244,7 @@ func expandCodeSecurityConfigurationCommon(d *schema.ResourceData) github.CodeSe
 // These fields are only supported by the organization API, not the enterprise API.
 func expandSecretScanningDelegatedBypass(d *schema.ResourceData, config *github.CodeSecurityConfiguration) {
 	if val, ok := d.GetOk("secret_scanning_delegated_bypass"); ok {
-		config.SecretScanningDelegatedBypass = github.Ptr(val.(string))
+		config.SecretScanningDelegatedBypass = new(val.(string))
 	}
 	if val, ok := d.GetOk("secret_scanning_delegated_bypass_options"); ok {
 		optionsList := val.([]any)

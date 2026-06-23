@@ -37,7 +37,7 @@ func TestFlattenDependencyGraphAutosubmitActionOptions(t *testing.T) {
 		},
 		{
 			name:  "sets labeled_runners when LabeledRunners is non-nil",
-			input: &github.DependencyGraphAutosubmitActionOptions{LabeledRunners: github.Ptr(true)},
+			input: &github.DependencyGraphAutosubmitActionOptions{LabeledRunners: new(true)},
 			expect: func(t *testing.T, result []any) {
 				if len(result) != 1 {
 					t.Fatalf("expected 1 element, got %d", len(result))
@@ -88,7 +88,7 @@ func TestFlattenCodeScanningOptions(t *testing.T) {
 		},
 		{
 			name:  "sets allow_advanced when AllowAdvanced is true",
-			input: &github.CodeScanningOptions{AllowAdvanced: github.Ptr(true)},
+			input: &github.CodeScanningOptions{AllowAdvanced: new(true)},
 			expect: func(t *testing.T, result []any) {
 				if len(result) != 1 {
 					t.Fatalf("expected 1 element, got %d", len(result))
@@ -101,7 +101,7 @@ func TestFlattenCodeScanningOptions(t *testing.T) {
 		},
 		{
 			name:  "sets allow_advanced when AllowAdvanced is false",
-			input: &github.CodeScanningOptions{AllowAdvanced: github.Ptr(false)},
+			input: &github.CodeScanningOptions{AllowAdvanced: new(false)},
 			expect: func(t *testing.T, result []any) {
 				if len(result) != 1 {
 					t.Fatalf("expected 1 element, got %d", len(result))
@@ -241,7 +241,7 @@ func TestFlattenCodeScanningDefaultSetupOptions(t *testing.T) {
 			name: "sets runner_label when RunnerLabel is non-nil",
 			input: &github.CodeScanningDefaultSetupOptions{
 				RunnerType:  "labeled",
-				RunnerLabel: github.Ptr("my-runner"),
+				RunnerLabel: new("my-runner"),
 			},
 			expect: func(t *testing.T, result []any) {
 				if len(result) != 1 {
@@ -294,21 +294,21 @@ func TestExpandCodeSecurityConfigurationCommon(t *testing.T) {
 		{
 			name: "sets all string fields",
 			input: map[string]any{
-				"name":                                    "full-config",
-				"description":                             "A test config",
-				"advanced_security":                       "enabled",
-				"dependency_graph":                        "enabled",
-				"dependency_graph_autosubmit_action":      "enabled",
-				"dependabot_alerts":                       "enabled",
-				"dependabot_security_updates":             "disabled",
-				"code_scanning_default_setup":             "enabled",
-				"code_scanning_delegated_alert_dismissal": "not_set",
-				"code_security":                           "enabled",
-				"secret_scanning":                         "enabled",
-				"secret_scanning_push_protection":         "enabled",
-				"secret_scanning_validity_checks":         "disabled",
-				"secret_scanning_non_provider_patterns":   "not_set",
-				"secret_scanning_generic_secrets":         "disabled",
+				"name":                                      "full-config",
+				"description":                               "A test config",
+				"advanced_security":                         "enabled",
+				"dependency_graph":                          "enabled",
+				"dependency_graph_autosubmit_action":        "enabled",
+				"dependabot_alerts":                         "enabled",
+				"dependabot_security_updates":               "disabled",
+				"code_scanning_default_setup":               "enabled",
+				"code_scanning_delegated_alert_dismissal":   "not_set",
+				"code_security":                             "enabled",
+				"secret_scanning":                           "enabled",
+				"secret_scanning_push_protection":           "enabled",
+				"secret_scanning_validity_checks":           "disabled",
+				"secret_scanning_non_provider_patterns":     "not_set",
+				"secret_scanning_generic_secrets":           "disabled",
 				"secret_scanning_delegated_alert_dismissal": "not_set",
 				"secret_protection":                         "enabled",
 				"private_vulnerability_reporting":           "enabled",
@@ -438,8 +438,8 @@ func TestExpandSecretScanningDelegatedBypass(t *testing.T) {
 		{
 			name: "sets bypass string without options",
 			input: map[string]any{
-				"name":                              "bypass-only",
-				"secret_scanning_delegated_bypass":  "enabled",
+				"name":                             "bypass-only",
+				"secret_scanning_delegated_bypass": "enabled",
 			},
 			expect: func(t *testing.T, config github.CodeSecurityConfiguration) {
 				if config.GetSecretScanningDelegatedBypass() != "enabled" {
