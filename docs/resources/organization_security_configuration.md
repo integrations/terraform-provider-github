@@ -13,7 +13,7 @@ This resource allows you to create and manage [code security configurations](htt
 
 You must have organization admin access to use this resource.
 
-~> **Note:** Some settings (such as `advanced_security` and `secret_scanning_generic_secrets`) require GitHub Advanced Security licensing.
+~> Some settings (such as `advanced_security` and `secret_scanning_generic_secrets`) require GitHub Advanced Security licensing.
 
 ## Example Usage
 
@@ -137,7 +137,18 @@ Required:
 
 ## Import
 
-GitHub organization code security configurations can be imported using the configuration ID, for example:
+GitHub organization code security configurations can be imported using the configuration ID.
+
+In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `id` attribute, for example:
+
+```terraform
+import {
+  to = github_organization_security_configuration.default
+  id = "123"
+}
+```
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
 terraform import github_organization_security_configuration.default 123
