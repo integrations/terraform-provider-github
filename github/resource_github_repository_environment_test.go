@@ -153,12 +153,80 @@ resource "github_repository_environment" "test" {
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_repository_environment.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_repository_environment.test", tfjsonpath.New("reviewers"), knownvalue.ListSizeExact(1)),
 					},
 				},
 				{
 					Config: configUpdated,
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_repository_environment.test", tfjsonpath.New("reviewers"), knownvalue.ListSizeExact(0)),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("update_to_add_reviewers", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+		envName := "test"
+
+		preConfig := fmt.Sprintf(`
+resource "github_team" "test" {
+	name        = "%[1]s"
+	description = "test"
+	privacy     = "closed"
+}
+
+resource "github_repository" "test" {
+	name      = "%[1]s"
+	visibility = "public"
+}
+
+resource "github_team_repository" "test" {
+	team_id    = github_team.test.id
+	repository = github_repository.test.name
+	permission = "pull"
+}
+`, repoName)
+
+		config := fmt.Sprintf(`
+%s
+
+resource "github_repository_environment" "test" {
+	repository  = github_repository.test.name
+	environment = "%s"
+}
+`, preConfig, envName)
+
+		configUpdated := fmt.Sprintf(`
+%s
+
+resource "github_repository_environment" "test" {
+	repository  = github_repository.test.name
+	environment = "%s"
+
+	reviewers {
+		teams = [github_team_repository.test.team_id]
+	}
+}
+`, preConfig, envName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_environment.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_repository_environment.test", tfjsonpath.New("reviewers"), knownvalue.ListSizeExact(0)),
+					},
+				},
+				{
+					Config: configUpdated,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_environment.test", tfjsonpath.New("reviewers"), knownvalue.ListSizeExact(1)),
 					},
 				},
 			},
@@ -202,8 +270,8 @@ resource "github_repository_environment" "test" {
 	})
 
 	t.Run("errors_with_more_than_six_reviewers", func(t *testing.T) {
-		if len(testAccConf.testOrgUser) == 0 {
-			t.Skip("skipping test that requires GH_TEST_ORG_USER env var to be set")
+		if len(testAccConf.testOrgUser1) == 0 {
+			t.Skip("skipping test that requires GH_TEST_ORG_USER1 env var to be set")
 		}
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -254,7 +322,7 @@ resource "github_repository_environment" "test" {
 		users = [data.github_user.org.id]
 	}
 }
-`, testAccConf.testOrgUser, repoName)
+`, testAccConf.testOrgUser1, repoName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },

@@ -14,7 +14,7 @@ import (
 
 func TestAccGithubRepositoryCollaborators(t *testing.T) {
 	t.Run("create", func(t *testing.T) {
-		if len(testAccConf.testOrgUser) == 0 {
+		if len(testAccConf.testOrgUser1) == 0 {
 			t.Skip("No organization user provided")
 		}
 
@@ -22,7 +22,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		teamName0 := fmt.Sprintf("%s%s-0", testResourcePrefix, randomID)
 		teamName1 := fmt.Sprintf("%s%s-1", testResourcePrefix, randomID)
-		collaboratorUser := testAccConf.testOrgUser
+		collaboratorUser := testAccConf.testOrgUser1
 
 		config := fmt.Sprintf(`
 resource "github_repository" "test" {
@@ -88,14 +88,14 @@ resource "github_repository_collaborators" "test" {
 					ImportState:             true,
 					ImportStateId:           repoName,
 					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"user", "team", "invitation_ids"},
+					ImportStateVerifyIgnore: []string{"user", "team", "invitation_ids", "owner_configured"},
 				},
 			},
 		})
 	})
 
 	t.Run("add_external_user", func(t *testing.T) {
-		if len(testAccConf.testExternalUser) == 0 {
+		if len(testAccConf.testExternalUser1) == 0 {
 			t.Skip("No external user provided")
 		}
 
@@ -116,7 +116,7 @@ resource "github_repository_collaborators" "test" {
 		permission = "push"
 	}
 }
-`, repoName, testAccConf.testExternalUser)
+`, repoName, testAccConf.testExternalUser1)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -129,6 +129,88 @@ resource "github_repository_collaborators" "test" {
 						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("team"), knownvalue.SetSizeExact(0)),
 						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("invitation_ids"), knownvalue.MapSizeExact(1)),
 					},
+				},
+			},
+		})
+	})
+
+	t.Run("personal_repo_ignores_owner_when_not_configured", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name = "%s"
+}
+
+resource "github_repository_collaborators" "test" {
+	repository = github_repository.test.name
+}
+`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, individual) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("user"), knownvalue.SetSizeExact(0)),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("team"), knownvalue.SetSizeExact(0)),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("invitation_ids"), knownvalue.MapSizeExact(0)),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("owner_configured"), knownvalue.Bool(false)),
+					},
+				},
+				{
+					Config:             config,
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
+				},
+			},
+		})
+	})
+
+	t.Run("personal_repo_keeps_owner_when_configured", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name = "%s"
+}
+
+resource "github_repository_collaborators" "test" {
+	repository = github_repository.test.name
+
+	user {
+		username   = "%s"
+		permission = "admin"
+	}
+}
+`, repoName, testAccConf.owner)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, individual) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("user"), knownvalue.SetExact([]knownvalue.Check{
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"username":   knownvalue.StringExact(testAccConf.owner),
+								"permission": knownvalue.StringExact("admin"),
+							}),
+						})),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("team"), knownvalue.SetSizeExact(0)),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("invitation_ids"), knownvalue.MapSizeExact(0)),
+						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("owner_configured"), knownvalue.Bool(true)),
+					},
+				},
+				{
+					Config:             config,
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
 				},
 			},
 		})
@@ -235,7 +317,7 @@ resource "github_repository_collaborators" "test" {
 	})
 
 	t.Run("remove_user", func(t *testing.T) {
-		if len(testAccConf.testOrgUser) == 0 {
+		if len(testAccConf.testOrgUser1) == 0 {
 			t.Skip("No organization user provided")
 		}
 
@@ -260,7 +342,7 @@ resource "github_repository_collaborators" "test" {
 		permission = "admin"
 	}
 }
-`, configPre, testAccConf.testOrgUser)
+`, configPre, testAccConf.testOrgUser1)
 
 		config1 := fmt.Sprintf(`
 %s
@@ -271,7 +353,7 @@ resource "github_repository_collaborators" "test" {
 `, configPre)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
