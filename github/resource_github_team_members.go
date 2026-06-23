@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/shurcooL/githubv4"
 )
 
 func resourceGithubTeamMembers() *schema.Resource {
@@ -124,7 +125,7 @@ func resourceGithubTeamMembersCreate(ctx context.Context, d *schema.ResourceData
 		return diag.FromErr(fmt.Errorf("failed to parse team members: %w", err))
 	}
 
-	if err := updateTeamMembers(ctx, client, orgName, slug, teamMembers); err != nil {
+	if err := updateTeamMembers(ctx, meta, slug, teamMembers); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -167,7 +168,7 @@ func resourceGithubTeamMembersRead(ctx context.Context, d *schema.ResourceData, 
 
 	tflog.Debug(ctx, "Reading team members.", map[string]any{"team_slug": slug})
 
-	teamMembers, err := getTeamMembers(ctx, client, orgName, slug)
+	teamMembers, err := getTeamMembers(ctx, meta, slug)
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
 			tflog.Info(ctx, "Team not found during read, removing from state.", map[string]any{"team_slug": slug})
@@ -209,7 +210,7 @@ func resourceGithubTeamMembersUpdate(ctx context.Context, d *schema.ResourceData
 		return diag.FromErr(fmt.Errorf("failed to parse team members: %w", err))
 	}
 
-	if err := updateTeamMembers(ctx, client, orgName, slug, teamMembers); err != nil {
+	if err := updateTeamMembers(ctx, meta, slug, teamMembers); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -218,14 +219,12 @@ func resourceGithubTeamMembersUpdate(ctx context.Context, d *schema.ResourceData
 
 func resourceGithubTeamMembersDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta := m.(*Owner)
-	client := meta.v3client
-	orgName := meta.name
 
 	slug, _ := d.Get("team_slug").(string)
 
 	tflog.Debug(ctx, "Removing all members from team.", map[string]any{"team_slug": slug})
 
-	if err := updateTeamMembers(ctx, client, orgName, slug, nil); err != nil {
+	if err := updateTeamMembers(ctx, meta, slug, nil); err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
 			tflog.Info(ctx, "Team not found during delete, assuming already removed.", map[string]any{"team_slug": slug})
 			return nil
@@ -271,7 +270,7 @@ func resourceGithubTeamMembersImport(ctx context.Context, d *schema.ResourceData
 		}
 	}
 
-	teamMembers, err := getTeamMembers(ctx, meta.v3client, meta.name, slug)
+	teamMembers, err := getTeamMembers(ctx, meta, slug)
 	if err != nil {
 		return nil, err
 	}
@@ -289,28 +288,70 @@ func resourceGithubTeamMembersImport(ctx context.Context, d *schema.ResourceData
 	return []*schema.ResourceData{d}, nil
 }
 
-func getTeamMembers(ctx context.Context, client *github.Client, orgName, slug string) (userMembers, error) {
+func getTeamMembers(ctx context.Context, meta *Owner, slug string) (userMembers, error) {
 	tflog.Debug(ctx, "Getting team members.", map[string]any{"team_slug": slug})
 
+	// Use the GraphQL API with membership:IMMEDIATE so that only direct members
+	// of the team are returned. The REST list-members endpoint always includes
+	// members inherited from child teams (it has no immediate-only option), which
+	// would otherwise surface as drift for organizations that use nested teams.
+	// See https://github.com/integrations/terraform-provider-github/issues/3497
+	var query struct {
+		Organization struct {
+			Team *struct {
+				Members struct {
+					Edges []struct {
+						Node struct {
+							Login string
+						}
+						Role string
+					}
+					PageInfo struct {
+						EndCursor   githubv4.String
+						HasNextPage bool
+					}
+				} `graphql:"members(membership: IMMEDIATE, first: 100, after: $after)"`
+			} `graphql:"team(slug: $slug)"`
+		} `graphql:"organization(login: $login)"`
+	}
+
+	variables := map[string]any{
+		"login": githubv4.String(meta.name),
+		"slug":  githubv4.String(slug),
+		"after": (*githubv4.String)(nil),
+	}
+
 	var teamMembers userMembers
-	for _, role := range []string{"maintainer", "member"} {
-		opts := &github.TeamListTeamMembersOptions{
-			Role:        role,
-			ListOptions: github.ListOptions{PerPage: maxPerPage},
+	for {
+		if err := meta.v4client.Query(ctx, &query, variables); err != nil {
+			return nil, err
 		}
 
-		for member, err := range client.Teams.ListTeamMembersBySlugIter(ctx, orgName, slug, opts) {
-			if err != nil {
-				return nil, err
+		// A null team means it no longer exists (e.g. deleted out-of-band). The
+		// GraphQL API returns a null node rather than an error in this case, so
+		// surface a 404 to match the REST endpoints and let callers remove the
+		// resource from state.
+		if query.Organization.Team == nil {
+			return nil, &github.ErrorResponse{
+				Response: &http.Response{StatusCode: http.StatusNotFound},
+				Message:  fmt.Sprintf("team %q not found in organization %q", slug, meta.name),
 			}
+		}
 
+		for _, edge := range query.Organization.Team.Members.Edges {
 			teamMembers = append(teamMembers, userMember{
 				userIdentity: userIdentity{
-					login: strings.ToLower(member.GetLogin()),
+					login: strings.ToLower(edge.Node.Login),
 				},
-				role: role,
+				role: strings.ToLower(edge.Role),
 			})
 		}
+
+		if !query.Organization.Team.Members.PageInfo.HasNextPage {
+			break
+		}
+
+		variables["after"] = query.Organization.Team.Members.PageInfo.EndCursor
 	}
 
 	tflog.Debug(ctx, "Got team members.", map[string]any{"team_slug": slug, "team_members": teamMembers})
@@ -318,7 +359,10 @@ func getTeamMembers(ctx context.Context, client *github.Client, orgName, slug st
 	return teamMembers, nil
 }
 
-func updateTeamMembers(ctx context.Context, client *github.Client, orgName, slug string, wantMembers userMembers) error {
+func updateTeamMembers(ctx context.Context, meta *Owner, slug string, wantMembers userMembers) error {
+	client := meta.v3client
+	orgName := meta.name
+
 	tflog.Debug(ctx, "Updating team members.", map[string]any{"team_slug": slug, "members": wantMembers.flatten()})
 
 	roleLookup := map[string]int{
@@ -330,7 +374,7 @@ func updateTeamMembers(ctx context.Context, client *github.Client, orgName, slug
 		return roleLookup[a.role] - roleLookup[b.role]
 	})
 
-	currentMembers, err := getTeamMembers(ctx, client, orgName, slug)
+	currentMembers, err := getTeamMembers(ctx, meta, slug)
 	if err != nil {
 		return err
 	}
