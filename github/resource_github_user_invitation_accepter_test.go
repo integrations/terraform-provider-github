@@ -11,11 +11,11 @@ import (
 )
 
 func TestAccGithubUserInvitationAccepter(t *testing.T) {
-	if len(testAccConf.testExternalUser) == 0 {
+	if len(testAccConf.testExternalUser1) == 0 {
 		t.Skip("No external user provided")
 	}
 
-	if len(testAccConf.testExternalUserToken) == 0 {
+	if len(testAccConf.testExternalUser1Token) == 0 {
 		t.Skip("No external user token provided")
 	}
 
@@ -30,7 +30,7 @@ func TestAccGithubUserInvitationAccepter(t *testing.T) {
 			CheckDestroy:      testAccCheckGithubUserInvitationAccepterDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: testAccGithubUserInvitationAccepterConfig(testAccConf.testExternalUserToken, repoName, testAccConf.testExternalUser),
+					Config: testAccGithubUserInvitationAccepterConfig(testAccConf.testExternalUser1Token, repoName, testAccConf.testExternalUser1),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr(rn, "permission", "push"),
 						resource.TestMatchResourceAttr(rn, "invitation_id", regexp.MustCompile(`^[0-9]+$`)),

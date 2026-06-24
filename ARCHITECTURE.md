@@ -95,7 +95,7 @@ func resourceExampleRead(ctx context.Context, d *schema.ResourceData, m any) dia
     // Single API call to get all needed data
     resource, _, err := client.Resources.Get(ctx, owner, name)
     if err != nil {
-        if ghErr, ok := errors.AsType[github.ErrorResponse](err); ok {
+        if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
             if ghErr.Response.StatusCode == http.StatusNotFound {
                 tflog.Info(ctx, "Removing resource from state because it no longer exists", map[string]any{"name": name})
                 d.SetId("")
@@ -178,7 +178,10 @@ func resourceGithubExample() *schema.Resource {
             StateContext: resourceGithubExampleImport,
         },
 
-        // Include SchemaVersion and StateUpgraders if state migrations exist
+        // Only if required.
+        CustomizeDiff: diffExample,
+
+        // Include SchemaVersion and StateUpgraders if state migrations exist.
         SchemaVersion: 1,
         StateUpgraders: []schema.StateUpgrader{
             {
@@ -188,8 +191,10 @@ func resourceGithubExample() *schema.Resource {
             },
         },
 
+        Description: "Manages an example GitHub resource.",
+
         Schema: map[string]*schema.Schema{
-            // Schema definition
+            // Schema definition.
         },
     }
 }
@@ -337,7 +342,7 @@ Handle 404s gracefully by removing from state:
 ```go
 resource, _, err := client.Resources.Get(ctx, owner, name)
 if err != nil {
-    if ghErr, ok := errors.AsType[github.ErrorResponse](err); ok {
+    if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
         if ghErr.Response.StatusCode == http.StatusNotFound {
             tflog.Info(ctx, "Removing resource from state because it no longer exists", map[string]any{"name": name})
             d.SetId("")

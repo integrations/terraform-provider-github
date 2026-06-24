@@ -6,7 +6,7 @@ import (
 
 func TestProvider(t *testing.T) {
 	t.Run("validate", func(t *testing.T) {
-		if err := NewProvider()().InternalValidate(); err != nil {
+		if err := NewProvider("test", "none")().InternalValidate(); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	})
@@ -38,7 +38,7 @@ func Test_configureProviderMeta(t *testing.T) {
 					LegacyClient: tt.legacyClient,
 				}
 
-				meta, err := configureProviderMeta(t.Context(), config)
+				meta, err := configureProviderMeta(t.Context(), "test", config)
 				if err != nil {
 					t.Fatalf("failed to return meta without error: %s", err.Error())
 				}
@@ -61,7 +61,7 @@ func Test_configureProviderMeta(t *testing.T) {
 					LegacyClient:   tt.legacyClient,
 				}
 
-				meta, err := configureProviderMeta(t.Context(), config)
+				meta, err := configureProviderMeta(t.Context(), "test", config)
 				if err != nil {
 					t.Fatalf("failed to return meta without error: %s", err.Error())
 				}
