@@ -2,6 +2,8 @@ package github
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -188,6 +190,181 @@ func TestGetRepositoryIDPositiveMatches(t *testing.T) {
 		if (tc.Expected == "") && (got != nil) {
 			t.Fatalf("%s should have failed, instead got  %s", tc.Provided, got)
 		}
+	}
+}
+
+func TestPullRequestCreationPolicyMapping(t *testing.T) {
+	t.Run("flatten GraphQL values", func(t *testing.T) {
+		cases := []struct {
+			name    string
+			input   PullRequestCreationPolicy
+			want    string
+			wantErr bool
+		}{
+			{name: "all", input: PullRequestCreationPolicyAll, want: "all"},
+			{name: "collaborators_only", input: PullRequestCreationPolicyCollaboratorsOnly, want: "collaborators_only"},
+			{name: "empty", input: "", wantErr: true},
+			{name: "invalid", input: PullRequestCreationPolicy("NOPE"), wantErr: true},
+		}
+
+		for _, tc := range cases {
+			got, err := flattenPullRequestCreationPolicy(tc.input)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("%s: expected error, got nil", tc.name)
+				}
+				continue
+			}
+			if err != nil {
+				t.Fatalf("%s: unexpected error: %v", tc.name, err)
+			}
+			if got != tc.want {
+				t.Fatalf("%s: got %q want %q", tc.name, got, tc.want)
+			}
+		}
+	})
+
+	t.Run("expand Terraform values", func(t *testing.T) {
+		cases := []struct {
+			name    string
+			input   string
+			want    PullRequestCreationPolicy
+			wantErr bool
+		}{
+			{name: "all", input: "all", want: PullRequestCreationPolicyAll},
+			{name: "collaborators_only", input: "collaborators_only", want: PullRequestCreationPolicyCollaboratorsOnly},
+			{name: "invalid", input: "everyone", wantErr: true},
+		}
+
+		for _, tc := range cases {
+			got, err := expandPullRequestCreationPolicy(tc.input)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("%s: expected error, got nil", tc.name)
+				}
+				continue
+			}
+			if err != nil {
+				t.Fatalf("%s: unexpected error: %v", tc.name, err)
+			}
+			if got != tc.want {
+				t.Fatalf("%s: got %q want %q", tc.name, got, tc.want)
+			}
+		}
+	})
+}
+
+func TestRepositoryPullRequestCreationPolicyGraphQL(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/graphql", func(w http.ResponseWriter, req *http.Request) {
+		body := mustRead(req.Body)
+		w.Header().Set("Content-Type", "application/json")
+
+		switch {
+		case strings.Contains(body, "repository(owner:$owner, name:$name){databaseId,pullRequestCreationPolicy}"):
+			if !strings.Contains(body, `"owner":"integrations"`) {
+				t.Fatalf("expected resolved owner in GraphQL body, got %s", body)
+			}
+			mustWrite(w, `{"data":{"repository":{"databaseId":1296269,"pullRequestCreationPolicy":"COLLABORATORS_ONLY"}}}`)
+		case strings.Contains(body, "mutation($input:UpdateRepositoryInput!){updateRepository(input:$input){repository{id}}}"):
+			mustWrite(w, `{"data":{"updateRepository":{"repository":{"id":"R_kgDOGGmaaw"}}}}`)
+		default:
+			t.Fatalf("unexpected GraphQL body: %s", body)
+		}
+	})
+
+	meta := Owner{
+		v4client: githubv4.NewClient(&http.Client{Transport: localRoundTripper{handler: mux}}),
+		name:     "integrations",
+	}
+
+	ctx := context.Background()
+
+	got, databaseID, err := getRepositoryPullRequestCreationPolicy(ctx, "integrations", "terraform-provider-github", &meta)
+	if err != nil {
+		t.Fatalf("unexpected read error: %v", err)
+	}
+	if got != "collaborators_only" {
+		t.Fatalf("got %q want %q", got, "collaborators_only")
+	}
+	if databaseID != 1296269 {
+		t.Fatalf("got database ID %d want %d", databaseID, 1296269)
+	}
+
+	if err := updateRepositoryPullRequestCreationPolicy(ctx, githubv4.ID("R_kgDOGGmaaw"), "all", &meta); err != nil {
+		t.Fatalf("unexpected update error: %v", err)
+	}
+}
+
+func TestGetRepositoryNodeAndDatabaseID(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/graphql", func(w http.ResponseWriter, req *http.Request) {
+		body := mustRead(req.Body)
+		w.Header().Set("Content-Type", "application/json")
+
+		if !strings.Contains(body, "repository(owner:$owner, name:$name){id,databaseId}") {
+			t.Fatalf("unexpected GraphQL body: %s", body)
+		}
+		mustWrite(w, `{"data":{"repository":{"id":"R_kgDOGGmaaw","databaseId":1296269}}}`)
+	})
+
+	meta := Owner{
+		v4client: githubv4.NewClient(&http.Client{Transport: localRoundTripper{handler: mux}}),
+		name:     "integrations",
+	}
+
+	nodeID, databaseID, err := getRepositoryNodeAndDatabaseID(context.Background(), "integrations", "terraform-provider-github", &meta)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if nodeID != githubv4.ID("R_kgDOGGmaaw") {
+		t.Fatalf("got node ID %v want %q", nodeID, "R_kgDOGGmaaw")
+	}
+	if databaseID != 1296269 {
+		t.Fatalf("got database ID %d want %d", databaseID, 1296269)
+	}
+}
+
+func TestIsRepositoryNotFoundError(t *testing.T) {
+	cases := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{name: "nil", err: nil, want: false},
+		{name: "unrelated", err: errors.New("something else went wrong"), want: false},
+		{name: "github not found message", err: errors.New("Could not resolve to a Repository with the name 'integrations/does-not-exist'."), want: true},
+	}
+
+	for _, tc := range cases {
+		if got := isRepositoryNotFoundError(tc.err); got != tc.want {
+			t.Fatalf("%s: got %v want %v", tc.name, got, tc.want)
+		}
+	}
+}
+
+// TestRepositoryPullRequestCreationPolicyNotFound pins the assumption behind
+// isRepositoryNotFoundError to the real wire format: it feeds the GraphQL
+// error payload GitHub returns for a missing repository through the actual v4
+// client and asserts the surfaced error is recognized as not-found.
+func TestRepositoryPullRequestCreationPolicyNotFound(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/graphql", func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		mustWrite(w, `{"data":{"repository":null},"errors":[{"type":"NOT_FOUND","path":["repository"],"locations":[{"line":3,"column":7}],"message":"Could not resolve to a Repository with the name 'integrations/does-not-exist'."}]}`)
+	})
+
+	meta := Owner{
+		v4client: githubv4.NewClient(&http.Client{Transport: localRoundTripper{handler: mux}}),
+		name:     "integrations",
+	}
+
+	_, _, err := getRepositoryPullRequestCreationPolicy(context.Background(), "integrations", "does-not-exist", &meta)
+	if err == nil {
+		t.Fatal("expected a not-found error, got nil")
+	}
+	if !isRepositoryNotFoundError(err) {
+		t.Fatalf("expected error to be recognized as repository-not-found, got %v", err)
 	}
 }
 
