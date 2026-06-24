@@ -7,6 +7,8 @@ import (
 )
 
 func TestAccGithubOrganizationAppInstallations(t *testing.T) {
+	t.Parallel()
+
 	t.Run("basic", func(t *testing.T) {
 		config := `data "github_organization_app_installations" "test" {}`
 

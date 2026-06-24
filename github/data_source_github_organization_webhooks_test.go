@@ -7,6 +7,8 @@ import (
 )
 
 func TestAccGithubOrganizationWebhooksDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("manages organization webhooks", func(t *testing.T) {
 		config := `
 		resource "github_organization_webhook" "test" {

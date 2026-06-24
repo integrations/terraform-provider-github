@@ -13,8 +13,6 @@ func TestAccGithubOrganizationIpAllowListDataSource(t *testing.T) {
 	t.Parallel()
 
 	t.Run("success", func(t *testing.T) {
-		t.Parallel()
-
 		config := `
 data "github_organization_ip_allow_list" "test" {}
 `

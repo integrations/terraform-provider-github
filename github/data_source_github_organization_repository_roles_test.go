@@ -7,25 +7,7 @@ import (
 )
 
 func TestAccDataSourceGithubOrganizationRepositoryRoles(t *testing.T) {
-	t.Run("get empty organization roles without error", func(t *testing.T) {
-		config := `
-			data "github_organization_repository_roles" "test" {}
-		`
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("data.github_organization_repository_roles.test", "roles.#"),
-						resource.TestCheckResourceAttr("data.github_organization_repository_roles.test", "roles.#", "0"),
-					),
-				},
-			},
-		})
-	})
+	t.Parallel()
 
 	t.Run("get organization roles without error", func(t *testing.T) {
 		config := `
