@@ -39,7 +39,6 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 			"description": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
 				Description: "A description of the code security configuration.",
 			},
 			"advanced_security": {
@@ -308,8 +307,7 @@ func resourceGithubOrganizationSecurityConfigurationCreate(ctx context.Context, 
 
 	tflog.Debug(ctx, "Creating organization code security configuration", map[string]any{"organization": org, "name": name})
 
-	config := expandCodeSecurityConfigurationCommon(d)
-	expandSecretScanningDelegatedBypass(d, &config)
+	config := resourceGithubOrganizationSecurityConfigurationExpand(d)
 
 	// The GitHub API returns HTTP 500 when secret_scanning_delegated_bypass_options reviewers
 	// are sent in the initial create request, even though the configuration is created. Setting
@@ -335,14 +333,8 @@ func resourceGithubOrganizationSecurityConfigurationCreate(ctx context.Context, 
 		}
 	}
 
-	if diags := setCodeSecurityConfigurationState(d, configuration); diags.HasError() {
+	if diags := resourceGithubOrganizationSecurityConfigurationSetState(d, configuration); diags.HasError() {
 		return diags
-	}
-	if err = d.Set("secret_scanning_delegated_bypass", configuration.GetSecretScanningDelegatedBypass()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("secret_scanning_delegated_bypass_options", flattenSecretScanningDelegatedBypassOptions(configuration.SecretScanningDelegatedBypassOptions)); err != nil {
-		return diag.FromErr(err)
 	}
 
 	tflog.Info(ctx, "Created organization code security configuration", map[string]any{"organization": org, "name": name, "id": configuration.GetID()})
@@ -373,14 +365,8 @@ func resourceGithubOrganizationSecurityConfigurationRead(ctx context.Context, d 
 		return diag.FromErr(err)
 	}
 
-	if diags := setCodeSecurityConfigurationState(d, configuration); diags.HasError() {
+	if diags := resourceGithubOrganizationSecurityConfigurationSetState(d, configuration); diags.HasError() {
 		return diags
-	}
-	if err = d.Set("secret_scanning_delegated_bypass", configuration.GetSecretScanningDelegatedBypass()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("secret_scanning_delegated_bypass_options", flattenSecretScanningDelegatedBypassOptions(configuration.SecretScanningDelegatedBypassOptions)); err != nil {
-		return diag.FromErr(err)
 	}
 
 	tflog.Trace(ctx, "Successfully read organization code security configuration", map[string]any{"organization": org, "id": id})
@@ -400,8 +386,7 @@ func resourceGithubOrganizationSecurityConfigurationUpdate(ctx context.Context, 
 
 	tflog.Debug(ctx, "Updating organization code security configuration", map[string]any{"organization": org, "id": id})
 
-	config := expandCodeSecurityConfigurationCommon(d)
-	expandSecretScanningDelegatedBypass(d, &config)
+	config := resourceGithubOrganizationSecurityConfigurationExpand(d)
 
 	configuration, _, err := client.Organizations.UpdateCodeSecurityConfiguration(ctx, org, id, config)
 	if err != nil {
@@ -409,14 +394,8 @@ func resourceGithubOrganizationSecurityConfigurationUpdate(ctx context.Context, 
 		return diag.FromErr(err)
 	}
 
-	if diags := setCodeSecurityConfigurationState(d, configuration); diags.HasError() {
+	if diags := resourceGithubOrganizationSecurityConfigurationSetState(d, configuration); diags.HasError() {
 		return diags
-	}
-	if err = d.Set("secret_scanning_delegated_bypass", configuration.GetSecretScanningDelegatedBypass()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("secret_scanning_delegated_bypass_options", flattenSecretScanningDelegatedBypassOptions(configuration.SecretScanningDelegatedBypassOptions)); err != nil {
-		return diag.FromErr(err)
 	}
 
 	tflog.Info(ctx, "Updated organization code security configuration", map[string]any{"organization": org, "id": id})
@@ -462,4 +441,210 @@ func resourceGithubOrganizationSecurityConfigurationImport(_ context.Context, d 
 	}
 
 	return []*schema.ResourceData{d}, nil
+}
+
+// resourceGithubOrganizationSecurityConfigurationSetState writes the configuration returned by the API to Terraform state,
+// including the organization-only secret scanning delegated bypass fields.
+func resourceGithubOrganizationSecurityConfigurationSetState(d *schema.ResourceData, configuration *github.CodeSecurityConfiguration) diag.Diagnostics {
+	if err := d.Set("configuration_id", int(configuration.GetID())); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("name", configuration.Name); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("description", configuration.Description); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("advanced_security", configuration.GetAdvancedSecurity()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("dependency_graph", configuration.GetDependencyGraph()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("dependency_graph_autosubmit_action", configuration.GetDependencyGraphAutosubmitAction()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("dependency_graph_autosubmit_action_options", flattenDependencyGraphAutosubmitActionOptions(configuration.DependencyGraphAutosubmitActionOptions)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("dependabot_alerts", configuration.GetDependabotAlerts()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("dependabot_security_updates", configuration.GetDependabotSecurityUpdates()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("code_scanning_default_setup", configuration.GetCodeScanningDefaultSetup()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("code_scanning_default_setup_options", flattenCodeScanningDefaultSetupOptions(configuration.CodeScanningDefaultSetupOptions)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("code_scanning_delegated_alert_dismissal", configuration.GetCodeScanningDelegatedAlertDismissal()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("code_scanning_options", flattenCodeScanningOptions(configuration.CodeScanningOptions)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("code_security", configuration.GetCodeSecurity()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("secret_scanning", configuration.GetSecretScanning()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("secret_scanning_push_protection", configuration.GetSecretScanningPushProtection()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("secret_scanning_delegated_bypass", configuration.GetSecretScanningDelegatedBypass()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("secret_scanning_delegated_bypass_options", flattenSecretScanningDelegatedBypassOptions(configuration.SecretScanningDelegatedBypassOptions)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("secret_scanning_validity_checks", configuration.GetSecretScanningValidityChecks()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("secret_scanning_non_provider_patterns", configuration.GetSecretScanningNonProviderPatterns()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("secret_scanning_generic_secrets", configuration.GetSecretScanningGenericSecrets()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("secret_scanning_delegated_alert_dismissal", configuration.GetSecretScanningDelegatedAlertDismissal()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("secret_protection", configuration.GetSecretProtection()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("private_vulnerability_reporting", configuration.GetPrivateVulnerabilityReporting()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("enforcement", configuration.GetEnforcement()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("target_type", configuration.GetTargetType()); err != nil {
+		return diag.FromErr(err)
+	}
+	return nil
+}
+
+// resourceGithubOrganizationSecurityConfigurationExpand builds a CodeSecurityConfiguration from Terraform resource data,
+// including the organization-only secret scanning delegated bypass fields.
+func resourceGithubOrganizationSecurityConfigurationExpand(d *schema.ResourceData) github.CodeSecurityConfiguration {
+	config := github.CodeSecurityConfiguration{
+		Name: d.Get("name").(string),
+	}
+	if val, ok := d.GetOk("description"); ok {
+		config.Description = val.(string)
+	}
+
+	if val, ok := d.GetOk("advanced_security"); ok {
+		config.AdvancedSecurity = new(val.(string))
+	}
+	if val, ok := d.GetOk("dependency_graph"); ok {
+		config.DependencyGraph = new(val.(string))
+	}
+	if val, ok := d.GetOk("dependency_graph_autosubmit_action"); ok {
+		config.DependencyGraphAutosubmitAction = new(val.(string))
+	}
+	if val, ok := d.GetOk("dependabot_alerts"); ok {
+		config.DependabotAlerts = new(val.(string))
+	}
+	if val, ok := d.GetOk("dependabot_security_updates"); ok {
+		config.DependabotSecurityUpdates = new(val.(string))
+	}
+	if val, ok := d.GetOk("code_scanning_default_setup"); ok {
+		config.CodeScanningDefaultSetup = new(val.(string))
+	}
+	if val, ok := d.GetOk("code_scanning_delegated_alert_dismissal"); ok {
+		config.CodeScanningDelegatedAlertDismissal = new(val.(string))
+	}
+	if val, ok := d.GetOk("code_security"); ok {
+		config.CodeSecurity = new(val.(string))
+	}
+	if val, ok := d.GetOk("secret_scanning"); ok {
+		config.SecretScanning = new(val.(string))
+	}
+	if val, ok := d.GetOk("secret_scanning_push_protection"); ok {
+		config.SecretScanningPushProtection = new(val.(string))
+	}
+	if val, ok := d.GetOk("secret_scanning_validity_checks"); ok {
+		config.SecretScanningValidityChecks = new(val.(string))
+	}
+	if val, ok := d.GetOk("secret_scanning_non_provider_patterns"); ok {
+		config.SecretScanningNonProviderPatterns = new(val.(string))
+	}
+	if val, ok := d.GetOk("secret_scanning_generic_secrets"); ok {
+		config.SecretScanningGenericSecrets = new(val.(string))
+	}
+	if val, ok := d.GetOk("secret_scanning_delegated_alert_dismissal"); ok {
+		config.SecretScanningDelegatedAlertDismissal = new(val.(string))
+	}
+	if val, ok := d.GetOk("secret_protection"); ok {
+		config.SecretProtection = new(val.(string))
+	}
+	if val, ok := d.GetOk("private_vulnerability_reporting"); ok {
+		config.PrivateVulnerabilityReporting = new(val.(string))
+	}
+	if val, ok := d.GetOk("enforcement"); ok {
+		config.Enforcement = new(val.(string))
+	}
+
+	if val, ok := d.GetOk("dependency_graph_autosubmit_action_options"); ok {
+		optionsList := val.([]any)
+		if len(optionsList) > 0 {
+			autosubmitOpts := optionsList[0].(map[string]any)
+			config.DependencyGraphAutosubmitActionOptions = &github.DependencyGraphAutosubmitActionOptions{
+				LabeledRunners: new(autosubmitOpts["labeled_runners"].(bool)),
+			}
+		}
+	}
+
+	if val, ok := d.GetOk("code_scanning_default_setup_options"); ok {
+		optionsList := val.([]any)
+		if len(optionsList) > 0 {
+			setupOpts := optionsList[0].(map[string]any)
+			config.CodeScanningDefaultSetupOptions = &github.CodeScanningDefaultSetupOptions{
+				RunnerType: setupOpts["runner_type"].(string),
+			}
+			if runnerLabel, ok := setupOpts["runner_label"].(string); ok && runnerLabel != "" {
+				config.CodeScanningDefaultSetupOptions.RunnerLabel = new(runnerLabel)
+			}
+		}
+	}
+
+	if val, ok := d.GetOk("code_scanning_options"); ok {
+		optionsList := val.([]any)
+		if len(optionsList) > 0 {
+			scanOpts := optionsList[0].(map[string]any)
+			config.CodeScanningOptions = &github.CodeScanningOptions{
+				AllowAdvanced: new(scanOpts["allow_advanced"].(bool)),
+			}
+		}
+	}
+
+	if val, ok := d.GetOk("secret_scanning_delegated_bypass"); ok {
+		config.SecretScanningDelegatedBypass = new(val.(string))
+	}
+	if val, ok := d.GetOk("secret_scanning_delegated_bypass_options"); ok {
+		optionsList := val.([]any)
+		if len(optionsList) > 0 {
+			bypassOpts := optionsList[0].(map[string]any)
+			options := &github.SecretScanningDelegatedBypassOptions{}
+			if reviewersVal, ok := bypassOpts["reviewers"]; ok {
+				reviewersList := reviewersVal.([]any)
+				reviewers := make([]*github.BypassReviewer, 0, len(reviewersList))
+				for _, reviewerRaw := range reviewersList {
+					reviewerMap := reviewerRaw.(map[string]any)
+					reviewers = append(reviewers, &github.BypassReviewer{
+						ReviewerID:   int64(reviewerMap["reviewer_id"].(int)),
+						ReviewerType: reviewerMap["reviewer_type"].(string),
+					})
+				}
+				options.Reviewers = reviewers
+			}
+			config.SecretScanningDelegatedBypassOptions = options
+		}
+	}
+
+	return config
 }

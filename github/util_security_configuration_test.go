@@ -407,7 +407,7 @@ func TestExpandCodeSecurityConfigurationCommon(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			d := schema.TestResourceDataRaw(t, resourceSchema, tt.input)
-			result := expandCodeSecurityConfigurationCommon(d)
+			result := resourceGithubOrganizationSecurityConfigurationExpand(d)
 			tt.expect(t, result)
 		})
 	}
@@ -500,8 +500,7 @@ func TestExpandSecretScanningDelegatedBypass(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			d := schema.TestResourceDataRaw(t, resourceSchema, tt.input)
-			config := github.CodeSecurityConfiguration{Name: d.Get("name").(string)}
-			expandSecretScanningDelegatedBypass(d, &config)
+			config := resourceGithubOrganizationSecurityConfigurationExpand(d)
 			tt.expect(t, config)
 		})
 	}
