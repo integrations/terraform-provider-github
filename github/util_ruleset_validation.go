@@ -166,7 +166,8 @@ func validateRulesetRules(ctx context.Context, d *schema.ResourceDiff) error {
 func validateConditionsFieldForBranchAndTagTargets(ctx context.Context, target github.RulesetTarget, conditions map[string]any, isOrg bool) error {
 	tflog.Debug(ctx, fmt.Sprintf("Validating conditions field for %s target", target), map[string]any{"target": target, "conditions": conditions, "isOrg": isOrg})
 
-	if conditions["ref_name"] == nil || len(conditions["ref_name"].([]any)) == 0 {
+	refName, ok := conditions["ref_name"].([]any)
+	if !ok || len(refName) == 0 || refName[0] == nil {
 		tflog.Debug(ctx, fmt.Sprintf("Missing ref_name for %s target", target), map[string]any{"target": target})
 		return fmt.Errorf("ref_name must be set for %s target", target)
 	}
@@ -178,7 +179,7 @@ func validateConditionsFieldForBranchAndTagTargets(ctx context.Context, target g
 func validateConditionsFieldForPushTarget(ctx context.Context, conditions map[string]any) error {
 	tflog.Debug(ctx, "Validating conditions field for push target", map[string]any{"target": "push", "conditions": conditions})
 
-	if conditions["ref_name"] != nil && len(conditions["ref_name"].([]any)) > 0 {
+	if refName, ok := conditions["ref_name"].([]any); ok && len(refName) > 0 && refName[0] != nil {
 		tflog.Debug(ctx, "Invalid ref_name for push target", map[string]any{"ref_name": conditions["ref_name"]})
 		return fmt.Errorf("ref_name must not be set for push target")
 	}

@@ -31,6 +31,11 @@ func Test_validateConditionsFieldForPushTarget(t *testing.T) {
 			expectError: false,
 		},
 		{
+			name:        "valid push target with nil ref_name element",
+			conditions:  map[string]any{"ref_name": []any{nil}},
+			expectError: false,
+		},
+		{
 			name: "invalid push target with ref_name set",
 			conditions: map[string]any{
 				"ref_name": []any{map[string]any{"include": []any{"~ALL"}, "exclude": []any{}}},
@@ -109,6 +114,13 @@ func Test_validateRepositoryRulesetConditionsFieldForBranchAndTagTargets(t *test
 			conditions:  map[string]any{"ref_name": []any{}},
 			expectError: true,
 			errorMsg:    "ref_name must be set for tag target",
+		},
+		{
+			name:        "invalid branch target with nil ref_name element",
+			target:      github.RulesetTargetBranch,
+			conditions:  map[string]any{"ref_name": []any{nil}},
+			expectError: true,
+			errorMsg:    "ref_name must be set for branch target",
 		},
 	}
 
