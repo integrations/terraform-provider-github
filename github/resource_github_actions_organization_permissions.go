@@ -3,12 +3,19 @@ package github
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 
 	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
+
+type actionsAllowedRequest struct {
+	GithubOwnedAllowed *bool    `json:"github_owned_allowed,omitempty"`
+	VerifiedAllowed    *bool    `json:"verified_allowed,omitempty"`
+	PatternsAllowed    []string `json:"patterns_allowed"`
+}
 
 func resourceGithubActionsOrganizationPermissions() *schema.Resource {
 	return &schema.Resource{
@@ -86,8 +93,8 @@ func resourceGithubActionsOrganizationPermissions() *schema.Resource {
 	}
 }
 
-func resourceGithubActionsOrganizationAllowedObject(d *schema.ResourceData) *github.ActionsAllowed {
-	allowed := &github.ActionsAllowed{}
+func resourceGithubActionsOrganizationAllowedRequest(d *schema.ResourceData) *actionsAllowedRequest {
+	allowed := &actionsAllowedRequest{}
 
 	config := d.Get("allowed_actions_config").([]any)
 	if len(config) > 0 {
@@ -117,6 +124,18 @@ func resourceGithubActionsOrganizationAllowedObject(d *schema.ResourceData) *git
 	}
 
 	return allowed
+}
+
+func updateOrganizationActionsAllowed(ctx context.Context, client *github.Client, orgName string, actionsAllowed *actionsAllowedRequest) error {
+	u := fmt.Sprintf("orgs/%v/actions/permissions/selected-actions", orgName)
+	req, err := client.NewRequest(ctx, "PUT", u, actionsAllowed)
+	if err != nil {
+		return err
+	}
+
+	respActionsAllowed := &github.ActionsAllowed{}
+	_, err = client.Do(req, respActionsAllowed)
+	return err
 }
 
 func resourceGithubActionsEnabledRepositoriesObject(d *schema.ResourceData) ([]int64, error) {
@@ -170,13 +189,10 @@ func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.Resour
 	}
 
 	if allowedActions == "selected" {
-		actionsAllowedData := resourceGithubActionsOrganizationAllowedObject(d)
+		actionsAllowedData := resourceGithubActionsOrganizationAllowedRequest(d)
 		if actionsAllowedData != nil {
 			log.Printf("[DEBUG] Allowed actions config is set")
-			_, _, err = client.Actions.UpdateActionsAllowed(ctx,
-				orgName,
-				*actionsAllowedData)
-			if err != nil {
+			if err = updateOrganizationActionsAllowed(ctx, client, orgName, actionsAllowedData); err != nil {
 				return err
 			}
 		} else {
