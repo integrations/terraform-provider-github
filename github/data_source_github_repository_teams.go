@@ -39,6 +39,10 @@ func dataSourceGithubRepositoryTeams() *schema.Resource {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
+						"id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 						"permission": {
 							Type:     schema.TypeString,
 							Computed: true,
@@ -75,17 +79,18 @@ func dataSourceGithubTeamsRead(ctx context.Context, d *schema.ResourceData, meta
 		PerPage: 100,
 	}
 
-	var all_teams []map[string]string
+	var all_teams []map[string]any
 	for {
 		teams, resp, err := client.Repositories.ListTeams(ctx, owner, repoName, &options)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 		for _, team := range teams {
-			new_team := map[string]string{
-				"name":       *team.Name,
-				"slug":       *team.Slug,
-				"permission": *team.Permission,
+			new_team := map[string]any{
+				"id":         int(team.GetID()),
+				"slug":       team.GetSlug(),
+				"name":       team.GetName(),
+				"permission": team.GetPermission(),
 			}
 			all_teams = append(all_teams, new_team)
 		}

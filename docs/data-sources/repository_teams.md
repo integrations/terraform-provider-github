@@ -25,5 +25,6 @@ data "github_repository_teams" "example" {
 
 - `teams` - List of teams which have access to the repository
   - `name` - Team name
+  - `id` - Team ID
   - `slug` - Team slug
   - `permission` - Team permission
