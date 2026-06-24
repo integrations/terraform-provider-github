@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"log"
 
 	"github.com/google/go-github/v88/github"
@@ -120,19 +119,23 @@ func resourceGithubActionsOrganizationAllowedObject(d *schema.ResourceData) *git
 }
 
 func resourceGithubActionsEnabledRepositoriesObject(d *schema.ResourceData) ([]int64, error) {
-	var enabled []int64
-
 	config := d.Get("enabled_repositories_config").([]any)
+	if len(config) == 0 || config[0] == nil {
+		return []int64{}, nil
+	}
+
+	enabled := []int64{}
 	if len(config) > 0 {
-		data := config[0].(map[string]any)
+		data, ok := config[0].(map[string]any)
+		if !ok {
+			return []int64{}, nil
+		}
 		switch x := data["repository_ids"].(type) {
 		case *schema.Set:
 			for _, value := range x.List() {
 				enabled = append(enabled, int64(value.(int)))
 			}
 		}
-	} else {
-		return nil, errors.New("the enabled_repositories_config {} block must be specified if enabled_repositories == 'selected'")
 	}
 	return enabled, nil
 }
@@ -150,12 +153,18 @@ func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.Resour
 		return err
 	}
 
-	allowedActions := d.Get("allowed_actions").(string)
 	enabledRepositories := d.Get("enabled_repositories").(string)
 
 	actionsPermissions := github.ActionsPermissions{
-		AllowedActions:      &allowedActions,
 		EnabledRepositories: &enabledRepositories,
+	}
+
+	allowedActions := ""
+	if v, ok := d.GetOk("allowed_actions"); ok && enabledRepositories != "none" {
+		allowedActions = v.(string)
+		if allowedActions != "" {
+			actionsPermissions.AllowedActions = &allowedActions
+		}
 	}
 
 	if v, ok := d.GetOk("sha_pinning_required"); ok {
@@ -270,18 +279,12 @@ func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, me
 		for index := range allRepos {
 			repoList = append(repoList, *allRepos[index].ID)
 		}
-		if allRepos != nil {
-			if err = d.Set("enabled_repositories_config", []any{
-				map[string]any{
-					"repository_ids": repoList,
-				},
-			}); err != nil {
-				return err
-			}
-		} else {
-			if err = d.Set("enabled_repositories_config", []any{}); err != nil {
-				return err
-			}
+		if err = d.Set("enabled_repositories_config", []any{
+			map[string]any{
+				"repository_ids": repoList,
+			},
+		}); err != nil {
+			return err
 		}
 	}
 
