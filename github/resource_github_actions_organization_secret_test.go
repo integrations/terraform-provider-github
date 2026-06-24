@@ -341,7 +341,7 @@ resource "github_actions_organization_secret" "test" {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_actions_organization_secret.test", "secret_name", secretName),
 						resource.TestCheckResourceAttrSet("github_actions_organization_secret.test", "key_id"),
-						resource.TestCheckResourceAttr("github_actions_organization_secret.test", "plainvaluetext_value", value),
+						resource.TestCheckResourceAttr("github_actions_organization_secret.test", "value", value),
 						resource.TestCheckNoResourceAttr("github_actions_organization_secret.test", "value_encrypted"),
 						resource.TestCheckResourceAttr("github_actions_organization_secret.test", "visibility", "selected"),
 						resource.TestCheckResourceAttr("github_actions_organization_secret.test", "selected_repository_ids.#", "0"),

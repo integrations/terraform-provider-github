@@ -9,7 +9,11 @@ import (
 )
 
 func TestAccDataSourceGithubOrganizationRoleTeams(t *testing.T) {
+	t.Parallel()
+
 	t.Run("get the organization role teams without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 		roleId := 8134
@@ -51,6 +55,8 @@ func TestAccDataSourceGithubOrganizationRoleTeams(t *testing.T) {
 	})
 
 	t.Run("get indirect organization role teams without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName1 := fmt.Sprintf("%steam-1-%s", testResourcePrefix, randomID)
 		teamName2 := fmt.Sprintf("%steam-2-%s", testResourcePrefix, randomID)

@@ -9,11 +9,11 @@ import (
 )
 
 func TestAccGithubMembershipDataSource(t *testing.T) {
-	if len(testAccConf.testOrgUser1) == 0 {
-		t.Skip("No org user provided")
-	}
+	t.Parallel()
 
 	t.Run("queries the membership for a user in a specified organization", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 			data "github_membership" "test" {
 				username = "%s"
@@ -29,7 +29,7 @@ func TestAccGithubMembershipDataSource(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			PreCheck:          func() { skipUnlessHasOrgs(t); skipUnlessHasOrgUser1(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -41,6 +41,8 @@ func TestAccGithubMembershipDataSource(t *testing.T) {
 	})
 
 	t.Run("errors when querying with non-existent user", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 			data "github_membership" "test" {
 				username = "!%s"

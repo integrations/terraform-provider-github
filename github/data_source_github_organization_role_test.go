@@ -9,7 +9,11 @@ import (
 )
 
 func TestAccDataSourceGithubOrganizationRole(t *testing.T) {
+	t.Parallel()
+
 	t.Run("get the organization role without error", func(t *testing.T) {
+		t.Parallel()
+
 		roleId := 138
 		config := fmt.Sprintf(`
 			data "github_organization_role" "test" {

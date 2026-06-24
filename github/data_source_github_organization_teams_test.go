@@ -9,7 +9,11 @@ import (
 )
 
 func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("queries", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-0-%s", testResourcePrefix, randomID)
 
@@ -40,6 +44,8 @@ func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
 	})
 
 	t.Run("queries results_per_page", func(t *testing.T) {
+		t.Parallel()
+
 		config := `
 		data "github_organization_teams" "all" {
 			results_per_page = 50

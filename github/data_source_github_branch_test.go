@@ -10,7 +10,11 @@ import (
 )
 
 func TestAccGithubBranchDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("queries an existing branch without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-branch-%s", testResourcePrefix, randomID)
 
