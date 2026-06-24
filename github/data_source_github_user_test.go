@@ -9,7 +9,7 @@ import (
 )
 
 func TestAccGithubUserDataSource(t *testing.T) {
-	if len(testAccConf.testExternalUser) == 0 {
+	if len(testAccConf.testExternalUser1) == 0 {
 		t.Skip("No external user provided")
 	}
 
@@ -18,7 +18,7 @@ func TestAccGithubUserDataSource(t *testing.T) {
 			data "github_user" "test" {
 				username = "%s"
 			}
-		`, testAccConf.testExternalUser)
+		`, testAccConf.testExternalUser1)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttrSet("data.github_user.test", "login"),
@@ -42,7 +42,7 @@ func TestAccGithubUserDataSource(t *testing.T) {
 				data "github_user" "test" {
 					username = "!%s"
 				}
-			`, testAccConf.testExternalUser)
+			`, testAccConf.testExternalUser1)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },

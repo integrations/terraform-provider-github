@@ -9,7 +9,7 @@ import (
 
 // TODO: this is failing.
 func TestAccGithubUsersDataSource(t *testing.T) {
-	if len(testAccConf.testExternalUser) == 0 {
+	if len(testAccConf.testExternalUser1) == 0 {
 		t.Skip("No external user provided")
 	}
 
@@ -18,14 +18,14 @@ func TestAccGithubUsersDataSource(t *testing.T) {
 			data "github_users" "test" {
 				usernames = ["%[1]s", "!%[1]s"]
 			}
-		`, testAccConf.testExternalUser)
+		`, testAccConf.testExternalUser1)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr("data.github_users.test", "logins.#", "1"),
-			resource.TestCheckResourceAttr("data.github_users.test", "logins.0", testAccConf.testExternalUser),
+			resource.TestCheckResourceAttr("data.github_users.test", "logins.0", testAccConf.testExternalUser1),
 			resource.TestCheckResourceAttr("data.github_users.test", "node_ids.#", "1"),
 			resource.TestCheckResourceAttr("data.github_users.test", "unknown_logins.#", "1"),
-			resource.TestCheckResourceAttr("data.github_users.test", "unknown_logins.0", fmt.Sprintf("!%s", testAccConf.testExternalUser)),
+			resource.TestCheckResourceAttr("data.github_users.test", "unknown_logins.0", fmt.Sprintf("!%s", testAccConf.testExternalUser1)),
 		)
 
 		resource.Test(t, resource.TestCase{
