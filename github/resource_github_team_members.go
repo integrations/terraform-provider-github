@@ -218,7 +218,7 @@ func resourceGithubTeamMembersUpdate(ctx context.Context, d *schema.ResourceData
 }
 
 func resourceGithubTeamMembersDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 
 	slug, _ := d.Get("team_slug").(string)
 
