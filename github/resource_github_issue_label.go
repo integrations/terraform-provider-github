@@ -84,27 +84,16 @@ func resourceGithubIssueLabelCreate(ctx context.Context, d *schema.ResourceData,
 		Color: new(color),
 	}
 
-	if v, ok := d.GetOk("description"); ok {
-		description, ok := v.(string)
-		if !ok {
-			return diag.Errorf(`expected "description" to be string`)
-		}
-		label.Description = &description
+	description, ok := d.Get("description").(string)
+	if !ok {
+		return diag.Errorf(`expected "description" to be string`)
 	}
-	var githubLabel *github.Label
-	_, resp, err := client.Issues.GetLabel(ctx, orgName, repoName, name)
-	if err != nil {
-		if resp == nil || resp.StatusCode != http.StatusNotFound {
-			return diag.FromErr(err)
-		}
-		githubLabel, resp, err = client.Issues.CreateLabel(ctx, orgName, repoName, label)
-	} else {
-		githubLabel, resp, err = client.Issues.EditLabel(ctx, orgName, repoName, name, label)
-	}
-
+	label.Description = &description
+	githubLabel, resp, err := client.Issues.CreateLabel(ctx, orgName, repoName, label)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
 	id, err := buildID(repoName, name)
 	if err != nil {
 		return diag.FromErr(err)
@@ -139,8 +128,7 @@ func resourceGithubIssueLabelRead(ctx context.Context, d *schema.ResourceData, m
 
 	githubLabel, resp, err := client.Issues.GetLabel(ctx, orgName, repoName, name)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -200,13 +188,11 @@ func resourceGithubIssueLabelUpdate(ctx context.Context, d *schema.ResourceData,
 		Name:  new(name),
 		Color: new(color),
 	}
-	if v, ok := d.GetOk("description"); ok {
-		description, ok := v.(string)
-		if !ok {
-			return diag.Errorf(`expected "description" to be string`)
-		}
-		label.Description = &description
+	description, ok := d.Get("description").(string)
+	if !ok {
+		return diag.Errorf(`expected "description" to be string`)
 	}
+	label.Description = &description
 	githubLabel, resp, err := client.Issues.EditLabel(ctx, orgName, repoName, originalName, label)
 	if err != nil {
 		return diag.FromErr(err)
@@ -242,20 +228,47 @@ func resourceGithubIssueLabelDelete(ctx context.Context, d *schema.ResourceData,
 		return diag.Errorf(`expected "name" to be string`)
 	}
 	_, err := client.Issues.DeleteLabel(ctx, orgName, repoName, name)
-	return diag.FromErr(handleArchivedRepoDelete(err, "issue label", name, orgName, repoName))
+	if err != nil {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				return nil
+			}
+			if ghErr.Response.StatusCode == http.StatusForbidden {
+				tflog.Info(ctx, "Ignoring delete of issue label in archived repository", map[string]any{"name": name, "org_name": orgName, "repo_name": repoName})
+				return nil
+			}
+		}
+		return diag.FromErr(err)
+	}
+	return nil
 }
 
-func resourceGithubIssueLabelImport(_ context.Context, d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
+func resourceGithubIssueLabelImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
 	repoName, name, err := parseID2(d.Id())
 	if err != nil {
 		return nil, fmt.Errorf("invalid import ID %q; expected format %q: %w", d.Id(), "<repository name>:<label name>", err)
 	}
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
 
+	label, _, err := client.Issues.GetLabel(ctx, orgName, repoName, name)
+	if err != nil {
+		return nil, err
+	}
 	if err := d.Set("repository", repoName); err != nil {
 		return nil, err
 	}
-
-	if err := d.Set("name", name); err != nil {
+	if err := d.Set("name", label.GetName()); err != nil {
+		return nil, err
+	}
+	if err := d.Set("color", label.GetColor()); err != nil {
+		return nil, err
+	}
+	if err := d.Set("description", label.GetDescription()); err != nil {
+		return nil, err
+	}
+	if err := d.Set("url", label.GetURL()); err != nil {
 		return nil, err
 	}
 
