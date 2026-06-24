@@ -200,7 +200,7 @@ func resourceGithubOrganizationRepositoryRoleDelete(ctx context.Context, d *sche
 	return nil
 }
 
-// Snapshot of the response to https://docs.github.com/en/enterprise-cloud@latest/rest/orgs/custom-roles?apiVersion=2022-11-28#list-repository-fine-grained-permissions-for-an-organization
+// Snapshot of the response to https://docs.github.com/en/enterprise-cloud@latest/rest/orgs/custom-roles?apiVersion=2026-03-10#list-repository-fine-grained-permissions-for-an-organization
 // The endpoint isn't covered in the SDK yet.
 var validRolePermissions = []string{
 	"add_assignee",
@@ -235,6 +235,7 @@ var validRolePermissions = []string{
 	"push_protected_branch",
 	"read_code_quality",
 	"read_code_scanning",
+	"read_copilot_agent_settings",
 	"reopen_discussion",
 	"reopen_issue",
 	"reopen_pull_request",
@@ -251,11 +252,14 @@ var validRolePermissions = []string{
 	"view_secret_scanning_alerts",
 	"write_code_quality",
 	"write_code_scanning",
+	"write_copilot_agent_settings",
 	"write_repository_actions_environments",
 	"write_repository_actions_runners",
 	"write_repository_actions_secrets",
 	"write_repository_actions_settings",
 	"write_repository_actions_variables",
+	"write_repository_agent_secrets",
+	"write_repository_agent_variables",
 }
 
 func resourceGithubOrganizationRepositoryRoleCustomizeDiff(ctx context.Context, d *schema.ResourceDiff, m any) error {
