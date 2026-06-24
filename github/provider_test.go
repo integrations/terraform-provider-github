@@ -1,7 +1,15 @@
 package github
 
 import (
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 )
 
 func TestProvider(t *testing.T) {
@@ -79,6 +87,72 @@ func Test_configureProviderMeta(t *testing.T) {
 				})
 			})
 		})
+	}
+}
+
+func Test_configureProviderMeta_appAuthUsesNewClient(t *testing.T) {
+	t.Parallel()
+
+	const owner = "acme"
+	const installationID = int64(1001)
+
+	var tokenRequests atomic.Int32
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, fmt.Sprintf("/orgs/%s/installation", owner)) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = io.WriteString(w, fmt.Sprintf(`{"id": %d}`, installationID))
+			return
+		}
+
+		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, fmt.Sprintf("/app/installations/%d/access_tokens", installationID)) {
+			tokenRequests.Add(1)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusCreated)
+			_, _ = io.WriteString(w, fmt.Sprintf(`{"token":"test-token","expires_at":%q}`, time.Now().Add(time.Hour).UTC().Format(time.RFC3339)))
+			return
+		}
+
+		if r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/orgs/%s", owner) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = io.WriteString(w, fmt.Sprintf(`{"id": 1, "login": %q}`, owner))
+			return
+		}
+
+		http.NotFound(w, r)
+	}))
+	t.Cleanup(ts.Close)
+
+	serverURL, err := url.Parse(ts.URL + "/")
+	if err != nil {
+		t.Fatalf("failed to parse test server URL: %v", err)
+	}
+
+	appID := testGitHubAppID
+	appInstallationID := testGitHubAppInstallationID
+
+	config := &Config{
+		BaseURL:           serverURL,
+		GraphQLAPIPath:    "graphql",
+		LegacyClient:      true,
+		Owner:             owner,
+		AppID:             &appID,
+		AppInstallationID: &appInstallationID,
+		AppPEM:            testGitHubAppPrivateKeyPemData,
+	}
+
+	meta, err := configureProviderMeta(t.Context(), config)
+	if err != nil {
+		t.Fatalf("configureProviderMeta failed: %v", err)
+	}
+
+	if meta.v3client == nil {
+		t.Fatal("expected rest client to be non-nil")
+	}
+
+	if got := tokenRequests.Load(); got == 0 {
+		t.Fatal("expected installation token to be minted via the new client")
 	}
 }
 

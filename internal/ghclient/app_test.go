@@ -2,10 +2,13 @@ package ghclient
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 func TestNewAppSource(t *testing.T) {
@@ -214,4 +217,93 @@ func Test_appSource(t *testing.T) {
 			})
 		}
 	})
+}
+
+func Test_appSource_installationTokenRefresh(t *testing.T) {
+	t.Parallel()
+
+	const owner = "acme"
+	const installationID = int64(1001)
+
+	t.Run("reuses a valid token", func(t *testing.T) {
+		t.Parallel()
+
+		var tokenRequests atomic.Int32
+		source := mustTestAppSource(t, appSourceTokenHandler(&tokenRequests, owner, installationID, func(count int32) (string, time.Time) {
+			return "valid-token", time.Now().Add(time.Hour)
+		}))
+
+		client, err := source.OwnerRESTClient(t.Context(), owner)
+		if err != nil {
+			t.Fatalf("failed to get owner rest client: %v", err)
+		}
+
+		for i := range 2 {
+			_, _, err := client.Organizations.Get(t.Context(), owner)
+			if err != nil {
+				t.Fatalf("request %d failed: %v", i+1, err)
+			}
+		}
+
+		if got := tokenRequests.Load(); got != 1 {
+			t.Fatalf("expected 1 installation token request, got %d", got)
+		}
+	})
+
+	t.Run("refreshes an expired token", func(t *testing.T) {
+		t.Parallel()
+
+		var tokenRequests atomic.Int32
+		source := mustTestAppSource(t, appSourceTokenHandler(&tokenRequests, owner, installationID, func(count int32) (string, time.Time) {
+			if count == 1 {
+				return "expired-token", time.Now().Add(-time.Hour)
+			}
+			return "refreshed-token", time.Now().Add(time.Hour)
+		}))
+
+		client, err := source.OwnerRESTClient(t.Context(), owner)
+		if err != nil {
+			t.Fatalf("failed to get owner rest client: %v", err)
+		}
+
+		for i := range 2 {
+			_, _, err := client.Organizations.Get(t.Context(), owner)
+			if err != nil {
+				t.Fatalf("request %d failed: %v", i+1, err)
+			}
+		}
+
+		if got := tokenRequests.Load(); got != 2 {
+			t.Fatalf("expected 2 installation token requests, got %d", got)
+		}
+	})
+}
+
+func appSourceTokenHandler(tokenRequests *atomic.Int32, owner string, installationID int64, tokenFn func(count int32) (string, time.Time)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, fmt.Sprintf("/orgs/%s/installation", owner)) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = io.WriteString(w, fmt.Sprintf(`{"id": %d}`, installationID))
+			return
+		}
+
+		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, fmt.Sprintf("/app/installations/%d/access_tokens", installationID)) {
+			count := tokenRequests.Add(1)
+			token, expiresAt := tokenFn(count)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusCreated)
+			_, _ = io.WriteString(w, fmt.Sprintf(`{"token":%q,"expires_at":%q}`, token, expiresAt.UTC().Format(time.RFC3339)))
+			return
+		}
+
+		if r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/orgs/%s", owner) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = io.WriteString(w, `{"id": 1, "login": "`+owner+`"}`)
+			return
+		}
+
+		http.NotFound(w, r)
+	}
 }

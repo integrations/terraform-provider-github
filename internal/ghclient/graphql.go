@@ -22,7 +22,11 @@ func NewAppGraphQLClient(clientID string, privateKey []byte, installationID *int
 	}
 
 	if installationID != nil {
-		tokenSource = githubauth.NewInstallationTokenSource(*installationID, tokenSource)
+		var instOpts []githubauth.InstallationTokenSourceOpt
+		if options.RESTAPIURL != nil {
+			instOpts = append(instOpts, githubauth.WithEnterpriseURL(*options.RESTAPIURL))
+		}
+		tokenSource = githubauth.NewInstallationTokenSource(*installationID, tokenSource, instOpts...)
 	}
 
 	return newGraphQLClient(tokenSource, options)

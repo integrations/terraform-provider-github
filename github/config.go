@@ -6,13 +6,11 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
-	"github.com/jferrl/go-githubauth"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
 )
@@ -82,48 +80,14 @@ func RateLimitedHTTPClient(client *http.Client, writeDelay, readDelay, retryDela
 	return client
 }
 
-func (c *Config) appInstallationTokenSource() (oauth2.TokenSource, error) {
-	if c.AppID == nil {
-		return nil, fmt.Errorf("app authentication is not configured")
-	}
-
-	appTokenSource, err := githubauth.NewApplicationTokenSource(*c.AppID, c.AppPEM)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create application token source: %w", err)
-	}
-
-	installationID, err := strconv.ParseInt(*c.AppInstallationID, 10, 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse installation id %q: %w", *c.AppInstallationID, err)
-	}
-
-	baseURL := c.BaseURL.JoinPath(c.RESTAPIPath).String()
-	return githubauth.NewInstallationTokenSource(
-		installationID,
-		appTokenSource,
-		githubauth.WithEnterpriseURL(baseURL),
-	), nil
-}
-
-func (c *Config) AuthenticatedHTTPClient() (*http.Client, error) {
+func (c *Config) AuthenticatedHTTPClient() *http.Client {
 	ctx := context.Background()
-
-	var ts oauth2.TokenSource
-	if c.AppID != nil {
-		var err error
-		ts, err = c.appInstallationTokenSource()
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		ts = oauth2.StaticTokenSource(
-			&oauth2.Token{AccessToken: c.Token},
-		)
-	}
-
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: c.Token},
+	)
 	client := oauth2.NewClient(ctx, ts)
 
-	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay, c.RetryDelay, c.ParallelRequests, c.RetryableErrors, c.MaxRetries), nil
+	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay, c.RetryDelay, c.ParallelRequests, c.RetryableErrors, c.MaxRetries)
 }
 
 func (c *Config) Anonymous() bool {

@@ -21,7 +21,11 @@ func NewAppRESTClient(clientID string, privateKey []byte, installationID *int64,
 	}
 
 	if installationID != nil {
-		tokenSource = githubauth.NewInstallationTokenSource(*installationID, tokenSource)
+		var instOpts []githubauth.InstallationTokenSourceOpt
+		if options.RESTAPIURL != nil {
+			instOpts = append(instOpts, githubauth.WithEnterpriseURL(*options.RESTAPIURL))
+		}
+		tokenSource = githubauth.NewInstallationTokenSource(*installationID, tokenSource, instOpts...)
 	}
 
 	return newRESTClient(tokenSource, options)

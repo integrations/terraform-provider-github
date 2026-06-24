@@ -410,11 +410,9 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 			return nil, diag.Errorf("owner must be set for github app authentication")
 		}
 
-		if config.LegacyClient {
-			if config.AppID == nil && config.Token == "" {
-				tflog.Debug(ctx, "No token found, using GitHub CLI to get token from base URL.", map[string]any{"base_url": config.BaseURL.String()})
-				config.Token = tokenFromGHCLI(ctx, config.BaseURL)
-			}
+		if config.LegacyClient && config.AppID == nil && config.Token == "" {
+			tflog.Debug(ctx, "No token found, using GitHub CLI to get token from base URL.", map[string]any{"base_url": config.BaseURL.String()})
+			config.Token = tokenFromGHCLI(ctx, config.BaseURL)
 		}
 
 		if v, ok := d.GetOk("read_delay_ms"); ok {
@@ -509,16 +507,12 @@ func configureProviderMeta(ctx context.Context, c *Config) (*Owner, error) {
 		name: c.Owner,
 	}
 
-	if c.LegacyClient {
+	if c.LegacyClient && c.AppID == nil {
 		var client *http.Client
 		if c.Anonymous() {
 			client = c.AnonymousHTTPClient()
 		} else {
-			var err error
-			client, err = c.AuthenticatedHTTPClient()
-			if err != nil {
-				return nil, err
-			}
+			client = c.AuthenticatedHTTPClient()
 		}
 
 		v3client, err := c.NewRESTClient(client)
