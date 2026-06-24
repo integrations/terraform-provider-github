@@ -133,6 +133,15 @@ func lookupTeamID(ctx context.Context, client *github.Client, orgName, slug stri
 	return team.GetID(), nil
 }
 
+// lookupTeamSlug looks up the slug of a team by its ID.
+func lookupTeamSlug(ctx context.Context, client *github.Client, orgID, id int64) (string, error) {
+	team, _, err := client.Teams.GetTeamByID(ctx, orgID, id)
+	if err != nil {
+		return "", err
+	}
+	return team.GetSlug(), nil
+}
+
 // Given a string that is either a team id or team slug, return the
 // team object it is referring to.
 func getTeam(ctx context.Context, meta *Owner, idOrSlug string) (*github.Team, error) {

@@ -146,6 +146,63 @@ resource "github_repository_ruleset" "test" {
 		})
 	})
 
+	t.Run("create_branch_ruleset_with_user_bypass_actor", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-user-bypass-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name = "%s"
+	auto_init = true
+	vulnerability_alerts = true
+	visibility = "%s"
+}
+
+data "github_user" "current" {
+	username = "%[3]s"
+}
+
+resource "github_repository_ruleset" "test" {
+	name        = "test-user-bypass"
+	repository  = github_repository.test.id
+	target      = "branch"
+	enforcement = "active"
+
+	bypass_actors {
+		actor_id    = tonumber(data.github_user.current.id)
+		actor_type  = "User"
+		bypass_mode = "always"
+	}
+
+	conditions {
+		ref_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	rules {
+		creation = true
+	}
+}
+`, repoName, testAccConf.testRepositoryVisibility, testAccConf.username)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("actor_type"), knownvalue.StringExact("User")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("bypass_mode"), knownvalue.StringExact("always")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("actor_id"), knownvalue.NotNull()),
+					},
+				},
+			},
+		})
+	})
+
 	t.Run("create_branch_ruleset_with_enterprise_features", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-%s", testResourcePrefix, randomID)

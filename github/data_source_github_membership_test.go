@@ -9,7 +9,7 @@ import (
 )
 
 func TestAccGithubMembershipDataSource(t *testing.T) {
-	if len(testAccConf.testOrgUser) == 0 {
+	if len(testAccConf.testOrgUser1) == 0 {
 		t.Skip("No org user provided")
 	}
 
@@ -19,10 +19,10 @@ func TestAccGithubMembershipDataSource(t *testing.T) {
 				username = "%s"
 				organization = "%s"
 			}
-		`, testAccConf.testOrgUser, testAccConf.owner)
+		`, testAccConf.testOrgUser1, testAccConf.owner)
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("data.github_membership.test", "username", testAccConf.testOrgUser),
+			resource.TestCheckResourceAttr("data.github_membership.test", "username", testAccConf.testOrgUser1),
 			resource.TestCheckResourceAttrSet("data.github_membership.test", "role"),
 			resource.TestCheckResourceAttrSet("data.github_membership.test", "etag"),
 			resource.TestCheckResourceAttrSet("data.github_membership.test", "state"),
@@ -46,7 +46,7 @@ func TestAccGithubMembershipDataSource(t *testing.T) {
 				username = "!%s"
 				organization = "%s"
 			}
-		`, testAccConf.testOrgUser, testAccConf.owner)
+		`, testAccConf.testOrgUser1, testAccConf.owner)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },

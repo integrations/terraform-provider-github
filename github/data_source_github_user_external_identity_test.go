@@ -22,7 +22,7 @@ func TestAccGithubUserExternalIdentity(t *testing.T) {
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: fmt.Sprintf(config, testAccConf.testExternalUser),
+					Config: fmt.Sprintf(config, testAccConf.testExternalUser1),
 					Check:  check,
 				},
 			},

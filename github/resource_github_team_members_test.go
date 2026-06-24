@@ -1,171 +1,433 @@
 package github
 
 import (
-	"context"
 	"fmt"
+	"strconv"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubTeamMembers(t *testing.T) {
-	if len(testAccConf.testOrgUser) == 0 {
-		t.Skip("No test user provided")
-	}
+	t.Parallel()
 
-	t.Run("creates a team & members configured with defaults", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		teamName := fmt.Sprintf("%steam-members-%s", testResourcePrefix, randomID)
+	skipUnlessHasOrgs(t)
+	skipUnlessHasOrgUser1(t)
 
-		config := fmt.Sprintf(`
-resource "github_team" "test" {
-  name        = "%s"
-}
+	t.Run("team_by_slug", func(t *testing.T) {
+		t.Parallel()
 
-resource "github_team_members" "test" {
-  team_id  = github_team.test.id
-
-	members {
-		username = "%s"
-		role     = "member"
-	}
-}
-`, teamName, testAccConf.testOrgUser)
-
-		configUpdated := fmt.Sprintf(`
-resource "github_team" "test" {
-  name        = "%s"
-}
-
-resource "github_team_members" "test" {
-  team_id  = github_team.test.id
-
-	members {
-		username = "%s"
-		role     = "maintainer"
-	}
-}
-`, teamName, testAccConf.testOrgUser)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
-			ProviderFactories: providerFactories,
-			CheckDestroy:      testAccCheckGithubTeamMembersDestroy,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("github_team_members.test", "members.#"),
-						resource.TestCheckResourceAttr("github_team_members.test", "members.#", "1"),
-						resource.TestCheckResourceAttr("github_team_members.test", "members.0.username", testAccConf.testOrgUser),
-						resource.TestCheckResourceAttr("github_team_members.test", "members.0.role", "member"),
-					),
-				},
-				{
-					Config: configUpdated,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("github_team_members.test", "members.#"),
-						resource.TestCheckResourceAttr("github_team_members.test", "members.#", "1"),
-						resource.TestCheckResourceAttr("github_team_members.test", "members.0.username", testAccConf.testOrgUser),
-						resource.TestCheckResourceAttr("github_team_members.test", "members.0.role", "member"),
-					),
-				},
-			},
-		})
-	})
-
-	t.Run("removes from state and succeeds destroy when parent team is deleted out-of-band", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		teamName := fmt.Sprintf("%steam-members-%s", testResourcePrefix, randomID)
+		team := mustCreateTestTeam(t, nil)
 
 		config := fmt.Sprintf(`
-resource "github_team" "test" {
-  name = "%s"
-}
-
 resource "github_team_members" "test" {
-  team_id = github_team.test.id
+  team_slug = "%s"
 
   members {
     username = "%s"
     role     = "maintainer"
   }
 }
-`, teamName, testAccConf.testOrgUser)
-
-		deleteTeamOutOfBand := func() {
-			meta, err := getTestMeta()
-			if err != nil {
-				t.Fatal(err.Error())
-			}
-			ctx := t.Context()
-			if _, err := meta.v3client.Teams.DeleteTeamBySlug(ctx, meta.name, teamName); err != nil {
-				t.Fatalf("failed to delete team out-of-band: %s", err)
-			}
-		}
+`, team.GetSlug(), testAccConf.testOrgUser1)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_team_members.test", "members.#", "1"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("team_id"), knownvalue.StringExact(strconv.FormatInt(team.GetID(), 10))),
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
+					},
 				},
 				{
-					// Delete the team out-of-band then refresh — Read should detect the
-					// missing team and remove github_team_members from state without error.
-					// Plan is non-empty because config still defines both resources.
-					PreConfig:          deleteTeamOutOfBand,
+					ResourceName: "github_team_members.test",
+					ImportState:  true,
+					ImportStateIdFunc: func(s *terraform.State) (string, error) {
+						return s.RootModule().Resources["github_team_members.test"].Primary.Attributes["team_slug"], nil
+					},
+					ImportStateVerify: true,
+				},
+			},
+		})
+	})
+
+	t.Run("team_by_id_as_slug", func(t *testing.T) {
+		t.Parallel()
+
+		team := mustCreateTestTeam(t, nil)
+
+		config := fmt.Sprintf(`
+resource "github_team_members" "test" {
+  team_id = "%s"
+
+  members {
+    username = "%s"
+    role     = "maintainer"
+  }
+}
+`, team.GetSlug(), testAccConf.testOrgUser1)
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("team_slug"), knownvalue.StringExact(team.GetSlug())),
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
+					},
+				},
+				{
+					ResourceName: "github_team_members.test",
+					ImportState:  true,
+					ImportStateIdFunc: func(s *terraform.State) (string, error) {
+						return s.RootModule().Resources["github_team_members.test"].Primary.Attributes["team_id"], nil
+					},
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"team_id"},
+				},
+			},
+		})
+	})
+
+	t.Run("team_by_id", func(t *testing.T) {
+		t.Parallel()
+
+		team := mustCreateTestTeam(t, nil)
+
+		config := fmt.Sprintf(`
+resource "github_team_members" "test" {
+  team_id = "%d"
+
+  members {
+    username = "%s"
+    role     = "maintainer"
+  }
+}
+`, team.GetID(), testAccConf.testOrgUser1)
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("team_slug"), knownvalue.StringExact(team.GetSlug())),
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
+					},
+				},
+				{
+					ResourceName: "github_team_members.test",
+					ImportState:  true,
+					ImportStateIdFunc: func(s *terraform.State) (string, error) {
+						return s.RootModule().Resources["github_team_members.test"].Primary.Attributes["team_id"], nil
+					},
+					ImportStateVerify: true,
+				},
+			},
+		})
+	})
+
+	t.Run("migrate_team_by_id_as_slug_to_slug", func(t *testing.T) {
+		t.Parallel()
+
+		team := mustCreateTestTeam(t, nil)
+
+		config := fmt.Sprintf(`
+resource "github_team_members" "test" {
+  team_id = "%s"
+
+  members {
+    username = "%s"
+    role     = "maintainer"
+  }
+}
+`, team.GetSlug(), testAccConf.testOrgUser1)
+
+		configMigrate := fmt.Sprintf(`
+resource "github_team_members" "test" {
+  team_slug = "%s"
+
+  members {
+    username = "%s"
+    role     = "maintainer"
+  }
+}
+`, team.GetSlug(), testAccConf.testOrgUser1)
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("team_slug"), knownvalue.StringExact(team.GetSlug())),
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
+					},
+				},
+				{
+					Config: configMigrate,
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_team_members.test", plancheck.ResourceActionUpdate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("team_id"), knownvalue.StringExact(strconv.FormatInt(team.GetID(), 10))),
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("migrate_team_by_id_to_slug", func(t *testing.T) {
+		t.Parallel()
+
+		team := mustCreateTestTeam(t, nil)
+
+		config := fmt.Sprintf(`
+resource "github_team_members" "test" {
+  team_id = "%d"
+
+  members {
+    username = "%s"
+    role     = "maintainer"
+  }
+}
+`, team.GetID(), testAccConf.testOrgUser1)
+
+		configMigrate := fmt.Sprintf(`
+resource "github_team_members" "test" {
+  team_slug = "%s"
+
+  members {
+    username = "%s"
+    role     = "maintainer"
+  }
+}
+`, team.GetSlug(), testAccConf.testOrgUser1)
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("team_slug"), knownvalue.StringExact(team.GetSlug())),
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
+					},
+				},
+				{
+					Config: configMigrate,
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_team_members.test", plancheck.ResourceActionNoop),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("team_id"), knownvalue.StringExact(strconv.FormatInt(team.GetID(), 10))),
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("team_with_existing_members", func(t *testing.T) {
+		t.Parallel()
+
+		skipUnlessHasOrgUser2(t)
+
+		team := mustCreateTestTeam(t, nil)
+		mustAddTeamMember(t, team, testAccConf.testOrgUser2)
+
+		config := fmt.Sprintf(`
+resource "github_team_members" "test" {
+  team_slug = "%s"
+
+  members {
+    username = "%s"
+    role     = "maintainer"
+  }
+}
+`, team.GetSlug(), testAccConf.testOrgUser1)
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
+					},
+				}, {
+					PreConfig: func() { mustAddTeamMember(t, team, testAccConf.testOrgUser2) },
+					Config:    config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("team_with_child_team", func(t *testing.T) {
+		t.Parallel()
+
+		skipUnlessHasOrgUser2(t)
+
+		team := mustCreateTestTeam(t, nil)
+		childTeam := mustCreateTestTeam(t, team.ID)
+		mustAddTeamMember(t, childTeam, testAccConf.testOrgUser2)
+
+		config := fmt.Sprintf(`
+resource "github_team_members" "test" {
+  team_slug = "%s"
+
+  members {
+    username = "%s"
+    role     = "maintainer"
+  }
+}
+`, team.GetSlug(), testAccConf.testOrgUser1)
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("team_rename_handled", func(t *testing.T) {
+		t.Parallel()
+
+		team := mustCreateTestTeam(t, nil)
+		newTeamName := fmt.Sprintf("%s-renamed", team.GetName())
+
+		config := fmt.Sprintf(`
+resource "github_team_members" "test" {
+  team_slug = "%%s"
+
+  members {
+    username = "%s"
+    role     = "maintainer"
+  }
+}
+`, testAccConf.testOrgUser1)
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, team.GetSlug()),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("team_id"), knownvalue.StringExact(strconv.FormatInt(team.GetID(), 10))),
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
+					},
+				},
+				{
+					PreConfig: func() { mustRenameTestTeam(t, team, newTeamName) },
+					Config:    fmt.Sprintf(config, newTeamName),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("team_id"), knownvalue.StringExact(strconv.FormatInt(team.GetID(), 10))),
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("team_delete_handled", func(t *testing.T) {
+		t.Parallel()
+
+		team := mustCreateTestTeam(t, nil)
+
+		config := fmt.Sprintf(`
+resource "github_team_members" "test" {
+  team_slug = "%s"
+
+  members {
+    username = "%s"
+    role     = "maintainer"
+  }
+}
+`, team.GetSlug(), testAccConf.testOrgUser1)
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
+					},
+				},
+				{
+					PreConfig:          func() { mustDeleteTestTeam(t, team) },
 					RefreshState:       true,
 					ExpectNonEmptyPlan: true,
 				},
 				{
-					// Destroy step: resource already removed from state by Read above,
-					// destroy should complete cleanly with no 404 errors.
 					Config:  config,
 					Destroy: true,
 				},
 			},
 		})
 	})
+
+	t.Run("team_changed_forces_recreate", func(t *testing.T) {
+		t.Parallel()
+
+		team := mustCreateTestTeam(t, nil)
+		newTeam := mustCreateTestTeam(t, nil)
+
+		config := fmt.Sprintf(`
+resource "github_team_members" "test" {
+  team_slug = "%%s"
+
+  members {
+    username = "%s"
+    role     = "maintainer"
+  }
 }
+`, testAccConf.testOrgUser1)
 
-func testAccCheckGithubTeamMembersDestroy(s *terraform.State) error {
-	meta, err := getTestMeta()
-	if err != nil {
-		return err
-	}
-	conn := meta.v3client
-	orgId := meta.id
-
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "github_team_members" {
-			continue
-		}
-
-		teamIdString := rs.Primary.ID
-
-		teamId, err := getTeamID(context.Background(), meta, teamIdString)
-		if err != nil {
-			return unconvertibleIdErr(teamIdString, err)
-		}
-
-		members, resp, err := conn.Teams.ListTeamMembersByID(context.Background(),
-			orgId, teamId, nil)
-		if err == nil {
-			if len(members) > 0 {
-				return fmt.Errorf("team has still members: %v", members)
-			}
-		}
-		if resp.StatusCode != 404 {
-			return err
-		}
-		return nil
-	}
-	return nil
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, team.GetSlug()),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("team_id"), knownvalue.StringExact(strconv.FormatInt(team.GetID(), 10))),
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
+					},
+				},
+				{
+					Config: fmt.Sprintf(config, newTeam.GetSlug()),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_team_members.test", plancheck.ResourceActionReplace),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("team_id"), knownvalue.StringExact(strconv.FormatInt(newTeam.GetID(), 10))),
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
+					},
+				},
+			},
+		})
+	})
 }

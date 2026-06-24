@@ -255,15 +255,17 @@ export GITHUB_TOKEN=
 export GH_TEST_USER_REPOSITORY=
 
 # Configure values for the organization under test
-export GH_TEST_ORG_USER=
+export GH_TEST_ORG_USER1=
+export GH_TEST_ORG_USER2=
+export GH_TEST_ORG_USER3=
 export GH_TEST_ORG_SECRET_NAME=
 export GH_TEST_ORG_REPOSITORY=
 export GH_TEST_ORG_TEMPLATE_REPOSITORY=
 export GH_TEST_ORG_APP_INSTALLATION_ID=
 
 # Configure external (non-org) users
-export GH_TEST_EXTERNAL_USER=
-export GH_TEST_EXTERNAL_USER_TOKEN=
+export GH_TEST_EXTERNAL_USER1=
+export GH_TEST_EXTERNAL_USER1_TOKEN=
 export GH_TEST_EXTERNAL_USER2=
 
 # Configure values for the enterprise under test
