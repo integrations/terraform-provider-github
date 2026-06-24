@@ -20,7 +20,7 @@ type Config struct {
 	AppInstallationID *string
 	AppPEM            []byte
 	BaseURL           *url.URL
-	CachePath         *string
+	CachePath         string
 	GraphQLAPIPath    string
 	Insecure          bool
 	LegacyClient      bool
@@ -143,7 +143,7 @@ func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 // https://godoc.org/github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema#ConfigureFunc
 // Deprecated: Use [configureProviderMeta] instead.
 func (c *Config) Meta() (any, error) {
-	return configureProviderMeta(context.Background(), c)
+	return configureProviderMeta(context.Background(), "", c)
 }
 
 type previewHeaderInjectorTransport struct {

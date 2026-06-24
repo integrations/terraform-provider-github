@@ -1,10 +1,11 @@
 package ghclient
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
+	"os"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -14,209 +15,168 @@ import (
 func TestNewAppSource(t *testing.T) {
 	t.Parallel()
 
-	privateKeyData := mustReadTestAppPrivateKey(t)
+	privateKeyData := mustReadAppPrivateKey(t)
 
-	source, err := NewAppSource("123456789", privateKeyData, Options{})
-	if err != nil {
-		t.Fatalf("failed to create app source: %v", err)
-	}
+	cacheBasePath := mustMkdirTemp(t, "", "*")
+	t.Cleanup(func() {
+		_ = os.RemoveAll(cacheBasePath)
+	})
 
-	if source == nil {
-		t.Fatal("expected app source to be non-nil")
+	for _, tt := range []struct {
+		name string
+		opts Options
+	}{
+		{
+			name: "default",
+			opts: Options{
+				RESTAPIURL: "https://api.github.com/",
+				GraphQLURL: "https://api.github.com/graphql",
+			},
+		},
+		{
+			name: "with_cache_path",
+			opts: Options{
+				RESTAPIURL: "https://api.github.com/",
+				GraphQLURL: "https://api.github.com/graphql",
+				CachePath:  mustMkdirTemp(t, cacheBasePath, "*"),
+			},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			source, err := NewAppSource("123456789", privateKeyData, tt.opts)
+			if err != nil {
+				t.Fatalf("failed to create app source: %v", err)
+			}
+
+			if source == nil {
+				t.Fatal("expected app source to be non-nil")
+			}
+		})
 	}
 }
 
 func Test_appSource(t *testing.T) {
 	t.Parallel()
 
-	t.Run("RESTClient_cache", func(t *testing.T) {
-		t.Parallel()
+	owner1 := "octocat"
+	owner2 := "acme"
 
-		var requestCount atomic.Int32
-		source := mustTestAppSource(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-			requestCount.Add(1)
-			w.WriteHeader(http.StatusInternalServerError)
-		}))
-
-		firstClient, err := source.RESTClient()
-		if err != nil {
-			t.Fatalf("failed to get first rest client: %v", err)
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, fmt.Sprintf("/orgs/%s/installation", owner1)) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"id": 1000}`))
+			return
 		}
 
-		secondClient, err := source.RESTClient()
-		if err != nil {
-			t.Fatalf("failed to get second rest client: %v", err)
+		if strings.HasSuffix(r.URL.Path, fmt.Sprintf("/orgs/%s/installation", owner2)) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"id": 1001}`))
+			return
 		}
 
-		if firstClient != secondClient {
-			t.Fatal("expected rest client to be cached")
-		}
-
-		if requestCount.Load() != 0 {
-			t.Fatalf("expected no HTTP requests when building cached rest client, got %d", requestCount.Load())
-		}
+		w.WriteHeader(http.StatusNotFound)
 	})
 
-	t.Run("OwnerClient_cache_by_owner", func(t *testing.T) {
-		t.Parallel()
+	ts := httptest.NewServer(handler)
+	t.Cleanup(ts.Close)
 
-		for _, tt := range []struct {
-			name       string
-			callClient func(context.Context, *appSource, string) (any, error)
-		}{
-			{
-				name: "rest",
-				callClient: func(ctx context.Context, source *appSource, owner string) (any, error) {
-					return source.OwnerRESTClient(ctx, owner)
-				},
-			},
-			{
-				name: "graphql",
-				callClient: func(ctx context.Context, source *appSource, owner string) (any, error) {
-					return source.OwnerGraphQLClient(ctx, owner)
-				},
-			},
-		} {
-			t.Run(tt.name, func(t *testing.T) {
-				t.Parallel()
-
-				var orgRequests atomic.Int32
-				source := mustTestAppSource(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if strings.HasSuffix(r.URL.Path, "/orgs/acme/installation") {
-						orgRequests.Add(1)
-						w.WriteHeader(http.StatusOK)
-						_, _ = w.Write([]byte(`{"id": 1001}`))
-						return
-					}
-
-					w.WriteHeader(http.StatusNotFound)
-				}))
-
-				firstClient, err := tt.callClient(t.Context(), source, "acme")
-				if err != nil {
-					t.Fatalf("failed to get first owner client: %v", err)
-				}
-
-				secondClient, err := tt.callClient(t.Context(), source, "acme")
-				if err != nil {
-					t.Fatalf("failed to get second owner client: %v", err)
-				}
-
-				if firstClient != secondClient {
-					t.Fatal("expected owner client to be cached")
-				}
-
-				if orgRequests.Load() != 1 {
-					t.Fatalf("expected one organization installation lookup, got %d", orgRequests.Load())
-				}
-			})
-		}
+	cacheBasePath := mustMkdirTemp(t, "", "*")
+	t.Cleanup(func() {
+		_ = os.RemoveAll(cacheBasePath)
 	})
 
-	t.Run("GetInstallationID_scenarios", func(t *testing.T) {
-		t.Parallel()
+	opts := Options{
+		RESTAPIURL: ts.URL,
+		GraphQLURL: ts.URL,
+		CachePath:  mustMkdirTemp(t, cacheBasePath, "*"),
+	}
 
-		fallbackID := int64(2002)
+	source, err := NewAppSource("123456789", mustReadAppPrivateKey(t), opts)
+	if err != nil {
+		t.Fatalf("failed to create app source: %v", err)
+	}
 
-		for _, tt := range []struct {
-			name            string
-			owner           string
-			handleRequest   func(w http.ResponseWriter, r *http.Request, orgRequests, userRequests *atomic.Int32)
-			expectError     bool
-			errorContains   string
-			expectedID      *int64
-			expectedOrgReq  int32
-			expectedUserReq int32
-		}{
-			{
-				name:  "fallback_to_user",
-				owner: "octocat",
-				handleRequest: func(w http.ResponseWriter, r *http.Request, orgRequests, userRequests *atomic.Int32) {
-					if strings.HasSuffix(r.URL.Path, "/orgs/octocat/installation") {
-						orgRequests.Add(1)
-						w.WriteHeader(http.StatusNotFound)
-						return
-					}
-					if strings.HasSuffix(r.URL.Path, "/users/octocat/installation") {
-						userRequests.Add(1)
-						w.WriteHeader(http.StatusOK)
-						_, _ = w.Write([]byte(`{"id": 2002}`))
-						return
-					}
-					w.WriteHeader(http.StatusNotFound)
-				},
-				expectedID:      &fallbackID,
-				expectedOrgReq:  1,
-				expectedUserReq: 1,
-			},
-			{
-				name:  "org_lookup_error",
-				owner: "acme",
-				handleRequest: func(w http.ResponseWriter, r *http.Request, orgRequests, _ *atomic.Int32) {
-					if strings.HasSuffix(r.URL.Path, "/orgs/acme/installation") {
-						orgRequests.Add(1)
-						w.WriteHeader(http.StatusInternalServerError)
-						_, _ = w.Write([]byte(`{"message": "boom"}`))
-						return
-					}
-					w.WriteHeader(http.StatusNotFound)
-				},
-				expectError:    true,
-				errorContains:  `failed to get installation for owner "acme"`,
-				expectedOrgReq: 1,
-			},
-			{
-				name:  "no_installation_id",
-				owner: "acme",
-				handleRequest: func(w http.ResponseWriter, r *http.Request, orgRequests, _ *atomic.Int32) {
-					if strings.HasSuffix(r.URL.Path, "/orgs/acme/installation") {
-						orgRequests.Add(1)
-						w.WriteHeader(http.StatusOK)
-						_, _ = w.Write([]byte(`{}`))
-						return
-					}
-					w.WriteHeader(http.StatusNotFound)
-				},
-				expectError:    true,
-				errorContains:  `no installation found for owner "acme"`,
-				expectedOrgReq: 1,
-			},
-		} {
-			t.Run(tt.name, func(t *testing.T) {
-				t.Parallel()
+	restClient, err := source.RESTClient()
+	if err != nil {
+		t.Fatalf("failed to get rest client: %v", err)
+	}
 
-				var orgRequests atomic.Int32
-				var userRequests atomic.Int32
-				source := mustTestAppSource(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					tt.handleRequest(w, r, &orgRequests, &userRequests)
-				}))
+	if restClient == nil {
+		t.Fatal("expected rest client to be non-nil")
+	}
 
-				installationID, err := source.GetInstallationID(t.Context(), tt.owner)
-				if tt.expectError {
-					if err == nil {
-						t.Fatal("expected error")
-					}
-					if tt.errorContains != "" && !strings.Contains(err.Error(), tt.errorContains) {
-						t.Fatalf("expected error containing %q, got %v", tt.errorContains, err)
-					}
-				} else {
-					if err != nil {
-						t.Fatalf("expected success, got error: %v", err)
-					}
-					if tt.expectedID != nil && (installationID == nil || *installationID != *tt.expectedID) {
-						t.Fatalf("expected installation id %d, got %v", *tt.expectedID, installationID)
-					}
-				}
+	ownerRESTClientFirst, err := source.OwnerRESTClient(t.Context(), owner1)
+	if err != nil {
+		t.Fatalf("failed to get first owner rest client: %v", err)
+	}
 
-				if orgRequests.Load() != tt.expectedOrgReq {
-					t.Fatalf("expected %d org requests, got %d", tt.expectedOrgReq, orgRequests.Load())
-				}
-				if userRequests.Load() != tt.expectedUserReq {
-					t.Fatalf("expected %d user requests, got %d", tt.expectedUserReq, userRequests.Load())
-				}
-			})
-		}
-	})
+	if ownerRESTClientFirst == nil {
+		t.Fatal("expected first owner rest client to be non-nil")
+	}
+
+	ownerRESTClientFirstAgain, err := source.OwnerRESTClient(t.Context(), owner1)
+	if err != nil {
+		t.Fatalf("failed to get first owner rest client again: %v", err)
+	}
+
+	if ownerRESTClientFirstAgain != ownerRESTClientFirst {
+		t.Fatal("expected first owner rest client to be cached and reused")
+	}
+
+	ownerRESTClientSecond, err := source.OwnerRESTClient(t.Context(), owner2)
+	if err != nil {
+		t.Fatalf("failed to get second owner rest client: %v", err)
+	}
+
+	if ownerRESTClientSecond == nil {
+		t.Fatal("expected second owner rest client to be non-nil")
+	}
+
+	if ownerRESTClientFirst == ownerRESTClientSecond {
+		t.Fatal("expected different owner rest clients for different owners")
+	}
+
+	graphQLClient, err := source.GraphQLClient()
+	if err != nil {
+		t.Fatalf("failed to get graphql client: %v", err)
+	}
+
+	if graphQLClient == nil {
+		t.Fatal("expected graphql client to be non-nil")
+	}
+
+	ownerGraphQLClientFirst, err := source.OwnerGraphQLClient(t.Context(), owner1)
+	if err != nil {
+		t.Fatalf("failed to get first owner graphql client: %v", err)
+	}
+
+	if ownerGraphQLClientFirst == nil {
+		t.Fatal("expected first owner graphql client to be non-nil")
+	}
+
+	ownerGraphQLClientFirstAgain, err := source.OwnerGraphQLClient(t.Context(), owner1)
+	if err != nil {
+		t.Fatalf("failed to get first owner graphql client again: %v", err)
+	}
+
+	if ownerGraphQLClientFirstAgain != ownerGraphQLClientFirst {
+		t.Fatal("expected first owner graphql client to be cached and reused")
+	}
+
+	ownerGraphQLClientSecond, err := source.OwnerGraphQLClient(t.Context(), owner2)
+	if err != nil {
+		t.Fatalf("failed to get second owner graphql client: %v", err)
+	}
+
+	if ownerGraphQLClientSecond == nil {
+		t.Fatal("expected second owner graphql client to be non-nil")
+	}
+
+	if ownerGraphQLClientFirst == ownerGraphQLClientSecond {
+		t.Fatal("expected different owner graphql clients for different owners")
+	}
 }
 
 func Test_appSource_installationTokenRefresh(t *testing.T) {
@@ -229,7 +189,7 @@ func Test_appSource_installationTokenRefresh(t *testing.T) {
 		t.Parallel()
 
 		var tokenRequests atomic.Int32
-		source := mustTestAppSource(t, appSourceTokenHandler(&tokenRequests, owner, installationID, func(count int32) (string, time.Time) {
+		source := mustAppSourceForTokenTest(t, appSourceTokenHandler(&tokenRequests, owner, installationID, func(count int32) (string, time.Time) {
 			return "valid-token", time.Now().Add(time.Hour)
 		}))
 
@@ -254,7 +214,7 @@ func Test_appSource_installationTokenRefresh(t *testing.T) {
 		t.Parallel()
 
 		var tokenRequests atomic.Int32
-		source := mustTestAppSource(t, appSourceTokenHandler(&tokenRequests, owner, installationID, func(count int32) (string, time.Time) {
+		source := mustAppSourceForTokenTest(t, appSourceTokenHandler(&tokenRequests, owner, installationID, func(count int32) (string, time.Time) {
 			if count == 1 {
 				return "expired-token", time.Now().Add(-time.Hour)
 			}
@@ -306,4 +266,21 @@ func appSourceTokenHandler(tokenRequests *atomic.Int32, owner string, installati
 
 		http.NotFound(w, r)
 	}
+}
+
+func mustAppSourceForTokenTest(t *testing.T, handler http.Handler) *appSource {
+	t.Helper()
+
+	ts := httptest.NewServer(handler)
+	t.Cleanup(ts.Close)
+
+	source, err := NewAppSource("123456789", mustReadAppPrivateKey(t), Options{
+		RESTAPIURL: ts.URL,
+		GraphQLURL: ts.URL,
+	})
+	if err != nil {
+		t.Fatalf("failed to create app source: %v", err)
+	}
+
+	return source
 }

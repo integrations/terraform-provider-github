@@ -10,12 +10,12 @@ import (
 )
 
 // NewAnonymousGraphQLClient creates a new GitHub GraphQL client that is unauthenticated. This client will have limited access to public resources and will be subject to stricter rate limits compared to authenticated clients.
-func NewAnonymousGraphQLClient(options Options) (*githubv4.Client, error) {
-	return newGraphQLClient(nil, options)
+func NewAnonymousGraphQLClient(opts Options) (*githubv4.Client, error) {
+	return newGraphQLClient(nil, opts)
 }
 
 // NewAppGraphQLClient creates a new GitHub GraphQL client authenticated as either the app itself (if installationID is nil) or as the specified installation (if installationID is provided), using the app's private key.
-func NewAppGraphQLClient(clientID string, privateKey []byte, installationID *int64, options Options) (*githubv4.Client, error) {
+func NewAppGraphQLClient(clientID string, privateKey []byte, installationID *int64, opts Options) (*githubv4.Client, error) {
 	tokenSource, err := githubauth.NewApplicationTokenSource(clientID, privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create app token source: %w", err)
@@ -23,20 +23,20 @@ func NewAppGraphQLClient(clientID string, privateKey []byte, installationID *int
 
 	if installationID != nil {
 		var instOpts []githubauth.InstallationTokenSourceOpt
-		if options.RESTAPIURL != nil {
-			instOpts = append(instOpts, githubauth.WithEnterpriseURL(*options.RESTAPIURL))
+		if opts.RESTAPIURL != "" {
+			instOpts = append(instOpts, githubauth.WithEnterpriseURL(opts.RESTAPIURL))
 		}
 		tokenSource = githubauth.NewInstallationTokenSource(*installationID, tokenSource, instOpts...)
 	}
 
-	return newGraphQLClient(tokenSource, options)
+	return newGraphQLClient(tokenSource, opts)
 }
 
 // NewTokenGraphQLClient creates a new GitHub GraphQL client authenticated with the provided personal access token.
-func NewTokenGraphQLClient(token string, options Options) (*githubv4.Client, error) {
+func NewTokenGraphQLClient(token string, opts Options) (*githubv4.Client, error) {
 	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
 
-	return newGraphQLClient(tokenSource, options)
+	return newGraphQLClient(tokenSource, opts)
 }
 
 // newGraphQLClient creates a new GitHub GraphQL client using the provided OAuth2 token source and options. It sets up the client's transport with caching and rate limit handling, and configures the client's API URL based on the provided options.
@@ -48,9 +48,9 @@ func newGraphQLClient(tokenSource oauth2.TokenSource, opts Options) (*githubv4.C
 
 	client := &http.Client{Transport: tr, Timeout: clientTimeout}
 
-	if opts.GraphQLURL == nil {
+	if opts.GraphQLURL == "" {
 		return githubv4.NewClient(client), nil
 	}
 
-	return githubv4.NewEnterpriseClient(*opts.GraphQLURL, client), nil
+	return githubv4.NewEnterpriseClient(opts.GraphQLURL, client), nil
 }
