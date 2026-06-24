@@ -4,19 +4,18 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubActionsOrganizationRegistrationTokenDataSource(t *testing.T) {
-	t.Run("get an organization registration token without error", func(t *testing.T) {
-		config := `
-			data "github_actions_organization_registration_token" "test" {
-			}
-		`
+	t.Parallel()
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet("data.github_actions_organization_registration_token.test", "token"),
-			resource.TestCheckResourceAttrSet("data.github_actions_organization_registration_token.test", "expires_at"),
-		)
+	t.Run("success", func(t *testing.T) {
+		config := `
+data "github_actions_organization_registration_token" "test" {}
+`
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -24,7 +23,10 @@ func TestAccGithubActionsOrganizationRegistrationTokenDataSource(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_actions_organization_registration_token.test", tfjsonpath.New("token"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("data.github_actions_organization_registration_token.test", tfjsonpath.New("expires_at"), knownvalue.NotNull()),
+					},
 				},
 			},
 		})

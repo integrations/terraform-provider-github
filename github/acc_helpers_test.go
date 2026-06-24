@@ -2,9 +2,12 @@ package github
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/google/go-github/v88/github"
@@ -175,4 +178,254 @@ func mustCreateTestRepository(t *testing.T) *github.Repository {
 	})
 
 	return repo
+}
+
+func mustCreateTestOrganizationSecret(t *testing.T) string {
+	t.Helper()
+
+	meta, err := getTestMeta()
+	if err != nil {
+		t.Fatalf("failed to get test meta: %v", err)
+	}
+
+	randomID := acctest.RandString(testRandomIDLength)
+	secretName := strings.ToUpper(fmt.Sprintf("%s%s", strings.ReplaceAll(testResourcePrefix, "-", "_"), randomID))
+
+	publicKey, _, err := meta.v3client.Actions.GetOrgPublicKey(t.Context(), meta.name)
+	if err != nil {
+		t.Fatalf("failed to get public key for test organization secret: %v", err)
+	}
+
+	encryptedBytes, err := encryptPlaintext("test", publicKey.GetKey())
+	if err != nil {
+		t.Fatalf("failed to encrypt plaintext for test organization secret: %v", err)
+	}
+	encryptedValue := base64.StdEncoding.EncodeToString(encryptedBytes)
+
+	if _, err := meta.v3client.Actions.CreateOrUpdateOrgSecret(t.Context(), meta.name, &github.EncryptedSecret{
+		Name:           secretName,
+		Visibility:     "all",
+		KeyID:          publicKey.GetKeyID(),
+		EncryptedValue: encryptedValue,
+	}); err != nil {
+		t.Fatalf("failed to create test organization secret: %v", err)
+	}
+
+	t.Cleanup(func() {
+		if _, err := meta.v3client.Actions.DeleteOrgSecret(context.Background(), meta.name, secretName); err != nil {
+			if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == 404 {
+				return
+			}
+			t.Logf("failed to delete test organization secret %s: %v", secretName, err)
+		}
+	})
+
+	return secretName
+}
+
+func mustCreateTestOrganizationVariable(t *testing.T, value string) string {
+	t.Helper()
+
+	meta, err := getTestMeta()
+	if err != nil {
+		t.Fatalf("failed to get test meta: %v", err)
+	}
+
+	randomID := acctest.RandString(testRandomIDLength)
+	varName := strings.ToUpper(fmt.Sprintf("%s%s", strings.ReplaceAll(testResourcePrefix, "-", "_"), randomID))
+
+	if _, err := meta.v3client.Actions.CreateOrgVariable(t.Context(), meta.name, &github.ActionsVariable{
+		Name:       varName,
+		Visibility: new("all"),
+		Value:      value,
+	}); err != nil {
+		t.Fatalf("failed to create test organization variable: %v", err)
+	}
+
+	t.Cleanup(func() {
+		if _, err := meta.v3client.Actions.DeleteOrgVariable(context.Background(), meta.name, varName); err != nil {
+			if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == 404 {
+				return
+			}
+			t.Logf("failed to delete test organization variable %s: %v", varName, err)
+		}
+	})
+
+	return varName
+}
+
+func mustCreateTestRepositorySecret(t *testing.T, repo *github.Repository) string {
+	t.Helper()
+
+	ctx := t.Context()
+
+	meta, err := getTestMeta()
+	if err != nil {
+		t.Fatalf("failed to get test meta: %v", err)
+	}
+
+	randomID := acctest.RandString(testRandomIDLength)
+	secretName := strings.ToUpper(fmt.Sprintf("%s%s", strings.ReplaceAll(testResourcePrefix, "-", "_"), randomID))
+
+	publicKey, _, err := meta.v3client.Actions.GetRepoPublicKey(ctx, meta.name, repo.GetName())
+	if err != nil {
+		t.Fatalf("failed to get public key for test repository secret: %v", err)
+	}
+
+	encryptedBytes, err := encryptPlaintext("test", publicKey.GetKey())
+	if err != nil {
+		t.Fatalf("failed to encrypt plaintext for test repository secret: %v", err)
+	}
+	encryptedValue := base64.StdEncoding.EncodeToString(encryptedBytes)
+
+	if _, err := meta.v3client.Actions.CreateOrUpdateRepoSecret(ctx, meta.name, repo.GetName(), &github.EncryptedSecret{
+		Name:           secretName,
+		KeyID:          publicKey.GetKeyID(),
+		EncryptedValue: encryptedValue,
+	}); err != nil {
+		t.Fatalf("failed to create test repository secret: %v", err)
+	}
+
+	t.Cleanup(func() {
+		if _, err := meta.v3client.Actions.DeleteRepoSecret(context.Background(), meta.name, repo.GetName(), secretName); err != nil {
+			if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == 404 {
+				return
+			}
+			t.Logf("failed to delete test repository secret %s: %v", secretName, err)
+		}
+	})
+
+	return secretName
+}
+
+func mustCreateTestRepositoryVariable(t *testing.T, repo *github.Repository, value string) string {
+	t.Helper()
+
+	meta, err := getTestMeta()
+	if err != nil {
+		t.Fatalf("failed to get test meta: %v", err)
+	}
+
+	randomID := acctest.RandString(testRandomIDLength)
+	varName := strings.ToUpper(fmt.Sprintf("%s%s", strings.ReplaceAll(testResourcePrefix, "-", "_"), randomID))
+
+	if _, err := meta.v3client.Actions.CreateRepoVariable(t.Context(), meta.name, repo.GetName(), &github.ActionsVariable{
+		Name:  varName,
+		Value: value,
+	}); err != nil {
+		t.Fatalf("failed to create test repository variable: %v", err)
+	}
+
+	t.Cleanup(func() {
+		if _, err := meta.v3client.Actions.DeleteRepoVariable(context.Background(), meta.name, repo.GetName(), varName); err != nil {
+			if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == 404 {
+				return
+			}
+			t.Logf("failed to delete test repository variable %s: %v", varName, err)
+		}
+	})
+
+	return varName
+}
+
+func mustCreateTestRepositoryEnvironment(t *testing.T, repo *github.Repository) *github.Environment {
+	t.Helper()
+
+	meta, err := getTestMeta()
+	if err != nil {
+		t.Fatalf("failed to get test meta: %v", err)
+	}
+
+	randomID := acctest.RandString(testRandomIDLength)
+	name := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+
+	env, _, err := meta.v3client.Repositories.CreateUpdateEnvironment(t.Context(), meta.name, repo.GetName(), name, &github.CreateUpdateEnvironment{})
+	if err != nil {
+		t.Fatalf("failed to create test repository environment: %v", err)
+	}
+
+	t.Cleanup(func() {
+		if _, err := meta.v3client.Repositories.DeleteEnvironment(context.Background(), meta.name, repo.GetName(), name); err != nil {
+			if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == 404 {
+				return
+			}
+			t.Logf("failed to delete test repository environment %s: %v", name, err)
+		}
+	})
+
+	return env
+}
+
+func mustCreateTestRepositoryEnvironmentSecret(t *testing.T, repo *github.Repository, env *github.Environment) string {
+	t.Helper()
+
+	ctx := t.Context()
+
+	meta, err := getTestMeta()
+	if err != nil {
+		t.Fatalf("failed to get test meta: %v", err)
+	}
+
+	randomID := acctest.RandString(testRandomIDLength)
+	secretName := strings.ToUpper(fmt.Sprintf("%s%s", strings.ReplaceAll(testResourcePrefix, "-", "_"), randomID))
+
+	publicKey, _, err := meta.v3client.Actions.GetEnvPublicKey(ctx, int(repo.GetID()), url.PathEscape(env.GetName()))
+	if err != nil {
+		t.Fatalf("failed to get public key for test repository environment secret: %v", err)
+	}
+
+	encryptedBytes, err := encryptPlaintext("test", publicKey.GetKey())
+	if err != nil {
+		t.Fatalf("failed to encrypt plaintext for test repository environment secret: %v", err)
+	}
+	encryptedValue := base64.StdEncoding.EncodeToString(encryptedBytes)
+
+	if _, err := meta.v3client.Actions.CreateOrUpdateEnvSecret(ctx, int(repo.GetID()), env.GetName(), &github.EncryptedSecret{
+		Name:           secretName,
+		KeyID:          publicKey.GetKeyID(),
+		EncryptedValue: encryptedValue,
+	}); err != nil {
+		t.Fatalf("failed to create test repository environment secret: %v", err)
+	}
+
+	t.Cleanup(func() {
+		if _, err := meta.v3client.Actions.DeleteEnvSecret(context.Background(), int(repo.GetID()), env.GetName(), secretName); err != nil {
+			if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == 404 {
+				return
+			}
+			t.Logf("failed to delete test repository environment secret %s: %v", secretName, err)
+		}
+	})
+
+	return secretName
+}
+
+func mustCreateTestRepositoryEnvironmentVariable(t *testing.T, repo *github.Repository, env *github.Environment, value string) string {
+	t.Helper()
+
+	meta, err := getTestMeta()
+	if err != nil {
+		t.Fatalf("failed to get test meta: %v", err)
+	}
+
+	randomID := acctest.RandString(testRandomIDLength)
+	varName := strings.ToUpper(fmt.Sprintf("%s%s", strings.ReplaceAll(testResourcePrefix, "-", "_"), randomID))
+
+	if _, err := meta.v3client.Actions.CreateEnvVariable(t.Context(), meta.name, repo.GetName(), url.PathEscape(env.GetName()), &github.ActionsVariable{
+		Name:  varName,
+		Value: value,
+	}); err != nil {
+		t.Fatalf("failed to create test repository environment variable: %v", err)
+	}
+
+	t.Cleanup(func() {
+		if _, err := meta.v3client.Actions.DeleteEnvVariable(context.Background(), meta.name, repo.GetName(), url.PathEscape(env.GetName()), varName); err != nil {
+			if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == 404 {
+				return
+			}
+			t.Logf("failed to delete test repository environment variable %s: %v", varName, err)
+		}
+	})
+
+	return varName
 }
