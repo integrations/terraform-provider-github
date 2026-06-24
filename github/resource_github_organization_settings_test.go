@@ -586,6 +586,42 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 			})
 		})
 
+		t.Run("test newly exposed organization settings fields", func(t *testing.T) {
+			config := `
+			resource "github_organization_settings" "test" {
+				billing_email = "test@example.com"
+				members_allowed_repository_creation_type = "private"
+				two_factor_requirement_enabled = false
+				members_can_delete_repositories = false
+				members_can_invite_outside_collaborators = false
+				members_can_delete_issues = false
+				display_commenter_full_name_setting_enabled = false
+				readers_can_create_discussions = true
+			}`
+
+			check := resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr("github_organization_settings.test", "billing_email", "test@example.com"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "members_allowed_repository_creation_type", "private"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "two_factor_requirement_enabled", "false"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_delete_repositories", "false"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_invite_outside_collaborators", "false"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_delete_issues", "false"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "display_commenter_full_name_setting_enabled", "false"),
+				resource.TestCheckResourceAttr("github_organization_settings.test", "readers_can_create_discussions", "true"),
+			)
+
+			resource.Test(t, resource.TestCase{
+				PreCheck:          func() { skipUnlessHasOrgs(t) },
+				ProviderFactories: providerFactories,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		})
+
 		t.Run("test enum field variations", func(t *testing.T) {
 			config := `
 			resource "github_organization_settings" "test" {

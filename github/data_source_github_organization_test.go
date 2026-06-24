@@ -41,6 +41,11 @@ func TestAccGithubOrganizationDataSource(t *testing.T) {
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "dependency_graph_enabled_for_new_repositories"),
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "secret_scanning_enabled_for_new_repositories"),
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "secret_scanning_push_protection_enabled_for_new_repositories"),
+			resource.TestCheckResourceAttrSet("data.github_organization.test", "members_can_delete_repositories"),
+			resource.TestCheckResourceAttrSet("data.github_organization.test", "members_can_invite_outside_collaborators"),
+			resource.TestCheckResourceAttrSet("data.github_organization.test", "members_can_delete_issues"),
+			resource.TestCheckResourceAttrSet("data.github_organization.test", "display_commenter_full_name_setting_enabled"),
+			resource.TestCheckResourceAttrSet("data.github_organization.test", "readers_can_create_discussions"),
 		)
 
 		resource.Test(t, resource.TestCase{
@@ -139,6 +144,11 @@ func TestAccGithubOrganizationDataSource(t *testing.T) {
 			resource.TestCheckNoResourceAttr("data.github_organization.test", "dependency_graph_enabled_for_new_repositories"),
 			resource.TestCheckNoResourceAttr("data.github_organization.test", "secret_scanning_enabled_for_new_repositories"),
 			resource.TestCheckNoResourceAttr("data.github_organization.test", "secret_scanning_push_protection_enabled_for_new_repositories"),
+			resource.TestCheckNoResourceAttr("data.github_organization.test", "members_can_delete_repositories"),
+			resource.TestCheckNoResourceAttr("data.github_organization.test", "members_can_invite_outside_collaborators"),
+			resource.TestCheckNoResourceAttr("data.github_organization.test", "members_can_delete_issues"),
+			resource.TestCheckNoResourceAttr("data.github_organization.test", "display_commenter_full_name_setting_enabled"),
+			resource.TestCheckNoResourceAttr("data.github_organization.test", "readers_can_create_discussions"),
 		)
 
 		resource.Test(t, resource.TestCase{
