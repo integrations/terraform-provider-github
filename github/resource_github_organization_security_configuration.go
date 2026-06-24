@@ -297,19 +297,16 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 	}
 }
 
-func resourceGithubOrganizationSecurityConfigurationCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	err := checkOrganization(meta)
-	if err != nil {
+func resourceGithubOrganizationSecurityConfigurationCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	if err := checkOrganization(m); err != nil {
 		return diag.FromErr(err)
 	}
-	client := meta.(*Owner).v3client
-	org := meta.(*Owner).name
-	name := d.Get("name").(string)
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	org := meta.name
+	name, _ := d.Get("name").(string)
 
-	tflog.Debug(ctx, "Creating organization code security configuration", map[string]any{
-		"organization": org,
-		"name":         name,
-	})
+	tflog.Debug(ctx, "Creating organization code security configuration", map[string]any{"organization": org, "name": name})
 
 	config := expandCodeSecurityConfigurationCommon(d)
 	expandSecretScanningDelegatedBypass(d, &config)
@@ -323,11 +320,7 @@ func resourceGithubOrganizationSecurityConfigurationCreate(ctx context.Context, 
 
 	configuration, _, err := client.Organizations.CreateCodeSecurityConfiguration(ctx, org, config)
 	if err != nil {
-		tflog.Error(ctx, "Failed to create organization code security configuration", map[string]any{
-			"organization": org,
-			"name":         name,
-			"error":        err.Error(),
-		})
+		tflog.Error(ctx, "Failed to create organization code security configuration", map[string]any{"organization": org, "name": name, "error": err.Error()})
 		return diag.FromErr(err)
 	}
 
@@ -337,12 +330,7 @@ func resourceGithubOrganizationSecurityConfigurationCreate(ctx context.Context, 
 		config.SecretScanningDelegatedBypassOptions = bypassOptions
 		configuration, _, err = client.Organizations.UpdateCodeSecurityConfiguration(ctx, org, configuration.GetID(), config)
 		if err != nil {
-			tflog.Error(ctx, "Failed to set secret scanning delegated bypass options on organization code security configuration", map[string]any{
-				"organization": org,
-				"name":         name,
-				"id":           configuration.GetID(),
-				"error":        err.Error(),
-			})
+			tflog.Error(ctx, "Failed to set secret scanning delegated bypass options on organization code security configuration", map[string]any{"organization": org, "name": name, "id": configuration.GetID(), "error": err.Error()})
 			return diag.FromErr(err)
 		}
 	}
@@ -357,47 +345,31 @@ func resourceGithubOrganizationSecurityConfigurationCreate(ctx context.Context, 
 		return diag.FromErr(err)
 	}
 
-	tflog.Info(ctx, "Created organization code security configuration", map[string]any{
-		"organization": org,
-		"name":         name,
-		"id":           configuration.GetID(),
-	})
+	tflog.Info(ctx, "Created organization code security configuration", map[string]any{"organization": org, "name": name, "id": configuration.GetID()})
 
 	return nil
 }
 
-func resourceGithubOrganizationSecurityConfigurationRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	err := checkOrganization(meta)
-	if err != nil {
+func resourceGithubOrganizationSecurityConfigurationRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	if err := checkOrganization(m); err != nil {
 		return diag.FromErr(err)
 	}
-	client := meta.(*Owner).v3client
-	org := meta.(*Owner).name
-	id := int64(d.Get("configuration_id").(int))
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	org := meta.name
+	configID, _ := d.Get("configuration_id").(int)
+	id := int64(configID)
 
-	tflog.Trace(ctx, "Reading organization code security configuration", map[string]any{
-		"organization": org,
-		"id":           id,
-	})
+	tflog.Trace(ctx, "Reading organization code security configuration", map[string]any{"organization": org, "id": id})
 
 	configuration, _, err := client.Organizations.GetCodeSecurityConfiguration(ctx, org, id)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "Removing organization code security configuration from state because it no longer exists in GitHub", map[string]any{
-					"organization": org,
-					"id":           id,
-				})
-				d.SetId("")
-				return nil
-			}
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Removing organization code security configuration from state because it no longer exists in GitHub", map[string]any{"organization": org, "id": id})
+			d.SetId("")
+			return nil
 		}
-		tflog.Error(ctx, "Failed to read organization code security configuration", map[string]any{
-			"organization": org,
-			"id":           id,
-			"error":        err.Error(),
-		})
+		tflog.Error(ctx, "Failed to read organization code security configuration", map[string]any{"organization": org, "id": id, "error": err.Error()})
 		return diag.FromErr(err)
 	}
 
@@ -411,38 +383,29 @@ func resourceGithubOrganizationSecurityConfigurationRead(ctx context.Context, d 
 		return diag.FromErr(err)
 	}
 
-	tflog.Trace(ctx, "Successfully read organization code security configuration", map[string]any{
-		"organization": org,
-		"id":           id,
-	})
+	tflog.Trace(ctx, "Successfully read organization code security configuration", map[string]any{"organization": org, "id": id})
 
 	return nil
 }
 
-func resourceGithubOrganizationSecurityConfigurationUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	err := checkOrganization(meta)
-	if err != nil {
+func resourceGithubOrganizationSecurityConfigurationUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	if err := checkOrganization(m); err != nil {
 		return diag.FromErr(err)
 	}
-	client := meta.(*Owner).v3client
-	org := meta.(*Owner).name
-	id := int64(d.Get("configuration_id").(int))
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	org := meta.name
+	configID, _ := d.Get("configuration_id").(int)
+	id := int64(configID)
 
-	tflog.Debug(ctx, "Updating organization code security configuration", map[string]any{
-		"organization": org,
-		"id":           id,
-	})
+	tflog.Debug(ctx, "Updating organization code security configuration", map[string]any{"organization": org, "id": id})
 
 	config := expandCodeSecurityConfigurationCommon(d)
 	expandSecretScanningDelegatedBypass(d, &config)
 
 	configuration, _, err := client.Organizations.UpdateCodeSecurityConfiguration(ctx, org, id, config)
 	if err != nil {
-		tflog.Error(ctx, "Failed to update organization code security configuration", map[string]any{
-			"organization": org,
-			"id":           id,
-			"error":        err.Error(),
-		})
+		tflog.Error(ctx, "Failed to update organization code security configuration", map[string]any{"organization": org, "id": id, "error": err.Error()})
 		return diag.FromErr(err)
 	}
 
@@ -456,50 +419,34 @@ func resourceGithubOrganizationSecurityConfigurationUpdate(ctx context.Context, 
 		return diag.FromErr(err)
 	}
 
-	tflog.Info(ctx, "Updated organization code security configuration", map[string]any{
-		"organization": org,
-		"id":           id,
-	})
+	tflog.Info(ctx, "Updated organization code security configuration", map[string]any{"organization": org, "id": id})
 
 	return nil
 }
 
-func resourceGithubOrganizationSecurityConfigurationDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	err := checkOrganization(meta)
-	if err != nil {
+func resourceGithubOrganizationSecurityConfigurationDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	if err := checkOrganization(m); err != nil {
 		return diag.FromErr(err)
 	}
-	client := meta.(*Owner).v3client
-	org := meta.(*Owner).name
-	id := int64(d.Get("configuration_id").(int))
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	org := meta.name
+	configID, _ := d.Get("configuration_id").(int)
+	id := int64(configID)
 
-	tflog.Debug(ctx, "Deleting organization code security configuration", map[string]any{
-		"organization": org,
-		"id":           id,
-	})
+	tflog.Debug(ctx, "Deleting organization code security configuration", map[string]any{"organization": org, "id": id})
 
-	_, err = client.Organizations.DeleteCodeSecurityConfiguration(ctx, org, id)
+	_, err := client.Organizations.DeleteCodeSecurityConfiguration(ctx, org, id)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
-			tflog.Info(ctx, "Organization code security configuration already deleted", map[string]any{
-				"organization": org,
-				"id":           id,
-			})
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Organization code security configuration already deleted", map[string]any{"organization": org, "id": id})
 			return nil
 		}
-		tflog.Error(ctx, "Failed to delete organization code security configuration", map[string]any{
-			"organization": org,
-			"id":           id,
-			"error":        err.Error(),
-		})
+		tflog.Error(ctx, "Failed to delete organization code security configuration", map[string]any{"organization": org, "id": id, "error": err.Error()})
 		return diag.FromErr(err)
 	}
 
-	tflog.Info(ctx, "Deleted organization code security configuration", map[string]any{
-		"organization": org,
-		"id":           id,
-	})
+	tflog.Info(ctx, "Deleted organization code security configuration", map[string]any{"organization": org, "id": id})
 
 	return nil
 }
@@ -516,4 +463,3 @@ func resourceGithubOrganizationSecurityConfigurationImport(_ context.Context, d 
 
 	return []*schema.ResourceData{d}, nil
 }
-

@@ -13,7 +13,7 @@ This resource allows you to create and manage [code security configurations](htt
 
 You must have enterprise admin access to use this resource.
 
-~> **Note:** Some settings (such as `advanced_security` and `secret_scanning_generic_secrets`) require GitHub Advanced Security licensing.
+~> Some settings (such as `advanced_security` and `secret_scanning_generic_secrets`) require GitHub Advanced Security licensing.
 
 ## Example Usage
 
@@ -98,7 +98,18 @@ Optional:
 
 ## Import
 
-GitHub enterprise code security configurations can be imported using the enterprise slug and the configuration ID separated by a colon (`<enterprise_slug>:<configuration_id>`), for example:
+GitHub enterprise code security configurations can be imported using the enterprise slug and the configuration ID separated by a colon (`<enterprise_slug>:<configuration_id>`).
+
+In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `id` attribute, for example:
+
+```terraform
+import {
+  to = github_enterprise_security_configuration.default
+  id = "my-enterprise:123"
+}
+```
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
 terraform import github_enterprise_security_configuration.default my-enterprise:123
