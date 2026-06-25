@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -113,7 +114,8 @@ func resourceGithubActionsEnvironmentVariableCreate(ctx context.Context, d *sche
 		return diag.FromErr(err)
 	}
 
-	// GitHub API does not return on create so we have to lookup the variable to get timestamps
+	// GitHub API does not return on create so we have to lookup the variable to get timestamps, we sleep to optimize the chance of getting the timestamps on the first read after creation due to the eventually consistent behavior of this API.
+	time.Sleep(readAfterCreateUpdateDelay)
 	if variable, _, err := client.Actions.GetEnvVariable(ctx, owner, repoName, escapedEnvName, varName); err == nil {
 		if err := d.Set("created_at", variable.CreatedAt.String()); err != nil {
 			return diag.FromErr(err)
@@ -188,7 +190,8 @@ func resourceGithubActionsEnvironmentVariableUpdate(ctx context.Context, d *sche
 	}
 	d.SetId(id)
 
-	// GitHub API does not return on create so we have to lookup the variable to get timestamps
+	// GitHub API does not return on create so we have to lookup the variable to get timestamps, we sleep to optimize the chance of getting the timestamps on the first read after creation due to the eventually consistent behavior of this API.
+	time.Sleep(readAfterCreateUpdateDelay)
 	if variable, _, err := client.Actions.GetEnvVariable(ctx, owner, repoName, escapedEnvName, varName); err == nil {
 		if err := d.Set("created_at", variable.CreatedAt.String()); err != nil {
 			return diag.FromErr(err)
