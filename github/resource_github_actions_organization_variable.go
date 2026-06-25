@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -96,7 +97,8 @@ func resourceGithubActionsOrganizationVariableCreate(ctx context.Context, d *sch
 
 	d.SetId(varName)
 
-	// GitHub API does not return on create so we have to lookup the variable to get timestamps
+	// GitHub API does not return on create so we have to lookup the variable to get timestamps, we sleep to optimize the chance of getting the timestamps on the first read after creation due to the eventually consistent behavior of this API.
+	time.Sleep(readAfterCreateUpdateDelay)
 	if variable, _, err := client.Actions.GetOrgVariable(ctx, owner, varName); err == nil {
 		if err := d.Set("created_at", variable.CreatedAt.String()); err != nil {
 			return diag.FromErr(err)
@@ -204,7 +206,8 @@ func resourceGithubActionsOrganizationVariableUpdate(ctx context.Context, d *sch
 
 	d.SetId(varName)
 
-	// GitHub API does not return on create so we have to lookup the variable to get timestamps
+	// GitHub API does not return on create so we have to lookup the variable to get timestamps, we sleep to optimize the chance of getting the timestamps on the first read after creation due to the eventually consistent behavior of this API.
+	time.Sleep(readAfterCreateUpdateDelay)
 	if variable, _, err := client.Actions.GetOrgVariable(ctx, owner, varName); err == nil {
 		if err := d.Set("created_at", variable.CreatedAt.String()); err != nil {
 			return diag.FromErr(err)

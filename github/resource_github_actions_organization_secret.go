@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -185,7 +186,8 @@ func resourceGithubActionsOrganizationSecretCreate(ctx context.Context, d *schem
 		return diag.FromErr(err)
 	}
 
-	// GitHub API does not return on create so we have to lookup the secret to get timestamps
+	// GitHub API does not return on create so we have to lookup the secret to get timestamps, we sleep to optimize the chance of getting the timestamps on the first read after creation due to the eventually consistent behavior of this API.
+	time.Sleep(readAfterCreateUpdateDelay)
 	if secret, _, err := client.Actions.GetOrgSecret(ctx, owner, secretName); err == nil {
 		if err := d.Set("created_at", secret.CreatedAt.String()); err != nil {
 			return diag.FromErr(err)
@@ -332,7 +334,8 @@ func resourceGithubActionsOrganizationSecretUpdate(ctx context.Context, d *schem
 		return diag.FromErr(err)
 	}
 
-	// GitHub API does not return on update so we have to lookup the secret to get timestamps
+	// GitHub API does not return on update so we have to lookup the secret to get timestamps, we sleep to optimize the chance of getting the timestamps on the first read after creation due to the eventually consistent behavior of this API.
+	time.Sleep(readAfterCreateUpdateDelay)
 	if secret, _, err := client.Actions.GetOrgSecret(ctx, owner, secretName); err == nil {
 		if err := d.Set("created_at", secret.CreatedAt.String()); err != nil {
 			return diag.FromErr(err)
