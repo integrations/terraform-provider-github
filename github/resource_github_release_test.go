@@ -12,6 +12,8 @@ import (
 )
 
 func TestAccGithubReleaseResource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("create a release with defaults", func(t *testing.T) {
 		randomRepoPart := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-release-%s", testResourcePrefix, randomRepoPart)

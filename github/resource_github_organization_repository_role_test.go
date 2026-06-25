@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubOrganizationRepositoryRole(t *testing.T) {
+	t.Parallel()
+
 	t.Run("can create an organization repository role without erroring", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		name := fmt.Sprintf("tf-acc-org-repo-role-%s", randomID)

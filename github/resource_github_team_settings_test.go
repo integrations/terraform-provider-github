@@ -19,6 +19,8 @@ import (
 )
 
 func TestAccGithubTeamSettings(t *testing.T) {
+	t.Parallel()
+
 	t.Run("manages team settings can use team_id id and slug", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-settings-%s", testResourcePrefix, randomID)

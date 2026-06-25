@@ -13,6 +13,8 @@ import (
 )
 
 func TestAccGithubActionsEnvironmentVariable(t *testing.T) {
+	t.Parallel()
+
 	t.Run("create", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)

@@ -11,6 +11,8 @@ import (
 )
 
 func TestAccGithubIssue(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates an issue without error", func(t *testing.T) {
 		var username string
 		if testAccConf.authMode == individual {
@@ -110,7 +112,7 @@ func TestAccGithubIssue(t *testing.T) {
 					Check:  checks["before"],
 				},
 				{
-					Config: fmt.Sprintf(issueHCL, repoName, updatedTitle, updatedBody, updatedLabels, testAccConf.owner),
+					Config: fmt.Sprintf(issueHCL, repoName, updatedTitle, updatedBody, updatedLabels, username),
 					Check:  checks["after"],
 				},
 			},

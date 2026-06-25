@@ -11,6 +11,8 @@ import (
 )
 
 func TestAccGithubUserGpgKey(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates a GPG key without error", func(t *testing.T) {
 		keyPath := strings.ReplaceAll(filepath.Join("test-fixtures", "gpg-pubkey.asc"), "\\", "/")
 
@@ -34,7 +36,7 @@ func TestAccGithubUserGpgKey(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
+			PreCheck:          func() { skipUnlessMode(t, individual) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubOrganizationCustomRole(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates custom repo role without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`

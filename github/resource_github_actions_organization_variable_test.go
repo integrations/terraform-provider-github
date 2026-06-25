@@ -12,6 +12,8 @@ import (
 )
 
 func TestAccGithubActionsOrganizationVariable(t *testing.T) {
+	t.Parallel()
+
 	t.Run("create_update_visibility_all", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 		varName := fmt.Sprintf("test_%s", randomID)

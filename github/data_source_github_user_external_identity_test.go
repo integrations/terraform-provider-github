@@ -8,6 +8,8 @@ import (
 )
 
 func TestAccGithubUserExternalIdentity(t *testing.T) {
+	t.Parallel()
+
 	t.Run("queries without error", func(t *testing.T) {
 		config := `data "github_user_external_identity" "test" { username = "%s" }`
 

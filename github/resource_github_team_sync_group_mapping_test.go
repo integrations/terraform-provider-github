@@ -13,6 +13,8 @@ import (
 )
 
 func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates a team sync group mapping", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-sync-%s", testResourcePrefix, randomID)

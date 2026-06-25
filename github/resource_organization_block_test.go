@@ -10,6 +10,8 @@ import (
 )
 
 func TestAccOrganizationBlock_basic(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates organization block", func(t *testing.T) {
 		config := `
 resource "github_organization_block" "test" {

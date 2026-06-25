@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubRepositoriesDataSource(t *testing.T) {
+	t.Parallel()
+
 	// FIXME: Find a way to reduce amount of `GET /search/repositories`
 	// t.Skip("Skipping due to API rate limits exceeding")
 

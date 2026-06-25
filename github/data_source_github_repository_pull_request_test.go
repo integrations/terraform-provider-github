@@ -1,3 +1,5 @@
+//go:build !skip_acc_broken
+
 package github
 
 import (
@@ -9,6 +11,8 @@ import (
 )
 
 func TestAccGithubRepositoryPullRequestDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("manages the pull request lifecycle", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-pr-%s", testResourcePrefix, randomID)

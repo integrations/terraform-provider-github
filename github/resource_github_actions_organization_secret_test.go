@@ -13,6 +13,8 @@ import (
 )
 
 func TestAccGithubActionsOrganizationSecret(t *testing.T) {
+	t.Parallel()
+
 	t.Run("create_update_plaintext", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 		secretName := fmt.Sprintf("test_%s", randomID)

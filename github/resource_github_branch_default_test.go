@@ -15,6 +15,8 @@ import (
 )
 
 func TestAccGithubBranchDefault(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates_as_import_without_error", func(t *testing.T) {
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%sbranch-def-%s", testResourcePrefix, randomID)

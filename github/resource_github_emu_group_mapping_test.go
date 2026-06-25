@@ -17,6 +17,8 @@ import (
 )
 
 func TestAccGithubEMUGroupMapping(t *testing.T) {
+	t.Parallel()
+
 	groupID := testAccConf.testEnterpriseEMUGroupId
 	if groupID == 0 {
 		t.Skip("Skipping EMU group mapping tests because testEnterpriseEMUGroupId is not set")

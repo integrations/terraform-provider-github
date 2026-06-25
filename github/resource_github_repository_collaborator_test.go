@@ -10,6 +10,8 @@ import (
 )
 
 func TestAccGithubRepositoryCollaborator(t *testing.T) {
+	t.Parallel()
+
 	if len(testAccConf.testExternalUser1) == 0 {
 		t.Skip("No external user provided")
 	}
@@ -121,6 +123,8 @@ func TestParseRepoName(t *testing.T) {
 }
 
 func TestAccGithubRepositoryCollaboratorArchivedRepo(t *testing.T) {
+	t.Parallel()
+
 	// Note: This test requires GH_TEST_COLLABORATOR to be set to a valid GitHub username and it won't work with `testExternalUser`
 	testCollaborator := os.Getenv("GH_TEST_COLLABORATOR")
 	if testCollaborator == "" {

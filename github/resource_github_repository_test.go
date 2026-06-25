@@ -1,3 +1,5 @@
+//go:build !skip_acc_broken
+
 package github
 
 import (
@@ -14,6 +16,8 @@ import (
 )
 
 func TestAccGithubRepository(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates and updates repositories without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%screate-%s", testResourcePrefix, randomID)

@@ -13,6 +13,8 @@ import (
 )
 
 func TestAccGithubRepositoryCollaborators(t *testing.T) {
+	t.Parallel()
+
 	t.Run("create", func(t *testing.T) {
 		if len(testAccConf.testOrgUser1) == 0 {
 			t.Skip("No organization user provided")

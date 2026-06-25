@@ -10,6 +10,8 @@ import (
 )
 
 func TestAccGithubReleaseDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("queries latest release", func(t *testing.T) {
 		config := fmt.Sprintf(`
 			data "github_release" "test" {

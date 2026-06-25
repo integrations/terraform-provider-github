@@ -13,6 +13,8 @@ import (
 )
 
 func TestAccGithubTeamMembership(t *testing.T) {
+	t.Parallel()
+
 	if len(testAccConf.testOrgUser1) == 0 {
 		t.Skip("No test user provided")
 	}

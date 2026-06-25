@@ -8,6 +8,8 @@ import (
 )
 
 func TestAccGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates organization oidc subject claim customization template without error", func(t *testing.T) {
 		config := `
 		resource "github_actions_organization_oidc_subject_claim_customization_template" "test" {

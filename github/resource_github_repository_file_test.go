@@ -16,6 +16,8 @@ import (
 )
 
 func TestAccGithubRepositoryFile(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates and manages files", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)

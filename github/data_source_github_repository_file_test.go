@@ -11,6 +11,8 @@ import (
 )
 
 func TestAccGithubRepositoryFileDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("reads a file with a branch name provided without erroring", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)

@@ -10,6 +10,8 @@ import (
 )
 
 func TestAccGithubIssueLabel(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates and updates labels without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-issue-label-%s", testResourcePrefix, randomID)

@@ -15,6 +15,8 @@ import (
 )
 
 func TestAccGithubRepositoryRuleset(t *testing.T) {
+	t.Parallel()
+
 	t.Run("create_branch_ruleset", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-%s", testResourcePrefix, randomID)
@@ -651,6 +653,8 @@ resource "github_repository_ruleset" "test" {
 }
 
 func TestAccGithubRepositoryRulesetValidation(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Validates push target rejects ref_name condition", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
@@ -822,6 +826,8 @@ func TestAccGithubRepositoryRulesetValidation(t *testing.T) {
 }
 
 func TestAccGithubRepositoryRuleset_requiredReviewers(t *testing.T) {
+	t.Parallel()
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 	repoName := fmt.Sprintf("%srepo-ruleset-req-rev-%s", testResourcePrefix, randomID)
 	teamName := fmt.Sprintf("%steam-req-rev-%s", testResourcePrefix, randomID)

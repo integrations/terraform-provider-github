@@ -9,6 +9,8 @@ import (
 
 // TODO: this is failing.
 func TestAccGithubUsersDataSource(t *testing.T) {
+	t.Parallel()
+
 	if len(testAccConf.testExternalUser1) == 0 {
 		t.Skip("No external user provided")
 	}

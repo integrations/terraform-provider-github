@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubRepositoryEnvironmentsDataSource(t *testing.T) {
+	t.Parallel()
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 	repoName := fmt.Sprintf("%srepo-envs-%s", testResourcePrefix, randomID)
 

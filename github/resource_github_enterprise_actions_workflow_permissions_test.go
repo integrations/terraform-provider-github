@@ -8,6 +8,8 @@ import (
 )
 
 func TestAccGithubEnterpriseActionsWorkflowPermissions(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates enterprise workflow permissions without error", func(t *testing.T) {
 		config := fmt.Sprintf(`
 		resource "github_enterprise_actions_workflow_permissions" "test" {

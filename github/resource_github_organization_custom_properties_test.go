@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubOrganizationCustomPropertiesValidation(t *testing.T) {
+	t.Parallel()
+
 	t.Run("rejects invalid values_editable_by value", func(t *testing.T) {
 		config := `
 		resource "github_organization_custom_properties" "test" {
@@ -33,6 +35,8 @@ func TestAccGithubOrganizationCustomPropertiesValidation(t *testing.T) {
 }
 
 func TestAccGithubOrganizationCustomProperties(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates custom property without error", func(t *testing.T) {
 		config := `
 		resource "github_organization_custom_properties" "test" {

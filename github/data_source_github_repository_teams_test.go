@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubRepositoryTeamsDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("queries teams of an existing repository", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)

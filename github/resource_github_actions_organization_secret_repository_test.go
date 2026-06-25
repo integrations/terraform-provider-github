@@ -10,6 +10,8 @@ import (
 )
 
 func TestAccGithubActionsOrganizationSecretRepository(t *testing.T) {
+	t.Parallel()
+
 	t.Run("create", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		secretName := fmt.Sprintf("test_%s", randomID)

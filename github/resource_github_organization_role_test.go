@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubOrganizationRole(t *testing.T) {
+	t.Parallel()
+
 	t.Run("can create an empty organization role", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		name := fmt.Sprintf("tf-acc-org-role-%s", randomID)

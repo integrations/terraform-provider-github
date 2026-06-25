@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubRepositoryBranchesDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("manages branches of a new repository", func(t *testing.T) {
 		repoName := fmt.Sprintf("%srepo-branches-%s", testResourcePrefix, acctest.RandString(5))
 		config := fmt.Sprintf(`

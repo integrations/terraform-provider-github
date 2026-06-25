@@ -13,6 +13,8 @@ import (
 )
 
 func TestAccGithubRepositoryPagesDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("reads_pages_configuration", func(t *testing.T) {
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%spages-ds-%s", testResourcePrefix, randomID)
