@@ -59,31 +59,6 @@ func resourceGithubIssueLabels() *schema.Resource {
 	}
 }
 
-func resourceGithubIssueLabelsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta, _ := m.(*Owner)
-	client := meta.v3client
-	owner := meta.name
-	repository := d.Id()
-
-	// log.Printf("[DEBUG] Reading GitHub issue labels for %s/%s", owner, repository)
-	tflog.Debug(ctx, "Reading GitHub issue labels", map[string]any{"owner": owner, "repository": repository})
-
-	labels, err := listLabels(client, ctx, owner, repository)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	if err = d.Set("repository", repository); err != nil {
-		return diag.FromErr(err)
-	}
-
-	if err = d.Set("label", flattenLabels(labels)); err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
-}
-
 func resourceGithubIssueLabelsCreateOrUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	client := meta.v3client
@@ -166,6 +141,30 @@ func resourceGithubIssueLabelsCreateOrUpdate(ctx context.Context, d *schema.Reso
 
 	err = d.Set("label", wantLabels)
 	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
+}
+
+func resourceGithubIssueLabelsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+	repository := d.Id()
+
+	tflog.Debug(ctx, "Reading GitHub issue labels", map[string]any{"owner": owner, "repository": repository})
+
+	labels, err := listLabels(client, ctx, owner, repository)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err = d.Set("repository", repository); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err = d.Set("label", flattenLabels(labels)); err != nil {
 		return diag.FromErr(err)
 	}
 
