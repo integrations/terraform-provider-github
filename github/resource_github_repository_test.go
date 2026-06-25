@@ -442,19 +442,27 @@ resource "github_repository" "test" {
 
 	t.Run("creates a repository using an org template", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		testRepoName := fmt.Sprintf("%stemplate-%s", testResourcePrefix, randomID)
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name        = "%s"
-				description = "Terraform acceptance tests %[1]s"
-				visibility  = "%s"
-				template {
-					owner = "%s"
-					repository = "%s"
-				}
+		testTemplateRepoName := fmt.Sprintf("%stemplate-%s", testResourcePrefix, randomID)
+		testRepoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
-			}
-		`, testRepoName, testAccConf.testRepositoryVisibility, testAccConf.owner, testAccConf.testOrgTemplateRepository)
+		config := fmt.Sprintf(`
+resource "github_repository" "test" {
+  name         = "%s"
+  visibility   = "%s"
+  auto_init    = true
+  is_template = true
+}
+
+resource "github_repository" "test" {
+  name        = "%s"
+  description = "Terraform acceptance tests %[1]s"
+  visibility  = "%s"
+  template {
+    owner      = "%s"
+    repository = github_repository.test.name
+  }
+}
+`, testTemplateRepoName, testAccConf.testRepositoryVisibility, testRepoName, testAccConf.testRepositoryVisibility, testAccConf.owner)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },

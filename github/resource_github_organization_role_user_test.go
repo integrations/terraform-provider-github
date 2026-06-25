@@ -19,7 +19,7 @@ func TestAccGithubOrganizationRoleUser(t *testing.T) {
 		`, roleId, testAccConf.testOrgUser1)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			PreCheck:          func() { skipUnlessHasOrgs(t); skipUnlessHasOrgUser1(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
