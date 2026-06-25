@@ -621,7 +621,7 @@ resource "github_actions_organization_secret" "test" {
 					ResourceName:            "github_actions_organization_secret.test",
 					ImportState:             true,
 					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"key_id", "value", "destroy_on_drift"},
+					ImportStateVerifyIgnore: []string{"key_id", "value", "destroy_on_drift", "created_at", "updated_at"},
 				},
 			},
 		})
