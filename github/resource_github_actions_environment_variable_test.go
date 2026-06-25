@@ -386,9 +386,10 @@ resource "github_actions_environment_variable" "test" {
 					Config: config,
 				},
 				{
-					ResourceName:      "github_actions_environment_variable.test",
-					ImportState:       true,
-					ImportStateVerify: true,
+					ResourceName:            "github_actions_environment_variable.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"created_at", "updated_at"},
 				},
 			},
 		})

@@ -552,7 +552,7 @@ resource "github_dependabot_secret" "test" {
 					ResourceName:            "github_dependabot_secret.test",
 					ImportState:             true,
 					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"key_id", "value"},
+					ImportStateVerifyIgnore: []string{"key_id", "value", "created_at", "updated_at"},
 				},
 			},
 		})
