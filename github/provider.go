@@ -205,6 +205,7 @@ func NewProvider(version, commit string) func() *schema.Provider {
 				"github_organization_role_user":                                         resourceGithubOrganizationRoleUser(),
 				"github_organization_role_team_assignment":                              resourceGithubOrganizationRoleTeamAssignment(),
 				"github_organization_ruleset":                                           resourceGithubOrganizationRuleset(),
+				"github_organization_security_configuration":                            resourceGithubOrganizationSecurityConfiguration(),
 				"github_organization_security_manager":                                  resourceGithubOrganizationSecurityManager(),
 				"github_organization_settings":                                          resourceGithubOrganizationSettings(),
 				"github_organization_webhook":                                           resourceGithubOrganizationWebhook(),
@@ -245,6 +246,7 @@ func NewProvider(version, commit string) func() *schema.Provider {
 				"github_enterprise_actions_workflow_permissions":                        resourceGithubEnterpriseActionsWorkflowPermissions(),
 				"github_actions_organization_workflow_permissions":                      resourceGithubActionsOrganizationWorkflowPermissions(),
 				"github_enterprise_security_analysis_settings":                          resourceGithubEnterpriseSecurityAnalysisSettings(),
+				"github_enterprise_security_configuration":                              resourceGithubEnterpriseSecurityConfiguration(),
 				"github_workflow_repository_permissions":                                resourceGithubWorkflowRepositoryPermissions(),
 			},
 
