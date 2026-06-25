@@ -63,7 +63,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Type:        schema.TypeInt,
 							Optional:    true,
 							Default:     nil,
-							Description: "The ID of the actor that can bypass a ruleset. Some actor types such as `OrganizationAdmin`, `EnterpriseOwner`, and `DeployKey` do not have an ID — this argument should not be set in those cases as the GitHub API will ignore it.",
+							Description: "The ID of the actor that can bypass a ruleset. Must be omitted for ID-less actor types: `OrganizationAdmin`, `EnterpriseOwner`, and `DeployKey` — the GitHub API does not use an ID for these types and will ignore any value set.",
 						},
 						"actor_type": {
 							Type:             schema.TypeString,
