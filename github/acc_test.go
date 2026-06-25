@@ -41,7 +41,6 @@ type testAccConfig struct {
 	// Auth configuration
 	authMode          testMode
 	owner             string
-	username          string
 	token             string
 	appID             string
 	appInstallationID string
@@ -62,17 +61,11 @@ type testAccConfig struct {
 	testPublicTemplateRepositoryOwner string
 	testGHActionsAppInstallationId    int
 
-	// User test configuration
-	testUserRepository string
-
 	// Org test configuration
-	testOrgUser1              string
-	testOrgUser2              string
-	testOrgUser3              string
-	testOrgSecretName         string
-	testOrgRepository         string
-	testOrgTemplateRepository string
-	testOrgAppInstallationId  int
+	testOrgUser1             string
+	testOrgUser2             string
+	testOrgUser3             string
+	testOrgAppInstallationId int
 
 	// External test configuration
 	testExternalUser1      string
@@ -132,13 +125,9 @@ func TestMain(m *testing.M) {
 		testPublicTemplateRepository:      "template-repository",
 		testPublicTemplateRepositoryOwner: "template-repository",
 		testGHActionsAppInstallationId:    15368,
-		testUserRepository:                os.Getenv("GH_TEST_USER_REPOSITORY"),
 		testOrgUser1:                      os.Getenv("GH_TEST_ORG_USER1"),
 		testOrgUser2:                      os.Getenv("GH_TEST_ORG_USER2"),
 		testOrgUser3:                      os.Getenv("GH_TEST_ORG_USER3"),
-		testOrgSecretName:                 os.Getenv("GH_TEST_ORG_SECRET_NAME"),
-		testOrgRepository:                 os.Getenv("GH_TEST_ORG_REPOSITORY"),
-		testOrgTemplateRepository:         os.Getenv("GH_TEST_ORG_TEMPLATE_REPOSITORY"),
 		testExternalUser1:                 os.Getenv("GH_TEST_EXTERNAL_USER1"),
 		testExternalUser1Token:            os.Getenv("GH_TEST_EXTERNAL_USER1_TOKEN"),
 		testExternalUser2:                 os.Getenv("GH_TEST_EXTERNAL_USER2"),
@@ -148,7 +137,6 @@ func TestMain(m *testing.M) {
 
 	if config.authMode != anonymous {
 		config.owner = os.Getenv("GITHUB_OWNER")
-		config.username = os.Getenv("GITHUB_USERNAME")
 		config.token = os.Getenv("GITHUB_TOKEN")
 		config.appID = os.Getenv("GITHUB_APP_ID")
 		config.appInstallationID = os.Getenv("GITHUB_APP_INSTALLATION_ID")
@@ -156,11 +144,6 @@ func TestMain(m *testing.M) {
 
 		if len(config.owner) == 0 {
 			fmt.Println("GITHUB_OWNER environment variable not set")
-			os.Exit(1)
-		}
-
-		if config.authMode == individual && len(config.username) == 0 {
-			fmt.Println("GITHUB_USERNAME environment variable not set")
 			os.Exit(1)
 		}
 

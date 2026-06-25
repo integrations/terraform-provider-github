@@ -12,6 +12,14 @@ import (
 
 func TestAccGithubIssue(t *testing.T) {
 	t.Run("creates an issue without error", func(t *testing.T) {
+		var username string
+		if testAccConf.authMode == individual {
+			username = testAccConf.owner
+		} else {
+			skipUnlessHasOrgUser1(t)
+			username = testAccConf.testOrgUser1
+		}
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-issue-%s", testResourcePrefix, randomID)
 		title := "issue_title"
@@ -46,7 +54,7 @@ func TestAccGithubIssue(t *testing.T) {
 			  milestone_number = github_repository_milestone.test.number
 			}
 		`
-		config := fmt.Sprintf(issueHCL, repoName, title, body, labels, testAccConf.username)
+		config := fmt.Sprintf(issueHCL, repoName, title, body, labels, username)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
@@ -138,9 +146,10 @@ func TestAccGithubIssue(t *testing.T) {
 					Check:  check,
 				},
 				{
-					ResourceName:      "github_issue.test",
-					ImportState:       true,
-					ImportStateVerify: true,
+					ResourceName:            "github_issue.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"etag"},
 				},
 			},
 		})

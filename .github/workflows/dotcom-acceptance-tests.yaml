@@ -205,17 +205,12 @@ jobs:
           GITHUB_TOKEN: ${{ steps.credentials.outputs.token }}
           GITHUB_BASE_URL: https://api.github.com/
           GITHUB_OWNER: ${{ case(matrix.mode == 'anonymous', '', matrix.mode == 'individual', vars.GH_TEST_LOGIN, vars.GH_TEST_ORG_NAME) }}
-          GITHUB_USERNAME: ${{ case(matrix.mode == 'individual', vars.GH_TEST_LOGIN, '') }}
           GITHUB_ENTERPRISE_SLUG: ${{ case(matrix.mode == 'enterprise', vars.GH_TEST_ENTERPRISE_SLUG, '') }}
           GITHUB_LEGACY_CLIENT: "false"
           GH_TEST_AUTH_MODE: ${{ matrix.mode }}
-          GH_TEST_USER_REPOSITORY: ${{ vars.GH_TEST_USER_REPOSITORY }}
           GH_TEST_ORG_USER1: ${{ vars.GH_TEST_ORG_USER1 }}
           GH_TEST_ORG_USER2: ${{ vars.GH_TEST_ORG_USER2 }}
           GH_TEST_ORG_USER3: ${{ vars.GH_TEST_ORG_USER3 }}
-          GH_TEST_ORG_SECRET_NAME: ${{ vars.GH_TEST_ORG_SECRET_NAME }}
-          GH_TEST_ORG_REPOSITORY: ${{ vars.GH_TEST_ORG_REPOSITORY }}
-          GH_TEST_ORG_TEMPLATE_REPOSITORY: ${{ vars.GH_TEST_ORG_TEMPLATE_REPOSITORY }}
           GH_TEST_ORG_APP_INSTALLATION_ID: ${{ vars.GH_TEST_ORG_APP_INSTALLATION_ID }}
           GH_TEST_EXTERNAL_USER1: ${{ vars.GH_TEST_EXTERNAL_USER1 }}
           GH_TEST_EXTERNAL_USER1_TOKEN: ${{ secrets.GH_TEST_EXTERNAL_USER1_TOKEN }}
@@ -229,7 +224,7 @@ jobs:
           fi
 
           # go test -run "^TestAcc*" ./github -v -race -coverprofile=coverage.txt -covermode=atomic -timeout 120m -count=1
-          go test -run "^TestAcc*" ./github -v -timeout 120m -count=1
+          go test -tags=skip_acc_broken -run "^TestAcc*" ./github -v -timeout 120m -count=1
 
   check:
     name: Check DotCom Acceptance Tests

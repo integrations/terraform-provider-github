@@ -118,7 +118,6 @@ jobs:
           GITHUB_TOKEN: ${{ steps.credentials.outputs.token }}
           GITHUB_BASE_URL: ${{ steps.server.outputs.address }}
           GITHUB_OWNER: ""
-          GITHUB_USERNAME: ""
           GITHUB_ENTERPRISE_SLUG: ""
           GITHUB_LEGACY_CLIENT: "false"
           GH_TEST_AUTH_MODE: enterprise

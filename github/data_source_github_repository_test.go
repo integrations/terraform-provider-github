@@ -6,84 +6,65 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccDataSourceGithubRepository(t *testing.T) {
+	t.Parallel()
+
 	t.Run("queries a public repository without error", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			data "github_repository" "test" {
-				full_name = "%s/%s"
-			}
-		`, testAccConf.testPublicRepositoryOwner, testAccConf.testPublicRepository)
+		t.Parallel()
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"data.github_repository.test", "full_name",
-				fmt.Sprintf("%s/%s", testAccConf.testPublicRepositoryOwner, testAccConf.testPublicRepository)),
-		)
+		config := fmt.Sprintf(`
+data "github_repository" "test" {
+  full_name = "%s/%s"
+}
+`, testAccConf.testPublicRepositoryOwner, testAccConf.testPublicRepository)
+
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_repository.test", tfjsonpath.New("repo_id"), knownvalue.NotNull()),
+					},
 				},
 			},
 		})
 	})
 
-	t.Run("queries repository belonging to the current user without error", func(t *testing.T) {
-		if len(testAccConf.testUserRepository) == 0 {
-			t.Skip("No test user repository provided")
-		}
+	t.Run("queries repository belonging to owner without error", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
 
 		config := fmt.Sprintf(`
-			data "github_repository" "test" {
-				full_name = "%s/%s"
-			}
-		`, testAccConf.username, testAccConf.testUserRepository)
+data "github_repository" "test" {
+  name = "%s"
+}
+`, repo.GetName())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, individual) },
+			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr(
-							"data.github_repository.test", "full_name",
-							fmt.Sprintf("%s/%s", testAccConf.username, testAccConf.testUserRepository)),
-					),
-				},
-			},
-		})
-	})
-
-	t.Run("queries an org repository without error", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			data "github_repository" "test" {
-				full_name = "%s/%s"
-			}
-		`, testAccConf.owner, testAccConf.testOrgRepository)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"data.github_repository.test", "full_name",
-				fmt.Sprintf("%s/%s", testAccConf.owner, testAccConf.testOrgRepository)),
-		)
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_repository.test", tfjsonpath.New("repo_id"), knownvalue.Int32Exact(int32(repo.GetID()))),
+						statecheck.ExpectKnownValue("data.github_repository.test", tfjsonpath.New("full_name"), knownvalue.StringExact(fmt.Sprintf("%s/%s", testAccConf.owner, repo.GetName()))),
+					},
 				},
 			},
 		})
 	})
 
 	t.Run("queries a repository with pages configured", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ds-pages-%s", testResourcePrefix, randomID)
 
@@ -123,20 +104,21 @@ func TestAccDataSourceGithubRepository(t *testing.T) {
 	})
 
 	t.Run("checks defaults on a new repository", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ds-defaults-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
+resource "github_repository" "test" {
+  name         = "%s"
+  auto_init    = true
+}
 
-			resource "github_repository" "test" {
-				name         = "%s"
-				auto_init    = true
-			}
-
-			data "github_repository" "test" {
-				name = github_repository.test.name
-			}
-		`, repoName)
+data "github_repository" "test" {
+  name = github_repository.test.name
+}
+`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr("data.github_repository.test", "name", repoName),
@@ -160,6 +142,8 @@ func TestAccDataSourceGithubRepository(t *testing.T) {
 	})
 
 	t.Run("queries a public repository that is a template", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 			data "github_repository" "test" {
 				full_name = "%s/%s"
@@ -186,15 +170,20 @@ func TestAccDataSourceGithubRepository(t *testing.T) {
 	})
 
 	t.Run("queries an org repository that is a template", func(t *testing.T) {
-		if len(testAccConf.testOrgTemplateRepository) == 0 {
-			t.Skip("No org template repository provided")
-		}
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ds-defaults-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
-			data "github_repository" "test" {
-				full_name = "%s/%s"
-			}
-		`, testAccConf.owner, testAccConf.testOrgTemplateRepository)
+resource "github_repository" "test" {
+  name         = "%s"
+  auto_init    = true
+  is_template = true
+}
+
+data "github_repository" "test" {
+  name = github_repository.test.name
+}
+`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -204,7 +193,7 @@ func TestAccDataSourceGithubRepository(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -216,6 +205,8 @@ func TestAccDataSourceGithubRepository(t *testing.T) {
 	})
 
 	t.Run("queries a repository that was generated from a template", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ds-template-%s", testResourcePrefix, randomID)
 
@@ -257,6 +248,8 @@ func TestAccDataSourceGithubRepository(t *testing.T) {
 	})
 
 	t.Run("queries a repository that has no primary_language", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ds-nolang-%s", testResourcePrefix, randomID)
 
@@ -332,6 +325,8 @@ func TestAccDataSourceGithubRepository(t *testing.T) {
 	// })
 
 	t.Run("queries a repository that has a license", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ds-license-%s", testResourcePrefix, randomID)
 
