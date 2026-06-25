@@ -122,6 +122,12 @@ func resourceGithubOrganizationSettings() *schema.Resource {
 				Default:     false,
 				Description: "Whether or not organization members can fork private repositories.",
 			},
+			"deploy_keys_enabled_for_repositories": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether deploy keys may be added and used for repositories in the organization.",
+			},
 			"web_commit_signoff_required": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -269,6 +275,9 @@ func buildOrganizationSettings(d *schema.ResourceData, isEnterprise bool) *githu
 	if shouldInclude("members_can_fork_private_repositories") {
 		settings.MembersCanForkPrivateRepos = new(d.Get("members_can_fork_private_repositories").(bool))
 	}
+	if shouldInclude("deploy_keys_enabled_for_repositories") {
+		settings.DeployKeysEnabledForRepositories = new(d.Get("deploy_keys_enabled_for_repositories").(bool))
+	}
 	if shouldInclude("web_commit_signoff_required") {
 		settings.WebCommitSignoffRequired = new(d.Get("web_commit_signoff_required").(bool))
 	}
@@ -377,6 +386,9 @@ func resourceGithubOrganizationSettingsCreateOrUpdate(d *schema.ResourceData, me
 	}
 	if settings.MembersCanForkPrivateRepos != nil {
 		log.Printf("[DEBUG]   MembersCanForkPrivateRepos: %v", *settings.MembersCanForkPrivateRepos)
+	}
+	if settings.DeployKeysEnabledForRepositories != nil {
+		log.Printf("[DEBUG]   DeployKeysEnabledForRepositories: %v", *settings.DeployKeysEnabledForRepositories)
 	}
 	if settings.WebCommitSignoffRequired != nil {
 		log.Printf("[DEBUG]   WebCommitSignoffRequired: %v", *settings.WebCommitSignoffRequired)
@@ -487,6 +499,9 @@ func resourceGithubOrganizationSettingsRead(d *schema.ResourceData, meta any) er
 		return err
 	}
 	if err = d.Set("members_can_fork_private_repositories", orgSettings.GetMembersCanForkPrivateRepos()); err != nil {
+		return err
+	}
+	if err = d.Set("deploy_keys_enabled_for_repositories", orgSettings.GetDeployKeysEnabledForRepositories()); err != nil {
 		return err
 	}
 	if err = d.Set("web_commit_signoff_required", orgSettings.GetWebCommitSignoffRequired()); err != nil {
