@@ -16,6 +16,8 @@ func TestAccGithubDependabotOrganizationSecret(t *testing.T) {
 	t.Parallel()
 
 	t.Run("create_update_plaintext", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 		secretName := fmt.Sprintf("test_%s", randomID)
 		value := base64.StdEncoding.EncodeToString([]byte("foo"))
@@ -64,6 +66,8 @@ resource "github_dependabot_organization_secret" "test" {
 	})
 
 	t.Run("create_update_encrypted", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 		secretName := fmt.Sprintf("test_%s", randomID)
 		value := base64.StdEncoding.EncodeToString([]byte("foo"))
@@ -112,6 +116,8 @@ resource "github_dependabot_organization_secret" "test" {
 	})
 
 	t.Run("create_update_encrypted_with_key", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 		secretName := fmt.Sprintf("test_%s", randomID)
 		value := base64.StdEncoding.EncodeToString([]byte("foo"))
@@ -163,6 +169,8 @@ resource "github_dependabot_organization_secret" "test" {
 	})
 
 	t.Run("create_update_visibility_all", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 		secretName := fmt.Sprintf("test_%s", randomID)
 		value := base64.StdEncoding.EncodeToString([]byte("foo"))
@@ -211,6 +219,8 @@ resource "github_dependabot_organization_secret" "test" {
 	})
 
 	t.Run("create_update_visibility_private", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 		secretName := fmt.Sprintf("test_%s", randomID)
 		value := base64.StdEncoding.EncodeToString([]byte("foo"))
@@ -259,6 +269,8 @@ resource "github_dependabot_organization_secret" "test" {
 	})
 
 	t.Run("create_update_visibility_selected", func(t *testing.T) {
+		t.Parallel()
+
 		repoName0 := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
 		repoName1 := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
@@ -321,6 +333,8 @@ resource "github_dependabot_organization_secret" "test" {
 	})
 
 	t.Run("create_update_visibility_selected_no_repo_ids", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 		secretName := fmt.Sprintf("test_%s", randomID)
 		value := base64.StdEncoding.EncodeToString([]byte("foo"))
@@ -369,6 +383,8 @@ resource "github_dependabot_organization_secret" "test" {
 	})
 
 	t.Run("create_update_change_visibility", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 		secretName := fmt.Sprintf("test_%s", randomID)
 		value := base64.StdEncoding.EncodeToString([]byte("foo"))
@@ -419,6 +435,8 @@ resource "github_dependabot_organization_secret" "test" {
 	})
 
 	t.Run("update_on_drift", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 		secretName := fmt.Sprintf("test_%s", randomID)
 		value := base64.StdEncoding.EncodeToString([]byte("foo"))
@@ -493,6 +511,8 @@ resource "github_dependabot_organization_secret" "test" {
 	})
 
 	t.Run("lifecycle_can_ignore_drift", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 		secretName := fmt.Sprintf("test_%s", randomID)
 		value := base64.StdEncoding.EncodeToString([]byte("foo"))
@@ -570,6 +590,8 @@ resource "github_dependabot_organization_secret" "test" {
 	})
 
 	t.Run("destroy", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 		secretName := fmt.Sprintf("test_%s", randomID)
 		value := base64.StdEncoding.EncodeToString([]byte("foo"))
@@ -598,6 +620,8 @@ resource "github_dependabot_organization_secret" "test" {
 	})
 
 	t.Run("import", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 		secretName := fmt.Sprintf("test_%s", randomID)
 		value := base64.StdEncoding.EncodeToString([]byte("foo"))
@@ -628,6 +652,8 @@ resource "github_dependabot_organization_secret" "test" {
 	})
 
 	t.Run("error_on_invalid_selected_repository_ids", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 		secretName := fmt.Sprintf("test_%s", randomID)
 		value := base64.StdEncoding.EncodeToString([]byte("foo"))

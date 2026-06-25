@@ -12,6 +12,8 @@ func TestAccGithubOrganizationCustomRole(t *testing.T) {
 	t.Parallel()
 
 	t.Run("creates custom repo role without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 		resource "github_organization_custom_role" "test" {
@@ -45,6 +47,8 @@ func TestAccGithubOrganizationCustomRole(t *testing.T) {
 
 	// More tests can go here following the same format...
 	t.Run("updates custom repo role without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 		resource "github_organization_custom_role" "test" {
@@ -100,6 +104,8 @@ func TestAccGithubOrganizationCustomRole(t *testing.T) {
 	})
 
 	t.Run("imports custom repo role without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_organization_custom_role" "test" {

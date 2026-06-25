@@ -20,6 +20,8 @@ func TestAccGithubOrganizationRoleTeamAssignment(t *testing.T) {
 	githubPredefinedRoleMapping["all_repo_admin"] = "8136"
 
 	t.Run("creates repo assignment without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamSlug := fmt.Sprintf("%steam-role-assign-%s", testResourcePrefix, randomID)
 
@@ -60,6 +62,8 @@ func TestAccGithubOrganizationRoleTeamAssignment(t *testing.T) {
 
 	// More tests can go here following the same format...
 	t.Run("create and re-creates role assignment without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamSlug := fmt.Sprintf("%steam-role-assign-%s", testResourcePrefix, randomID)
 

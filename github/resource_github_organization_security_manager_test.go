@@ -12,6 +12,8 @@ func TestAccGithubOrganizationSecurityManager(t *testing.T) {
 	t.Parallel()
 
 	t.Run("adds team as security manager", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-sec-mgr-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -41,6 +43,8 @@ func TestAccGithubOrganizationSecurityManager(t *testing.T) {
 	})
 
 	t.Run("handles team name changes", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-sec-mgr-%s", testResourcePrefix, randomID)
 		teamNameUpdated := fmt.Sprintf("%s-updated", teamName)

@@ -27,17 +27,15 @@ func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
 			}
 		`, teamName)
 
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttrSet("data.github_organization_teams.all", "teams.#"),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeAggregateTestCheckFunc(
+						resource.TestCheckResourceAttrSet("data.github_organization_teams.all", "teams.#"),
+					),
 				},
 			},
 		})

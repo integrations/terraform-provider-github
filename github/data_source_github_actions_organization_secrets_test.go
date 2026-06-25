@@ -13,6 +13,8 @@ func TestAccGithubActionsOrganizationSecretsDataSource(t *testing.T) {
 	t.Parallel()
 
 	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
 		_ = mustCreateTestOrganizationSecret(t)
 
 		config := `

@@ -13,7 +13,7 @@ import (
 )
 
 func TestAccGithubActionsOrganizationWorkflowPermissions(t *testing.T) {
-	t.Parallel()
+	// IMPORTANT: Do not run these tests in parallel as they modify the organization state.
 
 	t.Run("creates organization workflow permissions without error", func(t *testing.T) {
 		defaultPermission := "write"

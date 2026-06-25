@@ -14,6 +14,8 @@ func TestAccGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateDataSo
 	t.Parallel()
 
 	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
 		config := `
 data "github_actions_organization_oidc_subject_claim_customization_template" "test" {}
 `

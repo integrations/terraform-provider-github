@@ -13,6 +13,8 @@ func TestAccGithubDependabotOrganizationSecretsDataSource(t *testing.T) {
 	t.Parallel()
 
 	t.Run("queries organization dependabot secrets from a repository", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		config := fmt.Sprintf(`

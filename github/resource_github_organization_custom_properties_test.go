@@ -8,10 +8,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccGithubOrganizationCustomPropertiesValidation(t *testing.T) {
+func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 	t.Parallel()
 
 	t.Run("rejects invalid values_editable_by value", func(t *testing.T) {
+		t.Parallel()
+
 		config := `
 		resource "github_organization_custom_properties" "test" {
 			property_name      = "TestInvalidValuesEditableBy"
@@ -32,12 +34,10 @@ func TestAccGithubOrganizationCustomPropertiesValidation(t *testing.T) {
 			},
 		})
 	})
-}
-
-func TestAccGithubOrganizationCustomProperties(t *testing.T) {
-	t.Parallel()
 
 	t.Run("creates custom property without error", func(t *testing.T) {
+		t.Parallel()
+
 		config := `
 		resource "github_organization_custom_properties" "test" {
 			allowed_values = [ "Test" ]
@@ -68,6 +68,8 @@ func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 	})
 
 	t.Run("create custom property and update them", func(t *testing.T) {
+		t.Parallel()
+
 		configBefore := `
 		resource "github_organization_custom_properties" "test" {
 			allowed_values = ["one"]
@@ -110,6 +112,8 @@ func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 	})
 
 	t.Run("imports organization custom property without error", func(t *testing.T) {
+		t.Parallel()
+
 		description := "Test Description Import"
 		propertyName := "Test"
 		valueType := "string"
@@ -146,6 +150,8 @@ func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 	})
 
 	t.Run("creates custom property with values_editable_by without error", func(t *testing.T) {
+		t.Parallel()
+
 		config := `
 		resource "github_organization_custom_properties" "test" {
 			property_name       = "TestValuesEditableBy"
@@ -179,6 +185,8 @@ func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 	})
 
 	t.Run("backward compatibility - property without values_editable_by defaults correctly", func(t *testing.T) {
+		t.Parallel()
+
 		config := `
 		resource "github_organization_custom_properties" "test" {
 			property_name = "TestBackwardCompat"
@@ -212,6 +220,8 @@ func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 	})
 
 	t.Run("update values_editable_by from org_actors to org_and_repo_actors", func(t *testing.T) {
+		t.Parallel()
+
 		configBefore := `
 		resource "github_organization_custom_properties" "test" {
 			property_name      = "TestUpdateValuesEditableBy"
@@ -256,6 +266,8 @@ func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 	})
 
 	t.Run("imports existing property with values_editable_by set via UI", func(t *testing.T) {
+		t.Parallel()
+
 		// This test simulates a scenario where values_editable_by was set to
 		// org_and_repo_actors in the GitHub UI before Terraform support was added.
 		// The resource config intentionally omits values_editable_by to verify

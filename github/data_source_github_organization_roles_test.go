@@ -10,6 +10,8 @@ func TestAccDataSourceGithubOrganizationRoles(t *testing.T) {
 	t.Parallel()
 
 	t.Run("get the organization roles without error", func(t *testing.T) {
+		t.Parallel()
+
 		config := `
 data "github_organization_roles" "test" {}
 		`
