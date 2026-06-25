@@ -69,7 +69,7 @@ func TestAccGithubUserSshKey(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
+			PreCheck:          func() { skipUnlessMode(t, individual) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
