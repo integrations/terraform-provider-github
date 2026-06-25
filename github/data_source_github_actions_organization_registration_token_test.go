@@ -13,6 +13,8 @@ func TestAccGithubActionsOrganizationRegistrationTokenDataSource(t *testing.T) {
 	t.Parallel()
 
 	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
 		config := `
 data "github_actions_organization_registration_token" "test" {}
 `

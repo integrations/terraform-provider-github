@@ -10,6 +10,8 @@ func TestAccGithubOrganizationExternalIdentities(t *testing.T) {
 	t.Parallel()
 
 	t.Run("queries without error", func(t *testing.T) {
+		t.Parallel()
+
 		config := `data "github_organization_external_identities" "test" {}`
 
 		check := resource.ComposeAggregateTestCheckFunc(

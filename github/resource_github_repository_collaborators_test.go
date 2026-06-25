@@ -13,7 +13,7 @@ import (
 )
 
 func TestAccGithubRepositoryCollaborators(t *testing.T) {
-	// TODO: make this test parallel once we can ignore non-direct teams.
+	// TODO: Make this test parallel once we can ignore non-direct teams.
 	// t.Parallel()
 
 	t.Run("create", func(t *testing.T) {

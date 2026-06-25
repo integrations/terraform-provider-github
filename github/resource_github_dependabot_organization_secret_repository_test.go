@@ -13,6 +13,8 @@ func TestAccGithubDependabotOrganizationSecretRepository(t *testing.T) {
 	t.Parallel()
 
 	t.Run("create", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		secretName := fmt.Sprintf("test_%s", randomID)
 		secretValue := base64.StdEncoding.EncodeToString([]byte("foo"))

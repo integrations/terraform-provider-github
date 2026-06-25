@@ -9,7 +9,8 @@ import (
 )
 
 func TestAccDataSourceGithubOrganizationSecurityManagers(t *testing.T) {
-	t.Parallel()
+	// TODO: Make this test parallel once we can ignore non-direct teams.
+	// t.Parallel()
 
 	t.Run("get the organization security managers without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)

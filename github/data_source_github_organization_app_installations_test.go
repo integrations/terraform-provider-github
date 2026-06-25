@@ -10,6 +10,8 @@ func TestAccGithubOrganizationAppInstallations(t *testing.T) {
 	t.Parallel()
 
 	t.Run("basic", func(t *testing.T) {
+		t.Parallel()
+
 		config := `data "github_organization_app_installations" "test" {}`
 
 		resource.Test(t, resource.TestCase{
