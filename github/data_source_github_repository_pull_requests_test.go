@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubRepositoryPullRequestsDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("manages the pull request lifecycle", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-prs-%s", testResourcePrefix, randomID)

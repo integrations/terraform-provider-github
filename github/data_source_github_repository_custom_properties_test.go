@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubRepositoryCustomPropertiesDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates custom property of type single_select without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		propertyName := fmt.Sprintf("tf-acc-test-property-%s", randomID)

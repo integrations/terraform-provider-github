@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubRepositoryEnvironmentDeploymentPolicies(t *testing.T) {
+	t.Parallel()
+
 	t.Run("queries environment deployment policies", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-env-deploy-pol-%s", testResourcePrefix, randomID)

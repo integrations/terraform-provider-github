@@ -8,6 +8,8 @@ import (
 )
 
 func TestAccGithubEnterpriseSecurityAnalysisSettings(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates enterprise security analysis settings without error", func(t *testing.T) {
 		config := fmt.Sprintf(`
 		resource "github_enterprise_security_analysis_settings" "test" {

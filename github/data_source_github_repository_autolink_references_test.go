@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubRepositoryAutolinkReferencesDataSource(t *testing.T) {
+	t.Parallel()
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 	repoName := fmt.Sprintf("%srepo-autolink-refs-%s", testResourcePrefix, randomID)
 

@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubActionsRepositoryAccessLevel(t *testing.T) {
+	t.Parallel()
+
 	t.Run("test setting of user action access level", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-act-access-%s", testResourcePrefix, randomID)

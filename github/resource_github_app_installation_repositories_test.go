@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubAppInstallationRepositories(t *testing.T) {
+	t.Parallel()
+
 	t.Skip("TODO: Broken test")
 	if testAccConf.testOrgAppInstallationId == 0 {
 		t.Skip("No org app installation id provided")

@@ -10,6 +10,8 @@ import (
 )
 
 func TestAccGithubRepositoryProject(t *testing.T) {
+	t.Parallel()
+
 	t.Skip("Skipping test as the GitHub API no longer supports classic projects")
 
 	t.Run("creates a repository project", func(t *testing.T) {

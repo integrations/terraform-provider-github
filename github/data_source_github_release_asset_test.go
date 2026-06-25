@@ -8,6 +8,8 @@ import (
 )
 
 func TestAccGithubReleaseAssetDataSource(t *testing.T) {
+	t.Parallel()
+
 	testRepositoryOwner := testAccConf.testPublicRepositoryOwner
 	testReleaseRepository := testAccConf.testPublicRepository
 	testReleaseAssetID := testAccConf.testPublicReleaseAssetId

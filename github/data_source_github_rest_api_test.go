@@ -10,6 +10,8 @@ import (
 )
 
 func TestAccGithubRestApiDataSource(t *testing.T) {
+	t.Parallel()
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 	repoName := fmt.Sprintf("%srepo-rest-api-%s", testResourcePrefix, randomID)
 

@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubRepositoryTopics(t *testing.T) {
+	t.Parallel()
+
 	t.Run("create repository topics and import them", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-topics-%s", testResourcePrefix, randomID)

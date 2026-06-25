@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubBranch(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates a branch directly", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-branch-%s", testResourcePrefix, randomID)

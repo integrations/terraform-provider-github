@@ -11,6 +11,8 @@ import (
 )
 
 func TestAccGithubProjectCard(t *testing.T) {
+	t.Parallel()
+
 	t.Skip("Skipping test as the GitHub API no longer supports classic projects")
 
 	t.Run("creates a project card using a note", func(t *testing.T) {

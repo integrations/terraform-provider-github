@@ -12,6 +12,8 @@ import (
 )
 
 func TestAccGithubRepositoryDeployKeysDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("manages deploy keys", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		keyName := fmt.Sprintf("%s_rsa", randomID)

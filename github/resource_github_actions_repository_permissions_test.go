@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
+	t.Parallel()
+
 	t.Run("test setting of basic actions repository permissions", func(t *testing.T) {
 		allowedActions := "local_only"
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)

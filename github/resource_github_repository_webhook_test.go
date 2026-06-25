@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubRepositoryWebhook(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates repository webhooks without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-webhook-%s", testResourcePrefix, randomID)

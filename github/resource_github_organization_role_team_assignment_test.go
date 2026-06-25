@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubOrganizationRoleTeamAssignment(t *testing.T) {
+	t.Parallel()
+
 	// Using the predefined roles since custom roles are a strictly Enterprise feature ((https://github.blog/changelog/2024-07-10-pre-defined-organization-roles-that-grant-access-to-all-repositories/))
 	githubPredefinedRoleMapping := make(map[string]string)
 	githubPredefinedRoleMapping["all_repo_read"] = "8132"

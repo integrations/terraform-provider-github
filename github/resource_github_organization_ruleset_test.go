@@ -14,6 +14,8 @@ import (
 )
 
 func TestAccGithubOrganizationRuleset(t *testing.T) {
+	t.Parallel()
+
 	t.Run("create_branch_ruleset", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-org-ruleset-%s", testResourcePrefix, randomID)

@@ -8,6 +8,8 @@ import (
 )
 
 func TestAccGithubOrganizationSettings(t *testing.T) {
+	t.Parallel()
+
 	t.Skip("TODO: Make this test cleanup correctly")
 
 	t.Run("creates organization settings without error", func(t *testing.T) {

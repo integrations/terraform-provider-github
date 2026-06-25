@@ -16,6 +16,8 @@ import (
 )
 
 func TestAccGithubRepositoryPages(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates_pages_with_legacy_build_type", func(t *testing.T) {
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%spages-%s", testResourcePrefix, randomID)
@@ -147,7 +149,7 @@ source {
 			resource "github_repository_pages" "test" {
 				repository = github_repository.test.name
 				build_type = "workflow"
-				
+
 				public = false
 			}
 		`
@@ -182,7 +184,7 @@ source {
 			resource "github_repository_pages" "test" {
 				repository = github_repository.test.name
 				build_type = "workflow"
-				
+
 				public = %t
 			}
 		`

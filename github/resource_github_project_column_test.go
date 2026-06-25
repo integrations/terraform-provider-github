@@ -12,6 +12,8 @@ package github
 // )
 
 // func TestAccGithubProjectColumn_basic(t *testing.T) {
+// t.Parallel()
+
 // 	t.Skip("Skipping test as the GitHub API no longer supports classic projects")
 
 // 	t.Run("creates and updates a project column", func(t *testing.T) {
@@ -53,6 +55,8 @@ package github
 // }
 
 // func testAccGithubProjectColumnDestroy(s *terraform.State) error {
+// t.Parallel()
+
 // 	meta, err := getTestMeta()
 // 	if err != nil {
 // 		return err
@@ -84,6 +88,8 @@ package github
 // }
 
 // func testAccCheckGithubProjectColumnExists(n string, project *github.ProjectColumn) resource.TestCheckFunc {
+// t.Parallel()
+
 // 	return func(s *terraform.State) error {
 // 		rs, ok := s.RootModule().Resources[n]
 // 		if !ok {
@@ -115,6 +121,8 @@ package github
 // }
 
 // func testAccCheckGithubProjectColumnAttributes(column *github.ProjectColumn, want *testAccGithubProjectColumnExpectedAttributes) resource.TestCheckFunc {
+// t.Parallel()
+
 // 	return func(s *terraform.State) error {
 // 		if name := column.GetName(); name != want.Name {
 // 			return fmt.Errorf("got project column %q; want %q", name, want.Name)
@@ -125,6 +133,8 @@ package github
 // }
 
 // func testAccGithubProjectColumnConfig(columnName string) string {
+// t.Parallel()
+
 // 	return fmt.Sprintf(`
 // resource "github_organization_project" "test" {
 //   name = "test-project"

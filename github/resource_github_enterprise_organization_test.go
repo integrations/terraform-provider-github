@@ -71,6 +71,8 @@ func TestIsSAMLEnforcementError(t *testing.T) {
 }
 
 func TestAccGithubEnterpriseOrganization(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates and updates an enterprise organization without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		orgName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)

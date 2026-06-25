@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates repository oidc subject claim customization template without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-act-oidc-%s", testResourcePrefix, randomID)

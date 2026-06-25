@@ -10,6 +10,8 @@ import (
 )
 
 func TestAccGithubRepositoryMilestoneDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("queries a repository milestone", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-milestone-%s", testResourcePrefix, randomID)

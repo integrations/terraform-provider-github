@@ -13,6 +13,8 @@ import (
 )
 
 func TestAccGithubActionsOrganizationWorkflowPermissions(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates organization workflow permissions without error", func(t *testing.T) {
 		defaultPermission := "write"
 		canApprovePRReviews := true

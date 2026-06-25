@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubEnterpriseIpAllowListEntry(t *testing.T) {
+	t.Parallel()
+
 	t.Run("basic", func(t *testing.T) {
 		resourceName := "github_enterprise_ip_allow_list_entry.test"
 		ip := "192.168.1.0/24"

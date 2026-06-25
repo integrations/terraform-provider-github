@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubOrganizationRoleUser(t *testing.T) {
+	t.Parallel()
+
 	t.Run("adds user to an organization org role", func(t *testing.T) {
 		roleId := 8134
 		config := fmt.Sprintf(`

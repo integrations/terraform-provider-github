@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
+	t.Parallel()
+
 	t.Run("test setting of basic actions organization permissions", func(t *testing.T) {
 		allowedActions := "local_only"
 		enabledRepositories := "all"

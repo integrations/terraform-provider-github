@@ -10,6 +10,8 @@ import (
 )
 
 func TestAccGithubCodespacesUserSecret(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates and updates secrets without error", func(t *testing.T) {
 		secretValue := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
 		updatedSecretValue := base64.StdEncoding.EncodeToString([]byte("updated_super_secret_value"))

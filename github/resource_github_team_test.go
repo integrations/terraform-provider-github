@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubTeam(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates a team configured with defaults", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)

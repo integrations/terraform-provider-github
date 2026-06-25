@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubRefDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("queries an existing branch ref without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ref-%s", testResourcePrefix, randomID)

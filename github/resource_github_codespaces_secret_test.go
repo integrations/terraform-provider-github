@@ -12,6 +12,8 @@ import (
 )
 
 func TestAccGithubCodespacesSecret(t *testing.T) {
+	t.Parallel()
+
 	t.Run("reads a repository public key without error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-codespaces-%s", testResourcePrefix, randomID)

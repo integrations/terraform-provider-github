@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubOrganizationSecurityManager(t *testing.T) {
+	t.Parallel()
+
 	t.Run("adds team as security manager", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-sec-mgr-%s", testResourcePrefix, randomID)
