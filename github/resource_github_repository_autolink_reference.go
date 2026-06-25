@@ -4,65 +4,49 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/google/go-github/v88/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryAutolinkReferenceCreate,
-		Read:   resourceGithubRepositoryAutolinkReferenceRead,
-		Delete: resourceGithubRepositoryAutolinkReferenceDelete,
+		CreateContext: resourceGithubRepositoryAutolinkReferenceCreate,
+		UpdateContext: resourceGithubRepositoryAutolinkReferenceUpdate,
+		ReadContext:   resourceGithubRepositoryAutolinkReferenceRead,
+		DeleteContext: resourceGithubRepositoryAutolinkReferenceDelete,
 
 		Importer: &schema.ResourceImporter{
-			StateContext: func(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-				parts := strings.Split(d.Id(), "/")
-				if len(parts) != 2 {
-					return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository>/<autolink_reference_id>")
-				}
-
-				repository := parts[0]
-				id := parts[1]
-
-				// If the second part of the provided ID isn't an integer, assume that the
-				// caller provided the key prefix for the autolink reference, and look up
-				// the autolink by the key prefix.
-
-				_, err := strconv.Atoi(id)
-				if err != nil {
-					client := meta.(*Owner).v3client
-					owner := meta.(*Owner).name
-
-					autolink, err := getAutolinkByKeyPrefix(ctx, client, owner, repository, id)
-					if err != nil {
-						return nil, err
-					}
-
-					id = strconv.FormatInt(*autolink.ID, 10)
-				}
-
-				if err = d.Set("repository", repository); err != nil {
-					return nil, err
-				}
-				d.SetId(id)
-				return []*schema.ResourceData{d}, nil
-			},
+			StateContext: resourceGithubRepositoryAutolinkReferenceImport,
 		},
 
+		CustomizeDiff: diffRepository,
+
 		SchemaVersion: 1,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceGithubRepositoryAutolinkReferenceV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceGithubRepositoryAutolinkReferenceStateUpgradeV0,
+				Version: 0,
+			},
+		},
 		Schema: map[string]*schema.Schema{
 			"repository": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
-				Description: "The repository name",
+				Description: "The repository name. If the repository is renamed, the autolink reference will be updated in-place rather than recreated.",
+			},
+			"repository_id": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The ID of the GitHub repository.",
 			},
 			"key_prefix": {
 				Type:        schema.TypeString,
@@ -92,15 +76,59 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryAutolinkReferenceCreate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryAutolinkReferenceImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+	parts := strings.Split(d.Id(), "/")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository>/<autolink_reference_id>")
+	}
 
-	owner := meta.(*Owner).name
+	repository := parts[0]
+	id := parts[1]
+
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
+	// If the second part of the provided ID isn't an integer, assume that the
+	// caller provided the key prefix for the autolink reference, and look up
+	// the autolink by the key prefix.
+
+	_, err := strconv.Atoi(id)
+	if err != nil {
+		autolink, err := getAutolinkByKeyPrefix(ctx, client, owner, repository, id)
+		if err != nil {
+			return nil, err
+		}
+
+		id = strconv.FormatInt(*autolink.ID, 10)
+	}
+
+	d.SetId(id)
+
+	repo, _, err := client.Repositories.Get(ctx, owner, repository)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve repository %s: %w", repository, err)
+	}
+
+	if err = d.Set("repository", repository); err != nil {
+		return nil, err
+	}
+	if err = d.Set("repository_id", int(repo.GetID())); err != nil {
+		return nil, err
+	}
+
+	return []*schema.ResourceData{d}, nil
+}
+
+func resourceGithubRepositoryAutolinkReferenceCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
 	repoName := d.Get("repository").(string)
 	keyPrefix := d.Get("key_prefix").(string)
 	targetURLTemplate := d.Get("target_url_template").(string)
 	isAlphanumeric := d.Get("is_alphanumeric").(bool)
-	ctx := context.Background()
 
 	opts := &github.AutolinkOptions{
 		KeyPrefix:      &keyPrefix,
@@ -110,23 +138,35 @@ func resourceGithubRepositoryAutolinkReferenceCreate(d *schema.ResourceData, met
 
 	autolinkRef, _, err := client.Repositories.AddAutolink(ctx, owner, repoName, opts)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	d.SetId(strconv.FormatInt(autolinkRef.GetID(), 10))
 
-	return resourceGithubRepositoryAutolinkReferenceRead(d, meta)
+	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := d.Set("repository_id", int(repo.GetID())); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return resourceGithubRepositoryAutolinkReferenceRead(ctx, d, m)
 }
 
-func resourceGithubRepositoryAutolinkReferenceRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryAutolinkReferenceRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	ctx = tflog.SetField(ctx, "id", d.Id())
 
-	owner := meta.(*Owner).name
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
 	repoName := d.Get("repository").(string)
 	autolinkRefID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
+		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
@@ -136,44 +176,69 @@ func resourceGithubRepositoryAutolinkReferenceRead(d *schema.ResourceData, meta 
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing autolink reference for repository %s/%s from state because it no longer exists in GitHub",
-					owner, repoName)
+				tflog.Info(ctx, "Autolink reference not found, removing from state.", map[string]any{
+					"owner":      owner,
+					"repository": repoName,
+				})
 				d.SetId("")
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
-	// Set resource fields
 	d.SetId(strconv.FormatInt(autolinkRef.GetID(), 10))
 	if err = d.Set("repository", repoName); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
+
+	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	if err = d.Set("repository_id", int(repo.GetID())); err != nil {
+		return diag.FromErr(err)
+	}
+
 	if err = d.Set("key_prefix", autolinkRef.KeyPrefix); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("target_url_template", autolinkRef.URLTemplate); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("is_alphanumeric", autolinkRef.IsAlphanumeric); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubRepositoryAutolinkReferenceDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryAutolinkReferenceUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	tflog.Warn(ctx, "Update function of autolink reference. This should not be called. But it's necessary when 'repository' doesn't have `ForceNew`", map[string]any{
+		"repository":    d.Get("repository"),
+		"repository_id": d.Get("repository_id"),
+		"id":            d.Id(),
+	})
+	return nil
+}
 
-	owner := meta.(*Owner).name
+func resourceGithubRepositoryAutolinkReferenceDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	ctx = tflog.SetField(ctx, "id", d.Id())
+
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
 	repoName := d.Get("repository").(string)
 	autolinkRefID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
+		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	_, err = client.Repositories.DeleteAutolink(ctx, owner, repoName, autolinkRefID)
-	return err
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
 }

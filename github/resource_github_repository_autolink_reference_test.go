@@ -5,8 +5,13 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-testing/compare"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
@@ -50,56 +55,34 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 			}
 		`, repoName)
 
-		check := resource.ComposeTestCheckFunc(
-			// autolink_default
-			resource.TestCheckResourceAttr(
-				"github_repository_autolink_reference.autolink_default", "key_prefix", "TEST1-",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_autolink_reference.autolink_default", "target_url_template", "https://example.com/TEST-<num>",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_autolink_reference.autolink_default", "is_alphanumeric", "true",
-			),
-			// autolink_alphanumeric
-			resource.TestCheckResourceAttr(
-				"github_repository_autolink_reference.autolink_alphanumeric", "key_prefix", "TEST2-",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_autolink_reference.autolink_alphanumeric", "target_url_template", "https://example.com/TEST-<num>",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_autolink_reference.autolink_alphanumeric", "is_alphanumeric", "true",
-			),
-			// autolink_numeric
-			resource.TestCheckResourceAttr(
-				"github_repository_autolink_reference.autolink_numeric", "key_prefix", "TEST3-",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_autolink_reference.autolink_numeric", "target_url_template", "https://example.com/TEST-<num>",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_autolink_reference.autolink_numeric", "is_alphanumeric", "false",
-			),
-			// autolink_with_port
-			resource.TestCheckResourceAttr(
-				"github_repository_autolink_reference.autolink_with_port", "key_prefix", "TEST4-",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_autolink_reference.autolink_with_port", "target_url_template", "https://example.com:8443/TEST-<num>",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_autolink_reference.autolink_with_port", "is_alphanumeric", "true",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						// autolink_default
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_default", tfjsonpath.New("key_prefix"), knownvalue.StringExact("TEST1-")),
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_default", tfjsonpath.New("target_url_template"), knownvalue.StringExact("https://example.com/TEST-<num>")),
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_default", tfjsonpath.New("is_alphanumeric"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_default", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+						// autolink_alphanumeric
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_alphanumeric", tfjsonpath.New("key_prefix"), knownvalue.StringExact("TEST2-")),
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_alphanumeric", tfjsonpath.New("target_url_template"), knownvalue.StringExact("https://example.com/TEST-<num>")),
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_alphanumeric", tfjsonpath.New("is_alphanumeric"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_alphanumeric", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+						// autolink_numeric
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_numeric", tfjsonpath.New("key_prefix"), knownvalue.StringExact("TEST3-")),
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_numeric", tfjsonpath.New("target_url_template"), knownvalue.StringExact("https://example.com/TEST-<num>")),
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_numeric", tfjsonpath.New("is_alphanumeric"), knownvalue.Bool(false)),
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_numeric", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+						// autolink_with_port
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_with_port", tfjsonpath.New("key_prefix"), knownvalue.StringExact("TEST4-")),
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_with_port", tfjsonpath.New("target_url_template"), knownvalue.StringExact("https://example.com:8443/TEST-<num>")),
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_with_port", tfjsonpath.New("is_alphanumeric"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_with_port", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+					},
 				},
 			},
 		})
@@ -145,56 +128,34 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 			}
 		`, repoName)
 
-		check := resource.ComposeTestCheckFunc(
-			// autolink_default
-			resource.TestCheckResourceAttr(
-				"github_repository_autolink_reference.autolink_default", "key_prefix", "TEST1-",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_autolink_reference.autolink_default", "target_url_template", "https://example.com/TEST-<num>",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_autolink_reference.autolink_default", "is_alphanumeric", "true",
-			),
-			// autolink_alphanumeric
-			resource.TestCheckResourceAttr(
-				"github_repository_autolink_reference.autolink_alphanumeric", "key_prefix", "TEST2-",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_autolink_reference.autolink_alphanumeric", "target_url_template", "https://example.com/TEST-<num>",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_autolink_reference.autolink_alphanumeric", "is_alphanumeric", "true",
-			),
-			// autolink_numeric
-			resource.TestCheckResourceAttr(
-				"github_repository_autolink_reference.autolink_numeric", "key_prefix", "TEST3-",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_autolink_reference.autolink_numeric", "target_url_template", "https://example.com/TEST-<num>",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_autolink_reference.autolink_numeric", "is_alphanumeric", "false",
-			),
-			// autolink_with_port
-			resource.TestCheckResourceAttr(
-				"github_repository_autolink_reference.autolink_with_port", "key_prefix", "TEST4-",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_autolink_reference.autolink_with_port", "target_url_template", "https://example.com:8443/TEST-<num>",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_autolink_reference.autolink_with_port", "is_alphanumeric", "true",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						// autolink_default
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_default", tfjsonpath.New("key_prefix"), knownvalue.StringExact("TEST1-")),
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_default", tfjsonpath.New("target_url_template"), knownvalue.StringExact("https://example.com/TEST-<num>")),
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_default", tfjsonpath.New("is_alphanumeric"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_default", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+						// autolink_alphanumeric
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_alphanumeric", tfjsonpath.New("key_prefix"), knownvalue.StringExact("TEST2-")),
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_alphanumeric", tfjsonpath.New("target_url_template"), knownvalue.StringExact("https://example.com/TEST-<num>")),
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_alphanumeric", tfjsonpath.New("is_alphanumeric"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_alphanumeric", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+						// autolink_numeric
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_numeric", tfjsonpath.New("key_prefix"), knownvalue.StringExact("TEST3-")),
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_numeric", tfjsonpath.New("target_url_template"), knownvalue.StringExact("https://example.com/TEST-<num>")),
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_numeric", tfjsonpath.New("is_alphanumeric"), knownvalue.Bool(false)),
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_numeric", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+						// autolink_with_port
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_with_port", tfjsonpath.New("key_prefix"), knownvalue.StringExact("TEST4-")),
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_with_port", tfjsonpath.New("target_url_template"), knownvalue.StringExact("https://example.com:8443/TEST-<num>")),
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_with_port", tfjsonpath.New("is_alphanumeric"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_with_port", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+					},
 				},
 				// autolink_default
 				{
@@ -292,6 +253,50 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 				{
 					Config:  config,
 					Destroy: true,
+				},
+			},
+		})
+	})
+	t.Run("should not recreate autolink reference when repository is renamed", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-rename-%s", testResourcePrefix, randomID)
+		repoNameRenamed := fmt.Sprintf("%srepo-renamed-%s", testResourcePrefix, randomID)
+		const configStr = `
+	resource "github_repository" "test" {
+		name        = "%s"
+		description = "Test autolink creation"
+	}
+
+	resource "github_repository_autolink_reference" "autolink_default" {
+		repository = github_repository.test.name
+
+		key_prefix          = "TEST1-"
+		target_url_template = "https://example.com/TEST-<num>"
+	}
+`
+
+		repoIdChangeCheck := statecheck.CompareValue(compare.ValuesSame())
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(configStr, repoName),
+					ConfigStateChecks: []statecheck.StateCheck{
+						repoIdChangeCheck.AddStateValue("github_repository_autolink_reference.autolink_default", tfjsonpath.New("repository_id")),
+					},
+				},
+				{
+					Config: fmt.Sprintf(configStr, repoNameRenamed),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_autolink_reference.autolink_default", plancheck.ResourceActionUpdate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						repoIdChangeCheck.AddStateValue("github_repository_autolink_reference.autolink_default", tfjsonpath.New("repository_id")),
+						statecheck.ExpectKnownValue("github_repository_autolink_reference.autolink_default", tfjsonpath.New("repository"), knownvalue.StringExact(repoNameRenamed)),
+					},
 				},
 			},
 		})
