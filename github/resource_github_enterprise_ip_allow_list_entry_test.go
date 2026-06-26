@@ -12,6 +12,8 @@ func TestAccGithubEnterpriseIpAllowListEntry(t *testing.T) {
 	t.Parallel()
 
 	t.Run("basic", func(t *testing.T) {
+		t.Parallel()
+
 		resourceName := "github_enterprise_ip_allow_list_entry.test"
 		ip := "192.168.1.0/24"
 		name := "Test Entry"
@@ -50,6 +52,8 @@ resource "github_enterprise_ip_allow_list_entry" "test" {
 		})
 	})
 	t.Run("update", func(t *testing.T) {
+		t.Parallel()
+
 		resourceName := "github_enterprise_ip_allow_list_entry.test"
 		ip := "192.168.1.0/24"
 		name := "Test Entry"

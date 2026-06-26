@@ -14,6 +14,8 @@ func TestAccGithubUserGpgKey(t *testing.T) {
 	t.Parallel()
 
 	t.Run("creates a GPG key without error", func(t *testing.T) {
+		t.Parallel()
+
 		keyPath := strings.ReplaceAll(filepath.Join("test-fixtures", "gpg-pubkey.asc"), "\\", "/")
 
 		config := fmt.Sprintf(`

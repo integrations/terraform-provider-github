@@ -12,6 +12,8 @@ func TestAccGithubRefDataSource(t *testing.T) {
 	t.Parallel()
 
 	t.Run("queries an existing branch ref without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ref-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -44,6 +46,8 @@ func TestAccGithubRefDataSource(t *testing.T) {
 
 	// Can't test due to SDK and test framework limitations
 	// t.Run("queries an invalid ref without error", func(t *testing.T) {
+	// 	t.Parallel()
+
 	// 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 	//   repoName := fmt.Sprintf("%srepo-invalid-ref-%s", testResourcePrefix, randomID)
 	// 	config := fmt.Sprintf(`

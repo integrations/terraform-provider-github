@@ -9,6 +9,8 @@ import (
 )
 
 func Test_migrateRepositoryWithID(t *testing.T) {
+	// IMPORTANT: This test is not parallelized because it uses global state.
+
 	for _, tt := range []struct {
 		testName   string
 		statusCode int

@@ -8,7 +8,7 @@ import (
 )
 
 func TestAccGithubEnterpriseSecurityAnalysisSettings(t *testing.T) {
-	t.Parallel()
+	// IMPORTANT: Do not run these tests in parallel as they modify the organization state.
 
 	t.Run("creates enterprise security analysis settings without error", func(t *testing.T) {
 		config := fmt.Sprintf(`

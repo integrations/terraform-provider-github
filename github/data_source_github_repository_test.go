@@ -170,6 +170,8 @@ data "github_repository" "test" {
 	})
 
 	t.Run("queries an org repository that is a template", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ds-defaults-%s", testResourcePrefix, randomID)
 
@@ -283,6 +285,8 @@ data "github_repository" "test" {
 	})
 
 	// t.Run("queries a repository that has go as primary_language", func(t *testing.T) {
+	// 	t.Parallel()
+
 	// 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 	//  testResourceName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
 

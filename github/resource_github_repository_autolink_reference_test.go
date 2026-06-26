@@ -13,6 +13,8 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 	t.Parallel()
 
 	t.Run("creates repository autolink reference without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-autolink-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -108,6 +110,8 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 	})
 
 	t.Run("imports repository autolink reference without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-autolink-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -231,6 +235,8 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 	})
 
 	t.Run("imports repository autolink reference by key prefix without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-autolink-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -271,6 +277,8 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 	})
 
 	t.Run("deletes repository autolink reference without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-autolink-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`

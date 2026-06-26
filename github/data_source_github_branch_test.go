@@ -50,6 +50,8 @@ func TestAccGithubBranchDataSource(t *testing.T) {
 
 	// Can't test due to SDK and test framework limitations
 	// t.Run("queries an invalid branch without error", func(t *testing.T) {
+	// 	t.Parallel()
+
 	// 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 	// 	repoName := fmt.Sprintf("%sinvalid-branch-%s", testResourcePrefix, randomID)
 

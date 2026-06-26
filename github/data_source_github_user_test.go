@@ -16,6 +16,8 @@ func TestAccGithubUserDataSource(t *testing.T) {
 	}
 
 	t.Run("queries an existing individual account without error", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 			data "github_user" "test" {
 				username = "%s"
@@ -40,6 +42,8 @@ func TestAccGithubUserDataSource(t *testing.T) {
 	})
 
 	t.Run("errors when querying a non-existing individual account", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 				data "github_user" "test" {
 					username = "!%s"

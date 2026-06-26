@@ -10,6 +10,8 @@ func TestAccGithubSshKeysDataSource(t *testing.T) {
 	t.Parallel()
 
 	t.Run("reads SSH keys without error", func(t *testing.T) {
+		t.Parallel()
+
 		config := `data "github_ssh_keys" "test" {}`
 
 		check := resource.ComposeTestCheckFunc(

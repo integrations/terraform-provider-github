@@ -17,6 +17,8 @@ package github
 // 	t.Skip("Skipping test as the GitHub API no longer supports classic projects")
 
 // 	t.Run("creates and updates a project column", func(t *testing.T) {
+// 		t.Parallel()
+
 // 		var column github.ProjectColumn
 
 // 		rn := "github_project_column.column"

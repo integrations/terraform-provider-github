@@ -1,4 +1,4 @@
-//go:build !skip_acc_broken
+//go:build !skip_acc_brokenx
 
 package github
 

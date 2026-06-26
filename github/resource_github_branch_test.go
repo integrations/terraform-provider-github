@@ -12,6 +12,8 @@ func TestAccGithubBranch(t *testing.T) {
 	t.Parallel()
 
 	t.Run("creates a branch directly", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-branch-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -43,6 +45,8 @@ func TestAccGithubBranch(t *testing.T) {
 	})
 
 	t.Run("creates a branch named main directly and a repository with a gitignore template", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-branch-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -83,6 +87,8 @@ func TestAccGithubBranch(t *testing.T) {
 	})
 
 	t.Run("creates a branch from a source branch", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-branch-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -120,6 +126,8 @@ func TestAccGithubBranch(t *testing.T) {
 	})
 
 	t.Run("renames a branch without replacement", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-branch-%s", testResourcePrefix, randomID)
 		initialConfig := fmt.Sprintf(`

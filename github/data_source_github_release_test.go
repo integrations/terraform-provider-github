@@ -13,6 +13,8 @@ func TestAccGithubReleaseDataSource(t *testing.T) {
 	t.Parallel()
 
 	t.Run("queries latest release", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 			data "github_release" "test" {
 				repository = "%s"
@@ -37,6 +39,8 @@ func TestAccGithubReleaseDataSource(t *testing.T) {
 	})
 
 	t.Run("queries release by id or tag", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 			data "github_release" "by_id" {
 				repository = "%[1]s"
@@ -74,6 +78,8 @@ func TestAccGithubReleaseDataSource(t *testing.T) {
 	})
 
 	t.Run("errors when querying with non-existent id", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 			data "github_release" "test" {
 				repository = "%s"
@@ -94,6 +100,8 @@ func TestAccGithubReleaseDataSource(t *testing.T) {
 	})
 
 	t.Run("errors when querying with non-existent tag", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 			data "github_release" "test" {
 				repository = "%s"
@@ -114,6 +122,8 @@ func TestAccGithubReleaseDataSource(t *testing.T) {
 	})
 
 	t.Run("errors when querying with non-existent repository", func(t *testing.T) {
+		t.Parallel()
+
 		config := `
 			data "github_release" "test" {
 				repository = "test"

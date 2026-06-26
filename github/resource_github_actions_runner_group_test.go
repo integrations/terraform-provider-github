@@ -1,4 +1,4 @@
-//go:build !skip_acc_broken
+//go:build !skip_acc_brokenx
 
 package github
 
@@ -6,17 +6,17 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
-
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
-
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccGithubActionsRunnerGroup(t *testing.T) {
 	t.Parallel()
 
 	t.Run("creates runner groups without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-act-runner-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -102,6 +102,8 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 	})
 
 	t.Run("manages runner visibility", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-act-runner-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -150,6 +152,8 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 	})
 
 	t.Run("imports an all runner group without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-act-runner-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -188,6 +192,8 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 	})
 
 	t.Run("imports a private runner group without error", func(t *testing.T) {
+		t.Parallel()
+
 		// Note: this test is skipped because when setting visibility 'private', it always fails with:
 		// Step 0 error: After applying this step, the plan was not empty:
 		// visibility:                 "all" => "private"
@@ -231,6 +237,8 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 	})
 
 	t.Run("imports a selected runner group without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-act-runner-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`

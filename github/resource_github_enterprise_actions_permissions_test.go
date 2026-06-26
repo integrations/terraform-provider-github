@@ -9,7 +9,7 @@ import (
 )
 
 func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
-	t.Parallel()
+	// IMPORTANT: Do not run these tests in parallel as they modify the organization state.
 
 	t.Run("test setting of basic actions enterprise permissions", func(t *testing.T) {
 		allowedActions := "local_only"

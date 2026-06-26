@@ -1,4 +1,4 @@
-//go:build !skip_acc_broken
+//go:build !skip_acc_brokenx
 
 package github
 
@@ -20,6 +20,8 @@ func TestAccGithubRepositoryEnvironmentDeploymentPolicy(t *testing.T) {
 	t.Parallel()
 
 	t.Run("create_branch_policy", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
@@ -68,6 +70,8 @@ resource "github_repository_environment_deployment_policy" "test" {
 	})
 
 	t.Run("create_update_branch_policy", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
@@ -124,6 +128,8 @@ resource "github_repository_environment_deployment_policy" "test" {
 	})
 
 	t.Run("create_tag_policy", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
@@ -172,6 +178,8 @@ resource "github_repository_environment_deployment_policy" "test" {
 	})
 
 	t.Run("create_update_tag_policy", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
@@ -228,6 +236,8 @@ resource "github_repository_environment_deployment_policy" "test" {
 	})
 
 	t.Run("recreates_when_pattern_type_changes_from_branch_to_tag", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
@@ -304,6 +314,8 @@ resource "github_repository_environment_deployment_policy" "test" {
 	})
 
 	t.Run("recreates_when_pattern_type_changes_from_tag_to_branch", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
@@ -380,6 +392,8 @@ resource "github_repository_environment_deployment_policy" "test" {
 	})
 
 	t.Run("import", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
@@ -433,6 +447,8 @@ resource "github_repository_environment_deployment_policy" "test" {
 	})
 
 	t.Run("errors when no patterns are set", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
@@ -469,6 +485,8 @@ resource "github_repository_environment_deployment_policy" "test" {
 	})
 
 	t.Run("errors when both patterns are set", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
@@ -507,6 +525,8 @@ resource "github_repository_environment_deployment_policy" "test" {
 	})
 
 	t.Run("errors when an empty branch pattern is set", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
@@ -544,6 +564,8 @@ resource "github_repository_environment_deployment_policy" "test" {
 	})
 
 	t.Run("errors when an empty tag pattern is set", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 

@@ -12,6 +12,8 @@ func TestAccGithubRepositoryBranchesDataSource(t *testing.T) {
 	t.Parallel()
 
 	t.Run("manages branches of a new repository", func(t *testing.T) {
+		t.Parallel()
+
 		repoName := fmt.Sprintf("%srepo-branches-%s", testResourcePrefix, acctest.RandString(5))
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -44,6 +46,8 @@ func TestAccGithubRepositoryBranchesDataSource(t *testing.T) {
 	})
 
 	t.Run("manages branches of a new repository with filtering", func(t *testing.T) {
+		t.Parallel()
+
 		repoName := fmt.Sprintf("%srepo-branches-%s", testResourcePrefix, acctest.RandString(5))
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {

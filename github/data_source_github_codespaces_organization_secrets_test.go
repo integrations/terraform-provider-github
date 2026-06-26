@@ -12,12 +12,14 @@ func TestAccGithubCodespacesOrganizationSecretsDataSource(t *testing.T) {
 	t.Parallel()
 
 	t.Run("queries organization codespaces secrets from a repository", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		secretName := fmt.Sprintf("ORG_CS_SECRET_1_%s", randomID)
 
 		config := fmt.Sprintf(`
 		resource "github_codespaces_organization_secret" "test" {
-			secret_name 		= %s"
+			secret_name 		= "%s"
 			plaintext_value = "foo"
 			visibility      = "private"
 		}

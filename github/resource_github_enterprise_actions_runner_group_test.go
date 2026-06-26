@@ -13,6 +13,8 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 	t.Parallel()
 
 	t.Run("creates enterprise runner groups without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			data "github_enterprise" "enterprise" {
@@ -58,6 +60,8 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 	})
 
 	t.Run("manages runner group visibility to selected orgs", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			data "github_enterprise" "enterprise" {
@@ -110,6 +114,8 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 	})
 
 	t.Run("imports an all runner group without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			data "github_enterprise" "enterprise" {
@@ -149,6 +155,8 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 	})
 
 	t.Run("imports a runner group with selected orgs without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			data "github_enterprise" "enterprise" {
