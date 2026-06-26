@@ -17,11 +17,15 @@ import (
 )
 
 func TestAccGithubEMUGroupMapping(t *testing.T) {
+	t.Parallel()
+
 	groupID := testAccConf.testEnterpriseEMUGroupId
 	if groupID == 0 {
 		t.Skip("Skipping EMU group mapping tests because testEnterpriseEMUGroupId is not set")
 	}
 	t.Run("creates_without_error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-emu-%s", testResourcePrefix, randomID)
 
@@ -44,6 +48,8 @@ func TestAccGithubEMUGroupMapping(t *testing.T) {
 	})
 
 	t.Run("imports_without_error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-emu-%s", testResourcePrefix, randomID)
 		rn := "github_emu_group_mapping.test"
@@ -67,6 +73,8 @@ func TestAccGithubEMUGroupMapping(t *testing.T) {
 		})
 	})
 	t.Run("imports_multiple_teams_without_error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam1-emu-%s", testResourcePrefix, randomID)
 		teamName2 := fmt.Sprintf("%steam2-emu-%s", testResourcePrefix, randomID)
@@ -110,6 +118,8 @@ func TestAccGithubEMUGroupMapping(t *testing.T) {
 	})
 
 	t.Run("updates_team_slug_without_error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName1 := fmt.Sprintf("%steam-emu-%s", testResourcePrefix, randomID)
 		teamName2 := fmt.Sprintf("%s-upd", teamName1)
@@ -148,6 +158,8 @@ func TestAccGithubEMUGroupMapping(t *testing.T) {
 	})
 
 	t.Run("recreates_when_switching_to_different_team_without_error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		teamName1 := fmt.Sprintf("%semu1-%s", testResourcePrefix, randomID)
 		teamName2 := fmt.Sprintf("%semu2-%s", testResourcePrefix, randomID)

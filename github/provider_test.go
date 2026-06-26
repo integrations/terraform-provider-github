@@ -5,7 +5,11 @@ import (
 )
 
 func TestProvider(t *testing.T) {
+	t.Parallel()
+
 	t.Run("validate", func(t *testing.T) {
+		t.Parallel()
+
 		if err := NewProvider("test", "none")().InternalValidate(); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -13,6 +17,8 @@ func TestProvider(t *testing.T) {
 }
 
 func Test_configureProviderMeta(t *testing.T) {
+	t.Parallel()
+
 	baseURL, _, err := getBaseURL(DotComAPIURL)
 	if err != nil {
 		t.Fatalf("failed to parse test base URL: %s", err.Error())
@@ -32,7 +38,11 @@ func Test_configureProviderMeta(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			t.Run("anonymous", func(t *testing.T) {
+				t.Parallel()
+
 				config := &Config{
 					BaseURL:      baseURL,
 					LegacyClient: tt.legacyClient,
@@ -51,6 +61,8 @@ func Test_configureProviderMeta(t *testing.T) {
 			})
 
 			t.Run("authenticated", func(t *testing.T) {
+				t.Parallel()
+
 				skipUnauthenticated(t)
 
 				config := &Config{
@@ -83,6 +95,8 @@ func Test_configureProviderMeta(t *testing.T) {
 }
 
 func Test_ghCLIHostFromAPIHost(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name         string
 		host         string
@@ -117,6 +131,8 @@ func Test_ghCLIHostFromAPIHost(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := ghCLIHostFromAPIHost(tc.host)
 			if got != tc.expectedHost {
 				t.Errorf("ghCLIHostFromAPIHost(%q) = %q, want %q", tc.host, got, tc.expectedHost)

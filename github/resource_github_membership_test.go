@@ -12,11 +12,15 @@ import (
 )
 
 func TestAccGithubMembership(t *testing.T) {
+	t.Parallel()
+
 	if len(testAccConf.testExternalUser1) == 0 {
 		t.Skip("No external user provided")
 	}
 
 	t.Run("creates organization membership", func(t *testing.T) {
+		// IMPORTANT: Do not run this sub test in parallel is it uses shared state.
+
 		ctx := t.Context()
 
 		var membership github.Membership
@@ -44,6 +48,8 @@ func TestAccGithubMembership(t *testing.T) {
 	})
 
 	t.Run("creates organization membership with downgrade", func(t *testing.T) {
+		// IMPORTANT: Do not run this sub test in parallel is it uses shared state.
+
 		ctx := t.Context()
 
 		var membership github.Membership
@@ -70,6 +76,8 @@ func TestAccGithubMembership(t *testing.T) {
 	})
 
 	t.Run("creates organization membership with case insensitivity", func(t *testing.T) {
+		// IMPORTANT: Do not run this sub test in parallel is it uses shared state.
+
 		ctx := t.Context()
 
 		var membership github.Membership

@@ -15,6 +15,8 @@ import (
 )
 
 func TestEtagTransport(t *testing.T) {
+	// IMPORTANT: This test is not parallelized because it uses global state.
+
 	ts := githubApiMock([]*mockResponse{
 		{
 			ExpectedUri: "/repos/test/blah",
@@ -104,6 +106,8 @@ func githubApiMock(responseSequence []*mockResponse) *httptest.Server {
 }
 
 func TestRateLimitTransport_abuseLimit_get(t *testing.T) {
+	// IMPORTANT: This test is not parallelized because it uses global state.
+
 	ts := githubApiMock([]*mockResponse{
 		{
 			ExpectedUri: "/repos/test/blah",
@@ -149,6 +153,8 @@ func TestRateLimitTransport_abuseLimit_get(t *testing.T) {
 }
 
 func TestRateLimitTransport_abuseLimit_get_cancelled(t *testing.T) {
+	// IMPORTANT: This test is not parallelized because it uses global state.
+
 	ts := githubApiMock([]*mockResponse{
 		{
 			ExpectedUri: "/repos/test/blah",
@@ -180,6 +186,8 @@ func TestRateLimitTransport_abuseLimit_get_cancelled(t *testing.T) {
 }
 
 func TestRateLimitTransport_abuseLimit_post(t *testing.T) {
+	// IMPORTANT: This test is not parallelized because it uses global state.
+
 	ts := githubApiMock([]*mockResponse{
 		{
 			ExpectedUri:    "/orgs/tada/repos",
@@ -223,6 +231,8 @@ func TestRateLimitTransport_abuseLimit_post(t *testing.T) {
 }
 
 func TestRateLimitTransport_abuseLimit_post_error(t *testing.T) {
+	// IMPORTANT: This test is not parallelized because it uses global state.
+
 	ts := githubApiMock([]*mockResponse{
 		{
 			ExpectedUri:    "/orgs/tada/repos",
@@ -285,6 +295,8 @@ func TestRateLimitTransport_abuseLimit_post_error(t *testing.T) {
 }
 
 func TestRateLimitTransport_smart_lock(t *testing.T) {
+	// IMPORTANT: This test is not parallelized because it uses global state.
+
 	t.Run("With parallelRequests true it does not lock the rate limit transport", func(t *testing.T) {
 		rlt := NewRateLimitTransport(http.DefaultTransport, WithParallelRequests(true))
 
@@ -355,6 +367,8 @@ func TestRateLimitTransport_smart_lock(t *testing.T) {
 }
 
 func TestRetryTransport_retry_post_error(t *testing.T) {
+	// IMPORTANT: This test is not parallelized because it uses global state.
+
 	ts := githubApiMock([]*mockResponse{
 		{
 			ExpectedUri:    "/orgs/tada/repos",
@@ -413,6 +427,8 @@ func TestRetryTransport_retry_post_error(t *testing.T) {
 }
 
 func TestRetryTransport_retry_post_success(t *testing.T) {
+	// IMPORTANT: This test is not parallelized because it uses global state.
+
 	ts := githubApiMock([]*mockResponse{
 		{
 			ExpectedUri:    "/orgs/tada/repos",

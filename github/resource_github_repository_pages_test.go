@@ -16,7 +16,11 @@ import (
 )
 
 func TestAccGithubRepositoryPages(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates_pages_with_legacy_build_type", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%spages-%s", testResourcePrefix, randomID)
 
@@ -56,6 +60,8 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 	})
 
 	t.Run("creates_pages_with_workflow_build_type", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%spages-%s", testResourcePrefix, randomID)
 
@@ -88,6 +94,8 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 	})
 
 	t.Run("updates_pages_configuration", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%spages-%s", testResourcePrefix, randomID)
 
@@ -133,6 +141,8 @@ source {
 	})
 
 	t.Run("creates_pages_with_private_visibility", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%spages-%s", testResourcePrefix, randomID)
 
@@ -147,7 +157,7 @@ source {
 			resource "github_repository_pages" "test" {
 				repository = github_repository.test.name
 				build_type = "workflow"
-				
+
 				public = false
 			}
 		`
@@ -168,6 +178,8 @@ source {
 		})
 	})
 	t.Run("updates_pages_visibility", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%spages-%s", testResourcePrefix, randomID)
 
@@ -182,7 +194,7 @@ source {
 			resource "github_repository_pages" "test" {
 				repository = github_repository.test.name
 				build_type = "workflow"
-				
+
 				public = %t
 			}
 		`
@@ -215,6 +227,8 @@ source {
 	})
 
 	t.Run("errors_when_https_enforced_without_cname", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%spages-%s", testResourcePrefix, randomID)
 
@@ -245,6 +259,8 @@ source {
 	})
 
 	t.Run("validates_that_source_is_not_set_for_workflow_build_type", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%spages-%s", testResourcePrefix, randomID)
 
@@ -283,6 +299,8 @@ source {
 	})
 
 	t.Run("validates_that_source_is_set_for_legacy_build_type", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%spages-%s", testResourcePrefix, randomID)
 
@@ -317,6 +335,8 @@ source {
 	})
 
 	t.Run("imports_pages_configuration", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%spages-%s", testResourcePrefix, randomID)
 

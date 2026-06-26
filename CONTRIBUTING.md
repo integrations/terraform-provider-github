@@ -105,7 +105,6 @@ Once you have the repository cloned, there's a couple of additional steps you'll
   ```sh
   export GH_TEST_AUTH_MODE="organization"
   export GITHUB_OWNER="<name of an organization>"
-  export GITHUB_USERNAME="<username of the user who created the token>"
   export GITHUB_TOKEN="<token of a user with an organization account>"
   export GITHUB_LEGACY_CLIENT="false"
   ```
@@ -248,19 +247,12 @@ export GH_TEST_AUTH_MODE=
 
 # Configure authentication for testing
 export GITHUB_OWNER=
-export GITHUB_USERNAME=
 export GITHUB_TOKEN=
-
-# Configure user level values
-export GH_TEST_USER_REPOSITORY=
 
 # Configure values for the organization under test
 export GH_TEST_ORG_USER1=
 export GH_TEST_ORG_USER2=
 export GH_TEST_ORG_USER3=
-export GH_TEST_ORG_SECRET_NAME=
-export GH_TEST_ORG_REPOSITORY=
-export GH_TEST_ORG_TEMPLATE_REPOSITORY=
 export GH_TEST_ORG_APP_INSTALLATION_ID=
 
 # Configure external (non-org) users
@@ -291,17 +283,12 @@ To run acceptance tests the `TF_ACC` environment variable must be set. Below is 
     "GITHUB_BASE_URL": "https://api.github.com/",
     "GITHUB_ENTERPRISE_SLUG": "",
     "GITHUB_OWNER": "<ORGANIZATION>",
-    "GITHUB_USERNAME": "<USERNAME>",
     "GITHUB_LEGACY_CLIENT": "false",
     "GH_TEST_AUTH_MODE": "organization",
-    "GH_TEST_USER_REPOSITORY": "",
-    "GH_TEST_ORG_USER": "",
-    "GH_TEST_ORG_SECRET_NAME": "",
-    "GH_TEST_ORG_REPOSITORY": "",
-    "GH_TEST_ORG_TEMPLATE_REPOSITORY": "",
+    "GH_TEST_ORG_USER1": "",
     "GH_TEST_ORG_APP_INSTALLATION_ID": "",
-    "GH_TEST_EXTERNAL_USER": "",
-    "GH_TEST_EXTERNAL_USER_TOKEN": "",
+    "GH_TEST_EXTERNAL_USER1": "",
+    "GH_TEST_EXTERNAL_USER1_TOKEN": "",
     "GH_TEST_EXTERNAL_USER2": "",
     "GH_TEST_ADVANCED_SECURITY": "false",
   },

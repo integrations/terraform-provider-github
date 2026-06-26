@@ -9,11 +9,15 @@ import (
 
 // TODO: this is failing.
 func TestAccGithubUsersDataSource(t *testing.T) {
+	t.Parallel()
+
 	if len(testAccConf.testExternalUser1) == 0 {
 		t.Skip("No external user provided")
 	}
 
 	t.Run("queries multiple accounts", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 			data "github_users" "test" {
 				usernames = ["%[1]s", "!%[1]s"]
@@ -41,6 +45,8 @@ func TestAccGithubUsersDataSource(t *testing.T) {
 	})
 
 	t.Run("does not fail if called with empty list of usernames", func(t *testing.T) {
+		t.Parallel()
+
 		config := `
 			data "github_users" "test" {
 				usernames = []

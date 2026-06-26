@@ -462,8 +462,10 @@ import (
 )
 
 func TestAccGithubExample(t *testing.T) {
+    t.Parallel()
 
     t.Run("creates resource without error", func(t *testing.T) {
+        t.Parallel()
         randomID := acctest.RandStrin(5)
         testResourceName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
         config := fmt.Sprintf(`
@@ -491,6 +493,7 @@ func TestAccGithubExample(t *testing.T) {
     })
 
     t.Run("forces new when field changes", func(t *testing.T) {
+        t.Parallel()
         // ... config steps ...
 
         resource.Test(t, resource.TestCase{

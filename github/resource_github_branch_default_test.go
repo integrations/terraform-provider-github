@@ -15,7 +15,11 @@ import (
 )
 
 func TestAccGithubBranchDefault(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates_as_import_without_error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%sbranch-def-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -49,6 +53,8 @@ func TestAccGithubBranchDefault(t *testing.T) {
 	})
 
 	t.Run("creates_default_branch_without_error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%sbranch-def-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -95,6 +101,8 @@ func TestAccGithubBranchDefault(t *testing.T) {
 	})
 
 	t.Run("creates_as_import_with_rename_without_error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%sbranch-def-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -129,6 +137,8 @@ func TestAccGithubBranchDefault(t *testing.T) {
 	})
 
 	t.Run("creates_with_rename_without_error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%sbranch-def-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -163,6 +173,8 @@ func TestAccGithubBranchDefault(t *testing.T) {
 	})
 
 	t.Run("updates_default_branch_without_error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%sbranch-def-%s", testResourcePrefix, randomID)
 
@@ -220,6 +232,8 @@ func TestAccGithubBranchDefault(t *testing.T) {
 	})
 
 	t.Run("updates_default_branch_with_rename_without_error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%sbranch-def-%s", testResourcePrefix, randomID)
 
@@ -266,6 +280,8 @@ func TestAccGithubBranchDefault(t *testing.T) {
 		})
 	})
 	t.Run("imports_with_rename_without_error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%sbranch-def-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -302,6 +318,8 @@ func TestAccGithubBranchDefault(t *testing.T) {
 		})
 	})
 	t.Run("destroys_without_error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%sbranch-def-%s", testResourcePrefix, randomID)
 
@@ -342,6 +360,8 @@ func TestAccGithubBranchDefault(t *testing.T) {
 	})
 
 	t.Run("destroys_does_not_modify_remote_branch", func(t *testing.T) {
+		t.Parallel()
+
 		// The Delete function is no-op since there is no way to "reset" the default branch via the API.
 		// This test pins that behavior: the remote default branch must be unchanged
 		// after the resource is removed from Terraform state.
@@ -390,6 +410,8 @@ func TestAccGithubBranchDefault(t *testing.T) {
 	})
 
 	t.Run("gracefully_handles_repository_deleted_out_of_band", func(t *testing.T) {
+		t.Parallel()
+
 		// This tests the Read 404 path: when the repository is deleted externally,
 		// a state refresh discovers the 404, removes both resources from state
 		// without error, and does not attempt to call Delete.
@@ -434,6 +456,8 @@ func TestAccGithubBranchDefault(t *testing.T) {
 	})
 
 	t.Run("regression_prevent_trying_rename_to_same_name", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%sbranch-def-%s", testResourcePrefix, randomID)
 		config := `
@@ -478,6 +502,8 @@ func TestAccGithubBranchDefault(t *testing.T) {
 }
 
 func TestGithubBranchDefault(t *testing.T) {
+	// IMPORTANT: This test is not parallelized because it uses global state.
+
 	// Test verifies that waitForDefaultBranch
 	// is not called when wait_for_rename is false (the default). The mock server
 	// is set up with exactly two responses: the initial GET and the rename POST.
