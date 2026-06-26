@@ -67,6 +67,10 @@ The following arguments are supported:
 
 - `has_wiki` - (Optional) Set to `true` to enable the GitHub Wiki features on the repository.
 
+- `has_pull_requests` - (Optional) Set to `false` to disable pull requests on the repository, hiding the pull requests tab. Defaults to `true`.
+
+- `pull_request_creation_policy` - (Optional) Restricts who can create pull requests on the repository. Can be `all` (default) to allow any user, or `collaborators_only` to restrict creation to collaborators with write access. Applicable only if `has_pull_requests` is `true`.
+
 - `is_template` - (Optional) Set to `true` to tell GitHub that this is a template repository.
 
 - `allow_merge_commit` - (Optional) Set to `false` to disable merge commits on the repository.
