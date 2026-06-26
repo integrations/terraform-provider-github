@@ -68,16 +68,11 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 				githubRepository := state.RootModule().Resources["github_repository.test"].Primary
 				fullName := githubRepository.Attributes["full_name"]
 
-				runnerGroup := state.RootModule().Resources["github_actions_runner_group.test"].Primary
-				workflowActual := runnerGroup.Attributes["selected_workflows.0"]
-
 				workflowExpected := fmt.Sprintf("%s/.github/workflows/test.yml@refs/heads/main", fullName)
 
-				if workflowActual != workflowExpected {
-					return fmt.Errorf("actual selected workflows %s not the same as expected selected workflows %s",
-						workflowActual, workflowExpected)
-				}
-				return nil
+				return resource.TestCheckTypeSetElemAttr(
+					"github_actions_runner_group.test", "selected_workflows.*", workflowExpected,
+				)(state)
 			},
 			resource.TestCheckResourceAttr(
 				"github_actions_runner_group.test", "allows_public_repositories",
