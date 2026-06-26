@@ -27,6 +27,8 @@ Use this data source to retrieve basic information about a GitHub Organization.
 - `login` - The organization account login
 - `description` - The organization account description
 - `plan` - The organization account plan name
+- `plan_seats` - The total number of seats included in the organization's plan. `0` if the plan does not have a seat limit (e.g. `free` plan)
+- `plan_filled_seats` - The number of seats currently filled in the organization's plan
 - `repositories` - (`list`) A list of the full names of the repositories in the organization formatted as `owner/name` strings
 - `members` - **Deprecated**: use `users` instead by replacing `github_organization.example.members` to `github_organization.example.users[*].login` which will give you the same value, expect this field to be removed in next major version
 - `users` - (`list`) A list with the members of the organization with following fields:
