@@ -183,6 +183,49 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 		})
 	})
 
+	t.Run("test setting sha_pinning_required to true then updating to false", func(t *testing.T) {
+		enabledRepositories := "all"
+
+		configTrue := fmt.Sprintf(`
+			resource "github_actions_organization_permissions" "test" {
+				allowed_actions = "all"
+				enabled_repositories = "%s"
+				sha_pinning_required = true
+			}
+		`, enabledRepositories)
+
+		configFalse := fmt.Sprintf(`
+			resource "github_actions_organization_permissions" "test" {
+				allowed_actions = "all"
+				enabled_repositories = "%s"
+				sha_pinning_required = false
+			}
+		`, enabledRepositories)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: configTrue,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"github_actions_organization_permissions.test", "sha_pinning_required", "true",
+						),
+					),
+				},
+				{
+					Config: configFalse,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"github_actions_organization_permissions.test", "sha_pinning_required", "false",
+						),
+					),
+				},
+			},
+		})
+	})
+
 	t.Run("test setting of organization enabled repositories", func(t *testing.T) {
 		allowedActions := "all"
 		enabledRepositories := "selected"
