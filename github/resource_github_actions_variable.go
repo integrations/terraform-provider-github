@@ -104,9 +104,11 @@ func resourceGithubActionsVariableCreate(ctx context.Context, d *schema.Resource
 		return diag.FromErr(err)
 	}
 
-	// GitHub API does not return on create so we have to lookup the variable to get timestamps, we sleep to optimize the chance of getting the timestamps on the first read after creation due to the eventually consistent behavior of this API.
-	time.Sleep(readAfterCreateUpdateDelay)
-	if variable, _, err := client.Actions.GetRepoVariable(ctx, owner, repoName, varName); err == nil {
+	// GitHub API does not return on create so we have to lookup the variable to get timestamps, we retry to get the resource but if this fails we set an empty timestamp and let the next read set the timestamps.
+	if variable, err := retryUntilResourceFound(ctx, func() (*github.ActionsVariable, error) {
+		val, _, err := client.Actions.GetRepoVariable(ctx, owner, repoName, varName)
+		return val, err
+	}, nil); err == nil {
 		if err := d.Set("created_at", variable.CreatedAt.String()); err != nil {
 			return diag.FromErr(err)
 		}
@@ -176,8 +178,8 @@ func resourceGithubActionsVariableUpdate(ctx context.Context, d *schema.Resource
 	}
 	d.SetId(id)
 
-	// GitHub API does not return on create so we have to lookup the variable to get timestamps, we sleep to optimize the chance of getting the timestamps on the first read after creation due to the eventually consistent behavior of this API.
-	time.Sleep(readAfterCreateUpdateDelay)
+	// GitHub API does not return on update so we have to lookup the secret to get timestamps, we sleep to optimize the chance of getting the correct timestamps after an update due to the eventually consistent behavior of this API.
+	time.Sleep(defaultRetryDelay)
 	if variable, _, err := client.Actions.GetRepoVariable(ctx, owner, repoName, varName); err == nil {
 		if err := d.Set("created_at", variable.CreatedAt.String()); err != nil {
 			return diag.FromErr(err)
