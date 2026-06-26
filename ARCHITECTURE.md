@@ -462,7 +462,7 @@ import (
 )
 
 func TestAccGithubExample(t *testing.T) {
-t.Parallel()
+    t.Parallel()
 
     t.Run("creates resource without error", func(t *testing.T) {
         t.Parallel()

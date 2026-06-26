@@ -22,6 +22,8 @@ func TestAccGithubUserInvitationAccepter(t *testing.T) {
 	}
 
 	t.Run("accepts an invitation", func(t *testing.T) {
+		// IMPORTANT: Do not run this sub test in parallel is it uses shared state.
+
 		rn := "github_repository_collaborator.test"
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-invitation-%s", testResourcePrefix, randomID)
@@ -43,6 +45,8 @@ func TestAccGithubUserInvitationAccepter(t *testing.T) {
 	})
 
 	t.Run("accepts an invitation with an empty invitation_id", func(t *testing.T) {
+		// IMPORTANT: Do not run this sub test in parallel is it uses shared state.
+
 		rn := "github_user_invitation_accepter.test"
 
 		resource.Test(t, resource.TestCase{

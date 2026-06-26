@@ -14,6 +14,8 @@ func TestAccGithubIssue(t *testing.T) {
 	t.Parallel()
 
 	t.Run("creates an issue without error", func(t *testing.T) {
+		t.Parallel()
+
 		var username string
 		if testAccConf.authMode == individual {
 			username = testAccConf.owner
@@ -120,6 +122,8 @@ func TestAccGithubIssue(t *testing.T) {
 	})
 
 	t.Run("imports a issue without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-issue-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`

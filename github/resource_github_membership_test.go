@@ -19,6 +19,8 @@ func TestAccGithubMembership(t *testing.T) {
 	}
 
 	t.Run("creates organization membership", func(t *testing.T) {
+		// IMPORTANT: Do not run this sub test in parallel is it uses shared state.
+
 		ctx := t.Context()
 
 		var membership github.Membership
@@ -46,6 +48,8 @@ func TestAccGithubMembership(t *testing.T) {
 	})
 
 	t.Run("creates organization membership with downgrade", func(t *testing.T) {
+		// IMPORTANT: Do not run this sub test in parallel is it uses shared state.
+
 		ctx := t.Context()
 
 		var membership github.Membership
@@ -72,6 +76,8 @@ func TestAccGithubMembership(t *testing.T) {
 	})
 
 	t.Run("creates organization membership with case insensitivity", func(t *testing.T) {
+		// IMPORTANT: Do not run this sub test in parallel is it uses shared state.
+
 		ctx := t.Context()
 
 		var membership github.Membership

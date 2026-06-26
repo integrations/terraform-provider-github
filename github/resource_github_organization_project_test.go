@@ -18,6 +18,8 @@ package github
 // 	t.Skip("Skipping test as the GitHub API no longer supports classic projects")
 
 // 	t.Run("creates organization project", func(t *testing.T) {
+// 		t.Parallel()
+
 // 		var project github.Project
 // 		config := `
 // resource "github_organization_project" "test" {

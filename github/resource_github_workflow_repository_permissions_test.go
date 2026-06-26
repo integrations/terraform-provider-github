@@ -1,4 +1,4 @@
-//go:build !skip_acc_broken
+//go:build !skip_acc_brokenx
 
 package github
 
@@ -14,6 +14,8 @@ func TestAccGithubWorkflowRepositoryPermissions(t *testing.T) {
 	t.Parallel()
 
 	t.Run("test setting of basic workflow repository permissions", func(t *testing.T) {
+		t.Parallel()
+
 		defaultWorkflowPermissions := "read"
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-workflow-perms-%s", testResourcePrefix, randomID)
@@ -50,6 +52,8 @@ func TestAccGithubWorkflowRepositoryPermissions(t *testing.T) {
 	})
 
 	t.Run("imports entire set of github workflow repository permissions without error", func(t *testing.T) {
+		t.Parallel()
+
 		defaultWorkflowPermissions := "read"
 		canApprovePullRequestReviews := "true"
 

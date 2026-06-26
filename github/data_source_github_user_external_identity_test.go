@@ -11,6 +11,8 @@ func TestAccGithubUserExternalIdentity(t *testing.T) {
 	t.Parallel()
 
 	t.Run("queries without error", func(t *testing.T) {
+		t.Parallel()
+
 		config := `data "github_user_external_identity" "test" { username = "%s" }`
 
 		check := resource.ComposeAggregateTestCheckFunc(

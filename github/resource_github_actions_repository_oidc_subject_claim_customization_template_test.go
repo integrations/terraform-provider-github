@@ -12,6 +12,8 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *test
 	t.Parallel()
 
 	t.Run("creates repository oidc subject claim customization template without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-act-oidc-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -60,6 +62,8 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *test
 	})
 
 	t.Run("updates repository oidc subject claim customization template without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-act-oidc-%s", testResourcePrefix, randomID)
 		configTemplate := `
@@ -174,6 +178,8 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *test
 	})
 
 	t.Run("imports repository oidc subject claim customization template without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-act-oidc-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`

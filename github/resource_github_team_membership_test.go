@@ -20,6 +20,8 @@ func TestAccGithubTeamMembership(t *testing.T) {
 	}
 
 	t.Run("creates a team membership", func(t *testing.T) {
+		t.Parallel()
+
 		ctx := t.Context()
 
 		var membership github.Membership
@@ -53,6 +55,8 @@ func TestAccGithubTeamMembership(t *testing.T) {
 	})
 
 	t.Run("is case insensitive", func(t *testing.T) {
+		t.Parallel()
+
 		ctx := t.Context()
 
 		var membership github.Membership

@@ -1197,6 +1197,8 @@ resource "github_organization_ruleset" "test" {
 		t.Parallel()
 
 		t.Run("required_check__context_block_should_not_be_empty", func(t *testing.T) {
+			t.Parallel()
+
 			resourceName := "test-required-status-checks-context-is-not-empty"
 			randomID := acctest.RandString(5)
 			config := fmt.Sprintf(`
@@ -1502,6 +1504,8 @@ resource "github_organization_ruleset" "test" {
 }
 
 func TestOrganizationPushRulesetSupport(t *testing.T) {
+	t.Parallel()
+
 	// Test that organization push rulesets support all push-specific rules
 	// This is a unit test since it only validates the expand/flatten functionality
 

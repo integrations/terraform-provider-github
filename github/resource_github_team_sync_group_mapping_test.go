@@ -16,6 +16,8 @@ func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
 	t.Parallel()
 
 	t.Run("creates a team sync group mapping", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-sync-%s", testResourcePrefix, randomID)
 		rn := "github_team_sync_group_mapping.test_mapping"
@@ -48,6 +50,8 @@ func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
 	})
 
 	t.Run("creates a team sync group mapping and then deletes it", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-sync-%s", testResourcePrefix, randomID)
 		rn := "github_team_sync_group_mapping.test_mapping"
@@ -69,6 +73,8 @@ func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
 	})
 
 	t.Run("creates a team sync group mapping and then updates it", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-sync-%s", testResourcePrefix, randomID)
 		description := "tf-acc-group-description-update"
@@ -114,6 +120,8 @@ func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
 	})
 
 	t.Run("creates empty team sync group mapping", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-sync-%s", testResourcePrefix, randomID)
 		rn := "github_team_sync_group_mapping.test_mapping"

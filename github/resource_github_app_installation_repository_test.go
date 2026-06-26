@@ -17,6 +17,8 @@ func TestAccGithubAppInstallationRepository(t *testing.T) {
 	}
 
 	t.Run("installs an app to a repository", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-app-install-%s", testResourcePrefix, randomID)
 

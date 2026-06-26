@@ -23,6 +23,8 @@ func testGithubBranchProtectionStateDataV2() map[string]any {
 }
 
 func Test_resourceGithubBranchProtectionStateUpgradeV1(t *testing.T) {
+	// IMPORTANT: This test is not parallelized because it uses global state.
+
 	expected := testGithubBranchProtectionStateDataV2()
 	actual, err := resourceGithubBranchProtectionUpgradeV1(t.Context(), testGithubBranchProtectionStateDataV1(), nil)
 	if err != nil {

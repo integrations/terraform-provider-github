@@ -15,6 +15,8 @@ func TestAccGithubRepositoryDeployKeysDataSource(t *testing.T) {
 	t.Parallel()
 
 	t.Run("manages deploy keys", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		keyName := fmt.Sprintf("%s_rsa", randomID)
 		cmd := exec.Command("bash", "-c", fmt.Sprintf("ssh-keygen -t rsa -b 4096 -C test@example.com -N '' -f test-fixtures/%s>/dev/null <<< y >/dev/null", keyName))

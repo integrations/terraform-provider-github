@@ -16,6 +16,8 @@ import (
 )
 
 func TestSuppressDeployKeyDiff(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		OldValue, NewValue string
 		ExpectSuppression  bool
@@ -55,6 +57,8 @@ func TestAccGithubRepositoryDeployKey_basic(t *testing.T) {
 	t.Parallel()
 
 	t.Run("creates repository deploy key without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		keyName := fmt.Sprintf("%s_rsa", randomID)
 		cmd := exec.Command("bash", "-c", fmt.Sprintf("ssh-keygen -t rsa -b 4096 -C test@example.com -N '' -f test-fixtures/%s>/dev/null <<< y >/dev/null", keyName))
@@ -176,6 +180,8 @@ func TestAccGithubRepositoryDeployKeyArchivedRepo(t *testing.T) {
 	t.Parallel()
 
 	t.Run("can delete deploy keys from archived repositories without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		keyName := fmt.Sprintf("%s_rsa", randomID)
 		cmd := exec.Command("bash", "-c", fmt.Sprintf("ssh-keygen -t rsa -b 4096 -C test@example.com -N '' -f test-fixtures/%s>/dev/null <<< y >/dev/null", keyName))

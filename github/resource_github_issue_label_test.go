@@ -13,6 +13,8 @@ func TestAccGithubIssueLabel(t *testing.T) {
 	t.Parallel()
 
 	t.Run("creates and updates labels without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-issue-label-%s", testResourcePrefix, randomID)
 		description := "label_description"
@@ -67,6 +69,8 @@ func TestAccGithubIssueLabel(t *testing.T) {
 	})
 
 	t.Run("can delete labels from archived repositories without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-issue-label-arch-%s", testResourcePrefix, randomID)
 

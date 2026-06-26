@@ -18,6 +18,8 @@ func TestAccGithubRepositoryRuleset(t *testing.T) {
 	t.Parallel()
 
 	t.Run("create_branch_ruleset", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-%s", testResourcePrefix, randomID)
 
@@ -149,6 +151,8 @@ resource "github_repository_ruleset" "test" {
 	})
 
 	t.Run("create_branch_ruleset_with_user_bypass_actor", func(t *testing.T) {
+		t.Parallel()
+
 		var username string
 		if testAccConf.authMode == individual {
 			username = testAccConf.owner
@@ -214,6 +218,8 @@ resource "github_repository_ruleset" "test" {
 	})
 
 	t.Run("create_branch_ruleset_with_enterprise_features", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-%s", testResourcePrefix, randomID)
 
@@ -270,6 +276,8 @@ resource "github_repository_ruleset" "test" {
 	})
 
 	t.Run("creates_push_ruleset", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-%s", testResourcePrefix, randomID)
 
@@ -341,6 +349,8 @@ resource "github_repository_ruleset" "test" {
 	})
 
 	t.Run("update_ruleset_name", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-rename-%s", testResourcePrefix, randomID)
 		name := fmt.Sprintf("ruleset-%s", randomID)
@@ -387,6 +397,8 @@ resource "github_repository_ruleset" "test" {
 	})
 
 	t.Run("update_clear_bypass_actors", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-bypass-%s", testResourcePrefix, randomID)
 
@@ -454,6 +466,8 @@ resource "github_repository_ruleset" "test" {
 	})
 
 	t.Run("update_bypass_mode", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-bypass-update-%s", testResourcePrefix, randomID)
 
@@ -514,6 +528,8 @@ resource "github_repository_ruleset" "test" {
 	})
 
 	t.Run("import", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-bpmod-%s", testResourcePrefix, randomID)
 
@@ -627,6 +643,8 @@ resource "github_repository_ruleset" "test" {
 	})
 
 	t.Run("skips update and delete on archived repository", func(t *testing.T) {
+		t.Parallel()
+
 		t.Skip("TODO: Fix the archived behavior as if update is skipping read needs to do so too.")
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -671,6 +689,8 @@ resource "github_repository_ruleset" "test" {
 	})
 
 	t.Run("prevents creating ruleset on archived repository", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-arch-cr-%s", testResourcePrefix, randomID)
 		repoConfig := `
@@ -712,6 +732,8 @@ func TestAccGithubRepositoryRulesetValidation(t *testing.T) {
 	t.Parallel()
 
 	t.Run("Validates push target rejects ref_name condition", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		config := fmt.Sprintf(`
@@ -756,6 +778,8 @@ func TestAccGithubRepositoryRulesetValidation(t *testing.T) {
 	})
 
 	t.Run("Validates push target rejects branch/tag rules", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -791,6 +815,8 @@ func TestAccGithubRepositoryRulesetValidation(t *testing.T) {
 	})
 
 	t.Run("Validates branch target rejects push-only rules", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -836,6 +862,8 @@ func TestAccGithubRepositoryRulesetValidation(t *testing.T) {
 	})
 
 	t.Run("Validates tag target rejects push-only rules", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
