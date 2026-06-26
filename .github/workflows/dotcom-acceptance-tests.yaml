@@ -224,7 +224,7 @@ jobs:
           fi
 
           # go test -run "^TestAcc*" ./github -v -race -coverprofile=coverage.txt -covermode=atomic -timeout 120m -count=1
-          go run gotest.tools/gotestsum@latest --format testname -- -tags=skip_acc_broken -run "^TestAcc*" ./github -v -timeout 120m -count=1
+          go run gotest.tools/gotestsum@latest --format testname -- -run "^TestAcc*" ./github -v -timeout 120m -count=1
 
   check:
     name: Check DotCom Acceptance Tests

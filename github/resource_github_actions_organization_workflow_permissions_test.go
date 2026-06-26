@@ -1,5 +1,3 @@
-//go:build !skip_acc_brokenx
-
 package github
 
 import (
