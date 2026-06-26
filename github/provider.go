@@ -222,6 +222,7 @@ func NewProvider(version, commit string) func() *schema.Provider {
 				"github_repository_environment":                                         resourceGithubRepositoryEnvironment(),
 				"github_repository_environment_deployment_policy":                       resourceGithubRepositoryEnvironmentDeploymentPolicy(),
 				"github_repository_file":                                                resourceGithubRepositoryFile(),
+				"github_repository_files":                                               resourceGithubRepositoryFiles(),
 				"github_repository_milestone":                                           resourceGithubRepositoryMilestone(),
 				"github_repository_pages":                                               resourceGithubRepositoryPages(),
 				"github_repository_project":                                             resourceGithubRepositoryProject(),
