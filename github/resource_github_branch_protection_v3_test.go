@@ -414,6 +414,100 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 		})
 	})
 
+	t.Run("removes from state when repository is archived", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name      = "%s"
+				auto_init = true
+			}
+
+			resource "github_branch_protection_v3" "test" {
+				repository = github_repository.test.name
+				branch     = "main"
+			}
+		`, testRepoName)
+
+		configArchived := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name      = "%s"
+				auto_init = true
+				archived  = true
+			}
+
+			resource "github_branch_protection_v3" "test" {
+				repository = github_repository.test.name
+				branch     = "main"
+			}
+		`, testRepoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeAggregateTestCheckFunc(
+						resource.TestCheckResourceAttr("github_branch_protection_v3.test", "branch", "main"),
+					),
+				},
+				{
+					Config: configArchived,
+					Check: resource.ComposeAggregateTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "archived", "true"),
+					),
+				},
+				{
+					Config:             configArchived,
+					ResourceName:       "github_branch_protection_v3.test",
+					ImportState:        true,
+					ImportStateVerify:  false, // Should fail to import because it's removed from state
+					ExpectError:        nil,   // Terraform usually succeeds with an empty ID if we return nil in Read
+					ImportStateIdFunc: func(s *terraform.State) (string, error) {
+						return fmt.Sprintf("%s:main", testRepoName), nil
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("fallbacks from checks to contexts", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name      = "%s"
+				auto_init = true
+			}
+
+			resource "github_branch_protection_v3" "test" {
+				repository = github_repository.test.name
+				branch     = "main"
+
+				required_status_checks {
+					strict = true
+					checks = ["ci/test"]
+				}
+			}
+		`, testRepoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeAggregateTestCheckFunc(
+						resource.TestCheckResourceAttr("github_branch_protection_v3.test", "required_status_checks.0.checks.#", "1"),
+						resource.TestCheckResourceAttr("github_branch_protection_v3.test", "required_status_checks.0.contexts.#", "1"),
+						resource.TestCheckTypeSetElemAttr("github_branch_protection_v3.test", "required_status_checks.0.contexts.*", "ci/test"),
+					),
+				},
+			},
+		})
+	})
+
 	t.Run("configures required status checks", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
