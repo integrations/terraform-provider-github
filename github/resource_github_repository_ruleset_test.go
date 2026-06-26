@@ -558,6 +558,63 @@ resource "github_repository_ruleset" "test" {
 			},
 		})
 	})
+
+	t.Run("create_branch_ruleset_with_enterprise_owner_bypass", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name       = "%s"
+	auto_init  = false
+	visibility = "%s"
+}
+
+resource "github_repository_ruleset" "test" {
+	name        = "test"
+	repository  = github_repository.test.id
+	target      = "branch"
+	enforcement = "active"
+
+	conditions {
+		ref_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	bypass_actors {
+		actor_type  = "EnterpriseOwner"
+		bypass_mode = "always"
+	}
+
+	rules {
+		branch_name_pattern {
+			name     = "test"
+			negate   = false
+			operator = "starts_with"
+			pattern  = "test"
+		}
+	}
+}
+`, repoName, testAccConf.testRepositoryVisibility)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact("test")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("enforcement"), knownvalue.StringExact("active")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("actor_type"), knownvalue.StringExact("EnterpriseOwner")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("bypass_mode"), knownvalue.StringExact("always")),
+					},
+				},
+			},
+		})
+	})
 }
 
 func TestAccGithubRepositoryRulesetArchived(t *testing.T) {
