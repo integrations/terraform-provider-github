@@ -10,7 +10,6 @@ import (
 	"slices"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/go-cty/cty"
@@ -19,9 +18,8 @@ import (
 )
 
 const (
-	readAfterCreateUpdateDelay = 1 * time.Second
-	idSeparator                = ":"
-	idSeparatorEscaped         = `??`
+	idSeparator        = ":"
+	idSeparatorEscaped = `??`
 )
 
 // https://developer.github.com/guides/traversing-with-pagination/#basics-of-pagination
