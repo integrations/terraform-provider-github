@@ -318,6 +318,7 @@ func NewProvider(version, commit string) func() *schema.Provider {
 				"github_rest_api":                                                       dataSourceGithubRestApi(),
 				"github_ssh_keys":                                                       dataSourceGithubSshKeys(),
 				"github_team":                                                           dataSourceGithubTeam(),
+				"github_team_external_groups":                                           dataSourceGithubTeamExternalGroups(),
 				"github_tree":                                                           dataSourceGithubTree(),
 				"github_user":                                                           dataSourceGithubUser(),
 				"github_user_external_identity":                                         dataSourceGithubUserExternalIdentity(),
