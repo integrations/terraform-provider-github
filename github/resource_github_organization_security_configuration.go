@@ -44,7 +44,6 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 			"advanced_security": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
 				Description: "The advanced security configuration for the code security configuration. Can be one of 'enabled', 'disabled'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled",
@@ -53,7 +52,6 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 			"dependency_graph": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
 				Description: "The dependency graph configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
@@ -62,7 +60,6 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 			"dependency_graph_autosubmit_action": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
 				Description: "The dependency graph autosubmit action configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
@@ -71,7 +68,6 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 			"dependency_graph_autosubmit_action_options": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Computed:    true,
 				MaxItems:    1,
 				Description: "The dependency graph autosubmit action options for the code security configuration.",
 				Elem: &schema.Resource{
@@ -87,7 +83,6 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 			"dependabot_alerts": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
 				Description: "The dependabot alerts configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
@@ -96,7 +91,6 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 			"dependabot_security_updates": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
 				Description: "The dependabot security updates configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
@@ -105,7 +99,6 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 			"code_scanning_default_setup": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
 				Description: "The code scanning default setup configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
@@ -114,7 +107,6 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 			"code_scanning_default_setup_options": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Computed:    true,
 				MaxItems:    1,
 				Description: "The code scanning default setup options for the code security configuration.",
 				Elem: &schema.Resource{
@@ -136,7 +128,6 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 			"code_scanning_delegated_alert_dismissal": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
 				Description: "The code scanning delegated alert dismissal configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
@@ -145,7 +136,6 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 			"code_scanning_options": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Computed:    true,
 				MaxItems:    1,
 				Description: "The code scanning options for the code security configuration.",
 				Elem: &schema.Resource{
@@ -161,7 +151,6 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 			"code_security": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
 				Description: "The code security setting. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
@@ -170,7 +159,6 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 			"secret_scanning": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
 				Description: "The secret scanning configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
@@ -179,7 +167,6 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 			"secret_scanning_push_protection": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
 				Description: "The secret scanning push protection configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
@@ -188,7 +175,6 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 			"secret_scanning_delegated_bypass": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
 				Description: "The secret scanning delegated bypass configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
@@ -227,7 +213,6 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 			"secret_scanning_validity_checks": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
 				Description: "The secret scanning validity checks configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
@@ -236,7 +221,6 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 			"secret_scanning_non_provider_patterns": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
 				Description: "The secret scanning non provider patterns configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
@@ -245,7 +229,6 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 			"secret_scanning_generic_secrets": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
 				Description: "The secret scanning generic secrets configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
@@ -254,7 +237,6 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 			"secret_scanning_delegated_alert_dismissal": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
 				Description: "The secret scanning delegated alert dismissal configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
@@ -263,7 +245,6 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 			"secret_protection": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
 				Description: "The secret protection configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
@@ -272,7 +253,6 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 			"private_vulnerability_reporting": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
 				Description: "The private vulnerability reporting configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
@@ -281,7 +261,6 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 			"enforcement": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
 				Description: "The enforcement configuration for the code security configuration. Can be one of 'enforced', 'unenforced'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enforced", "unenforced",
@@ -446,83 +425,71 @@ func resourceGithubOrganizationSecurityConfigurationImport(_ context.Context, d 
 // resourceGithubOrganizationSecurityConfigurationSetState writes the configuration returned by the API to Terraform state,
 // including the organization-only secret scanning delegated bypass fields.
 func resourceGithubOrganizationSecurityConfigurationSetState(d *schema.ResourceData, configuration *github.CodeSecurityConfiguration) diag.Diagnostics {
+	// Only persist attributes the user configured. The optional config attributes are not
+	// Computed, and GitHub server-assigns a value to each one even when it is omitted, so
+	// writing those server values to state would produce a perpetual diff. Unmanaged values
+	// can be read via the data source instead. During import there is no config, so every
+	// attribute is populated.
+	// Only persist attributes the user manages (a non-empty value in config on create, or in
+	// prior state on read). d.Get reflects config during create/update and prior state during
+	// read, so unmanaged attributes stay out of state and GitHub's server-assigned defaults
+	// don't surface as perpetual diffs.
+	managed := func(key string) bool {
+		switch v := d.Get(key).(type) {
+		case string:
+			return v != ""
+		case []any:
+			return len(v) > 0
+		default:
+			return v != nil
+		}
+	}
+
 	if err := d.Set("configuration_id", int(configuration.GetID())); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("name", configuration.Name); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("description", configuration.Description); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("advanced_security", configuration.GetAdvancedSecurity()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("dependency_graph", configuration.GetDependencyGraph()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("dependency_graph_autosubmit_action", configuration.GetDependencyGraphAutosubmitAction()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("dependency_graph_autosubmit_action_options", flattenDependencyGraphAutosubmitActionOptions(configuration.DependencyGraphAutosubmitActionOptions)); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("dependabot_alerts", configuration.GetDependabotAlerts()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("dependabot_security_updates", configuration.GetDependabotSecurityUpdates()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("code_scanning_default_setup", configuration.GetCodeScanningDefaultSetup()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("code_scanning_default_setup_options", flattenCodeScanningDefaultSetupOptions(configuration.CodeScanningDefaultSetupOptions)); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("code_scanning_delegated_alert_dismissal", configuration.GetCodeScanningDelegatedAlertDismissal()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("code_scanning_options", flattenCodeScanningOptions(configuration.CodeScanningOptions)); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("code_security", configuration.GetCodeSecurity()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("secret_scanning", configuration.GetSecretScanning()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("secret_scanning_push_protection", configuration.GetSecretScanningPushProtection()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("secret_scanning_delegated_bypass", configuration.GetSecretScanningDelegatedBypass()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("secret_scanning_delegated_bypass_options", flattenSecretScanningDelegatedBypassOptions(configuration.SecretScanningDelegatedBypassOptions)); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("secret_scanning_validity_checks", configuration.GetSecretScanningValidityChecks()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("secret_scanning_non_provider_patterns", configuration.GetSecretScanningNonProviderPatterns()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("secret_scanning_generic_secrets", configuration.GetSecretScanningGenericSecrets()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("secret_scanning_delegated_alert_dismissal", configuration.GetSecretScanningDelegatedAlertDismissal()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("secret_protection", configuration.GetSecretProtection()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("private_vulnerability_reporting", configuration.GetPrivateVulnerabilityReporting()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("enforcement", configuration.GetEnforcement()); err != nil {
-		return diag.FromErr(err)
-	}
 	if err := d.Set("target_type", configuration.GetTargetType()); err != nil {
 		return diag.FromErr(err)
+	}
+
+	optional := []struct {
+		key   string
+		value any
+	}{
+		{"description", configuration.Description},
+		{"advanced_security", configuration.GetAdvancedSecurity()},
+		{"dependency_graph", configuration.GetDependencyGraph()},
+		{"dependency_graph_autosubmit_action", configuration.GetDependencyGraphAutosubmitAction()},
+		{"dependency_graph_autosubmit_action_options", flattenDependencyGraphAutosubmitActionOptions(configuration.DependencyGraphAutosubmitActionOptions)},
+		{"dependabot_alerts", configuration.GetDependabotAlerts()},
+		{"dependabot_security_updates", configuration.GetDependabotSecurityUpdates()},
+		{"code_scanning_default_setup", configuration.GetCodeScanningDefaultSetup()},
+		{"code_scanning_default_setup_options", flattenCodeScanningDefaultSetupOptions(configuration.CodeScanningDefaultSetupOptions)},
+		{"code_scanning_delegated_alert_dismissal", configuration.GetCodeScanningDelegatedAlertDismissal()},
+		{"code_scanning_options", flattenCodeScanningOptions(configuration.CodeScanningOptions)},
+		{"code_security", configuration.GetCodeSecurity()},
+		{"secret_scanning", configuration.GetSecretScanning()},
+		{"secret_scanning_push_protection", configuration.GetSecretScanningPushProtection()},
+		{"secret_scanning_delegated_bypass", configuration.GetSecretScanningDelegatedBypass()},
+		{"secret_scanning_delegated_bypass_options", flattenSecretScanningDelegatedBypassOptions(configuration.SecretScanningDelegatedBypassOptions)},
+		{"secret_scanning_validity_checks", configuration.GetSecretScanningValidityChecks()},
+		{"secret_scanning_non_provider_patterns", configuration.GetSecretScanningNonProviderPatterns()},
+		{"secret_scanning_generic_secrets", configuration.GetSecretScanningGenericSecrets()},
+		{"secret_scanning_delegated_alert_dismissal", configuration.GetSecretScanningDelegatedAlertDismissal()},
+		{"secret_protection", configuration.GetSecretProtection()},
+		{"private_vulnerability_reporting", configuration.GetPrivateVulnerabilityReporting()},
+		{"enforcement", configuration.GetEnforcement()},
+	}
+	for _, attr := range optional {
+		if !managed(attr.key) {
+			continue
+		}
+		if err := d.Set(attr.key, attr.value); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	return nil
 }

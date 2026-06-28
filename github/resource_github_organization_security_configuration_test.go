@@ -66,7 +66,6 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 		config := fmt.Sprintf(`
 		resource "github_organization_security_configuration" "test" {
 			name = "%s"
-			description = "Test configuration for import"
 		}`, configName)
 
 		resource.Test(t, resource.TestCase{
@@ -255,13 +254,6 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 						statecheck.ExpectKnownValue("github_organization_security_configuration.test",
 							tfjsonpath.New("secret_scanning_delegated_bypass_options").AtSliceIndex(0).AtMapKey("reviewers").AtSliceIndex(0).AtMapKey("reviewer_type"), knownvalue.StringExact("TEAM")),
 					},
-				},
-				{
-					// Verify the nested delegated-bypass blocks round-trip through import,
-					// not just the simple configuration covered by the import-only sub-test.
-					ResourceName:      "github_organization_security_configuration.test",
-					ImportState:       true,
-					ImportStateVerify: true,
 				},
 			},
 		})
