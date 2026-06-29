@@ -1448,6 +1448,8 @@ resource "github_organization_ruleset" "test" {
 	})
 
 	t.Run("create_branch_ruleset_with_enterprise_owner_bypass", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		rulesetName := fmt.Sprintf("%s-branch-ruleset-%s", testResourcePrefix, randomID)
 

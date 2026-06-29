@@ -42,7 +42,7 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 			}
 		`, repoName, testAccConf.testRepositoryVisibility)
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -79,7 +79,7 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 			}
 		`, repoName, testAccConf.testRepositoryVisibility)
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -120,7 +120,7 @@ source {
 			}
 		`
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -162,7 +162,7 @@ source {
 			}
 		`
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck: func() {
 				skipUnlessEnterprise(t)
 			},
@@ -201,7 +201,7 @@ source {
 
 		publicValuesDiffer := statecheck.CompareValue(compare.ValuesDiffer())
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck: func() {
 				skipUnlessEnterprise(t)
 				if os.Getenv("GH_TEST_ENTERPRISE_IS_EMU") == "true" {
@@ -246,7 +246,7 @@ source {
 			}
 		`, repoName, testAccConf.testRepositoryVisibility)
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -281,7 +281,7 @@ source {
 			}
 		`, repoName, testAccConf.testRepositoryVisibility)
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -317,7 +317,7 @@ source {
 			}
 		`, repoName, testAccConf.testRepositoryVisibility)
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -358,7 +358,7 @@ source {
 			}
 		`, repoName, testAccConf.testRepositoryVisibility)
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
