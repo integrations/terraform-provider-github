@@ -36,6 +36,7 @@ type testAccConfig struct {
 	// Target configuration
 	legacyClient bool
 	baseURL      *url.URL
+	isGHES       bool
 
 	// Auth configuration
 	authMode          testMode
@@ -54,8 +55,8 @@ type testAccConfig struct {
 	testPublicRepository              string
 	testPublicRepositoryOwner         string
 	testPublicReleaseId               int
-	testPublicRelaseAssetId           string
-	testPublicRelaseAssetName         string
+	testPublicReleaseAssetId          string
+	testPublicReleaseAssetName        string
 	testPublicReleaseAssetContent     string
 	testPublicTemplateRepository      string
 	testPublicTemplateRepositoryOwner string
@@ -65,16 +66,18 @@ type testAccConfig struct {
 	testUserRepository string
 
 	// Org test configuration
-	testOrgUser               string
+	testOrgUser1              string
+	testOrgUser2              string
+	testOrgUser3              string
 	testOrgSecretName         string
 	testOrgRepository         string
 	testOrgTemplateRepository string
 	testOrgAppInstallationId  int
 
 	// External test configuration
-	testExternalUser      string
-	testExternalUserToken string
-	testExternalUser2     string
+	testExternalUser1      string
+	testExternalUser1Token string
+	testExternalUser2      string
 
 	// Enterprise test configuration
 	testEnterpriseEMUGroupId int
@@ -94,7 +97,7 @@ var testAccConf *testAccConfig
 var providerFactories = map[string]func() (*schema.Provider, error){
 	//nolint:unparam
 	"github": func() (*schema.Provider, error) {
-		return NewProvider()(), nil
+		return NewProvider("acctest", "none")(), nil
 	},
 }
 
@@ -109,7 +112,7 @@ func TestMain(m *testing.M) {
 		u = DotComAPIURL
 	}
 
-	baseURL, err := url.Parse(u)
+	baseURL, isGHES, err := getBaseURL(u)
 	if err != nil {
 		fmt.Printf("Error parsing base URL: %s\n", err)
 		os.Exit(1)
@@ -118,23 +121,26 @@ func TestMain(m *testing.M) {
 	config := testAccConfig{
 		legacyClient:                      os.Getenv("GITHUB_LEGACY_CLIENT") != "false",
 		baseURL:                           baseURL,
+		isGHES:                            isGHES,
 		authMode:                          authMode,
 		testPublicRepository:              "terraform-provider-github",
 		testPublicRepositoryOwner:         "integrations",
 		testPublicReleaseId:               186531906, // The terraform-provider-github_6.4.0_manifest.json asset ID from https://github.com/integrations/terraform-provider-github/releases/tag/v6.4.0
-		testPublicRelaseAssetId:           "207956097",
-		testPublicRelaseAssetName:         "terraform-provider-github_6.4.0_manifest.json",
+		testPublicReleaseAssetId:          "207956097",
+		testPublicReleaseAssetName:        "terraform-provider-github_6.4.0_manifest.json",
 		testPublicReleaseAssetContent:     "{\n  \"version\": 1,\n  \"metadata\": {\n    \"protocol_versions\": [\n      \"5.0\"\n    ]\n  }\n}",
 		testPublicTemplateRepository:      "template-repository",
 		testPublicTemplateRepositoryOwner: "template-repository",
 		testGHActionsAppInstallationId:    15368,
 		testUserRepository:                os.Getenv("GH_TEST_USER_REPOSITORY"),
-		testOrgUser:                       os.Getenv("GH_TEST_ORG_USER"),
+		testOrgUser1:                      os.Getenv("GH_TEST_ORG_USER1"),
+		testOrgUser2:                      os.Getenv("GH_TEST_ORG_USER2"),
+		testOrgUser3:                      os.Getenv("GH_TEST_ORG_USER3"),
 		testOrgSecretName:                 os.Getenv("GH_TEST_ORG_SECRET_NAME"),
 		testOrgRepository:                 os.Getenv("GH_TEST_ORG_REPOSITORY"),
 		testOrgTemplateRepository:         os.Getenv("GH_TEST_ORG_TEMPLATE_REPOSITORY"),
-		testExternalUser:                  os.Getenv("GH_TEST_EXTERNAL_USER"),
-		testExternalUserToken:             os.Getenv("GH_TEST_EXTERNAL_USER_TOKEN"),
+		testExternalUser1:                 os.Getenv("GH_TEST_EXTERNAL_USER1"),
+		testExternalUser1Token:            os.Getenv("GH_TEST_EXTERNAL_USER1_TOKEN"),
 		testExternalUser2:                 os.Getenv("GH_TEST_EXTERNAL_USER2"),
 		testAdvancedSecurity:              os.Getenv("GH_TEST_ADVANCED_SECURITY") == "true",
 		testRepositoryVisibility:          "public",
@@ -210,7 +216,12 @@ func getTestAppToken() (string, error) {
 		return "", fmt.Errorf("app auth not configured")
 	}
 
-	appToken, err := GenerateOAuthTokenFromApp(testAccConf.baseURL, testAccConf.appID, testAccConf.appInstallationID, testAccConf.appPEM)
+	restAPIPath := ""
+	if testAccConf.isGHES {
+		restAPIPath = GHESRESTAPIPath
+	}
+
+	appToken, err := GenerateOAuthTokenFromApp(testAccConf.baseURL.JoinPath(restAPIPath), testAccConf.appID, testAccConf.appInstallationID, testAccConf.appPEM)
 	if err != nil {
 		return "", err
 	}
@@ -228,10 +239,16 @@ func getTestToken() (string, error) {
 
 func getTestMeta() (*Owner, error) {
 	config := &Config{
+		RESTAPIPath:    "",
 		GraphQLAPIPath: "graphql",
 		LegacyClient:   testAccConf.legacyClient,
 		BaseURL:        testAccConf.baseURL,
 		Owner:          testAccConf.owner,
+	}
+
+	if testAccConf.isGHES {
+		config.RESTAPIPath = GHESRESTAPIPath
+		config.GraphQLAPIPath = GHESGraphQLAPIPath
 	}
 
 	if config.LegacyClient || testAccConf.appID == "" {
@@ -246,7 +263,7 @@ func getTestMeta() (*Owner, error) {
 		config.AppPEM = []byte(testAccConf.appPEM)
 	}
 
-	return configureProviderMeta(context.Background(), config)
+	return configureProviderMeta(context.Background(), "test", config)
 }
 
 func configureSweepers() {
@@ -396,3 +413,21 @@ func skipUnlessMode(t *testing.T, testModes ...testMode) {
 		t.Skip("Skipping as not supported test mode")
 	}
 }
+
+func skipUnlessHasOrgUser1(t *testing.T) {
+	if testAccConf.testOrgUser1 == "" {
+		t.Skip("Skipping as no test org user is configured")
+	}
+}
+
+func skipUnlessHasOrgUser2(t *testing.T) {
+	if testAccConf.testOrgUser2 == "" {
+		t.Skip("Skipping as no test org user 2 is configured")
+	}
+}
+
+// func skipUnlessHasOrgUser3(t *testing.T) {
+// 	if testAccConf.testOrgUser3 == "" {
+// 		t.Skip("Skipping as no test org user 3 is configured")
+// 	}
+// }

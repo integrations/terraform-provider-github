@@ -10,7 +10,7 @@ import (
 )
 
 func TestAccGithubRepositoryCollaborator(t *testing.T) {
-	if len(testAccConf.testExternalUser) == 0 {
+	if len(testAccConf.testExternalUser1) == 0 {
 		t.Skip("No external user provided")
 	}
 
@@ -28,7 +28,7 @@ func TestAccGithubRepositoryCollaborator(t *testing.T) {
 				username   = "%s"
 				permission = "triage"
 			}
-		`, repoName, testAccConf.testExternalUser)
+		`, repoName, testAccConf.testExternalUser1)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -63,7 +63,7 @@ func TestAccGithubRepositoryCollaborator(t *testing.T) {
 				username   = "%s"
 				permission = "triage"
 			}
-		`, repoName, testAccConf.owner, testAccConf.testExternalUser)
+		`, repoName, testAccConf.owner, testAccConf.testExternalUser1)
 
 		checkWithOwner := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -166,7 +166,7 @@ func TestAccGithubRepositoryCollaboratorArchivedRepo(t *testing.T) {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr(
 							"github_repository_collaborator.test", "username",
-							testAccConf.testExternalUser,
+							testAccConf.testExternalUser1,
 						),
 						resource.TestCheckResourceAttr(
 							"github_repository_collaborator.test", "permission",

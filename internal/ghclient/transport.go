@@ -1,7 +1,6 @@
 package ghclient
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 
@@ -16,9 +15,14 @@ import (
 )
 
 // cloneTransport attempts to clone the given http.RoundTripper if it is an *http.Transport, otherwise it returns the original RoundTripper. Cloning the transport is important to avoid sharing state (such as idle connections) between different clients that use the same base transport.
-func cloneTransport(tr http.RoundTripper) http.RoundTripper {
+func cloneTransport(tr http.RoundTripper, opts Options) http.RoundTripper {
 	if dtr, ok := tr.(*http.Transport); ok {
-		return dtr.Clone()
+		htr := dtr.Clone()
+		htr.ForceAttemptHTTP2 = true
+		htr.MaxIdleConns = opts.maxIdleConns
+		htr.MaxIdleConnsPerHost = opts.maxIdleConns
+		htr.IdleConnTimeout = opts.idleConnTimeout
+		return htr
 	}
 
 	return tr
@@ -26,7 +30,7 @@ func cloneTransport(tr http.RoundTripper) http.RoundTripper {
 
 // newTransport creates a new HTTP RoundTripper that wraps the provided token source with OAuth2 authentication, adds conditional request caching, logging, and retry logic based on the provided options. The resulting RoundTripper is designed to be used with GitHub API clients to handle authentication, caching, rate limiting, and retries in a consistent manner.
 func newTransport(tokenSource oauth2.TokenSource, opts Options) (http.RoundTripper, error) {
-	tr := cloneTransport(http.DefaultTransport)
+	tr := cloneTransport(http.DefaultTransport, opts)
 
 	if tokenSource != nil {
 		tr = &oauth2.Transport{
@@ -35,40 +39,33 @@ func newTransport(tokenSource oauth2.TokenSource, opts Options) (http.RoundTripp
 		}
 	}
 
-	// Create a cache store.
-	store, err := createCacheStore(opts.CachePath, opts.cacheRef)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create cache store: %w", err)
-	}
-	tr = ghct.NewTransport(store, tr)
-
-	// Log each actual HTTP round-trip (including retries)
 	tr = logging.NewLoggingHTTPTransport(tr)
 
 	if opts.RetryMax > 0 {
-		// Wrap with retry transport
 		retryClient := retryablehttp.NewClient()
 		retryClient.Logger = nil
 		retryClient.HTTPClient = &http.Client{Transport: tr, Timeout: clientTimeout}
 		retryClient.RetryMax = opts.RetryMax
 		retryClient.RetryWaitMin = opts.RetryWaitMin
 		retryClient.RetryWaitMax = opts.RetryWaitMax
-		retryClient.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
-			if err != nil {
-				return retryablehttp.DefaultRetryPolicy(ctx, resp, err)
-			}
-			if resp.StatusCode == 0 || (resp.StatusCode >= 500 && resp.StatusCode != http.StatusNotImplemented) {
-				return true, nil
-			}
-			return false, nil
-		}
 
-		// Use the RoundTripper adapter so it composes with other transports
 		tr = &retryablehttp.RoundTripper{Client: retryClient}
 	}
 
-	// Wrap with rate limit transport
+	if opts.sema != nil {
+		tr = &throttler{sema: opts.sema, inner: tr}
+	}
+
 	tr = ratelimit.New(tr, ratelimitp.WithLimitDetectedCallback(primaryRateLimitCallback), ratelimits.WithLimitDetectedCallback(secondaryRateLimitCallback))
+
+	if opts.CachePath != "" {
+		store, err := createCacheStore(opts.CachePath, opts.cacheRef)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create cache store: %w", err)
+		}
+
+		tr = ghct.NewTransport(store, tr)
+	}
 
 	return tr, nil
 }

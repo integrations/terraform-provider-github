@@ -16,7 +16,7 @@ func TestAccGithubOrganizationRoleUser(t *testing.T) {
 				role_id  = %d
 				login = "%s"
 			}
-		`, roleId, testAccConf.testOrgUser)
+		`, roleId, testAccConf.testOrgUser1)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -26,7 +26,7 @@ func TestAccGithubOrganizationRoleUser(t *testing.T) {
 					Config: config,
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_organization_role_user.test", "role_id", strconv.Itoa(roleId)),
-						resource.TestCheckResourceAttr("github_organization_role_user.test", "login", testAccConf.testOrgUser),
+						resource.TestCheckResourceAttr("github_organization_role_user.test", "login", testAccConf.testOrgUser1),
 					),
 				},
 			},

@@ -8,7 +8,10 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubRepositoryRuleset(t *testing.T) {
@@ -138,6 +141,63 @@ resource "github_repository_ruleset" "test" {
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.copilot_code_review.0.review_on_push", "true"),
 						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.copilot_code_review.0.review_draft_pull_requests", "false"),
 					),
+				},
+			},
+		})
+	})
+
+	t.Run("create_branch_ruleset_with_user_bypass_actor", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-user-bypass-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name = "%s"
+	auto_init = true
+	vulnerability_alerts = true
+	visibility = "%s"
+}
+
+data "github_user" "current" {
+	username = "%[3]s"
+}
+
+resource "github_repository_ruleset" "test" {
+	name        = "test-user-bypass"
+	repository  = github_repository.test.id
+	target      = "branch"
+	enforcement = "active"
+
+	bypass_actors {
+		actor_id    = tonumber(data.github_user.current.id)
+		actor_type  = "User"
+		bypass_mode = "always"
+	}
+
+	conditions {
+		ref_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	rules {
+		creation = true
+	}
+}
+`, repoName, testAccConf.testRepositoryVisibility, testAccConf.username)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("actor_type"), knownvalue.StringExact("User")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("bypass_mode"), knownvalue.StringExact("always")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("actor_id"), knownvalue.NotNull()),
+					},
 				},
 			},
 		})
