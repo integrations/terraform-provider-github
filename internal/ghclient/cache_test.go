@@ -12,17 +12,11 @@ func Test_createCacheStore(t *testing.T) {
 	for _, tt := range []struct {
 		name      string
 		path      string
-		ref       string
 		wantError string
 	}{
 		{
 			name: "with_path",
 			path: t.TempDir(),
-		},
-		{
-			name: "with_path_and_ref",
-			path: t.TempDir(),
-			ref:  "test-ref",
 		},
 		{
 			name:      "errors_without_path",
@@ -37,7 +31,7 @@ func Test_createCacheStore(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			store, err := createCacheStore(tt.path, tt.ref)
+			store, err := createCacheStore(tt.path)
 
 			if tt.wantError != "" {
 				if err == nil {
@@ -60,7 +54,7 @@ func Test_createCacheStore(t *testing.T) {
 				_ = store.DB.Close()
 			}()
 
-			wantPath := filepath.Join(tt.path, "terraform-provider-github", tt.ref, "cache.db")
+			wantPath := filepath.Join(tt.path, "cache.db")
 			if store.DB.Path() != wantPath {
 				t.Fatalf("expected store path to be %q, got %q", wantPath, store.DB.Path())
 			}

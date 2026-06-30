@@ -22,11 +22,11 @@ type appSource struct {
 	semaCache          *lru.Cache[string, *semaphore.Weighted]
 	restClientCache    *lru.Cache[string, *github.Client]
 	graphQLClientCache *lru.Cache[string, *githubv4.Client]
-	opts               Options
+	opts               SourceOptions
 }
 
 // NewAppSource creates a new appSource that provides GitHub clients authenticated as either the app itself or as an installation.
-func NewAppSource(clientID string, privateKey []byte, opts Options) (*appSource, error) {
+func NewAppSource(clientID string, privateKey []byte, opts SourceOptions) (*appSource, error) {
 	semaCache, err := lru.New[string, *semaphore.Weighted](appClientCacheSize)
 	if err != nil {
 		return nil, err
@@ -42,12 +42,12 @@ func NewAppSource(clientID string, privateKey []byte, opts Options) (*appSource,
 		return nil, err
 	}
 
-	if opts.CachePath == "" {
+	if opts.Cache && opts.CacheBasePath == "" {
 		s, err := os.MkdirTemp("", "*")
 		if err != nil {
 			return nil, fmt.Errorf("failed to create temporary cache directory: %w", err)
 		}
-		opts.CachePath = s
+		opts.CacheBasePath = s
 	}
 
 	return &appSource{
@@ -73,13 +73,7 @@ func (s *appSource) RESTClient() (*github.Client, error) {
 		s.semaCache.Add(key, sema)
 	}
 
-	opts := s.opts
-	opts.sema = sema
-	opts.maxIdleConns = maxIdleConnsREST
-	opts.idleConnTimeout = idleConnTimeoutREST
-	opts.cacheRef = "app-rest-" + s.clientID
-
-	c, err := NewAppRESTClient(s.clientID, s.privateKey, nil, opts)
+	c, err := NewAppRESTClient(s.clientID, s.privateKey, nil, s.opts.getRESTClientOptions(sema, "app-rest-"+s.clientID))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create app client: %w", err)
 	}
@@ -106,13 +100,7 @@ func (s *appSource) OwnerRESTClient(ctx context.Context, owner string) (*github.
 		return nil, fmt.Errorf("failed to get installation id for owner %q: %w", owner, err)
 	}
 
-	opts := s.opts
-	opts.sema = sema
-	opts.cacheRef = fmt.Sprintf("app-rest-%s-%s", s.clientID, owner)
-	opts.maxIdleConns = maxIdleConnsREST
-	opts.idleConnTimeout = idleConnTimeoutREST
-
-	c, err := NewAppRESTClient(s.clientID, s.privateKey, installationID, opts)
+	c, err := NewAppRESTClient(s.clientID, s.privateKey, installationID, s.opts.getRESTClientOptions(sema, fmt.Sprintf("app-rest-%s-%s", s.clientID, owner)))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create app client for owner %q: %w", owner, err)
 	}
@@ -134,13 +122,7 @@ func (s *appSource) GraphQLClient() (*githubv4.Client, error) {
 		s.semaCache.Add(key, sema)
 	}
 
-	opts := s.opts
-	opts.sema = sema
-	opts.maxIdleConns = maxIdleConnsGraphQL
-	opts.idleConnTimeout = idleConnTimeoutGraphQL
-	opts.cacheRef = "app-graphql-" + s.clientID
-
-	c, err := NewAppGraphQLClient(s.clientID, s.privateKey, nil, opts)
+	c, err := NewAppGraphQLClient(s.clientID, s.privateKey, nil, s.opts.getGraphQLClientOptions(sema))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create app graphql client: %w", err)
 	}
@@ -167,13 +149,7 @@ func (s *appSource) OwnerGraphQLClient(ctx context.Context, owner string) (*gith
 		return nil, fmt.Errorf("failed to get installation id for owner %q: %w", owner, err)
 	}
 
-	opts := s.opts
-	opts.sema = sema
-	opts.cacheRef = fmt.Sprintf("app-graphql-%s-%s", s.clientID, owner)
-	opts.maxIdleConns = maxIdleConnsGraphQL
-	opts.idleConnTimeout = idleConnTimeoutGraphQL
-
-	c, err := NewAppGraphQLClient(s.clientID, s.privateKey, installationID, opts)
+	c, err := NewAppGraphQLClient(s.clientID, s.privateKey, installationID, s.opts.getGraphQLClientOptions(sema))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create app graphql client for owner %q: %w", owner, err)
 	}

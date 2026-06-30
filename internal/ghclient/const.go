@@ -3,6 +3,17 @@ package ghclient
 import "time"
 
 const (
+	// RESTAPIPath is the rest api path for api.github.com & ghe.com.
+	RESTAPIPath = "/"
+	// GraphQLAPIPath is the graphql api path for api.github.com & ghe.com.
+	GraphQLAPIPath = "/graphql"
+	// GHESRESTAPISuffix is the rest api suffix for GitHub Enterprise Server.
+	GHESRESTAPIPath = "api/v3/"
+	// GHESGraphQLAPISuffix is the GraphQL api suffix for GitHub Enterprise Server.
+	GHESGraphQLAPIPath = "api/graphql"
+)
+
+const (
 	// githubSecondaryRateLimitMaxConcurrency defines the maximum number of concurrent requests allowed to the GitHub API under secondary rate limits.
 	githubSecondaryRateLimitMaxConcurrency int64 = 100
 

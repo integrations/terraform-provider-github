@@ -16,7 +16,7 @@ require (
 	github.com/hashicorp/terraform-plugin-log v0.10.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.40.1
 	github.com/hashicorp/terraform-plugin-testing v1.16.0
-	github.com/jferrl/go-githubauth v1.6.0
+	github.com/jferrl/go-githubauth v1.7.0
 	github.com/shurcooL/githubv4 v0.0.0-20260209031235-2402fdf4a9ed
 	golang.org/x/crypto v0.53.0
 	golang.org/x/oauth2 v0.36.0
