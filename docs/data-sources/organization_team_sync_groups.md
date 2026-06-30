@@ -10,9 +10,23 @@ Use this data source to retrieve the identity provider (IdP) groups for an organ
 
 ## Example Usage
 
+Retrieve all IdP groups:
+
 ```terraform
-data "github_organization_team_sync_groups" "test" {}
+data "github_organization_team_sync_groups" "all" {}
 ```
+
+Retrieve IdP groups filtered by a prefix:
+
+```terraform
+data "github_organization_team_sync_groups" "filtered" {
+  prefix_filter = "myprefix_"
+}
+```
+
+## Argument Reference
+
+- `prefix_filter` - (Optional) Filters the results to return only those groups whose names begin with this value.
 
 ## Attributes Reference
 
