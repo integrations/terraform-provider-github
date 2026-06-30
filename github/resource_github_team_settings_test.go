@@ -712,12 +712,8 @@ func TestAccGithubTeamSettings(t *testing.T) {
 }
 
 func testAccCheckGithubTeamSettingsDestroy(s *terraform.State) error {
-	meta, err := getTestMeta()
-	if err != nil {
-		return err
-	}
-	graphql := meta.v4client
-	orgName := meta.name
+	graphql := testAccConf.meta.v4client
+	orgName := testAccConf.meta.name
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_team_settings" {

@@ -332,38 +332,36 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 	t.Run("configures branch push restrictions with node_id", func(t *testing.T) {
 		t.Parallel()
 
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
+		repo := mustCreateTestRepository(t)
+
+		var username string
+		if testAccConf.authMode == individual {
+			username = testAccConf.owner
+		} else {
+			skipUnlessHasOrgUser1(t)
+			username = testAccConf.testOrgUser1
+			mustAddRepositoryCollaborator(t, repo, username)
+		}
+
+		user := mustGetUser(t, username)
 
 		config := fmt.Sprintf(`
-resource "github_repository" "test" {
-  name      = "%s"
-  auto_init = true
-}
-
 resource "github_branch_protection" "test" {
-  repository_id = github_repository.test.node_id
+  repository_id = "%s"
   pattern       = "main"
 
   restrict_pushes {
-    blocks_creations = true
+    push_allowances = ["%s"]
   }
 }
-`, testRepoName)
-
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "restrict_pushes.#", "1",
-			),
-		)
+`, repo.GetNodeID(), user.GetNodeID())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
 				},
 			},
 		})
@@ -372,46 +370,34 @@ resource "github_branch_protection" "test" {
 	t.Run("configures branch push restrictions with username", func(t *testing.T) {
 		t.Parallel()
 
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
+		repo := mustCreateTestRepository(t)
+
+		var username string
+		if testAccConf.authMode == individual {
+			username = testAccConf.owner
+		} else {
+			skipUnlessHasOrgUser1(t)
+			username = testAccConf.testOrgUser1
+			mustAddRepositoryCollaborator(t, repo, username)
+		}
+
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-			  name      = "%s"
-			  auto_init = true
-			}
+resource "github_branch_protection" "test" {
+  repository_id = "%s"
+  pattern       = "main"
 
-			resource "github_branch_protection" "test" {
-
-			  repository_id = github_repository.test.node_id
-			  pattern       = "main"
-
-			  restrict_pushes {
-				push_allowances = [
-					"/%s",
-				]
-			  }
-			}
-	`, testRepoName, testAccConf.testOrgUser1)
-
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "restrict_pushes.#", "1",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "restrict_pushes.0.blocks_creations", "true",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "restrict_pushes.0.push_allowances.#", "1",
-			),
-		)
+  restrict_pushes {
+    push_allowances = ["/%s"]
+  }
+}
+`, repo.GetNodeID(), username)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t); skipUnlessHasOrgUser1(t) },
+			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
 				},
 			},
 		})

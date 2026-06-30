@@ -370,15 +370,11 @@ resource "github_actions_organization_variable" "test" {
 					Config: `
 `,
 					Check: func(*terraform.State) error {
-						meta, err := getTestMeta()
-						if err != nil {
-							return err
-						}
-						client := meta.v3client
-						owner := meta.name
+						client := testAccConf.meta.v3client
+						owner := testAccConf.meta.name
 						ctx := t.Context()
 
-						_, err = client.Actions.CreateOrgVariable(ctx, owner, &github.ActionsVariable{
+						_, err := client.Actions.CreateOrgVariable(ctx, owner, &github.ActionsVariable{
 							Name:       varName,
 							Value:      "test",
 							Visibility: new("all"),
@@ -390,15 +386,11 @@ resource "github_actions_organization_variable" "test" {
 					Config:      config,
 					ExpectError: regexp.MustCompile(`Variable already exists`),
 					Check: func(*terraform.State) error {
-						meta, err := getTestMeta()
-						if err != nil {
-							return err
-						}
-						client := meta.v3client
-						owner := meta.name
+						client := testAccConf.meta.v3client
+						owner := testAccConf.meta.name
 						ctx := t.Context()
 
-						_, err = client.Actions.DeleteOrgVariable(ctx, owner, varName)
+						_, err := client.Actions.DeleteOrgVariable(ctx, owner, varName)
 						return err
 					},
 				},

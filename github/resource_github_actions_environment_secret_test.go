@@ -349,12 +349,8 @@ resource "github_actions_environment_secret" "test" {
 				},
 				{
 					PreConfig: func() {
-						meta, err := getTestMeta()
-						if err != nil {
-							t.Fatal(err.Error())
-						}
-						client := meta.v3client
-						owner := meta.name
+						client := testAccConf.meta.v3client
+						owner := testAccConf.meta.name
 						ctx := t.Context()
 
 						escapedEnvName := url.PathEscape(envName)
@@ -365,7 +361,7 @@ resource "github_actions_environment_secret" "test" {
 						}
 						repoID := int(repo.GetID())
 
-						keyID, _, err := getEnvironmentPublicKeyDetails(ctx, meta, repoID, escapedEnvName)
+						keyID, _, err := getEnvironmentPublicKeyDetails(ctx, testAccConf.meta, repoID, escapedEnvName)
 						if err != nil {
 							t.Fatal(err.Error())
 						}
@@ -447,12 +443,8 @@ resource "github_actions_environment_secret" "test" {
 				},
 				{
 					PreConfig: func() {
-						meta, err := getTestMeta()
-						if err != nil {
-							t.Fatal(err.Error())
-						}
-						client := meta.v3client
-						owner := meta.name
+						client := testAccConf.meta.v3client
+						owner := testAccConf.meta.name
 						ctx := t.Context()
 
 						escapedEnvName := url.PathEscape(envName)
@@ -463,7 +455,7 @@ resource "github_actions_environment_secret" "test" {
 						}
 						repoID := int(repo.GetID())
 
-						keyID, _, err := getEnvironmentPublicKeyDetails(ctx, meta, repoID, escapedEnvName)
+						keyID, _, err := getEnvironmentPublicKeyDetails(ctx, testAccConf.meta, repoID, escapedEnvName)
 						if err != nil {
 							t.Fatal(err.Error())
 						}

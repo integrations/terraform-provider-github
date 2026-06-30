@@ -328,15 +328,11 @@ resource "github_actions_variable" "test" {
 				{
 					Config: baseConfig,
 					Check: func(*terraform.State) error {
-						meta, err := getTestMeta()
-						if err != nil {
-							return err
-						}
-						client := meta.v3client
-						owner := meta.name
+						client := testAccConf.meta.v3client
+						owner := testAccConf.meta.name
 						ctx := t.Context()
 
-						_, err = client.Actions.CreateRepoVariable(ctx, owner, repoName, &github.ActionsVariable{
+						_, err := client.Actions.CreateRepoVariable(ctx, owner, repoName, &github.ActionsVariable{
 							Name:  varName,
 							Value: "test",
 						})
@@ -347,15 +343,11 @@ resource "github_actions_variable" "test" {
 					Config:      config,
 					ExpectError: regexp.MustCompile(`Variable already exists`),
 					Check: func(*terraform.State) error {
-						meta, err := getTestMeta()
-						if err != nil {
-							return err
-						}
-						client := meta.v3client
-						owner := meta.name
+						client := testAccConf.meta.v3client
+						owner := testAccConf.meta.name
 						ctx := t.Context()
 
-						_, err = client.Actions.DeleteRepoVariable(ctx, owner, repoName, varName)
+						_, err := client.Actions.DeleteRepoVariable(ctx, owner, repoName, varName)
 						return err
 					},
 				},

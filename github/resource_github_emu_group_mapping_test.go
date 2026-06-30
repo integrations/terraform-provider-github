@@ -214,12 +214,8 @@ resource "github_emu_group_mapping" "test" {
 }
 
 func testAccCheckGithubEMUGroupMappingDestroy(s *terraform.State) error {
-	meta, err := getTestMeta()
-	if err != nil {
-		return err
-	}
-	conn := meta.v3client
-	orgName := meta.name
+	conn := testAccConf.meta.v3client
+	orgName := testAccConf.meta.name
 	ctx := context.Background()
 
 	for _, rs := range s.RootModule().Resources {

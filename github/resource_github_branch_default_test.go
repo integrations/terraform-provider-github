@@ -439,12 +439,7 @@ func TestAccGithubBranchDefault(t *testing.T) {
 				},
 				{
 					PreConfig: func() {
-						meta, err := getTestMeta()
-						if err != nil {
-							t.Errorf("failed to get test meta: %s", err)
-							return
-						}
-						if _, err := meta.v3client.Repositories.Delete(t.Context(), meta.name, repoName); err != nil {
+						if _, err := testAccConf.meta.v3client.Repositories.Delete(t.Context(), testAccConf.meta.name, repoName); err != nil {
 							t.Errorf("failed to delete repository out-of-band: %s", err)
 						}
 					},

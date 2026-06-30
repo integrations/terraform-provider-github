@@ -256,15 +256,11 @@ resource "github_actions_secret" "test" {
 				},
 				{
 					PreConfig: func() {
-						meta, err := getTestMeta()
-						if err != nil {
-							t.Fatal(err.Error())
-						}
-						client := meta.v3client
-						owner := meta.name
+						client := testAccConf.meta.v3client
+						owner := testAccConf.meta.name
 						ctx := t.Context()
 
-						keyID, _, err := getPublicKeyDetails(ctx, meta, repoName)
+						keyID, _, err := getPublicKeyDetails(ctx, testAccConf.meta, repoName)
 						if err != nil {
 							t.Fatal(err.Error())
 						}
@@ -339,15 +335,11 @@ resource "github_actions_secret" "test" {
 				},
 				{
 					PreConfig: func() {
-						meta, err := getTestMeta()
-						if err != nil {
-							t.Fatal(err.Error())
-						}
-						client := meta.v3client
-						owner := meta.name
+						client := testAccConf.meta.v3client
+						owner := testAccConf.meta.name
 						ctx := t.Context()
 
-						keyID, _, err := getPublicKeyDetails(ctx, meta, repoName)
+						keyID, _, err := getPublicKeyDetails(ctx, testAccConf.meta, repoName)
 						if err != nil {
 							t.Fatal(err.Error())
 						}

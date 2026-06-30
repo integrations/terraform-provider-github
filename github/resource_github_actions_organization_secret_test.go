@@ -468,15 +468,11 @@ resource "github_actions_organization_secret" "test" {
 				},
 				{
 					PreConfig: func() {
-						meta, err := getTestMeta()
-						if err != nil {
-							t.Fatal(err.Error())
-						}
-						client := meta.v3client
-						owner := meta.name
+						client := testAccConf.meta.v3client
+						owner := testAccConf.meta.name
 						ctx := t.Context()
 
-						keyID, _, err := getOrganizationPublicKeyDetails(ctx, meta)
+						keyID, _, err := getOrganizationPublicKeyDetails(ctx, testAccConf.meta)
 						if err != nil {
 							t.Fatal(err.Error())
 						}
@@ -548,15 +544,11 @@ resource "github_actions_organization_secret" "test" {
 				},
 				{
 					PreConfig: func() {
-						meta, err := getTestMeta()
-						if err != nil {
-							t.Fatal(err.Error())
-						}
-						client := meta.v3client
-						owner := meta.name
+						client := testAccConf.meta.v3client
+						owner := testAccConf.meta.name
 						ctx := t.Context()
 
-						keyID, _, err := getOrganizationPublicKeyDetails(ctx, meta)
+						keyID, _, err := getOrganizationPublicKeyDetails(ctx, testAccConf.meta)
 						if err != nil {
 							t.Fatal(err.Error())
 						}

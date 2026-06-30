@@ -45,12 +45,8 @@ resource "github_organization_block" "test" {
 }
 
 func testAccOrganizationBlockDestroy(s *terraform.State) error {
-	meta, err := getTestMeta()
-	if err != nil {
-		return err
-	}
-	conn := meta.v3client
-	orgName := meta.name
+	conn := testAccConf.meta.v3client
+	orgName := testAccConf.meta.name
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_organization_block" {
@@ -76,12 +72,8 @@ func testAccCheckOrganizationBlockExists(n string) resource.TestCheckFunc {
 		}
 
 		username := rs.Primary.ID
-		meta, err := getTestMeta()
-		if err != nil {
-			return err
-		}
-		conn := meta.v3client
-		orgName := meta.name
+		conn := testAccConf.meta.v3client
+		orgName := testAccConf.meta.name
 
 		blocked, _, err := conn.Organizations.IsBlocked(context.Background(), orgName, username)
 		if err != nil {

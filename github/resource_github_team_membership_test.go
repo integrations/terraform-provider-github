@@ -91,12 +91,8 @@ func TestAccGithubTeamMembership(t *testing.T) {
 }
 
 func testAccCheckGithubTeamMembershipDestroy(s *terraform.State) error {
-	meta, err := getTestMeta()
-	if err != nil {
-		return err
-	}
-	conn := meta.v3client
-	orgId := meta.id
+	conn := testAccConf.meta.v3client
+	orgId := testAccConf.meta.id
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_team_membership" {
@@ -108,7 +104,7 @@ func testAccCheckGithubTeamMembershipDestroy(s *terraform.State) error {
 			return err
 		}
 
-		teamId, err := getTeamID(context.Background(), meta, teamIdString)
+		teamId, err := getTeamID(context.Background(), testAccConf.meta, teamIdString)
 		if err != nil {
 			return unconvertibleIdErr(teamIdString, err)
 		}
@@ -139,18 +135,14 @@ func testAccCheckGithubTeamMembershipExists(ctx context.Context, n string, membe
 			return fmt.Errorf("no team membership ID is set")
 		}
 
-		meta, err := getTestMeta()
-		if err != nil {
-			return err
-		}
-		conn := meta.v3client
-		orgId := meta.id
+		conn := testAccConf.meta.v3client
+		orgId := testAccConf.meta.id
 		teamIdString, username, err := parseID2(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
 
-		teamId, err := getTeamID(context.Background(), meta, teamIdString)
+		teamId, err := getTeamID(context.Background(), testAccConf.meta, teamIdString)
 		if err != nil {
 			return unconvertibleIdErr(teamIdString, err)
 		}
@@ -175,17 +167,13 @@ func testAccCheckGithubTeamMembershipRoleState(ctx context.Context, n, expected 
 			return fmt.Errorf("no team membership ID is set")
 		}
 
-		meta, err := getTestMeta()
-		if err != nil {
-			return err
-		}
-		conn := meta.v3client
-		orgId := meta.id
+		conn := testAccConf.meta.v3client
+		orgId := testAccConf.meta.id
 		teamIdString, username, err := parseID2(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
-		teamId, err := getTeamID(context.Background(), meta, teamIdString)
+		teamId, err := getTeamID(context.Background(), testAccConf.meta, teamIdString)
 		if err != nil {
 			return unconvertibleIdErr(teamIdString, err)
 		}

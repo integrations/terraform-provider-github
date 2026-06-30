@@ -116,11 +116,7 @@ func TestAccGithubMembership(t *testing.T) {
 
 func testAccCheckGithubMembershipDestroy(s *terraform.State) error {
 	ctx := context.Background()
-	meta, err := getTestMeta()
-	if err != nil {
-		return err
-	}
-	conn := meta.v3client
+	conn := testAccConf.meta.v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_membership" {
@@ -172,11 +168,7 @@ func testAccCheckGithubMembershipExists(ctx context.Context, n string, membershi
 			return fmt.Errorf("no membership ID is set")
 		}
 
-		meta, err := getTestMeta()
-		if err != nil {
-			return err
-		}
-		conn := meta.v3client
+		conn := testAccConf.meta.v3client
 
 		orgName, username, err := parseID2(rs.Primary.ID)
 		if err != nil {
@@ -203,11 +195,7 @@ func testAccCheckGithubMembershipRoleState(ctx context.Context, n string, member
 			return fmt.Errorf("no membership ID is set")
 		}
 
-		meta, err := getTestMeta()
-		if err != nil {
-			return err
-		}
-		conn := meta.v3client
+		conn := testAccConf.meta.v3client
 
 		orgName, username, err := parseID2(rs.Primary.ID)
 		if err != nil {

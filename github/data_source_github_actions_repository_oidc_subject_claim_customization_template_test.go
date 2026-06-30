@@ -38,12 +38,7 @@ data "github_actions_repository_oidc_subject_claim_customization_template" "test
 				},
 				{
 					PreConfig: func() {
-						meta, err := getTestMeta()
-						if err != nil {
-							t.Fatalf("failed to get test meta: %v", err)
-						}
-
-						if _, err := meta.v3client.Actions.SetRepoOIDCSubjectClaimCustomTemplate(t.Context(), meta.name, repo.GetName(), &github.OIDCSubjectClaimCustomTemplate{UseDefault: new(false), IncludeClaimKeys: []string{"actor", "actor_id", "head_ref", "repository"}}); err != nil {
+						if _, err := testAccConf.meta.v3client.Actions.SetRepoOIDCSubjectClaimCustomTemplate(t.Context(), testAccConf.meta.name, repo.GetName(), &github.OIDCSubjectClaimCustomTemplate{UseDefault: new(false), IncludeClaimKeys: []string{"actor", "actor_id", "head_ref", "repository"}}); err != nil {
 							t.Fatalf("failed to set repo OIDC subject claim custom template: %v", err)
 						}
 					},

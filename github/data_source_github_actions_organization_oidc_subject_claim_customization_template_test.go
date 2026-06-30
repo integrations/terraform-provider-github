@@ -32,12 +32,7 @@ data "github_actions_organization_oidc_subject_claim_customization_template" "te
 				},
 				{
 					PreConfig: func() {
-						meta, err := getTestMeta()
-						if err != nil {
-							t.Fatalf("failed to get test meta: %v", err)
-						}
-
-						if _, err := meta.v3client.Actions.SetOrgOIDCSubjectClaimCustomTemplate(t.Context(), meta.name, &github.OIDCSubjectClaimCustomTemplate{IncludeClaimKeys: []string{"actor", "actor_id", "head_ref", "repository"}}); err != nil {
+						if _, err := testAccConf.meta.v3client.Actions.SetOrgOIDCSubjectClaimCustomTemplate(t.Context(), testAccConf.meta.name, &github.OIDCSubjectClaimCustomTemplate{IncludeClaimKeys: []string{"actor", "actor_id", "head_ref", "repository"}}); err != nil {
 							t.Fatalf("failed to set org OIDC subject claim custom template: %v", err)
 						}
 					},
@@ -51,12 +46,7 @@ data "github_actions_organization_oidc_subject_claim_customization_template" "te
 						})),
 					},
 					PostApplyFunc: func() {
-						meta, err := getTestMeta()
-						if err != nil {
-							t.Fatalf("failed to get test meta: %v", err)
-						}
-
-						if _, err := meta.v3client.Actions.SetOrgOIDCSubjectClaimCustomTemplate(t.Context(), meta.name, &github.OIDCSubjectClaimCustomTemplate{IncludeClaimKeys: []string{"repo", "context"}}); err != nil {
+						if _, err := testAccConf.meta.v3client.Actions.SetOrgOIDCSubjectClaimCustomTemplate(t.Context(), testAccConf.meta.name, &github.OIDCSubjectClaimCustomTemplate{IncludeClaimKeys: []string{"repo", "context"}}); err != nil {
 							t.Fatalf("failed to set org OIDC subject claim custom template: %v", err)
 						}
 					},
