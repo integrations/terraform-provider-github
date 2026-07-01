@@ -9,7 +9,11 @@ import (
 )
 
 func TestAccGithubTreeDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("get tree", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-tree-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`

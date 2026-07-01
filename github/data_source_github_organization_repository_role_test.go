@@ -9,7 +9,11 @@ import (
 )
 
 func TestAccGithubOrganizationRepositoryRoleDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("queries an organization repository role", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		roleName := fmt.Sprintf(`%s%s`, testResourcePrefix, randomID)
 

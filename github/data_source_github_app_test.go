@@ -7,7 +7,11 @@ import (
 )
 
 func TestAccGithubAppDataSource(t *testing.T) {
-	t.Run("queries a global app", func(t *testing.T) {
+	t.Parallel()
+
+	t.Run("global", func(t *testing.T) {
+		t.Parallel()
+
 		config := `
 			data "github_app" "test" {
 				slug = "github-actions"

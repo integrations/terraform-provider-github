@@ -10,7 +10,11 @@ import (
 )
 
 func TestAccGithubTeamRepository(t *testing.T) {
+	t.Parallel()
+
 	t.Run("manages team permissions to a repository", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-repo-%s", testResourcePrefix, randomID)
 		repoName := fmt.Sprintf("%srepo-team-repo-%s", testResourcePrefix, randomID)
@@ -102,6 +106,8 @@ func TestAccGithubTeamRepository(t *testing.T) {
 	})
 
 	t.Run("accepts both team slug and team ID for `team_id`", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-repo-slug-%s", testResourcePrefix, randomID)
 		repoName := fmt.Sprintf("%srepo-team-repo-slug-%s", testResourcePrefix, randomID)
@@ -147,11 +153,15 @@ func TestAccGithubTeamRepository(t *testing.T) {
 }
 
 func TestAccGithubTeamRepositoryArchivedRepo(t *testing.T) {
+	t.Parallel()
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 	teamName := fmt.Sprintf("%steam-archive-%s", testResourcePrefix, randomID)
 	repoName := fmt.Sprintf("%srepo-team-archive-%s", testResourcePrefix, randomID)
 
 	t.Run("can delete team repository access from archived repositories without error", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name        = "%s"

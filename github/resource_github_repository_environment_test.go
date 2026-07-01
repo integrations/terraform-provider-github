@@ -13,7 +13,11 @@ import (
 )
 
 func TestAccGithubRepositoryEnvironment(t *testing.T) {
+	t.Parallel()
+
 	t.Run("create", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		envName := "test"
@@ -70,6 +74,8 @@ resource "github_repository_environment" "test" {
 	})
 
 	t.Run("create_with_id_separator_in_name", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
@@ -100,6 +106,8 @@ resource "github_repository_environment" "test" {
 	})
 
 	t.Run("update_to_remove_reviewers", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		envName := "test"
@@ -167,6 +175,8 @@ resource "github_repository_environment" "test" {
 	})
 
 	t.Run("update_to_add_reviewers", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		envName := "test"
@@ -234,6 +244,8 @@ resource "github_repository_environment" "test" {
 	})
 
 	t.Run("import", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
@@ -270,6 +282,8 @@ resource "github_repository_environment" "test" {
 	})
 
 	t.Run("errors_with_more_than_six_reviewers", func(t *testing.T) {
+		t.Parallel()
+
 		if len(testAccConf.testOrgUser1) == 0 {
 			t.Skip("skipping test that requires GH_TEST_ORG_USER1 env var to be set")
 		}

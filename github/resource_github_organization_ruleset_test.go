@@ -14,7 +14,11 @@ import (
 )
 
 func TestAccGithubOrganizationRuleset(t *testing.T) {
+	t.Parallel()
+
 	t.Run("create_branch_ruleset", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-org-ruleset-%s", testResourcePrefix, randomID)
 		rulesetName := fmt.Sprintf("%s-branch-ruleset-%s", testResourcePrefix, randomID)
@@ -183,6 +187,8 @@ resource "github_organization_ruleset" "test" {
 	})
 
 	t.Run("create_ruleset_with_repository_property", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		rulesetName := fmt.Sprintf("%s-repo-prop-ruleset-%s", testResourcePrefix, randomID)
 		propName := fmt.Sprintf("%s_team_%s", testResourcePrefix, randomID)
@@ -245,6 +251,8 @@ resource "github_organization_ruleset" "test" {
 	})
 
 	t.Run("create_ruleset_with_repository_property_exclude", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		rulesetName := fmt.Sprintf("%s-repo-prop-exclude-ruleset-%s", testResourcePrefix, randomID)
 		propName := fmt.Sprintf("%s_team_%s", testResourcePrefix, randomID)
@@ -302,6 +310,8 @@ resource "github_organization_ruleset" "test" {
 	})
 
 	t.Run("create_ruleset_with_multiple_repository_properties", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		rulesetName := fmt.Sprintf("%s-repo-prop-multiple-%s", testResourcePrefix, randomID)
 		propEnvironmentName := fmt.Sprintf("%s_environment_%s", testResourcePrefix, randomID)
@@ -378,6 +388,8 @@ resource "github_organization_ruleset" "test" {
 	})
 
 	t.Run("update_repository_property", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		rulesetName := fmt.Sprintf("%s-repo-prop-update-%s", testResourcePrefix, randomID)
 		propName := fmt.Sprintf("%s_team_%s", testResourcePrefix, randomID)
@@ -477,6 +489,8 @@ resource "github_organization_ruleset" "test" {
 	})
 
 	t.Run("create_push_ruleset", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		rulesetName := fmt.Sprintf("%s-push-ruleset-%s", testResourcePrefix, randomID)
 
@@ -553,6 +567,8 @@ resource "github_organization_ruleset" "test" {
 	})
 
 	t.Run("update_ruleset_name", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		name := fmt.Sprintf("test-acc-ruleset-%s", randomID)
 		nameUpdated := fmt.Sprintf("test-acc-ruleset-updated-%s", randomID)
@@ -602,6 +618,8 @@ resource "github_organization_ruleset" "test" {
 	})
 
 	t.Run("update_clear_bypass_actors", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		rulesetName := fmt.Sprintf("%s-bypass-ruleset-%s", testResourcePrefix, randomID)
 
@@ -690,6 +708,8 @@ resource "github_organization_ruleset" "test" {
 	})
 
 	t.Run("update_bypass_mode", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		bypassMode := "always"
@@ -746,6 +766,8 @@ resource "github_organization_ruleset" "test" {
 	})
 
 	t.Run("import", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		config := fmt.Sprintf(`
@@ -790,6 +812,8 @@ resource "github_organization_ruleset" "test" {
 	})
 
 	t.Run("validates_branch_target_requires_ref_name_condition", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_organization_ruleset" "test" {
@@ -823,6 +847,8 @@ resource "github_organization_ruleset" "test" {
 	})
 
 	t.Run("validates_tag_target_requires_ref_name_condition", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_organization_ruleset" "test" {
@@ -856,6 +882,8 @@ resource "github_organization_ruleset" "test" {
 	})
 
 	t.Run("validates_push_target_rejects_ref_name_condition", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		resourceName := "test-push-reject-ref-name"
 		config := fmt.Sprintf(`
@@ -897,6 +925,8 @@ resource "github_organization_ruleset" "test" {
 	})
 
 	t.Run("validates_push_target_rejects_branch_or_tag_rules", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		resourceName := "test-push-reject-branch-rules"
 		config := fmt.Sprintf(`
@@ -932,6 +962,8 @@ resource "github_organization_ruleset" "test" {
 	})
 
 	t.Run("validates_branch_target_rejects_push-only_rules", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		resourceName := "test-branch-reject-push-rules"
 		config := fmt.Sprintf(`
@@ -973,6 +1005,8 @@ resource "github_organization_ruleset" "test" {
 	})
 
 	t.Run("validates_conditions_require_exactly_one_repository_targeting", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		resourceName := "test-multiple-repo-targeting"
 		config := fmt.Sprintf(`
@@ -1012,6 +1046,8 @@ resource "github_organization_ruleset" "test" {
 	})
 
 	t.Run("validates_conditions_require_at_least_one_repository_targeting", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		resourceName := "test-no-repo-targeting"
 		config := fmt.Sprintf(`
@@ -1046,6 +1082,8 @@ resource "github_organization_ruleset" "test" {
 	})
 
 	t.Run("validates_repository_property_works_as_single_targeting_option", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		rulesetName := fmt.Sprintf("%s-repo-prop-only-%s", testResourcePrefix, randomID)
 		propName := fmt.Sprintf("%s_environment_%s", testResourcePrefix, randomID)
@@ -1109,6 +1147,8 @@ resource "github_organization_ruleset" "test" {
 	})
 
 	t.Run("creates_push_ruleset", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		rulesetName := fmt.Sprintf("%stest-push-%s", testResourcePrefix, randomID)
 		resourceName := "test-push-ruleset"
@@ -1154,7 +1194,11 @@ resource "github_organization_ruleset" "test" {
 	})
 
 	t.Run("validates_rules__required_status_checks_block", func(t *testing.T) {
+		t.Parallel()
+
 		t.Run("required_check__context_block_should_not_be_empty", func(t *testing.T) {
+			t.Parallel()
+
 			resourceName := "test-required-status-checks-context-is-not-empty"
 			randomID := acctest.RandString(5)
 			config := fmt.Sprintf(`
@@ -1195,7 +1239,10 @@ resource "github_organization_ruleset" "test" {
 				},
 			})
 		})
+
 		t.Run("required_check_should_be_required_when_strict_required_status_checks_policy_is_set", func(t *testing.T) {
+			t.Parallel()
+
 			resourceName := "test-required-check-is-required"
 			randomID := acctest.RandString(5)
 			config := fmt.Sprintf(`
@@ -1237,6 +1284,8 @@ resource "github_organization_ruleset" "test" {
 	})
 
 	t.Run("updates_required_reviewers", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-req-rev-%s", testResourcePrefix, randomID)
 		rulesetName := fmt.Sprintf("%s-ruleset-req-rev-%s", testResourcePrefix, randomID)
@@ -1314,7 +1363,10 @@ resource "github_organization_ruleset" "test" {
 			},
 		})
 	})
+
 	t.Run("creates_rule_with_multiple_required_reviewers", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName1 := fmt.Sprintf("%steam-req-rev-1-%s", testResourcePrefix, randomID)
 		teamName2 := fmt.Sprintf("%steam-req-rev-2-%s", testResourcePrefix, randomID)
@@ -1396,6 +1448,8 @@ resource "github_organization_ruleset" "test" {
 	})
 
 	t.Run("create_branch_ruleset_with_enterprise_owner_bypass", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		rulesetName := fmt.Sprintf("%s-branch-ruleset-%s", testResourcePrefix, randomID)
 
@@ -1452,6 +1506,8 @@ resource "github_organization_ruleset" "test" {
 }
 
 func TestOrganizationPushRulesetSupport(t *testing.T) {
+	t.Parallel()
+
 	// Test that organization push rulesets support all push-specific rules
 	// This is a unit test since it only validates the expand/flatten functionality
 
