@@ -3,7 +3,6 @@ package ghclient
 import (
 	"fmt"
 	"net/http"
-	"net/url"
 
 	"github.com/jferrl/go-githubauth"
 	"github.com/shurcooL/githubv4"
@@ -23,7 +22,16 @@ func NewAppGraphQLClient(clientID string, privateKey []byte, installationID *int
 	}
 
 	if installationID != nil {
-		tokenSource = githubauth.NewInstallationTokenSource(*installationID, tokenSource)
+		authOpts := []githubauth.InstallationTokenSourceOpt{}
+		if opts.BaseURL != "" {
+			u, err := opts.getRESTURL()
+			if err != nil {
+				return nil, fmt.Errorf("failed to get rest url: %w", err)
+			}
+			authOpts = append(authOpts, githubauth.WithBaseURL(*u))
+		}
+
+		tokenSource = githubauth.NewInstallationTokenSource(*installationID, tokenSource, authOpts...)
 	}
 
 	return newGraphQLClient(tokenSource, opts)
@@ -49,16 +57,10 @@ func newGraphQLClient(tokenSource oauth2.TokenSource, opts ClientOptions) (*gith
 		return githubv4.NewClient(client), nil
 	}
 
-	u, err := url.Parse(opts.BaseURL)
+	u, err := opts.getGraphQLURL()
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse base URL: %w", err)
+		return nil, fmt.Errorf("failed to get graphql url: %w", err)
 	}
 
-	if opts.IsGHES {
-		u = u.JoinPath(GHESGraphQLAPIPath)
-	} else {
-		u = u.JoinPath(GraphQLAPIPath)
-	}
-
-	return githubv4.NewEnterpriseClient(u.String(), client), nil
+	return githubv4.NewEnterpriseClient(*u, client), nil
 }

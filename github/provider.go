@@ -558,14 +558,6 @@ func configureProviderMeta(ctx context.Context, version string, c *Config) (*Own
 			}
 			owner.name = user.GetLogin()
 		}
-
-		if owner.name == "" && c.Token != "" {
-			user, _, err := owner.v3client.Users.Get(ctx, "")
-			if err != nil {
-				return nil, fmt.Errorf("owner cannot be found by token: %w", err)
-			}
-			owner.name = user.GetLogin()
-		}
 	} else {
 		if !c.Anonymous() && owner.name == "" {
 			return nil, fmt.Errorf("owner must be set when authenticating using the new client implementation")

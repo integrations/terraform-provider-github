@@ -2,7 +2,6 @@ package ghclient
 
 import (
 	"fmt"
-	"net/url"
 
 	"github.com/google/go-github/v88/github"
 	"github.com/jferrl/go-githubauth"
@@ -24,7 +23,11 @@ func NewAppRESTClient(clientID string, privateKey []byte, installationID *int64,
 	if installationID != nil {
 		authOpts := []githubauth.InstallationTokenSourceOpt{}
 		if opts.BaseURL != "" {
-			authOpts = append(authOpts, githubauth.WithBaseURL(opts.BaseURL))
+			u, err := opts.getRESTURL()
+			if err != nil {
+				return nil, fmt.Errorf("failed to get rest url: %w", err)
+			}
+			authOpts = append(authOpts, githubauth.WithBaseURL(*u))
 		}
 
 		tokenSource = githubauth.NewInstallationTokenSource(*installationID, tokenSource, authOpts...)
@@ -58,18 +61,12 @@ func newRESTClient(tokenSource oauth2.TokenSource, opts ClientOptions) (*github.
 	}
 
 	if opts.BaseURL != "" {
-		u, err := url.Parse(opts.BaseURL)
+		u, err := opts.getRESTURL()
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse base URL: %w", err)
+			return nil, fmt.Errorf("failed to get rest url: %w", err)
 		}
 
-		if opts.IsGHES {
-			u = u.JoinPath(GHESRESTAPIPath)
-		} else {
-			u = u.JoinPath(RESTAPIPath)
-		}
-
-		clientOpts = append(clientOpts, github.WithURLs(new(u.String()), nil))
+		clientOpts = append(clientOpts, github.WithURLs(u, nil))
 	}
 
 	return github.NewClient(clientOpts...)

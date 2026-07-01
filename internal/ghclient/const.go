@@ -3,6 +3,11 @@ package ghclient
 import "time"
 
 const (
+	// DotComAPIURL is the base API URL for github.com.
+	DotComAPIURL = "https://api.github.com/"
+)
+
+const (
 	// RESTAPIPath is the rest api path for api.github.com & ghe.com.
 	RESTAPIPath = "/"
 	// GraphQLAPIPath is the graphql api path for api.github.com & ghe.com.

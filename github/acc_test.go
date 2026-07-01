@@ -238,7 +238,7 @@ func getTestMeta(conf *testAccConfig) (*Owner, error) {
 	config := &Config{
 		LegacyClient: conf.legacyClient,
 		BaseURL:      conf.baseURL,
-		IsGHES:        conf.isGHES,
+		IsGHES:       conf.isGHES,
 		Owner:        conf.owner,
 	}
 

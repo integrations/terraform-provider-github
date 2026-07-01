@@ -1,6 +1,8 @@
 package ghclient
 
 import (
+	"fmt"
+	"net/url"
 	"path/filepath"
 	"time"
 
@@ -64,4 +66,46 @@ type ClientOptions struct {
 	Sema            *semaphore.Weighted
 	MaxIdleConns    int
 	IdleConnTimeout time.Duration
+}
+
+// getRESTURL returns the REST API URL based on the provided base URL and whether it is a GitHub Enterprise Server instance.
+func (o *ClientOptions) getRESTURL() (*string, error) {
+	baseURL := o.BaseURL
+	if baseURL == "" {
+		baseURL = DotComAPIURL
+	}
+
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse base url: %w", err)
+	}
+
+	if o.IsGHES {
+		u = u.JoinPath(GHESRESTAPIPath)
+	} else {
+		u = u.JoinPath(RESTAPIPath)
+	}
+
+	return new(u.String()), nil
+}
+
+// getGraphQLURL returns the GraphQL API URL based on the provided base URL and whether it is a GitHub Enterprise Server instance.
+func (o *ClientOptions) getGraphQLURL() (*string, error) {
+	baseURL := o.BaseURL
+	if baseURL == "" {
+		baseURL = DotComAPIURL
+	}
+
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse base url: %w", err)
+	}
+
+	if o.IsGHES {
+		u = u.JoinPath(GHESGraphQLAPIPath)
+	} else {
+		u = u.JoinPath(GraphQLAPIPath)
+	}
+
+	return new(u.String()), nil
 }

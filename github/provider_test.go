@@ -10,11 +10,7 @@ import (
 func TestProvider(t *testing.T) {
 	t.Parallel()
 
-	t.Parallel()
-
 	t.Run("validate", func(t *testing.T) {
-		t.Parallel()
-
 		t.Parallel()
 
 		if err := NewProvider("test", "none")().InternalValidate(); err != nil {
@@ -24,7 +20,6 @@ func TestProvider(t *testing.T) {
 }
 
 func Test_configureProviderMeta(t *testing.T) {
-	t.Parallel()
 	t.Parallel()
 
 	for _, tt := range []struct {
@@ -150,42 +145,6 @@ func Test_configureProviderMeta(t *testing.T) {
 				LegacyClient: true,
 				Token:        "test-token",
 			},
-			wantErr:     "owner cannot be found by token",
-			name:        "legacy_client_app_auth_user",
-			installResp: new(`{"id": 999999}`),
-			conf: &Config{
-				LegacyClient:      true,
-				AppID:             new("111111"),
-				AppInstallationID: new("999999"),
-				AppPEM:            mustNewPEM(t),
-				Owner:             "test-user",
-			},
-			wantName: "test-user",
-		},
-		{
-			name: "legacy_client_token_auth_user",
-			conf: &Config{
-				LegacyClient: true,
-				Owner:        "test-user",
-				Token:        "test-token",
-			},
-			wantName: "test-user",
-		},
-		{
-			name:     "legacy_client_token_auth_no_owner",
-			userResp: new(`{"login": "test-user"}`),
-			conf: &Config{
-				LegacyClient: true,
-				Token:        "test-token",
-			},
-			wantName: "test-user",
-		},
-		{
-			name: "legacy_client_token_auth_no_owner_found",
-			conf: &Config{
-				LegacyClient: true,
-				Token:        "test-token",
-			},
 			wantErr: "owner cannot be found by token",
 		},
 	} {
@@ -274,16 +233,11 @@ func Test_configureProviderMeta(t *testing.T) {
 			if tt.conf.Owner != "" && meta.v4client == nil {
 				t.Errorf("expected graphql client to be non-nil")
 			}
-			if tt.conf.Owner != "" && meta.v4client == nil {
-				t.Errorf("expected graphql client to be non-nil")
-			}
 		})
 	}
 }
 
 func Test_ghCLIHostFromAPIHost(t *testing.T) {
-	t.Parallel()
-
 	t.Parallel()
 
 	testCases := []struct {
@@ -320,8 +274,6 @@ func Test_ghCLIHostFromAPIHost(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
 			t.Parallel()
 
 			got := ghCLIHostFromAPIHost(tc.host)
