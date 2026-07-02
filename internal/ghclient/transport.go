@@ -15,13 +15,13 @@ import (
 )
 
 // cloneTransport attempts to clone the given http.RoundTripper if it is an *http.Transport, otherwise it returns the original RoundTripper. Cloning the transport is important to avoid sharing state (such as idle connections) between different clients that use the same base transport.
-func cloneTransport(tr http.RoundTripper, opts Options) http.RoundTripper {
+func cloneTransport(tr http.RoundTripper, opts ClientOptions) http.RoundTripper {
 	if dtr, ok := tr.(*http.Transport); ok {
 		htr := dtr.Clone()
 		htr.ForceAttemptHTTP2 = true
-		htr.MaxIdleConns = opts.maxIdleConns
-		htr.MaxIdleConnsPerHost = opts.maxIdleConns
-		htr.IdleConnTimeout = opts.idleConnTimeout
+		htr.MaxIdleConns = opts.MaxIdleConns
+		htr.MaxIdleConnsPerHost = opts.MaxIdleConns
+		htr.IdleConnTimeout = opts.IdleConnTimeout
 		return htr
 	}
 
@@ -29,7 +29,7 @@ func cloneTransport(tr http.RoundTripper, opts Options) http.RoundTripper {
 }
 
 // newTransport creates a new HTTP RoundTripper that wraps the provided token source with OAuth2 authentication, adds conditional request caching, logging, and retry logic based on the provided options. The resulting RoundTripper is designed to be used with GitHub API clients to handle authentication, caching, rate limiting, and retries in a consistent manner.
-func newTransport(tokenSource oauth2.TokenSource, opts Options) (http.RoundTripper, error) {
+func newTransport(tokenSource oauth2.TokenSource, opts ClientOptions) (http.RoundTripper, error) {
 	tr := cloneTransport(http.DefaultTransport, opts)
 
 	if tokenSource != nil {
@@ -52,14 +52,14 @@ func newTransport(tokenSource oauth2.TokenSource, opts Options) (http.RoundTripp
 		tr = &retryablehttp.RoundTripper{Client: retryClient}
 	}
 
-	if opts.sema != nil {
-		tr = &throttler{sema: opts.sema, inner: tr}
+	if opts.Sema != nil {
+		tr = &throttler{sema: opts.Sema, inner: tr}
 	}
 
 	tr = ratelimit.New(tr, ratelimitp.WithLimitDetectedCallback(primaryRateLimitCallback), ratelimits.WithLimitDetectedCallback(secondaryRateLimitCallback))
 
-	if opts.CachePath != "" {
-		store, err := createCacheStore(opts.CachePath, opts.cacheRef)
+	if opts.Cache {
+		store, err := createCacheStore(opts.CachePath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create cache store: %w", err)
 		}

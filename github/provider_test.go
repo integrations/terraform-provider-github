@@ -37,31 +37,31 @@ func Test_configureProviderMeta(t *testing.T) {
 			name: "anonymous",
 			conf: &Config{},
 		},
-		// {
-		// 	name:        "app_auth_organization",
-		// 	installResp: new(`{"id": 999999}`),
-		// 	orgResp:     new(`{"id": 123456}`),
-		// 	conf: &Config{
-		// 		AppID:             new("111111"),
-		// 		AppInstallationID: new("999999"),
-		// 		AppPEM:            mustNewPEM(t),
-		// 		Owner:             "test-org",
-		// 	},
-		// 	wantName:  "test-org",
-		// 	wantIsOrg: true,
-		// 	wantOrgId: 123456,
-		// },
-		// {
-		// 	name:        "app_auth_user",
-		// 	installResp: new(`{"id": 999999}`),
-		// 	conf: &Config{
-		// 		AppID:             new("111111"),
-		// 		AppInstallationID: new("999999"),
-		// 		AppPEM:            mustNewPEM(t),
-		// 		Owner:             "test-user",
-		// 	},
-		// 	wantName: "test-user",
-		// },
+		{
+			name:        "app_auth_organization",
+			installResp: new(`{"id": 999999}`),
+			orgResp:     new(`{"id": 123456}`),
+			conf: &Config{
+				AppID:             new("111111"),
+				AppInstallationID: new("999999"),
+				AppPEM:            mustNewPEM(t),
+				Owner:             "test-org",
+			},
+			wantName:  "test-org",
+			wantIsOrg: true,
+			wantOrgId: 123456,
+		},
+		{
+			name:        "app_auth_user",
+			installResp: new(`{"id": 999999}`),
+			conf: &Config{
+				AppID:             new("111111"),
+				AppInstallationID: new("999999"),
+				AppPEM:            mustNewPEM(t),
+				Owner:             "test-user",
+			},
+			wantName: "test-user",
+		},
 		{
 			name:    "token_auth_organization",
 			orgResp: new(`{"id": 123456}`),
@@ -152,6 +152,12 @@ func Test_configureProviderMeta(t *testing.T) {
 			t.Parallel()
 
 			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if regexp.MustCompile(`/access_tokens$`).MatchString(r.URL.Path) {
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(`{"token": "test-token", "expires_at": "2024-12-31T23:59:59Z"}`))
+					return
+				}
+
 				if regexp.MustCompile(`/installation$`).MatchString(r.URL.Path) {
 					if tt.installResp == nil {
 						w.WriteHeader(http.StatusNotFound)

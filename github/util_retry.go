@@ -71,7 +71,7 @@ func retryUntilResourceFound[T any](ctx context.Context, f func() (T, error), op
 	return retryUntilOK(ctx, func() (T, bool, error) {
 		val, err := f()
 		if err != nil {
-			if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == 404 {
+			if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response != nil && ghErr.Response.StatusCode == 404 {
 				return val, false, nil
 			}
 			return val, false, err

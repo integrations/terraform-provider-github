@@ -236,16 +236,10 @@ func getTestToken(conf *testAccConfig) (string, error) {
 
 func getTestMeta(conf *testAccConfig) (*Owner, error) {
 	config := &Config{
-		RESTAPIPath:    "",
-		GraphQLAPIPath: "graphql",
-		LegacyClient:   conf.legacyClient,
-		BaseURL:        conf.baseURL,
-		Owner:          conf.owner,
-	}
-
-	if conf.isGHES {
-		config.RESTAPIPath = GHESRESTAPIPath
-		config.GraphQLAPIPath = GHESGraphQLAPIPath
+		LegacyClient: conf.legacyClient,
+		BaseURL:      conf.baseURL,
+		IsGHES:       conf.isGHES,
+		Owner:        conf.owner,
 	}
 
 	if config.LegacyClient || conf.appID == "" {
