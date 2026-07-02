@@ -3,7 +3,7 @@ module github.com/integrations/terraform-provider-github/v6
 go 1.26
 
 require (
-	github.com/bored-engineer/github-conditional-http-transport v0.0.1
+	github.com/bored-engineer/github-conditional-http-transport v0.0.2
 	github.com/bored-engineer/github-conditional-http-transport/bbolt v0.0.1
 	github.com/go-jose/go-jose/v4 v4.1.4
 	github.com/gofri/go-github-ratelimit/v2 v2.0.2
@@ -16,7 +16,7 @@ require (
 	github.com/hashicorp/terraform-plugin-log v0.10.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.40.1
 	github.com/hashicorp/terraform-plugin-testing v1.16.0
-	github.com/jferrl/go-githubauth v1.6.0
+	github.com/jferrl/go-githubauth v1.7.0
 	github.com/shurcooL/githubv4 v0.0.0-20260209031235-2402fdf4a9ed
 	golang.org/x/crypto v0.53.0
 	golang.org/x/oauth2 v0.36.0

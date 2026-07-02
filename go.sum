@@ -9,8 +9,8 @@ github.com/agext/levenshtein v1.2.3/go.mod h1:JEDfjyjHDjOF/1e4FlBE/PkbqA9OfWu2ki
 github.com/apparentlymart/go-textseg/v12 v12.0.0/go.mod h1:S/4uRK2UtaQttw1GenVJEynmyUenKwP++x/+DdGV/Ec=
 github.com/apparentlymart/go-textseg/v15 v15.0.0 h1:uYvfpb3DyLSCGWnctWKGj857c6ew1u1fNQOlOtuGxQY=
 github.com/apparentlymart/go-textseg/v15 v15.0.0/go.mod h1:K8XmNZdhEBkdlyDdvbmmsvpAG721bKi0joRfFdHIWJ4=
-github.com/bored-engineer/github-conditional-http-transport v0.0.1 h1:l+hoIiJlwo0tnC2j8GJMWhXIvLgJ7S1/B7HOmVCeGPw=
-github.com/bored-engineer/github-conditional-http-transport v0.0.1/go.mod h1:xqwbbtX0Yju8SWZELJ9i1v8vPJAkID8WKeQbZRX0i+4=
+github.com/bored-engineer/github-conditional-http-transport v0.0.2 h1:6296/497Pise6YVwMcV/VKSXTtA3rBYVUFHwWGs8f68=
+github.com/bored-engineer/github-conditional-http-transport v0.0.2/go.mod h1:xqwbbtX0Yju8SWZELJ9i1v8vPJAkID8WKeQbZRX0i+4=
 github.com/bored-engineer/github-conditional-http-transport/bbolt v0.0.1 h1:64x0U1g25Lnc2lAcyJfe50xytkaDGy/Eg+UWXC89zK8=
 github.com/bored-engineer/github-conditional-http-transport/bbolt v0.0.1/go.mod h1:rXZ2Jelc77R5OAGBSPh+8bUyaq3YMI9229TK//qkW3o=
 github.com/bufbuild/protocompile v0.14.1 h1:iA73zAf/fyljNjQKwYzUHD6AD4R8KMasmwa/FBatYVw=
@@ -118,8 +118,8 @@ github.com/hashicorp/yamux v0.1.2 h1:XtB8kyFOyHXYVFnwT5C3+Bdo8gArse7j2AQ0DA0Uey8
 github.com/hashicorp/yamux v0.1.2/go.mod h1:C+zze2n6e/7wshOZep2A70/aQU6QBRWJO/G6FT1wIns=
 github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 h1:BQSFePA1RWJOlocH6Fxy8MmwDt+yVQYULKfN0RoTN8A=
 github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99/go.mod h1:1lJo3i6rXxKeerYnT8Nvf0QmHCRC1n8sfWVwXF2Frvo=
-github.com/jferrl/go-githubauth v1.6.0 h1:By+4kqdNPhvizKztD1uVbwk3cp2o9bNIVATZ9oIDYaw=
-github.com/jferrl/go-githubauth v1.6.0/go.mod h1:JfSoHpcaY93/UduD45AY15pLgkcE1LnsZfH+Gqf/TBI=
+github.com/jferrl/go-githubauth v1.7.0 h1:ksABJxA4ye8H8VSpW5hVsEOeYxrTG+NwJEWZ0X0BmyI=
+github.com/jferrl/go-githubauth v1.7.0/go.mod h1:JfSoHpcaY93/UduD45AY15pLgkcE1LnsZfH+Gqf/TBI=
 github.com/jhump/protoreflect v1.17.0 h1:qOEr613fac2lOuTgWN4tPAtLL7fUSbuJL5X5XumQh94=
 github.com/jhump/protoreflect v1.17.0/go.mod h1:h9+vUUL38jiBzck8ck+6G/aeMX8Z4QUY/NiJPwPNi+8=
 github.com/kevinburke/ssh_config v1.2.0 h1:x584FjTGwHzMwvHx18PXxbBVzfnxogHaAReU4gf13a4=
