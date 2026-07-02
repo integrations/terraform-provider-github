@@ -728,10 +728,6 @@ resource "github_repository_ruleset" "test" {
 			},
 		})
 	})
-}
-
-func TestAccGithubRepositoryRulesetValidation(t *testing.T) {
-	t.Parallel()
 
 	t.Run("Validates push target rejects ref_name condition", func(t *testing.T) {
 		t.Parallel()
@@ -909,17 +905,16 @@ func TestAccGithubRepositoryRulesetValidation(t *testing.T) {
 			},
 		})
 	})
-}
 
-func TestAccGithubRepositoryRuleset_requiredReviewers(t *testing.T) {
-	t.Parallel()
+	t.Run("updates_required_reviewers_successfully", func(t *testing.T) {
+		t.Parallel()
 
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-	repoName := fmt.Sprintf("%srepo-ruleset-req-rev-%s", testResourcePrefix, randomID)
-	teamName := fmt.Sprintf("%steam-req-rev-%s", testResourcePrefix, randomID)
-	rulesetName := fmt.Sprintf("%s-ruleset-req-rev-%s", testResourcePrefix, randomID)
+		randomID := acctest.RandString(5)
+		repoName := fmt.Sprintf("%srepo-ruleset-req-rev-%s", testResourcePrefix, randomID)
+		teamName := fmt.Sprintf("%steam-req-rev-%s", testResourcePrefix, randomID)
+		rulesetName := fmt.Sprintf("%s-ruleset-req-rev-%s", testResourcePrefix, randomID)
 
-	config := fmt.Sprintf(`
+		config := fmt.Sprintf(`
 resource "github_repository" "test" {
 	name      = "%s"
 	auto_init = true
@@ -972,8 +967,8 @@ resource "github_repository_ruleset" "test" {
 }
 `, repoName, testAccConf.testRepositoryVisibility, teamName, rulesetName)
 
-	// Updated config: change minimum_approvals from 1 to 2
-	configUpdated := fmt.Sprintf(`
+		// Updated config: change minimum_approvals from 1 to 2
+		configUpdated := fmt.Sprintf(`
 resource "github_repository" "test" {
 	name      = "%s"
 	auto_init = true
@@ -1026,37 +1021,38 @@ resource "github_repository_ruleset" "test" {
 }
 `, repoName, testAccConf.testRepositoryVisibility, teamName, rulesetName)
 
-	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { skipUnlessHasOrgs(t) },
-		ProviderFactories: providerFactories,
-		Steps: []resource.TestStep{
-			{
-				Config: config,
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", rulesetName),
-					resource.TestCheckResourceAttr("github_repository_ruleset.test", "target", "branch"),
-					resource.TestCheckResourceAttr("github_repository_ruleset.test", "enforcement", "active"),
-					resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.#", "1"),
-					resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.minimum_approvals", "1"),
-					resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.#", "1"),
-					resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.0", "*.go"),
-					resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.reviewer.0.type", "Team"),
-				),
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", rulesetName),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "target", "branch"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "enforcement", "active"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.#", "1"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.minimum_approvals", "1"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.#", "1"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.0", "*.go"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.reviewer.0.type", "Team"),
+					),
+				},
+				{
+					Config: configUpdated,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.minimum_approvals", "2"),
+					),
+				},
+				{
+					ResourceName:            "github_repository_ruleset.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateIdFunc:       importRepositoryRulesetByResourcePaths("github_repository.test", "github_repository_ruleset.test"),
+					ImportStateVerifyIgnore: []string{"etag"},
+				},
 			},
-			{
-				Config: configUpdated,
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.minimum_approvals", "2"),
-				),
-			},
-			{
-				ResourceName:            "github_repository_ruleset.test",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateIdFunc:       importRepositoryRulesetByResourcePaths("github_repository.test", "github_repository_ruleset.test"),
-				ImportStateVerifyIgnore: []string{"etag"},
-			},
-		},
+		})
 	})
 }
 
