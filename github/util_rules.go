@@ -162,7 +162,9 @@ func expandBypassActors(input []any) []*github.BypassActor {
 	return bypassActors
 }
 
-func flattenBypassActors(bypassActors []*github.BypassActor) []any {
+func flattenBypassActors(ctx context.Context, bypassActors []*github.BypassActor) []any {
+	tflog.Debug(ctx, "Flattening bypass actors", map[string]any{"count_bypass_actors": len(bypassActors)})
+
 	if bypassActors == nil {
 		return []any{}
 	}
@@ -178,6 +180,8 @@ func flattenBypassActors(bypassActors []*github.BypassActor) []any {
 
 		actorsSlice = append(actorsSlice, actorMap)
 	}
+
+	tflog.Debug(ctx, "Flattened bypass actors", map[string]any{"count_bypass_actors": len(bypassActors), "flattened_bypass_actors": actorsSlice})
 
 	return actorsSlice
 }
