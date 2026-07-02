@@ -1450,6 +1450,10 @@ func Test_bypassActorCompareIdentity(t *testing.T) {
 			if tt.wantSame && got != 0 {
 				t.Errorf("bypassActorCompareIdentity() = %v, want 0", got)
 			}
+
+			if !tt.wantSame && got == 0 {
+				t.Errorf("bypassActorCompareIdentity() = %v, want non-zero", got)
+			}
 		})
 	}
 }
