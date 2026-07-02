@@ -2,191 +2,192 @@ package github
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubTeam(t *testing.T) {
-	t.Run("creates a team configured with defaults", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
-		config := fmt.Sprintf(`
+	t.Parallel()
+
+	configDefaults := `
 resource "github_team" "test" {
-	name = "%s"
-}
-`, teamName)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("github_team.test", "slug"),
-						resource.TestCheckResourceAttr("github_team.test", "privacy", "secret"),
-						resource.TestCheckResourceAttr("github_team.test", "notification_setting", "notifications_enabled"),
-					),
-				},
-			},
-		})
-	})
-
-	t.Run("creates a team configured with alternatives", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		testResourceName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
-		config := fmt.Sprintf(`
-resource "github_team" "test" {
-	name                 = "%s"
-	privacy              = "closed"
-	notification_setting = "notifications_disabled"
-}
-`, testResourceName)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("github_team.test", "slug"),
-						resource.TestCheckResourceAttr("github_team.test", "privacy", "closed"),
-						resource.TestCheckResourceAttr("github_team.test", "notification_setting", "notifications_disabled"),
-					),
-				},
-			},
-		})
-	})
-
-	t.Run("creates a hierarchy of teams", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		team01Name := fmt.Sprintf("%steam-hier01-%s", testResourcePrefix, randomID)
-		team02Name := fmt.Sprintf("%steam-hier02-%s", testResourcePrefix, randomID)
-		team03Name := fmt.Sprintf("%steam-hier03-%s", testResourcePrefix, randomID)
-		config := fmt.Sprintf(`
-			resource "github_team" "team01" {
-				name        = "%s"
-				description = "Terraform acc test team01a"
-				privacy     = "closed"
-			}
-
-			resource "github_team" "team02" {
-				name           = "%s"
-				description    = "Terraform acc test team02a"
-				privacy        = "closed"
-				parent_team_id = "${github_team.team01.id}"
-			}
-
-			resource "github_team" "team03" {
-				name           = "%s"
-				description    = "Terraform acc test team03a"
-				privacy        = "closed"
-				parent_team_id = "${github_team.team02.slug}"
-			}
-		`, team01Name, team02Name, team03Name)
-
-		config2 := fmt.Sprintf(`
-			resource "github_team" "team01" {
-				name        = "%s"
-				description = "Terraform acc test team01b"
-				privacy     = "closed"
-			}
-
-			resource "github_team" "team02" {
-				name           = "%s"
-				description    = "Terraform acc test team02b"
-				privacy        = "closed"
-			}
-
-			resource "github_team" "team03" {
-				name           = "%s"
-				description    = "Terraform acc test team03b"
-				privacy        = "closed"
-			}
-		`, team01Name, team02Name, team03Name)
-
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttrSet("github_team.team02", "parent_team_id"),
-			resource.TestCheckResourceAttrSet("github_team.team03", "parent_team_id"),
-		)
-
-		check2 := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttr("github_team.team02", "parent_team_id", ""),
-			resource.TestCheckResourceAttr("github_team.team03", "parent_team_id", ""),
-			resource.TestCheckResourceAttr("github_team.team02", "parent_team_read_id", ""),
-			resource.TestCheckResourceAttr("github_team.team03", "parent_team_read_id", ""),
-			resource.TestCheckResourceAttr("github_team.team02", "parent_team_read_slug", ""),
-			resource.TestCheckResourceAttr("github_team.team03", "parent_team_read_slug", ""),
-		)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-					Check:  check,
-				},
-				{
-					Config: config2,
-					Check:  check2,
-				},
-			},
-		})
-	})
-
-	t.Run("creates a team and removes the default maintainer", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		teamName := fmt.Sprintf("%steam-no-maint-%s", testResourcePrefix, randomID)
-		config := fmt.Sprintf(`
-			resource "github_team" "test" {
-				name         = "%s"
-				create_default_maintainer = false
-			}
-		`, teamName)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_team.test", "members_count", "0"),
-					),
-				},
-			},
-		})
-	})
-
-	t.Run("updates_slug", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		teamName := fmt.Sprintf("%steam-slug-%s", testResourcePrefix, randomID)
-		teamNameUpdated := fmt.Sprintf("%s-updated", teamName)
-		config := `
-resource "github_team" "test" {
-	name         = "%s"
+  name = "%s"
 }
 `
 
+	configVisible := `
+resource "github_team" "test" {
+  name    = "%s"
+	privacy = "closed"
+}
+`
+
+	configWithParent := `
+resource "github_team" "test" {
+  name           = "%s"
+	privacy        = "closed"
+  parent_team_id = "%v"
+}
+`
+
+	configFull := `
+resource "github_team" "test" {
+  name                 = "%s"
+	description          = "%s"
+	privacy              = "%s"
+	notification_setting = "%s"
+}
+`
+
+	t.Run("full_lifecycle", func(t *testing.T) {
+		t.Parallel()
+
+		teamName := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(5))
+		description := "Terraform acceptance tests."
+		privacy := "closed"
+		notificationSetting := "notifications_disabled"
+
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: fmt.Sprintf(config, teamName),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_team.test", "slug", teamName),
-					),
+					Config: fmt.Sprintf(configDefaults, teamName),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("description"), knownvalue.Null()),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("privacy"), knownvalue.StringExact("secret")),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("notification_setting"), knownvalue.StringExact("notifications_enabled")),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("parent_team_id"), knownvalue.StringExact("")),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("ldap_dn"), knownvalue.Null()),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("create_default_maintainer"), knownvalue.Bool(false)),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("slug"), knownvalue.StringExact(teamName)),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("members_count"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("parent_team_read_id"), knownvalue.StringExact("")),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("parent_team_read_slug"), knownvalue.StringExact("")),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("node_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("etag"), knownvalue.NotNull()),
+					},
 				},
 				{
-					Config: fmt.Sprintf(config, teamNameUpdated),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_team.other", "description", teamNameUpdated),
-					),
+					Config: fmt.Sprintf(configFull, teamName, description, privacy, notificationSetting),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("description"), knownvalue.StringExact(description)),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("privacy"), knownvalue.StringExact(privacy)),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("notification_setting"), knownvalue.StringExact(notificationSetting)),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("parent_team_id"), knownvalue.StringExact("")),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("ldap_dn"), knownvalue.Null()),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("create_default_maintainer"), knownvalue.Bool(false)),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("slug"), knownvalue.StringExact(teamName)),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("members_count"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("parent_team_read_id"), knownvalue.StringExact("")),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("parent_team_read_slug"), knownvalue.StringExact("")),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("node_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("etag"), knownvalue.NotNull()),
+					},
+				},
+				{
+					ResourceName:            "github_team.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"etag"},
+				},
+			},
+		})
+	})
+
+	t.Run("change_name", func(t *testing.T) {
+		t.Parallel()
+
+		teamName := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(5))
+		teamNameUpdated := fmt.Sprintf("%s-updated", teamName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(configDefaults, teamName),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("slug"), knownvalue.StringExact(teamName)),
+					},
+				},
+				{
+					Config: fmt.Sprintf(configDefaults, teamNameUpdated),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("slug"), knownvalue.StringExact(teamNameUpdated)),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("change_name_with_non_slug_characters", func(t *testing.T) {
+		t.Parallel()
+
+		teamName := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(5))
+		teamNameUpdated := fmt.Sprintf("%s updated", teamName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(configDefaults, teamName),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("slug"), knownvalue.StringExact(teamName)),
+					},
+				},
+				{
+					Config: fmt.Sprintf(configDefaults, teamNameUpdated),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("slug"), knownvalue.StringExact(strings.ReplaceAll(teamNameUpdated, " ", "-"))),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("create_with_parent_team", func(t *testing.T) {
+		t.Parallel()
+
+		parentTeam := mustCreateTestTeam(t, nil)
+		teamName := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(5))
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(configWithParent, teamName, parentTeam.GetID()),
+				},
+				{
+					Config: fmt.Sprintf(configVisible, teamName),
+				},
+			},
+		})
+	})
+
+	t.Run("update_with_parent_team", func(t *testing.T) {
+		t.Parallel()
+
+		parentTeam := mustCreateTestTeam(t, nil)
+		teamName := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(5))
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(configVisible, teamName),
+				},
+				{
+					Config: fmt.Sprintf(configWithParent, teamName, parentTeam.GetID()),
 				},
 			},
 		})

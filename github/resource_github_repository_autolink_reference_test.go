@@ -10,7 +10,11 @@ import (
 )
 
 func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates repository autolink reference without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-autolink-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -106,6 +110,8 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 	})
 
 	t.Run("imports repository autolink reference without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-autolink-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -229,6 +235,8 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 	})
 
 	t.Run("imports repository autolink reference by key prefix without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-autolink-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -269,6 +277,8 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 	})
 
 	t.Run("deletes repository autolink reference without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-autolink-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -292,6 +302,26 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 				{
 					Config:  config,
 					Destroy: true,
+				},
+			},
+		})
+	})
+
+	t.Run("rejects key_prefix ending with a digit at plan time", func(t *testing.T) {
+		config := `
+			resource "github_repository_autolink_reference" "autolink_invalid" {
+				repository          = "some-repo"
+				key_prefix          = "PTFY25"
+				target_url_template = "https://example.com/<num>"
+			}
+		`
+
+		resource.UnitTest(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile(`must not end with a number`),
 				},
 			},
 		})

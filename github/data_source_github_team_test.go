@@ -10,7 +10,11 @@ import (
 )
 
 func TestAccGithubTeamDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("queries an existing team without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -43,6 +47,8 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 	})
 
 	t.Run("queries an existing team without error with immediate membership", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -74,6 +80,8 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 	})
 
 	t.Run("errors when querying a non-existing team", func(t *testing.T) {
+		t.Parallel()
+
 		config := `
 			data "github_team" "test" {
 				slug = ""
@@ -93,6 +101,8 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 	})
 
 	t.Run("queries an existing team without error in summary_only mode", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -128,6 +138,8 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 	})
 
 	t.Run("queries an existing team without error with results_per_page reduced", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -159,6 +171,8 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 	})
 
 	t.Run("get team with repositories without erroring", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
 		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
@@ -214,6 +228,8 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 	})
 
 	t.Run("queries an existing team with connected repositories", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 		repoName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
