@@ -2,12 +2,12 @@
 page_title: "github_organization_private_registry (Resource) - GitHub"
 subcategory: ""
 description: |-
-  
+  This resource allows you to create and manage an organization private registry.
 ---
 
 # github_organization_private_registry (Resource)
 
-
+This resource allows you to create and manage an organization private registry.
 
 ## Example Usage
 
@@ -17,7 +17,7 @@ resource "github_organization_private_registry" "my_registry" {
   url           = "https://npm.pkg.github.com"
   auth_type     = "username_password"
   username      = "github-actions"
-  secret        = "super_secret_token_123"
+  value         = "super_secret_token_123"
   visibility    = "private"
 }
 ```
@@ -34,7 +34,6 @@ resource "github_organization_private_registry" "my_registry" {
 ### Optional
 
 - `auth_type` (String) The authentication type for the private registry. Can be `token`, `username_password`, `oidc_azure`, `oidc_aws`, or `oidc_jfrog`. Defaults to `token`.
-- `encrypted_value` (String, Sensitive) The encrypted value of the secret using the GitHub public key in Base64 format.
 - `key_id` (String) ID of the public key used to encrypt the secret. Required if encrypted_value is set.
 - `oidc_audience` (String) The OIDC audience.
 - `oidc_aws_account_id` (String) The AWS account ID. Required when auth_type is oidc_aws.
@@ -47,9 +46,10 @@ resource "github_organization_private_registry" "my_registry" {
 - `oidc_jfrog_identity_mapping_name` (String) The JFrog identity mapping name.
 - `oidc_jfrog_provider_name` (String) The JFrog OIDC provider name. Required when auth_type is oidc_jfrog.
 - `replaces_base` (Boolean) Indicates whether this private registry should replace the base registry.
-- `secret` (String, Sensitive) The plaintext secret to be encrypted and sent to GitHub. This is used for a token when auth_type is token, and for a password when auth_type is username_password. Required when auth_type is token or username_password.
 - `selected_repository_ids` (Set of Number) An array of repository IDs that can access the organization private registry.
 - `username` (String) The username to use when authenticating with the private registry.
+- `value` (String, Sensitive) The plaintext secret to be encrypted and sent to GitHub. This is used for a token when auth_type is token, and for a password when auth_type is username_password. Required when auth_type is token or username_password.
+- `value_encrypted` (String, Sensitive) The encrypted value of the secret using the GitHub public key in Base64 format.
 
 ### Read-Only
 

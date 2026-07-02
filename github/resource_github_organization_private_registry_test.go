@@ -1,76 +1,64 @@
 package github
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
-func TestAccGithubOrganizationPrivateRegistry_basic(t *testing.T) {
-	skipUnlessMode(t, organization)
-
-	config := `
+func TestAccGithubOrganizationPrivateRegistry(t *testing.T) {
+	configTmpl := `
 		resource "github_organization_private_registry" "test" {
 			registry_type  = "npm_registry"
-			url            = "https://npm.pkg.github.com"
+			url            = "%s"
 			username       = "github-actions"
-			secret         = "super_secret_token_123"
-			visibility     = "private"
+			value          = "super_secret_token_123"
+			visibility     = "%s"
 		}
 
 		data "github_organization_private_registry" "test" {
 			name = github_organization_private_registry.test.name
 		}
 	`
-
-	updatedConfig := `
-		resource "github_organization_private_registry" "test" {
-			registry_type  = "npm_registry"
-			url            = "https://npm-registry.example.com"
-			username       = "github-actions"
-			secret         = "super_secret_token_123"
-			visibility     = "all"
-		}
-
-		data "github_organization_private_registry" "test" {
-			name = github_organization_private_registry.test.name
-		}
-	`
-
-	check := resource.ComposeTestCheckFunc(
-		resource.TestCheckResourceAttrSet("github_organization_private_registry.test", "name"),
-		resource.TestCheckResourceAttr("github_organization_private_registry.test", "registry_type", "npm_registry"),
-		resource.TestCheckResourceAttr("github_organization_private_registry.test", "url", "https://npm.pkg.github.com"),
-		resource.TestCheckResourceAttr("github_organization_private_registry.test", "username", "github-actions"),
-		resource.TestCheckResourceAttr("github_organization_private_registry.test", "visibility", "private"),
-		resource.TestCheckResourceAttr("data.github_organization_private_registry.test", "registry_type", "npm_registry"),
-	)
-	updatedCheck := resource.ComposeTestCheckFunc(
-		resource.TestCheckResourceAttrSet("github_organization_private_registry.test", "name"),
-		resource.TestCheckResourceAttr("github_organization_private_registry.test", "registry_type", "npm_registry"),
-		resource.TestCheckResourceAttr("github_organization_private_registry.test", "url", "https://npm-registry.example.com"),
-		resource.TestCheckResourceAttr("github_organization_private_registry.test", "username", "github-actions"),
-		resource.TestCheckResourceAttr("github_organization_private_registry.test", "visibility", "all"),
-		resource.TestCheckResourceAttr("data.github_organization_private_registry.test", "registry_type", "npm_registry"),
-	)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { skipUnlessHasOrgs(t) },
+		PreCheck: func() {
+			skipUnlessMode(t, organization)
+			skipUnlessHasOrgs(t)
+		},
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: config,
-				Check:  check,
+				Config: fmt.Sprintf(configTmpl, "https://npm.pkg.github.com", "private"),
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue("github_organization_private_registry.test", tfjsonpath.New("name"), knownvalue.NotNull()),
+					statecheck.ExpectKnownValue("github_organization_private_registry.test", tfjsonpath.New("registry_type"), knownvalue.StringExact("npm_registry")),
+					statecheck.ExpectKnownValue("github_organization_private_registry.test", tfjsonpath.New("url"), knownvalue.StringExact("https://npm.pkg.github.com")),
+					statecheck.ExpectKnownValue("github_organization_private_registry.test", tfjsonpath.New("username"), knownvalue.StringExact("github-actions")),
+					statecheck.ExpectKnownValue("github_organization_private_registry.test", tfjsonpath.New("visibility"), knownvalue.StringExact("private")),
+					statecheck.ExpectKnownValue("data.github_organization_private_registry.test", tfjsonpath.New("registry_type"), knownvalue.StringExact("npm_registry")),
+				},
 			},
 			{
 				ResourceName:            "github_organization_private_registry.test",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"secret"},
+				ImportStateVerifyIgnore: []string{"value"},
 			},
 			{
-				Config: updatedConfig,
-				Check:  updatedCheck,
+				Config: fmt.Sprintf(configTmpl, "https://npm-registry.example.com", "all"),
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue("github_organization_private_registry.test", tfjsonpath.New("name"), knownvalue.NotNull()),
+					statecheck.ExpectKnownValue("github_organization_private_registry.test", tfjsonpath.New("registry_type"), knownvalue.StringExact("npm_registry")),
+					statecheck.ExpectKnownValue("github_organization_private_registry.test", tfjsonpath.New("url"), knownvalue.StringExact("https://npm-registry.example.com")),
+					statecheck.ExpectKnownValue("github_organization_private_registry.test", tfjsonpath.New("username"), knownvalue.StringExact("github-actions")),
+					statecheck.ExpectKnownValue("github_organization_private_registry.test", tfjsonpath.New("visibility"), knownvalue.StringExact("all")),
+					statecheck.ExpectKnownValue("data.github_organization_private_registry.test", tfjsonpath.New("registry_type"), knownvalue.StringExact("npm_registry")),
+				},
 			},
 		},
 	})

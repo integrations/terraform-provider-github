@@ -15,11 +15,12 @@ import (
 
 func resourceGithubOrganizationPrivateRegistry() *schema.Resource {
 	return &schema.Resource{
+		Description:   "This resource allows you to create and manage an organization private registry.",
 		CreateContext: resourceGithubOrganizationPrivateRegistryCreate,
 		ReadContext:   resourceGithubOrganizationPrivateRegistryRead,
 		UpdateContext: resourceGithubOrganizationPrivateRegistryUpdate,
 		DeleteContext: resourceGithubOrganizationPrivateRegistryDelete,
-		CustomizeDiff: customdiff.All(resourceGithubOrganizationPrivateRegistryDiff),
+		CustomizeDiff: customdiff.All(resourceGithubOrganizationPrivateRegistryDiff, diffSecret, diffSecretVariableVisibility),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -52,25 +53,27 @@ func resourceGithubOrganizationPrivateRegistry() *schema.Resource {
 				Default:     false,
 				Description: "Indicates whether this private registry should replace the base registry.",
 			},
-			"secret": {
+			"value": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Sensitive:     true,
-				ConflictsWith: []string{"encrypted_value"},
+				ConflictsWith: []string{"value_encrypted"},
 				Description:   "The plaintext secret to be encrypted and sent to GitHub. This is used for a token when auth_type is token, and for a password when auth_type is username_password. Required when auth_type is token or username_password.",
 			},
-			"encrypted_value": {
+			"value_encrypted": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Sensitive:     true,
-				ConflictsWith: []string{"secret"},
+				ConflictsWith: []string{"value"},
 				Description:   "The encrypted value of the secret using the GitHub public key in Base64 format.",
 			},
 			"key_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
-				Description: "ID of the public key used to encrypt the secret. Required if encrypted_value is set.",
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				RequiredWith:  []string{"value_encrypted"},
+				ConflictsWith: []string{"value"},
+				Description:   "ID of the public key used to encrypt the secret. Required if encrypted_value is set.",
 			},
 			"visibility": {
 				Type:             schema.TypeString,
@@ -163,10 +166,10 @@ func resourceGithubOrganizationPrivateRegistryDiff(_ context.Context, d *schema.
 		return nil
 	}
 
-	if _, ok := d.GetOk("secret"); ok {
+	if _, ok := d.GetOk("value"); ok {
 		return nil
 	}
-	if _, ok := d.GetOk("encrypted_value"); ok {
+	if _, ok := d.GetOk("value_encrypted"); ok {
 		return nil
 	}
 
@@ -177,7 +180,7 @@ func resourceGithubOrganizationPrivateRegistryCreate(ctx context.Context, d *sch
 	client := meta.(*Owner).v3client
 	org := meta.(*Owner).name
 
-	encryptedValue := d.Get("encrypted_value").(string)
+	encryptedValue := d.Get("value_encrypted").(string)
 	keyID := d.Get("key_id").(string)
 
 	authType := d.Get("auth_type").(string)
@@ -190,7 +193,7 @@ func resourceGithubOrganizationPrivateRegistryCreate(ctx context.Context, d *sch
 			keyID = ki
 
 			if len(encryptedValue) == 0 {
-				plaintextValue := d.Get("secret").(string)
+				plaintextValue := d.Get("value").(string)
 				encryptedBytes, err := encryptPlaintext(plaintextValue, pk)
 				if err != nil {
 					return diag.FromErr(err)
@@ -362,11 +365,11 @@ func resourceGithubOrganizationPrivateRegistryUpdate(ctx context.Context, d *sch
 	client := meta.(*Owner).v3client
 	org := meta.(*Owner).name
 
-	encryptedValue := d.Get("encrypted_value").(string)
+	encryptedValue := d.Get("value_encrypted").(string)
 	keyID := d.Get("key_id").(string)
 
 	authType := d.Get("auth_type").(string)
-	if (d.HasChange("secret") || d.HasChange("encrypted_value")) && (authType == "token" || authType == "username_password") {
+	if (d.HasChange("value") || d.HasChange("value_encrypted")) && (authType == "token" || authType == "username_password") {
 		ki, pk, err := getOrganizationRegistryPublicKeyDetails(ctx, client, org)
 		if err != nil {
 			return diag.FromErr(err)
@@ -374,7 +377,7 @@ func resourceGithubOrganizationPrivateRegistryUpdate(ctx context.Context, d *sch
 		keyID = ki
 
 		if len(encryptedValue) == 0 {
-			plaintextValue := d.Get("secret").(string)
+			plaintextValue := d.Get("value").(string)
 			encryptedBytes, err := encryptPlaintext(plaintextValue, pk)
 			if err != nil {
 				return diag.FromErr(err)

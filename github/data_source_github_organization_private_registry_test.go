@@ -4,17 +4,18 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
-func TestAccDataSourceGithubOrganizationPrivateRegistry(t *testing.T) {
-	skipUnlessMode(t, organization)
-
+func TestAccGithubDataSourceOrganizationPrivateRegistry(t *testing.T) {
 	config := `
 		resource "github_organization_private_registry" "test" {
 			registry_type  = "npm_registry"
 			url            = "https://npm.pkg.github.com"
 			username       = "github-actions"
-			secret         = "super_secret_token_123"
+			value          = "super_secret_token_123"
 			visibility     = "private"
 		}
 
@@ -24,7 +25,10 @@ func TestAccDataSourceGithubOrganizationPrivateRegistry(t *testing.T) {
 	`
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { skipUnlessHasOrgs(t) },
+		PreCheck: func() {
+			skipUnlessMode(t, organization)
+			skipUnlessHasOrgs(t)
+		},
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{

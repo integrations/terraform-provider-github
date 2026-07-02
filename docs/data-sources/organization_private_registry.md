@@ -26,23 +26,23 @@ data "github_organization_private_registry" "my_registry" {
 
 ### Read-Only
 
-- `auth_type` (String) The authentication type for the private registry. Can be `token`, `username_password`, `oidc_azure`, `oidc_aws`, or `oidc_jfrog`.
-- `created_at` (String)
+- `auth_type` (String) The authentication type for the private registry.
+- `created_at` (String) The time the registry was created.
 - `id` (String) The ID of this resource.
-- `oidc_audience` (String)
-- `oidc_aws_account_id` (String)
-- `oidc_aws_domain` (String)
-- `oidc_aws_domain_owner` (String)
-- `oidc_aws_region` (String)
-- `oidc_aws_role_name` (String)
-- `oidc_azure_client_id` (String)
-- `oidc_azure_tenant_id` (String)
-- `oidc_jfrog_identity_mapping_name` (String)
-- `oidc_jfrog_provider_name` (String)
-- `registry_type` (String) The registry type. Can be `maven_repository`, `nuget_feed`, `goproxy_server`, `npm_registry`, `rubygems_server`, `cargo_registry`, `composer_repository`, `docker_registry`, `git_source`, `helm_registry`, `pub_repository`, `python_index`, or `terraform_registry`.
-- `replaces_base` (Boolean)
-- `selected_repository_ids` (Set of Number)
-- `updated_at` (String)
-- `url` (String)
-- `username` (String)
-- `visibility` (String) Configures the access that repositories have to the organization private registry. Must be one of `all`, `private`, or `selected`.
+- `oidc_audience` (String) The JWT audience.
+- `oidc_aws_account_id` (String) The AWS account ID.
+- `oidc_aws_domain` (String) The AWS domain.
+- `oidc_aws_domain_owner` (String) The AWS domain owner.
+- `oidc_aws_region` (String) The AWS region.
+- `oidc_aws_role_name` (String) The AWS role name.
+- `oidc_azure_client_id` (String) The Azure client ID.
+- `oidc_azure_tenant_id` (String) The Azure tenant ID.
+- `oidc_jfrog_identity_mapping_name` (String) The JFrog identity mapping name.
+- `oidc_jfrog_provider_name` (String) The JFrog provider name.
+- `registry_type` (String) The registry type.
+- `replaces_base` (Boolean) Whether the private registry should replace the public base registry.
+- `selected_repository_ids` (Set of Number) An array of repository IDs that can access the organization private registry.
+- `updated_at` (String) The time the registry was updated.
+- `url` (String) The registry URL.
+- `username` (String) The registry username.
+- `visibility` (String) Configures the access that repositories have to the organization private registry.
