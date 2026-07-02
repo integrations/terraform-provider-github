@@ -2,34 +2,43 @@ package ghclient
 
 import (
 	"context"
+	"fmt"
+	"os"
 
 	"github.com/google/go-github/v88/github"
 	"github.com/shurcooL/githubv4"
+	"golang.org/x/sync/semaphore"
 )
 
 // tokenSource is a concrete implementation of a [Source] that uses the provided token credentials to create GitHub clients.
 type tokenSource struct {
-	token         string
 	restClient    *github.Client
 	graphQLClient *githubv4.Client
 }
 
 // NewTokenSource creates a new tokenSource that provides a GitHub client authenticated with the provided personal access token.
-func NewTokenSource(token string, options Options) (*tokenSource, error) {
-	options.cacheRef = new("token-rest")
-	client, err := NewTokenRESTClient(token, options)
+func NewTokenSource(token string, opts SourceOptions) (*tokenSource, error) {
+	if opts.Cache && opts.CacheBasePath == "" {
+		s, err := os.MkdirTemp("", "*")
+		if err != nil {
+			return nil, fmt.Errorf("failed to create temporary cache directory: %w", err)
+		}
+		opts.CacheBasePath = s
+	}
+
+	sema := semaphore.NewWeighted(maxConcurrentRequests)
+
+	client, err := NewTokenRESTClient(token, opts.getRESTClientOptions(sema, "token-rest"))
 	if err != nil {
 		return nil, err
 	}
 
-	options.cacheRef = new("token-graphql")
-	graphQLClient, err := NewTokenGraphQLClient(token, options)
+	graphQLClient, err := NewTokenGraphQLClient(token, opts.getGraphQLClientOptions(sema))
 	if err != nil {
 		return nil, err
 	}
 
 	return &tokenSource{
-		token:         token,
 		restClient:    client,
 		graphQLClient: graphQLClient,
 	}, nil

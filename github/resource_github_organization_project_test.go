@@ -13,9 +13,13 @@ package github
 // )
 
 // func TestAccGithubOrganizationProject_basic(t *testing.T) {
+// t.Parallel()
+
 // 	t.Skip("Skipping test as the GitHub API no longer supports classic projects")
 
 // 	t.Run("creates organization project", func(t *testing.T) {
+// 		t.Parallel()
+
 // 		var project github.Project
 // 		config := `
 // resource "github_organization_project" "test" {
@@ -52,6 +56,8 @@ package github
 // }
 
 // func testAccGithubOrganizationProjectDestroy(s *terraform.State) error {
+// t.Parallel()
+
 // 	meta, err := getTestMeta()
 // 	if err != nil {
 // 		return err
@@ -84,6 +90,8 @@ package github
 // }
 
 // func testAccCheckGithubOrganizationProjectExists(n string, project *github.Project) resource.TestCheckFunc {
+// t.Parallel()
+
 // 	return func(s *terraform.State) error {
 // 		rs, ok := s.RootModule().Resources[n]
 // 		if !ok {
@@ -116,6 +124,8 @@ package github
 // }
 
 // func testAccCheckGithubOrganizationProjectAttributes(project *github.Project, want *testAccGithubOrganizationProjectExpectedAttributes) resource.TestCheckFunc {
+// t.Parallel()
+
 // 	return func(s *terraform.State) error {
 // 		if name := project.GetName(); name != want.Name {
 // 			return fmt.Errorf("got project %q; want %q", name, want.Name)

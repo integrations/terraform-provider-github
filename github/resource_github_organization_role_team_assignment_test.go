@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubOrganizationRoleTeamAssignment(t *testing.T) {
+	t.Parallel()
+
 	// Using the predefined roles since custom roles are a strictly Enterprise feature ((https://github.blog/changelog/2024-07-10-pre-defined-organization-roles-that-grant-access-to-all-repositories/))
 	githubPredefinedRoleMapping := make(map[string]string)
 	githubPredefinedRoleMapping["all_repo_read"] = "8132"
@@ -18,6 +20,8 @@ func TestAccGithubOrganizationRoleTeamAssignment(t *testing.T) {
 	githubPredefinedRoleMapping["all_repo_admin"] = "8136"
 
 	t.Run("creates repo assignment without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamSlug := fmt.Sprintf("%steam-role-assign-%s", testResourcePrefix, randomID)
 
@@ -58,6 +62,8 @@ func TestAccGithubOrganizationRoleTeamAssignment(t *testing.T) {
 
 	// More tests can go here following the same format...
 	t.Run("create and re-creates role assignment without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamSlug := fmt.Sprintf("%steam-role-assign-%s", testResourcePrefix, randomID)
 

@@ -1,104 +1,99 @@
 package ghclient
 
 import (
+	"os"
 	"testing"
+
+	"github.com/google/go-github/v88/github"
+	"github.com/shurcooL/githubv4"
 )
 
 func TestNewAnonymousSource(t *testing.T) {
 	t.Parallel()
 
-	source, err := NewAnonymousSource(Options{})
-	if err != nil {
-		t.Fatalf("failed to create anonymous source: %v", err)
-	}
+	cacheBasePath := mustMkdirTemp(t, "", "*")
+	t.Cleanup(func() {
+		_ = os.RemoveAll(cacheBasePath)
+	})
 
-	if source == nil {
-		t.Fatal("expected anonymous source to be non-nil")
+	for _, tt := range []struct {
+		name string
+		opts SourceOptions
+	}{
+		{
+			name: "default",
+			opts: SourceOptions{},
+		},
+		{
+			name: "with_cache_base_path",
+			opts: SourceOptions{
+				Cache:         true,
+				CacheBasePath: mustMkdirTemp(t, cacheBasePath, "*"),
+			},
+		},
+		{
+			name: "with_cache_no_base_path",
+			opts: SourceOptions{
+				Cache: true,
+			},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			source, err := NewAnonymousSource(tt.opts)
+			if err != nil {
+				t.Fatalf("failed to create anonymous source: %v", err)
+			}
+
+			if source == nil {
+				t.Fatal("expected anonymous source to be non-nil")
+			}
+		})
 	}
 }
 
 func Test_anonymousSource(t *testing.T) {
 	t.Parallel()
 
-	t.Run("RESTClient", func(t *testing.T) {
-		t.Parallel()
+	source := &anonymousSource{
+		restClient:    &github.Client{},
+		graphQLClient: &githubv4.Client{},
+	}
 
-		source, err := NewAnonymousSource(Options{})
-		if err != nil {
-			t.Fatalf("failed to create anonymous source: %v", err)
-		}
+	restClient, err := source.RESTClient()
+	if err != nil {
+		t.Fatalf("failed to get rest client: %v", err)
+	}
 
-		client, err := source.RESTClient()
-		if err != nil {
-			t.Fatalf("failed to get rest client: %v", err)
-		}
+	if restClient == nil {
+		t.Fatal("expected rest client to be non-nil")
+	}
 
-		if client == nil {
-			t.Fatal("expected rest client to be non-nil")
-		}
-	})
+	ownerRESTClient, err := source.OwnerRESTClient(t.Context(), "octocat")
+	if err != nil {
+		t.Fatalf("failed to get owner rest client: %v", err)
+	}
 
-	t.Run("OwnerRESTClient", func(t *testing.T) {
-		t.Parallel()
+	if ownerRESTClient != restClient {
+		t.Fatal("expected owner rest client to be the same client as default rest client")
+	}
 
-		source, err := NewAnonymousSource(Options{})
-		if err != nil {
-			t.Fatalf("failed to create anonymous source: %v", err)
-		}
+	graphQLClient, err := source.GraphQLClient()
+	if err != nil {
+		t.Fatalf("failed to get graphql client: %v", err)
+	}
 
-		defaultClient, err := source.RESTClient()
-		if err != nil {
-			t.Fatalf("failed to get default rest client: %v", err)
-		}
+	if graphQLClient == nil {
+		t.Fatal("expected graphql client to be non-nil")
+	}
 
-		ownerClient, err := source.OwnerRESTClient(t.Context(), "octocat")
-		if err != nil {
-			t.Fatalf("failed to get owner rest client: %v", err)
-		}
+	ownerGraphQLClient, err := source.OwnerGraphQLClient(t.Context(), "octocat")
+	if err != nil {
+		t.Fatalf("failed to get owner graphql client: %v", err)
+	}
 
-		if ownerClient != defaultClient {
-			t.Fatal("expected owner rest client to be the same client as default rest client")
-		}
-	})
-
-	t.Run("GraphQLClient", func(t *testing.T) {
-		t.Parallel()
-
-		source, err := NewAnonymousSource(Options{})
-		if err != nil {
-			t.Fatalf("failed to create anonymous source: %v", err)
-		}
-
-		client, err := source.GraphQLClient()
-		if err != nil {
-			t.Fatalf("failed to get graphql client: %v", err)
-		}
-
-		if client == nil {
-			t.Fatal("expected graphql client to be non-nil")
-		}
-	})
-
-	t.Run("OwnerGraphQLClient", func(t *testing.T) {
-		t.Parallel()
-
-		source, err := NewAnonymousSource(Options{})
-		if err != nil {
-			t.Fatalf("failed to create anonymous source: %v", err)
-		}
-
-		defaultClient, err := source.GraphQLClient()
-		if err != nil {
-			t.Fatalf("failed to get default graphql client: %v", err)
-		}
-
-		ownerClient, err := source.OwnerGraphQLClient(t.Context(), "octocat")
-		if err != nil {
-			t.Fatalf("failed to get owner graphql client: %v", err)
-		}
-
-		if ownerClient != defaultClient {
-			t.Fatal("expected owner graphql client to be the same client as default graphql client")
-		}
-	})
+	if ownerGraphQLClient != graphQLClient {
+		t.Fatal("expected owner graphql client to be the same client as default graphql client")
+	}
 }

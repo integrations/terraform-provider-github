@@ -1,11 +1,17 @@
+# Basic usage 
+
 resource "github_repository" "example" {
   name        = "example"
   description = "My awesome codebase"
   auto_init   = true
 }
 
-resource "github_branch_default" "default" {
+resource "github_branch" "development" {
   repository = github_repository.example.name
   branch     = "development"
-  rename     = true
+}
+
+resource "github_branch_default" "default" {
+  repository = github_repository.example.name
+  branch     = github_branch.development.branch
 }

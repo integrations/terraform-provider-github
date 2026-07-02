@@ -2,9 +2,12 @@ package ghclient
 
 import (
 	"context"
+	"fmt"
+	"os"
 
 	"github.com/google/go-github/v88/github"
 	"github.com/shurcooL/githubv4"
+	"golang.org/x/sync/semaphore"
 )
 
 // anonymousSource is a concrete implementation of a [Source] that creates GitHub clients without authentication.
@@ -14,15 +17,23 @@ type anonymousSource struct {
 }
 
 // NewAnonymousSource creates a new anonymousSource that provides an unauthenticated GitHub client. This client will have limited access to public resources and will be subject to stricter rate limits compared to authenticated clients.
-func NewAnonymousSource(options Options) (*anonymousSource, error) {
-	options.cacheRef = new("anonymous-rest")
-	client, err := NewAnonymousRESTClient(options)
+func NewAnonymousSource(opts SourceOptions) (*anonymousSource, error) {
+	if opts.Cache && opts.CacheBasePath == "" {
+		s, err := os.MkdirTemp("", "*")
+		if err != nil {
+			return nil, fmt.Errorf("failed to create temporary cache directory: %w", err)
+		}
+		opts.CacheBasePath = s
+	}
+
+	sema := semaphore.NewWeighted(maxConcurrentRequests)
+
+	client, err := NewAnonymousRESTClient(opts.getRESTClientOptions(sema, "anonymous-rest"))
 	if err != nil {
 		return nil, err
 	}
 
-	options.cacheRef = new("anonymous-graphql")
-	graphQLClient, err := NewAnonymousGraphQLClient(options)
+	graphQLClient, err := NewAnonymousGraphQLClient(opts.getGraphQLClientOptions(sema))
 	if err != nil {
 		return nil, err
 	}

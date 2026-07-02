@@ -20,15 +20,14 @@ type Config struct {
 	AppInstallationID *string
 	AppPEM            []byte
 	BaseURL           *url.URL
-	CachePath         *string
-	GraphQLAPIPath    string
+	IsGHES            bool
+	CachePath         string
 	Insecure          bool
 	LegacyClient      bool
 	MaxRetries        int
 	Owner             string
 	ParallelRequests  bool
 	ReadDelay         time.Duration
-	RESTAPIPath       string
 	RetryableErrors   map[int]bool
 	RetryDelay        time.Duration
 	Token             string
@@ -51,6 +50,10 @@ const (
 	DotComHost = "github.com"
 	// DotComAPIHost is the API hostname for github.com.
 	DotComAPIHost = "api.github.com"
+	// RESTAPIPath is the rest api path for api.github.com & ghe.com.
+	RESTAPIPath = "/"
+	// GraphQLAPIPath is the graphql api path for api.github.com & ghe.com.
+	GraphQLAPIPath = "/graphql"
 	// GHESRESTAPISuffix is the rest api suffix for GitHub Enterprise Server.
 	GHESRESTAPIPath = "api/v3/"
 	// GHESGraphQLAPISuffix is the GraphQL api suffix for GitHub Enterprise Server.
@@ -100,16 +103,21 @@ func (c *Config) AnonymousHTTPClient() *http.Client {
 }
 
 func (c *Config) NewGraphQLClient(client *http.Client) (*githubv4.Client, error) {
-	return githubv4.NewEnterpriseClient(c.BaseURL.JoinPath(c.GraphQLAPIPath).String(), client), nil
+	pathSuffix := GraphQLAPIPath
+	if c.IsGHES {
+		pathSuffix = GHESGraphQLAPIPath
+	}
+
+	return githubv4.NewEnterpriseClient(c.BaseURL.JoinPath(pathSuffix).String(), client), nil
 }
 
 func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
-	v3client, err := github.NewClient(github.WithHTTPClient(client), github.WithURLs(new(c.BaseURL.JoinPath(c.RESTAPIPath).String()), nil))
-	if err != nil {
-		return nil, err
+	pathSuffix := RESTAPIPath
+	if c.IsGHES {
+		pathSuffix = GHESRESTAPIPath
 	}
 
-	return v3client, nil
+	return github.NewClient(github.WithHTTPClient(client), github.WithURLs(new(c.BaseURL.JoinPath(pathSuffix).String()), nil))
 }
 
 // Deprecated: This is no longer required as [configureProviderMeta] is now used to configure the provider meta parameter with the necessary clients and owner information. Use [configureProviderMeta] instead.
@@ -143,7 +151,7 @@ func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 // https://godoc.org/github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema#ConfigureFunc
 // Deprecated: Use [configureProviderMeta] instead.
 func (c *Config) Meta() (any, error) {
-	return configureProviderMeta(context.Background(), c)
+	return configureProviderMeta(context.Background(), "", c)
 }
 
 type previewHeaderInjectorTransport struct {

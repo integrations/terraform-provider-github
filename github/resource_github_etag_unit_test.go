@@ -9,6 +9,8 @@ import (
 // TestEtagDiffSuppressFunction tests that the etag diff suppress function
 // always returns true, suppressing all etag differences.
 func TestEtagDiffSuppressFunction(t *testing.T) {
+	t.Parallel()
+
 	repositoryResource := resourceGithubRepository()
 	etagField := repositoryResource.Schema["etag"]
 
@@ -59,6 +61,8 @@ func TestEtagDiffSuppressFunction(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			d := schema.TestResourceDataRaw(t, repositoryResource.Schema, map[string]any{
 				"name": "test-repo",
 			})
@@ -73,6 +77,8 @@ func TestEtagDiffSuppressFunction(t *testing.T) {
 
 // TestEtagSchemaConsistency ensure DiffSuppressFunc and DiffSuppressOnRefresh are consistently applied.
 func TestEtagSchemaConsistency(t *testing.T) {
+	t.Parallel()
+
 	resourcesWithEtag := map[string]*schema.Resource{
 		"github_actions_runner_group":                resourceGithubActionsRunnerGroup(),
 		"github_branch":                              resourceGithubBranch(),
@@ -107,6 +113,8 @@ func TestEtagSchemaConsistency(t *testing.T) {
 
 	for resourceName, resource := range resourcesWithEtag {
 		t.Run(resourceName, func(t *testing.T) {
+			t.Parallel()
+
 			etagField, exists := resource.Schema["etag"]
 			if !exists {
 				t.Errorf("Resource %s should have etag field", resourceName)

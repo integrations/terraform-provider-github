@@ -9,10 +9,10 @@ import (
 )
 
 func TestAccDataSourceGithubOrganizationRoleUsers(t *testing.T) {
+	t.Parallel()
+
 	t.Run("get the organization role users without error", func(t *testing.T) {
-		if testAccConf.testOrgUser == "" {
-			t.Skip("Skipping test because no organization user has been configured")
-		}
+		t.Parallel()
 
 		roleId := 8134
 		config := fmt.Sprintf(`
@@ -28,10 +28,10 @@ func TestAccDataSourceGithubOrganizationRoleUsers(t *testing.T) {
 					github_organization_role_user.test
 				]
 			}
-		`, roleId, testAccConf.testOrgUser)
+		`, roleId, testAccConf.testOrgUser1)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			PreCheck:          func() { skipUnlessHasOrgs(t); skipUnlessHasOrgUser1(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -40,7 +40,7 @@ func TestAccDataSourceGithubOrganizationRoleUsers(t *testing.T) {
 						resource.TestCheckResourceAttrSet("data.github_organization_role_users.test", "users.#"),
 						resource.TestCheckResourceAttr("data.github_organization_role_users.test", "users.#", "1"),
 						resource.TestCheckResourceAttrSet("data.github_organization_role_users.test", "users.0.user_id"),
-						resource.TestCheckResourceAttr("data.github_organization_role_users.test", "users.0.login", testAccConf.testOrgUser),
+						resource.TestCheckResourceAttr("data.github_organization_role_users.test", "users.0.login", testAccConf.testOrgUser1),
 					),
 				},
 			},
@@ -48,9 +48,7 @@ func TestAccDataSourceGithubOrganizationRoleUsers(t *testing.T) {
 	})
 
 	t.Run("get indirect organization role users without error", func(t *testing.T) {
-		if testAccConf.testOrgUser == "" {
-			t.Skip("Skipping test because no organization user has been configured")
-		}
+		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
@@ -78,10 +76,10 @@ func TestAccDataSourceGithubOrganizationRoleUsers(t *testing.T) {
 					github_organization_role_team.test
 				]
 			}
-		`, teamName, testAccConf.testOrgUser, roleId)
+		`, teamName, testAccConf.testOrgUser1, roleId)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			PreCheck:          func() { skipUnlessHasOrgs(t); skipUnlessHasOrgUser1(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -90,7 +88,7 @@ func TestAccDataSourceGithubOrganizationRoleUsers(t *testing.T) {
 						resource.TestCheckResourceAttrSet("data.github_organization_role_users.test", "users.#"),
 						resource.TestCheckResourceAttr("data.github_organization_role_users.test", "users.#", "1"),
 						resource.TestCheckResourceAttrSet("data.github_organization_role_users.test", "users.0.user_id"),
-						resource.TestCheckResourceAttr("data.github_organization_role_users.test", "users.0.login", testAccConf.testOrgUser),
+						resource.TestCheckResourceAttr("data.github_organization_role_users.test", "users.0.login", testAccConf.testOrgUser1),
 					),
 				},
 			},
