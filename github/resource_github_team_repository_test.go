@@ -35,7 +35,7 @@ func Test_resourceGithubTeamRepositoryDelete_nilResponseDoesNotPanic(t *testing.
 
 	// A cancelled context makes the underlying HTTP call return before it
 	// reaches the server, so go-github yields a nil response with an error.
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
 	diags := resourceGithubTeamRepositoryDelete(ctx, d, meta)
