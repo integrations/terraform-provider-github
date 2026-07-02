@@ -3,7 +3,7 @@ module github.com/integrations/terraform-provider-github/v6
 go 1.26
 
 require (
-	github.com/bored-engineer/github-conditional-http-transport v0.0.1
+	github.com/bored-engineer/github-conditional-http-transport v0.0.2
 	github.com/bored-engineer/github-conditional-http-transport/bbolt v0.0.1
 	github.com/go-jose/go-jose/v4 v4.1.4
 	github.com/gofri/go-github-ratelimit/v2 v2.0.2
