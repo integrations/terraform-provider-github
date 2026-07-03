@@ -35,7 +35,7 @@ func resourceGithubOrganizationPrivateRegistry() *schema.Resource {
 				Required:         true,
 				ForceNew:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"maven_repository", "nuget_feed", "goproxy_server", "npm_registry", "rubygems_server", "cargo_registry", "composer_repository", "docker_registry", "git_source", "helm_registry", "pub_repository", "python_index", "terraform_registry"}, false)),
-				Description:      "The registry type. Can be `maven_repository`, `nuget_feed`, `goproxy_server`, `npm_registry`, `rubygems_server`, `cargo_registry`, `composer_repository`, `docker_registry`, `git_source`, `helm_registry`, `pub_repository`, `python_index`, or `terraform_registry`.",
+				Description:      "The registry type.",
 			},
 			"url": {
 				Type:        schema.TypeString,
