@@ -11,19 +11,21 @@ import (
 func TestAccGithubActionsHostedRunner(t *testing.T) {
 	t.Parallel()
 
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
 	t.Run("creates hosted runners without error", func(t *testing.T) {
 		t.Parallel()
 
+		randomID := acctest.RandString(5)
+		runnerGroupName := fmt.Sprintf("%sgroup-%s", testResourcePrefix, randomID)
+		hostedRunnerName := fmt.Sprintf("%srunner-%s", testResourcePrefix, randomID)
+
 		config := fmt.Sprintf(`
 			resource "github_actions_runner_group" "test" {
-				name       = "tf-acc-test-group-%s"
+				name       = "%s"
 				visibility = "all"
 			}
 
 			resource "github_actions_hosted_runner" "test" {
-				name = "tf-acc-test-%s"
+				name = "%s"
 
 				image {
 					id     = "2306"
@@ -33,12 +35,12 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				size            = "4-core"
 				runner_group_id = github_actions_runner_group.test.id
 			}
-		`, randomID, randomID)
+		`, runnerGroupName, hostedRunnerName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
 				"github_actions_hosted_runner.test", "name",
-				fmt.Sprintf("tf-acc-test-%s", randomID),
+				hostedRunnerName,
 			),
 			resource.TestCheckResourceAttr(
 				"github_actions_hosted_runner.test", "size",
@@ -93,14 +95,18 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 	t.Run("creates hosted runner with optional parameters", func(t *testing.T) {
 		t.Parallel()
 
+		randomID := acctest.RandString(5)
+		runnerGroupName := fmt.Sprintf("%sgroup-%s", testResourcePrefix, randomID)
+		hostedRunnerName := fmt.Sprintf("%srunner-optional-%s", testResourcePrefix, randomID)
+
 		config := fmt.Sprintf(`
 			resource "github_actions_runner_group" "test" {
-				name       = "tf-acc-test-group-%s"
+				name       = "%s"
 				visibility = "all"
 			}
 
 			resource "github_actions_hosted_runner" "test" {
-				name = "tf-acc-test-optional-%s"
+				name = "%s"
 
 				image {
 					id     = "2306"
@@ -112,12 +118,12 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				maximum_runners   = 5
 				public_ip_enabled = true
 			}
-		`, randomID, randomID)
+		`, runnerGroupName, hostedRunnerName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
 				"github_actions_hosted_runner.test", "name",
-				fmt.Sprintf("tf-acc-test-optional-%s", randomID),
+				hostedRunnerName,
 			),
 			resource.TestCheckResourceAttr(
 				"github_actions_hosted_runner.test", "size",
@@ -148,14 +154,18 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 	t.Run("updates hosted runner configuration", func(t *testing.T) {
 		t.Parallel()
 
+		randomID := acctest.RandString(5)
+		runnerGroupName := fmt.Sprintf("%sgroup-%s", testResourcePrefix, randomID)
+		hostedRunnerName := fmt.Sprintf("%srunner-update-%s", testResourcePrefix, randomID)
+
 		configBefore := fmt.Sprintf(`
 			resource "github_actions_runner_group" "test" {
-				name       = "tf-acc-test-group-%s"
+				name       = "%s"
 				visibility = "all"
 			}
 
 			resource "github_actions_hosted_runner" "test" {
-				name = "tf-acc-test-update-%s"
+				name = "%s"
 
 				image {
 					id     = "2306"
@@ -166,16 +176,16 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				runner_group_id = github_actions_runner_group.test.id
 				maximum_runners = 3
 			}
-		`, randomID, randomID)
+		`, runnerGroupName, hostedRunnerName)
 
 		configAfter := fmt.Sprintf(`
 			resource "github_actions_runner_group" "test" {
-				name       = "tf-acc-test-group-%s"
+				name       = "%s"
 				visibility = "all"
 			}
 
 			resource "github_actions_hosted_runner" "test" {
-				name = "tf-acc-test-update-%s-updated"
+				name = "%s-updated"
 
 				image {
 					id     = "2306"
@@ -186,12 +196,12 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				runner_group_id = github_actions_runner_group.test.id
 				maximum_runners = 5
 			}
-		`, randomID, randomID)
+		`, runnerGroupName, hostedRunnerName)
 
 		checkBefore := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
 				"github_actions_hosted_runner.test", "name",
-				fmt.Sprintf("tf-acc-test-update-%s", randomID),
+				hostedRunnerName,
 			),
 			resource.TestCheckResourceAttr(
 				"github_actions_hosted_runner.test", "size",
@@ -206,7 +216,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 		checkAfter := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
 				"github_actions_hosted_runner.test", "name",
-				fmt.Sprintf("tf-acc-test-update-%s-updated", randomID),
+				fmt.Sprintf("%s-updated", hostedRunnerName),
 			),
 			resource.TestCheckResourceAttr(
 				"github_actions_hosted_runner.test", "size",
@@ -237,14 +247,18 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 	t.Run("updates size field", func(t *testing.T) {
 		t.Parallel()
 
+		randomID := acctest.RandString(5)
+		runnerGroupName := fmt.Sprintf("%sgroup-%s", testResourcePrefix, randomID)
+		hostedRunnerName := fmt.Sprintf("%srunner-size-%s", testResourcePrefix, randomID)
+
 		configBefore := fmt.Sprintf(`
 			resource "github_actions_runner_group" "test" {
-				name       = "tf-acc-test-group-%s"
+				name       = "%s"
 				visibility = "all"
 			}
 
 			resource "github_actions_hosted_runner" "test" {
-				name = "tf-acc-test-size-%s"
+				name = "%s"
 
 				image {
 					id     = "2306"
@@ -254,16 +268,16 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				size            = "4-core"
 				runner_group_id = github_actions_runner_group.test.id
 			}
-		`, randomID, randomID)
+		`, runnerGroupName, hostedRunnerName)
 
 		configAfter := fmt.Sprintf(`
 			resource "github_actions_runner_group" "test" {
-				name       = "tf-acc-test-group-%s"
+				name       = "%s"
 				visibility = "all"
 			}
 
 			resource "github_actions_hosted_runner" "test" {
-				name = "tf-acc-test-size-%s"
+				name = "%s"
 
 				image {
 					id     = "2306"
@@ -273,7 +287,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				size            = "8-core"
 				runner_group_id = github_actions_runner_group.test.id
 			}
-		`, randomID, randomID)
+		`, runnerGroupName, hostedRunnerName)
 
 		checkBefore := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -316,14 +330,18 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 	t.Run("imports hosted runner", func(t *testing.T) {
 		t.Parallel()
 
+		randomID := acctest.RandString(5)
+		runnerGroupName := fmt.Sprintf("%sgroup-%s", testResourcePrefix, randomID)
+		hostedRunnerName := fmt.Sprintf("%srunner-import-%s", testResourcePrefix, randomID)
+
 		config := fmt.Sprintf(`
 			resource "github_actions_runner_group" "test" {
-				name       = "tf-acc-test-group-%s"
+				name       = "%s"
 				visibility = "all"
 			}
 
 			resource "github_actions_hosted_runner" "test" {
-				name = "tf-acc-test-import-%s"
+				name = "%s"
 
 				image {
 					id     = "2306"
@@ -333,7 +351,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				size            = "4-core"
 				runner_group_id = github_actions_runner_group.test.id
 			}
-		`, randomID, randomID)
+		`, runnerGroupName, hostedRunnerName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet(
@@ -341,7 +359,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			),
 			resource.TestCheckResourceAttr(
 				"github_actions_hosted_runner.test", "name",
-				fmt.Sprintf("tf-acc-test-import-%s", randomID),
+				hostedRunnerName,
 			),
 		)
 
@@ -366,14 +384,18 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 	t.Run("deletes hosted runner", func(t *testing.T) {
 		t.Parallel()
 
+		randomID := acctest.RandString(5)
+		runnerGroupName := fmt.Sprintf("%sgroup-%s", testResourcePrefix, randomID)
+		hostedRunnerName := fmt.Sprintf("%srunner-delete-%s", testResourcePrefix, randomID)
+
 		config := fmt.Sprintf(`
 			resource "github_actions_runner_group" "test" {
-				name       = "tf-acc-test-group-%s"
+				name       = "%s"
 				visibility = "all"
 			}
 
 			resource "github_actions_hosted_runner" "test" {
-				name = "tf-acc-test-delete-%s"
+				name = "%s"
 
 				image {
 					id     = "2306"
@@ -383,7 +405,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				size            = "4-core"
 				runner_group_id = github_actions_runner_group.test.id
 			}
-		`, randomID, randomID)
+		`, runnerGroupName, hostedRunnerName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
@@ -401,10 +423,10 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				{
 					Config: fmt.Sprintf(`
 							resource "github_actions_runner_group" "test" {
-								name       = "tf-acc-test-group-%s"
+								name       = "%s"
 								visibility = "all"
 							}
-						`, randomID),
+						`, runnerGroupName),
 				},
 			},
 		})
