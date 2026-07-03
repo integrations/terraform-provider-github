@@ -65,6 +65,7 @@ func resourceGithubOrganizationPrivateRegistry() *schema.Resource {
 				Optional:      true,
 				Sensitive:     true,
 				ConflictsWith: []string{"value"},
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsBase64),
 				Description:   "The encrypted value of the secret using the GitHub public key in Base64 format.",
 			},
 			"key_id": {
