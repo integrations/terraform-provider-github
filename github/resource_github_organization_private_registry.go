@@ -73,7 +73,7 @@ func resourceGithubOrganizationPrivateRegistry() *schema.Resource {
 				Computed:      true,
 				RequiredWith:  []string{"value_encrypted"},
 				ConflictsWith: []string{"value"},
-				Description:   "ID of the public key used to encrypt the secret. Required if encrypted_value is set.",
+				Description:   "ID of the public key used to encrypt the secret. Required if value_encrypted is set.",
 			},
 			"visibility": {
 				Type:             schema.TypeString,
@@ -173,7 +173,7 @@ func resourceGithubOrganizationPrivateRegistryDiff(_ context.Context, d *schema.
 		return nil
 	}
 
-	return fmt.Errorf("one of `secret,encrypted_value` must be specified when auth_type is %q", authType)
+	return fmt.Errorf("one of `value,value_encrypted` must be specified when auth_type is %q", authType)
 }
 
 func resourceGithubOrganizationPrivateRegistryCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
