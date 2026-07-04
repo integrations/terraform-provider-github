@@ -194,26 +194,34 @@ func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions
 	inputConditions := input[0].(map[string]any)
 
 	// ref_name is available for both repo and org rulesets
-	if v, ok := inputConditions["ref_name"].([]any); ok && v != nil && len(v) != 0 {
-		inputRefName := v[0].(map[string]any)
-		include := make([]string, 0)
-		exclude := make([]string, 0)
+	if v, ok := inputConditions["ref_name"].([]any); ok && len(v) != 0 {
+		// A present-but-empty ref_name block (e.g. `ref_name {}`) can yield a nil
+		// element or a map without include/exclude keys; guard both so we fail
+		// gracefully instead of panicking (#3299).
+		if inputRefName, ok := v[0].(map[string]any); ok {
+			include := make([]string, 0)
+			exclude := make([]string, 0)
 
-		for _, v := range inputRefName["include"].([]any) {
-			if v != nil {
-				include = append(include, v.(string))
+			if raw, ok := inputRefName["include"].([]any); ok {
+				for _, v := range raw {
+					if v != nil {
+						include = append(include, v.(string))
+					}
+				}
 			}
-		}
 
-		for _, v := range inputRefName["exclude"].([]any) {
-			if v != nil {
-				exclude = append(exclude, v.(string))
+			if raw, ok := inputRefName["exclude"].([]any); ok {
+				for _, v := range raw {
+					if v != nil {
+						exclude = append(exclude, v.(string))
+					}
+				}
 			}
-		}
 
-		rulesetConditions.RefName = &github.RepositoryRulesetRefConditionParameters{
-			Include: include,
-			Exclude: exclude,
+			rulesetConditions.RefName = &github.RepositoryRulesetRefConditionParameters{
+				Include: include,
+				Exclude: exclude,
+			}
 		}
 	}
 

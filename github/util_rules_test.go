@@ -1365,3 +1365,113 @@ func TestFlattenRulesetRepositoryPropertyTargetParameters_NilPropertyValues(t *t
 		}
 	}
 }
+
+// Regression tests for #3299: expandConditions must not panic when a
+// conditions.ref_name block is present but nil/empty (e.g. `ref_name {}` with
+// no include/exclude, or a nil element in the ref_name list).
+
+func TestExpandConditions_RefNameNilElement(t *testing.T) {
+	t.Parallel()
+
+	// A ref_name list holding a nil element (as produced by an empty/typeless
+	// block) previously panicked on v[0].(map[string]any).
+	input := []any{
+		map[string]any{
+			"ref_name": []any{nil},
+		},
+	}
+
+	result := expandConditions(input, false)
+
+	if result == nil {
+		t.Fatal("Expected result to not be nil")
+	}
+	if result.RefName != nil {
+		t.Errorf("Expected RefName to be nil for a nil ref_name element, got %+v", result.RefName)
+	}
+}
+
+func TestExpandConditions_RefNameMissingIncludeExclude(t *testing.T) {
+	t.Parallel()
+
+	// An empty `ref_name {}` block yields a map without include/exclude keys;
+	// asserting the absent values as []any previously panicked.
+	input := []any{
+		map[string]any{
+			"ref_name": []any{
+				map[string]any{},
+			},
+		},
+	}
+
+	result := expandConditions(input, false)
+
+	if result == nil {
+		t.Fatal("Expected result to not be nil")
+	}
+	if result.RefName == nil {
+		t.Fatal("Expected RefName to be set for a present ref_name block")
+	}
+	if len(result.RefName.Include) != 0 {
+		t.Errorf("Expected 0 include refs, got %d", len(result.RefName.Include))
+	}
+	if len(result.RefName.Exclude) != 0 {
+		t.Errorf("Expected 0 exclude refs, got %d", len(result.RefName.Exclude))
+	}
+}
+
+func TestExpandConditions_RefNameEmptyIncludeExclude(t *testing.T) {
+	t.Parallel()
+
+	// The common empty-array case must keep working: RefName set, no entries.
+	input := []any{
+		map[string]any{
+			"ref_name": []any{
+				map[string]any{
+					"include": []any{},
+					"exclude": []any{},
+				},
+			},
+		},
+	}
+
+	result := expandConditions(input, false)
+
+	if result == nil || result.RefName == nil {
+		t.Fatal("Expected result and RefName to be set")
+	}
+	if len(result.RefName.Include) != 0 || len(result.RefName.Exclude) != 0 {
+		t.Errorf("Expected empty include/exclude, got include=%v exclude=%v", result.RefName.Include, result.RefName.Exclude)
+	}
+}
+
+func TestExpandConditions_RefNamePopulated(t *testing.T) {
+	t.Parallel()
+
+	// Populated include/exclude (with a nil entry to skip) must still expand.
+	input := []any{
+		map[string]any{
+			"ref_name": []any{
+				map[string]any{
+					"include": []any{"~DEFAULT_BRANCH", nil, "refs/heads/release/*"},
+					"exclude": []any{"refs/heads/wip/*"},
+				},
+			},
+		},
+	}
+
+	result := expandConditions(input, false)
+
+	if result == nil || result.RefName == nil {
+		t.Fatal("Expected result and RefName to be set")
+	}
+	if len(result.RefName.Include) != 2 {
+		t.Fatalf("Expected 2 include refs (nil skipped), got %d", len(result.RefName.Include))
+	}
+	if result.RefName.Include[0] != "~DEFAULT_BRANCH" || result.RefName.Include[1] != "refs/heads/release/*" {
+		t.Errorf("Unexpected include refs: %v", result.RefName.Include)
+	}
+	if len(result.RefName.Exclude) != 1 || result.RefName.Exclude[0] != "refs/heads/wip/*" {
+		t.Errorf("Unexpected exclude refs: %v", result.RefName.Exclude)
+	}
+}
