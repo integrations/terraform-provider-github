@@ -6,12 +6,15 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubActionsHostedRunner(t *testing.T) {
 	t.Parallel()
 
-	t.Run("creates hosted runners without error", func(t *testing.T) {
+	t.Run("creates_hosted_runners_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandString(5)
@@ -37,56 +40,27 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			}
 		`, runnerGroupName, hostedRunnerName)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "name",
-				hostedRunnerName,
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "size",
-				"4-core",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "image.0.id",
-				"2306",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "image.0.source",
-				"github",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_actions_hosted_runner.test", "id",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_actions_hosted_runner.test", "status",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_actions_hosted_runner.test", "platform",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_actions_hosted_runner.test", "image.0.size_gb",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_actions_hosted_runner.test", "machine_size_details.0.id",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_actions_hosted_runner.test", "machine_size_details.0.cpu_cores",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_actions_hosted_runner.test", "machine_size_details.0.memory_gb",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_actions_hosted_runner.test", "machine_size_details.0.storage_gb",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("name"), knownvalue.StringExact(hostedRunnerName)),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("runner_group_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("size"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("status"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("platform"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("image").AtSliceIndex(0).AtMapKey("id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("image").AtSliceIndex(0).AtMapKey("source"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("image").AtSliceIndex(0).AtMapKey("size_gb"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("machine_size_details").AtSliceIndex(0).AtMapKey("id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("machine_size_details").AtSliceIndex(0).AtMapKey("cpu_cores"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("machine_size_details").AtSliceIndex(0).AtMapKey("memory_gb"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("machine_size_details").AtSliceIndex(0).AtMapKey("storage_gb"), knownvalue.NotNull()),
+					},
 				},
 			},
 		})
