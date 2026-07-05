@@ -2,7 +2,9 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
 	"slices"
@@ -267,6 +269,11 @@ func configureSweepers() {
 		Name: "teams",
 		F:    sweepTeams,
 	})
+
+	resource.AddTestSweepers("organization_runner_groups", &resource.Sweeper{
+		Name: "organization_runner_groups",
+		F:    sweepOrganizationRunnerGroups,
+	})
 }
 
 func sweepTeams(_ string) error {
@@ -322,6 +329,72 @@ func sweepRepositories(_ string) error {
 
 			if _, err := client.Repositories.Delete(ctx, owner, name); err != nil {
 				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func sweepOrganizationRunnerGroups(_ string) error {
+	if !slices.Contains(orgTestModes, testMode(os.Getenv("GH_TEST_AUTH_MODE"))) {
+		return nil
+	}
+
+	client := testAccConf.meta.v3client
+	owner := testAccConf.meta.name
+	ctx := context.Background()
+
+	fmt.Println("sweeping organization runner groups")
+	runnerGroups, _, err := client.Actions.ListOrganizationRunnerGroups(ctx, owner, &github.ListOrgRunnerGroupOptions{})
+	if err != nil {
+		return err
+	}
+
+	for _, rg := range runnerGroups.GetRunnerGroups() {
+		if name := rg.GetName(); strings.HasPrefix(name, testResourcePrefix) {
+			fmt.Printf("destroying organization runner group %s\n", name)
+
+			if err := sweepRunnerGroupRunners(rg); err != nil {
+				return err
+			}
+
+			if _, err := client.Actions.DeleteOrganizationRunnerGroup(ctx, owner, rg.GetID()); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func sweepRunnerGroupRunners(rg *github.RunnerGroup) error {
+	client := testAccConf.meta.v3client
+	owner := testAccConf.meta.name
+	ctx := context.Background()
+
+	fmt.Printf("sweeping organization hosted runners of runner group: %s\n", rg.GetName())
+	runners, _, err := client.Actions.ListRunnerGroupHostedRunners(ctx, owner, rg.GetID(), &github.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	for _, r := range runners.GetRunners() {
+		fmt.Printf("destroying organization hosted runner %s\n", r.GetName())
+
+		if _, resp, err := client.Actions.DeleteHostedRunner(ctx, owner, r.GetID()); err != nil {
+			if err != nil {
+				if resp != nil && resp.StatusCode == http.StatusNotFound {
+					return nil
+				}
+				if _, ok := errors.AsType[*github.ErrorResponse](err); ok {
+					return waitForRunnerDeletion(ctx, client, owner, strconv.FormatInt(r.GetID(), 10), 0)
+				}
+				return err
+			}
+
+			if resp != nil && resp.StatusCode == http.StatusAccepted {
+				return waitForRunnerDeletion(ctx, client, owner, strconv.FormatInt(r.GetID(), 10), 0)
 			}
 		}
 	}
