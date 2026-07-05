@@ -66,7 +66,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 		})
 	})
 
-	t.Run("creates hosted runner with optional parameters", func(t *testing.T) {
+	t.Run("creates_hosted_runner_with_optional_parameters", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandString(5)
@@ -94,32 +94,18 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			}
 		`, runnerGroupName, hostedRunnerName)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "name",
-				hostedRunnerName,
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "size",
-				"2-core",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "maximum_runners",
-				"5",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "public_ip_enabled",
-				"true",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("name"), knownvalue.StringExact(hostedRunnerName)),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("size"), knownvalue.StringExact("2-core")),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("maximum_runners"), knownvalue.Int64Exact(5)),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("public_ip_enabled"), knownvalue.Bool(true)),
+					},
 				},
 			},
 		})
