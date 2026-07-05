@@ -188,7 +188,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 		})
 	})
 
-	t.Run("updates size field", func(t *testing.T) {
+	t.Run("updates_size_field", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandString(5)
@@ -233,39 +233,28 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			}
 		`, runnerGroupName, hostedRunnerName)
 
-		checkBefore := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "size",
-				"4-core",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "machine_size_details.0.cpu_cores",
-				"4",
-			),
-		)
-
-		checkAfter := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "size",
-				"8-core",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "machine_size_details.0.cpu_cores",
-				"8",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: configBefore,
-					Check:  checkBefore,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("size"), knownvalue.StringExact("4-core")),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("machine_size_details").AtSliceIndex(0).AtMapKey("cpu_cores"), knownvalue.Int64Exact(4)),
+					},
 				},
 				{
 					Config: configAfter,
-					Check:  checkAfter,
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_hosted_runner.test", plancheck.ResourceActionUpdate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("size"), knownvalue.StringExact("8-core")),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("machine_size_details").AtSliceIndex(0).AtMapKey("cpu_cores"), knownvalue.Int64Exact(8)),
+					},
 				},
 			},
 		})
