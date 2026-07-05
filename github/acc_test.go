@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -355,11 +356,14 @@ func sweepOrganizationRunnerGroups(_ string) error {
 		if name := rg.GetName(); strings.HasPrefix(name, testResourcePrefix) {
 			fmt.Printf("destroying organization runner group %s\n", name)
 
-			if err := sweepRunnerGroupRunners(rg); err != nil {
-				return err
+			if err := sweepRunnerGroupRunners(ctx, rg); err != nil {
+				return fmt.Errorf("failed to sweep runner group runners for %s: %w", rg.GetName(), err)
 			}
 
-			if _, err := client.Actions.DeleteOrganizationRunnerGroup(ctx, owner, rg.GetID()); err != nil {
+			if resp, err := client.Actions.DeleteOrganizationRunnerGroup(ctx, owner, rg.GetID()); err != nil {
+				if resp != nil && resp.StatusCode == http.StatusNotFound {
+					continue
+				}
 				return err
 			}
 		}
@@ -368,34 +372,33 @@ func sweepOrganizationRunnerGroups(_ string) error {
 	return nil
 }
 
-func sweepRunnerGroupRunners(rg *github.RunnerGroup) error {
+func sweepRunnerGroupRunners(ctx context.Context, rg *github.RunnerGroup) error {
 	client := testAccConf.meta.v3client
 	owner := testAccConf.meta.name
-	ctx := context.Background()
 
-	fmt.Printf("sweeping organization hosted runners of runner group: %s\n", rg.GetName())
+	fmt.Printf("removing organization hosted runners of runner group: %s\n", rg.GetName())
 	runners, _, err := client.Actions.ListRunnerGroupHostedRunners(ctx, owner, rg.GetID(), &github.ListOptions{})
 	if err != nil {
 		return err
 	}
 
 	for _, r := range runners.GetRunners() {
-		fmt.Printf("destroying organization hosted runner %s\n", r.GetName())
-
-		if _, resp, err := client.Actions.DeleteHostedRunner(ctx, owner, r.GetID()); err != nil {
+		_, resp, err := client.Actions.DeleteHostedRunner(ctx, owner, r.GetID())
+		if err != nil {
 			if err != nil {
 				if resp != nil && resp.StatusCode == http.StatusNotFound {
-					return nil
+					continue
 				}
-				if _, ok := errors.AsType[*github.ErrorResponse](err); ok {
-					return waitForRunnerDeletion(ctx, client, owner, strconv.FormatInt(r.GetID(), 10), 0)
+				if _, ok := errors.AsType[*github.AcceptedError](err); ok {
+					waitForRunnerDeletion(ctx, client, owner, r.GetID(), 5*time.Minute)
+					continue
 				}
-				return err
+				return fmt.Errorf("failed to delete hosted runner %s: %w", r.GetName(), err)
 			}
+		}
 
-			if resp != nil && resp.StatusCode == http.StatusAccepted {
-				return waitForRunnerDeletion(ctx, client, owner, strconv.FormatInt(r.GetID(), 10), 0)
-			}
+		if resp != nil && resp.StatusCode == http.StatusAccepted {
+			waitForRunnerDeletion(ctx, client, owner, r.GetID(), 5*time.Minute)
 		}
 	}
 
