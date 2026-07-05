@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -183,92 +182,63 @@ func resourceGithubActionsHostedRunner() *schema.Resource {
 	}
 }
 
-func expandImage(imageList []any) map[string]any {
+func expandImage(imageList []any) github.HostedRunnerImage {
 	if len(imageList) == 0 {
-		return nil
+		return github.HostedRunnerImage{}
 	}
+	runnerImage := github.HostedRunnerImage{}
 
 	imageMap := imageList[0].(map[string]any)
-	result := make(map[string]any)
 
 	if id, ok := imageMap["id"].(string); ok {
-		result["id"] = id
+		runnerImage.ID = id
 	}
 	if source, ok := imageMap["source"].(string); ok {
-		result["source"] = source
+		runnerImage.Source = source
 	}
 
-	return result
+	return runnerImage
 }
 
-func flattenImage(image map[string]any) []any {
+func flattenImage(image *github.HostedRunnerImageDetail) []any {
 	if image == nil {
 		return []any{}
 	}
 
 	result := make(map[string]any)
 
-	// Handle id as either string or number
-	if id, ok := image["id"].(string); ok {
-		result["id"] = id
-	} else if id, ok := image["id"].(float64); ok {
-		result["id"] = fmt.Sprintf("%.0f", id)
-	}
-
-	if source, ok := image["source"].(string); ok {
-		result["source"] = source
-	}
-	if size, ok := image["size"].(float64); ok {
-		result["size_gb"] = int(size)
-	}
+	result["id"] = image.GetID()
+	result["source"] = image.GetSource()
+	result["size_gb"] = image.GetSizeGB()
 
 	return []any{result}
 }
 
-func flattenMachineSizeDetails(details map[string]any) []any {
+func flattenMachineSizeDetails(details *github.HostedRunnerMachineSpec) []any {
 	if details == nil {
 		return []any{}
 	}
 
 	result := make(map[string]any)
-	if id, ok := details["id"].(string); ok {
-		result["id"] = id
-	}
-	if cpuCores, ok := details["cpu_cores"].(float64); ok {
-		result["cpu_cores"] = int(cpuCores)
-	}
-	if memoryGB, ok := details["memory_gb"].(float64); ok {
-		result["memory_gb"] = int(memoryGB)
-	}
-	if storageGB, ok := details["storage_gb"].(float64); ok {
-		result["storage_gb"] = int(storageGB)
-	}
+	result["id"] = details.GetID()
+	result["cpu_cores"] = details.GetCPUCores()
+	result["memory_gb"] = details.GetMemoryGB()
+	result["storage_gb"] = details.GetStorageGB()
 
 	return []any{result}
 }
 
-func flattenPublicIPs(ips []any) []any {
+func flattenPublicIPs(ips []*github.HostedRunnerPublicIP) []any {
 	if ips == nil {
 		return []any{}
 	}
 
 	result := make([]any, 0, len(ips))
 	for _, ip := range ips {
-		ipMap, ok := ip.(map[string]any)
-		if !ok {
-			continue
-		}
-
 		ipResult := make(map[string]any)
-		if enabled, ok := ipMap["enabled"].(bool); ok {
-			ipResult["enabled"] = enabled
-		}
-		if prefix, ok := ipMap["prefix"].(string); ok {
-			ipResult["prefix"] = prefix
-		}
-		if length, ok := ipMap["length"].(float64); ok {
-			ipResult["length"] = int(length)
-		}
+		ipResult["enabled"] = ip.GetEnabled()
+		ipResult["prefix"] = ip.GetPrefix()
+		ipResult["length"] = ip.GetLength()
 		result = append(result, ipResult)
 	}
 
@@ -285,57 +255,63 @@ func resourceGithubActionsHostedRunnerCreate(d *schema.ResourceData, meta any) e
 	orgName := meta.(*Owner).name
 	ctx := context.Background()
 
-	// Build request payload
-	payload := map[string]any{
-		"name":            d.Get("name").(string),
-		"image":           expandImage(d.Get("image").([]any)),
-		"size":            d.Get("size").(string),
-		"runner_group_id": d.Get("runner_group_id").(int),
+	req := github.CreateHostedRunnerRequest{
+		Name:          d.Get("name").(string),
+		Image:         expandImage(d.Get("image").([]any)),
+		Size:          d.Get("size").(string),
+		RunnerGroupID: int64(d.Get("runner_group_id").(int)),
 	}
 
 	if v, ok := d.GetOk("maximum_runners"); ok {
-		payload["maximum_runners"] = v.(int)
+		req.MaximumRunners = new(int64(v.(int)))
 	}
 
-	if v, ok := d.GetOk("public_ip_enabled"); ok {
-		payload["enable_static_ip"] = v.(bool)
+	if v, okExists := d.GetOkExists("public_ip_enabled"); okExists { //nolint:staticcheck // SA1019: d.GetOkExists is deprecated but necessary for bool fields
+		req.EnableStaticIP = new(v.(bool))
 	}
 
 	if v, ok := d.GetOk("image_version"); ok {
-		payload["image_version"] = v.(string)
+		req.Image.Version = new(v.(string))
 	}
 
 	if v, ok := d.GetOk("image_gen"); ok {
-		payload["image_gen"] = v.(bool)
+		req.ImageGen = new(v.(bool))
 	}
 
-	// Create HTTP request
-	req, err := client.NewRequest(ctx, "POST", fmt.Sprintf("orgs/%s/actions/hosted-runners", orgName), payload)
+	runner, _, err := client.Actions.CreateHostedRunner(ctx, orgName, req)
 	if err != nil {
-		return err
-	}
-
-	var runner map[string]any
-	_, err = client.Do(req, &runner)
-	if err != nil {
-		var acceptedErr *github.AcceptedError
-		if !errors.As(err, &acceptedErr) {
+		if _, ok := errors.AsType[*github.AcceptedError](err); !ok {
 			return err
 		}
 	}
 
-	if runner == nil {
-		return fmt.Errorf("no runner data returned from API")
+	d.SetId(strconv.Itoa(int(runner.GetID())))
+
+	if err := d.Set("status", runner.GetStatus()); err != nil {
+		return err
+	}
+	if err := d.Set("platform", runner.GetPlatform()); err != nil {
+		return err
+	}
+	if err := d.Set("last_active_on", runner.GetLastActiveOn().GoString()); err != nil {
+		return err
 	}
 
-	// Set the ID
-	if id, ok := runner["id"].(float64); ok {
-		d.SetId(strconv.Itoa(int(id)))
-	} else {
-		return fmt.Errorf("failed to get runner ID from response: %+v", runner)
+	if machineSizeDetails := runner.GetMachineSizeDetails(); machineSizeDetails != nil {
+		if err := d.Set("machine_size_details", flattenMachineSizeDetails(machineSizeDetails)); err != nil {
+			return err
+		}
 	}
 
-	return resourceGithubActionsHostedRunnerRead(d, meta)
+	if err := d.Set("maximum_runners", runner.GetMaximumRunners()); err != nil {
+		return err
+	}
+
+	if err := d.Set("public_ips", flattenPublicIPs(runner.GetPublicIPs())); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func resourceGithubActionsHostedRunnerRead(d *schema.ResourceData, meta any) error {
@@ -346,67 +322,46 @@ func resourceGithubActionsHostedRunnerRead(d *schema.ResourceData, meta any) err
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	runnerID := d.Id()
-	ctx := context.WithValue(context.Background(), ctxId, runnerID)
-
-	// Create GET request
-	req, err := client.NewRequest(ctx, "GET", fmt.Sprintf("orgs/%s/actions/hosted-runners/%s", orgName, runnerID), nil)
+	runnerIDStr := d.Id()
+	runnerID, err := strconv.ParseInt(runnerIDStr, 10, 64)
 	if err != nil {
 		return err
 	}
 
-	var runner map[string]any
-	_, err = client.Do(req, &runner)
+	ctx := context.WithValue(context.Background(), ctxId, runnerIDStr)
+
+	runner, _, err := client.Actions.GetHostedRunner(ctx, orgName, runnerID)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing hosted runner %s from state because it no longer exists in GitHub", runnerID)
-				d.SetId("")
-				return nil
-			}
+		if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == http.StatusNotFound {
+			log.Printf("[WARN] Removing hosted runner %s from state because it no longer exists in GitHub", runnerIDStr)
+			d.SetId("")
+			return nil
 		}
 		return err
 	}
 
-	if runner == nil {
-		return fmt.Errorf("no runner data returned from API")
+	if err := d.Set("name", runner.GetName()); err != nil {
+		return err
+	}
+	if err := d.Set("status", runner.GetStatus()); err != nil {
+		return err
+	}
+	if err := d.Set("platform", runner.GetPlatform()); err != nil {
+		return err
+	}
+	if err := d.Set("last_active_on", runner.GetLastActiveOn().GoString()); err != nil {
+		return err
+	}
+	if err := d.Set("public_ip_enabled", runner.GetPublicIPEnabled()); err != nil {
+		return err
 	}
 
-	if name, ok := runner["name"].(string); ok {
-		if err := d.Set("name", name); err != nil {
-			return err
-		}
-	}
-	if status, ok := runner["status"].(string); ok {
-		if err := d.Set("status", status); err != nil {
-			return err
-		}
-	}
-	if platform, ok := runner["platform"].(string); ok {
-		if err := d.Set("platform", platform); err != nil {
-			return err
-		}
-	}
-	if lastActiveOn, ok := runner["last_active_on"].(string); ok {
-		if err := d.Set("last_active_on", lastActiveOn); err != nil {
-			return err
-		}
-	}
-	if publicIPEnabled, ok := runner["public_ip_enabled"].(bool); ok {
-		if err := d.Set("public_ip_enabled", publicIPEnabled); err != nil {
-			return err
-		}
+	if err := d.Set("image", flattenImage(runner.GetImageDetails())); err != nil {
+		return err
 	}
 
-	if image, ok := runner["image"].(map[string]any); ok {
-		if err := d.Set("image", flattenImage(image)); err != nil {
-			return err
-		}
-	}
-
-	if machineSizeDetails, ok := runner["machine_size_details"].(map[string]any); ok {
-		if err := d.Set("size", machineSizeDetails["id"]); err != nil {
+	if machineSizeDetails := runner.GetMachineSizeDetails(); machineSizeDetails != nil {
+		if err := d.Set("size", machineSizeDetails.GetID()); err != nil {
 			return err
 		}
 		if err := d.Set("machine_size_details", flattenMachineSizeDetails(machineSizeDetails)); err != nil {
@@ -414,29 +369,22 @@ func resourceGithubActionsHostedRunnerRead(d *schema.ResourceData, meta any) err
 		}
 	}
 
-	if runnerGroupID, ok := runner["runner_group_id"].(float64); ok {
-		if err := d.Set("runner_group_id", int(runnerGroupID)); err != nil {
-			return err
-		}
+	if err := d.Set("runner_group_id", runner.GetRunnerGroupID()); err != nil {
+		return err
 	}
 
-	if maxRunners, ok := runner["maximum_runners"].(float64); ok {
-		if err := d.Set("maximum_runners", int(maxRunners)); err != nil {
-			return err
-		}
+	if err := d.Set("maximum_runners", runner.GetMaximumRunners()); err != nil {
+		return err
 	}
 
-	if publicIPs, ok := runner["public_ips"].([]any); ok {
-		if err := d.Set("public_ips", flattenPublicIPs(publicIPs)); err != nil {
-			return err
-		}
+	if err := d.Set("public_ips", flattenPublicIPs(runner.GetPublicIPs())); err != nil {
+		return err
 	}
 
-	if imageGen, ok := runner["image_gen"].(bool); ok {
-		if err := d.Set("image_gen", imageGen); err != nil {
-			return err
-		}
-	}
+	// TODO: Uncomment when go-github supports image_gen field in the HostedRunner struct
+	// if err := d.Set("image_gen", runner.GetImageGen()); err != nil {
+	// 	return err
+	// }
 
 	return nil
 }
@@ -449,50 +397,70 @@ func resourceGithubActionsHostedRunnerUpdate(d *schema.ResourceData, meta any) e
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	runnerID := d.Id()
-	ctx := context.WithValue(context.Background(), ctxId, runnerID)
 
-	payload := make(map[string]any)
-
-	if d.HasChange("name") {
-		payload["name"] = d.Get("name").(string)
-	}
-	if d.HasChange("size") {
-		payload["size"] = d.Get("size").(string)
-	}
-	if d.HasChange("runner_group_id") {
-		payload["runner_group_id"] = d.Get("runner_group_id").(int)
-	}
-	if d.HasChange("maximum_runners") {
-		payload["maximum_runners"] = d.Get("maximum_runners").(int)
-	}
-	if d.HasChange("public_ip_enabled") {
-		payload["enable_static_ip"] = d.Get("public_ip_enabled").(bool)
-	}
-	if d.HasChange("image_version") {
-		payload["image_version"] = d.Get("image_version").(string)
-	}
-
-	if len(payload) == 0 {
-		return resourceGithubActionsHostedRunnerRead(d, meta)
-	}
-
-	// Create PATCH request
-	req, err := client.NewRequest(ctx, "PATCH", fmt.Sprintf("orgs/%s/actions/hosted-runners/%s", orgName, runnerID), payload)
+	runnerID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return err
 	}
+	ctx := context.WithValue(context.Background(), ctxId, runnerID)
 
-	var runner map[string]any
-	_, err = client.Do(req, &runner)
-	if err != nil {
-		var acceptedErr *github.AcceptedError
-		if !errors.As(err, &acceptedErr) {
+	req := github.UpdateHostedRunnerRequest{}
+
+	if d.HasChange("name") {
+		req.Name = new(d.Get("name").(string))
+	}
+	if d.HasChange("size") {
+		req.Size = new(d.Get("size").(string))
+	}
+	if d.HasChange("runner_group_id") {
+		req.RunnerGroupID = new(int64(d.Get("runner_group_id").(int)))
+	}
+	if d.HasChange("maximum_runners") {
+		req.MaximumRunners = new(int64(d.Get("maximum_runners").(int)))
+	}
+	if d.HasChange("public_ip_enabled") {
+		req.EnableStaticIP = new(d.Get("public_ip_enabled").(bool))
+	}
+	if d.HasChange("image_version") {
+		req.ImageVersion = new(d.Get("image_version").(string))
+	}
+
+	// Only update the runner if any of the configured fields have changed
+	if d.HasChanges("name", "size", "runner_group_id", "maximum_runners", "public_ip_enabled", "image_version") {
+
+		runner, _, err := client.Actions.UpdateHostedRunner(ctx, orgName, runnerID, req)
+		if err != nil {
+			if _, ok := errors.AsType[*github.AcceptedError](err); !ok {
+				return err
+			}
+		}
+
+		if err := d.Set("status", runner.GetStatus()); err != nil {
+			return err
+		}
+		if err := d.Set("platform", runner.GetPlatform()); err != nil {
+			return err
+		}
+		if err := d.Set("last_active_on", runner.GetLastActiveOn().GoString()); err != nil {
+			return err
+		}
+
+		if machineSizeDetails := runner.GetMachineSizeDetails(); machineSizeDetails != nil {
+			if err := d.Set("machine_size_details", flattenMachineSizeDetails(machineSizeDetails)); err != nil {
+				return err
+			}
+		}
+
+		if err := d.Set("maximum_runners", runner.GetMaximumRunners()); err != nil {
+			return err
+		}
+
+		if err := d.Set("public_ips", flattenPublicIPs(runner.GetPublicIPs())); err != nil {
 			return err
 		}
 	}
 
-	return resourceGithubActionsHostedRunnerRead(d, meta)
+	return nil
 }
 
 func resourceGithubActionsHostedRunnerDelete(d *schema.ResourceData, meta any) error {
@@ -505,44 +473,36 @@ func resourceGithubActionsHostedRunnerDelete(d *schema.ResourceData, meta any) e
 	orgName := meta.(*Owner).name
 	ctx := context.Background()
 
-	runnerID := d.Id()
-
-	// Send DELETE request
-	req, err := client.NewRequest(ctx, "DELETE", fmt.Sprintf("orgs/%s/actions/hosted-runners/%s", orgName, runnerID), nil)
+	runnerID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return err
 	}
 
-	resp, err := client.Do(req, nil)
+	runner, resp, err := client.Actions.DeleteHostedRunner(ctx, orgName, runnerID)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			return nil
 		}
-		var acceptedErr *github.AcceptedError
-		if errors.As(err, &acceptedErr) {
-			return waitForRunnerDeletion(ctx, client, orgName, runnerID, d.Timeout(schema.TimeoutDelete))
+		if _, ok := errors.AsType[*github.AcceptedError](err); ok {
+			return waitForRunnerDeletion(ctx, client, orgName, runner.GetID(), d.Timeout(schema.TimeoutDelete))
 		}
 		return err
 	}
 
 	if resp != nil && resp.StatusCode == http.StatusAccepted {
-		return waitForRunnerDeletion(ctx, client, orgName, runnerID, d.Timeout(schema.TimeoutDelete))
+		return waitForRunnerDeletion(ctx, client, orgName, runner.GetID(), d.Timeout(schema.TimeoutDelete))
 	}
 
 	return nil
 }
 
-func waitForRunnerDeletion(ctx context.Context, client *github.Client, orgName, runnerID string, timeout time.Duration) error {
+func waitForRunnerDeletion(ctx context.Context, client *github.Client, orgName string, runnerID int64, timeout time.Duration) error {
 	conf := &retry.StateChangeConf{
-		Pending: []string{"deleting", "active"},
+		Pending: []string{"deleting", "active", "stuck"},
 		Target:  []string{"deleted"},
 		Refresh: func() (any, string, error) {
-			req, err := client.NewRequest(ctx, "GET", fmt.Sprintf("orgs/%s/actions/hosted-runners/%s", orgName, runnerID), nil)
-			if err != nil {
-				return nil, "", err
-			}
+			_, resp, err := client.Actions.GetHostedRunner(ctx, orgName, runnerID)
 
-			resp, err := client.Do(req, nil)
 			if resp != nil && resp.StatusCode == http.StatusNotFound {
 				return "deleted", "deleted", nil
 			}
