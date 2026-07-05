@@ -307,7 +307,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 		})
 	})
 
-	t.Run("deletes hosted runner", func(t *testing.T) {
+	t.Run("deletes_hosted_runner", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandString(5)
@@ -339,11 +339,9 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet(
-							"github_actions_hosted_runner.test", "id",
-						),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("id"), knownvalue.NotNull()),
+					},
 				},
 				// This step should successfully delete the runner
 				{
