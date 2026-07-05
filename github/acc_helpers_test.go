@@ -296,7 +296,11 @@ func mustCreateTestOrganizationActionsRunnerGroup(t *testing.T) *github.RunnerGr
 	}
 
 	t.Cleanup(func() {
-		if _, err := testAccConf.meta.v3client.Actions.DeleteOrganizationRunnerGroup(context.WithoutCancel(t.Context()), testAccConf.meta.name, runnerGroup.GetID()); err != nil {
+		ctx := context.WithoutCancel(t.Context())
+		if err := sweepRunnerGroupRunners(ctx, runnerGroup); err != nil {
+			t.Logf("failed to delete runner group runners for %s: %v", runnerGroup.GetName(), err)
+		}
+		if _, err := testAccConf.meta.v3client.Actions.DeleteOrganizationRunnerGroup(ctx, testAccConf.meta.name, runnerGroup.GetID()); err != nil {
 			if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == 404 {
 				return
 			}

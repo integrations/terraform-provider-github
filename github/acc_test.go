@@ -390,7 +390,9 @@ func sweepRunnerGroupRunners(ctx context.Context, rg *github.RunnerGroup) error 
 					continue
 				}
 				if _, ok := errors.AsType[*github.AcceptedError](err); ok {
-					waitForRunnerDeletion(ctx, client, owner, r.GetID(), 5*time.Minute)
+					if err := waitForRunnerDeletion(ctx, client, owner, r.GetID(), 5*time.Minute); err != nil {
+						return fmt.Errorf("failed to wait for runner deletion %s: %w", r.GetName(), err)
+					}
 					continue
 				}
 				return fmt.Errorf("failed to delete hosted runner %s: %w", r.GetName(), err)
@@ -398,7 +400,9 @@ func sweepRunnerGroupRunners(ctx context.Context, rg *github.RunnerGroup) error 
 		}
 
 		if resp != nil && resp.StatusCode == http.StatusAccepted {
-			waitForRunnerDeletion(ctx, client, owner, r.GetID(), 5*time.Minute)
+			if err := waitForRunnerDeletion(ctx, client, owner, r.GetID(), 5*time.Minute); err != nil {
+				return fmt.Errorf("failed to wait for runner deletion %s: %w", r.GetName(), err)
+			}
 		}
 	}
 
