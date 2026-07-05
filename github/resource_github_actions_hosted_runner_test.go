@@ -81,7 +81,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 
 				size              = "2-core"
 				runner_group_id = "%d"
-				maximum_runners   = 5
+				maximum_runners   = 2
 				public_ip_enabled = true
 			}
 		`, hostedRunnerName, runnerGroup.GetID())
@@ -95,7 +95,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("name"), knownvalue.StringExact(hostedRunnerName)),
 						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("size"), knownvalue.StringExact("2-core")),
-						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("maximum_runners"), knownvalue.Int64Exact(5)),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("maximum_runners"), knownvalue.Int64Exact(2)),
 						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("public_ip_enabled"), knownvalue.Bool(true)),
 					},
 				},
@@ -120,7 +120,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 
 				size            = "4-core"
 				runner_group_id = "%d"
-				maximum_runners = 3
+				maximum_runners = 2
 			}
 		`, hostedRunnerName, runnerGroup.GetID())
 
@@ -135,7 +135,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 
 				size            = "4-core"
 				runner_group_id = "%d"
-				maximum_runners = 5
+				maximum_runners = 3
 			}
 		`, hostedRunnerName, runnerGroup.GetID())
 
@@ -148,7 +148,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("name"), knownvalue.StringExact(hostedRunnerName)),
 						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("size"), knownvalue.StringExact("4-core")),
-						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("maximum_runners"), knownvalue.Int64Exact(3)),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("maximum_runners"), knownvalue.Int64Exact(2)),
 					},
 				},
 				{
@@ -161,7 +161,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("name"), knownvalue.StringExact(fmt.Sprintf("%s-updated", hostedRunnerName))),
 						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("size"), knownvalue.StringExact("4-core")),
-						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("maximum_runners"), knownvalue.Int64Exact(5)),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("maximum_runners"), knownvalue.Int64Exact(3)),
 					},
 				},
 			},
