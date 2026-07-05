@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
@@ -111,7 +112,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 		})
 	})
 
-	t.Run("updates hosted runner configuration", func(t *testing.T) {
+	t.Run("updates_hosted_runner_configuration", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandString(5)
@@ -158,47 +159,30 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			}
 		`, runnerGroupName, hostedRunnerName)
 
-		checkBefore := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "name",
-				hostedRunnerName,
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "size",
-				"4-core",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "maximum_runners",
-				"3",
-			),
-		)
-
-		checkAfter := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "name",
-				fmt.Sprintf("%s-updated", hostedRunnerName),
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "size",
-				"4-core",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "maximum_runners",
-				"5",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: configBefore,
-					Check:  checkBefore,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("name"), knownvalue.StringExact(hostedRunnerName)),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("size"), knownvalue.StringExact("4-core")),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("maximum_runners"), knownvalue.Int64Exact(3)),
+					},
 				},
 				{
 					Config: configAfter,
-					Check:  checkAfter,
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_hosted_runner.test", plancheck.ResourceActionUpdate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("name"), knownvalue.StringExact(fmt.Sprintf("%s-updated", hostedRunnerName))),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("size"), knownvalue.StringExact("4-core")),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("maximum_runners"), knownvalue.Int64Exact(5)),
+					},
 				},
 			},
 		})
