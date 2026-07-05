@@ -255,27 +255,36 @@ func resourceGithubActionsHostedRunnerCreate(ctx context.Context, d *schema.Reso
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 
+	runnerName, _ := d.Get("name").(string)
+	runnerImageDetails, _ := d.Get("image").([]any)
+	runnerSize, _ := d.Get("size").(string)
+	runnerGroupID, _ := d.Get("runner_group_id").(int)
+
 	req := github.CreateHostedRunnerRequest{
-		Name:          d.Get("name").(string),
-		Image:         expandImage(d.Get("image").([]any)),
-		Size:          d.Get("size").(string),
-		RunnerGroupID: int64(d.Get("runner_group_id").(int)),
+		Name:          runnerName,
+		Image:         expandImage(runnerImageDetails),
+		Size:          runnerSize,
+		RunnerGroupID: int64(runnerGroupID),
 	}
 
 	if v, ok := d.GetOk("maximum_runners"); ok {
-		req.MaximumRunners = new(int64(v.(int)))
+		maxRunners, _ := v.(int)
+		req.MaximumRunners = new(int64(maxRunners))
 	}
 
 	if v, okExists := d.GetOkExists("public_ip_enabled"); okExists { //nolint:staticcheck // SA1019: d.GetOkExists is deprecated but necessary for bool fields
-		req.EnableStaticIP = new(v.(bool))
+		publicIPEnabled, _ := v.(bool)
+		req.EnableStaticIP = new(publicIPEnabled)
 	}
 
 	if v, ok := d.GetOk("image_version"); ok {
-		req.Image.Version = new(v.(string))
+		runnerImageVersion, _ := v.(string)
+		req.Image.Version = new(runnerImageVersion)
 	}
 
 	if v, ok := d.GetOk("image_gen"); ok {
-		req.ImageGen = new(v.(bool))
+		useRunnerForImageGen, _ := v.(bool)
+		req.ImageGen = new(useRunnerForImageGen)
 	}
 
 	runner, _, err := client.Actions.CreateHostedRunner(ctx, orgName, req)
@@ -404,22 +413,28 @@ func resourceGithubActionsHostedRunnerUpdate(ctx context.Context, d *schema.Reso
 	req := github.UpdateHostedRunnerRequest{}
 
 	if d.HasChange("name") {
-		req.Name = new(d.Get("name").(string))
+		name, _ := d.Get("name").(string)
+		req.Name = new(name)
 	}
 	if d.HasChange("size") {
-		req.Size = new(d.Get("size").(string))
+		size, _ := d.Get("size").(string)
+		req.Size = new(size)
 	}
 	if d.HasChange("runner_group_id") {
-		req.RunnerGroupID = new(int64(d.Get("runner_group_id").(int)))
+		runnerGroupID, _ := d.Get("runner_group_id").(int)
+		req.RunnerGroupID = new(int64(runnerGroupID))
 	}
 	if d.HasChange("maximum_runners") {
-		req.MaximumRunners = new(int64(d.Get("maximum_runners").(int)))
+		maximumRunners, _ := d.Get("maximum_runners").(int)
+		req.MaximumRunners = new(int64(maximumRunners))
 	}
 	if d.HasChange("public_ip_enabled") {
-		req.EnableStaticIP = new(d.Get("public_ip_enabled").(bool))
+		publicIPEnabled, _ := d.Get("public_ip_enabled").(bool)
+		req.EnableStaticIP = new(publicIPEnabled)
 	}
 	if d.HasChange("image_version") {
-		req.ImageVersion = new(d.Get("image_version").(string))
+		imageVersion, _ := d.Get("image_version").(string)
+		req.ImageVersion = new(imageVersion)
 	}
 
 	// Only update the runner if any of the configured fields have changed
