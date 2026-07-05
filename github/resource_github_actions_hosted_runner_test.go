@@ -260,7 +260,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 		})
 	})
 
-	t.Run("imports hosted runner", func(t *testing.T) {
+	t.Run("imports_hosted_runner", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandString(5)
@@ -286,23 +286,16 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			}
 		`, runnerGroupName, hostedRunnerName)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet(
-				"github_actions_hosted_runner.test", "id",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "name",
-				hostedRunnerName,
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("name"), knownvalue.StringExact(hostedRunnerName)),
+					},
 				},
 				{
 					ResourceName:            "github_actions_hosted_runner.test",
