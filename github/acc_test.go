@@ -376,7 +376,7 @@ func sweepRunnerGroupRunners(ctx context.Context, rg *github.RunnerGroup) error 
 	client := testAccConf.meta.v3client
 	owner := testAccConf.meta.name
 
-	fmt.Printf("removing organization hosted runners of runner group: %s\n", rg.GetName())
+	fmt.Printf("cleanup: removing organization hosted runners of runner group '%s'\n", rg.GetName())
 	runners, _, err := client.Actions.ListRunnerGroupHostedRunners(ctx, owner, rg.GetID(), &github.ListOptions{})
 	if err != nil {
 		return err
