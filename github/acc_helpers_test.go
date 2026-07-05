@@ -279,6 +279,34 @@ func mustCreateTestBranch(t *testing.T, repo *github.Repository) string {
 	return name
 }
 
+func mustCreateTestOrganizationActionsRunnerGroup(t *testing.T) *github.RunnerGroup {
+	t.Helper()
+
+	randomID := acctest.RandString(testRandomIDLength)
+	name := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+
+	req := github.CreateRunnerGroupRequest{
+		Name:       &name,
+		Visibility: new("all"),
+	}
+
+	runnerGroup, _, err := testAccConf.meta.v3client.Actions.CreateOrganizationRunnerGroup(t.Context(), testAccConf.meta.name, req)
+	if err != nil {
+		t.Fatalf("failed to create test organization runner group: %v", err)
+	}
+
+	t.Cleanup(func() {
+		if _, err := testAccConf.meta.v3client.Actions.DeleteOrganizationRunnerGroup(context.WithoutCancel(t.Context()), testAccConf.meta.name, runnerGroup.GetID()); err != nil {
+			if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == 404 {
+				return
+			}
+			t.Logf("failed to delete test organization runner group %s: %v", name, err)
+		}
+	})
+
+	return runnerGroup
+}
+
 func mustAddRepositoryCollaborator(t *testing.T, repo *github.Repository, username string) {
 	t.Helper()
 
