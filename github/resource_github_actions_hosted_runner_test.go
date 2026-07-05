@@ -14,20 +14,17 @@ import (
 
 func TestAccGithubActionsHostedRunner(t *testing.T) {
 	t.Parallel()
+	skipUnlessHasPaidOrgs(t)
+
+	runnerGroup := mustCreateTestOrganizationActionsRunnerGroup(t)
 
 	t.Run("creates_hosted_runners_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandString(5)
-		runnerGroupName := fmt.Sprintf("%sgroup-%s", testResourcePrefix, randomID)
 		hostedRunnerName := fmt.Sprintf("%srunner-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
-			resource "github_actions_runner_group" "test" {
-				name       = "%s"
-				visibility = "all"
-			}
-
 			resource "github_actions_hosted_runner" "test" {
 				name = "%s"
 
@@ -37,9 +34,9 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				}
 
 				size            = "4-core"
-				runner_group_id = github_actions_runner_group.test.id
+				runner_group_id = "%d"
 			}
-		`, runnerGroupName, hostedRunnerName)
+		`, hostedRunnerName, runnerGroup.GetID())
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
@@ -71,15 +68,9 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandString(5)
-		runnerGroupName := fmt.Sprintf("%sgroup-%s", testResourcePrefix, randomID)
 		hostedRunnerName := fmt.Sprintf("%srunner-optional-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
-			resource "github_actions_runner_group" "test" {
-				name       = "%s"
-				visibility = "all"
-			}
-
 			resource "github_actions_hosted_runner" "test" {
 				name = "%s"
 
@@ -89,11 +80,11 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				}
 
 				size              = "2-core"
-				runner_group_id   = github_actions_runner_group.test.id
+				runner_group_id = "%d"
 				maximum_runners   = 5
 				public_ip_enabled = true
 			}
-		`, runnerGroupName, hostedRunnerName)
+		`, hostedRunnerName, runnerGroup.GetID())
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
@@ -116,15 +107,9 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandString(5)
-		runnerGroupName := fmt.Sprintf("%sgroup-%s", testResourcePrefix, randomID)
 		hostedRunnerName := fmt.Sprintf("%srunner-update-%s", testResourcePrefix, randomID)
 
 		configBefore := fmt.Sprintf(`
-			resource "github_actions_runner_group" "test" {
-				name       = "%s"
-				visibility = "all"
-			}
-
 			resource "github_actions_hosted_runner" "test" {
 				name = "%s"
 
@@ -134,17 +119,12 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				}
 
 				size            = "4-core"
-				runner_group_id = github_actions_runner_group.test.id
+				runner_group_id = "%d"
 				maximum_runners = 3
 			}
-		`, runnerGroupName, hostedRunnerName)
+		`, hostedRunnerName, runnerGroup.GetID())
 
 		configAfter := fmt.Sprintf(`
-			resource "github_actions_runner_group" "test" {
-				name       = "%s"
-				visibility = "all"
-			}
-
 			resource "github_actions_hosted_runner" "test" {
 				name = "%s-updated"
 
@@ -154,10 +134,10 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				}
 
 				size            = "4-core"
-				runner_group_id = github_actions_runner_group.test.id
+				runner_group_id = "%d"
 				maximum_runners = 5
 			}
-		`, runnerGroupName, hostedRunnerName)
+		`, hostedRunnerName, runnerGroup.GetID())
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
@@ -192,15 +172,9 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandString(5)
-		runnerGroupName := fmt.Sprintf("%sgroup-%s", testResourcePrefix, randomID)
 		hostedRunnerName := fmt.Sprintf("%srunner-size-%s", testResourcePrefix, randomID)
 
 		configBefore := fmt.Sprintf(`
-			resource "github_actions_runner_group" "test" {
-				name       = "%s"
-				visibility = "all"
-			}
-
 			resource "github_actions_hosted_runner" "test" {
 				name = "%s"
 
@@ -210,16 +184,11 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				}
 
 				size            = "4-core"
-				runner_group_id = github_actions_runner_group.test.id
+				runner_group_id = "%d"
 			}
-		`, runnerGroupName, hostedRunnerName)
+		`, hostedRunnerName, runnerGroup.GetID())
 
 		configAfter := fmt.Sprintf(`
-			resource "github_actions_runner_group" "test" {
-				name       = "%s"
-				visibility = "all"
-			}
-
 			resource "github_actions_hosted_runner" "test" {
 				name = "%s"
 
@@ -229,9 +198,9 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				}
 
 				size            = "8-core"
-				runner_group_id = github_actions_runner_group.test.id
+				runner_group_id = "%d"
 			}
-		`, runnerGroupName, hostedRunnerName)
+		`, hostedRunnerName, runnerGroup.GetID())
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
@@ -264,15 +233,9 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandString(5)
-		runnerGroupName := fmt.Sprintf("%sgroup-%s", testResourcePrefix, randomID)
 		hostedRunnerName := fmt.Sprintf("%srunner-import-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
-			resource "github_actions_runner_group" "test" {
-				name       = "%s"
-				visibility = "all"
-			}
-
 			resource "github_actions_hosted_runner" "test" {
 				name = "%s"
 
@@ -282,9 +245,9 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				}
 
 				size            = "4-core"
-				runner_group_id = github_actions_runner_group.test.id
+				runner_group_id = "%d"
 			}
-		`, runnerGroupName, hostedRunnerName)
+		`, hostedRunnerName, runnerGroup.GetID())
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
@@ -311,15 +274,9 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandString(5)
-		runnerGroupName := fmt.Sprintf("%sgroup-%s", testResourcePrefix, randomID)
 		hostedRunnerName := fmt.Sprintf("%srunner-delete-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
-			resource "github_actions_runner_group" "test" {
-				name       = "%s"
-				visibility = "all"
-			}
-
 			resource "github_actions_hosted_runner" "test" {
 				name = "%s"
 
@@ -329,9 +286,9 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				}
 
 				size            = "4-core"
-				runner_group_id = github_actions_runner_group.test.id
+				runner_group_id = "%d"
 			}
-		`, runnerGroupName, hostedRunnerName)
+		`, hostedRunnerName, runnerGroup.GetID())
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
@@ -343,14 +300,9 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("id"), knownvalue.NotNull()),
 					},
 				},
-				// This step should successfully delete the runner
 				{
-					Config: fmt.Sprintf(`
-							resource "github_actions_runner_group" "test" {
-								name       = "%s"
-								visibility = "all"
-							}
-						`, runnerGroupName),
+					Config:  config,
+					Destroy: true,
 				},
 			},
 		})
