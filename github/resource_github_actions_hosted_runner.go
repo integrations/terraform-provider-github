@@ -3,13 +3,13 @@ package github
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 	"regexp"
 	"strconv"
 	"time"
 
 	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -331,7 +331,7 @@ func resourceGithubActionsHostedRunnerRead(ctx context.Context, d *schema.Resour
 	runner, _, err := client.Actions.GetHostedRunner(ctx, orgName, runnerID)
 	if err != nil {
 		if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == http.StatusNotFound {
-			log.Printf("[WARN] Removing hosted runner %s from state because it no longer exists in GitHub", runnerIDStr)
+			tflog.Warn(ctx, "Removing hosted runner from state because it no longer exists in GitHub", map[string]any{"runner_id": runnerIDStr})
 			d.SetId("")
 			return nil
 		}
@@ -494,7 +494,7 @@ func resourceGithubActionsHostedRunnerDelete(ctx context.Context, d *schema.Reso
 
 func waitForRunnerDeletion(ctx context.Context, client *github.Client, orgName string, runnerID int64, timeout time.Duration) error {
 	conf := &retry.StateChangeConf{
-		Pending: []string{"deleting", "active", "stuck"},
+		Pending: []string{"deleting", "active", "ready", "provisioning"},
 		Target:  []string{"deleted"},
 		Refresh: func() (any, string, error) {
 			_, resp, err := client.Actions.GetHostedRunner(ctx, orgName, runnerID)
