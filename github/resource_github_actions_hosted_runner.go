@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -17,10 +18,10 @@ import (
 
 func resourceGithubActionsHostedRunner() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsHostedRunnerCreate,
-		Read:   resourceGithubActionsHostedRunnerRead,
-		Update: resourceGithubActionsHostedRunnerUpdate,
-		Delete: resourceGithubActionsHostedRunnerDelete,
+		CreateContext: resourceGithubActionsHostedRunnerCreate,
+		ReadContext:   resourceGithubActionsHostedRunnerRead,
+		UpdateContext: resourceGithubActionsHostedRunnerUpdate,
+		DeleteContext: resourceGithubActionsHostedRunnerDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -245,15 +246,14 @@ func flattenPublicIPs(ips []*github.HostedRunnerPublicIP) []any {
 	return result
 }
 
-func resourceGithubActionsHostedRunnerCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsHostedRunnerCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	ctx := context.Background()
 
 	req := github.CreateHostedRunnerRequest{
 		Name:          d.Get("name").(string),
@@ -281,43 +281,43 @@ func resourceGithubActionsHostedRunnerCreate(d *schema.ResourceData, meta any) e
 	runner, _, err := client.Actions.CreateHostedRunner(ctx, orgName, req)
 	if err != nil {
 		if _, ok := errors.AsType[*github.AcceptedError](err); !ok {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	d.SetId(strconv.Itoa(int(runner.GetID())))
 
 	if err := d.Set("status", runner.GetStatus()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("platform", runner.GetPlatform()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("last_active_on", runner.GetLastActiveOn().GoString()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if machineSizeDetails := runner.GetMachineSizeDetails(); machineSizeDetails != nil {
 		if err := d.Set("machine_size_details", flattenMachineSizeDetails(machineSizeDetails)); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	if err := d.Set("maximum_runners", runner.GetMaximumRunners()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err := d.Set("public_ips", flattenPublicIPs(runner.GetPublicIPs())); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubActionsHostedRunnerRead(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsHostedRunnerRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
@@ -325,10 +325,8 @@ func resourceGithubActionsHostedRunnerRead(d *schema.ResourceData, meta any) err
 	runnerIDStr := d.Id()
 	runnerID, err := strconv.ParseInt(runnerIDStr, 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-
-	ctx := context.WithValue(context.Background(), ctxId, runnerIDStr)
 
 	runner, _, err := client.Actions.GetHostedRunner(ctx, orgName, runnerID)
 	if err != nil {
@@ -337,62 +335,62 @@ func resourceGithubActionsHostedRunnerRead(d *schema.ResourceData, meta any) err
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err := d.Set("name", runner.GetName()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("status", runner.GetStatus()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("platform", runner.GetPlatform()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("last_active_on", runner.GetLastActiveOn().GoString()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("public_ip_enabled", runner.GetPublicIPEnabled()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err := d.Set("image", flattenImage(runner.GetImageDetails())); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if machineSizeDetails := runner.GetMachineSizeDetails(); machineSizeDetails != nil {
 		if err := d.Set("size", machineSizeDetails.GetID()); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		if err := d.Set("machine_size_details", flattenMachineSizeDetails(machineSizeDetails)); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	if err := d.Set("runner_group_id", runner.GetRunnerGroupID()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err := d.Set("maximum_runners", runner.GetMaximumRunners()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err := d.Set("public_ips", flattenPublicIPs(runner.GetPublicIPs())); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// TODO: Uncomment when go-github supports image_gen field in the HostedRunner struct
 	// if err := d.Set("image_gen", runner.GetImageGen()); err != nil {
-	// 	return err
+	// 	return diag.FromErr(err)
 	// }
 
 	return nil
 }
 
-func resourceGithubActionsHostedRunnerUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsHostedRunnerUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
@@ -400,9 +398,8 @@ func resourceGithubActionsHostedRunnerUpdate(d *schema.ResourceData, meta any) e
 
 	runnerID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	ctx := context.WithValue(context.Background(), ctxId, runnerID)
 
 	req := github.UpdateHostedRunnerRequest{}
 
@@ -431,51 +428,50 @@ func resourceGithubActionsHostedRunnerUpdate(d *schema.ResourceData, meta any) e
 		runner, _, err := client.Actions.UpdateHostedRunner(ctx, orgName, runnerID, req)
 		if err != nil {
 			if _, ok := errors.AsType[*github.AcceptedError](err); !ok {
-				return err
+				return diag.FromErr(err)
 			}
 		}
 
 		if err := d.Set("status", runner.GetStatus()); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		if err := d.Set("platform", runner.GetPlatform()); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		if err := d.Set("last_active_on", runner.GetLastActiveOn().GoString()); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		if machineSizeDetails := runner.GetMachineSizeDetails(); machineSizeDetails != nil {
 			if err := d.Set("machine_size_details", flattenMachineSizeDetails(machineSizeDetails)); err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 		}
 
 		if err := d.Set("maximum_runners", runner.GetMaximumRunners()); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		if err := d.Set("public_ips", flattenPublicIPs(runner.GetPublicIPs())); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	return nil
 }
 
-func resourceGithubActionsHostedRunnerDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsHostedRunnerDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	ctx := context.Background()
 
 	runnerID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	runner, resp, err := client.Actions.DeleteHostedRunner(ctx, orgName, runnerID)
@@ -484,13 +480,13 @@ func resourceGithubActionsHostedRunnerDelete(d *schema.ResourceData, meta any) e
 			return nil
 		}
 		if _, ok := errors.AsType[*github.AcceptedError](err); ok {
-			return waitForRunnerDeletion(ctx, client, orgName, runner.GetID(), d.Timeout(schema.TimeoutDelete))
+			return diag.FromErr(waitForRunnerDeletion(ctx, client, orgName, runner.GetID(), d.Timeout(schema.TimeoutDelete)))
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if resp != nil && resp.StatusCode == http.StatusAccepted {
-		return waitForRunnerDeletion(ctx, client, orgName, runner.GetID(), d.Timeout(schema.TimeoutDelete))
+		return diag.FromErr(waitForRunnerDeletion(ctx, client, orgName, runner.GetID(), d.Timeout(schema.TimeoutDelete)))
 	}
 
 	return nil
