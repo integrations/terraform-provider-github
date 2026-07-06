@@ -617,7 +617,7 @@ func configureProviderMeta(ctx context.Context, version string, c *Config) (*Own
 	if owner.name != "" {
 		org, _, err := owner.v3client.Organizations.Get(ctx, owner.name)
 		if err != nil {
-			if ghErr, ok := errors.AsType[*github.ErrorResponse](err); !ok || ghErr.Response == nil || ghErr.Response.StatusCode != http.StatusNotFound {
+			if ghErr, ok := errors.AsType[*github.ErrorResponse](err); !ok || ghErr.Response.StatusCode != http.StatusNotFound {
 				return nil, fmt.Errorf("failed to lookup organization %q: %w", owner.name, err)
 			}
 		}

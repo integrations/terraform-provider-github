@@ -221,23 +221,26 @@ func resourceGithubTeamRepositoryDelete(ctx context.Context, d *schema.ResourceD
 	}
 	orgName := meta.(*Owner).name
 
-	resp, err := client.Teams.RemoveTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
+	_, err = client.Teams.RemoveTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
+	if err != nil {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			log.Printf("[DEBUG] Failed to find team %s to delete for repo: %s.", teamIdString, repoName)
+			repo, _, err := client.Repositories.Get(ctx, orgName, repoName)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			newRepoName := repo.GetName()
+			if newRepoName != repoName {
+				log.Printf("[INFO] Repo name has changed %s -> %s. "+
+					"Try deleting team repository again.",
+					repoName, newRepoName)
+				_, err := client.Teams.RemoveTeamRepoByID(ctx, orgId, teamId, orgName, newRepoName)
+				return diag.FromErr(handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %s", teamIdString), orgName, newRepoName))
+			}
+		}
 
-	if resp != nil && resp.StatusCode == 404 {
-		log.Printf("[DEBUG] Failed to find team %s to delete for repo: %s.", teamIdString, repoName)
-		repo, _, err := client.Repositories.Get(ctx, orgName, repoName)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		newRepoName := repo.GetName()
-		if newRepoName != repoName {
-			log.Printf("[INFO] Repo name has changed %s -> %s. "+
-				"Try deleting team repository again.",
-				repoName, newRepoName)
-			_, err := client.Teams.RemoveTeamRepoByID(ctx, orgId, teamId, orgName, newRepoName)
-			return diag.FromErr(handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %s", teamIdString), orgName, newRepoName))
-		}
+		return diag.FromErr(handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %s", teamIdString), orgName, repoName))
 	}
 
-	return diag.FromErr(handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %s", teamIdString), orgName, repoName))
+	return nil
 }
