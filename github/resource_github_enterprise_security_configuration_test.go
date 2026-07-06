@@ -68,7 +68,6 @@ func TestAccGithubEnterpriseSecurityConfiguration(t *testing.T) {
 		resource "github_enterprise_security_configuration" "test" {
 			enterprise_slug = "%s"
 			name = "%s"
-			description = "Test configuration for import"
 		}`, testAccConf.enterpriseSlug, configName)
 
 		resource.Test(t, resource.TestCase{
