@@ -250,7 +250,7 @@ func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, me
 	}
 
 	if actionsPermissions.GetEnabledRepositories() == "selected" {
-		opts := github.ListOptions{PerPage: 10, Page: 1}
+		opts := github.ListOptions{PerPage: maxPerPage}
 		var repoList []int64
 		var allRepos []*github.Repository
 
@@ -282,6 +282,10 @@ func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, me
 			if err = d.Set("enabled_repositories_config", []any{}); err != nil {
 				return err
 			}
+		}
+	} else {
+		if err = d.Set("enabled_repositories_config", []any{}); err != nil {
+			return err
 		}
 	}
 

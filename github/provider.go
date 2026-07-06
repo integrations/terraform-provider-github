@@ -2,15 +2,18 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
 
+	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -342,8 +345,7 @@ func configureProvider(version, commit string) func(context.Context, *schema.Res
 		}
 
 		config := &Config{
-			BaseURL:        baseURL,
-			GraphQLAPIPath: "graphql",
+			BaseURL: baseURL,
 		}
 
 		if v, ok := d.GetOk("legacy_client"); ok {
@@ -361,11 +363,10 @@ func configureProvider(version, commit string) func(context.Context, *schema.Res
 
 				tflog.Debug(ctx, "Using base URL from provider configuration.", map[string]any{"base_url": baseURL.String()})
 				config.BaseURL = baseURL
+				config.IsGHES = isGHES
 
 				if isGHES {
 					tflog.Debug(ctx, "Base URL indicates GitHub Enterprise Server (GHES) usage; enabling GHES mode.", map[string]any{"base_url": baseURL.String()})
-					config.RESTAPIPath = GHESRESTAPIPath
-					config.GraphQLAPIPath = GHESGraphQLAPIPath
 				}
 			}
 		}
@@ -420,7 +421,12 @@ func configureProvider(version, commit string) func(context.Context, *schema.Res
 
 		if config.LegacyClient {
 			if config.AppID != nil {
-				appToken, err := GenerateOAuthTokenFromApp(config.BaseURL.JoinPath(config.RESTAPIPath), *config.AppID, *config.AppInstallationID, string(config.AppPEM))
+				pathSuffix := RESTAPIPath
+				if config.IsGHES {
+					pathSuffix = GHESRESTAPIPath
+				}
+
+				appToken, err := GenerateOAuthTokenFromApp(config.BaseURL.JoinPath(pathSuffix), *config.AppID, *config.AppInstallationID, string(config.AppPEM))
 				if err != nil {
 					return nil, diag.FromErr(err)
 				}
@@ -544,15 +550,33 @@ func configureProviderMeta(ctx context.Context, version string, c *Config) (*Own
 			return nil, err
 		}
 		owner.v4client = v4client
+
+		if owner.name == "" && c.Token != "" {
+			user, _, err := owner.v3client.Users.Get(ctx, "")
+			if err != nil {
+				return nil, fmt.Errorf("owner cannot be found by token: %w", err)
+			}
+			owner.name = user.GetLogin()
+		}
 	} else {
-		options := ghclient.Options{
-			RESTAPIURL:   c.BaseURL.JoinPath(c.RESTAPIPath).String(),
-			GraphQLURL:   c.BaseURL.JoinPath(c.GraphQLAPIPath).String(),
-			UserAgent:    fmt.Sprintf("%s/%s (+%s; go/%s; os/%s; arch/%s)", providerName, version, providerURL, runtime.Version(), runtime.GOOS, runtime.GOARCH),
-			CachePath:    c.CachePath,
-			RetryMax:     c.MaxRetries,
-			RetryWaitMin: c.RetryDelay,
-			RetryWaitMax: c.RetryDelay,
+		if !c.Anonymous() && owner.name == "" {
+			return nil, fmt.Errorf("owner must be set when authenticating using the new client implementation")
+		}
+
+		var cacheBasePath string
+		if c.CachePath != "" {
+			cacheBasePath = filepath.Join(c.CachePath, "terraform-provider-github")
+		}
+
+		options := ghclient.SourceOptions{
+			BaseURL:       c.BaseURL.String(),
+			IsGHES:        c.IsGHES,
+			UserAgent:     fmt.Sprintf("%s/%s (+%s; go/%s; os/%s; arch/%s)", providerName, version, providerURL, runtime.Version(), runtime.GOOS, runtime.GOARCH),
+			Cache:         true,
+			CacheBasePath: cacheBasePath,
+			RetryMax:      c.MaxRetries,
+			RetryWaitMin:  c.RetryDelay,
+			RetryWaitMax:  c.RetryDelay,
 		}
 
 		var source ghclient.Source
@@ -590,16 +614,15 @@ func configureProviderMeta(ctx context.Context, version string, c *Config) (*Own
 		owner.v4client = v4client
 	}
 
-	if owner.name == "" && c.Token != "" {
-		user, _, err := owner.v3client.Users.Get(ctx, "")
-		if err != nil {
-			return nil, err
-		}
-		owner.name = user.GetLogin()
-	}
-
 	if owner.name != "" {
-		if org, _, err := owner.v3client.Organizations.Get(ctx, owner.name); err == nil && org != nil {
+		org, _, err := owner.v3client.Organizations.Get(ctx, owner.name)
+		if err != nil {
+			if ghErr, ok := errors.AsType[*github.ErrorResponse](err); !ok || ghErr.Response == nil || ghErr.Response.StatusCode != http.StatusNotFound {
+				return nil, fmt.Errorf("failed to lookup organization %q: %w", owner.name, err)
+			}
+		}
+
+		if org != nil {
 			owner.id = org.GetID()
 			owner.IsOrganization = true
 		}

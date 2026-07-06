@@ -13,7 +13,11 @@ import (
 )
 
 func TestAccGithubActionsEnvironmentVariable(t *testing.T) {
+	t.Parallel()
+
 	t.Run("create", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		envName := "test"
@@ -58,6 +62,8 @@ resource "github_actions_environment_variable" "test" {
 	})
 
 	t.Run("create_with_env_name_id_separator_character", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		envName := "env:test"
@@ -102,6 +108,8 @@ resource "github_actions_environment_variable" "test" {
 	})
 
 	t.Run("create_update", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		envName := "test"
@@ -158,6 +166,8 @@ resource "github_actions_environment_variable" "test" {
 	})
 
 	t.Run("update_renamed_repo", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		updatedRepoName := fmt.Sprintf("%s%s-updated", testResourcePrefix, randomID)
@@ -221,6 +231,8 @@ resource "github_actions_environment_variable" "test" {
 	})
 
 	t.Run("recreate_changed_repo", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		repoName2 := fmt.Sprintf("%supdated-%s", testResourcePrefix, randomID)
@@ -315,6 +327,8 @@ resource "github_actions_environment_variable" "test" {
 	})
 
 	t.Run("destroy", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
@@ -352,6 +366,8 @@ resource "github_actions_environment_variable" "test" {
 	})
 
 	t.Run("import", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		envName := "test"
@@ -384,15 +400,18 @@ resource "github_actions_environment_variable" "test" {
 					Config: config,
 				},
 				{
-					ResourceName:      "github_actions_environment_variable.test",
-					ImportState:       true,
-					ImportStateVerify: true,
+					ResourceName:            "github_actions_environment_variable.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"created_at", "updated_at"},
 				},
 			},
 		})
 	})
 
 	t.Run("error_on_existing", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		envName := "test"
@@ -427,15 +446,11 @@ resource "github_actions_environment_variable" "test" {
 				{
 					Config: baseConfig,
 					Check: func(*terraform.State) error {
-						meta, err := getTestMeta()
-						if err != nil {
-							return err
-						}
-						client := meta.v3client
-						owner := meta.name
+						client := testAccConf.meta.v3client
+						owner := testAccConf.meta.name
 						ctx := t.Context()
 
-						_, err = client.Actions.CreateEnvVariable(ctx, owner, repoName, url.PathEscape(envName), &github.ActionsVariable{
+						_, err := client.Actions.CreateEnvVariable(ctx, owner, repoName, url.PathEscape(envName), &github.ActionsVariable{
 							Name:  varName,
 							Value: "test",
 						})
@@ -446,15 +461,11 @@ resource "github_actions_environment_variable" "test" {
 					Config:      config,
 					ExpectError: regexp.MustCompile(`Variable already exists`),
 					Check: func(*terraform.State) error {
-						meta, err := getTestMeta()
-						if err != nil {
-							return err
-						}
-						client := meta.v3client
-						owner := meta.name
+						client := testAccConf.meta.v3client
+						owner := testAccConf.meta.name
 						ctx := t.Context()
 
-						_, err = client.Actions.DeleteEnvVariable(ctx, owner, repoName, url.PathEscape(envName), varName)
+						_, err := client.Actions.DeleteEnvVariable(ctx, owner, repoName, url.PathEscape(envName), varName)
 						return err
 					},
 				},

@@ -95,7 +95,7 @@ func resourceExampleRead(ctx context.Context, d *schema.ResourceData, m any) dia
     // Single API call to get all needed data
     resource, _, err := client.Resources.Get(ctx, owner, name)
     if err != nil {
-        if ghErr, ok := errors.AsType[github.ErrorResponse](err); ok {
+        if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
             if ghErr.Response.StatusCode == http.StatusNotFound {
                 tflog.Info(ctx, "Removing resource from state because it no longer exists", map[string]any{"name": name})
                 d.SetId("")
@@ -342,7 +342,7 @@ Handle 404s gracefully by removing from state:
 ```go
 resource, _, err := client.Resources.Get(ctx, owner, name)
 if err != nil {
-    if ghErr, ok := errors.AsType[github.ErrorResponse](err); ok {
+    if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
         if ghErr.Response.StatusCode == http.StatusNotFound {
             tflog.Info(ctx, "Removing resource from state because it no longer exists", map[string]any{"name": name})
             d.SetId("")
@@ -462,8 +462,10 @@ import (
 )
 
 func TestAccGithubExample(t *testing.T) {
+    t.Parallel()
 
     t.Run("creates resource without error", func(t *testing.T) {
+        t.Parallel()
         randomID := acctest.RandStrin(5)
         testResourceName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
         config := fmt.Sprintf(`
@@ -491,6 +493,7 @@ func TestAccGithubExample(t *testing.T) {
     })
 
     t.Run("forces new when field changes", func(t *testing.T) {
+        t.Parallel()
         // ... config steps ...
 
         resource.Test(t, resource.TestCase{

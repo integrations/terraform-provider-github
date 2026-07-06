@@ -17,29 +17,23 @@ type anonymousSource struct {
 }
 
 // NewAnonymousSource creates a new anonymousSource that provides an unauthenticated GitHub client. This client will have limited access to public resources and will be subject to stricter rate limits compared to authenticated clients.
-func NewAnonymousSource(opts Options) (*anonymousSource, error) {
-	if opts.CachePath == "" {
+func NewAnonymousSource(opts SourceOptions) (*anonymousSource, error) {
+	if opts.Cache && opts.CacheBasePath == "" {
 		s, err := os.MkdirTemp("", "*")
 		if err != nil {
 			return nil, fmt.Errorf("failed to create temporary cache directory: %w", err)
 		}
-		opts.CachePath = s
+		opts.CacheBasePath = s
 	}
 
-	opts.sema = semaphore.NewWeighted(maxConcurrentRequests)
+	sema := semaphore.NewWeighted(maxConcurrentRequests)
 
-	opts.maxIdleConns = maxIdleConnsREST
-	opts.idleConnTimeout = idleConnTimeoutREST
-	opts.cacheRef = "anonymous-rest"
-	client, err := NewAnonymousRESTClient(opts)
+	client, err := NewAnonymousRESTClient(opts.getRESTClientOptions(sema, "anonymous-rest"))
 	if err != nil {
 		return nil, err
 	}
 
-	opts.maxIdleConns = maxIdleConnsGraphQL
-	opts.idleConnTimeout = idleConnTimeoutGraphQL
-	opts.cacheRef = "anonymous-graphql"
-	graphQLClient, err := NewAnonymousGraphQLClient(opts)
+	graphQLClient, err := NewAnonymousGraphQLClient(opts.getGraphQLClientOptions(sema))
 	if err != nil {
 		return nil, err
 	}

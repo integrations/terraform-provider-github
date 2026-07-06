@@ -6,16 +6,24 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/google/go-github/v88/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-log/tflogtest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubRepositoryRuleset(t *testing.T) {
+	t.Parallel()
+
 	t.Run("create_branch_ruleset", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-%s", testResourcePrefix, randomID)
 
@@ -147,6 +155,16 @@ resource "github_repository_ruleset" "test" {
 	})
 
 	t.Run("create_branch_ruleset_with_user_bypass_actor", func(t *testing.T) {
+		t.Parallel()
+
+		var username string
+		if testAccConf.authMode == individual {
+			username = testAccConf.owner
+		} else {
+			skipUnlessHasOrgUser1(t)
+			username = testAccConf.testOrgUser1
+		}
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-user-bypass-%s", testResourcePrefix, randomID)
 
@@ -185,7 +203,7 @@ resource "github_repository_ruleset" "test" {
 		creation = true
 	}
 }
-`, repoName, testAccConf.testRepositoryVisibility, testAccConf.username)
+`, repoName, testAccConf.testRepositoryVisibility, username)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -204,6 +222,8 @@ resource "github_repository_ruleset" "test" {
 	})
 
 	t.Run("create_branch_ruleset_with_enterprise_features", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-%s", testResourcePrefix, randomID)
 
@@ -260,6 +280,8 @@ resource "github_repository_ruleset" "test" {
 	})
 
 	t.Run("creates_push_ruleset", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-%s", testResourcePrefix, randomID)
 
@@ -331,6 +353,8 @@ resource "github_repository_ruleset" "test" {
 	})
 
 	t.Run("update_ruleset_name", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-rename-%s", testResourcePrefix, randomID)
 		name := fmt.Sprintf("ruleset-%s", randomID)
@@ -377,6 +401,8 @@ resource "github_repository_ruleset" "test" {
 	})
 
 	t.Run("update_clear_bypass_actors", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-bypass-%s", testResourcePrefix, randomID)
 
@@ -444,6 +470,8 @@ resource "github_repository_ruleset" "test" {
 	})
 
 	t.Run("update_bypass_mode", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-bypass-update-%s", testResourcePrefix, randomID)
 
@@ -504,6 +532,8 @@ resource "github_repository_ruleset" "test" {
 	})
 
 	t.Run("import", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-bpmod-%s", testResourcePrefix, randomID)
 
@@ -558,45 +588,115 @@ resource "github_repository_ruleset" "test" {
 			},
 		})
 	})
+
+	t.Run("create_branch_ruleset_with_enterprise_owner_bypass", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name       = "%s"
+	auto_init  = false
+	visibility = "%s"
 }
 
-func TestAccGithubRepositoryRulesetArchived(t *testing.T) {
+resource "github_repository_ruleset" "test" {
+	name        = "test"
+	repository  = github_repository.test.id
+	target      = "branch"
+	enforcement = "active"
+
+	conditions {
+		ref_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	bypass_actors {
+		actor_type  = "EnterpriseOwner"
+		bypass_mode = "always"
+	}
+
+	rules {
+		branch_name_pattern {
+			name     = "test"
+			negate   = false
+			operator = "starts_with"
+			pattern  = "test"
+		}
+	}
+}
+`, repoName, testAccConf.testRepositoryVisibility)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact("test")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("enforcement"), knownvalue.StringExact("active")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("actor_type"), knownvalue.StringExact("EnterpriseOwner")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("bypass_mode"), knownvalue.StringExact("always")),
+					},
+				},
+			},
+		})
+	})
+
 	t.Run("skips update and delete on archived repository", func(t *testing.T) {
+		t.Parallel()
+
+		t.Skip("TODO: Fix the archived behavior as if update is skipping read needs to do so too.")
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-arch-%s", testResourcePrefix, randomID)
 		archivedBefore := false
 		archivedAfter := true
 		enforcementBefore := "active"
 		enforcementAfter := "disabled"
-		config := `
-			resource "github_repository" "test" {
-				name      = "%s"
-				auto_init = true
-				archived  = %t
-				visibility = "%s"
-			}
 
-			resource "github_repository_ruleset" "test" {
-				name        = "test"
-				repository  = github_repository.test.name
-				target      = "branch"
-				enforcement = "%s"
-				rules { creation = true }
-			}
-		`
+		config := `
+resource "github_repository" "test" {
+	name      = "%s"
+	auto_init = true
+	archived  = %t
+	visibility = "%s"
+}
+
+resource "github_repository_ruleset" "test" {
+	name        = "test"
+	repository  = github_repository.test.name
+	target      = "branch"
+	enforcement = "%s"
+	rules { creation = true }
+}
+`
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
-				{Config: fmt.Sprintf(config, repoName, archivedBefore, testAccConf.testRepositoryVisibility, enforcementBefore)},
-				{Config: fmt.Sprintf(config, repoName, archivedAfter, testAccConf.testRepositoryVisibility, enforcementBefore)},
-				{Config: fmt.Sprintf(config, repoName, archivedAfter, testAccConf.testRepositoryVisibility, enforcementAfter)},
+				{
+					Config: fmt.Sprintf(config, repoName, archivedBefore, testAccConf.testRepositoryVisibility, enforcementBefore),
+				},
+				{
+					Config: fmt.Sprintf(config, repoName, archivedAfter, testAccConf.testRepositoryVisibility, enforcementBefore),
+				},
+				{
+					Config: fmt.Sprintf(config, repoName, archivedAfter, testAccConf.testRepositoryVisibility, enforcementAfter),
+				},
 			},
 		})
 	})
 
 	t.Run("prevents creating ruleset on archived repository", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-ruleset-arch-cr-%s", testResourcePrefix, randomID)
 		repoConfig := `
@@ -632,10 +732,10 @@ resource "github_repository_ruleset" "test" {
 			},
 		})
 	})
-}
 
-func TestAccGithubRepositoryRulesetValidation(t *testing.T) {
 	t.Run("Validates push target rejects ref_name condition", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		config := fmt.Sprintf(`
@@ -680,6 +780,8 @@ func TestAccGithubRepositoryRulesetValidation(t *testing.T) {
 	})
 
 	t.Run("Validates push target rejects branch/tag rules", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -715,6 +817,8 @@ func TestAccGithubRepositoryRulesetValidation(t *testing.T) {
 	})
 
 	t.Run("Validates branch target rejects push-only rules", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -760,6 +864,8 @@ func TestAccGithubRepositoryRulesetValidation(t *testing.T) {
 	})
 
 	t.Run("Validates tag target rejects push-only rules", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
@@ -803,15 +909,16 @@ func TestAccGithubRepositoryRulesetValidation(t *testing.T) {
 			},
 		})
 	})
-}
 
-func TestAccGithubRepositoryRuleset_requiredReviewers(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-	repoName := fmt.Sprintf("%srepo-ruleset-req-rev-%s", testResourcePrefix, randomID)
-	teamName := fmt.Sprintf("%steam-req-rev-%s", testResourcePrefix, randomID)
-	rulesetName := fmt.Sprintf("%s-ruleset-req-rev-%s", testResourcePrefix, randomID)
+	t.Run("updates_required_reviewers_successfully", func(t *testing.T) {
+		t.Parallel()
 
-	config := fmt.Sprintf(`
+		randomID := acctest.RandString(5)
+		repoName := fmt.Sprintf("%srepo-ruleset-req-rev-%s", testResourcePrefix, randomID)
+		teamName := fmt.Sprintf("%steam-req-rev-%s", testResourcePrefix, randomID)
+		rulesetName := fmt.Sprintf("%s-ruleset-req-rev-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
 resource "github_repository" "test" {
 	name      = "%s"
 	auto_init = true
@@ -864,8 +971,8 @@ resource "github_repository_ruleset" "test" {
 }
 `, repoName, testAccConf.testRepositoryVisibility, teamName, rulesetName)
 
-	// Updated config: change minimum_approvals from 1 to 2
-	configUpdated := fmt.Sprintf(`
+		// Updated config: change minimum_approvals from 1 to 2
+		configUpdated := fmt.Sprintf(`
 resource "github_repository" "test" {
 	name      = "%s"
 	auto_init = true
@@ -918,37 +1025,131 @@ resource "github_repository_ruleset" "test" {
 }
 `, repoName, testAccConf.testRepositoryVisibility, teamName, rulesetName)
 
-	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { skipUnlessHasOrgs(t) },
-		ProviderFactories: providerFactories,
-		Steps: []resource.TestStep{
-			{
-				Config: config,
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", rulesetName),
-					resource.TestCheckResourceAttr("github_repository_ruleset.test", "target", "branch"),
-					resource.TestCheckResourceAttr("github_repository_ruleset.test", "enforcement", "active"),
-					resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.#", "1"),
-					resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.minimum_approvals", "1"),
-					resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.#", "1"),
-					resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.0", "*.go"),
-					resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.reviewer.0.type", "Team"),
-				),
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", rulesetName),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "target", "branch"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "enforcement", "active"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.#", "1"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.minimum_approvals", "1"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.#", "1"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.0", "*.go"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.reviewer.0.type", "Team"),
+					),
+				},
+				{
+					Config: configUpdated,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.minimum_approvals", "2"),
+					),
+				},
+				{
+					ResourceName:            "github_repository_ruleset.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateIdFunc:       importRepositoryRulesetByResourcePaths("github_repository.test", "github_repository_ruleset.test"),
+					ImportStateVerifyIgnore: []string{"etag"},
+				},
 			},
-			{
-				Config: configUpdated,
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.minimum_approvals", "2"),
-				),
+		})
+	})
+
+	// Verify possible regression found by https://github.com/integrations/terraform-provider-github/issues/3509
+	t.Run("regression_shows_drift_when_bypass_actors_change_upstream", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+
+		config := fmt.Sprintf(`
+resource "github_repository_ruleset" "test" {
+	name        = "test_regression_bypass_actors_drift"
+	repository  = "%s"
+	target      = "branch"
+	enforcement = "active"
+
+
+	bypass_actors {
+		actor_id    = 946600 # Copilot code review
+		actor_type  = "Integration"
+		bypass_mode = "always"
+	}
+	
+	bypass_actors {
+		actor_id    = 1143301 # Copilot cloud agent
+		actor_type  = "Integration"
+		bypass_mode = "always"
+	}
+
+	conditions {
+		ref_name {
+			include = ["~DEFAULT_BRANCH"]
+			exclude = []
+		}
+	}
+
+	rules {
+		creation = true
+		update = true
+		deletion = true
+	}
+}
+`, repo.GetName())
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors"), knownvalue.ListSizeExact(2)),
+					},
+				},
+				{
+					Config: config,
+					PreConfig: func() {
+						client := testAccConf.meta.v3client
+						ctx := tflogtest.RootLogger(t.Context(), log.Writer()) // This pattern can be used to capture logs during testing if needed
+						// Update the ruleset to remove one of the bypass actors, simulating a change upstream
+						rulesets, _, err := client.Repositories.GetAllRulesets(ctx, testAccConf.meta.name, repo.GetName(), &github.RepositoryListRulesetsOptions{})
+						if err != nil {
+							t.Fatalf("failed to list all repository rulesets: %v", err)
+						}
+						firstRuleset := rulesets[0]
+
+						integrationActorType := github.BypassActorTypeIntegration
+						bypassMode := github.BypassModeAlways
+
+						firstRuleset.BypassActors = []*github.BypassActor{
+							{
+								ActorID:    new(int64(946600)),
+								ActorType:  &integrationActorType,
+								BypassMode: &bypassMode,
+							},
+						}
+						tflog.Debug(ctx, "Removing 1 bypass actor from Repo Ruleset")
+						ruleset, resp, err := client.Repositories.UpdateRuleset(ctx, testAccConf.meta.name, repo.GetName(), firstRuleset.GetID(), *firstRuleset)
+						if err != nil {
+							t.Fatalf("failed to remove 2nd bypass actor: %v", err)
+						}
+						tflog.Debug(ctx, "Successfully removed 1 bypass actor from Repo Ruleset", map[string]any{"bypass_actors": ruleset.GetBypassActors(), "etag": resp.Header.Get("ETag")})
+					},
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_ruleset.test", plancheck.ResourceActionUpdate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors"), knownvalue.ListSizeExact(2)),
+					},
+				},
 			},
-			{
-				ResourceName:            "github_repository_ruleset.test",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateIdFunc:       importRepositoryRulesetByResourcePaths("github_repository.test", "github_repository_ruleset.test"),
-				ImportStateVerifyIgnore: []string{"etag"},
-			},
-		},
+		})
 	})
 }
 

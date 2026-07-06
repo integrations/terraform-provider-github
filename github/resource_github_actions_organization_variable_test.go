@@ -12,7 +12,11 @@ import (
 )
 
 func TestAccGithubActionsOrganizationVariable(t *testing.T) {
+	t.Parallel()
+
 	t.Run("create_update_visibility_all", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 		varName := fmt.Sprintf("test_%s", randomID)
 		value := "foo"
@@ -57,6 +61,8 @@ resource "github_actions_organization_variable" "test" {
 	})
 
 	t.Run("create_update_visibility_private", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 		varName := fmt.Sprintf("test_%s", randomID)
 		value := "foo"
@@ -101,6 +107,8 @@ resource "github_actions_organization_variable" "test" {
 	})
 
 	t.Run("create_update_visibility_selected", func(t *testing.T) {
+		t.Parallel()
+
 		repoName0 := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
 		repoName1 := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
@@ -159,6 +167,8 @@ resource "github_actions_organization_variable" "test" {
 	})
 
 	t.Run("create_update_visibility_selected_no_repo_ids", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 		varName := fmt.Sprintf("test_%s", randomID)
 		value := "foo"
@@ -203,6 +213,8 @@ resource "github_actions_organization_variable" "test" {
 	})
 
 	t.Run("create_update_change_visibility", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 		varName := fmt.Sprintf("test_%s", randomID)
 		value := "foo"
@@ -249,6 +261,8 @@ resource "github_actions_organization_variable" "test" {
 	})
 
 	t.Run("destroy", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 		varName := fmt.Sprintf("test_%s", randomID)
 
@@ -276,6 +290,8 @@ resource "github_actions_organization_variable" "test" {
 	})
 
 	t.Run("import", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 		varName := fmt.Sprintf("test_%s", randomID)
 
@@ -295,15 +311,18 @@ resource "github_actions_organization_variable" "test" {
 					Config: config,
 				},
 				{
-					ResourceName:      "github_actions_organization_variable.test",
-					ImportState:       true,
-					ImportStateVerify: true,
+					ResourceName:            "github_actions_organization_variable.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"created_at", "updated_at"},
 				},
 			},
 		})
 	})
 
 	t.Run("error_on_invalid_selected_repository_ids", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 		varName := fmt.Sprintf("test_%s", randomID)
 
@@ -330,6 +349,8 @@ resource "github_actions_organization_variable" "test" {
 	})
 
 	t.Run("error_on_existing", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 		varName := fmt.Sprintf("test_%s", randomID)
 
@@ -349,15 +370,11 @@ resource "github_actions_organization_variable" "test" {
 					Config: `
 `,
 					Check: func(*terraform.State) error {
-						meta, err := getTestMeta()
-						if err != nil {
-							return err
-						}
-						client := meta.v3client
-						owner := meta.name
+						client := testAccConf.meta.v3client
+						owner := testAccConf.meta.name
 						ctx := t.Context()
 
-						_, err = client.Actions.CreateOrgVariable(ctx, owner, &github.ActionsVariable{
+						_, err := client.Actions.CreateOrgVariable(ctx, owner, &github.ActionsVariable{
 							Name:       varName,
 							Value:      "test",
 							Visibility: new("all"),
@@ -369,15 +386,11 @@ resource "github_actions_organization_variable" "test" {
 					Config:      config,
 					ExpectError: regexp.MustCompile(`Variable already exists`),
 					Check: func(*terraform.State) error {
-						meta, err := getTestMeta()
-						if err != nil {
-							return err
-						}
-						client := meta.v3client
-						owner := meta.name
+						client := testAccConf.meta.v3client
+						owner := testAccConf.meta.name
 						ctx := t.Context()
 
-						_, err = client.Actions.DeleteOrgVariable(ctx, owner, varName)
+						_, err := client.Actions.DeleteOrgVariable(ctx, owner, varName)
 						return err
 					},
 				},

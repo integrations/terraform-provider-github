@@ -3,6 +3,9 @@ package ghclient
 import (
 	"os"
 	"testing"
+
+	"github.com/google/go-github/v88/github"
+	"github.com/shurcooL/githubv4"
 )
 
 func TestNewAnonymousSource(t *testing.T) {
@@ -15,21 +18,23 @@ func TestNewAnonymousSource(t *testing.T) {
 
 	for _, tt := range []struct {
 		name string
-		opts Options
+		opts SourceOptions
 	}{
 		{
 			name: "default",
-			opts: Options{
-				RESTAPIURL: "https://api.github.com/",
-				GraphQLURL: "https://api.github.com/graphql",
+			opts: SourceOptions{},
+		},
+		{
+			name: "with_cache_base_path",
+			opts: SourceOptions{
+				Cache:         true,
+				CacheBasePath: mustMkdirTemp(t, cacheBasePath, "*"),
 			},
 		},
 		{
-			name: "with_cache_path",
-			opts: Options{
-				RESTAPIURL: "https://api.github.com/",
-				GraphQLURL: "https://api.github.com/graphql",
-				CachePath:  mustMkdirTemp(t, cacheBasePath, "*"),
+			name: "with_cache_no_base_path",
+			opts: SourceOptions{
+				Cache: true,
 			},
 		},
 	} {
@@ -51,20 +56,9 @@ func TestNewAnonymousSource(t *testing.T) {
 func Test_anonymousSource(t *testing.T) {
 	t.Parallel()
 
-	cacheBasePath := mustMkdirTemp(t, "", "*")
-	t.Cleanup(func() {
-		_ = os.RemoveAll(cacheBasePath)
-	})
-
-	opts := Options{
-		RESTAPIURL: "https://api.github.com/",
-		GraphQLURL: "https://api.github.com/graphql",
-		CachePath:  mustMkdirTemp(t, cacheBasePath, "*"),
-	}
-
-	source, err := NewAnonymousSource(opts)
-	if err != nil {
-		t.Fatalf("failed to create anonymous source: %v", err)
+	source := &anonymousSource{
+		restClient:    &github.Client{},
+		graphQLClient: &githubv4.Client{},
 	}
 
 	restClient, err := source.RESTClient()

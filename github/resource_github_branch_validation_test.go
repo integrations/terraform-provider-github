@@ -3,6 +3,8 @@ package github
 import "testing"
 
 func TestGithubBranchIsUpdatedWhenBranchChanges(t *testing.T) {
+	t.Parallel()
+
 	resource := resourceGithubBranch()
 
 	branchSchema := resource.Schema["branch"]
@@ -15,6 +17,8 @@ func TestGithubBranchIsUpdatedWhenBranchChanges(t *testing.T) {
 }
 
 func TestGithubBranchIsRecreatedWhenRepositoryChanges(t *testing.T) {
+	t.Parallel()
+
 	resource := resourceGithubBranch()
 
 	repositorySchema := resource.Schema["repository"]
@@ -27,6 +31,8 @@ func TestGithubBranchIsRecreatedWhenRepositoryChanges(t *testing.T) {
 }
 
 func TestGithubBranchIsRecreatedWhenSourceBranchChanges(t *testing.T) {
+	t.Parallel()
+
 	resource := resourceGithubBranch()
 
 	sourceBranchSchema := resource.Schema["source_branch"]
@@ -39,6 +45,8 @@ func TestGithubBranchIsRecreatedWhenSourceBranchChanges(t *testing.T) {
 }
 
 func TestGithubBranchIsRecreatedWhenSourceSHAChanges(t *testing.T) {
+	t.Parallel()
+
 	resource := resourceGithubBranch()
 
 	sourceSHASchema := resource.Schema["source_sha"]

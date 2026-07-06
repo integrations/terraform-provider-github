@@ -1,11 +1,18 @@
 package github
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"regexp"
 	"testing"
 )
 
 func TestProvider(t *testing.T) {
+	t.Parallel()
+
 	t.Run("validate", func(t *testing.T) {
+		t.Parallel()
+
 		if err := NewProvider("test", "none")().InternalValidate(); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -13,76 +20,226 @@ func TestProvider(t *testing.T) {
 }
 
 func Test_configureProviderMeta(t *testing.T) {
-	baseURL, _, err := getBaseURL(DotComAPIURL)
-	if err != nil {
-		t.Fatalf("failed to parse test base URL: %s", err.Error())
-	}
+	t.Parallel()
 
 	for _, tt := range []struct {
-		name         string
-		legacyClient bool
+		name        string
+		installResp *string
+		userResp    *string
+		orgResp     *string
+		conf        *Config
+		wantName    string
+		wantIsOrg   bool
+		wantOrgId   int64
+		wantErr     string
 	}{
 		{
-			name:         "client",
-			legacyClient: false,
+			name: "anonymous",
+			conf: &Config{},
 		},
 		{
-			name:         "legacy_client",
-			legacyClient: true,
+			name:        "app_auth_organization",
+			installResp: new(`{"id": 999999}`),
+			orgResp:     new(`{"id": 123456}`),
+			conf: &Config{
+				AppID:             new("111111"),
+				AppInstallationID: new("999999"),
+				AppPEM:            mustNewPEM(t),
+				Owner:             "test-org",
+			},
+			wantName:  "test-org",
+			wantIsOrg: true,
+			wantOrgId: 123456,
+		},
+		{
+			name:        "app_auth_user",
+			installResp: new(`{"id": 999999}`),
+			conf: &Config{
+				AppID:             new("111111"),
+				AppInstallationID: new("999999"),
+				AppPEM:            mustNewPEM(t),
+				Owner:             "test-user",
+			},
+			wantName: "test-user",
+		},
+		{
+			name:    "token_auth_organization",
+			orgResp: new(`{"id": 123456}`),
+			conf: &Config{
+				Owner: "test-org",
+				Token: "test-token",
+			},
+			wantName:  "test-org",
+			wantIsOrg: true,
+			wantOrgId: 123456,
+		},
+		{
+			name: "token_auth_user",
+			conf: &Config{
+				Owner: "test-user",
+				Token: "test-token",
+			},
+			wantName: "test-user",
+		},
+		{
+			name: "errors_on_missing_owner",
+			conf: &Config{
+				Token: "test-token",
+			},
+			wantErr: "owner must be set when authenticating using the new client implementation",
+		},
+		{
+			name: "legacy_client_anonymous",
+			conf: &Config{
+				LegacyClient: true,
+			},
+		},
+		{
+			name:        "legacy_client_app_auth_organization",
+			installResp: new(`{"id": 999999}`),
+			orgResp:     new(`{"id": 123456}`),
+			conf: &Config{
+				LegacyClient:      true,
+				AppID:             new("111111"),
+				AppInstallationID: new("999999"),
+				AppPEM:            mustNewPEM(t),
+				Owner:             "test-org",
+			},
+			wantName:  "test-org",
+			wantIsOrg: true,
+			wantOrgId: 123456,
+		},
+		{
+			name:        "legacy_client_app_auth_user",
+			installResp: new(`{"id": 999999}`),
+			conf: &Config{
+				LegacyClient:      true,
+				AppID:             new("111111"),
+				AppInstallationID: new("999999"),
+				AppPEM:            mustNewPEM(t),
+				Owner:             "test-user",
+			},
+			wantName: "test-user",
+		},
+		{
+			name: "legacy_client_token_auth_user",
+			conf: &Config{
+				LegacyClient: true,
+				Owner:        "test-user",
+				Token:        "test-token",
+			},
+			wantName: "test-user",
+		},
+		{
+			name:     "legacy_client_token_auth_no_owner",
+			userResp: new(`{"login": "test-user"}`),
+			conf: &Config{
+				LegacyClient: true,
+				Token:        "test-token",
+			},
+			wantName: "test-user",
+		},
+		{
+			name: "legacy_client_token_auth_no_owner_found",
+			conf: &Config{
+				LegacyClient: true,
+				Token:        "test-token",
+			},
+			wantErr: "owner cannot be found by token",
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Run("anonymous", func(t *testing.T) {
-				config := &Config{
-					BaseURL:      baseURL,
-					LegacyClient: tt.legacyClient,
+			t.Parallel()
+
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if regexp.MustCompile(`/access_tokens$`).MatchString(r.URL.Path) {
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(`{"token": "test-token", "expires_at": "2024-12-31T23:59:59Z"}`))
+					return
 				}
 
-				meta, err := configureProviderMeta(t.Context(), "test", config)
-				if err != nil {
-					t.Fatalf("failed to return meta without error: %s", err.Error())
-				}
-
-				t.Run("rest_client", func(t *testing.T) {
-					if meta.v3client == nil {
-						t.Fatal("expected rest client to be non-nil")
+				if regexp.MustCompile(`/installation$`).MatchString(r.URL.Path) {
+					if tt.installResp == nil {
+						w.WriteHeader(http.StatusNotFound)
+						return
 					}
-				})
-			})
 
-			t.Run("authenticated", func(t *testing.T) {
-				skipUnauthenticated(t)
-
-				config := &Config{
-					GraphQLAPIPath: "graphql",
-					BaseURL:        baseURL,
-					Owner:          testAccConf.owner,
-					Token:          testAccConf.token,
-					LegacyClient:   tt.legacyClient,
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(*tt.installResp))
+					return
 				}
 
-				meta, err := configureProviderMeta(t.Context(), "test", config)
-				if err != nil {
-					t.Fatalf("failed to return meta without error: %s", err.Error())
+				if regexp.MustCompile(`/user$`).MatchString(r.URL.Path) {
+					if tt.userResp == nil {
+						w.WriteHeader(http.StatusNotFound)
+						return
+					}
+
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(*tt.userResp))
+					return
 				}
 
-				t.Run("rest_client", func(t *testing.T) {
-					if meta.v3client == nil {
-						t.Fatal("expected rest client to be non-nil")
+				if regexp.MustCompile(`/orgs/[^/]+$`).MatchString(r.URL.Path) {
+					if tt.orgResp == nil {
+						w.WriteHeader(http.StatusNotFound)
+						return
 					}
-				})
 
-				t.Run("graphql_client", func(t *testing.T) {
-					if meta.v4client == nil {
-						t.Fatal("expected graphql client to be non-nil")
-					}
-				})
-			})
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(*tt.orgResp))
+					return
+				}
+
+				w.WriteHeader(http.StatusNotFound)
+			}))
+			t.Cleanup(ts.Close)
+
+			tt.conf.BaseURL = mustNewURL(t, ts.URL)
+
+			meta, err := configureProviderMeta(t.Context(), "test", tt.conf)
+			if err != nil {
+				if tt.wantErr == "" {
+					t.Fatalf("unexpected error: %v", err)
+				}
+
+				if !regexp.MustCompile(regexp.QuoteMeta(tt.wantErr)).MatchString(err.Error()) {
+					t.Fatalf("expected error to match %q, got %v", tt.wantErr, err)
+				}
+
+				return
+			}
+
+			if tt.wantErr != "" {
+				t.Fatalf("expected error %q, got nil", tt.wantErr)
+			}
+
+			if meta.name != tt.wantName {
+				t.Errorf("expected owner name to be %q, got %q", tt.wantName, meta.name)
+			}
+
+			if meta.IsOrganization != tt.wantIsOrg {
+				t.Errorf("expected IsOrganization to be %v, got %v", tt.wantIsOrg, meta.IsOrganization)
+			}
+
+			if meta.id != tt.wantOrgId {
+				t.Errorf("expected owner id to be %d, got %d", tt.wantOrgId, meta.id)
+			}
+
+			if meta.v3client == nil {
+				t.Errorf("expected rest client to be non-nil")
+			}
+
+			if tt.conf.Owner != "" && meta.v4client == nil {
+				t.Errorf("expected graphql client to be non-nil")
+			}
 		})
 	}
 }
 
 func Test_ghCLIHostFromAPIHost(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name         string
 		host         string
@@ -117,6 +274,8 @@ func Test_ghCLIHostFromAPIHost(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := ghCLIHostFromAPIHost(tc.host)
 			if got != tc.expectedHost {
 				t.Errorf("ghCLIHostFromAPIHost(%q) = %q, want %q", tc.host, got, tc.expectedHost)

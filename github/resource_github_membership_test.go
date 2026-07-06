@@ -12,11 +12,15 @@ import (
 )
 
 func TestAccGithubMembership(t *testing.T) {
+	t.Parallel()
+
 	if len(testAccConf.testExternalUser1) == 0 {
 		t.Skip("No external user provided")
 	}
 
 	t.Run("creates organization membership", func(t *testing.T) {
+		// IMPORTANT: Do not run this sub test in parallel is it uses shared state.
+
 		ctx := t.Context()
 
 		var membership github.Membership
@@ -44,6 +48,8 @@ func TestAccGithubMembership(t *testing.T) {
 	})
 
 	t.Run("creates organization membership with downgrade", func(t *testing.T) {
+		// IMPORTANT: Do not run this sub test in parallel is it uses shared state.
+
 		ctx := t.Context()
 
 		var membership github.Membership
@@ -70,6 +76,8 @@ func TestAccGithubMembership(t *testing.T) {
 	})
 
 	t.Run("creates organization membership with case insensitivity", func(t *testing.T) {
+		// IMPORTANT: Do not run this sub test in parallel is it uses shared state.
+
 		ctx := t.Context()
 
 		var membership github.Membership
@@ -108,11 +116,7 @@ func TestAccGithubMembership(t *testing.T) {
 
 func testAccCheckGithubMembershipDestroy(s *terraform.State) error {
 	ctx := context.Background()
-	meta, err := getTestMeta()
-	if err != nil {
-		return err
-	}
-	conn := meta.v3client
+	conn := testAccConf.meta.v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_membership" {
@@ -164,11 +168,7 @@ func testAccCheckGithubMembershipExists(ctx context.Context, n string, membershi
 			return fmt.Errorf("no membership ID is set")
 		}
 
-		meta, err := getTestMeta()
-		if err != nil {
-			return err
-		}
-		conn := meta.v3client
+		conn := testAccConf.meta.v3client
 
 		orgName, username, err := parseID2(rs.Primary.ID)
 		if err != nil {
@@ -195,11 +195,7 @@ func testAccCheckGithubMembershipRoleState(ctx context.Context, n string, member
 			return fmt.Errorf("no membership ID is set")
 		}
 
-		meta, err := getTestMeta()
-		if err != nil {
-			return err
-		}
-		conn := meta.v3client
+		conn := testAccConf.meta.v3client
 
 		orgName, username, err := parseID2(rs.Primary.ID)
 		if err != nil {

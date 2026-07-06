@@ -8,6 +8,8 @@ import (
 )
 
 func TestExpandRulesBasicRules(t *testing.T) {
+	t.Parallel()
+
 	// Test expanding basic boolean rules with RepositoryRulesetRules
 	rulesMap := map[string]any{
 		"creation":                true,
@@ -48,6 +50,8 @@ func TestExpandRulesBasicRules(t *testing.T) {
 }
 
 func TestFlattenRulesBasicRules(t *testing.T) {
+	t.Parallel()
+
 	// Test flattening basic boolean rules with RepositoryRulesetRules
 	rules := &github.RepositoryRulesetRules{
 		Creation:              &github.EmptyRuleParameters{},
@@ -88,6 +92,8 @@ func TestFlattenRulesBasicRules(t *testing.T) {
 }
 
 func TestExpandRulesMaxFilePathLength(t *testing.T) {
+	t.Parallel()
+
 	// Test that max_file_path_length rule is properly expanded
 	maxPathLength := 512
 
@@ -118,6 +124,8 @@ func TestExpandRulesMaxFilePathLength(t *testing.T) {
 }
 
 func TestFlattenRulesMaxFilePathLength(t *testing.T) {
+	t.Parallel()
+
 	// Test that max_file_path_length rule is properly flattened
 	maxPathLength := 256
 	rules := &github.RepositoryRulesetRules{
@@ -145,6 +153,8 @@ func TestFlattenRulesMaxFilePathLength(t *testing.T) {
 }
 
 func TestRoundTripMaxFilePathLength(t *testing.T) {
+	t.Parallel()
+
 	// Test that max_file_path_length rule survives expand -> flatten round trip
 	maxPathLength := 1024
 
@@ -186,6 +196,8 @@ func TestRoundTripMaxFilePathLength(t *testing.T) {
 }
 
 func TestExpandRulesMaxFileSize(t *testing.T) {
+	t.Parallel()
+
 	// Test that max_file_size rule is properly expanded
 	maxFileSize := int64(1048576) // 1MB
 
@@ -216,6 +228,8 @@ func TestExpandRulesMaxFileSize(t *testing.T) {
 }
 
 func TestFlattenRulesMaxFileSize(t *testing.T) {
+	t.Parallel()
+
 	// Test that max_file_size rule is properly flattened
 	maxFileSize := int64(5242880) // 5MB
 	rules := &github.RepositoryRulesetRules{
@@ -243,6 +257,8 @@ func TestFlattenRulesMaxFileSize(t *testing.T) {
 }
 
 func TestExpandRulesFileExtensionRestriction(t *testing.T) {
+	t.Parallel()
+
 	// Test that file_extension_restriction rule is properly expanded
 	restrictedExtensions := []string{".exe", ".bat", ".com"}
 
@@ -284,6 +300,8 @@ func TestExpandRulesFileExtensionRestriction(t *testing.T) {
 }
 
 func TestFlattenRulesFileExtensionRestriction(t *testing.T) {
+	t.Parallel()
+
 	// Test that file_extension_restriction rule is properly flattened
 	restrictedExtensions := []string{".exe", ".bat", ".com"}
 	rules := &github.RepositoryRulesetRules{
@@ -318,6 +336,8 @@ func TestFlattenRulesFileExtensionRestriction(t *testing.T) {
 }
 
 func TestCompletePushRulesetSupport(t *testing.T) {
+	t.Parallel()
+
 	// Test that all push-specific rules are supported together
 	rulesMap := map[string]any{
 		"file_path_restriction": []any{
@@ -420,6 +440,8 @@ func TestCompletePushRulesetSupport(t *testing.T) {
 }
 
 func TestCopilotCodeReviewRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	// Test that copilot_code_review rule survives expand -> flatten round trip
 	rulesMap := map[string]any{
 		"copilot_code_review": []any{
@@ -475,6 +497,8 @@ func TestCopilotCodeReviewRoundTrip(t *testing.T) {
 }
 
 func TestFlattenConditions_PushRuleset_WithRepositoryNameOnly(t *testing.T) {
+	t.Parallel()
+
 	// Push rulesets don't use ref_name - they only have repository_name or repository_id.
 	// flattenConditions should return the conditions even when RefName is nil.
 	conditions := &github.RepositoryRulesetConditions{
@@ -518,6 +542,8 @@ func TestFlattenConditions_PushRuleset_WithRepositoryNameOnly(t *testing.T) {
 }
 
 func TestFlattenConditions_BranchRuleset_WithRefNameAndRepositoryName(t *testing.T) {
+	t.Parallel()
+
 	// Branch/tag rulesets have both ref_name and repository_name.
 	// This test ensures we didn't break the existing behavior.
 	conditions := &github.RepositoryRulesetConditions{
@@ -591,6 +617,8 @@ func TestFlattenConditions_BranchRuleset_WithRefNameAndRepositoryName(t *testing
 }
 
 func TestFlattenConditions_PushRuleset_WithRepositoryIdOnly(t *testing.T) {
+	t.Parallel()
+
 	// Push rulesets can also use repository_id instead of repository_name.
 	conditions := &github.RepositoryRulesetConditions{
 		RefName: nil, // Push rulesets don't have ref_name
@@ -627,6 +655,8 @@ func TestFlattenConditions_PushRuleset_WithRepositoryIdOnly(t *testing.T) {
 }
 
 func TestExpandRequiredReviewers(t *testing.T) {
+	t.Parallel()
+
 	input := []any{
 		map[string]any{
 			"reviewer": []any{
@@ -689,6 +719,8 @@ func TestExpandRequiredReviewers(t *testing.T) {
 }
 
 func TestExpandRequiredReviewersEmpty(t *testing.T) {
+	t.Parallel()
+
 	result := expandRequiredReviewers([]any{})
 	if result != nil {
 		t.Error("Expected nil for empty input")
@@ -701,6 +733,8 @@ func TestExpandRequiredReviewersEmpty(t *testing.T) {
 }
 
 func TestFlattenRequiredReviewers(t *testing.T) {
+	t.Parallel()
+
 	reviewerType := github.RulesetReviewerTypeTeam
 	reviewers := []*github.RulesetRequiredReviewer{
 		{
@@ -757,6 +791,8 @@ func TestFlattenRequiredReviewers(t *testing.T) {
 }
 
 func TestFlattenRequiredReviewersEmpty(t *testing.T) {
+	t.Parallel()
+
 	result := flattenRequiredReviewers(nil)
 	if result != nil {
 		t.Error("Expected nil for nil input")
@@ -769,6 +805,8 @@ func TestFlattenRequiredReviewersEmpty(t *testing.T) {
 }
 
 func TestRoundTripRequiredReviewers(t *testing.T) {
+	t.Parallel()
+
 	// Start with Terraform-style input
 	input := []any{
 		map[string]any{
@@ -816,6 +854,8 @@ func TestRoundTripRequiredReviewers(t *testing.T) {
 }
 
 func TestExpandRepositoryPropertyConditions_SingleInclude(t *testing.T) {
+	t.Parallel()
+
 	input := []any{
 		map[string]any{
 			"include": []any{
@@ -856,6 +896,8 @@ func TestExpandRepositoryPropertyConditions_SingleInclude(t *testing.T) {
 }
 
 func TestExpandRepositoryPropertyConditions_IncludeAndExclude(t *testing.T) {
+	t.Parallel()
+
 	input := []any{
 		map[string]any{
 			"include": []any{
@@ -907,6 +949,8 @@ func TestExpandRepositoryPropertyConditions_IncludeAndExclude(t *testing.T) {
 }
 
 func TestExpandRepositoryPropertyConditions_MultipleValues(t *testing.T) {
+	t.Parallel()
+
 	input := []any{
 		map[string]any{
 			"include": []any{
@@ -944,6 +988,8 @@ func TestExpandRepositoryPropertyConditions_MultipleValues(t *testing.T) {
 }
 
 func TestExpandRepositoryPropertyConditions_MultipleProperties(t *testing.T) {
+	t.Parallel()
+
 	input := []any{
 		map[string]any{
 			"include": []any{
@@ -990,6 +1036,8 @@ func TestExpandRepositoryPropertyConditions_MultipleProperties(t *testing.T) {
 }
 
 func TestExpandRepositoryPropertyConditions_NilElements(t *testing.T) {
+	t.Parallel()
+
 	input := []any{
 		map[string]any{
 			"include": []any{
@@ -1029,6 +1077,8 @@ func TestExpandRepositoryPropertyConditions_NilElements(t *testing.T) {
 }
 
 func TestExpandRepositoryPropertyConditions_NilPropertyValues(t *testing.T) {
+	t.Parallel()
+
 	input := []any{
 		map[string]any{
 			"include": []any{
@@ -1067,6 +1117,8 @@ func TestExpandRepositoryPropertyConditions_NilPropertyValues(t *testing.T) {
 }
 
 func TestFlattenRulesetRepositoryPropertyTargetParameters(t *testing.T) {
+	t.Parallel()
+
 	input := []*github.RepositoryRulesetRepositoryPropertyTargetParameters{
 		{
 			Name:           "env",
@@ -1105,6 +1157,8 @@ func TestFlattenRulesetRepositoryPropertyTargetParameters(t *testing.T) {
 }
 
 func TestFlattenRulesetRepositoryPropertyTargetParameters_EmptySource(t *testing.T) {
+	t.Parallel()
+
 	input := []*github.RepositoryRulesetRepositoryPropertyTargetParameters{
 		{
 			Name:           "env",
@@ -1126,6 +1180,8 @@ func TestFlattenRulesetRepositoryPropertyTargetParameters_EmptySource(t *testing
 }
 
 func TestRoundTripRepositoryPropertyConditions(t *testing.T) {
+	t.Parallel()
+
 	input := []any{
 		map[string]any{
 			"include": []any{
@@ -1192,6 +1248,8 @@ func TestRoundTripRepositoryPropertyConditions(t *testing.T) {
 }
 
 func TestFlattenRulesetRepositoryPropertyTargetParameters_Empty(t *testing.T) {
+	t.Parallel()
+
 	// Test nil input
 	result := flattenRulesetRepositoryPropertyTargetParameters(nil)
 	if len(result) != 0 {
@@ -1206,6 +1264,8 @@ func TestFlattenRulesetRepositoryPropertyTargetParameters_Empty(t *testing.T) {
 }
 
 func TestFlattenRulesetRepositoryPropertyTargetParameters_SingleProperty(t *testing.T) {
+	t.Parallel()
+
 	input := []*github.RepositoryRulesetRepositoryPropertyTargetParameters{
 		{
 			Name:           "env",
@@ -1235,6 +1295,8 @@ func TestFlattenRulesetRepositoryPropertyTargetParameters_SingleProperty(t *test
 }
 
 func TestFlattenRulesetRepositoryPropertyTargetParameters_NilSource(t *testing.T) {
+	t.Parallel()
+
 	input := []*github.RepositoryRulesetRepositoryPropertyTargetParameters{
 		{
 			Name:           "env",
@@ -1256,6 +1318,8 @@ func TestFlattenRulesetRepositoryPropertyTargetParameters_NilSource(t *testing.T
 }
 
 func TestFlattenRulesetRepositoryPropertyTargetParameters_EmptyPropertyValues(t *testing.T) {
+	t.Parallel()
+
 	input := []*github.RepositoryRulesetRepositoryPropertyTargetParameters{
 		{
 			Name:           "env",
@@ -1277,6 +1341,8 @@ func TestFlattenRulesetRepositoryPropertyTargetParameters_EmptyPropertyValues(t 
 }
 
 func TestFlattenRulesetRepositoryPropertyTargetParameters_NilPropertyValues(t *testing.T) {
+	t.Parallel()
+
 	input := []*github.RepositoryRulesetRepositoryPropertyTargetParameters{
 		{
 			Name:           "env",
