@@ -74,7 +74,7 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"labeled_runners": {
 							Type:        schema.TypeBool,
-							Optional:    true,
+							Required:    true,
 							Description: "Whether to use labeled runners for the dependency graph autosubmit action.",
 						},
 					},
@@ -142,7 +142,7 @@ func resourceGithubOrganizationSecurityConfiguration() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"allow_advanced": {
 							Type:        schema.TypeBool,
-							Optional:    true,
+							Required:    true,
 							Description: "Whether to allow advanced security for code scanning.",
 						},
 					},
@@ -312,8 +312,13 @@ func resourceGithubOrganizationSecurityConfigurationCreate(ctx context.Context, 
 		}
 	}
 
-	if diags := resourceGithubOrganizationSecurityConfigurationSetState(d, configuration); diags.HasError() {
-		return diags
+	// Optional (non-computed) attributes are persisted from config by the SDK; only the
+	// computed values need to be written here.
+	if err := d.Set("configuration_id", int(configuration.GetID())); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("target_type", configuration.GetTargetType()); err != nil {
+		return diag.FromErr(err)
 	}
 
 	tflog.Info(ctx, "Created organization code security configuration", map[string]any{"organization": org, "name": name, "id": configuration.GetID()})
@@ -344,8 +349,53 @@ func resourceGithubOrganizationSecurityConfigurationRead(ctx context.Context, d 
 		return diag.FromErr(err)
 	}
 
-	if diags := resourceGithubOrganizationSecurityConfigurationSetState(d, configuration); diags.HasError() {
-		return diags
+	if err := d.Set("name", configuration.Name); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("configuration_id", int(configuration.GetID())); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("target_type", configuration.GetTargetType()); err != nil {
+		return diag.FromErr(err)
+	}
+	// Reconcile only the attributes under management (already present in state). GitHub
+	// server-assigns a value to every omitted attribute, so refreshing those would produce a
+	// perpetual diff; unmanaged values can be read via the data source instead.
+	managed := []struct {
+		key   string
+		value any
+	}{
+		{"description", configuration.Description},
+		{"advanced_security", configuration.GetAdvancedSecurity()},
+		{"dependency_graph", configuration.GetDependencyGraph()},
+		{"dependency_graph_autosubmit_action", configuration.GetDependencyGraphAutosubmitAction()},
+		{"dependency_graph_autosubmit_action_options", flattenDependencyGraphAutosubmitActionOptions(configuration.DependencyGraphAutosubmitActionOptions)},
+		{"dependabot_alerts", configuration.GetDependabotAlerts()},
+		{"dependabot_security_updates", configuration.GetDependabotSecurityUpdates()},
+		{"code_scanning_default_setup", configuration.GetCodeScanningDefaultSetup()},
+		{"code_scanning_default_setup_options", flattenCodeScanningDefaultSetupOptions(configuration.CodeScanningDefaultSetupOptions)},
+		{"code_scanning_delegated_alert_dismissal", configuration.GetCodeScanningDelegatedAlertDismissal()},
+		{"code_scanning_options", flattenCodeScanningOptions(configuration.CodeScanningOptions)},
+		{"code_security", configuration.GetCodeSecurity()},
+		{"secret_scanning", configuration.GetSecretScanning()},
+		{"secret_scanning_push_protection", configuration.GetSecretScanningPushProtection()},
+		{"secret_scanning_delegated_bypass", configuration.GetSecretScanningDelegatedBypass()},
+		{"secret_scanning_delegated_bypass_options", flattenSecretScanningDelegatedBypassOptions(configuration.SecretScanningDelegatedBypassOptions)},
+		{"secret_scanning_validity_checks", configuration.GetSecretScanningValidityChecks()},
+		{"secret_scanning_non_provider_patterns", configuration.GetSecretScanningNonProviderPatterns()},
+		{"secret_scanning_generic_secrets", configuration.GetSecretScanningGenericSecrets()},
+		{"secret_scanning_delegated_alert_dismissal", configuration.GetSecretScanningDelegatedAlertDismissal()},
+		{"secret_protection", configuration.GetSecretProtection()},
+		{"private_vulnerability_reporting", configuration.GetPrivateVulnerabilityReporting()},
+		{"enforcement", configuration.GetEnforcement()},
+	}
+	for _, attr := range managed {
+		if _, ok := d.GetOk(attr.key); !ok {
+			continue
+		}
+		if err := d.Set(attr.key, attr.value); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	tflog.Trace(ctx, "Successfully read organization code security configuration", map[string]any{"organization": org, "id": id})
@@ -367,14 +417,11 @@ func resourceGithubOrganizationSecurityConfigurationUpdate(ctx context.Context, 
 
 	config := resourceGithubOrganizationSecurityConfigurationExpand(d)
 
-	configuration, _, err := client.Organizations.UpdateCodeSecurityConfiguration(ctx, org, id, config)
-	if err != nil {
+	// Optional (non-computed) attributes are persisted from config by the SDK and the computed
+	// values don't change on update, so there is nothing to write back to state here.
+	if _, _, err := client.Organizations.UpdateCodeSecurityConfiguration(ctx, org, id, config); err != nil {
 		tflog.Error(ctx, "Failed to update organization code security configuration", map[string]any{"organization": org, "id": id, "error": err.Error()})
 		return diag.FromErr(err)
-	}
-
-	if diags := resourceGithubOrganizationSecurityConfigurationSetState(d, configuration); diags.HasError() {
-		return diags
 	}
 
 	tflog.Info(ctx, "Updated organization code security configuration", map[string]any{"organization": org, "id": id})
@@ -420,78 +467,6 @@ func resourceGithubOrganizationSecurityConfigurationImport(_ context.Context, d 
 	}
 
 	return []*schema.ResourceData{d}, nil
-}
-
-// resourceGithubOrganizationSecurityConfigurationSetState writes the configuration returned by the API to Terraform state,
-// including the organization-only secret scanning delegated bypass fields.
-func resourceGithubOrganizationSecurityConfigurationSetState(d *schema.ResourceData, configuration *github.CodeSecurityConfiguration) diag.Diagnostics {
-	// Only persist attributes the user configured. The optional config attributes are not
-	// Computed, and GitHub server-assigns a value to each one even when it is omitted, so
-	// writing those server values to state would produce a perpetual diff. Unmanaged values
-	// can be read via the data source instead. During import there is no config, so every
-	// attribute is populated.
-	// Only persist attributes the user manages (a non-empty value in config on create, or in
-	// prior state on read). d.Get reflects config during create/update and prior state during
-	// read, so unmanaged attributes stay out of state and GitHub's server-assigned defaults
-	// don't surface as perpetual diffs.
-	managed := func(key string) bool {
-		switch v := d.Get(key).(type) {
-		case string:
-			return v != ""
-		case []any:
-			return len(v) > 0
-		default:
-			return v != nil
-		}
-	}
-
-	if err := d.Set("configuration_id", int(configuration.GetID())); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("name", configuration.Name); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("target_type", configuration.GetTargetType()); err != nil {
-		return diag.FromErr(err)
-	}
-
-	optional := []struct {
-		key   string
-		value any
-	}{
-		{"description", configuration.Description},
-		{"advanced_security", configuration.GetAdvancedSecurity()},
-		{"dependency_graph", configuration.GetDependencyGraph()},
-		{"dependency_graph_autosubmit_action", configuration.GetDependencyGraphAutosubmitAction()},
-		{"dependency_graph_autosubmit_action_options", flattenDependencyGraphAutosubmitActionOptions(configuration.DependencyGraphAutosubmitActionOptions)},
-		{"dependabot_alerts", configuration.GetDependabotAlerts()},
-		{"dependabot_security_updates", configuration.GetDependabotSecurityUpdates()},
-		{"code_scanning_default_setup", configuration.GetCodeScanningDefaultSetup()},
-		{"code_scanning_default_setup_options", flattenCodeScanningDefaultSetupOptions(configuration.CodeScanningDefaultSetupOptions)},
-		{"code_scanning_delegated_alert_dismissal", configuration.GetCodeScanningDelegatedAlertDismissal()},
-		{"code_scanning_options", flattenCodeScanningOptions(configuration.CodeScanningOptions)},
-		{"code_security", configuration.GetCodeSecurity()},
-		{"secret_scanning", configuration.GetSecretScanning()},
-		{"secret_scanning_push_protection", configuration.GetSecretScanningPushProtection()},
-		{"secret_scanning_delegated_bypass", configuration.GetSecretScanningDelegatedBypass()},
-		{"secret_scanning_delegated_bypass_options", flattenSecretScanningDelegatedBypassOptions(configuration.SecretScanningDelegatedBypassOptions)},
-		{"secret_scanning_validity_checks", configuration.GetSecretScanningValidityChecks()},
-		{"secret_scanning_non_provider_patterns", configuration.GetSecretScanningNonProviderPatterns()},
-		{"secret_scanning_generic_secrets", configuration.GetSecretScanningGenericSecrets()},
-		{"secret_scanning_delegated_alert_dismissal", configuration.GetSecretScanningDelegatedAlertDismissal()},
-		{"secret_protection", configuration.GetSecretProtection()},
-		{"private_vulnerability_reporting", configuration.GetPrivateVulnerabilityReporting()},
-		{"enforcement", configuration.GetEnforcement()},
-	}
-	for _, attr := range optional {
-		if !managed(attr.key) {
-			continue
-		}
-		if err := d.Set(attr.key, attr.value); err != nil {
-			return diag.FromErr(err)
-		}
-	}
-	return nil
 }
 
 // resourceGithubOrganizationSecurityConfigurationExpand builds a CodeSecurityConfiguration from Terraform resource data,

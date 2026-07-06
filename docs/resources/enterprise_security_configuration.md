@@ -84,7 +84,7 @@ Optional:
 <a id="nestedblock--code_scanning_options"></a>
 ### Nested Schema for `code_scanning_options`
 
-Optional:
+Required:
 
 - `allow_advanced` (Boolean) Whether to allow advanced security for code scanning.
 
@@ -92,7 +92,7 @@ Optional:
 <a id="nestedblock--dependency_graph_autosubmit_action_options"></a>
 ### Nested Schema for `dependency_graph_autosubmit_action_options`
 
-Optional:
+Required:
 
 - `labeled_runners` (Boolean) Whether to use labeled runners for the dependency graph autosubmit action.
 
