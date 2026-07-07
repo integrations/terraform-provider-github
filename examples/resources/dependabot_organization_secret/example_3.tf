@@ -4,6 +4,6 @@ resource "github_dependabot_organization_secret" "example_allow_drift" {
   plaintext_value = "placeholder"
 
   lifecycle {
-    ignore_changes = [remote_updated_at]
+    ignore_changes = [updated_at]
   }
 }

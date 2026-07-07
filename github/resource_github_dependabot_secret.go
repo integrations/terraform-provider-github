@@ -117,7 +117,7 @@ func resourceGithubDependabotSecret() *schema.Resource {
 }
 
 func resourceGithubDependabotSecretCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -197,7 +197,7 @@ func resourceGithubDependabotSecretCreate(ctx context.Context, d *schema.Resourc
 }
 
 func resourceGithubDependabotSecretRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -243,7 +243,7 @@ func resourceGithubDependabotSecretRead(ctx context.Context, d *schema.ResourceD
 }
 
 func resourceGithubDependabotSecretUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -319,7 +319,7 @@ func resourceGithubDependabotSecretUpdate(ctx context.Context, d *schema.Resourc
 }
 
 func resourceGithubDependabotSecretDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -336,7 +336,7 @@ func resourceGithubDependabotSecretDelete(ctx context.Context, d *schema.Resourc
 }
 
 func resourceGithubDependabotSecretImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 

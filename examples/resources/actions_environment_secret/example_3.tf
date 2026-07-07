@@ -5,6 +5,6 @@ resource "github_actions_environment_secret" "example_allow_drift" {
   plaintext_value = "placeholder"
 
   lifecycle {
-    ignore_changes = [remote_updated_at]
+    ignore_changes = [updated_at]
   }
 }

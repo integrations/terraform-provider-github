@@ -21,7 +21,7 @@ func resourceGithubTeamRepository() *schema.Resource {
 		DeleteContext: resourceGithubTeamRepositoryDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-				meta := m.(*Owner)
+				meta, _ := m.(*Owner)
 				teamIdString, username, err := parseID2(d.Id())
 				if err != nil {
 					return nil, err
@@ -65,7 +65,7 @@ func resourceGithubTeamRepository() *schema.Resource {
 }
 
 func resourceGithubTeamRepositoryCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	orgId := meta.id
 	orgName := meta.name
@@ -104,7 +104,7 @@ func resourceGithubTeamRepositoryCreate(ctx context.Context, d *schema.ResourceD
 }
 
 func resourceGithubTeamRepositoryRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	orgId := meta.id
 	orgName := meta.name

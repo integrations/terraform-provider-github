@@ -129,7 +129,7 @@ func resourceGithubActionsSecret() *schema.Resource {
 }
 
 func resourceGithubActionsSecretCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -207,7 +207,7 @@ func resourceGithubActionsSecretCreate(ctx context.Context, d *schema.ResourceDa
 }
 
 func resourceGithubActionsSecretRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -250,7 +250,7 @@ func resourceGithubActionsSecretRead(ctx context.Context, d *schema.ResourceData
 }
 
 func resourceGithubActionsSecretUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -324,7 +324,7 @@ func resourceGithubActionsSecretUpdate(ctx context.Context, d *schema.ResourceDa
 }
 
 func resourceGithubActionsSecretDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -340,7 +340,7 @@ func resourceGithubActionsSecretDelete(ctx context.Context, d *schema.ResourceDa
 }
 
 func resourceGithubActionsSecretImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 

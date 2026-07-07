@@ -290,7 +290,7 @@ func resourceGithubEMUGroupMappingDelete(ctx context.Context, d *schema.Resource
 }
 
 func resourceGithubEMUGroupMappingImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	orgName := meta.name
 

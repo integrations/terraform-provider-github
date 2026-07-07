@@ -68,7 +68,7 @@ func resourceGithubActionsOrganizationVariable() *schema.Resource {
 }
 
 func resourceGithubActionsOrganizationVariableCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -115,7 +115,7 @@ func resourceGithubActionsOrganizationVariableCreate(ctx context.Context, d *sch
 }
 
 func resourceGithubActionsOrganizationVariableRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -165,7 +165,7 @@ func resourceGithubActionsOrganizationVariableRead(ctx context.Context, d *schem
 }
 
 func resourceGithubActionsOrganizationVariableUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -214,7 +214,7 @@ func resourceGithubActionsOrganizationVariableUpdate(ctx context.Context, d *sch
 }
 
 func resourceGithubActionsOrganizationVariableDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -228,7 +228,7 @@ func resourceGithubActionsOrganizationVariableDelete(ctx context.Context, d *sch
 }
 
 func resourceGithubActionsOrganizationVariableImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 

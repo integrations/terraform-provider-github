@@ -34,7 +34,7 @@ func dataSourceGithubActionsEnvironmentPublicKey() *schema.Resource {
 }
 
 func dataSourceGithubActionsEnvironmentPublicKeyRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 

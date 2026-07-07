@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -124,7 +123,7 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 }
 
 func resourceGithubActionsEnvironmentSecretCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -185,7 +184,7 @@ func resourceGithubActionsEnvironmentSecretCreate(ctx context.Context, d *schema
 		return diag.FromErr(err)
 	}
 
-	// GitHub API does not return on create so we have to lookup the secret to get timestamps, we retry to get the resource but if this fails we set an empty timestamp and let the next read set the timestamps.
+	// GitHub API does not return on create so we have to lookup the secret to get timestamps.
 	if secret, err := retryUntilResourceFound(ctx, func() (*github.Secret, error) {
 		val, _, err := client.Actions.GetEnvSecret(ctx, owner, repoName, escapedEnvName, secretName)
 		return val, err
@@ -205,7 +204,7 @@ func resourceGithubActionsEnvironmentSecretCreate(ctx context.Context, d *schema
 }
 
 func resourceGithubActionsEnvironmentSecretRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -252,7 +251,7 @@ func resourceGithubActionsEnvironmentSecretRead(ctx context.Context, d *schema.R
 }
 
 func resourceGithubActionsEnvironmentSecretUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -304,9 +303,11 @@ func resourceGithubActionsEnvironmentSecretUpdate(ctx context.Context, d *schema
 		return diag.FromErr(err)
 	}
 
-	// GitHub API does not return on update so we have to lookup the secret to get timestamps, we sleep to optimize the chance of getting the correct timestamps after an update due to the eventually consistent behavior of this API.
-	time.Sleep(defaultRetryDelay)
-	if secret, _, err := client.Actions.GetEnvSecret(ctx, owner, repoName, escapedEnvName, secretName); err == nil {
+	// GitHub API does not return on update so we have to lookup the secret to get timestamps.
+	if secret, err := retryUntilResourceFound(ctx, func() (*github.Secret, error) {
+		val, _, err := client.Actions.GetEnvSecret(ctx, owner, repoName, escapedEnvName, secretName)
+		return val, err
+	}, nil); err == nil {
 		if err := d.Set("created_at", secret.CreatedAt.String()); err != nil {
 			return diag.FromErr(err)
 		}
@@ -316,20 +317,13 @@ func resourceGithubActionsEnvironmentSecretUpdate(ctx context.Context, d *schema
 		if err := d.Set("remote_updated_at", secret.UpdatedAt.String()); err != nil {
 			return diag.FromErr(err)
 		}
-	} else {
-		if err := d.Set("updated_at", nil); err != nil {
-			return diag.FromErr(err)
-		}
-		if err := d.Set("remote_updated_at", nil); err != nil {
-			return diag.FromErr(err)
-		}
 	}
 
 	return nil
 }
 
 func resourceGithubActionsEnvironmentSecretDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -347,7 +341,7 @@ func resourceGithubActionsEnvironmentSecretDelete(ctx context.Context, d *schema
 }
 
 func resourceGithubActionsEnvironmentSecretImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 

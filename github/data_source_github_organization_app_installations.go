@@ -96,7 +96,7 @@ func dataSourceGithubOrganizationAppInstallations() *schema.Resource {
 }
 
 func dataSourceGithubOrganizationAppInstallationsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	owner := meta.name
 	client := meta.v3client
 

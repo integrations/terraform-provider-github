@@ -511,7 +511,7 @@ func resourceGithubRepositoryCollaboratorsDelete(ctx context.Context, d *schema.
 
 func resourceGithubRepositoryCollaboratorsImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
 	tflog.Debug(ctx, "Importing repository collaborators")
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 

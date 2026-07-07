@@ -46,7 +46,7 @@ func resourceGithubActionsOrganizationWorkflowPermissions() *schema.Resource {
 }
 
 func resourceGithubActionsOrganizationWorkflowPermissionsCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 
 	organizationSlug := d.Get("organization_slug").(string)
@@ -78,7 +78,7 @@ func resourceGithubActionsOrganizationWorkflowPermissionsCreate(ctx context.Cont
 }
 
 func resourceGithubActionsOrganizationWorkflowPermissionsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 
 	organizationSlug := d.Get("organization_slug").(string)
@@ -110,7 +110,7 @@ func resourceGithubActionsOrganizationWorkflowPermissionsRead(ctx context.Contex
 }
 
 func resourceGithubActionsOrganizationWorkflowPermissionsUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 
 	organizationSlug := d.Get("organization_slug").(string)
@@ -143,7 +143,7 @@ func resourceGithubActionsOrganizationWorkflowPermissionsUpdate(ctx context.Cont
 }
 
 func resourceGithubActionsOrganizationWorkflowPermissionsDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 
 	organizationSlug := d.Get("organization_slug").(string)
@@ -173,7 +173,7 @@ func resourceGithubActionsOrganizationWorkflowPermissionsDelete(ctx context.Cont
 }
 
 func resourceGithubActionsOrganizationWorkflowPermissionsImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 
 	organizationSlug := d.Id()

@@ -42,7 +42,7 @@ func resourceGithubDependabotOrganizationSecretRepositoryCreate(ctx context.Cont
 		return diag.FromErr(err)
 	}
 
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -72,7 +72,7 @@ func resourceGithubDependabotOrganizationSecretRepositoryRead(ctx context.Contex
 		return diag.FromErr(err)
 	}
 
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -112,7 +112,7 @@ func resourceGithubDependabotOrganizationSecretRepositoryDelete(ctx context.Cont
 		return diag.FromErr(err)
 	}
 
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 

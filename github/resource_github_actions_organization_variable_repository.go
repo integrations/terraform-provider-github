@@ -42,7 +42,7 @@ func resourceGithubActionsOrganizationVariableRepositoryCreate(ctx context.Conte
 		return diag.FromErr(err)
 	}
 
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -72,7 +72,7 @@ func resourceGithubActionsOrganizationVariableRepositoryRead(ctx context.Context
 		return diag.FromErr(err)
 	}
 
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -112,7 +112,7 @@ func resourceGithubActionsOrganizationVariableRepositoryDelete(ctx context.Conte
 		return diag.FromErr(err)
 	}
 
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 

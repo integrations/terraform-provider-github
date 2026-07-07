@@ -86,7 +86,7 @@ func resourceGithubTeamMembers() *schema.Resource {
 }
 
 func resourceGithubTeamMembersCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	orgName := meta.name
 

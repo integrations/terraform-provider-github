@@ -42,7 +42,7 @@ func resourceGithubActionsOrganizationSecretRepositoryCreate(ctx context.Context
 		return diag.FromErr(err)
 	}
 
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -68,7 +68,7 @@ func resourceGithubActionsOrganizationSecretRepositoryRead(ctx context.Context, 
 		return diag.FromErr(err)
 	}
 
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -97,7 +97,7 @@ func resourceGithubActionsOrganizationSecretRepositoryDelete(ctx context.Context
 		return diag.FromErr(err)
 	}
 
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 

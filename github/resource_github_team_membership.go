@@ -20,7 +20,7 @@ func resourceGithubTeamMembership() *schema.Resource {
 		DeleteContext: resourceGithubTeamMembershipDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-				meta := m.(*Owner)
+				meta, _ := m.(*Owner)
 				teamIdString, username, err := parseID2(d.Id())
 				if err != nil {
 					return nil, err
@@ -66,7 +66,7 @@ func resourceGithubTeamMembership() *schema.Resource {
 }
 
 func resourceGithubTeamMembershipCreateOrUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	orgId := meta.id
 
@@ -97,7 +97,7 @@ func resourceGithubTeamMembershipCreateOrUpdate(ctx context.Context, d *schema.R
 }
 
 func resourceGithubTeamMembershipRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	orgId := meta.id
 
@@ -154,7 +154,7 @@ func resourceGithubTeamMembershipRead(ctx context.Context, d *schema.ResourceDat
 }
 
 func resourceGithubTeamMembershipDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	orgId := meta.id
 

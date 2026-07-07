@@ -30,7 +30,7 @@ resource "github_actions_secret" "example_encrypted" {
 
 ## Example Lifecycle Ignore Changes
 
-This resource supports using the `lifecycle` `ignore_changes` block on `remote_updated_at` to support use cases where a secret value is created using a placeholder value and then modified after creation outside the scope of Terraform. This approach ensures only the initial placeholder value is referenced in your code and in the resulting state file.
+This resource supports using the `lifecycle` `ignore_changes` block on `updated_at` to support use cases where a secret value is created using a placeholder value and then modified after creation outside the scope of Terraform. This approach ensures only the initial placeholder value is referenced in your code and in the resulting state file.
 
 ```terraform
 resource "github_actions_secret" "example_allow_drift" {
@@ -39,7 +39,7 @@ resource "github_actions_secret" "example_allow_drift" {
   plaintext_value = "placeholder"
 
   lifecycle {
-    ignore_changes = [remote_updated_at]
+    ignore_changes = [updated_at]
   }
 }
 ```
