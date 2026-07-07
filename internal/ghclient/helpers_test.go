@@ -1,21 +1,40 @@
 package ghclient
 
 import (
-	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
 )
 
-type staticRoundTripper struct{}
-
-func (s *staticRoundTripper) RoundTrip(_ *http.Request) (*http.Response, error) {
-	return nil, fmt.Errorf("not used")
+type testRoundTripper struct {
+	called atomic.Int32
+	resp   *http.Response
+	err    error
 }
 
-func mustReadTestAppPrivateKey(t *testing.T) []byte {
+func (r *testRoundTripper) RoundTrip(_ *http.Request) (*http.Response, error) {
+	r.called.Add(1)
+	if r.err != nil {
+		return nil, r.err
+	}
+
+	return r.resp, nil
+}
+
+func mustMkdirTemp(t *testing.T, dir, pattern string) string {
+	t.Helper()
+
+	dir, err := os.MkdirTemp(dir, pattern) //nolint:usetesting
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+
+	return dir
+}
+
+func mustReadAppPrivateKey(t *testing.T) []byte {
 	t.Helper()
 
 	privateKeyData, err := os.ReadFile(filepath.Join("..", "..", "github", "test-fixtures", "github-app-key.pem"))
@@ -24,23 +43,4 @@ func mustReadTestAppPrivateKey(t *testing.T) []byte {
 	}
 
 	return privateKeyData
-}
-
-func mustTestAppSource(t *testing.T, handler http.Handler) *appSource {
-	t.Helper()
-
-	ts := httptest.NewServer(handler)
-	t.Cleanup(ts.Close)
-
-	privateKeyData := mustReadTestAppPrivateKey(t)
-
-	apiURL := ts.URL + "/"
-	uploadURL := ts.URL + "/"
-
-	source, err := NewAppSource("123456789", privateKeyData, Options{RESTAPIURL: &apiURL, RESTUploadURL: &uploadURL})
-	if err != nil {
-		t.Fatalf("failed to create app source: %v", err)
-	}
-
-	return source
 }

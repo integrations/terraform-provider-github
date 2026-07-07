@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -96,8 +97,11 @@ func resourceGithubActionsOrganizationVariableCreate(ctx context.Context, d *sch
 
 	d.SetId(varName)
 
-	// GitHub API does not return on create so we have to lookup the variable to get timestamps
-	if variable, _, err := client.Actions.GetOrgVariable(ctx, owner, varName); err == nil {
+	// GitHub API does not return on create so we have to lookup the variable to get timestamps, we retry to get the resource but if this fails we set an empty timestamp and let the next read set the timestamps.
+	if variable, err := retryUntilResourceFound(ctx, func() (*github.ActionsVariable, error) {
+		val, _, err := client.Actions.GetOrgVariable(ctx, owner, varName)
+		return val, err
+	}, nil); err == nil {
 		if err := d.Set("created_at", variable.CreatedAt.String()); err != nil {
 			return diag.FromErr(err)
 		}
@@ -204,7 +208,8 @@ func resourceGithubActionsOrganizationVariableUpdate(ctx context.Context, d *sch
 
 	d.SetId(varName)
 
-	// GitHub API does not return on create so we have to lookup the variable to get timestamps
+	// GitHub API does not return on update so we have to lookup the secret to get timestamps, we sleep to optimize the chance of getting the correct timestamps after an update due to the eventually consistent behavior of this API.
+	time.Sleep(defaultRetryDelay)
 	if variable, _, err := client.Actions.GetOrgVariable(ctx, owner, varName); err == nil {
 		if err := d.Set("created_at", variable.CreatedAt.String()); err != nil {
 			return diag.FromErr(err)

@@ -131,8 +131,10 @@ func resourceGithubTeamCreate(ctx context.Context, d *schema.ResourceData, m any
 		NotificationSetting: new(d.Get("notification_setting").(string)),
 	}
 
-	if ldapDN := d.Get("ldap_dn").(string); ldapDN != "" {
-		newTeam.LDAPDN = &ldapDN
+	if ldapDNVal, ok := d.GetOk("ldap_dn"); ok {
+		if ldapDN, _ := ldapDNVal.(string); ldapDN != "" {
+			newTeam.LDAPDN = &ldapDN
+		}
 	}
 
 	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
@@ -291,8 +293,14 @@ func resourceGithubTeamRead(ctx context.Context, d *schema.ResourceData, meta an
 			return diag.FromErr(err)
 		}
 	}
-	if err = d.Set("ldap_dn", team.GetLDAPDN()); err != nil {
-		return diag.FromErr(err)
+	if team.LDAPDN != nil {
+		if err := d.Set("ldap_dn", team.GetLDAPDN()); err != nil {
+			return diag.FromErr(err)
+		}
+	} else if _, ok := d.GetOk("ldap_dn"); ok {
+		if err := d.Set("ldap_dn", nil); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if err = d.Set("members_count", team.GetMembersCount()); err != nil {
 		return diag.FromErr(err)
