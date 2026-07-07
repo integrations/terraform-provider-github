@@ -224,19 +224,7 @@ func resourceGithubTeamRepositoryDelete(ctx context.Context, d *schema.ResourceD
 	_, err = client.Teams.RemoveTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
-			log.Printf("[DEBUG] Failed to find team %s to delete for repo: %s.", teamIdString, repoName)
-			repo, _, err := client.Repositories.Get(ctx, orgName, repoName)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			newRepoName := repo.GetName()
-			if newRepoName != repoName {
-				log.Printf("[INFO] Repo name has changed %s -> %s. "+
-					"Try deleting team repository again.",
-					repoName, newRepoName)
-				_, err := client.Teams.RemoveTeamRepoByID(ctx, orgId, teamId, orgName, newRepoName)
-				return diag.FromErr(handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %s", teamIdString), orgName, newRepoName))
-			}
+			return nil
 		}
 
 		return diag.FromErr(handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %s", teamIdString), orgName, repoName))
