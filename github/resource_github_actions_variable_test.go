@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
@@ -332,7 +332,7 @@ resource "github_actions_variable" "test" {
 						owner := testAccConf.meta.name
 						ctx := t.Context()
 
-						_, err := client.Actions.CreateRepoVariable(ctx, owner, repoName, &github.ActionsVariable{
+						_, err := client.Actions.CreateRepoVariable(ctx, owner, repoName, github.ActionsVariableCreateRequest{
 							Name:  varName,
 							Value: "test",
 						})

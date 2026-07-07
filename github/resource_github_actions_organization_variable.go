@@ -3,11 +3,11 @@ package github
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 	"time"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -72,9 +72,10 @@ func resourceGithubActionsOrganizationVariableCreate(ctx context.Context, d *sch
 	client := meta.v3client
 	owner := meta.name
 
-	varName := d.Get("variable_name").(string)
-	visibility := d.Get("visibility").(string)
-	repoIDs := github.SelectedRepoIDs{}
+	varName, _ := d.Get("variable_name").(string)
+	visibility, _ := d.Get("visibility").(string)
+
+	var repoIDs []int64
 
 	if v, ok := d.GetOk("selected_repository_ids"); ok {
 		ids := v.(*schema.Set).List()
@@ -84,14 +85,14 @@ func resourceGithubActionsOrganizationVariableCreate(ctx context.Context, d *sch
 		}
 	}
 
-	variable := &github.ActionsVariable{
+	varReq := github.OrgActionsVariableCreateRequest{
 		Name:                  varName,
 		Value:                 d.Get("value").(string),
-		Visibility:            new(visibility),
-		SelectedRepositoryIDs: new(repoIDs),
+		Visibility:            visibility,
+		SelectedRepositoryIDs: repoIDs,
 	}
-	_, err := client.Actions.CreateOrgVariable(ctx, owner, variable)
-	if err != nil {
+
+	if _, err := client.Actions.CreateOrgVariable(ctx, owner, varReq); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -118,17 +119,14 @@ func resourceGithubActionsOrganizationVariableRead(ctx context.Context, d *schem
 	client := meta.v3client
 	owner := meta.name
 
-	varName := d.Get("variable_name").(string)
+	varName, _ := d.Get("variable_name").(string)
 
 	variable, _, err := client.Actions.GetOrgVariable(ctx, owner, varName)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing actions variable %s from state because it no longer exists in GitHub", d.Id())
-				d.SetId("")
-				return nil
-			}
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Removing organization actions variable from state because it no longer exists.", map[string]any{"variable_name": varName})
+			d.SetId("")
+			return nil
 		}
 		return diag.FromErr(err)
 	}
@@ -148,24 +146,13 @@ func resourceGithubActionsOrganizationVariableRead(ctx context.Context, d *schem
 
 	if variable.GetVisibility() == "selected" {
 		if _, ok := d.GetOk("selected_repository_ids"); ok {
-			repoIDs := []int64{}
-			opt := &github.ListOptions{
-				PerPage: maxPerPage,
-			}
-			for {
-				results, resp, err := client.Actions.ListSelectedReposForOrgVariable(ctx, owner, varName, opt)
+			var repoIDs []int64
+			for repo, err := range client.Actions.ListSelectedReposForOrgVariableIter(ctx, owner, varName, &github.ListOptions{PerPage: maxPerPage}) {
 				if err != nil {
 					return diag.FromErr(err)
 				}
 
-				for _, repo := range results.Repositories {
-					repoIDs = append(repoIDs, repo.GetID())
-				}
-
-				if resp.NextPage == 0 {
-					break
-				}
-				opt.Page = resp.NextPage
+				repoIDs = append(repoIDs, repo.GetID())
 			}
 
 			if err := d.Set("selected_repository_ids", repoIDs); err != nil {
@@ -182,10 +169,11 @@ func resourceGithubActionsOrganizationVariableUpdate(ctx context.Context, d *sch
 	client := meta.v3client
 	owner := meta.name
 
-	varName := d.Get("variable_name").(string)
-	visibility := d.Get("visibility").(string)
-	repoIDs := github.SelectedRepoIDs{}
+	varName, _ := d.Get("variable_name").(string)
+	varValue, _ := d.Get("value").(string)
+	visibility, _ := d.Get("visibility").(string)
 
+	var repoIDs []int64
 	if v, ok := d.GetOk("selected_repository_ids"); ok {
 		ids := v.(*schema.Set).List()
 
@@ -194,15 +182,14 @@ func resourceGithubActionsOrganizationVariableUpdate(ctx context.Context, d *sch
 		}
 	}
 
-	variable := &github.ActionsVariable{
-		Name:                  varName,
-		Value:                 d.Get("value").(string),
+	varReq := github.OrgActionsVariableUpdateRequest{
+		Name:                  new(varName),
+		Value:                 new(varValue),
 		Visibility:            new(visibility),
-		SelectedRepositoryIDs: new(repoIDs),
+		SelectedRepositoryIDs: repoIDs,
 	}
 
-	_, err := client.Actions.UpdateOrgVariable(ctx, owner, variable)
-	if err != nil {
+	if _, err := client.Actions.UpdateOrgVariable(ctx, owner, varName, varReq); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -231,10 +218,9 @@ func resourceGithubActionsOrganizationVariableDelete(ctx context.Context, d *sch
 	client := meta.v3client
 	owner := meta.name
 
-	varName := d.Get("variable_name").(string)
+	varName, _ := d.Get("variable_name").(string)
 
-	_, err := client.Actions.DeleteOrgVariable(ctx, owner, varName)
-	if err != nil {
+	if _, err := client.Actions.DeleteOrgVariable(ctx, owner, varName); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -266,32 +252,6 @@ func resourceGithubActionsOrganizationVariableImport(ctx context.Context, d *sch
 		return nil, err
 	}
 	if err := d.Set("updated_at", variable.UpdatedAt.String()); err != nil {
-		return nil, err
-	}
-
-	selectedRepositoryIDs := []int64{}
-	if variable.GetVisibility() == "selected" {
-		opt := &github.ListOptions{
-			PerPage: maxPerPage,
-		}
-		for {
-			results, resp, err := client.Actions.ListSelectedReposForOrgVariable(ctx, owner, varName, opt)
-			if err != nil {
-				return nil, err
-			}
-
-			for _, repo := range results.Repositories {
-				selectedRepositoryIDs = append(selectedRepositoryIDs, repo.GetID())
-			}
-
-			if resp.NextPage == 0 {
-				break
-			}
-			opt.Page = resp.NextPage
-		}
-	}
-
-	if err := d.Set("selected_repository_ids", selectedRepositoryIDs); err != nil {
 		return nil, err
 	}
 

@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -188,7 +188,7 @@ func resourceGithubReleaseCreateUpdate(ctx context.Context, d *schema.ResourceDa
 		}
 		log.Printf("[DEBUG] Updating release: %d:%s (%s/%s)",
 			id, targetCommitish, owner, repoName)
-		release, resp, err = client.Repositories.EditRelease(ctx, owner, repoName, id, req)
+		release, resp, err = client.Repositories..EditRelease(ctx, owner, repoName, id, req)
 		if resp != nil {
 			log.Printf("[DEBUG] Response from updating release: %#v", *resp)
 		}

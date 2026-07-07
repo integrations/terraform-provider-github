@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -314,7 +314,7 @@ resource "github_actions_organization_variable" "test" {
 					ResourceName:            "github_actions_organization_variable.test",
 					ImportState:             true,
 					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"created_at", "updated_at"},
+					ImportStateVerifyIgnore: []string{"selected_repository_ids", "created_at", "updated_at"},
 				},
 			},
 		})
@@ -374,10 +374,10 @@ resource "github_actions_organization_variable" "test" {
 						owner := testAccConf.meta.name
 						ctx := t.Context()
 
-						_, err := client.Actions.CreateOrgVariable(ctx, owner, &github.ActionsVariable{
+						_, err := client.Actions.CreateOrgVariable(ctx, owner, github.OrgActionsVariableCreateRequest{
 							Name:       varName,
 							Value:      "test",
-							Visibility: new("all"),
+							Visibility: "all",
 						})
 						return err
 					},

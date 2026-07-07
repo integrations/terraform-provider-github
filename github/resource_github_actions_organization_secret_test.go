@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -477,8 +477,7 @@ resource "github_actions_organization_secret" "test" {
 							t.Fatal(err.Error())
 						}
 
-						_, err = client.Actions.CreateOrUpdateOrgSecret(ctx, owner, &github.EncryptedSecret{
-							Name:           secretName,
+						_, err = client.Actions.CreateOrUpdateOrgSecret(ctx, owner, secretName, github.OrgSecretRequest{
 							EncryptedValue: base64.StdEncoding.EncodeToString([]byte("updated_super_secret_value")),
 							KeyID:          keyID,
 							Visibility:     "all",
@@ -553,8 +552,7 @@ resource "github_actions_organization_secret" "test" {
 							t.Fatal(err.Error())
 						}
 
-						_, err = client.Actions.CreateOrUpdateOrgSecret(ctx, owner, &github.EncryptedSecret{
-							Name:           secretName,
+						_, err = client.Actions.CreateOrUpdateOrgSecret(ctx, owner, secretName, github.OrgSecretRequest{
 							EncryptedValue: base64.StdEncoding.EncodeToString([]byte("updated_super_secret_value")),
 							KeyID:          keyID,
 							Visibility:     "all",
@@ -637,7 +635,7 @@ resource "github_actions_organization_secret" "test" {
 					ResourceName:            "github_actions_organization_secret.test",
 					ImportState:             true,
 					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"key_id", "value", "destroy_on_drift", "created_at", "updated_at"},
+					ImportStateVerifyIgnore: []string{"key_id", "value", "selected_repository_ids", "destroy_on_drift", "created_at", "updated_at"},
 				},
 			},
 		})

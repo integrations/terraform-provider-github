@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 )
 
@@ -187,8 +187,7 @@ func mustCreateTestOrganizationSecret(t *testing.T) string {
 	}
 	encryptedValue := base64.StdEncoding.EncodeToString(encryptedBytes)
 
-	if _, err := testAccConf.meta.v3client.Actions.CreateOrUpdateOrgSecret(t.Context(), testAccConf.meta.name, &github.EncryptedSecret{
-		Name:           secretName,
+	if _, err := testAccConf.meta.v3client.Actions.CreateOrUpdateOrgSecret(t.Context(), testAccConf.meta.name, secretName, github.OrgSecretRequest{
 		Visibility:     "all",
 		KeyID:          publicKey.GetKeyID(),
 		EncryptedValue: encryptedValue,
@@ -214,9 +213,9 @@ func mustCreateTestOrganizationVariable(t *testing.T, value string) string {
 	randomID := acctest.RandString(testRandomIDLength)
 	varName := strings.ToUpper(fmt.Sprintf("%s%s", strings.ReplaceAll(testResourcePrefix, "-", "_"), randomID))
 
-	if _, err := testAccConf.meta.v3client.Actions.CreateOrgVariable(t.Context(), testAccConf.meta.name, &github.ActionsVariable{
+	if _, err := testAccConf.meta.v3client.Actions.CreateOrgVariable(t.Context(), testAccConf.meta.name, github.OrgActionsVariableCreateRequest{
 		Name:       varName,
-		Visibility: new("all"),
+		Visibility: "all",
 		Value:      value,
 	}); err != nil {
 		t.Fatalf("failed to create test organization variable: %v", err)
@@ -253,8 +252,7 @@ func mustCreateTestRepositorySecret(t *testing.T, repo *github.Repository) strin
 	}
 	encryptedValue := base64.StdEncoding.EncodeToString(encryptedBytes)
 
-	if _, err := testAccConf.meta.v3client.Actions.CreateOrUpdateRepoSecret(ctx, testAccConf.meta.name, repo.GetName(), &github.EncryptedSecret{
-		Name:           secretName,
+	if _, err := testAccConf.meta.v3client.Actions.CreateOrUpdateRepoSecret(ctx, testAccConf.meta.name, repo.GetName(), secretName, github.SecretRequest{
 		KeyID:          publicKey.GetKeyID(),
 		EncryptedValue: encryptedValue,
 	}); err != nil {
@@ -270,7 +268,7 @@ func mustCreateTestRepositoryVariable(t *testing.T, repo *github.Repository, val
 	randomID := acctest.RandString(testRandomIDLength)
 	varName := strings.ToUpper(fmt.Sprintf("%s%s", strings.ReplaceAll(testResourcePrefix, "-", "_"), randomID))
 
-	if _, err := testAccConf.meta.v3client.Actions.CreateRepoVariable(t.Context(), testAccConf.meta.name, repo.GetName(), &github.ActionsVariable{
+	if _, err := testAccConf.meta.v3client.Actions.CreateRepoVariable(t.Context(), testAccConf.meta.name, repo.GetName(), github.ActionsVariableCreateRequest{
 		Name:  varName,
 		Value: value,
 	}); err != nil {
@@ -302,7 +300,7 @@ func mustCreateTestRepositoryEnvironmentSecret(t *testing.T, repo *github.Reposi
 	randomID := acctest.RandString(testRandomIDLength)
 	secretName := strings.ToUpper(fmt.Sprintf("%s%s", strings.ReplaceAll(testResourcePrefix, "-", "_"), randomID))
 
-	publicKey, _, err := testAccConf.meta.v3client.Actions.GetEnvPublicKey(ctx, int(repo.GetID()), url.PathEscape(env.GetName()))
+	publicKey, _, err := testAccConf.meta.v3client.Actions.GetEnvPublicKey(ctx, testAccConf.meta.name, repo.GetName(), url.PathEscape(env.GetName()))
 	if err != nil {
 		t.Fatalf("failed to get public key for test repository environment secret: %v", err)
 	}
@@ -313,8 +311,7 @@ func mustCreateTestRepositoryEnvironmentSecret(t *testing.T, repo *github.Reposi
 	}
 	encryptedValue := base64.StdEncoding.EncodeToString(encryptedBytes)
 
-	if _, err := testAccConf.meta.v3client.Actions.CreateOrUpdateEnvSecret(ctx, int(repo.GetID()), env.GetName(), &github.EncryptedSecret{
-		Name:           secretName,
+	if _, err := testAccConf.meta.v3client.Actions.CreateOrUpdateEnvSecret(ctx, testAccConf.meta.name, repo.GetName(), env.GetName(), secretName, github.SecretRequest{
 		KeyID:          publicKey.GetKeyID(),
 		EncryptedValue: encryptedValue,
 	}); err != nil {
@@ -330,7 +327,7 @@ func mustCreateTestRepositoryEnvironmentVariable(t *testing.T, repo *github.Repo
 	randomID := acctest.RandString(testRandomIDLength)
 	varName := strings.ToUpper(fmt.Sprintf("%s%s", strings.ReplaceAll(testResourcePrefix, "-", "_"), randomID))
 
-	if _, err := testAccConf.meta.v3client.Actions.CreateEnvVariable(t.Context(), testAccConf.meta.name, repo.GetName(), url.PathEscape(env.GetName()), &github.ActionsVariable{
+	if _, err := testAccConf.meta.v3client.Actions.CreateEnvVariable(t.Context(), testAccConf.meta.name, repo.GetName(), url.PathEscape(env.GetName()), github.ActionsVariableCreateRequest{
 		Name:  varName,
 		Value: value,
 	}); err != nil {

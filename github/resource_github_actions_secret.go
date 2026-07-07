@@ -5,11 +5,11 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -133,9 +133,9 @@ func resourceGithubActionsSecretCreate(ctx context.Context, d *schema.ResourceDa
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	secretName := d.Get("secret_name").(string)
-	keyID := d.Get("key_id").(string)
+	repoName, _ := d.Get("repository").(string)
+	secretName, _ := d.Get("secret_name").(string)
+	keyID, _ := d.Get("key_id").(string)
 	encryptedValue, _ := resourceKeysGetOk[string](d, "value_encrypted", "encrypted_value")
 
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
@@ -165,14 +165,12 @@ func resourceGithubActionsSecretCreate(ctx context.Context, d *schema.ResourceDa
 		encryptedValue = base64.StdEncoding.EncodeToString(encryptedBytes)
 	}
 
-	secret := github.EncryptedSecret{
-		Name:           secretName,
+	secretReq := github.SecretRequest{
 		KeyID:          keyID,
 		EncryptedValue: encryptedValue,
 	}
 
-	_, err = client.Actions.CreateOrUpdateRepoSecret(ctx, owner, repoName, &secret)
-	if err != nil {
+	if _, err = client.Actions.CreateOrUpdateRepoSecret(ctx, owner, repoName, secretName, secretReq); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -213,18 +211,15 @@ func resourceGithubActionsSecretRead(ctx context.Context, d *schema.ResourceData
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	secretName := d.Get("secret_name").(string)
+	repoName, _ := d.Get("repository").(string)
+	secretName, _ := d.Get("secret_name").(string)
 
 	secret, _, err := client.Actions.GetRepoSecret(ctx, owner, repoName, secretName)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing actions secret %s from state because it no longer exists in GitHub", d.Id())
-				d.SetId("")
-				return nil
-			}
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Removing actions secret from state because it no longer exists in GitHub", map[string]interface{}{"secret_name": secretName, "repository": repoName})
+			d.SetId("")
+			return nil
 		}
 		return diag.FromErr(err)
 	}
@@ -259,9 +254,9 @@ func resourceGithubActionsSecretUpdate(ctx context.Context, d *schema.ResourceDa
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	secretName := d.Get("secret_name").(string)
-	keyID := d.Get("key_id").(string)
+	repoName, _ := d.Get("repository").(string)
+	secretName, _ := d.Get("secret_name").(string)
+	keyID, _ := d.Get("key_id").(string)
 	encryptedValue, _ := resourceKeysGetOk[string](d, "value_encrypted", "encrypted_value")
 
 	var publicKey string
@@ -285,14 +280,12 @@ func resourceGithubActionsSecretUpdate(ctx context.Context, d *schema.ResourceDa
 		encryptedValue = base64.StdEncoding.EncodeToString(encryptedBytes)
 	}
 
-	secret := github.EncryptedSecret{
-		Name:           secretName,
+	secretReq := github.SecretRequest{
 		KeyID:          keyID,
 		EncryptedValue: encryptedValue,
 	}
 
-	_, err := client.Actions.CreateOrUpdateRepoSecret(ctx, owner, repoName, &secret)
-	if err != nil {
+	if _, err := client.Actions.CreateOrUpdateRepoSecret(ctx, owner, repoName, secretName, secretReq); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -335,12 +328,11 @@ func resourceGithubActionsSecretDelete(ctx context.Context, d *schema.ResourceDa
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	secretName := d.Get("secret_name").(string)
+	repoName, _ := d.Get("repository").(string)
+	secretName, _ := d.Get("secret_name").(string)
 
-	log.Printf("[INFO] Deleting actions repo secret: %s", d.Id())
-	_, err := client.Actions.DeleteRepoSecret(ctx, owner, repoName, secretName)
-	if err != nil {
+	tflog.Info(ctx, "Deleting actions repo secret", map[string]interface{}{"secret_name": secretName, "repository": repoName})
+	if _, err := client.Actions.DeleteRepoSecret(ctx, owner, repoName, secretName); err != nil {
 		return diag.FromErr(err)
 	}
 

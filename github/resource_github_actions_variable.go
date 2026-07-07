@@ -3,11 +3,11 @@ package github
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 	"time"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -75,16 +75,16 @@ func resourceGithubActionsVariableCreate(ctx context.Context, d *schema.Resource
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	varName := d.Get("variable_name").(string)
+	repoName, _ := d.Get("repository").(string)
+	varName, _ := d.Get("variable_name").(string)
+	varValue, _ := d.Get("value").(string)
 
-	variable := github.ActionsVariable{
+	varReq := github.ActionsVariableCreateRequest{
 		Name:  varName,
-		Value: d.Get("value").(string),
+		Value: varValue,
 	}
 
-	_, err := client.Actions.CreateRepoVariable(ctx, owner, repoName, &variable)
-	if err != nil {
+	if _, err := client.Actions.CreateRepoVariable(ctx, owner, repoName, varReq); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -125,18 +125,15 @@ func resourceGithubActionsVariableRead(ctx context.Context, d *schema.ResourceDa
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	varName := d.Get("variable_name").(string)
+	repoName, _ := d.Get("repository").(string)
+	varName, _ := d.Get("variable_name").(string)
 
 	variable, _, err := client.Actions.GetRepoVariable(ctx, owner, repoName, varName)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing actions variable %s from state because it no longer exists in GitHub", d.Id())
-				d.SetId("")
-				return nil
-			}
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Removing actions variable from state because it no longer exists in GitHub", map[string]interface{}{"variable_name": varName, "repository": repoName})
+			d.SetId("")
+			return nil
 		}
 		return diag.FromErr(err)
 	}
@@ -159,16 +156,16 @@ func resourceGithubActionsVariableUpdate(ctx context.Context, d *schema.Resource
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	varName := d.Get("variable_name").(string)
+	repoName, _ := d.Get("repository").(string)
+	varName, _ := d.Get("variable_name").(string)
+	varValue, _ := d.Get("value").(string)
 
-	variable := github.ActionsVariable{
-		Name:  varName,
-		Value: d.Get("value").(string),
+	varReq := github.ActionsVariableUpdateRequest{
+		Name:  new(varName),
+		Value: new(varValue),
 	}
 
-	_, err := client.Actions.UpdateRepoVariable(ctx, owner, repoName, &variable)
-	if err != nil {
+	if _, err := client.Actions.UpdateRepoVariable(ctx, owner, repoName, varName, varReq); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -201,8 +198,8 @@ func resourceGithubActionsVariableDelete(ctx context.Context, d *schema.Resource
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	varName := d.Get("variable_name").(string)
+	repoName, _ := d.Get("repository").(string)
+	varName, _ := d.Get("variable_name").(string)
 
 	_, err := client.Actions.DeleteRepoVariable(ctx, owner, repoName, varName)
 	if err != nil {

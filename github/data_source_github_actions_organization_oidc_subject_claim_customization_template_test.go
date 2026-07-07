@@ -3,7 +3,7 @@ package github
 import (
 	"testing"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
@@ -32,7 +32,7 @@ data "github_actions_organization_oidc_subject_claim_customization_template" "te
 				},
 				{
 					PreConfig: func() {
-						if _, err := testAccConf.meta.v3client.Actions.SetOrgOIDCSubjectClaimCustomTemplate(t.Context(), testAccConf.meta.name, &github.OIDCSubjectClaimCustomTemplate{IncludeClaimKeys: []string{"actor", "actor_id", "head_ref", "repository"}}); err != nil {
+						if _, err := testAccConf.meta.v3client.Actions.SetOrgOIDCSubjectClaimCustomTemplate(t.Context(), testAccConf.meta.name, github.OIDCSubjectClaimCustomTemplate{IncludeClaimKeys: []string{"actor", "actor_id", "head_ref", "repository"}}); err != nil {
 							t.Fatalf("failed to set org OIDC subject claim custom template: %v", err)
 						}
 					},
@@ -46,7 +46,7 @@ data "github_actions_organization_oidc_subject_claim_customization_template" "te
 						})),
 					},
 					PostApplyFunc: func() {
-						if _, err := testAccConf.meta.v3client.Actions.SetOrgOIDCSubjectClaimCustomTemplate(t.Context(), testAccConf.meta.name, &github.OIDCSubjectClaimCustomTemplate{IncludeClaimKeys: []string{"repo", "context"}}); err != nil {
+						if _, err := testAccConf.meta.v3client.Actions.SetOrgOIDCSubjectClaimCustomTemplate(t.Context(), testAccConf.meta.name, github.OIDCSubjectClaimCustomTemplate{IncludeClaimKeys: []string{"repo", "context"}}); err != nil {
 							t.Fatalf("failed to set org OIDC subject claim custom template: %v", err)
 						}
 					},

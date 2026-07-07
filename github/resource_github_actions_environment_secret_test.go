@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
@@ -355,19 +355,12 @@ resource "github_actions_environment_secret" "test" {
 
 						escapedEnvName := url.PathEscape(envName)
 
-						repo, _, err := client.Repositories.Get(ctx, owner, repoName)
-						if err != nil {
-							t.Fatal(err.Error())
-						}
-						repoID := int(repo.GetID())
-
-						keyID, _, err := getEnvironmentPublicKeyDetails(ctx, testAccConf.meta, repoID, escapedEnvName)
+						keyID, _, err := getEnvironmentPublicKeyDetails(ctx, testAccConf.meta, owner, repoName, escapedEnvName)
 						if err != nil {
 							t.Fatal(err.Error())
 						}
 
-						_, err = client.Actions.CreateOrUpdateEnvSecret(ctx, repoID, escapedEnvName, &github.EncryptedSecret{
-							Name:           secretName,
+						_, err = client.Actions.CreateOrUpdateEnvSecret(ctx, owner, repoName, escapedEnvName, secretName, github.SecretRequest{
 							EncryptedValue: base64.StdEncoding.EncodeToString([]byte("updated_super_secret_value")),
 							KeyID:          keyID,
 						})
@@ -449,19 +442,12 @@ resource "github_actions_environment_secret" "test" {
 
 						escapedEnvName := url.PathEscape(envName)
 
-						repo, _, err := client.Repositories.Get(ctx, owner, repoName)
-						if err != nil {
-							t.Fatal(err.Error())
-						}
-						repoID := int(repo.GetID())
-
-						keyID, _, err := getEnvironmentPublicKeyDetails(ctx, testAccConf.meta, repoID, escapedEnvName)
+						keyID, _, err := getEnvironmentPublicKeyDetails(ctx, testAccConf.meta, owner, repoName, escapedEnvName)
 						if err != nil {
 							t.Fatal(err.Error())
 						}
 
-						_, err = client.Actions.CreateOrUpdateEnvSecret(ctx, repoID, escapedEnvName, &github.EncryptedSecret{
-							Name:           secretName,
+						_, err = client.Actions.CreateOrUpdateEnvSecret(ctx, owner, repoName, escapedEnvName, secretName, github.SecretRequest{
 							EncryptedValue: base64.StdEncoding.EncodeToString([]byte("updated_super_secret_value")),
 							KeyID:          keyID,
 						})

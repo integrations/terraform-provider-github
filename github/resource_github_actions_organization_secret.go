@@ -8,7 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -136,7 +137,8 @@ func resourceGithubActionsOrganizationSecretCreate(ctx context.Context, d *schem
 	keyID := d.Get("key_id").(string)
 	encryptedValue, _ := resourceKeysGetOk[string](d, "value_encrypted", "encrypted_value")
 	visibility := d.Get("visibility").(string)
-	repoIDs := github.SelectedRepoIDs{}
+
+	var repoIDs []int64
 
 	if v, ok := d.GetOk("selected_repository_ids"); ok {
 		ids := v.(*schema.Set).List()
@@ -167,16 +169,14 @@ func resourceGithubActionsOrganizationSecretCreate(ctx context.Context, d *schem
 		encryptedValue = base64.StdEncoding.EncodeToString(encryptedBytes)
 	}
 
-	secret := github.EncryptedSecret{
-		Name:                  secretName,
+	secretReq := github.OrgSecretRequest{
 		KeyID:                 keyID,
 		EncryptedValue:        encryptedValue,
 		Visibility:            visibility,
 		SelectedRepositoryIDs: repoIDs,
 	}
 
-	_, err := client.Actions.CreateOrUpdateOrgSecret(ctx, owner, &secret)
-	if err != nil {
+	if _, err := client.Actions.CreateOrUpdateOrgSecret(ctx, owner, secretName, secretReq); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -210,17 +210,14 @@ func resourceGithubActionsOrganizationSecretRead(ctx context.Context, d *schema.
 	client := meta.v3client
 	owner := meta.name
 
-	secretName := d.Get("secret_name").(string)
+	secretName, _ := d.Get("secret_name").(string)
 
 	secret, _, err := client.Actions.GetOrgSecret(ctx, owner, secretName)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing actions organization secret %s from state because it no longer exists in GitHub", d.Id())
-				d.SetId("")
-				return nil
-			}
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			log.Printf("[INFO] Removing actions organization secret %s from state because it no longer exists in GitHub", d.Id())
+			d.SetId("")
+			return nil
 		}
 		return diag.FromErr(err)
 	}
@@ -250,24 +247,13 @@ func resourceGithubActionsOrganizationSecretRead(ctx context.Context, d *schema.
 
 	if secret.Visibility == "selected" {
 		if _, ok := d.GetOk("selected_repository_ids"); ok {
-			repoIDs := []int64{}
-			opt := &github.ListOptions{
-				PerPage: maxPerPage,
-			}
-			for {
-				results, resp, err := client.Actions.ListSelectedReposForOrgSecret(ctx, owner, secretName, opt)
+			var repoIDs []int64
+			for repo, err := range client.Actions.ListSelectedReposForOrgSecretIter(ctx, owner, secretName, &github.ListOptions{PerPage: maxPerPage}) {
 				if err != nil {
 					return diag.FromErr(err)
 				}
 
-				for _, repo := range results.Repositories {
-					repoIDs = append(repoIDs, repo.GetID())
-				}
-
-				if resp.NextPage == 0 {
-					break
-				}
-				opt.Page = resp.NextPage
+				repoIDs = append(repoIDs, repo.GetID())
 			}
 
 			if err := d.Set("selected_repository_ids", repoIDs); err != nil {
@@ -284,11 +270,12 @@ func resourceGithubActionsOrganizationSecretUpdate(ctx context.Context, d *schem
 	client := meta.v3client
 	owner := meta.name
 
-	secretName := d.Get("secret_name").(string)
-	keyID := d.Get("key_id").(string)
+	secretName, _ := d.Get("secret_name").(string)
+	keyID, _ := d.Get("key_id").(string)
 	encryptedValue, _ := resourceKeysGetOk[string](d, "value_encrypted", "encrypted_value")
-	visibility := d.Get("visibility").(string)
-	repoIDs := github.SelectedRepoIDs{}
+	visibility, _ := d.Get("visibility").(string)
+
+	var repoIDs []int64
 
 	if v, ok := d.GetOk("selected_repository_ids"); ok {
 		ids := v.(*schema.Set).List()
@@ -319,16 +306,14 @@ func resourceGithubActionsOrganizationSecretUpdate(ctx context.Context, d *schem
 		encryptedValue = base64.StdEncoding.EncodeToString(encryptedBytes)
 	}
 
-	secret := github.EncryptedSecret{
-		Name:                  secretName,
+	secretReq := github.OrgSecretRequest{
 		KeyID:                 keyID,
 		EncryptedValue:        encryptedValue,
 		Visibility:            visibility,
 		SelectedRepositoryIDs: repoIDs,
 	}
 
-	_, err := client.Actions.CreateOrUpdateOrgSecret(ctx, owner, &secret)
-	if err != nil {
+	if _, err := client.Actions.CreateOrUpdateOrgSecret(ctx, owner, secretName, secretReq); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -365,11 +350,11 @@ func resourceGithubActionsOrganizationSecretDelete(ctx context.Context, d *schem
 	client := meta.v3client
 	owner := meta.name
 
-	secretName := d.Get("secret_name").(string)
+	secretName, _ := d.Get("secret_name").(string)
 
-	log.Printf("[INFO] Deleting actions organization secret: %s", d.Id())
-	_, err := client.Actions.DeleteOrgSecret(ctx, owner, secretName)
-	if err != nil {
+	tflog.Info(ctx, "Deleting actions organization secret", map[string]any{"secret_name": secretName})
+
+	if _, err := client.Actions.DeleteOrgSecret(ctx, owner, secretName); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -401,32 +386,6 @@ func resourceGithubActionsOrganizationSecretImport(ctx context.Context, d *schem
 		return nil, err
 	}
 	if err := d.Set("remote_updated_at", secret.UpdatedAt.String()); err != nil {
-		return nil, err
-	}
-
-	selectedRepositoryIDs := []int64{}
-	if secret.Visibility == "selected" {
-		opt := &github.ListOptions{
-			PerPage: maxPerPage,
-		}
-		for {
-			results, resp, err := client.Actions.ListSelectedReposForOrgSecret(ctx, owner, secretName, opt)
-			if err != nil {
-				return nil, err
-			}
-
-			for _, repo := range results.Repositories {
-				selectedRepositoryIDs = append(selectedRepositoryIDs, repo.GetID())
-			}
-
-			if resp.NextPage == 0 {
-				break
-			}
-			opt.Page = resp.NextPage
-		}
-	}
-
-	if err := d.Set("selected_repository_ids", selectedRepositoryIDs); err != nil {
 		return nil, err
 	}
 

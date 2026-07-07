@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -265,8 +265,7 @@ resource "github_actions_secret" "test" {
 							t.Fatal(err.Error())
 						}
 
-						_, err = client.Actions.CreateOrUpdateRepoSecret(ctx, owner, repoName, &github.EncryptedSecret{
-							Name:           secretName,
+						_, err = client.Actions.CreateOrUpdateRepoSecret(ctx, owner, repoName, secretName, github.SecretRequest{
 							EncryptedValue: base64.StdEncoding.EncodeToString([]byte("updated_super_secret_value")),
 							KeyID:          keyID,
 						})
@@ -344,8 +343,7 @@ resource "github_actions_secret" "test" {
 							t.Fatal(err.Error())
 						}
 
-						_, err = client.Actions.CreateOrUpdateRepoSecret(ctx, owner, repoName, &github.EncryptedSecret{
-							Name:           secretName,
+						_, err = client.Actions.CreateOrUpdateRepoSecret(ctx, owner, repoName, secretName, github.SecretRequest{
 							EncryptedValue: base64.StdEncoding.EncodeToString([]byte("updated_super_secret_value")),
 							KeyID:          keyID,
 						})
