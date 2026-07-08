@@ -16,7 +16,6 @@ import (
 
 func resourceGithubEnterpriseSecurityConfiguration() *schema.Resource {
 	return &schema.Resource{
-		Description:   "Manages a code security configuration for a GitHub Enterprise.",
 		CreateContext: resourceGithubEnterpriseSecurityConfigurationCreate,
 		ReadContext:   resourceGithubEnterpriseSecurityConfigurationRead,
 		UpdateContext: resourceGithubEnterpriseSecurityConfigurationUpdate,
@@ -25,32 +24,34 @@ func resourceGithubEnterpriseSecurityConfiguration() *schema.Resource {
 			StateContext: resourceGithubEnterpriseSecurityConfigurationImport,
 		},
 
+		Description: "Resource to manage a GitHub code security configuration for an enterprise.",
+
 		Schema: map[string]*schema.Schema{
 			"enterprise_slug": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "The slug of the enterprise.",
+				Description: "Enterprise slug.",
 			},
 			"configuration_id": {
 				Type:        schema.TypeInt,
 				Computed:    true,
-				Description: "The numeric ID of the code security configuration.",
+				Description: "Numeric ID of the code security configuration.",
 			},
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The name of the code security configuration.",
+				Description: "Name of the code security configuration.",
 			},
 			"description": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "A description of the code security configuration.",
+				Description: "Description of the code security configuration.",
 			},
 			"advanced_security": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The advanced security configuration for the code security configuration. Can be one of 'enabled', 'disabled'.",
+				Description: "Advanced security setting. Can be one of 'enabled', 'disabled'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled",
 				}, false)),
@@ -58,7 +59,7 @@ func resourceGithubEnterpriseSecurityConfiguration() *schema.Resource {
 			"dependency_graph": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The dependency graph configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
+				Description: "Dependency graph setting. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
 				}, false)),
@@ -66,7 +67,7 @@ func resourceGithubEnterpriseSecurityConfiguration() *schema.Resource {
 			"dependency_graph_autosubmit_action": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The dependency graph autosubmit action configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
+				Description: "Dependency graph autosubmit action setting. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
 				}, false)),
@@ -75,7 +76,7 @@ func resourceGithubEnterpriseSecurityConfiguration() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "The dependency graph autosubmit action options for the code security configuration.",
+				Description: "Dependency graph autosubmit action options.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"labeled_runners": {
@@ -89,7 +90,7 @@ func resourceGithubEnterpriseSecurityConfiguration() *schema.Resource {
 			"dependabot_alerts": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The dependabot alerts configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
+				Description: "Dependabot alerts setting. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
 				}, false)),
@@ -97,7 +98,7 @@ func resourceGithubEnterpriseSecurityConfiguration() *schema.Resource {
 			"dependabot_security_updates": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The dependabot security updates configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
+				Description: "Dependabot security updates setting. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
 				}, false)),
@@ -105,7 +106,7 @@ func resourceGithubEnterpriseSecurityConfiguration() *schema.Resource {
 			"code_scanning_default_setup": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The code scanning default setup configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
+				Description: "Code scanning default setup. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
 				}, false)),
@@ -114,19 +115,19 @@ func resourceGithubEnterpriseSecurityConfiguration() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "The code scanning default setup options for the code security configuration.",
+				Description: "Code scanning default setup options.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"runner_type": {
 							Type:             schema.TypeString,
 							Optional:         true,
-							Description:      "The type of runner to use for code scanning default setup. Can be one of 'standard', 'labeled'.",
+							Description:      "Type of runner to use for code scanning default setup. Can be one of 'standard', 'labeled'.",
 							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"standard", "labeled"}, false)),
 						},
 						"runner_label": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "The label of the runner to use for code scanning default setup.",
+							Description: "Label of the runner to use for code scanning default setup.",
 						},
 					},
 				},
@@ -134,7 +135,7 @@ func resourceGithubEnterpriseSecurityConfiguration() *schema.Resource {
 			"code_scanning_delegated_alert_dismissal": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The code scanning delegated alert dismissal configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
+				Description: "Code scanning delegated alert dismissal setting. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
 				}, false)),
@@ -143,7 +144,7 @@ func resourceGithubEnterpriseSecurityConfiguration() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "The code scanning options for the code security configuration.",
+				Description: "Code scanning options.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"allow_advanced": {
@@ -157,7 +158,7 @@ func resourceGithubEnterpriseSecurityConfiguration() *schema.Resource {
 			"code_security": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The code security setting. Can be one of 'enabled', 'disabled', 'not_set'.",
+				Description: "Code security setting. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
 				}, false)),
@@ -165,7 +166,7 @@ func resourceGithubEnterpriseSecurityConfiguration() *schema.Resource {
 			"secret_scanning": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The secret scanning configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
+				Description: "Secret scanning setting. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
 				}, false)),
@@ -173,7 +174,7 @@ func resourceGithubEnterpriseSecurityConfiguration() *schema.Resource {
 			"secret_scanning_push_protection": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The secret scanning push protection configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
+				Description: "Secret scanning push protection setting. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
 				}, false)),
@@ -181,7 +182,7 @@ func resourceGithubEnterpriseSecurityConfiguration() *schema.Resource {
 			"secret_scanning_validity_checks": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The secret scanning validity checks configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
+				Description: "Secret scanning validity checks setting. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
 				}, false)),
@@ -189,7 +190,7 @@ func resourceGithubEnterpriseSecurityConfiguration() *schema.Resource {
 			"secret_scanning_non_provider_patterns": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The secret scanning non provider patterns configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
+				Description: "Secret scanning non-provider patterns setting. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
 				}, false)),
@@ -197,7 +198,7 @@ func resourceGithubEnterpriseSecurityConfiguration() *schema.Resource {
 			"secret_scanning_generic_secrets": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The secret scanning generic secrets configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
+				Description: "Secret scanning generic secrets setting. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
 				}, false)),
@@ -205,7 +206,7 @@ func resourceGithubEnterpriseSecurityConfiguration() *schema.Resource {
 			"secret_scanning_delegated_alert_dismissal": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The secret scanning delegated alert dismissal configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
+				Description: "Secret scanning delegated alert dismissal setting. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
 				}, false)),
@@ -213,7 +214,7 @@ func resourceGithubEnterpriseSecurityConfiguration() *schema.Resource {
 			"secret_protection": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The secret protection configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
+				Description: "Secret protection setting. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
 				}, false)),
@@ -221,7 +222,7 @@ func resourceGithubEnterpriseSecurityConfiguration() *schema.Resource {
 			"private_vulnerability_reporting": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The private vulnerability reporting configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.",
+				Description: "Private vulnerability reporting setting. Can be one of 'enabled', 'disabled', 'not_set'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enabled", "disabled", "not_set",
 				}, false)),
@@ -229,7 +230,7 @@ func resourceGithubEnterpriseSecurityConfiguration() *schema.Resource {
 			"enforcement": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The enforcement configuration for the code security configuration. Can be one of 'enforced', 'unenforced'.",
+				Description: "Enforcement setting. Can be one of 'enforced', 'unenforced'.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 					"enforced", "unenforced",
 				}, false)),
@@ -237,7 +238,7 @@ func resourceGithubEnterpriseSecurityConfiguration() *schema.Resource {
 			"target_type": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "The target type of the code security configuration.",
+				Description: "Target type of the code security configuration.",
 			},
 		},
 	}
@@ -337,6 +338,8 @@ func resourceGithubEnterpriseSecurityConfigurationRead(ctx context.Context, d *s
 		{"private_vulnerability_reporting", configuration.GetPrivateVulnerabilityReporting()},
 		{"enforcement", configuration.GetEnforcement()},
 	}
+	// Note: this pattern does not support bool attributes, as d.GetOk for a bool field always
+	// returns true. All attributes reconciled here are strings or nested blocks, so that is fine.
 	for _, attr := range managed {
 		if _, ok := d.GetOk(attr.key); !ok {
 			continue
