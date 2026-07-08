@@ -385,18 +385,16 @@ func sweepRunnerGroupRunners(ctx context.Context, rg *github.RunnerGroup) error 
 	for _, r := range runners.GetRunners() {
 		_, resp, err := client.Actions.DeleteHostedRunner(ctx, owner, r.GetID())
 		if err != nil {
-			if err != nil {
-				if resp != nil && resp.StatusCode == http.StatusNotFound {
-					continue
-				}
-				if _, ok := errors.AsType[*github.AcceptedError](err); ok {
-					if err := waitForRunnerDeletion(ctx, client, owner, r.GetID(), 5*time.Minute); err != nil {
-						return fmt.Errorf("failed to wait for runner deletion %s: %w", r.GetName(), err)
-					}
-					continue
-				}
-				return fmt.Errorf("failed to delete hosted runner %s: %w", r.GetName(), err)
+			if resp != nil && resp.StatusCode == http.StatusNotFound {
+				continue
 			}
+			if _, ok := errors.AsType[*github.AcceptedError](err); ok {
+				if err := waitForRunnerDeletion(ctx, client, owner, r.GetID(), 5*time.Minute); err != nil {
+					return fmt.Errorf("failed to wait for runner deletion %s: %w", r.GetName(), err)
+				}
+				continue
+			}
+			return fmt.Errorf("failed to delete hosted runner %s: %w", r.GetName(), err)
 		}
 
 		if resp != nil && resp.StatusCode == http.StatusAccepted {
