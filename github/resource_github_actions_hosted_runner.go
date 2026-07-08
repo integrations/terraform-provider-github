@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -183,86 +184,28 @@ func resourceGithubActionsHostedRunner() *schema.Resource {
 	}
 }
 
-func expandImage(imageList []any) github.HostedRunnerImage {
-	if len(imageList) == 0 {
-		return github.HostedRunnerImage{}
-	}
-	runnerImage := github.HostedRunnerImage{}
-
-	imageMap := imageList[0].(map[string]any)
-
-	if id, ok := imageMap["id"].(string); ok {
-		runnerImage.ID = id
-	}
-	if source, ok := imageMap["source"].(string); ok {
-		runnerImage.Source = source
-	}
-
-	return runnerImage
-}
-
-func flattenImage(image *github.HostedRunnerImageDetail) []any {
-	if image == nil {
-		return []any{}
-	}
-
-	result := make(map[string]any)
-
-	result["id"] = image.GetID()
-	result["source"] = image.GetSource()
-	result["size_gb"] = image.GetSizeGB()
-
-	return []any{result}
-}
-
-func flattenMachineSizeDetails(details *github.HostedRunnerMachineSpec) []any {
-	if details == nil {
-		return []any{}
-	}
-
-	result := make(map[string]any)
-	result["id"] = details.GetID()
-	result["cpu_cores"] = details.GetCPUCores()
-	result["memory_gb"] = details.GetMemoryGB()
-	result["storage_gb"] = details.GetStorageGB()
-
-	return []any{result}
-}
-
-func flattenPublicIPs(ips []*github.HostedRunnerPublicIP) []any {
-	if ips == nil {
-		return []any{}
-	}
-
-	result := make([]any, 0, len(ips))
-	for _, ip := range ips {
-		ipResult := make(map[string]any)
-		ipResult["enabled"] = ip.GetEnabled()
-		ipResult["prefix"] = ip.GetPrefix()
-		ipResult["length"] = ip.GetLength()
-		result = append(result, ipResult)
-	}
-
-	return result
-}
-
-func resourceGithubActionsHostedRunnerCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	err := checkOrganization(meta)
+func resourceGithubActionsHostedRunnerCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	err := checkOrganization(m)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
 
 	runnerName, _ := d.Get("name").(string)
 	runnerImageDetails, _ := d.Get("image").([]any)
 	runnerSize, _ := d.Get("size").(string)
 	runnerGroupID, _ := d.Get("runner_group_id").(int)
+	expandedImageDetails, err := expandImage(runnerImageDetails)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	req := github.CreateHostedRunnerRequest{
 		Name:          runnerName,
-		Image:         expandImage(runnerImageDetails),
+		Image:         *expandedImageDetails,
 		Size:          runnerSize,
 		RunnerGroupID: int64(runnerGroupID),
 	}
@@ -272,20 +215,16 @@ func resourceGithubActionsHostedRunnerCreate(ctx context.Context, d *schema.Reso
 		req.MaximumRunners = new(int64(maxRunners))
 	}
 
-	if v, okExists := d.GetOkExists("public_ip_enabled"); okExists { //nolint:staticcheck // SA1019: d.GetOkExists is deprecated but necessary for bool fields
-		publicIPEnabled, _ := v.(bool)
-		req.EnableStaticIP = new(publicIPEnabled)
-	}
+	publicIPEnabled, _ := d.Get("public_ip_enabled").(bool)
+	req.EnableStaticIP = new(publicIPEnabled)
 
 	if v, ok := d.GetOk("image_version"); ok {
 		runnerImageVersion, _ := v.(string)
 		req.Image.Version = new(runnerImageVersion)
 	}
 
-	if v, ok := d.GetOk("image_gen"); ok {
-		useRunnerForImageGen, _ := v.(bool)
-		req.ImageGen = new(useRunnerForImageGen)
-	}
+	useRunnerForImageGen, _ := d.Get("image_gen").(bool)
+	req.ImageGen = new(useRunnerForImageGen)
 
 	runner, _, err := client.Actions.CreateHostedRunner(ctx, orgName, req)
 	if err != nil {
@@ -323,14 +262,16 @@ func resourceGithubActionsHostedRunnerCreate(ctx context.Context, d *schema.Reso
 	return nil
 }
 
-func resourceGithubActionsHostedRunnerRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	err := checkOrganization(meta)
+func resourceGithubActionsHostedRunnerRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	err := checkOrganization(m)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
+
 	runnerIDStr := d.Id()
 	runnerID, err := strconv.ParseInt(runnerIDStr, 10, 64)
 	if err != nil {
@@ -396,14 +337,15 @@ func resourceGithubActionsHostedRunnerRead(ctx context.Context, d *schema.Resour
 	return nil
 }
 
-func resourceGithubActionsHostedRunnerUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	err := checkOrganization(meta)
+func resourceGithubActionsHostedRunnerUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	err := checkOrganization(m)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
 
 	runnerID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -475,14 +417,15 @@ func resourceGithubActionsHostedRunnerUpdate(ctx context.Context, d *schema.Reso
 	return nil
 }
 
-func resourceGithubActionsHostedRunnerDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	err := checkOrganization(meta)
+func resourceGithubActionsHostedRunnerDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	err := checkOrganization(m)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
 
 	runnerID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -531,4 +474,70 @@ func waitForRunnerDeletion(ctx context.Context, client *github.Client, orgName s
 
 	_, err := conf.WaitForStateContext(ctx)
 	return err
+}
+
+func expandImage(imageList []any) (*github.HostedRunnerImage, error) {
+	if len(imageList) == 0 {
+		return &github.HostedRunnerImage{}, nil
+	}
+	runnerImage := &github.HostedRunnerImage{}
+
+	imageMap, ok := imageList[0].(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("expected map[string]any, got %T", imageList[0])
+	}
+
+	if id, ok := imageMap["id"].(string); ok {
+		runnerImage.ID = id
+	}
+	if source, ok := imageMap["source"].(string); ok {
+		runnerImage.Source = source
+	}
+
+	return runnerImage, nil
+}
+
+func flattenImage(image *github.HostedRunnerImageDetail) []any {
+	if image == nil {
+		return []any{}
+	}
+
+	result := make(map[string]any)
+
+	result["id"] = image.GetID()
+	result["source"] = image.GetSource()
+	result["size_gb"] = image.GetSizeGB()
+
+	return []any{result}
+}
+
+func flattenMachineSizeDetails(details *github.HostedRunnerMachineSpec) []any {
+	if details == nil {
+		return []any{}
+	}
+
+	result := make(map[string]any)
+	result["id"] = details.GetID()
+	result["cpu_cores"] = details.GetCPUCores()
+	result["memory_gb"] = details.GetMemoryGB()
+	result["storage_gb"] = details.GetStorageGB()
+
+	return []any{result}
+}
+
+func flattenPublicIPs(ips []*github.HostedRunnerPublicIP) []any {
+	if ips == nil {
+		return []any{}
+	}
+
+	result := make([]any, 0, len(ips))
+	for _, ip := range ips {
+		ipResult := make(map[string]any)
+		ipResult["enabled"] = ip.GetEnabled()
+		ipResult["prefix"] = ip.GetPrefix()
+		ipResult["length"] = ip.GetLength()
+		result = append(result, ipResult)
+	}
+
+	return result
 }
