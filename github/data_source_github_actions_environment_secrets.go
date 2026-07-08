@@ -73,7 +73,7 @@ func dataSourceGithubActionsEnvironmentSecretsRead(ctx context.Context, d *schem
 		repoName = r
 	} else {
 		if name, ok := d.GetOk("name"); ok {
-			repoName = name.(string)
+			repoName, _ = name.(string)
 		}
 	}
 

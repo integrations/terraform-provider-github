@@ -75,6 +75,7 @@ func resourceGithubActionsOrganizationVariableCreate(ctx context.Context, d *sch
 
 	varName, _ := d.Get("variable_name").(string)
 	visibility, _ := d.Get("visibility").(string)
+	value, _ := d.Get("value").(string)
 
 	var repoIDs []int64
 
@@ -88,7 +89,7 @@ func resourceGithubActionsOrganizationVariableCreate(ctx context.Context, d *sch
 
 	varReq := github.OrgActionsVariableCreateRequest{
 		Name:                  varName,
-		Value:                 d.Get("value").(string),
+		Value:                 value,
 		Visibility:            visibility,
 		SelectedRepositoryIDs: repoIDs,
 	}

@@ -220,7 +220,7 @@ func resourceGithubReleaseRead(ctx context.Context, d *schema.ResourceData, m an
 	client := meta.v3client
 	owner := meta.name
 
-	repository := d.Get("repository").(string)
+	repository, _ := d.Get("repository").(string)
 	releaseID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("unable to convert release id %s to int64: %w", d.Id(), err))
@@ -248,7 +248,7 @@ func resourceGithubReleaseUpdate(ctx context.Context, d *schema.ResourceData, m 
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
+	repoName, _ := d.Get("repository").(string)
 
 	releaseID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -264,15 +264,18 @@ func resourceGithubReleaseUpdate(ctx context.Context, d *schema.ResourceData, m 
 	}
 
 	if v, ok := d.GetOk("body"); ok {
-		req.Body = new(v.(string))
+		s, _ := v.(string)
+		req.Body = new(s)
 	}
 
 	if v, ok := d.GetOk("name"); ok {
-		req.Name = new(v.(string))
+		s, _ := v.(string)
+		req.Name = new(s)
 	}
 
 	if v, ok := d.GetOk("discussion_category_name"); ok {
-		req.DiscussionCategoryName = new(v.(string))
+		s, _ := v.(string)
+		req.DiscussionCategoryName = new(s)
 	}
 
 	tflog.Debug(ctx, "Updating release.", map[string]any{"release_id": releaseID, "repository": repoName, "owner": owner})
