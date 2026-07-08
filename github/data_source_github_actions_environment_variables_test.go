@@ -19,7 +19,7 @@ func TestAccGithubActionsEnvironmentVariablesDataSource(t *testing.T) {
 		repo := mustCreateTestRepository(t)
 		env := mustCreateTestRepositoryEnvironment(t, repo)
 		value := "foo"
-		varName := mustCreateTestRepositoryEnvironmentVariable(t, repo, env, value)
+		varName := mustCreateTestRepositoryEnvironmentVariable(t, repo, env, nil, &value)
 
 		config := fmt.Sprintf(`
 data "github_actions_environment_variables" "test" {

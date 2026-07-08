@@ -6,7 +6,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -17,6 +16,19 @@ import (
 
 func resourceGithubDependabotSecret() *schema.Resource {
 	return &schema.Resource{
+		CreateContext: resourceGithubDependabotSecretCreate,
+		ReadContext:   resourceGithubDependabotSecretRead,
+		UpdateContext: resourceGithubDependabotSecretUpdate,
+		DeleteContext: resourceGithubDependabotSecretDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: resourceGithubDependabotSecretImport,
+		},
+
+		CustomizeDiff: customdiff.All(
+			diffRepository,
+			diffSecret,
+		),
+
 		SchemaVersion: 1,
 		StateUpgraders: []schema.StateUpgrader{
 			{
@@ -25,6 +37,8 @@ func resourceGithubDependabotSecret() *schema.Resource {
 				Version: 0,
 			},
 		},
+
+		Description: "Resource to manage a GitHub Dependabot secret for a repository.",
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -87,31 +101,18 @@ func resourceGithubDependabotSecret() *schema.Resource {
 			"created_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Date of secret creation.",
+				Description: "Timestamp for when the secret was created.",
 			},
 			"updated_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Date of secret update.",
+				Description: "Timestamp for when the secret was last updated by the provider.",
 			},
 			"remote_updated_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Date of secret update at the remote.",
+				Description: "Timestamp for when the secret was last updated.",
 			},
-		},
-
-		CustomizeDiff: customdiff.All(
-			diffRepository,
-			diffSecret,
-		),
-
-		CreateContext: resourceGithubDependabotSecretCreate,
-		ReadContext:   resourceGithubDependabotSecretRead,
-		UpdateContext: resourceGithubDependabotSecretUpdate,
-		DeleteContext: resourceGithubDependabotSecretDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: resourceGithubDependabotSecretImport,
 		},
 	}
 }
@@ -177,7 +178,7 @@ func resourceGithubDependabotSecretCreate(ctx context.Context, d *schema.Resourc
 		return diag.FromErr(err)
 	}
 
-	// GitHub API does not return on create so we have to lookup the secret to get timestamps, we retry to get the resource but if this fails we set an empty timestamp and let the next read set the timestamps.
+	// GitHub API does not return on create so we have to lookup the secret to get timestamps.
 	if secret, err := retryUntilResourceFound(ctx, func() (*github.Secret, error) {
 		val, _, err := client.Dependabot.GetRepoSecret(ctx, owner, repoName, secretName)
 		return val, err
@@ -294,9 +295,11 @@ func resourceGithubDependabotSecretUpdate(ctx context.Context, d *schema.Resourc
 		return diag.FromErr(err)
 	}
 
-	// GitHub API does not return on update so we have to lookup the secret to get timestamps, we sleep to optimize the chance of getting the correct timestamps after an update due to the eventually consistent behavior of this API.
-	time.Sleep(defaultRetryDelay)
-	if secret, _, err := client.Dependabot.GetRepoSecret(ctx, owner, repoName, secretName); err == nil {
+	// GitHub API does not return on update so we have to lookup the secret to get timestamps.
+	if secret, err := retryUntilResourceFound(ctx, func() (*github.Secret, error) {
+		val, _, err := client.Dependabot.GetRepoSecret(ctx, owner, repoName, secretName)
+		return val, err
+	}, nil); err == nil {
 		if err := d.Set("created_at", secret.CreatedAt.String()); err != nil {
 			return diag.FromErr(err)
 		}
@@ -304,13 +307,6 @@ func resourceGithubDependabotSecretUpdate(ctx context.Context, d *schema.Resourc
 			return diag.FromErr(err)
 		}
 		if err := d.Set("remote_updated_at", secret.UpdatedAt.String()); err != nil {
-			return diag.FromErr(err)
-		}
-	} else {
-		if err := d.Set("updated_at", nil); err != nil {
-			return diag.FromErr(err)
-		}
-		if err := d.Set("remote_updated_at", nil); err != nil {
 			return diag.FromErr(err)
 		}
 	}

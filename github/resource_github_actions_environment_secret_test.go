@@ -16,6 +16,8 @@ import (
 func TestAccGithubActionsEnvironmentSecret(t *testing.T) {
 	t.Parallel()
 
+	skipUnauthenticated(t)
+
 	t.Run("with_value", func(t *testing.T) {
 		t.Parallel()
 
@@ -32,7 +34,6 @@ resource "github_actions_environment_secret" "test" {
 `, repo.GetName(), env.GetName())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -81,7 +82,6 @@ resource "github_actions_environment_secret" "test" {
 `, repo.GetName(), env.GetName(), key.GetKeyID())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -127,7 +127,6 @@ resource "github_actions_environment_secret" "test" {
 `, repo.GetName(), env.GetName())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -174,7 +173,6 @@ resource "github_actions_environment_secret" "test" {
 `, repo.GetName(), env.GetName())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -221,7 +219,6 @@ resource "github_actions_environment_secret" "test" {
 `, repo.GetName(), env.GetName())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -248,7 +245,6 @@ resource "github_actions_environment_secret" "test" {
 `, repo.GetName(), env.GetName(), secretName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -290,7 +286,6 @@ resource "github_actions_environment_secret" "test" {
 `, repo.GetName(), env.GetName(), secretName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -328,7 +323,6 @@ resource "github_actions_environment_secret" "test" {
 `, env.GetName())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -367,7 +361,6 @@ resource "github_actions_environment_secret" "test" {
 `, env.GetName())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

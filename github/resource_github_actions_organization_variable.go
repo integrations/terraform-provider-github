@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"time"
 
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -15,6 +14,18 @@ import (
 
 func resourceGithubActionsOrganizationVariable() *schema.Resource {
 	return &schema.Resource{
+		CreateContext: resourceGithubActionsOrganizationVariableCreate,
+		ReadContext:   resourceGithubActionsOrganizationVariableRead,
+		UpdateContext: resourceGithubActionsOrganizationVariableUpdate,
+		DeleteContext: resourceGithubActionsOrganizationVariableDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: resourceGithubActionsOrganizationVariableImport,
+		},
+
+		CustomizeDiff: diffSecretVariableVisibility,
+
+		Description: "Resource to manage a GitHub Actions variable for an organization.",
+
 		Schema: map[string]*schema.Schema{
 			"variable_name": {
 				Type:             schema.TypeString,
@@ -46,23 +57,13 @@ func resourceGithubActionsOrganizationVariable() *schema.Resource {
 			"created_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Date of 'actions_variable' creation.",
+				Description: "Timestamp of when the variable was created.",
 			},
 			"updated_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Date of 'actions_variable' update.",
+				Description: "Timestamp of when the variable was last updated.",
 			},
-		},
-
-		CustomizeDiff: diffSecretVariableVisibility,
-
-		CreateContext: resourceGithubActionsOrganizationVariableCreate,
-		ReadContext:   resourceGithubActionsOrganizationVariableRead,
-		UpdateContext: resourceGithubActionsOrganizationVariableUpdate,
-		DeleteContext: resourceGithubActionsOrganizationVariableDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: resourceGithubActionsOrganizationVariableImport,
 		},
 	}
 }
@@ -98,7 +99,7 @@ func resourceGithubActionsOrganizationVariableCreate(ctx context.Context, d *sch
 
 	d.SetId(varName)
 
-	// GitHub API does not return on create so we have to lookup the variable to get timestamps, we retry to get the resource but if this fails we set an empty timestamp and let the next read set the timestamps.
+	// GitHub API does not return on create so we have to lookup the variable to get timestamps.
 	if variable, err := retryUntilResourceFound(ctx, func() (*github.ActionsVariable, error) {
 		val, _, err := client.Actions.GetOrgVariable(ctx, owner, varName)
 		return val, err
@@ -195,17 +196,15 @@ func resourceGithubActionsOrganizationVariableUpdate(ctx context.Context, d *sch
 
 	d.SetId(varName)
 
-	// GitHub API does not return on update so we have to lookup the secret to get timestamps, we sleep to optimize the chance of getting the correct timestamps after an update due to the eventually consistent behavior of this API.
-	time.Sleep(defaultRetryDelay)
-	if variable, _, err := client.Actions.GetOrgVariable(ctx, owner, varName); err == nil {
+	// GitHub API does not return on update so we have to lookup the variable to get timestamps.
+	if variable, err := retryUntilResourceFound(ctx, func() (*github.ActionsVariable, error) {
+		val, _, err := client.Actions.GetOrgVariable(ctx, owner, varName)
+		return val, err
+	}, nil); err == nil {
 		if err := d.Set("created_at", variable.CreatedAt.String()); err != nil {
 			return diag.FromErr(err)
 		}
 		if err := d.Set("updated_at", variable.UpdatedAt.String()); err != nil {
-			return diag.FromErr(err)
-		}
-	} else {
-		if err := d.Set("updated_at", nil); err != nil {
 			return diag.FromErr(err)
 		}
 	}

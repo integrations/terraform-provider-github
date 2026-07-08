@@ -34,7 +34,7 @@ func resourceGithubRelease() *schema.Resource {
 			},
 		},
 
-		Description: "Resource to manage GitHub releases.",
+		Description: "Resource to manage a GitHub release.",
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -51,14 +51,14 @@ func resourceGithubRelease() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "The name of the tag.",
+				Description: "Name of the tag.",
 			},
 			"target_commitish": {
 				Type:        schema.TypeString,
 				Default:     "main",
 				Optional:    true,
 				ForceNew:    true,
-				Description: "The branch name or commit SHA the tag is created from.",
+				Description: "The branch name or commit SHA the tag is created from; this defaults to `main`.",
 			},
 			"name": {
 				Type:        schema.TypeString,
@@ -74,19 +74,19 @@ func resourceGithubRelease() *schema.Resource {
 				Type:        schema.TypeBool,
 				Default:     true,
 				Optional:    true,
-				Description: "Set to 'false' to create a published release.",
+				Description: "Set to `false` to create a published release.",
 			},
 			"prerelease": {
 				Type:        schema.TypeBool,
 				Default:     true,
 				Optional:    true,
-				Description: "Set to 'false' to identify the release as a full release.",
+				Description: "Set to `false` to identify the release as a full release.",
 			},
 			"generate_release_notes": {
 				Type:        schema.TypeBool,
 				Default:     false,
 				Optional:    true,
-				Description: "Set to 'true' to automatically generate the name and body for this release when it is created. If `name` is specified, the specified name will be used; otherwise, a name will be automatically generated. If `body` is specified, the body will be pre-pended to the automatically generated notes.",
+				Description: "Set to `true` to automatically generate the name and body for this release when it is created. If `name` is specified, the specified name will be used; otherwise, a name will be automatically generated. If `body` is specified, the body will be pre-pended to the automatically generated notes.",
 			},
 			"discussion_category_name": {
 				Type:        schema.TypeString,
@@ -186,7 +186,7 @@ func resourceGithubReleaseCreate(ctx context.Context, d *schema.ResourceData, m 
 		req.DiscussionCategoryName = new(s)
 	}
 
-	tflog.Debug(ctx, "Creating release.", map[string]interface{}{"target_commitish": targetCommitish, "release_tag": tagName, "repository": repoName, "owner": owner})
+	tflog.Debug(ctx, "Creating release.", map[string]any{"target_commitish": targetCommitish, "release_tag": tagName, "repository": repoName, "owner": owner})
 
 	release, _, err := client.Repositories.CreateRelease(ctx, owner, repoName, req)
 	if err != nil {
@@ -229,7 +229,7 @@ func resourceGithubReleaseRead(ctx context.Context, d *schema.ResourceData, m an
 	release, _, err := client.Repositories.GetRelease(ctx, owner, repository, releaseID)
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
-			tflog.Info(ctx, "Removing release from state because it no longer exists on GitHub.", map[string]interface{}{"release_id": releaseID, "repository": repository})
+			tflog.Info(ctx, "Removing release from state because it no longer exists on GitHub.", map[string]any{"release_id": releaseID, "repository": repository})
 			d.SetId("")
 			return nil
 		}
@@ -275,7 +275,7 @@ func resourceGithubReleaseUpdate(ctx context.Context, d *schema.ResourceData, m 
 		req.DiscussionCategoryName = new(v.(string))
 	}
 
-	tflog.Debug(ctx, "Updating release.", map[string]interface{}{"release_id": releaseID, "repository": repoName, "owner": owner})
+	tflog.Debug(ctx, "Updating release.", map[string]any{"release_id": releaseID, "repository": repoName, "owner": owner})
 
 	release, _, err := client.Repositories.UpdateRelease(ctx, owner, repoName, releaseID, req)
 	if err != nil {
@@ -325,7 +325,7 @@ func resourceGithubReleaseImport(ctx context.Context, d *schema.ResourceData, m 
 		return nil, fmt.Errorf("release_id must be present")
 	}
 
-	tflog.Debug(ctx, "Importing release.", map[string]interface{}{"release_id": releaseID, "repository": repoName})
+	tflog.Debug(ctx, "Importing release.", map[string]any{"release_id": releaseID, "repository": repoName})
 
 	repository, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {

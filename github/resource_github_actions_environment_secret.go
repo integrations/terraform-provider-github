@@ -17,6 +17,19 @@ import (
 
 func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 	return &schema.Resource{
+		CreateContext: resourceGithubActionsEnvironmentSecretCreate,
+		ReadContext:   resourceGithubActionsEnvironmentSecretRead,
+		UpdateContext: resourceGithubActionsEnvironmentSecretUpdate,
+		DeleteContext: resourceGithubActionsEnvironmentSecretDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: resourceGithubActionsEnvironmentSecretImport,
+		},
+
+		CustomizeDiff: customdiff.All(
+			diffRepository,
+			diffSecret,
+		),
+
 		SchemaVersion: 1,
 		StateUpgraders: []schema.StateUpgrader{
 			{
@@ -25,6 +38,8 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 				Version: 0,
 			},
 		},
+
+		Description: "Resource to manage a GitHub Actions secrets for a repository environment.",
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -56,7 +71,7 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 				Computed:      true,
 				RequiredWith:  []string{"value_encrypted"},
 				ConflictsWith: []string{"value", "plaintext_value"},
-				Description:   "ID of the public key used to encrypt the secret.",
+				Description:   "ID of the public key used to encrypt the secret. This is required when setting `value_encrypted`.",
 			},
 			"value": {
 				Type:         schema.TypeString,
@@ -71,7 +86,7 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 				Sensitive:        true,
 				ExactlyOneOf:     []string{"value", "value_encrypted", "encrypted_value", "plaintext_value"},
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsBase64),
-				Description:      "Value encrypted with the GitHub public key, defined by key_id, in Base64 format.",
+				Description:      "Value encrypted with the GitHub public key, defined by `key_id`, in Base64 format.",
 			},
 			"encrypted_value": {
 				Type:             schema.TypeString,
@@ -80,7 +95,7 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 				ExactlyOneOf:     []string{"value", "value_encrypted", "encrypted_value", "plaintext_value"},
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsBase64),
 				Description:      "Encrypted value of the secret using the GitHub public key in Base64 format.",
-				Deprecated:       "Use value_encrypted and key_id.",
+				Deprecated:       "Use `value_encrypted` and `key_id`.",
 			},
 			"plaintext_value": {
 				Type:         schema.TypeString,
@@ -88,36 +103,23 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 				Sensitive:    true,
 				ExactlyOneOf: []string{"value", "value_encrypted", "encrypted_value", "plaintext_value"},
 				Description:  "Plaintext value of the secret to be encrypted.",
-				Deprecated:   "Use value.",
+				Deprecated:   "Use `value`.",
 			},
 			"created_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Date of 'actions_environment_secret' creation.",
+				Description: "Timestamp for when the secret was created.",
 			},
 			"updated_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Date of 'actions_environment_secret' update.",
+				Description: "Timestamp for when the secret was last updated by the provider.",
 			},
 			"remote_updated_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Date of remote 'actions_environment_secret' update.",
+				Description: "Timestamp for when the secret was last updated.",
 			},
-		},
-
-		CustomizeDiff: customdiff.All(
-			diffRepository,
-			diffSecret,
-		),
-
-		CreateContext: resourceGithubActionsEnvironmentSecretCreate,
-		ReadContext:   resourceGithubActionsEnvironmentSecretRead,
-		UpdateContext: resourceGithubActionsEnvironmentSecretUpdate,
-		DeleteContext: resourceGithubActionsEnvironmentSecretDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: resourceGithubActionsEnvironmentSecretImport,
 		},
 	}
 }
@@ -388,7 +390,7 @@ func resourceGithubActionsEnvironmentSecretImport(ctx context.Context, d *schema
 	return []*schema.ResourceData{d}, nil
 }
 
-func getEnvironmentPublicKeyDetails(ctx context.Context, meta *Owner, owner, repoName string, envNameEscaped string) (string, string, error) {
+func getEnvironmentPublicKeyDetails(ctx context.Context, meta *Owner, owner, repoName, envNameEscaped string) (string, string, error) {
 	client := meta.v3client
 
 	publicKey, _, err := client.Actions.GetEnvPublicKey(ctx, owner, repoName, envNameEscaped)

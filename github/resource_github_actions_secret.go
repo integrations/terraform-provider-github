@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -19,6 +18,19 @@ import (
 
 func resourceGithubActionsSecret() *schema.Resource {
 	return &schema.Resource{
+		CreateContext: resourceGithubActionsSecretCreate,
+		ReadContext:   resourceGithubActionsSecretRead,
+		UpdateContext: resourceGithubActionsSecretUpdate,
+		DeleteContext: resourceGithubActionsSecretDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: resourceGithubActionsSecretImport,
+		},
+
+		CustomizeDiff: customdiff.All(
+			diffRepository,
+			diffSecret,
+		),
+
 		SchemaVersion: 2,
 		StateUpgraders: []schema.StateUpgrader{
 			{
@@ -32,6 +44,8 @@ func resourceGithubActionsSecret() *schema.Resource {
 				Version: 1,
 			},
 		},
+
+		Description: "Resource to manage a GitHub Actions secret for a repository.",
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -94,36 +108,23 @@ func resourceGithubActionsSecret() *schema.Resource {
 			"created_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Date of secret creation.",
+				Description: "Timestamp of when the secret was created.",
 			},
 			"updated_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Date of secret update.",
+				Description: "Timestamp of when the secret was last updated by the provider.",
 			},
 			"remote_updated_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Date of secret update at the remote.",
+				Description: "Timestamp for when the secret was last updated.",
 			},
 			"destroy_on_drift": {
 				Type:       schema.TypeBool,
 				Optional:   true,
-				Deprecated: "This is no longer required and will be removed in a future release. Drift detection is now always performed, and external changes will result in the secret being updated to match the Terraform configuration. If you want to ignore external changes, you can use the `lifecycle` block with `ignore_changes` on the `remote_updated_at` field.",
+				Deprecated: "This is no longer required and will be removed in a future release. Drift detection is now always performed, and external changes will result in the secret being updated to match the Terraform configuration. If you want to ignore external changes, you can use the `lifecycle` block with `ignore_changes` on the `updated_at` field.",
 			},
-		},
-
-		CustomizeDiff: customdiff.All(
-			diffRepository,
-			diffSecret,
-		),
-
-		CreateContext: resourceGithubActionsSecretCreate,
-		ReadContext:   resourceGithubActionsSecretRead,
-		UpdateContext: resourceGithubActionsSecretUpdate,
-		DeleteContext: resourceGithubActionsSecretDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: resourceGithubActionsSecretImport,
 		},
 	}
 }
@@ -187,7 +188,7 @@ func resourceGithubActionsSecretCreate(ctx context.Context, d *schema.ResourceDa
 		return diag.FromErr(err)
 	}
 
-	// GitHub API does not return on create so we have to lookup the secret to get timestamps, we retry to get the resource but if this fails we set an empty timestamp and let the next read set the timestamps.
+	// GitHub API does not return on create so we have to lookup the secret to get timestamps.
 	if secret, err := retryUntilResourceFound(ctx, func() (*github.Secret, error) {
 		val, _, err := client.Actions.GetRepoSecret(ctx, owner, repoName, secretName)
 		return val, err
@@ -217,7 +218,7 @@ func resourceGithubActionsSecretRead(ctx context.Context, d *schema.ResourceData
 	secret, _, err := client.Actions.GetRepoSecret(ctx, owner, repoName, secretName)
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
-			tflog.Info(ctx, "Removing actions secret from state because it no longer exists in GitHub", map[string]interface{}{"secret_name": secretName, "repository": repoName})
+			tflog.Info(ctx, "Removing actions secret from state because it no longer exists in GitHub", map[string]any{"secret_name": secretName, "repository": repoName})
 			d.SetId("")
 			return nil
 		}
@@ -299,9 +300,11 @@ func resourceGithubActionsSecretUpdate(ctx context.Context, d *schema.ResourceDa
 		return diag.FromErr(err)
 	}
 
-	// GitHub API does not return on update so we have to lookup the secret to get timestamps, we sleep to optimize the chance of getting the correct timestamps after an update due to the eventually consistent behavior of this API.
-	time.Sleep(defaultRetryDelay)
-	if secret, _, err := client.Actions.GetRepoSecret(ctx, owner, repoName, secretName); err == nil {
+	// GitHub API does not return on update so we have to lookup the secret to get timestamps.
+	if secret, err := retryUntilResourceFound(ctx, func() (*github.Secret, error) {
+		val, _, err := client.Actions.GetRepoSecret(ctx, owner, repoName, secretName)
+		return val, err
+	}, nil); err == nil {
 		if err := d.Set("created_at", secret.CreatedAt.String()); err != nil {
 			return diag.FromErr(err)
 		}
@@ -309,13 +312,6 @@ func resourceGithubActionsSecretUpdate(ctx context.Context, d *schema.ResourceDa
 			return diag.FromErr(err)
 		}
 		if err := d.Set("remote_updated_at", secret.UpdatedAt.String()); err != nil {
-			return diag.FromErr(err)
-		}
-	} else {
-		if err := d.Set("updated_at", nil); err != nil {
-			return diag.FromErr(err)
-		}
-		if err := d.Set("remote_updated_at", nil); err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -331,7 +327,7 @@ func resourceGithubActionsSecretDelete(ctx context.Context, d *schema.ResourceDa
 	repoName, _ := d.Get("repository").(string)
 	secretName, _ := d.Get("secret_name").(string)
 
-	tflog.Info(ctx, "Deleting actions repo secret", map[string]interface{}{"secret_name": secretName, "repository": repoName})
+	tflog.Info(ctx, "Deleting actions repo secret", map[string]any{"secret_name": secretName, "repository": repoName})
 	if _, err := client.Actions.DeleteRepoSecret(ctx, owner, repoName, secretName); err != nil {
 		return diag.FromErr(err)
 	}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"time"
 
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -14,6 +13,16 @@ import (
 
 func resourceGithubActionsVariable() *schema.Resource {
 	return &schema.Resource{
+		CreateContext: resourceGithubActionsVariableCreate,
+		ReadContext:   resourceGithubActionsVariableRead,
+		UpdateContext: resourceGithubActionsVariableUpdate,
+		DeleteContext: resourceGithubActionsVariableDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: resourceGithubActionsVariableImport,
+		},
+
+		CustomizeDiff: diffRepository,
+
 		SchemaVersion: 1,
 		StateUpgraders: []schema.StateUpgrader{
 			{
@@ -22,6 +31,8 @@ func resourceGithubActionsVariable() *schema.Resource {
 				Version: 0,
 			},
 		},
+
+		Description: "Resource to manage a GitHub Actions variable for a repository.",
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -49,23 +60,13 @@ func resourceGithubActionsVariable() *schema.Resource {
 			"created_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Date of 'actions_variable' creation.",
+				Description: "Timestamp for when the variable was created.",
 			},
 			"updated_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Date of 'actions_variable' update.",
+				Description: "Timestamp for when the variable was last updated.",
 			},
-		},
-
-		CustomizeDiff: diffRepository,
-
-		CreateContext: resourceGithubActionsVariableCreate,
-		ReadContext:   resourceGithubActionsVariableRead,
-		UpdateContext: resourceGithubActionsVariableUpdate,
-		DeleteContext: resourceGithubActionsVariableDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: resourceGithubActionsVariableImport,
 		},
 	}
 }
@@ -104,7 +105,7 @@ func resourceGithubActionsVariableCreate(ctx context.Context, d *schema.Resource
 		return diag.FromErr(err)
 	}
 
-	// GitHub API does not return on create so we have to lookup the variable to get timestamps, we retry to get the resource but if this fails we set an empty timestamp and let the next read set the timestamps.
+	// GitHub API does not return on create so we have to lookup the variable to get timestamps.
 	if variable, err := retryUntilResourceFound(ctx, func() (*github.ActionsVariable, error) {
 		val, _, err := client.Actions.GetRepoVariable(ctx, owner, repoName, varName)
 		return val, err
@@ -131,7 +132,7 @@ func resourceGithubActionsVariableRead(ctx context.Context, d *schema.ResourceDa
 	variable, _, err := client.Actions.GetRepoVariable(ctx, owner, repoName, varName)
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
-			tflog.Info(ctx, "Removing actions variable from state because it no longer exists in GitHub", map[string]interface{}{"variable_name": varName, "repository": repoName})
+			tflog.Info(ctx, "Removing actions variable from state because it no longer exists in GitHub", map[string]any{"variable_name": varName, "repository": repoName})
 			d.SetId("")
 			return nil
 		}
@@ -175,17 +176,15 @@ func resourceGithubActionsVariableUpdate(ctx context.Context, d *schema.Resource
 	}
 	d.SetId(id)
 
-	// GitHub API does not return on update so we have to lookup the secret to get timestamps, we sleep to optimize the chance of getting the correct timestamps after an update due to the eventually consistent behavior of this API.
-	time.Sleep(defaultRetryDelay)
-	if variable, _, err := client.Actions.GetRepoVariable(ctx, owner, repoName, varName); err == nil {
+	// GitHub API does not return on update so we have to lookup the variable to get timestamps.
+	if variable, err := retryUntilResourceFound(ctx, func() (*github.ActionsVariable, error) {
+		val, _, err := client.Actions.GetRepoVariable(ctx, owner, repoName, varName)
+		return val, err
+	}, nil); err == nil {
 		if err := d.Set("created_at", variable.CreatedAt.String()); err != nil {
 			return diag.FromErr(err)
 		}
 		if err := d.Set("updated_at", variable.UpdatedAt.String()); err != nil {
-			return diag.FromErr(err)
-		}
-	} else {
-		if err := d.Set("updated_at", nil); err != nil {
 			return diag.FromErr(err)
 		}
 	}

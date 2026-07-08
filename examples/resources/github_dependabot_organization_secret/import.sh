@@ -1,0 +1,1 @@
+terraform import github_dependabot_organization_secret.example organization-name:secret-name
