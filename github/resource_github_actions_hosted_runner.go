@@ -228,9 +228,7 @@ func resourceGithubActionsHostedRunnerCreate(ctx context.Context, d *schema.Reso
 
 	runner, _, err := client.Actions.CreateHostedRunner(ctx, orgName, req)
 	if err != nil {
-		if _, ok := errors.AsType[*github.AcceptedError](err); !ok {
-			return diag.FromErr(err)
-		}
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.Itoa(int(runner.GetID())))
@@ -241,7 +239,7 @@ func resourceGithubActionsHostedRunnerCreate(ctx context.Context, d *schema.Reso
 	if err := d.Set("platform", runner.GetPlatform()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("last_active_on", runner.GetLastActiveOn().GoString()); err != nil {
+	if err := d.Set("last_active_on", runner.GetLastActiveOn().Format(time.RFC3339)); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -297,7 +295,7 @@ func resourceGithubActionsHostedRunnerRead(ctx context.Context, d *schema.Resour
 	if err := d.Set("platform", runner.GetPlatform()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("last_active_on", runner.GetLastActiveOn().GoString()); err != nil {
+	if err := d.Set("last_active_on", runner.GetLastActiveOn().Format(time.RFC3339)); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("public_ip_enabled", runner.GetPublicIPEnabled()); err != nil {
@@ -395,7 +393,7 @@ func resourceGithubActionsHostedRunnerUpdate(ctx context.Context, d *schema.Reso
 		if err := d.Set("platform", runner.GetPlatform()); err != nil {
 			return diag.FromErr(err)
 		}
-		if err := d.Set("last_active_on", runner.GetLastActiveOn().GoString()); err != nil {
+		if err := d.Set("last_active_on", runner.GetLastActiveOn().Format(time.RFC3339)); err != nil {
 			return diag.FromErr(err)
 		}
 
@@ -432,19 +430,19 @@ func resourceGithubActionsHostedRunnerDelete(ctx context.Context, d *schema.Reso
 		return diag.FromErr(err)
 	}
 
-	runner, resp, err := client.Actions.DeleteHostedRunner(ctx, orgName, runnerID)
+	_, resp, err := client.Actions.DeleteHostedRunner(ctx, orgName, runnerID)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			return nil
 		}
 		if _, ok := errors.AsType[*github.AcceptedError](err); ok {
-			return diag.FromErr(waitForRunnerDeletion(ctx, client, orgName, runner.GetID(), d.Timeout(schema.TimeoutDelete)))
+			return diag.FromErr(waitForRunnerDeletion(ctx, client, orgName, runnerID, d.Timeout(schema.TimeoutDelete)))
 		}
 		return diag.FromErr(err)
 	}
 
 	if resp != nil && resp.StatusCode == http.StatusAccepted {
-		return diag.FromErr(waitForRunnerDeletion(ctx, client, orgName, runner.GetID(), d.Timeout(schema.TimeoutDelete)))
+		return diag.FromErr(waitForRunnerDeletion(ctx, client, orgName, runnerID, d.Timeout(schema.TimeoutDelete)))
 	}
 
 	return nil
