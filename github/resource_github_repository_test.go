@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	goGithub "github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -1096,6 +1096,47 @@ resource "github_repository" "test" {
 		})
 	})
 
+	t.Run("manages code_security for a public repository", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%scode-security-public-%s", testResourcePrefix, randomID)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name        = "%s"
+				description = "A repository created by Terraform to test code_security"
+				visibility  = "public"
+				security_and_analysis {
+					code_security {
+						status = "enabled"
+					}
+					secret_scanning {
+						status = "enabled"
+					}
+					secret_scanning_push_protection {
+						status = "disabled"
+					}
+				}
+			}
+			`, testRepoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck: func() {
+				skipUnauthenticated(t)
+				skipIfEMUEnterprise(t)
+			},
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "security_and_analysis.0.code_security.0.status", "enabled"),
+					),
+				},
+			},
+		})
+	})
+
 	t.Run("creates repos with private visibility", func(t *testing.T) {
 		t.Parallel()
 
@@ -1709,8 +1750,8 @@ func TestFlattenSecurityAndAnalysisIncludesCodeSecurity(t *testing.T) {
 	t.Parallel()
 
 	status := "enabled"
-	securityAndAnalysis := &goGithub.SecurityAndAnalysis{
-		CodeSecurity: &goGithub.CodeSecurity{
+	securityAndAnalysis := &github.SecurityAndAnalysis{
+		CodeSecurity: &github.CodeSecurity{
 			Status: &status,
 		},
 	}
