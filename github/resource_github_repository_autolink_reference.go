@@ -29,12 +29,12 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 
 		CustomizeDiff: diffRepository,
 
-		SchemaVersion: 1,
+		SchemaVersion: 2,
 		StateUpgraders: []schema.StateUpgrader{
 			{
-				Type:    resourceGithubRepositoryAutolinkReferenceV0().CoreConfigSchema().ImpliedType(),
-				Upgrade: resourceGithubRepositoryAutolinkReferenceStateUpgradeV0,
-				Version: 0,
+				Type:    resourceGithubRepositoryAutolinkReferenceV1().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceGithubRepositoryAutolinkReferenceStateUpgradeV1,
+				Version: 1,
 			},
 		},
 		Schema: map[string]*schema.Schema{

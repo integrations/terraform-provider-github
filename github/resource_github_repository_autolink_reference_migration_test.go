@@ -10,7 +10,7 @@ import (
 	"github.com/google/go-github/v88/github"
 )
 
-func buildMockResponsesForRepositoryAutolinkReferenceMigrationV0toV1(mockOwner, mockRepo string, wantRepoID int) []*mockResponse {
+func buildMockResponsesForRepositoryAutolinkReferenceMigrationV1toV2(mockOwner, mockRepo string, wantRepoID int) []*mockResponse {
 	responseBodyJSON, err := json.Marshal(github.Repository{
 		ID:   new(int64(wantRepoID)),
 		Name: new(mockRepo),
@@ -29,7 +29,7 @@ func buildMockResponsesForRepositoryAutolinkReferenceMigrationV0toV1(mockOwner, 
 	}}
 }
 
-func Test_resourceGithubRepositoryAutolinkReferenceStateUpgradeV0toV1(t *testing.T) {
+func Test_resourceGithubRepositoryAutolinkReferenceStateUpgradeV1toV2(t *testing.T) {
 	t.Parallel()
 
 	for _, d := range []struct {
@@ -62,12 +62,12 @@ func Test_resourceGithubRepositoryAutolinkReferenceStateUpgradeV0toV1(t *testing
 			t.Parallel()
 
 			meta := &Owner{name: "test-org"}
-			ts := githubApiMock(buildMockResponsesForRepositoryAutolinkReferenceMigrationV0toV1(meta.name, "test-repo", 1234567890))
+			ts := githubApiMock(buildMockResponsesForRepositoryAutolinkReferenceMigrationV1toV2(meta.name, "test-repo", 1234567890))
 			defer ts.Close()
 
 			meta.v3client = mustCreateTestGitHubClient(t, ts.URL)
 
-			got, err := resourceGithubRepositoryAutolinkReferenceStateUpgradeV0(t.Context(), d.rawState, meta)
+			got, err := resourceGithubRepositoryAutolinkReferenceStateUpgradeV1(t.Context(), d.rawState, meta)
 			if (err != nil) != d.shouldError {
 				t.Fatalf("unexpected error state: got error %v, shouldError %v", err, d.shouldError)
 			}

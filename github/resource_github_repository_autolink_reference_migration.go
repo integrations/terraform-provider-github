@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceGithubRepositoryAutolinkReferenceV0() *schema.Resource {
+func resourceGithubRepositoryAutolinkReferenceV1() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -40,8 +40,8 @@ func resourceGithubRepositoryAutolinkReferenceV0() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryAutolinkReferenceStateUpgradeV0(ctx context.Context, rawState map[string]any, m any) (map[string]any, error) {
-	tflog.Debug(ctx, "GitHub Repository Autolink Reference state before v0 migration", rawState)
+func resourceGithubRepositoryAutolinkReferenceStateUpgradeV1(ctx context.Context, rawState map[string]any, m any) (map[string]any, error) {
+	tflog.Debug(ctx, "GitHub Repository Autolink Reference state before v1 migration", rawState)
 
 	meta, _ := m.(*Owner)
 	client := meta.v3client
@@ -54,17 +54,17 @@ func resourceGithubRepositoryAutolinkReferenceStateUpgradeV0(ctx context.Context
 		}
 	}
 	if repoName == "" {
-		return nil, fmt.Errorf("state upgrade v0: repository is not a string or not set")
+		return nil, fmt.Errorf("state upgrade v1: repository is not a string or not set")
 	}
 
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
-		return nil, fmt.Errorf("state upgrade v0: failed to retrieve repository '%s': %w", repoName, err)
+		return nil, fmt.Errorf("state upgrade v1: failed to retrieve repository '%s/%s': %w", owner, repoName, err)
 	}
 
 	rawState["repository_id"] = int(repo.GetID())
 
-	tflog.Debug(ctx, "GitHub Repository Autolink Reference state after v0 migration", rawState)
+	tflog.Debug(ctx, "GitHub Repository Autolink Reference state after v1 migration", rawState)
 
 	return rawState, nil
 }
