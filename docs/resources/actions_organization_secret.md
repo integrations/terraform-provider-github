@@ -111,12 +111,12 @@ In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.
 ```terraform
 import {
   to = github_actions_organization_secret.example
-  id = "organization-name:secret-name"
+  id = "secret-name"
 }
 ```
 
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-terraform import github_actions_organization_secret.example organization-name:secret-name
+terraform import github_actions_organization_secret.example secret-name
 ```

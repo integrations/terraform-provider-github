@@ -47,8 +47,8 @@ In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.
 
 ```terraform
 import {
-  to = github_actions_variable.example
-  id = "repo-name:variable-name"
+  to = github_actions_environment_variable.example
+  id = "repo-name:environment-name:variable-name"
 }
 ```
 

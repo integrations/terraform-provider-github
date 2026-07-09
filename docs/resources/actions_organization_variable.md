@@ -70,12 +70,12 @@ In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.
 ```terraform
 import {
   to = github_actions_organization_variable.example
-  id = "organization-name:variable-name"
+  id = "variable-name"
 }
 ```
 
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-terraform import github_actions_organization_variable.example organization-name:variable-name
+terraform import github_actions_organization_variable.example variable-name
 ```
