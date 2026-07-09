@@ -65,7 +65,7 @@ func Test_resourceGithubRepositoryAutolinkReferenceStateUpgradeV0toV1(t *testing
 			ts := githubApiMock(buildMockResponsesForRepositoryAutolinkReferenceMigrationV0toV1(meta.name, "test-repo", 1234567890))
 			defer ts.Close()
 
-			meta.v3client = mustGitHubClient(t, ts.URL)
+			meta.v3client = mustCreateTestGitHubClient(t, ts.URL)
 
 			got, err := resourceGithubRepositoryAutolinkReferenceStateUpgradeV0(t.Context(), d.rawState, meta)
 			if (err != nil) != d.shouldError {
