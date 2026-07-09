@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
-	"log"
 	"net/http"
 
 	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -201,13 +201,10 @@ func resourceGithubDependabotOrganizationSecretRead(ctx context.Context, d *sche
 
 	secret, _, err := client.Dependabot.GetOrgSecret(ctx, owner, secretName)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing Dependabot organization secret %s from state because it no longer exists in GitHub", d.Id())
-				d.SetId("")
-				return nil
-			}
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Removing Dependabot organization secret from state because it no longer exists in GitHub", map[string]any{"secret_name": secretName})
+			d.SetId("")
+			return nil
 		}
 		return diag.FromErr(err)
 	}
@@ -349,7 +346,7 @@ func resourceGithubDependabotOrganizationSecretDelete(ctx context.Context, d *sc
 
 	secretName := d.Get("secret_name").(string)
 
-	log.Printf("[INFO] Deleting Dependabot organization secret: %s", d.Id())
+	tflog.Info(ctx, "Deleting Dependabot organization secret.", map[string]any{"secret_name": secretName})
 	_, err := client.Dependabot.DeleteOrgSecret(ctx, owner, secretName)
 	if err != nil {
 		return diag.FromErr(err)

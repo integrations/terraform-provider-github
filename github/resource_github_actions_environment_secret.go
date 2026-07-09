@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
-	"log"
 	"net/http"
 	"net/url"
 
 	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -216,13 +216,10 @@ func resourceGithubActionsEnvironmentSecretRead(ctx context.Context, d *schema.R
 
 	secret, _, err := client.Actions.GetEnvSecret(ctx, owner, repoName, url.PathEscape(envName), secretName)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing environment secret %s from state because it no longer exists in GitHub", d.Id())
-				d.SetId("")
-				return nil
-			}
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Removing environment secret from state because it no longer exists in GitHub.", map[string]any{"secret_name": secretName, "environment": envName, "repository": repoName})
+			d.SetId("")
+			return nil
 		}
 		return diag.FromErr(err)
 	}
@@ -333,7 +330,7 @@ func resourceGithubActionsEnvironmentSecretDelete(ctx context.Context, d *schema
 	envName, _ := d.Get("environment").(string)
 	secretName, _ := d.Get("secret_name").(string)
 
-	log.Printf("[INFO] Deleting actions environment secret: %s", d.Id())
+	tflog.Info(ctx, "Deleting actions environment secret.", map[string]any{"secret_name": secretName, "environment": envName, "repository": repoName})
 	_, err := client.Actions.DeleteEnvSecret(ctx, owner, repoName, url.PathEscape(envName), secretName)
 	if err != nil {
 		return diag.FromErr(err)

@@ -2,10 +2,10 @@ package github
 
 import (
 	"context"
-	"log"
 	"strconv"
 
 	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -101,7 +101,7 @@ func resourceGithubActionsOrganizationVariableRepositoryRead(ctx context.Context
 		opt.Page = resp.NextPage
 	}
 
-	log.Printf("[INFO] Removing variable repository association %s from state because it no longer exists in GitHub", d.Id())
+	tflog.Info(ctx, "Removing actions organization variable repository association from state because it no longer exists in GitHub.", map[string]any{"variable_name": variableName, "repository_id": repoID})
 	d.SetId("")
 
 	return nil

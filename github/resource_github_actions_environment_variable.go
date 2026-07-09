@@ -3,11 +3,11 @@ package github
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 	"net/url"
 
 	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -143,13 +143,10 @@ func resourceGithubActionsEnvironmentVariableRead(ctx context.Context, d *schema
 
 	variable, _, err := client.Actions.GetEnvVariable(ctx, owner, repoName, url.PathEscape(envName), varName)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing actions variable %s from state because it no longer exists in GitHub", d.Id())
-				d.SetId("")
-				return nil
-			}
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Removing actions variable from state because it no longer exists in GitHub.", map[string]any{"variable_name": varName, "repository": repoName, "environment": envName})
+			d.SetId("")
+			return nil
 		}
 		return diag.FromErr(err)
 	}

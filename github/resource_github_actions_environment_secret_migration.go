@@ -3,8 +3,8 @@ package github
 import (
 	"context"
 	"fmt"
-	"log"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -66,7 +66,7 @@ func resourceGithubActionsEnvironmentSecretStateUpgradeV0(ctx context.Context, r
 	client := meta.v3client
 	owner := meta.name
 
-	log.Printf("[DEBUG] GitHub Actions Environment Secret Attributes before migration: %#v", rawState)
+	tflog.Debug(ctx, "GitHub Actions Environment Secret migration from v0 to v1 starting.", map[string]any{"raw_state": rawState})
 
 	repoName, ok := rawState["repository"].(string)
 	if !ok {
@@ -97,7 +97,7 @@ func resourceGithubActionsEnvironmentSecretStateUpgradeV0(ctx context.Context, r
 	rawState["id"] = id
 	rawState["repository_id"] = repoID
 
-	log.Printf("[DEBUG] GitHub Actions Environment Secret Attributes after migration: %#v", rawState)
+	tflog.Debug(ctx, "GitHub Actions Environment Secret migration from v0 to v1 completed.", map[string]any{"raw_state": rawState})
 
 	return rawState, nil
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
-	"log"
 	"net/http"
 
 	"github.com/google/go-github/v89/github"
@@ -216,7 +215,7 @@ func resourceGithubActionsOrganizationSecretRead(ctx context.Context, d *schema.
 	secret, _, err := client.Actions.GetOrgSecret(ctx, owner, secretName)
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
-			log.Printf("[INFO] Removing actions organization secret %s from state because it no longer exists in GitHub", d.Id())
+			tflog.Info(ctx, "Removing actions organization secret from state because it no longer exists in GitHub", map[string]any{"secret_name": secretName})
 			d.SetId("")
 			return nil
 		}
