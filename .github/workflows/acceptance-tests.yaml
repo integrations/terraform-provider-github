@@ -1,4 +1,4 @@
-name: Acceptance Tests (github.com)
+name: Acceptance Tests
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ on:
       - main
       - release-v*
 
-  pull_request:
+  pull_request_target:
     types:
       - opened
       - synchronize
@@ -19,7 +19,7 @@ on:
       - release-v*
 
 concurrency:
-  group: acctest-dotcom-${{ github.ref }}
+  group: acctest-${{ case(github.event_name == 'pull_request' || github.event_name == 'pull_request_target', github.event.pull_request.number, github.ref) }}
   cancel-in-progress: true
 
 permissions: read-all
@@ -32,6 +32,8 @@ jobs:
       run:
         shell: bash
     outputs:
+      repository: ${{ steps.check.outputs.repository }}
+      ref: ${{ steps.check.outputs.ref }}
       fork: ${{ steps.check.outputs.fork }}
       test: ${{ steps.check.outputs.test }}
       environment: ${{ steps.check.outputs.environment }}
@@ -39,38 +41,43 @@ jobs:
       - name: Check
         id: check
         env:
-          GITHUB_HEAD_REPO: ${{ case(github.event_name == 'pull_request' || github.event_name == 'pull_request_target', github.event.pull_request.head.repo.full_name, github.repository) }}
-          GITHUB_BASE_REPO: ${{ case(github.event_name == 'pull_request' || github.event_name == 'pull_request_target', github.event.pull_request.base.repo.full_name, github.repository) }}
-          ACCTEST_LABEL_SET: ${{ contains(github.event.pull_request.labels.*.name, 'acctest') }}
+          INPUT_PULL_REQUEST: ${{ github.event_name == 'pull_request' || github.event_name == 'pull_request_target' }}
+          INPUT_GITHUB_HEAD_REPO: ${{ case(github.event_name == 'pull_request' || github.event_name == 'pull_request_target', github.event.pull_request.head.repo.full_name, github.repository) }}
+          INPUT_GITHUB_HEAD_SHA: ${{ case(github.event_name == 'pull_request' || github.event_name == 'pull_request_target', github.event.pull_request.head.sha, github.sha) }}
+          INPUT_GITHUB_BASE_REPO: ${{ case(github.event_name == 'pull_request' || github.event_name == 'pull_request_target', github.event.pull_request.base.repo.full_name, github.repository) }}
+          INPUT_ACCTEST_LABEL_SET: ${{ contains(github.event.pull_request.labels.*.name, 'acctest') }}
         run: |
           set -euo pipefail
 
+          repository="${INPUT_GITHUB_HEAD_REPO}"
           fork="true"
           test="false"
           environment="acctest-dotcom-untrusted"
 
-          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]] || [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+          if [[ "${INPUT_PULL_REQUEST}" == "false" ]]; then
             fork="false"
             test="true"
             environment="acctest-dotcom"
             echo "::notice::Running in ${GITHUB_EVENT_NAME} context, proceeding with tests."
           else
-            if [[ "${GITHUB_HEAD_REPO}" == "${GITHUB_BASE_REPO}" ]]; then
+            if [[ "${INPUT_GITHUB_HEAD_REPO}" == "${INPUT_GITHUB_BASE_REPO}" ]]; then
               fork="false"
               test="true"
               environment="acctest-dotcom"
               echo "::notice::Running in ${GITHUB_EVENT_NAME} context from the base repository, proceeding with tests."
             else
-              if [[ "${ACCTEST_LABEL_SET}" == "true" ]]; then
+              if [[ "${INPUT_ACCTEST_LABEL_SET}" == "true" ]]; then
                 test="true"
-                echo "::warning::Running in ${GITHUB_EVENT_NAME} context from a fork, proceeding with tests as acctest label is set."
+                echo "::warning::Running in ${GITHUB_EVENT_NAME} context from a fork ${repository}, proceeding with tests as acctest label is set."
               else
-                echo "::warning::Running in ${GITHUB_EVENT_NAME} context from a fork, skipping tests as acctest label is not set."
+                echo "::warning::Running in ${GITHUB_EVENT_NAME} context from a fork ${repository}, skipping tests as acctest label is not set."
               fi
             fi
           fi
 
           {
+            echo "repository=${repository}"
+            echo "ref=${INPUT_GITHUB_HEAD_SHA}"
             echo "test=${test}"
             echo "environment=${environment}"
             echo "fork=${fork}"
@@ -98,6 +105,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: ${{ needs.setup.outputs.repository }}
+          ref: ${{ needs.setup.outputs.ref }}
+          allow-unsafe-pr-checkout: ${{ needs.setup.outputs.fork }}
+          persist-credentials: false
 
       - name: Check secrets
         if: github.event_name == 'pull_request' || github.event_name == 'pull_request_target'
@@ -227,7 +239,7 @@ jobs:
           go run gotest.tools/gotestsum@latest --format testname -- -run "^TestAcc*" ./github -v -timeout 120m -count=1
 
   check:
-    name: Check DotCom Acceptance Tests
+    name: Check Acceptance Tests
     if: always() && (github.event_name == 'pull_request' || github.event_name == 'pull_request_target')
     needs:
       - test
