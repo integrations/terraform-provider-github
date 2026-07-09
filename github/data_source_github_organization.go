@@ -113,6 +113,10 @@ func dataSourceGithubOrganization() *schema.Resource {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
+			"deploy_keys_enabled_for_repositories": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
 			"web_commit_signoff_required": {
 				Type:     schema.TypeBool,
 				Computed: true,
@@ -255,6 +259,7 @@ func dataSourceGithubOrganizationRead(ctx context.Context, d *schema.ResourceDat
 		_ = d.Set("members_can_create_private_repositories", organization.GetMembersCanCreatePrivateRepos())
 		_ = d.Set("members_can_create_internal_repositories", organization.GetMembersCanCreateInternalRepos())
 		_ = d.Set("members_can_fork_private_repositories", organization.GetMembersCanForkPrivateRepos())
+		_ = d.Set("deploy_keys_enabled_for_repositories", organization.GetDeployKeysEnabledForRepositories())
 		_ = d.Set("web_commit_signoff_required", organization.GetWebCommitSignoffRequired())
 		_ = d.Set("members_can_create_pages", organization.GetMembersCanCreatePages())
 		_ = d.Set("members_can_create_public_pages", organization.GetMembersCanCreatePublicPages())
