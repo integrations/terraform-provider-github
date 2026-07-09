@@ -1,1 +1,1 @@
-terraform import github_actions_organization_secret.example organization-name:secret-name
+terraform import github_actions_organization_secret.example secret-name

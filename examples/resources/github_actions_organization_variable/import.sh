@@ -1,1 +1,1 @@
-terraform import github_actions_organization_variable.example organization-name:variable-name
+terraform import github_actions_organization_variable.example variable-name
