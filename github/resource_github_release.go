@@ -236,6 +236,26 @@ func resourceGithubReleaseRead(ctx context.Context, d *schema.ResourceData, m an
 		return diag.FromErr(err)
 	}
 
+	if _, ok := d.GetOk("name"); ok {
+		if err := d.Set("name", release.GetName()); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	if _, ok := d.GetOk("body"); ok {
+		if err := d.Set("body", release.GetBody()); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	if err := d.Set("draft", release.GetDraft()); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := d.Set("prerelease", release.GetPrerelease()); err != nil {
+		return diag.FromErr(err)
+	}
+
 	if err := repositoryReleaseToComputedResourceData(d, release); err != nil {
 		return diag.FromErr(err)
 	}
@@ -354,16 +374,6 @@ func resourceGithubReleaseImport(ctx context.Context, d *schema.ResourceData, m 
 	}
 	if err := d.Set("target_commitish", release.GetTargetCommitish()); err != nil {
 		return nil, err
-	}
-	if release.Name != nil {
-		if err := d.Set("name", release.GetName()); err != nil {
-			return nil, err
-		}
-	}
-	if release.Body != nil {
-		if err := d.Set("body", release.GetBody()); err != nil {
-			return nil, err
-		}
 	}
 	if err := d.Set("draft", release.GetDraft()); err != nil {
 		return nil, err

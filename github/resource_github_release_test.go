@@ -56,10 +56,11 @@ resource "github_release" "test" {
 					},
 				},
 				{
-					ResourceName:        "github_release.test",
-					ImportState:         true,
-					ImportStateVerify:   true,
-					ImportStateIdPrefix: fmt.Sprintf("%s:", repo.GetName()),
+					ResourceName:            "github_release.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateIdPrefix:     fmt.Sprintf("%s:", repo.GetName()),
+					ImportStateVerifyIgnore: []string{"name", "body"},
 				},
 				{
 					Config: configLive,
@@ -107,10 +108,11 @@ resource "github_release" "test" {
 					},
 				},
 				{
-					ResourceName:        "github_release.test",
-					ImportState:         true,
-					ImportStateVerify:   true,
-					ImportStateIdPrefix: fmt.Sprintf("%s:", repo.GetName()),
+					ResourceName:            "github_release.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateIdPrefix:     fmt.Sprintf("%s:", repo.GetName()),
+					ImportStateVerifyIgnore: []string{"name", "body"},
 				},
 			},
 		})
