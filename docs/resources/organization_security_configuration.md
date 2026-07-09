@@ -2,12 +2,12 @@
 page_title: "github_organization_security_configuration (Resource) - GitHub"
 subcategory: ""
 description: |-
-  Manages a code security configuration for a GitHub Organization.
+  Resource to manage a GitHub code security configuration for an organization.
 ---
 
 # github_organization_security_configuration (Resource)
 
-Manages a code security configuration for a GitHub Organization.
+Resource to manage a GitHub code security configuration for an organization.
 
 This resource allows you to create and manage [code security configurations](https://docs.github.com/en/code-security/securing-your-organization/enabling-security-features-in-your-organization/creating-a-custom-security-configuration) for a GitHub organization. A code security configuration is a collection of security settings (Advanced Security, Dependabot, code scanning, secret scanning, and related features) that can be applied to repositories in the organization.
 
@@ -61,47 +61,47 @@ resource "github_organization_security_configuration" "with_delegated_bypass" {
 
 ### Required
 
-- `name` (String) The name of the code security configuration.
+- `name` (String) Name of the code security configuration.
 
 ### Optional
 
-- `advanced_security` (String) The advanced security configuration for the code security configuration. Can be one of 'enabled', 'disabled'.
-- `code_scanning_default_setup` (String) The code scanning default setup configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.
-- `code_scanning_default_setup_options` (Block List, Max: 1) The code scanning default setup options for the code security configuration. (see [below for nested schema](#nestedblock--code_scanning_default_setup_options))
-- `code_scanning_delegated_alert_dismissal` (String) The code scanning delegated alert dismissal configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.
-- `code_scanning_options` (Block List, Max: 1) The code scanning options for the code security configuration. (see [below for nested schema](#nestedblock--code_scanning_options))
-- `code_security` (String) The code security setting. Can be one of 'enabled', 'disabled', 'not_set'.
-- `dependabot_alerts` (String) The dependabot alerts configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.
-- `dependabot_security_updates` (String) The dependabot security updates configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.
-- `dependency_graph` (String) The dependency graph configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.
-- `dependency_graph_autosubmit_action` (String) The dependency graph autosubmit action configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.
-- `dependency_graph_autosubmit_action_options` (Block List, Max: 1) The dependency graph autosubmit action options for the code security configuration. (see [below for nested schema](#nestedblock--dependency_graph_autosubmit_action_options))
-- `description` (String) A description of the code security configuration.
-- `enforcement` (String) The enforcement configuration for the code security configuration. Can be one of 'enforced', 'unenforced'.
-- `private_vulnerability_reporting` (String) The private vulnerability reporting configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.
-- `secret_protection` (String) The secret protection configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.
-- `secret_scanning` (String) The secret scanning configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.
-- `secret_scanning_delegated_alert_dismissal` (String) The secret scanning delegated alert dismissal configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.
-- `secret_scanning_delegated_bypass` (String) The secret scanning delegated bypass configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.
-- `secret_scanning_delegated_bypass_options` (Block List, Max: 1) The secret scanning delegated bypass options for the code security configuration. (see [below for nested schema](#nestedblock--secret_scanning_delegated_bypass_options))
-- `secret_scanning_generic_secrets` (String) The secret scanning generic secrets configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.
-- `secret_scanning_non_provider_patterns` (String) The secret scanning non provider patterns configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.
-- `secret_scanning_push_protection` (String) The secret scanning push protection configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.
-- `secret_scanning_validity_checks` (String) The secret scanning validity checks configuration for the code security configuration. Can be one of 'enabled', 'disabled', 'not_set'.
+- `advanced_security` (String) Advanced security setting. Can be one of 'enabled', 'disabled'.
+- `code_scanning_default_setup` (String) Code scanning default setup. Can be one of 'enabled', 'disabled', 'not_set'.
+- `code_scanning_default_setup_options` (Block List, Max: 1) Code scanning default setup options. (see [below for nested schema](#nestedblock--code_scanning_default_setup_options))
+- `code_scanning_delegated_alert_dismissal` (String) Code scanning delegated alert dismissal setting. Can be one of 'enabled', 'disabled', 'not_set'.
+- `code_scanning_options` (Block List, Max: 1) Code scanning options. (see [below for nested schema](#nestedblock--code_scanning_options))
+- `code_security` (String) Code security setting. Can be one of 'enabled', 'disabled', 'not_set'.
+- `dependabot_alerts` (String) Dependabot alerts setting. Can be one of 'enabled', 'disabled', 'not_set'.
+- `dependabot_security_updates` (String) Dependabot security updates setting. Can be one of 'enabled', 'disabled', 'not_set'.
+- `dependency_graph` (String) Dependency graph setting. Can be one of 'enabled', 'disabled', 'not_set'.
+- `dependency_graph_autosubmit_action` (String) Dependency graph autosubmit action setting. Can be one of 'enabled', 'disabled', 'not_set'.
+- `dependency_graph_autosubmit_action_options` (Block List, Max: 1) Dependency graph autosubmit action options. (see [below for nested schema](#nestedblock--dependency_graph_autosubmit_action_options))
+- `description` (String) Description of the code security configuration.
+- `enforcement` (String) Enforcement setting. Can be one of 'enforced', 'unenforced'.
+- `private_vulnerability_reporting` (String) Private vulnerability reporting setting. Can be one of 'enabled', 'disabled', 'not_set'.
+- `secret_protection` (String) Secret protection setting. Can be one of 'enabled', 'disabled', 'not_set'.
+- `secret_scanning` (String) Secret scanning setting. Can be one of 'enabled', 'disabled', 'not_set'.
+- `secret_scanning_delegated_alert_dismissal` (String) Secret scanning delegated alert dismissal setting. Can be one of 'enabled', 'disabled', 'not_set'.
+- `secret_scanning_delegated_bypass` (String) Secret scanning delegated bypass setting. Can be one of 'enabled', 'disabled', 'not_set'.
+- `secret_scanning_delegated_bypass_options` (Block List, Max: 1) Secret scanning delegated bypass options. (see [below for nested schema](#nestedblock--secret_scanning_delegated_bypass_options))
+- `secret_scanning_generic_secrets` (String) Secret scanning generic secrets setting. Can be one of 'enabled', 'disabled', 'not_set'.
+- `secret_scanning_non_provider_patterns` (String) Secret scanning non-provider patterns setting. Can be one of 'enabled', 'disabled', 'not_set'.
+- `secret_scanning_push_protection` (String) Secret scanning push protection setting. Can be one of 'enabled', 'disabled', 'not_set'.
+- `secret_scanning_validity_checks` (String) Secret scanning validity checks setting. Can be one of 'enabled', 'disabled', 'not_set'.
 
 ### Read-Only
 
-- `configuration_id` (Number) The numeric ID of the code security configuration.
+- `configuration_id` (Number) Numeric ID of the code security configuration.
 - `id` (String) The ID of this resource.
-- `target_type` (String) The target type of the code security configuration.
+- `target_type` (String) Target type of the code security configuration.
 
 <a id="nestedblock--code_scanning_default_setup_options"></a>
 ### Nested Schema for `code_scanning_default_setup_options`
 
 Optional:
 
-- `runner_label` (String) The label of the runner to use for code scanning default setup.
-- `runner_type` (String) The type of runner to use for code scanning default setup. Can be one of 'standard', 'labeled'.
+- `runner_label` (String) Label of the runner to use for code scanning default setup.
+- `runner_type` (String) Type of runner to use for code scanning default setup. Can be one of 'standard', 'labeled'.
 
 
 <a id="nestedblock--code_scanning_options"></a>
@@ -125,15 +125,15 @@ Required:
 
 Optional:
 
-- `reviewers` (Block List) The bypass reviewers for the secret scanning delegated bypass. (see [below for nested schema](#nestedblock--secret_scanning_delegated_bypass_options--reviewers))
+- `reviewers` (Block List) Reviewers permitted to bypass secret scanning push protection. (see [below for nested schema](#nestedblock--secret_scanning_delegated_bypass_options--reviewers))
 
 <a id="nestedblock--secret_scanning_delegated_bypass_options--reviewers"></a>
 ### Nested Schema for `secret_scanning_delegated_bypass_options.reviewers`
 
 Required:
 
-- `reviewer_id` (Number) The ID of the bypass reviewer.
-- `reviewer_type` (String) The type of the bypass reviewer. Can be one of 'TEAM', 'ROLE'.
+- `reviewer_id` (Number) ID of the bypass reviewer.
+- `reviewer_type` (String) Type of the bypass reviewer. Can be one of 'TEAM', 'ROLE'.
 
 ## Import
 
