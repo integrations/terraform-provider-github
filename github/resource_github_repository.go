@@ -528,20 +528,20 @@ func customDiffFunction(ctx context.Context, diff *schema.ResourceDiff, v any) e
 	// We need to check the `allow_squash_merge` flag by checking if the `squash_merge_commit_title` and `squash_merge_commit_message` are set in the configuration.
 	isSquashMergeCommitTitleSet := !diff.GetRawConfig().GetAttr("squash_merge_commit_title").IsNull()
 	isSquashMergeCommitMessageSet := !diff.GetRawConfig().GetAttr("squash_merge_commit_message").IsNull()
-	if isSquashMergeCommitMessageSet && isSquashMergeCommitTitleSet {
+	if isSquashMergeCommitMessageSet || isSquashMergeCommitTitleSet {
 		allowSquashMerge, _ := diff.Get("allow_squash_merge").(bool)
 		if !allowSquashMerge {
-			return fmt.Errorf("allow_squash_merge is required when squash_merge_commit_title and squash_merge_commit_message is set")
+			return fmt.Errorf("allow_squash_merge is required when squash_merge_commit_title or squash_merge_commit_message is set")
 		}
 	}
 
 	// We need to check the `allow_merge_commit` flag by checking if the `merge_commit_title` and `merge_commit_message` are set in the configuration.
 	isMergeCommitTitleSet := !diff.GetRawConfig().GetAttr("merge_commit_title").IsNull()
 	isMergeCommitMessageSet := !diff.GetRawConfig().GetAttr("merge_commit_message").IsNull()
-	if isMergeCommitMessageSet && isMergeCommitTitleSet {
+	if isMergeCommitMessageSet || isMergeCommitTitleSet {
 		allowMergeCommit, _ := diff.Get("allow_merge_commit").(bool)
 		if !allowMergeCommit {
-			return fmt.Errorf("allow_merge_commit is required when merge_commit_title and merge_commit_message is set")
+			return fmt.Errorf("allow_merge_commit is required when merge_commit_title or merge_commit_message is set")
 		}
 	}
 
@@ -919,6 +919,7 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 		return diag.FromErr(err)
 	}
 	d.SetId(repo.GetName()) // It's possible that `repo.GetName()` is different from `repoName` if the repository is renamed
+	repoName = repo.GetName()
 
 	if d.HasChange("pages") && !d.IsNewResource() {
 		opts := expandPagesUpdate(d.Get("pages").([]any))
@@ -969,13 +970,18 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 		repoReq.AllowForking = allowForking
 
 		tflog.Debug(ctx, "Updating repository visibility", map[string]any{"from": repo.GetVisibility(), "to": visibility})
-		updatedRepo, resp, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
+		updatedRepo, _, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
 		if err != nil {
-			if resp.StatusCode != http.StatusUnprocessableEntity || !strings.Contains(err.Error(), fmt.Sprintf("Visibility is already %s", visibility)) {
+			if errResp, ok := errors.AsType[*github.ErrorResponse](err); ok {
+				if errResp.Response.StatusCode != http.StatusUnprocessableEntity || !strings.Contains(errResp.Error(), fmt.Sprintf("Visibility is already %s", visibility)) {
+					return diag.FromErr(err)
+				}
+			} else {
 				return diag.FromErr(err)
 			}
+		} else {
+			repo = updatedRepo
 		}
-		repo = updatedRepo
 	}
 
 	if diags := setResourceFieldsFromRepo(ctx, d, client, owner, repo); diags.HasError() {
