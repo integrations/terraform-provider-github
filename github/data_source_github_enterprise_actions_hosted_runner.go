@@ -163,7 +163,7 @@ func dataSourceGithubEnterpriseActionsHostedRunnerRead(ctx context.Context, d *s
 		return diag.Errorf("error reading enterprise hosted runner: %s", err.Error())
 	}
 
-	// Set the ID as enterprise_slug/runner_id
+	// Set the ID as enterprise_slug:runner_id
 	id, err := buildID(enterpriseSlug, strconv.FormatInt(runner.GetID(), 10))
 	if err != nil {
 		return diag.FromErr(err)

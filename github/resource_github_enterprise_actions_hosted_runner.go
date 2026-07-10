@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -125,7 +126,7 @@ func resourceGithubEnterpriseActionsHostedRunner() *schema.Resource {
 			"id": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "The hosted runner ID in the format {enterprise_slug}/{runner_id}. This is the unique identifier for the runner resource in Terraform.",
+				Description: "The hosted runner ID in the format {enterprise_slug}:{runner_id}. This is the unique identifier for the runner resource in Terraform.",
 			},
 			"runner_id": {
 				Type:        schema.TypeInt,
@@ -310,9 +311,9 @@ func resourceGithubEnterpriseActionsHostedRunnerRead(ctx context.Context, d *sch
 		return diag.Errorf("invalid runner ID %q: %s", runnerIDStr, err.Error())
 	}
 
-	runner, resp, err := client.Enterprise.GetHostedRunner(ctx, enterpriseSlug, runnerID)
+	runner, _, err := client.Enterprise.GetHostedRunner(ctx, enterpriseSlug, runnerID)
 	if err != nil {
-		if resp != nil && resp.StatusCode == http.StatusNotFound {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
 			tflog.Info(ctx, "Removing enterprise hosted runner from state because it no longer exists in GitHub", map[string]any{
 				"id":              d.Id(),
 				"enterprise_slug": enterpriseSlug,
@@ -416,12 +417,13 @@ func resourceGithubEnterpriseActionsHostedRunnerDelete(ctx context.Context, d *s
 	runnerID := int64(d.Get("runner_id").(int))
 
 	_, resp, err := client.Enterprise.DeleteHostedRunner(ctx, enterpriseSlug, runnerID)
-
-	// Check status code before error to handle expected HTTP responses.
-	// Runner doesn't exist - treat as successful deletion since desired state is achieved.
-	// This can happen if the runner was already deleted outside of Terraform.
-	if resp != nil && resp.StatusCode == http.StatusNotFound {
-		return nil
+	if err != nil {
+		// Runner doesn't exist - treat as successful deletion since desired state is achieved.
+		// This can happen if the runner was already deleted outside of Terraform.
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			return nil
+		}
+		return diag.Errorf("error deleting enterprise hosted runner: %s", err.Error())
 	}
 
 	// Async deletion initiated (202 Accepted) - GitHub is processing the deletion.
@@ -431,11 +433,6 @@ func resourceGithubEnterpriseActionsHostedRunnerDelete(ctx context.Context, d *s
 			return diag.Errorf("error waiting for enterprise hosted runner deletion: %s", err.Error())
 		}
 		return nil
-	}
-
-	// Any other error (API errors, network issues, etc.)
-	if err != nil {
-		return diag.Errorf("error deleting enterprise hosted runner: %s", err.Error())
 	}
 
 	// Successful synchronous deletion (200 OK)
