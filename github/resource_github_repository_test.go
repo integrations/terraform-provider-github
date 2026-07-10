@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -912,8 +913,11 @@ resource "github_repository" "test" {
 				},
 				{
 					// Re-running the terraform will refresh the language since the go-file has been created
-					Config: config,
+					// GitHub language detection can be asynchronous; this assertion has historically been flaky.
+					PreConfig: func() { sleep(t.Context(), 20*time.Second) },
+					Config:    config,
 					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("primary_language"), knownvalue.NotNull()),
 						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("primary_language"), knownvalue.StringExact("Go")),
 					},
 				},
