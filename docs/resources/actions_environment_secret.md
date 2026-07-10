@@ -91,6 +91,8 @@ resource "github_actions_environment_secret" "example" {
 
 ~> When importing secrets, the `value`, `value_encrypted`, `encrypted_value`, or `plaintext_value` fields will not be populated in the state. You may need to ignore changes for these as a workaround if you're not planning on updating the secret through Terraform.
 
+ Import IDs use the format `repository:environment:secret`; any `:` in the environment name must be escaped as `??`.
+
 Import is supported using the following syntax:
 
 In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `id` attribute, for example:

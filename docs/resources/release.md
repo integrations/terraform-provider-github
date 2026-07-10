@@ -86,7 +86,7 @@ resource "github_release" "example" {
 
 - `assets_url` (String) The URL for the release assets.
 - `created_at` (String) The date and time the release was created.
-- `etag` (String)
+- `etag` (String) The ETag of the release.
 - `html_url` (String) The HTML URL for the release.
 - `id` (String) The ID of this resource.
 - `node_id` (String) The node ID of the release.

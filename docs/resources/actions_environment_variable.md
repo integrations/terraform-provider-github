@@ -41,6 +41,8 @@ resource "github_actions_environment_variable" "example" {
 
 ## Import
 
+ Import IDs use the format `repository:environment:variable`; any `:` in the environment name must be escaped as `??`.
+
 Import is supported using the following syntax:
 
 In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `id` attribute, for example:

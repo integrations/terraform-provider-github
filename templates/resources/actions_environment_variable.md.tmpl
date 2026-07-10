@@ -25,6 +25,8 @@ description: |-
 
 ## Import
 
+ Import IDs use the format `repository:environment:variable`; any `:` in the environment name must be escaped as `??`.
+
 Import is supported using the following syntax:
 {{- end }}
 {{- if .HasImportIdentityConfig }}

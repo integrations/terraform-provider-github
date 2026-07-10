@@ -144,8 +144,9 @@ func resourceGithubRelease() *schema.Resource {
 				Description: "The URL for the tarball of the release.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The ETag of the release.",
 			},
 		},
 	}
