@@ -122,7 +122,7 @@ The overall status of each resource or data source is captured in this document 
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `github_actions_environment_secret` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_actions_environment_variable` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `github_actions_hosted_runner` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
+| `github_actions_hosted_runner` | ⚠️ | ✅ | ✅ | ✅ | ⚠️ | ✅ | ❌ |
 | `github_actions_organization_oidc_subject_claim_customization_template` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_actions_organization_permissions` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_actions_organization_secret` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
