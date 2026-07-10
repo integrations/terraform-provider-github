@@ -78,13 +78,15 @@ resource "github_repository" "forked_repo" {
 - `merge_commit_message` (String) Can be 'PR_BODY', 'PR_TITLE', or 'BLANK' for a default merge commit message. Applicable only if 'allow_merge_commit' is 'true'.
 - `merge_commit_title` (String) Can be 'PR_TITLE' or 'MERGE_MESSAGE' for a default merge commit title. Applicable only if 'allow_merge_commit' is 'true'.
 - `pages` (Block List, Max: 1, Deprecated) The repository's GitHub Pages configuration. (see [below for nested schema](#nestedblock--pages))
-- `private` (Boolean, Deprecated) Set to 'true' to create a private repository. Repositories are created as public (e.g. open source) by default. Deprecated: use visibility instead.
+- `private` (Boolean, Deprecated) Set to 'true' to create a private repository. Repositories are created as public (e.g. open source) by default. Deprecated: use `visibility` instead.
 - `security_and_analysis` (Block List, Max: 1) The repository's [security and analysis](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-security-and-analysis-settings-for-your-repository) configuration. To use this parameter you must have admin permissions for the repository or be an owner or security manager for the organization that owns the repository. (see [below for nested schema](#nestedblock--security_and_analysis))
 - `source_owner` (String) The GitHub username or organization that owns the repository being forked. Required when 'fork' is 'true'.
 - `source_repo` (String) The name of the repository to fork. Required when 'fork' is 'true'.
 - `squash_merge_commit_message` (String) Can be 'PR_BODY', 'COMMIT_MESSAGES', or 'BLANK' for a default squash merge commit message. Applicable only if 'allow_squash_merge' is 'true'.
 - `squash_merge_commit_title` (String) Can be 'PR_TITLE' or 'COMMIT_OR_PR_TITLE' for a default squash merge commit title. Applicable only if 'allow_squash_merge' is 'true'.
-- `template` (Block List, Max: 1) Use a template repository to create this resource. Note on 'internal' visibility with templates: When creating a repository from a template with visibility = 'internal', the provider uses a two-step process due to GitHub API limitations. The template creation API only supports a private boolean parameter. Therefore, repositories with visibility = 'internal' are initially created as private and then immediately updated to internal visibility. This ensures internal repositories are never exposed publicly during creation. (see [below for nested schema](#nestedblock--template))
+- `template` (Block List, Max: 1) Use a template repository to create this resource.
+
+	~> **Note on `internal` visibility with templates**: When creating a repository from a template with `visibility = "internal"`, the provider uses a two-step process due to GitHub API limitations. The template creation API only supports a `private` boolean parameter. Therefore, repositories with `visibility = "internal"` are initially created as private and then immediately updated to internal visibility. This ensures internal repositories are never exposed publicly during creation. (see [below for nested schema](#nestedblock--template))
 - `topics` (Set of String) The list of topics of the repository. Note: This attribute is not compatible with the 'github_repository_topics' resource. Use one of them. 'github_repository_topics' is only meant to be used if the repository itself is not handled via terraform, for example if it's only read as a datasource.
 - `visibility` (String) Can be 'public' or 'private'. If your organization is associated with an enterprise account using GitHub Enterprise Cloud or GitHub Enterprise Server 2.20+, visibility can also be 'internal'. The visibility parameter overrides the private parameter.
 - `vulnerability_alerts` (Boolean, Deprecated) Configure [Dependabot security alerts](https://help.github.com/en/github/managing-security-vulnerabilities/about-security-alerts-for-vulnerable-dependencies) for vulnerable dependencies; set to 'true' to enable, set to 'false' to disable, and leave unset for the default behavior. Configuring this requires that alerts are not being explicitly configured at the organization level. This field will be removed in a future version. Use the 'github_repository_vulnerability_alerts' resource instead.
@@ -98,7 +100,7 @@ resource "github_repository" "forked_repo" {
 - `http_clone_url` (String) URL that can be provided to 'git clone' to clone the repository via HTTPS.
 - `id` (String) The ID of this resource.
 - `node_id` (String) GraphQL global node id for use with v4 API.
-- `primary_language` (String) The primary language used in the repository.
+- `primary_language` (String) The primary language of the repository. This is the language with the largest number of bytes of code, as determined by GitHub's linguist library.
 - `repo_id` (Number) GitHub ID for the repository.
 - `ssh_clone_url` (String) URL that can be provided to 'git clone' to clone the repository via SSH.
 - `svn_url` (String) URL that can be provided to 'svn checkout' to check out the repository via GitHub's Subversion protocol emulation.
