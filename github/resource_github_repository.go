@@ -463,7 +463,7 @@ func resourceGithubRepository() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Use a template repository to create this resource.\n\n\t~> **Note on `internal` visibility with templates**: When creating a repository from a template with `visibility = \"internal\"`, the provider uses a two-step process due to GitHub API limitations. The template creation API only supports a `private` boolean parameter. Therefore, repositories with `visibility = \"internal\"` are initially created as private and then immediately updated to internal visibility. This ensures internal repositories are never exposed publicly during creation.",
+				Description: "Use a template repository to create this resource.\n\n  ~> **Note on `internal` visibility with templates**: When creating a repository from a template with `visibility = \"internal\"`, the provider uses a two-step process due to GitHub API limitations. The template creation API only supports a `private` boolean parameter. Therefore, repositories with `visibility = \"internal\"` are initially created as private and then immediately updated to internal visibility. This ensures internal repositories are never exposed publicly during creation.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"include_all_branches": {
