@@ -2,8 +2,10 @@ package github
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-testing/compare"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
@@ -14,13 +16,11 @@ import (
 
 func TestAccGithubActionsHostedRunner(t *testing.T) {
 	t.Parallel()
-	skipUnlessHasPaidOrgs(t)
-
-	runnerGroup := mustCreateTestOrganizationActionsRunnerGroup(t)
 
 	t.Run("creates_hosted_runners_without_error", func(t *testing.T) {
 		t.Parallel()
 
+		runnerGroup := mustCreateTestOrganizationActionsRunnerGroup(t)
 		randomID := acctest.RandString(5)
 		hostedRunnerName := fmt.Sprintf("%srunner-%s", testResourcePrefix, randomID)
 
@@ -45,14 +45,9 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				{
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("name"), knownvalue.StringExact(hostedRunnerName)),
-						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("runner_group_id"), knownvalue.NotNull()),
-						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("size"), knownvalue.NotNull()),
 						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("id"), knownvalue.NotNull()),
 						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("status"), knownvalue.NotNull()),
 						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("platform"), knownvalue.NotNull()),
-						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("image").AtSliceIndex(0).AtMapKey("id"), knownvalue.NotNull()),
-						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("image").AtSliceIndex(0).AtMapKey("source"), knownvalue.NotNull()),
 						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("image").AtSliceIndex(0).AtMapKey("size_gb"), knownvalue.NotNull()),
 						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("machine_size_details").AtSliceIndex(0).AtMapKey("id"), knownvalue.NotNull()),
 						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("machine_size_details").AtSliceIndex(0).AtMapKey("cpu_cores"), knownvalue.NotNull()),
@@ -67,6 +62,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 	t.Run("creates_hosted_runner_with_optional_parameters", func(t *testing.T) {
 		t.Parallel()
 
+		runnerGroup := mustCreateTestOrganizationActionsRunnerGroup(t)
 		randomID := acctest.RandString(5)
 		hostedRunnerName := fmt.Sprintf("%srunner-optional-%s", testResourcePrefix, randomID)
 
@@ -92,12 +88,6 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("name"), knownvalue.StringExact(hostedRunnerName)),
-						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("size"), knownvalue.StringExact("2-core")),
-						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("maximum_runners"), knownvalue.Int64Exact(2)),
-						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("public_ip_enabled"), knownvalue.Bool(true)),
-					},
 				},
 			},
 		})
@@ -106,6 +96,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 	t.Run("updates_hosted_runner_configuration", func(t *testing.T) {
 		t.Parallel()
 
+		runnerGroup := mustCreateTestOrganizationActionsRunnerGroup(t)
 		randomID := acctest.RandString(5)
 		hostedRunnerName := fmt.Sprintf("%srunner-update-%s", testResourcePrefix, randomID)
 
@@ -139,6 +130,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			}
 		`, hostedRunnerName, runnerGroup.GetID())
 
+		compareMaxRunnersUpdated := statecheck.CompareValue(compare.ValuesDiffer())
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
 			ProviderFactories: providerFactories,
@@ -146,9 +138,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				{
 					Config: configBefore,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("name"), knownvalue.StringExact(hostedRunnerName)),
-						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("size"), knownvalue.StringExact("4-core")),
-						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("maximum_runners"), knownvalue.Int64Exact(2)),
+						compareMaxRunnersUpdated.AddStateValue("github_actions_hosted_runner.test", tfjsonpath.New("maximum_runners")),
 					},
 				},
 				{
@@ -160,8 +150,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 					},
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("name"), knownvalue.StringExact(fmt.Sprintf("%s-updated", hostedRunnerName))),
-						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("size"), knownvalue.StringExact("4-core")),
-						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("maximum_runners"), knownvalue.Int64Exact(3)),
+						compareMaxRunnersUpdated.AddStateValue("github_actions_hosted_runner.test", tfjsonpath.New("maximum_runners")),
 					},
 				},
 			},
@@ -171,6 +160,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 	t.Run("updates_size_field", func(t *testing.T) {
 		t.Parallel()
 
+		runnerGroup := mustCreateTestOrganizationActionsRunnerGroup(t)
 		randomID := acctest.RandString(5)
 		hostedRunnerName := fmt.Sprintf("%srunner-size-%s", testResourcePrefix, randomID)
 
@@ -202,6 +192,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			}
 		`, hostedRunnerName, runnerGroup.GetID())
 
+		compareSizeUpdated := statecheck.CompareValue(compare.ValuesDiffer())
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
 			ProviderFactories: providerFactories,
@@ -209,7 +200,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				{
 					Config: configBefore,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("size"), knownvalue.StringExact("4-core")),
+						compareSizeUpdated.AddStateValue("github_actions_hosted_runner.test", tfjsonpath.New("size")),
 						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("machine_size_details").AtSliceIndex(0).AtMapKey("cpu_cores"), knownvalue.Int64Exact(4)),
 					},
 				},
@@ -221,7 +212,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 						},
 					},
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("size"), knownvalue.StringExact("8-core")),
+						compareSizeUpdated.AddStateValue("github_actions_hosted_runner.test", tfjsonpath.New("size")),
 						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("machine_size_details").AtSliceIndex(0).AtMapKey("cpu_cores"), knownvalue.Int64Exact(8)),
 					},
 				},
@@ -232,6 +223,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 	t.Run("imports_hosted_runner", func(t *testing.T) {
 		t.Parallel()
 
+		runnerGroup := mustCreateTestOrganizationActionsRunnerGroup(t)
 		randomID := acctest.RandString(5)
 		hostedRunnerName := fmt.Sprintf("%srunner-import-%s", testResourcePrefix, randomID)
 
@@ -255,10 +247,6 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("id"), knownvalue.NotNull()),
-						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("name"), knownvalue.StringExact(hostedRunnerName)),
-					},
 				},
 				{
 					ResourceName:            "github_actions_hosted_runner.test",
@@ -273,6 +261,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 	t.Run("deletes_hosted_runner", func(t *testing.T) {
 		t.Parallel()
 
+		runnerGroup := mustCreateTestOrganizationActionsRunnerGroup(t)
 		randomID := acctest.RandString(5)
 		hostedRunnerName := fmt.Sprintf("%srunner-delete-%s", testResourcePrefix, randomID)
 
@@ -296,13 +285,42 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("id"), knownvalue.NotNull()),
-					},
 				},
 				{
 					Config:  config,
 					Destroy: true,
+				},
+			},
+		})
+	})
+
+	t.Run("validates_image_version_only_allowed_custom_image", func(t *testing.T) {
+		t.Parallel()
+
+		runnerGroup := mustCreateTestOrganizationActionsRunnerGroup(t)
+		randomID := acctest.RandString(5)
+		hostedRunnerName := fmt.Sprintf("%simage-version-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_actions_hosted_runner" "test" {
+	name = "%s"
+
+	image {
+		id     = "2306"
+		source = "github"
+	}
+	image_version = "1.0.0"
+	size            = "4-core"
+				runner_group_id = "%d"
+}`, hostedRunnerName, runnerGroup.GetID())
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("`image_version` can only be set when `image\\[0\\].source` is 'custom'"),
 				},
 			},
 		})

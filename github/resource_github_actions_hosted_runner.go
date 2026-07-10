@@ -12,6 +12,7 @@ import (
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -30,6 +31,8 @@ func resourceGithubActionsHostedRunner() *schema.Resource {
 		Timeouts: &schema.ResourceTimeout{
 			Delete: schema.DefaultTimeout(10 * time.Minute),
 		},
+
+		CustomizeDiff: customdiff.All(resourceGithubActionsHostedRunnerValidation),
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -341,6 +344,11 @@ func resourceGithubActionsHostedRunnerUpdate(ctx context.Context, d *schema.Reso
 		return diag.FromErr(err)
 	}
 
+	// Only update the runner if any of the configured fields have changed
+	if !d.HasChanges("name", "size", "runner_group_id", "maximum_runners", "public_ip_enabled", "image_version") {
+		return nil
+	}
+
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	orgName := meta.name
@@ -350,66 +358,55 @@ func resourceGithubActionsHostedRunnerUpdate(ctx context.Context, d *schema.Reso
 		return diag.FromErr(err)
 	}
 
-	req := github.UpdateHostedRunnerRequest{}
+	name, _ := d.Get("name").(string)
+	size, _ := d.Get("size").(string)
+	runnerGroupID, _ := d.Get("runner_group_id").(int)
+	maximumRunners, _ := d.Get("maximum_runners").(int)
+	publicIPEnabled, _ := d.Get("public_ip_enabled").(bool)
 
-	if d.HasChange("name") {
-		name, _ := d.Get("name").(string)
-		req.Name = new(name)
+	req := github.UpdateHostedRunnerRequest{
+		Name:           new(name),
+		Size:           new(size),
+		RunnerGroupID:  new(int64(runnerGroupID)),
+		MaximumRunners: new(int64(maximumRunners)),
+		EnableStaticIP: new(publicIPEnabled),
 	}
-	if d.HasChange("size") {
-		size, _ := d.Get("size").(string)
-		req.Size = new(size)
-	}
-	if d.HasChange("runner_group_id") {
-		runnerGroupID, _ := d.Get("runner_group_id").(int)
-		req.RunnerGroupID = new(int64(runnerGroupID))
-	}
-	if d.HasChange("maximum_runners") {
-		maximumRunners, _ := d.Get("maximum_runners").(int)
-		req.MaximumRunners = new(int64(maximumRunners))
-	}
-	if d.HasChange("public_ip_enabled") {
-		publicIPEnabled, _ := d.Get("public_ip_enabled").(bool)
-		req.EnableStaticIP = new(publicIPEnabled)
-	}
+
+	// image_version is only settable for runners with a custom image, so we only include it in the request if it has changed
 	if d.HasChange("image_version") {
 		imageVersion, _ := d.Get("image_version").(string)
 		req.ImageVersion = new(imageVersion)
 	}
 
-	// Only update the runner if any of the configured fields have changed
-	if d.HasChanges("name", "size", "runner_group_id", "maximum_runners", "public_ip_enabled", "image_version") {
-
-		runner, _, err := client.Actions.UpdateHostedRunner(ctx, orgName, runnerID, req)
-		if err != nil {
-			if _, ok := errors.AsType[*github.AcceptedError](err); !ok {
-				return diag.FromErr(err)
-			}
-		}
-
-		if err := d.Set("status", runner.GetStatus()); err != nil {
+	runner, _, err := client.Actions.UpdateHostedRunner(ctx, orgName, runnerID, req)
+	if err != nil {
+		if _, ok := errors.AsType[*github.AcceptedError](err); !ok {
 			return diag.FromErr(err)
 		}
-		if err := d.Set("platform", runner.GetPlatform()); err != nil {
-			return diag.FromErr(err)
-		}
-		if err := d.Set("last_active_on", runner.GetLastActiveOn().Format(time.RFC3339)); err != nil {
-			return diag.FromErr(err)
-		}
+	}
 
-		if machineSizeDetails := runner.GetMachineSizeDetails(); machineSizeDetails != nil {
-			if err := d.Set("machine_size_details", flattenMachineSizeDetails(machineSizeDetails)); err != nil {
-				return diag.FromErr(err)
-			}
-		}
+	if err := d.Set("status", runner.GetStatus()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("platform", runner.GetPlatform()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("last_active_on", runner.GetLastActiveOn().Format(time.RFC3339)); err != nil {
+		return diag.FromErr(err)
+	}
 
-		if err := d.Set("maximum_runners", runner.GetMaximumRunners()); err != nil {
+	if machineSizeDetails := runner.GetMachineSizeDetails(); machineSizeDetails != nil {
+		if err := d.Set("machine_size_details", flattenMachineSizeDetails(machineSizeDetails)); err != nil {
 			return diag.FromErr(err)
 		}
+	}
 
-		if err := d.Set("public_ips", flattenPublicIPs(runner.GetPublicIPs())); err != nil {
-			return diag.FromErr(err)
-		}
+	if err := d.Set("maximum_runners", runner.GetMaximumRunners()); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := d.Set("public_ips", flattenPublicIPs(runner.GetPublicIPs())); err != nil {
+		return diag.FromErr(err)
 	}
 
 	return nil
@@ -538,4 +535,26 @@ func flattenPublicIPs(ips []*github.HostedRunnerPublicIP) []any {
 	}
 
 	return result
+}
+
+func resourceGithubActionsHostedRunnerValidation(ctx context.Context, d *schema.ResourceDiff, meta any) error {
+	// validates that image_version is only set for images with source "custom"
+	if d.HasChange("image_version") {
+		imageList, ok := d.GetOk("image")
+		imageSeq, okSeq := imageList.([]any)
+		if !ok || !okSeq || len(imageSeq) == 0 {
+			return fmt.Errorf("`image_version` can only be set when `image` is configured")
+		}
+
+		imageMap, ok := imageSeq[0].(map[string]any)
+		if !ok {
+			return fmt.Errorf("unexpected type for image: %T", imageSeq[0])
+		}
+
+		source, ok := imageMap["source"].(string)
+		if !ok || source != "custom" {
+			return fmt.Errorf("`image_version` can only be set when `image[0].source` is 'custom'")
+		}
+	}
+	return nil
 }
