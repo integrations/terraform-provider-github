@@ -3,7 +3,7 @@ package ghclient
 import (
 	"fmt"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/jferrl/go-githubauth"
 	"golang.org/x/oauth2"
 )
