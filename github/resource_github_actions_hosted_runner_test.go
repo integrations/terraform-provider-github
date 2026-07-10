@@ -100,7 +100,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 		randomID := acctest.RandString(5)
 		hostedRunnerName := fmt.Sprintf("%srunner-update-%s", testResourcePrefix, randomID)
 
-		configBefore := fmt.Sprintf(`
+		configTmpl := `
 			resource "github_actions_hosted_runner" "test" {
 				name = "%s"
 
@@ -111,24 +111,9 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 
 				size            = "4-core"
 				runner_group_id = "%d"
-				maximum_runners = 2
+				maximum_runners = %d
 			}
-		`, hostedRunnerName, runnerGroup.GetID())
-
-		configAfter := fmt.Sprintf(`
-			resource "github_actions_hosted_runner" "test" {
-				name = "%s-updated"
-
-				image {
-					id     = "2306"
-					source = "github"
-				}
-
-				size            = "4-core"
-				runner_group_id = "%d"
-				maximum_runners = 3
-			}
-		`, hostedRunnerName, runnerGroup.GetID())
+		`
 
 		compareMaxRunnersUpdated := statecheck.CompareValue(compare.ValuesDiffer())
 		resource.Test(t, resource.TestCase{
@@ -136,13 +121,13 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: configBefore,
+					Config: fmt.Sprintf(configTmpl, hostedRunnerName, runnerGroup.GetID(), 2),
 					ConfigStateChecks: []statecheck.StateCheck{
 						compareMaxRunnersUpdated.AddStateValue("github_actions_hosted_runner.test", tfjsonpath.New("maximum_runners")),
 					},
 				},
 				{
-					Config: configAfter,
+					Config: fmt.Sprintf(configTmpl, fmt.Sprintf("%s-updated", hostedRunnerName), runnerGroup.GetID(), 3),
 					ConfigPlanChecks: resource.ConfigPlanChecks{
 						PreApply: []plancheck.PlanCheck{
 							plancheck.ExpectResourceAction("github_actions_hosted_runner.test", plancheck.ResourceActionUpdate),
@@ -164,7 +149,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 		randomID := acctest.RandString(5)
 		hostedRunnerName := fmt.Sprintf("%srunner-size-%s", testResourcePrefix, randomID)
 
-		configBefore := fmt.Sprintf(`
+		configTmpl := `
 			resource "github_actions_hosted_runner" "test" {
 				name = "%s"
 
@@ -173,24 +158,10 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 					source = "github"
 				}
 
-				size            = "4-core"
+				size            = "%s"
 				runner_group_id = "%d"
 			}
-		`, hostedRunnerName, runnerGroup.GetID())
-
-		configAfter := fmt.Sprintf(`
-			resource "github_actions_hosted_runner" "test" {
-				name = "%s"
-
-				image {
-					id     = "2306"
-					source = "github"
-				}
-
-				size            = "8-core"
-				runner_group_id = "%d"
-			}
-		`, hostedRunnerName, runnerGroup.GetID())
+		`
 
 		compareSizeUpdated := statecheck.CompareValue(compare.ValuesDiffer())
 		resource.Test(t, resource.TestCase{
@@ -198,14 +169,14 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: configBefore,
+					Config: fmt.Sprintf(configTmpl, hostedRunnerName, "4-core", runnerGroup.GetID()),
 					ConfigStateChecks: []statecheck.StateCheck{
 						compareSizeUpdated.AddStateValue("github_actions_hosted_runner.test", tfjsonpath.New("size")),
 						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("machine_size_details").AtSliceIndex(0).AtMapKey("cpu_cores"), knownvalue.Int64Exact(4)),
 					},
 				},
 				{
-					Config: configAfter,
+					Config: fmt.Sprintf(configTmpl, hostedRunnerName, "8-core", runnerGroup.GetID()),
 					ConfigPlanChecks: resource.ConfigPlanChecks{
 						PreApply: []plancheck.PlanCheck{
 							plancheck.ExpectResourceAction("github_actions_hosted_runner.test", plancheck.ResourceActionUpdate),
