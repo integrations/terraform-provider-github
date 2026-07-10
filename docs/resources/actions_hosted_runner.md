@@ -1,138 +1,20 @@
 ---
 page_title: "github_actions_hosted_runner (Resource) - GitHub"
+subcategory: ""
 description: |-
-  Creates and manages GitHub-hosted runners within a GitHub organization
+  This resource allows you to create and manage GitHub-hosted runners within your GitHub organization. You must have admin access to an organization to use this resource.
 ---
 
 # github_actions_hosted_runner (Resource)
 
 This resource allows you to create and manage GitHub-hosted runners within your GitHub organization. You must have admin access to an organization to use this resource.
 
-GitHub-hosted runners are fully managed virtual machines that run your GitHub Actions workflows. Unlike self-hosted runners, GitHub handles the infrastructure, maintenance, and scaling.
-
-## Example Usage
-
-### Basic Usage
-
-```terraform
-resource "github_actions_runner_group" "example" {
-  name       = "example-runner-group"
-  visibility = "all"
-}
-
-resource "github_actions_hosted_runner" "example" {
-  name = "example-hosted-runner"
-
-  image {
-    id     = "2306"
-    source = "github"
-  }
-
-  size            = "4-core"
-  runner_group_id = github_actions_runner_group.example.id
-}
-```
-
-### Advanced Usage with Optional Parameters
-
-```terraform
-resource "github_actions_runner_group" "advanced" {
-  name       = "advanced-runner-group"
-  visibility = "selected"
-}
-
-resource "github_actions_hosted_runner" "advanced" {
-  name = "advanced-hosted-runner"
-
-  image {
-    id     = "2306"
-    source = "github"
-  }
-
-  size              = "8-core"
-  runner_group_id   = github_actions_runner_group.advanced.id
-  maximum_runners   = 10
-  public_ip_enabled = true
-}
-```
-
-## Argument Reference
-
-The following arguments are supported:
-
-- `name` - (Required) Name of the hosted runner. Must be between 1 and 64 characters and may only contain alphanumeric characters, '.', '-', and '_'.
-- `image` - (Required) Image configuration for the hosted runner. Cannot be changed after creation. Block supports:
-  - `id` - (Required) The image ID. For GitHub-owned images, use numeric IDs like "2306" for Ubuntu Latest 24.04. To get available images, use the GitHub API: `GET /orgs/{org}/actions/hosted-runners/images/github-owned`.
-  - `source` - (Optional) The image source. Valid values are "github", "partner", or "custom". Defaults to "github".
-- `size` - (Required) Machine size for the hosted runner (e.g., "4-core", "8-core"). Can be updated to scale the runner. To list available sizes, use the GitHub API: `GET /orgs/{org}/actions/hosted-runners/machine-sizes`.
-- `runner_group_id` - (Required) The ID of the runner group to assign this runner to.
-- `maximum_runners` - (Optional) Maximum number of runners to scale up to. Runners will not auto-scale above this number. Use this setting to limit costs.
-- `public_ip_enabled` - (Optional) Whether to enable static public IP for the runner. Note there are account limits. To list limits, use the GitHub API: `GET /orgs/{org}/actions/hosted-runners/limits`. Defaults to false.
-- `image_version` - (Optional) The version of the runner image to deploy. This is only relevant for runners using custom images.
-
-## Timeouts
-
-The `timeouts` block allows you to specify timeouts for certain actions:
-
-- `delete` - (Defaults to 10 minutes) Used for waiting for the hosted runner deletion to complete.
-
-Example:
-
-```terraform
-resource "github_actions_hosted_runner" "example" {
-  name = "example-hosted-runner"
-
-  image {
-    id     = "2306"
-    source = "github"
-  }
-
-  size            = "4-core"
-  runner_group_id = github_actions_runner_group.example.id
-
-  timeouts {
-    delete = "15m"
-  }
-}
-```
-
-## Attributes Reference
-
-In addition to the arguments above, the following attributes are exported:
-
-- `id` - The ID of the hosted runner.
-- `status` - Current status of the runner (e.g., "Ready", "Provisioning").
-- `platform` - Platform of the runner (e.g., "linux-x64", "win-x64").
-- `image` - In addition to the arguments above, the image block exports:
-  - `size_gb` - The size of the image in gigabytes.
-- `machine_size_details` - Detailed specifications of the machine size:
-  - `id` - Machine size identifier.
-  - `cpu_cores` - Number of CPU cores.
-  - `memory_gb` - Amount of memory in gigabytes.
-  - `storage_gb` - Amount of storage in gigabytes.
-- `public_ips` - List of public IP ranges assigned to this runner (only if `public_ip_enabled` is true):
-  - `enabled` - Whether this IP range is enabled.
-  - `prefix` - IP address prefix.
-  - `length` - Subnet length.
-- `last_active_on` - Timestamp (RFC3339) when the runner was last active.
-
-## Import
-
-Hosted runners can be imported using the runner ID:
-
-```shell
-terraform import github_actions_hosted_runner.example 123456
-```
-
 ## Notes
 
 - This resource is **organization-only** and cannot be used with individual accounts.
-- The `image` field cannot be changed after the runner is created. Changing it will force recreation of the runner.
-- The `size` field can be updated to scale the runner up or down as needed.
 - Image IDs for GitHub-owned images are numeric strings (e.g., "2306" for Ubuntu Latest 24.04), not names like "ubuntu-latest".
 - Deletion of hosted runners is asynchronous. The provider will poll for up to 10 minutes (configurable via timeouts) to confirm deletion.
 - Runner creation and updates may take several minutes as GitHub provisions the infrastructure.
-- Static public IPs are subject to account limits. Check your organization's limits before enabling.
 
 ## Getting Available Images and Sizes
 
@@ -151,3 +33,99 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
      -H "Accept: application/vnd.github+json" \
      https://api.github.com/orgs/YOUR_ORG/actions/hosted-runners/machine-sizes
 ```
+
+## Example Usage
+
+### Advanced Usage
+
+```terraform
+resource "github_actions_runner_group" "example" {
+  name       = "example-runner-group"
+  visibility = "all"
+}
+
+resource "github_actions_hosted_runner" "example" {
+  name = "example-hosted-runner"
+
+  image {
+    id     = "2306"
+    source = "github"
+  }
+
+  size              = "8-core"
+  runner_group_id   = github_actions_runner_group.example.id
+  maximum_runners   = 10
+  public_ip_enabled = true
+}
+```
+
+<!-- schema generated by tfplugindocs -->
+## Schema
+
+### Required
+
+- `image` (Block List, Min: 1, Max: 1) Image configuration for the hosted runner. Cannot be changed after creation. (see [below for nested schema](#nestedblock--image))
+- `name` (String) Name of the hosted runner. Must be between 1 and 64 characters and may only contain upper and lowercase letters a-z, numbers 0-9, '.', '-', and '_'.
+- `runner_group_id` (Number) The ID of the runner group to assign this runner to.
+- `size` (String) Machine size for the hosted runner (e.g., `4-core`, `8-core`). Can be updated to scale the runner. To list available sizes, use the GitHub API: `GET /orgs/{org}/actions/hosted-runners/machine-sizes`.
+
+### Optional
+
+- `image_gen` (Boolean) Whether this runner should be used to generate custom images. Cannot be changed after creation.
+- `image_version` (String) The version of the runner image to deploy. This is only relevant for runners using custom images.
+- `maximum_runners` (Number) Maximum number of runners to scale up to. Runners will not auto-scale above this number. Use this setting to limit costs.
+- `public_ip_enabled` (Boolean) Whether to enable static public IP for the runner. Note there are account limits. To list limits, use the GitHub API: `GET /orgs/{org}/actions/hosted-runners/limits`. Defaults to false.
+- `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
+
+### Read-Only
+
+- `id` (String) The hosted runner ID.
+- `last_active_on` (String) Timestamp when the runner was last active.
+- `machine_size_details` (List of Object) Detailed machine size specifications. (see [below for nested schema](#nestedatt--machine_size_details))
+- `platform` (String) Platform of the runner.
+- `public_ips` (List of Object) List of public IP ranges assigned to this runner. (see [below for nested schema](#nestedatt--public_ips))
+- `status` (String) Current status of the runner.
+
+<a id="nestedblock--image"></a>
+### Nested Schema for `image`
+
+Required:
+
+- `id` (String) The image ID.
+
+Optional:
+
+- `source` (String) The image source (github, partner, or custom).
+
+Read-Only:
+
+- `size_gb` (Number) The size of the image in GB.
+
+
+<a id="nestedblock--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- `delete` (String)
+
+
+<a id="nestedatt--machine_size_details"></a>
+### Nested Schema for `machine_size_details`
+
+Read-Only:
+
+- `cpu_cores` (Number)
+- `id` (String)
+- `memory_gb` (Number)
+- `storage_gb` (Number)
+
+
+<a id="nestedatt--public_ips"></a>
+### Nested Schema for `public_ips`
+
+Read-Only:
+
+- `enabled` (Boolean)
+- `length` (Number)
+- `prefix` (String)

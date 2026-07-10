@@ -32,6 +32,8 @@ func resourceGithubActionsHostedRunner() *schema.Resource {
 			Delete: schema.DefaultTimeout(10 * time.Minute),
 		},
 
+		Description: "This resource allows you to create and manage GitHub-hosted runners within your GitHub organization. You must have admin access to an organization to use this resource.",
+
 		CustomizeDiff: customdiff.All(resourceGithubActionsHostedRunnerValidation),
 
 		Schema: map[string]*schema.Schema{
@@ -48,10 +50,11 @@ func resourceGithubActionsHostedRunner() *schema.Resource {
 				Description: "Name of the hosted runner. Must be between 1 and 64 characters and may only contain upper and lowercase letters a-z, numbers 0-9, '.', '-', and '_'.",
 			},
 			"image": {
-				Type:     schema.TypeList,
-				Required: true,
-				ForceNew: true,
-				MaxItems: 1,
+				Type:        schema.TypeList,
+				Required:    true,
+				ForceNew:    true,
+				MaxItems:    1,
+				Description: "Image configuration for the hosted runner. Cannot be changed after creation.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
@@ -73,35 +76,34 @@ func resourceGithubActionsHostedRunner() *schema.Resource {
 						},
 					},
 				},
-				Description: "Image configuration for the hosted runner. Cannot be changed after creation.",
 			},
 			"size": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "Machine size (e.g., '4-core', '8-core'). Can be updated to scale the runner.",
+				Description: "Machine size for the hosted runner (e.g., `4-core`, `8-core`). Can be updated to scale the runner. To list available sizes, use the GitHub API: `GET /orgs/{org}/actions/hosted-runners/machine-sizes`.",
 			},
 			"runner_group_id": {
 				Type:        schema.TypeInt,
 				Required:    true,
-				Description: "The runner group ID.",
+				Description: "The ID of the runner group to assign this runner to.",
 			},
 			"maximum_runners": {
 				Type:             schema.TypeInt,
 				Optional:         true,
 				Computed:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(1)),
-				Description:      "Maximum number of runners to scale up to.",
+				Description:      "Maximum number of runners to scale up to. Runners will not auto-scale above this number. Use this setting to limit costs.",
 			},
 			"public_ip_enabled": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
-				Description: "Whether to enable static public IP.",
+				Description: "Whether to enable static public IP for the runner. Note there are account limits. To list limits, use the GitHub API: `GET /orgs/{org}/actions/hosted-runners/limits`. Defaults to false.",
 			},
 			"image_version": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The version of the runner image to deploy. This is relevant only for runners using custom images.",
+				Description: "The version of the runner image to deploy. This is only relevant for runners using custom images.",
 			},
 			"image_gen": {
 				Type:        schema.TypeBool,
@@ -120,14 +122,10 @@ func resourceGithubActionsHostedRunner() *schema.Resource {
 				Computed:    true,
 				Description: "Current status of the runner.",
 			},
-			"platform": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Platform of the runner.",
-			},
 			"machine_size_details": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "Detailed machine size specifications.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
@@ -152,11 +150,16 @@ func resourceGithubActionsHostedRunner() *schema.Resource {
 						},
 					},
 				},
-				Description: "Detailed machine size specifications.",
+			},
+			"platform": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Platform of the runner.",
 			},
 			"public_ips": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "List of public IP ranges assigned to this runner.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"enabled": {
@@ -176,7 +179,6 @@ func resourceGithubActionsHostedRunner() *schema.Resource {
 						},
 					},
 				},
-				Description: "List of public IP ranges assigned to this runner.",
 			},
 			"last_active_on": {
 				Type:        schema.TypeString,
