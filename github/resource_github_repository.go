@@ -523,7 +523,8 @@ func customDiffFunction(ctx context.Context, diff *schema.ResourceDiff, v any) e
 	isSquashMergeCommitTitleSet := !diff.GetRawConfig().GetAttr("squash_merge_commit_title").IsNull()
 	isSquashMergeCommitMessageSet := !diff.GetRawConfig().GetAttr("squash_merge_commit_message").IsNull()
 	if isSquashMergeCommitMessageSet && isSquashMergeCommitTitleSet {
-		if !diff.Get("allow_squash_merge").(bool) {
+		allowSquashMerge, _ := diff.Get("allow_squash_merge").(bool)
+		if !allowSquashMerge {
 			return fmt.Errorf("allow_squash_merge is required when squash_merge_commit_title and squash_merge_commit_message is set")
 		}
 	}
@@ -532,7 +533,8 @@ func customDiffFunction(ctx context.Context, diff *schema.ResourceDiff, v any) e
 	isMergeCommitTitleSet := !diff.GetRawConfig().GetAttr("merge_commit_title").IsNull()
 	isMergeCommitMessageSet := !diff.GetRawConfig().GetAttr("merge_commit_message").IsNull()
 	if isMergeCommitMessageSet && isMergeCommitTitleSet {
-		if !diff.Get("allow_merge_commit").(bool) {
+		allowMergeCommit, _ := diff.Get("allow_merge_commit").(bool)
+		if !allowMergeCommit {
 			return fmt.Errorf("allow_merge_commit is required when merge_commit_title and merge_commit_message is set")
 		}
 	}
@@ -672,7 +674,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 }
 
 func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 
 	if branchName, hasDefaultBranch := d.GetOk("default_branch"); hasDefaultBranch && (branchName != "main") {
