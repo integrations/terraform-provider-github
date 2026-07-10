@@ -35,6 +35,8 @@ func resourceGithubRepository() *schema.Resource {
 			},
 		},
 
+		Description: "This resource allows you to create and manage repositories within your GitHub organization or personal account.",
+
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:             schema.TypeString,
@@ -58,6 +60,7 @@ func resourceGithubRepository() *schema.Resource {
 				Optional:      true,
 				ConflictsWith: []string{"visibility"},
 				Deprecated:    "use visibility instead",
+				Description:   "Set to `true` to create a private repository. Repositories are created as public (e.g. open source) by default. Use `visibility` instead.",
 			},
 			"visibility": {
 				Type:             schema.TypeString,
@@ -405,10 +408,11 @@ func resourceGithubRepository() *schema.Resource {
 				Deprecated:  "Use the github_repository_vulnerability_alerts resource instead. This field will be removed in a future version.",
 			},
 			"ignore_vulnerability_alerts_during_read": {
-				Type:       schema.TypeBool,
-				Optional:   true,
-				Default:    false,
-				Deprecated: "This is ignored as the provider now handles lack of permissions automatically. This field will be removed in a future version.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Deprecated:  "This is ignored as the provider now handles lack of permissions automatically. This field will be removed in a future version.",
+				Description: "This is ignored as the provider now handles lack of permissions automatically. This field will be removed in a future version.",
 			},
 			"full_name": {
 				Type:        schema.TypeString,
@@ -448,16 +452,18 @@ func resourceGithubRepository() *schema.Resource {
 					return true
 				},
 				DiffSuppressOnRefresh: true,
+				Description:           "An etag representing the repository object.",
 			},
 			"primary_language": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The primary language of the repository. This is the language with the largest number of bytes of code, as determined by GitHub's linguist library.",
 			},
 			"template": {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Use a template repository to create this resource.",
+				Description: "Use a template repository to create this resource.\n\n\t~> **Note on `internal` visibility with templates**: When creating a repository from a template with `visibility = \"internal\"`, the provider uses a two-step process due to GitHub API limitations. The template creation API only supports a `private` boolean parameter. Therefore, repositories with `visibility = \"internal\"` are initially created as private and then immediately updated to internal visibility. This ensures internal repositories are never exposed publicly during creation.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"include_all_branches": {
