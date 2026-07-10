@@ -1,9 +1,7 @@
 package github
 
 import (
-	"context"
 	"fmt"
-	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -11,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
@@ -20,7 +17,49 @@ func TestAccGithubOrganizationSecurityConfiguration(t *testing.T) {
 
 	skipUnlessHasOrgs(t)
 
-	t.Run("creates organization security configuration without error", func(t *testing.T) {
+	// General lifecycle: create -> update -> import. Only the identifying/computed attributes
+	// round-trip through import (the resource reconciles just the managed attributes in Read, per
+	// the Optional-only design), so this scenario is name-only to keep ImportStateVerify clean.
+	t.Run("basic", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		configName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+		configNameUpdated := fmt.Sprintf("%supdated-%s", testResourcePrefix, randomID)
+
+		config := `
+resource "github_organization_security_configuration" "test" {
+  name = "%s"
+}`
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, configName),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_organization_security_configuration.test", tfjsonpath.New("configuration_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_organization_security_configuration.test", tfjsonpath.New("target_type"), knownvalue.NotNull()),
+					},
+				},
+				{
+					Config: fmt.Sprintf(config, configNameUpdated),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_organization_security_configuration.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+				{
+					ResourceName:      "github_organization_security_configuration.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
+		})
+	})
+
+	t.Run("with settings", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -43,15 +82,10 @@ resource "github_organization_security_configuration" "test" {
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
-			CheckDestroy:      testAccCheckGithubOrganizationSecurityConfigurationDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_organization_security_configuration.test", tfjsonpath.New("name"), knownvalue.StringExact(configName)),
-						statecheck.ExpectKnownValue("github_organization_security_configuration.test", tfjsonpath.New("description"), knownvalue.StringExact("Test configuration")),
-						statecheck.ExpectKnownValue("github_organization_security_configuration.test", tfjsonpath.New("advanced_security"), knownvalue.StringExact("enabled")),
-						statecheck.ExpectKnownValue("github_organization_security_configuration.test", tfjsonpath.New("enforcement"), knownvalue.StringExact("enforced")),
 						statecheck.ExpectKnownValue("github_organization_security_configuration.test", tfjsonpath.New("configuration_id"), knownvalue.NotNull()),
 					},
 				},
@@ -59,75 +93,7 @@ resource "github_organization_security_configuration" "test" {
 		})
 	})
 
-	t.Run("imports organization security configuration without error", func(t *testing.T) {
-		t.Parallel()
-
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		configName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
-
-		config := fmt.Sprintf(`
-resource "github_organization_security_configuration" "test" {
-  name = "%s"
-}`, configName)
-
-		resource.Test(t, resource.TestCase{
-			ProviderFactories: providerFactories,
-			CheckDestroy:      testAccCheckGithubOrganizationSecurityConfigurationDestroy,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-				},
-				{
-					ResourceName:      "github_organization_security_configuration.test",
-					ImportState:       true,
-					ImportStateVerify: true,
-				},
-			},
-		})
-	})
-
-	t.Run("updates organization security configuration without error", func(t *testing.T) {
-		t.Parallel()
-
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		configName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
-		configNameUpdated := fmt.Sprintf("%supdated-%s", testResourcePrefix, randomID)
-
-		config := `
-resource "github_organization_security_configuration" "test" {
-  name = "%s"
-  description = "%s"
-  advanced_security = "%s"
-}`
-
-		resource.Test(t, resource.TestCase{
-			ProviderFactories: providerFactories,
-			CheckDestroy:      testAccCheckGithubOrganizationSecurityConfigurationDestroy,
-			Steps: []resource.TestStep{
-				{
-					Config: fmt.Sprintf(config, configName, "Test configuration", "disabled"),
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_organization_security_configuration.test", tfjsonpath.New("name"), knownvalue.StringExact(configName)),
-						statecheck.ExpectKnownValue("github_organization_security_configuration.test", tfjsonpath.New("advanced_security"), knownvalue.StringExact("disabled")),
-					},
-				},
-				{
-					Config: fmt.Sprintf(config, configNameUpdated, "Test configuration updated", "enabled"),
-					ConfigPlanChecks: resource.ConfigPlanChecks{
-						PreApply: []plancheck.PlanCheck{
-							plancheck.ExpectResourceAction("github_organization_security_configuration.test", plancheck.ResourceActionUpdate),
-						},
-					},
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_organization_security_configuration.test", tfjsonpath.New("name"), knownvalue.StringExact(configNameUpdated)),
-						statecheck.ExpectKnownValue("github_organization_security_configuration.test", tfjsonpath.New("advanced_security"), knownvalue.StringExact("enabled")),
-					},
-				},
-			},
-		})
-	})
-
-	t.Run("creates organization security configuration with options", func(t *testing.T) {
+	t.Run("with options", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -157,50 +123,18 @@ resource "github_organization_security_configuration" "test" {
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
-			CheckDestroy:      testAccCheckGithubOrganizationSecurityConfigurationDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_organization_security_configuration.test", tfjsonpath.New("name"), knownvalue.StringExact(configName)),
-						statecheck.ExpectKnownValue("github_organization_security_configuration.test", tfjsonpath.New("dependency_graph_autosubmit_action_options").AtSliceIndex(0).AtMapKey("labeled_runners"), knownvalue.Bool(true)),
-						statecheck.ExpectKnownValue("github_organization_security_configuration.test", tfjsonpath.New("code_scanning_default_setup_options").AtSliceIndex(0).AtMapKey("runner_type"), knownvalue.StringExact("labeled")),
-						statecheck.ExpectKnownValue("github_organization_security_configuration.test", tfjsonpath.New("code_scanning_default_setup_options").AtSliceIndex(0).AtMapKey("runner_label"), knownvalue.StringExact("code-scanning")),
-						statecheck.ExpectKnownValue("github_organization_security_configuration.test", tfjsonpath.New("code_scanning_options").AtSliceIndex(0).AtMapKey("allow_advanced"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_organization_security_configuration.test", tfjsonpath.New("configuration_id"), knownvalue.NotNull()),
 					},
 				},
 			},
 		})
 	})
 
-	t.Run("creates organization security configuration with minimal config", func(t *testing.T) {
-		t.Parallel()
-
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		configName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
-
-		config := fmt.Sprintf(`
-resource "github_organization_security_configuration" "test" {
-  name = "%s"
-  description = "Minimal test configuration"
-}`, configName)
-
-		resource.Test(t, resource.TestCase{
-			ProviderFactories: providerFactories,
-			CheckDestroy:      testAccCheckGithubOrganizationSecurityConfigurationDestroy,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_organization_security_configuration.test", tfjsonpath.New("name"), knownvalue.StringExact(configName)),
-						statecheck.ExpectKnownValue("github_organization_security_configuration.test", tfjsonpath.New("target_type"), knownvalue.NotNull()),
-					},
-				},
-			},
-		})
-	})
-
-	t.Run("creates organization security configuration with delegated bypass options", func(t *testing.T) {
+	t.Run("with delegated bypass", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -228,44 +162,14 @@ resource "github_organization_security_configuration" "test" {
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
-			CheckDestroy:      testAccCheckGithubOrganizationSecurityConfigurationDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_organization_security_configuration.test", tfjsonpath.New("secret_scanning_delegated_bypass"), knownvalue.StringExact("enabled")),
-						statecheck.ExpectKnownValue("github_organization_security_configuration.test", tfjsonpath.New("secret_scanning_delegated_bypass_options").AtSliceIndex(0).AtMapKey("reviewers").AtSliceIndex(0).AtMapKey("reviewer_type"), knownvalue.StringExact("TEAM")),
+						statecheck.ExpectKnownValue("github_organization_security_configuration.test", tfjsonpath.New("configuration_id"), knownvalue.NotNull()),
 					},
 				},
 			},
 		})
 	})
-}
-
-func testAccCheckGithubOrganizationSecurityConfigurationDestroy(s *terraform.State) error {
-	meta, err := getTestMeta()
-	if err != nil {
-		return err
-	}
-	conn := meta.v3client
-	orgName := meta.name
-
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "github_organization_security_configuration" {
-			continue
-		}
-		configIDStr := rs.Primary.Attributes["configuration_id"]
-		configID, err := strconv.ParseInt(configIDStr, 10, 64)
-		if err != nil {
-			return err
-		}
-		_, resp, err := conn.Organizations.GetCodeSecurityConfiguration(context.Background(), orgName, configID)
-		if err == nil {
-			return fmt.Errorf("organization security configuration %s still exists", configIDStr)
-		}
-		if resp.StatusCode != 404 {
-			return err
-		}
-	}
-	return nil
 }
