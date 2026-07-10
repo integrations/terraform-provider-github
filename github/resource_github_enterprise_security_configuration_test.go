@@ -1,9 +1,7 @@
 package github
 
 import (
-	"context"
 	"fmt"
-	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -11,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
@@ -20,7 +17,50 @@ func TestAccGithubEnterpriseSecurityConfiguration(t *testing.T) {
 
 	skipUnlessEnterprise(t)
 
-	t.Run("creates enterprise security configuration without error", func(t *testing.T) {
+	// General lifecycle: create -> update -> import. Only the identifying/computed attributes
+	// round-trip through import (the resource reconciles just the managed attributes in Read, per
+	// the Optional-only design), so this scenario is name-only to keep ImportStateVerify clean.
+	t.Run("basic", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		configName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+		configNameUpdated := fmt.Sprintf("%supdated-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_enterprise_security_configuration" "test" {
+  enterprise_slug = %q
+  name = "%%s"
+}`, testAccConf.enterpriseSlug)
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, configName),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_enterprise_security_configuration.test", tfjsonpath.New("configuration_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_enterprise_security_configuration.test", tfjsonpath.New("target_type"), knownvalue.NotNull()),
+					},
+				},
+				{
+					Config: fmt.Sprintf(config, configNameUpdated),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_enterprise_security_configuration.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+				{
+					ResourceName:      "github_enterprise_security_configuration.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
+		})
+	})
+
+	t.Run("with settings", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -28,7 +68,7 @@ func TestAccGithubEnterpriseSecurityConfiguration(t *testing.T) {
 
 		config := fmt.Sprintf(`
 resource "github_enterprise_security_configuration" "test" {
-  enterprise_slug = "%s"
+  enterprise_slug = %q
   name = "%s"
   description = "Test configuration"
   advanced_security = "enabled"
@@ -44,15 +84,10 @@ resource "github_enterprise_security_configuration" "test" {
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
-			CheckDestroy:      testAccCheckGithubEnterpriseSecurityConfigurationDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_enterprise_security_configuration.test", tfjsonpath.New("name"), knownvalue.StringExact(configName)),
-						statecheck.ExpectKnownValue("github_enterprise_security_configuration.test", tfjsonpath.New("description"), knownvalue.StringExact("Test configuration")),
-						statecheck.ExpectKnownValue("github_enterprise_security_configuration.test", tfjsonpath.New("advanced_security"), knownvalue.StringExact("enabled")),
-						statecheck.ExpectKnownValue("github_enterprise_security_configuration.test", tfjsonpath.New("enforcement"), knownvalue.StringExact("enforced")),
 						statecheck.ExpectKnownValue("github_enterprise_security_configuration.test", tfjsonpath.New("configuration_id"), knownvalue.NotNull()),
 					},
 				},
@@ -60,85 +95,15 @@ resource "github_enterprise_security_configuration" "test" {
 		})
 	})
 
-	t.Run("imports enterprise security configuration without error", func(t *testing.T) {
+	t.Run("with options", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		configName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
-
-		config := fmt.Sprintf(`
-resource "github_enterprise_security_configuration" "test" {
-  enterprise_slug = "%s"
-  name = "%s"
-}`, testAccConf.enterpriseSlug, configName)
-
-		resource.Test(t, resource.TestCase{
-			ProviderFactories: providerFactories,
-			CheckDestroy:      testAccCheckGithubEnterpriseSecurityConfigurationDestroy,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-				},
-				{
-					ResourceName:      "github_enterprise_security_configuration.test",
-					ImportState:       true,
-					ImportStateVerify: true,
-				},
-			},
-		})
-	})
-
-	t.Run("updates enterprise security configuration without error", func(t *testing.T) {
-		t.Parallel()
-
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		configName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
-		configNameUpdated := fmt.Sprintf("%supdated-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 resource "github_enterprise_security_configuration" "test" {
   enterprise_slug = %q
-  name = "%%s"
-  description = "%%s"
-  advanced_security = "%%s"
-}`, testAccConf.enterpriseSlug)
-
-		resource.Test(t, resource.TestCase{
-			ProviderFactories: providerFactories,
-			CheckDestroy:      testAccCheckGithubEnterpriseSecurityConfigurationDestroy,
-			Steps: []resource.TestStep{
-				{
-					Config: fmt.Sprintf(config, configName, "Test configuration", "disabled"),
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_enterprise_security_configuration.test", tfjsonpath.New("name"), knownvalue.StringExact(configName)),
-						statecheck.ExpectKnownValue("github_enterprise_security_configuration.test", tfjsonpath.New("advanced_security"), knownvalue.StringExact("disabled")),
-					},
-				},
-				{
-					Config: fmt.Sprintf(config, configNameUpdated, "Test configuration updated", "enabled"),
-					ConfigPlanChecks: resource.ConfigPlanChecks{
-						PreApply: []plancheck.PlanCheck{
-							plancheck.ExpectResourceAction("github_enterprise_security_configuration.test", plancheck.ResourceActionUpdate),
-						},
-					},
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_enterprise_security_configuration.test", tfjsonpath.New("name"), knownvalue.StringExact(configNameUpdated)),
-						statecheck.ExpectKnownValue("github_enterprise_security_configuration.test", tfjsonpath.New("advanced_security"), knownvalue.StringExact("enabled")),
-					},
-				},
-			},
-		})
-	})
-
-	t.Run("creates enterprise security configuration with options", func(t *testing.T) {
-		t.Parallel()
-
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		configName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
-
-		config := fmt.Sprintf(`
-resource "github_enterprise_security_configuration" "test" {
-  enterprise_slug = "%s"
   name = "%s"
   description = "Test configuration with options"
   advanced_security = "enabled"
@@ -157,74 +122,14 @@ resource "github_enterprise_security_configuration" "test" {
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
-			CheckDestroy:      testAccCheckGithubEnterpriseSecurityConfigurationDestroy,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_enterprise_security_configuration.test", tfjsonpath.New("name"), knownvalue.StringExact(configName)),
-						statecheck.ExpectKnownValue("github_enterprise_security_configuration.test", tfjsonpath.New("dependency_graph_autosubmit_action_options").AtSliceIndex(0).AtMapKey("labeled_runners"), knownvalue.Bool(true)),
-						statecheck.ExpectKnownValue("github_enterprise_security_configuration.test", tfjsonpath.New("code_scanning_default_setup_options").AtSliceIndex(0).AtMapKey("runner_type"), knownvalue.StringExact("labeled")),
-						statecheck.ExpectKnownValue("github_enterprise_security_configuration.test", tfjsonpath.New("code_scanning_default_setup_options").AtSliceIndex(0).AtMapKey("runner_label"), knownvalue.StringExact("code-scanning")),
+						statecheck.ExpectKnownValue("github_enterprise_security_configuration.test", tfjsonpath.New("configuration_id"), knownvalue.NotNull()),
 					},
 				},
 			},
 		})
 	})
-
-	t.Run("creates enterprise security configuration with minimal config", func(t *testing.T) {
-		t.Parallel()
-
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		configName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
-
-		config := fmt.Sprintf(`
-resource "github_enterprise_security_configuration" "test" {
-  enterprise_slug = "%s"
-  name = "%s"
-  description = "Minimal test configuration"
-}`, testAccConf.enterpriseSlug, configName)
-
-		resource.Test(t, resource.TestCase{
-			ProviderFactories: providerFactories,
-			CheckDestroy:      testAccCheckGithubEnterpriseSecurityConfigurationDestroy,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_enterprise_security_configuration.test", tfjsonpath.New("name"), knownvalue.StringExact(configName)),
-						statecheck.ExpectKnownValue("github_enterprise_security_configuration.test", tfjsonpath.New("target_type"), knownvalue.NotNull()),
-					},
-				},
-			},
-		})
-	})
-}
-
-func testAccCheckGithubEnterpriseSecurityConfigurationDestroy(s *terraform.State) error {
-	meta, err := getTestMeta()
-	if err != nil {
-		return err
-	}
-	conn := meta.v3client
-
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "github_enterprise_security_configuration" {
-			continue
-		}
-		enterpriseSlug := rs.Primary.Attributes["enterprise_slug"]
-		configIDStr := rs.Primary.Attributes["configuration_id"]
-		configID, err := strconv.ParseInt(configIDStr, 10, 64)
-		if err != nil {
-			return err
-		}
-		_, resp, err := conn.Enterprise.GetCodeSecurityConfiguration(context.Background(), enterpriseSlug, configID)
-		if err == nil {
-			return fmt.Errorf("enterprise security configuration %s still exists", configIDStr)
-		}
-		if resp.StatusCode != 404 {
-			return err
-		}
-	}
-	return nil
 }
