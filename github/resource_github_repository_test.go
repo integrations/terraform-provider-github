@@ -401,7 +401,7 @@ resource "github_repository" "test" {
 		testRepoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
-resource "github_repository" "test" {
+resource "github_repository" "template" {
   name         = "%s"
   visibility   = "%s"
   auto_init    = true
@@ -414,7 +414,7 @@ resource "github_repository" "test" {
   visibility  = "%s"
   template {
     owner      = "%s"
-    repository = github_repository.test.name
+    repository = github_repository.template.name
   }
 }
 `, testTemplateRepoName, testAccConf.testRepositoryVisibility, testRepoName, testAccConf.testRepositoryVisibility, testAccConf.owner)
