@@ -86,7 +86,7 @@ resource "github_repository" "forked_repo" {
 - `squash_merge_commit_title` (String) Can be 'PR_TITLE' or 'COMMIT_OR_PR_TITLE' for a default squash merge commit title.
 - `template` (Block List, Max: 1) Use a template repository to create this resource.
 
-    ~> **Note on `internal` visibility with templates**: When creating a repository from a template with `visibility = "internal"`, the provider uses a two-step process due to GitHub API limitations. The template creation API only supports a `private` boolean parameter. Therefore, repositories with `visibility = "internal"` are initially created as private and then immediately updated to internal visibility. This ensures internal repositories are never exposed publicly during creation. (see [below for nested schema](#nestedblock--template))
+  ~> **Note on `internal` visibility with templates**: When creating a repository from a template with `visibility = "internal"`, the provider uses a two-step process due to GitHub API limitations. The template creation API only supports a `private` boolean parameter. Therefore, repositories with `visibility = "internal"` are initially created as private and then immediately updated to internal visibility. This ensures internal repositories are never exposed publicly during creation. (see [below for nested schema](#nestedblock--template))
 - `topics` (Set of String) The list of topics of the repository.
 - `visibility` (String) Can be 'public' or 'private'. If your organization is associated with an enterprise account using GitHub Enterprise Cloud or GitHub Enterprise Server 2.20+, visibility can also be 'internal'.
 - `vulnerability_alerts` (Boolean, Deprecated) Set to 'true' to enable security alerts for vulnerable dependencies. Enabling requires alerts to be enabled on the owner level. (Note for importing: GitHub enables the alerts on all repos by default). Note that vulnerability alerts have not been successfully tested on any GitHub Enterprise instance and may be unavailable in those settings.
@@ -106,7 +106,6 @@ resource "github_repository" "forked_repo" {
 - `svn_url` (String) URL that can be provided to 'svn checkout' to check out the repository via GitHub's Subversion protocol emulation.
 
 <a id="nestedblock--pages"></a>
-
 ### Nested Schema for `pages`
 
 Optional:
@@ -123,7 +122,6 @@ Read-Only:
 - `url` (String) The API address for accessing this Page resource.
 
 <a id="nestedblock--pages--source"></a>
-
 ### Nested Schema for `pages.source`
 
 Required:
@@ -134,8 +132,9 @@ Optional:
 
 - `path` (String) The repository directory from which the site publishes (Default: '/')
 
-<a id="nestedblock--security_and_analysis"></a>
 
+
+<a id="nestedblock--security_and_analysis"></a>
 ### Nested Schema for `security_and_analysis`
 
 Optional:
@@ -148,55 +147,55 @@ Optional:
 - `secret_scanning_push_protection` (Block List, Max: 1) The secret scanning push protection configuration for the repository. (see [below for nested schema](#nestedblock--security_and_analysis--secret_scanning_push_protection))
 
 <a id="nestedblock--security_and_analysis--advanced_security"></a>
-
 ### Nested Schema for `security_and_analysis.advanced_security`
 
 Required:
 
 - `status` (String) Set to 'enabled' to enable advanced security features on the repository. Can be 'enabled' or 'disabled', This value being present when split licensing is enabled will error out.
 
-<a id="nestedblock--security_and_analysis--code_security"></a>
 
+<a id="nestedblock--security_and_analysis--code_security"></a>
 ### Nested Schema for `security_and_analysis.code_security`
 
 Required:
 
 - `status` (String) Set to 'enabled' to enable code security on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.
 
-<a id="nestedblock--security_and_analysis--secret_scanning"></a>
 
+<a id="nestedblock--security_and_analysis--secret_scanning"></a>
 ### Nested Schema for `security_and_analysis.secret_scanning`
 
 Required:
 
 - `status` (String) Set to 'enabled' to enable secret scanning on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.
 
-<a id="nestedblock--security_and_analysis--secret_scanning_ai_detection"></a>
 
+<a id="nestedblock--security_and_analysis--secret_scanning_ai_detection"></a>
 ### Nested Schema for `security_and_analysis.secret_scanning_ai_detection`
 
 Required:
 
 - `status` (String) Set to 'enabled' to enable secret scanning AI detection on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.
 
-<a id="nestedblock--security_and_analysis--secret_scanning_non_provider_patterns"></a>
 
+<a id="nestedblock--security_and_analysis--secret_scanning_non_provider_patterns"></a>
 ### Nested Schema for `security_and_analysis.secret_scanning_non_provider_patterns`
 
 Required:
 
 - `status` (String) Set to 'enabled' to enable secret scanning non-provider patterns on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.
 
-<a id="nestedblock--security_and_analysis--secret_scanning_push_protection"></a>
 
+<a id="nestedblock--security_and_analysis--secret_scanning_push_protection"></a>
 ### Nested Schema for `security_and_analysis.secret_scanning_push_protection`
 
 Required:
 
 - `status` (String) Set to 'enabled' to enable secret scanning push protection on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.
 
-<a id="nestedblock--template"></a>
 
+
+<a id="nestedblock--template"></a>
 ### Nested Schema for `template`
 
 Required:
