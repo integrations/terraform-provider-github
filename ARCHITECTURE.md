@@ -291,7 +291,7 @@ All authentication configuration is handled in `config.go`. See the [Explicit Au
 
 ```go
 func resourceGithubExampleCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-    meta := m.(*Owner)
+    meta, _ := m.(*Owner)
     client := meta.v3client
     owner := meta.name
 
@@ -319,7 +319,7 @@ func resourceGithubExampleDelete(ctx context.Context, d *schema.ResourceData, m 
 
 ```go
 func resourceExampleRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-    meta := m.(*Owner)
+    meta, _ :=  m.(*Owner)
     // REST API client (go-github)
     client := meta.v3client
 

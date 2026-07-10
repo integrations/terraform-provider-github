@@ -8,7 +8,7 @@ import (
 	"testing/synctest"
 	"time"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 )
 
 func Test_retryUntilOK(t *testing.T) {
