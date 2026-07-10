@@ -21,7 +21,7 @@ import (
 func TestAccGithubRepository(t *testing.T) {
 	t.Parallel()
 
-	t.Run("creates and updates repositories without error", func(t *testing.T) {
+	t.Run("creates_and_updates_repositories_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -65,7 +65,7 @@ func TestAccGithubRepository(t *testing.T) {
 		})
 	})
 
-	t.Run("updates a repositories name without error", func(t *testing.T) {
+	t.Run("updates_a_repositories_name_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -105,7 +105,7 @@ func TestAccGithubRepository(t *testing.T) {
 		})
 	})
 
-	t.Run("imports repositories without error", func(t *testing.T) {
+	t.Run("imports_repositories_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -139,7 +139,7 @@ func TestAccGithubRepository(t *testing.T) {
 		})
 	})
 
-	t.Run("archives repositories without error", func(t *testing.T) {
+	t.Run("archives_repositories_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -173,7 +173,7 @@ resource "github_repository" "test" {
 		})
 	})
 
-	t.Run("manages the project feature for a repository", func(t *testing.T) {
+	t.Run("manages_the_project_feature_for_a_repository", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -209,7 +209,7 @@ resource "github_repository" "test" {
 		})
 	})
 
-	t.Run("manages the default branch feature for a repository", func(t *testing.T) {
+	t.Run("manages_the_default_branch_feature_for_a_repository", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -296,7 +296,7 @@ resource "github_repository" "test" {
 		})
 	})
 
-	t.Run("manages the license and gitignore feature for a repository", func(t *testing.T) {
+	t.Run("manages_the_license_and_gitignore_feature_for_a_repository", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -362,7 +362,7 @@ resource "github_repository" "test" {
 		})
 	})
 
-	t.Run("creates a repository using a public template", func(t *testing.T) {
+	t.Run("creates_a_repository_using_a_public_template", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -394,7 +394,7 @@ resource "github_repository" "test" {
 		})
 	})
 
-	t.Run("creates a repository using an org template", func(t *testing.T) {
+	t.Run("creates_a_repository_using_an_org_template", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -434,7 +434,7 @@ resource "github_repository" "test" {
 		})
 	})
 
-	t.Run("archives repositories on destroy", func(t *testing.T) {
+	t.Run("archives_repositories_on_destroy", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -886,7 +886,7 @@ resource "github_repository" "test" {
 		})
 	})
 
-	t.Run("create a repository with go as primary_language", func(t *testing.T) {
+	t.Run("create_a_repository_with_go_as_primary_language", func(t *testing.T) {
 		t.Parallel()
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testResourceName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
