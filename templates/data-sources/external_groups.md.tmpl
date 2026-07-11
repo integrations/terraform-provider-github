@@ -10,11 +10,17 @@ Use this data source to retrieve external groups belonging to an organization.
 
 ## Example Usage
 
+### All external groups
+
 {{ tffile "examples/data-sources/external_groups/example_1.tf" }}
+
+### Filtered by display name
+
+{{ tffile "examples/data-sources/external_groups/example_2.tf" }}
 
 ## Argument Reference
 
-N/A. This resource will retrieve all the external groups belonging to an organization.
+- `display_name` - (Optional) Filter the list of external groups by display name. Only groups whose name contains this value will be returned.
 
 ## Attributes Reference
 

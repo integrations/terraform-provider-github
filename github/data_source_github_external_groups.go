@@ -14,6 +14,10 @@ func dataSourceGithubExternalGroups() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceGithubExternalGroupsRead,
 		Schema: map[string]*schema.Schema{
+			"display_name": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"external_groups": {
 				Type:     schema.TypeList,
 				Computed: true,
@@ -48,6 +52,11 @@ func dataSourceGithubExternalGroupsRead(ctx context.Context, d *schema.ResourceD
 
 	opts := &github.ListExternalGroupsOptions{}
 
+	if v, ok := d.GetOk("display_name"); ok {
+		displayName := v.(string)
+		opts.DisplayName = &displayName
+	}
+
 	externalGroups := new(github.ExternalGroupList)
 
 	for {
@@ -80,6 +89,10 @@ func dataSourceGithubExternalGroupsRead(ctx context.Context, d *schema.ResourceD
 		return diag.FromErr(err)
 	}
 
-	d.SetId(fmt.Sprintf("/orgs/%v/external-groups", orgName))
+	resourceID := fmt.Sprintf("/orgs/%v/external-groups", orgName)
+	if opts.DisplayName != nil {
+		resourceID = fmt.Sprintf("/orgs/%v/external-groups/%v", orgName, *opts.DisplayName)
+	}
+	d.SetId(resourceID)
 	return nil
 }

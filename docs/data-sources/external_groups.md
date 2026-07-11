@@ -10,6 +10,8 @@ Use this data source to retrieve external groups belonging to an organization.
 
 ## Example Usage
 
+### All external groups
+
 ```terraform
 data "github_external_groups" "example_external_groups" {}
 
@@ -22,9 +24,25 @@ output "groups" {
 }
 ```
 
+### Filtered by display name
+
+```terraform
+data "github_external_groups" "example_external_groups_filtered" {
+  display_name = "my-group"
+}
+
+locals {
+  filtered_groups = data.github_external_groups.example_external_groups_filtered
+}
+
+output "groups" {
+  value = local.filtered_groups
+}
+```
+
 ## Argument Reference
 
-N/A. This resource will retrieve all the external groups belonging to an organization.
+- `display_name` - (Optional) Filter the list of external groups by display name. Only groups whose name contains this value will be returned.
 
 ## Attributes Reference
 
