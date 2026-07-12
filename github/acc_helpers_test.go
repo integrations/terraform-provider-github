@@ -247,6 +247,35 @@ func mustCreateTestRepository(t *testing.T) *github.Repository {
 	return repo
 }
 
+func mustCreateTemplateRepository(t *testing.T) *github.Repository {
+	t.Helper()
+
+	randomID := acctest.RandString(testRandomIDLength)
+	name := fmt.Sprintf("%stemplate-%s", testResourcePrefix, randomID)
+
+	req := &github.Repository{
+		Name:       &name,
+		AutoInit:   new(true),
+		IsTemplate: new(true),
+	}
+
+	repo, _, err := testAccConf.meta.v3client.Repositories.Create(t.Context(), testAccConf.meta.name, req)
+	if err != nil {
+		t.Fatalf("failed to create template repository: %v", err)
+	}
+
+	t.Cleanup(func() {
+		if _, err := testAccConf.meta.v3client.Repositories.Delete(context.Background(), testAccConf.meta.name, name); err != nil {
+			if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == 404 {
+				return
+			}
+			t.Logf("failed to delete template repository %s: %v", name, err)
+		}
+	})
+
+	return repo
+}
+
 func mustRenameTestRepository(t *testing.T, repo *github.Repository, newName string) {
 	t.Helper()
 
