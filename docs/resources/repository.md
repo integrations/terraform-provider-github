@@ -87,7 +87,8 @@ resource "github_repository" "forked_repo" {
 - `template` (Block List, Max: 1) Use a template repository to create this resource.
 
   ~> **Note on `internal` visibility with templates**: When creating a repository from a template with `visibility = "internal"`, the provider uses a two-step process due to GitHub API limitations. The template creation API only supports a `private` boolean parameter. Therefore, repositories with `visibility = "internal"` are initially created as private and then immediately updated to internal visibility. This ensures internal repositories are never exposed publicly during creation. (see [below for nested schema](#nestedblock--template))
-- `topics` (Set of String) The list of topics of the repository. Note: This attribute is not compatible with the 'github_repository_topics' resource. Use one of them. 'github_repository_topics' is only meant to be used if the repository itself is not handled via terraform, for example if it's only read as a datasource.
+- `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
+- `topics` (Set of String, Deprecated) The list of topics of the repository. Use the `github_repository_topics` resource instead.
 - `visibility` (String) Can be 'public' or 'private'. If your organization is associated with an enterprise account using GitHub Enterprise Cloud or GitHub Enterprise Server 2.20+, visibility can also be 'internal'. The visibility parameter overrides the private parameter.
 - `vulnerability_alerts` (Boolean, Deprecated) Configure [Dependabot security alerts](https://help.github.com/en/github/managing-security-vulnerabilities/about-security-alerts-for-vulnerable-dependencies) for vulnerable dependencies; set to 'true' to enable, set to 'false' to disable, and leave unset for the default behavior. Configuring this requires that alerts are not being explicitly configured at the organization level. This field will be removed in a future version. Use the 'github_repository_vulnerability_alerts' resource instead.
 - `web_commit_signoff_required` (Boolean) Require contributors to sign off on web-based commits. See more in the [GitHub documentation](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/managing-the-commit-signoff-policy-for-your-repository).
@@ -206,6 +207,17 @@ Required:
 Optional:
 
 - `include_all_branches` (Boolean) Whether the new repository should include all the branches from the template repository (defaults to 'false', which includes only the default branch from the template).
+
+
+<a id="nestedblock--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- `create` (String)
+- `delete` (String)
+- `read` (String)
+- `update` (String)
 
 ## Import
 
