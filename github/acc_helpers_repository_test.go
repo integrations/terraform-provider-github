@@ -12,6 +12,12 @@ import (
 
 type createTestRepositoryOptionsFunc func(*github.Repository)
 
+func withAsTemplate() createTestRepositoryOptionsFunc {
+	return func(repo *github.Repository) {
+		repo.IsTemplate = new(true)
+	}
+}
+
 func mustCreateTestRepository(t *testing.T, f ...createTestRepositoryOptionsFunc) *github.Repository {
 	t.Helper()
 
