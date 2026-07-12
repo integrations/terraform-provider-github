@@ -1275,7 +1275,7 @@ resource "github_repository" "test" {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
-            resource "github_repository" "test" {
+			resource "github_repository" "test" {
 				name       = "%s"
 				visibility = "internal"
 				template {
