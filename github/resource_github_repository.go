@@ -7,11 +7,13 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -24,6 +26,13 @@ func resourceGithubRepository() *schema.Resource {
 		DeleteContext: resourceGithubRepositoryDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceGithubRepositoryImport,
+		},
+
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(5 * time.Minute),
+			Read:   schema.DefaultTimeout(5 * time.Minute),
+			Update: schema.DefaultTimeout(5 * time.Minute),
+			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 
 		SchemaVersion: 1,
@@ -395,6 +404,7 @@ func resourceGithubRepository() *schema.Resource {
 				Optional:    true,
 				Computed:    true,
 				Description: "The list of topics of the repository.",
+				Deprecated:  "Use the github_repository_topics resource instead. This field will be removed in a future version.",
 				Elem: &schema.Schema{
 					Type:             schema.TypeString,
 					ValidateDiagFunc: validation.ToDiagFunc(validation.StringMatch(regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,49}$`), "must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 50 characters or less")),
@@ -694,40 +704,39 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 	var upstreamRepo *github.Repository
 
 	if template, ok := d.GetOk("template"); ok {
-		templateConfigBlocks := template.([]any)
+		templateConfigBlocks, _ := template.([]any)
+		templateConfigBlock := templateConfigBlocks[0]
 
-		for _, templateConfigBlock := range templateConfigBlocks {
-			templateConfigMap, ok := templateConfigBlock.(map[string]any)
-			if !ok {
-				return diag.FromErr(errors.New("failed to unpack template configuration block"))
-			}
-
-			templateRepo := templateConfigMap["repository"].(string)
-			templateRepoOwner := templateConfigMap["owner"].(string)
-			includeAllBranches := templateConfigMap["include_all_branches"].(bool)
-
-			// Template API only supports Private boolean, so treat "internal" as private, then update via PATCH.
-			private := repoReq.GetVisibility() != "public"
-
-			templateRepoReq := github.TemplateRepoRequest{
-				Name:               &repoName,
-				Owner:              &owner,
-				Description:        new(d.Get("description").(string)),
-				Private:            new(private),
-				IncludeAllBranches: new(includeAllBranches),
-			}
-
-			repo, _, err := client.Repositories.CreateFromTemplate(ctx,
-				templateRepoOwner,
-				templateRepo,
-				&templateRepoReq,
-			)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-
-			upstreamRepo = repo
+		templateConfigMap, ok := templateConfigBlock.(map[string]any)
+		if !ok {
+			return diag.FromErr(errors.New("failed to unpack template configuration block"))
 		}
+
+		templateRepo := templateConfigMap["repository"].(string)
+		templateRepoOwner := templateConfigMap["owner"].(string)
+		includeAllBranches := templateConfigMap["include_all_branches"].(bool)
+
+		// Template API only supports Private boolean, so treat "internal" as private, then update via PATCH.
+		private := repoReq.GetVisibility() != "public"
+
+		templateRepoReq := github.TemplateRepoRequest{
+			Name:               new(repoName),
+			Owner:              new(owner),
+			Description:        new(d.Get("description").(string)),
+			Private:            new(private),
+			IncludeAllBranches: new(includeAllBranches),
+		}
+
+		repo, _, err := client.Repositories.CreateFromTemplate(ctx,
+			templateRepoOwner,
+			templateRepo,
+			&templateRepoReq,
+		)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		upstreamRepo = repo
 	} else if d.Get("fork").(string) == "true" {
 		// Handle repository forking
 		sourceOwner := d.Get("source_owner").(string)
@@ -807,7 +816,7 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 	}
 
 	tflog.Info(ctx, "Patching repository to ensure all configurations are applied", map[string]any{"owner": owner, "name": repoName})
-	_, _, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
+	err := editRepositoryWithRetry(ctx, client, owner, repoName, repoReq) // This addresses timing issues with Internal repos created from a Template
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -1324,4 +1333,20 @@ func updateVulnerabilityAlerts(ctx context.Context, client *github.Client, owner
 	}
 
 	return nil
+}
+
+func editRepositoryWithRetry(ctx context.Context, client *github.Client, owner, repoName string, repoReq *github.Repository) error {
+	return retry.RetryContext(ctx, time.Minute, func() *retry.RetryError {
+		_, _, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
+		if err != nil {
+			if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
+				if ghErr.Response.StatusCode == http.StatusUnprocessableEntity && strings.Contains(ghErr.Error(), "A previous repository operation is still in progress") {
+					tflog.Debug(ctx, "Repository is still being created, retrying PATCH", map[string]any{"owner": owner, "name": repoName})
+					return retry.RetryableError(fmt.Errorf("repository is still being created, retrying PATCH"))
+				}
+				return retry.NonRetryableError(fmt.Errorf("Error editing repository: %w", err))
+			}
+		}
+		return nil
+	})
 }
