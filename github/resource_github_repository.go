@@ -712,9 +712,18 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 			return diag.FromErr(errors.New("failed to unpack template configuration block"))
 		}
 
-		templateRepo := templateConfigMap["repository"].(string)
-		templateRepoOwner := templateConfigMap["owner"].(string)
-		includeAllBranches := templateConfigMap["include_all_branches"].(bool)
+		templateRepo, ok := templateConfigMap["repository"].(string)
+		if !ok {
+			return diag.FromErr(errors.New("failed to unpack template repository name"))
+		}
+		templateRepoOwner, ok := templateConfigMap["owner"].(string)
+		if !ok {
+			return diag.FromErr(errors.New("failed to unpack template repository owner"))
+		}
+		includeAllBranches, ok := templateConfigMap["include_all_branches"].(bool)
+		if !ok {
+			return diag.FromErr(errors.New("failed to unpack template include_all_branches"))
+		}
 
 		// Template API only supports Private boolean, so treat "internal" as private, then update via PATCH.
 		private := repoReq.GetVisibility() != "public"
@@ -722,7 +731,7 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 		templateRepoReq := github.TemplateRepoRequest{
 			Name:               new(repoName),
 			Owner:              new(owner),
-			Description:        new(d.Get("description").(string)),
+			Description:        new(repoReq.GetDescription()),
 			Private:            new(private),
 			IncludeAllBranches: new(includeAllBranches),
 		}
