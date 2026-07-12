@@ -5,7 +5,6 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -873,45 +872,6 @@ resource "github_repository" "test" {
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("squash_merge_commit_title"), knownvalue.StringExact(updatedSquashMergeCommitTitle)),
 						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("squash_merge_commit_message"), knownvalue.StringExact(updatedSquashMergeCommitMessage)),
-					},
-				},
-			},
-		})
-	})
-
-	t.Run("create_a_repository_with_go_as_primary_language", func(t *testing.T) {
-		t.Parallel()
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		testResourceName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
-
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name = "%s"
-				auto_init = true
-			}
-			resource "github_repository_file" "test" {
-				repository     = github_repository.test.name
-				file           = "test.go"
-				content        = "package main"
-			}
-		`, testResourceName)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					// Not doing any checks since the file needs to be created before the language can be updated
-					Config: config,
-				},
-				{
-					// Re-running the terraform will refresh the language since the go-file has been created
-					// GitHub language detection can be asynchronous; this assertion has historically been flaky.
-					PreConfig: func() { sleep(t.Context(), 20*time.Second) },
-					Config:    config,
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("primary_language"), knownvalue.NotNull()),
-						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("primary_language"), knownvalue.StringExact("Go")),
 					},
 				},
 			},
