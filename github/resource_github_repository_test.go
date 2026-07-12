@@ -1376,7 +1376,7 @@ resource "github_repository" "test" {
 	t.Run("check_allow_forking_not_set", func(t *testing.T) {
 		t.Parallel()
 
-		t.Skip("This test should be run manually after confirming that the test organization has been correctly configured to disable setting forking at the repo level.")
+		mustDisableForkingForOrganization(t, testAccConf.owner)
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
@@ -1390,7 +1390,7 @@ resource "github_repository" "private" {
 `
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -1398,9 +1398,6 @@ resource "github_repository" "private" {
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_repository.private", tfjsonpath.New("allow_forking"), knownvalue.Bool(false)),
 					},
-				},
-				{
-					Config: fmt.Sprintf(config, testRepoName, "bar"),
 				},
 			},
 		})

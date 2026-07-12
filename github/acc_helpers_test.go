@@ -714,3 +714,31 @@ func mustUpdateRepositoryDependabotSecret(t *testing.T, repo *github.Repository,
 		t.Fatalf("failed to update test repository dependabot secret: %v", err)
 	}
 }
+
+func mustDisableForkingForOrganization(t *testing.T, orgName string) {
+	t.Helper()
+
+	currentSettings, _, err := testAccConf.meta.v3client.Organizations.Get(t.Context(), orgName)
+	if err != nil {
+		t.Fatalf("failed to get current organization settings for %s: %v", orgName, err)
+	}
+
+	if currentSettings.GetMembersCanForkPrivateRepos() == false {
+		return
+	}
+
+	orgSettingsReq := &github.Organization{
+		MembersCanForkPrivateRepos: new(false),
+	}
+
+	_, _, err = testAccConf.meta.v3client.Organizations.Edit(t.Context(), orgName, orgSettingsReq)
+	if err != nil {
+		t.Fatalf("failed to update organization settings for %s: %v", orgName, err)
+	}
+
+	t.Cleanup(func() {
+		if _, _, err := testAccConf.meta.v3client.Organizations.Edit(context.WithoutCancel(t.Context()), orgName, &github.Organization{MembersCanForkPrivateRepos: new(true)}); err != nil {
+			t.Logf("failed to reset organization setting for %s: %v", orgName, err)
+		}
+	})
+}
