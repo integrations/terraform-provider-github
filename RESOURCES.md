@@ -160,6 +160,7 @@ The overall status of each resource or data source is captured in this document 
 | `github_enterprise_actions_permissions` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_enterprise_actions_runner_group` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_enterprise_actions_workflow_permissions` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
+| `github_enterprise_app_installation` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_enterprise_ip_allow_list_entry` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_enterprise_organization` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_enterprise_security_analysis_settings` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
