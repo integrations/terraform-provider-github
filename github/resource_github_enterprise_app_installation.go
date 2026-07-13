@@ -131,15 +131,18 @@ func resourceGithubEnterpriseAppInstallationCreate(ctx context.Context, d *schem
 		return diag.FromErr(err)
 	}
 
-	if err := addEnterpriseAppInstallationRepositories(ctx, client, enterpriseSlug, org, installation.GetID(), remainder); err != nil {
-		return diag.FromErr(err)
-	}
-
+	// Record the resource in state as soon as the app is installed, so a
+	// failure while granting the remaining repositories leaves a recoverable
+	// resource rather than an orphaned installation.
 	id, err := buildID(enterpriseSlug, org, clientID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	d.SetId(id)
+
+	if err := addEnterpriseAppInstallationRepositories(ctx, client, enterpriseSlug, org, installation.GetID(), remainder); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return resourceGithubEnterpriseAppInstallationRead(ctx, d, meta)
 }
