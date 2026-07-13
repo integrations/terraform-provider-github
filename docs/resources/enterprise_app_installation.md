@@ -1,0 +1,56 @@
+---
+page_title: "github_enterprise_app_installation (Resource) - GitHub"
+description: |-
+  Manages a GitHub App installation on an enterprise-owned organization.
+---
+
+# github_enterprise_app_installation (Resource)
+
+This resource allows you to install a GitHub App on an organization owned by a GitHub Enterprise, including granting the app access to **all** repositories in the organization.
+
+~> **Note**: This resource is only available on GitHub Enterprise Cloud and GitHub Enterprise Server 3.19 or later. The authenticated user must be an [enterprise owner](https://docs.github.com/en/enterprise-cloud@latest/admin/managing-accounts-and-repositories/managing-users-in-your-enterprise/roles-in-an-enterprise#enterprise-owners), and the API is not available for organizations that are not part of an enterprise. To manage the repositories of an app installation on a non-enterprise organization, see the `github_app_installation_repositories` resource.
+
+## Example Usage
+
+```terraform
+resource "github_enterprise_app_installation" "all_repos" {
+  enterprise_slug      = "my-enterprise"
+  organization         = "my-org"
+  client_id            = "Iv1.abc123def456"
+  repository_selection = "all"
+}
+
+resource "github_enterprise_app_installation" "selected_repos" {
+  enterprise_slug       = "my-enterprise"
+  organization          = "my-org"
+  client_id             = "Iv1.789ghi012jkl"
+  repository_selection  = "selected"
+  selected_repositories = ["my-repo-1", "my-repo-2"]
+}
+```
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `enterprise_slug` - (Required) The slug of the enterprise that owns the organization.
+- `organization` - (Required) The login of the enterprise-owned organization to install the app on.
+- `client_id` - (Required) The client ID of the GitHub App to install.
+- `repository_selection` - (Required) The repositories the installation can access. Can be one of `all`, `selected` or `none`. Changing between `all` and `selected` is applied in place; changing from or to `none` will recreate the installation.
+- `selected_repositories` - (Optional) The names of the repositories the installation can access. Required when `repository_selection` is `selected`, and must not be set otherwise.
+
+## Attributes Reference
+
+The following additional attributes are exported:
+
+- `id` - The ID of the resource in the format `<enterprise_slug>:<organization>:<client_id>`.
+- `installation_id` - The ID of the app installation.
+- `app_slug` - The slug of the installed app.
+
+## Import
+
+GitHub enterprise app installations can be imported using the enterprise slug, the organization login and the app client ID, separated by `:` characters.
+
+```shell
+terraform import github_enterprise_app_installation.all_repos my-enterprise:my-org:Iv1.abc123def456
+```
