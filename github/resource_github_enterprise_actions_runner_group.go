@@ -24,6 +24,15 @@ func resourceGithubActionsEnterpriseRunnerGroup() *schema.Resource {
 			State: resourceGithubActionsEnterpriseRunnerGroupImport,
 		},
 
+		SchemaVersion: 1,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceGithubActionsEnterpriseRunnerGroupV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceGithubActionsEnterpriseRunnerGroupStateUpgradeV0,
+				Version: 0,
+			},
+		},
+
 		Schema: map[string]*schema.Schema{
 			"enterprise_slug": {
 				Type:        schema.TypeString,
@@ -69,7 +78,7 @@ func resourceGithubActionsEnterpriseRunnerGroup() *schema.Resource {
 				Description: "If 'true', the runner group will be restricted to running only the workflows specified in the 'selected_workflows' array. Defaults to 'false'.",
 			},
 			"selected_workflows": {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 				Optional:    true,
 				Description: "List of workflows the runner group should be allowed to run. This setting will be ignored unless restricted_to_workflows is set to 'true'.",
@@ -104,7 +113,7 @@ func resourceGithubActionsEnterpriseRunnerGroupCreate(d *schema.ResourceData, me
 
 	selectedWorkflows := []string{}
 	if workflows, ok := d.GetOk("selected_workflows"); ok {
-		for _, workflow := range workflows.([]any) {
+		for _, workflow := range workflows.(*schema.Set).List() {
 			selectedWorkflows = append(selectedWorkflows, workflow.(string))
 		}
 	}
@@ -291,7 +300,7 @@ func resourceGithubActionsEnterpriseRunnerGroupUpdate(d *schema.ResourceData, me
 	selectedWorkflows := []string{}
 	allowsPublicRepositories := d.Get("allows_public_repositories").(bool)
 	if workflows, ok := d.GetOk("selected_workflows"); ok {
-		for _, workflow := range workflows.([]any) {
+		for _, workflow := range workflows.(*schema.Set).List() {
 			selectedWorkflows = append(selectedWorkflows, workflow.(string))
 		}
 	}
