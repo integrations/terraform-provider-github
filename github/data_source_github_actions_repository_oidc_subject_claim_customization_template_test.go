@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
@@ -38,7 +38,7 @@ data "github_actions_repository_oidc_subject_claim_customization_template" "test
 				},
 				{
 					PreConfig: func() {
-						if _, err := testAccConf.meta.v3client.Actions.SetRepoOIDCSubjectClaimCustomTemplate(t.Context(), testAccConf.meta.name, repo.GetName(), &github.OIDCSubjectClaimCustomTemplate{UseDefault: new(false), IncludeClaimKeys: []string{"actor", "actor_id", "head_ref", "repository"}}); err != nil {
+						if _, err := testAccConf.meta.v3client.Actions.SetRepoOIDCSubjectClaimCustomTemplate(t.Context(), testAccConf.meta.name, repo.GetName(), github.OIDCSubjectClaimCustomTemplate{UseDefault: new(false), IncludeClaimKeys: []string{"actor", "actor_id", "head_ref", "repository"}}); err != nil {
 							t.Fatalf("failed to set repo OIDC subject claim custom template: %v", err)
 						}
 					},

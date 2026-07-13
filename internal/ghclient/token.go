@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/sync/semaphore"
 )
@@ -17,29 +17,23 @@ type tokenSource struct {
 }
 
 // NewTokenSource creates a new tokenSource that provides a GitHub client authenticated with the provided personal access token.
-func NewTokenSource(token string, opts Options) (*tokenSource, error) {
-	if opts.CachePath == "" {
+func NewTokenSource(token string, opts SourceOptions) (*tokenSource, error) {
+	if opts.Cache && opts.CacheBasePath == "" {
 		s, err := os.MkdirTemp("", "*")
 		if err != nil {
 			return nil, fmt.Errorf("failed to create temporary cache directory: %w", err)
 		}
-		opts.CachePath = s
+		opts.CacheBasePath = s
 	}
 
-	opts.sema = semaphore.NewWeighted(maxConcurrentRequests)
+	sema := semaphore.NewWeighted(maxConcurrentRequests)
 
-	opts.maxIdleConns = maxIdleConnsREST
-	opts.idleConnTimeout = idleConnTimeoutREST
-	opts.cacheRef = "token-rest"
-	client, err := NewTokenRESTClient(token, opts)
+	client, err := NewTokenRESTClient(token, opts.getRESTClientOptions(sema, "token-rest"))
 	if err != nil {
 		return nil, err
 	}
 
-	opts.maxIdleConns = maxIdleConnsGraphQL
-	opts.idleConnTimeout = idleConnTimeoutGraphQL
-	opts.cacheRef = "token-graphql"
-	graphQLClient, err := NewTokenGraphQLClient(token, opts)
+	graphQLClient, err := NewTokenGraphQLClient(token, opts.getGraphQLClientOptions(sema))
 	if err != nil {
 		return nil, err
 	}

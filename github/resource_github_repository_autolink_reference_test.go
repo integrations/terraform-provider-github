@@ -308,6 +308,8 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 	})
 
 	t.Run("rejects key_prefix ending with a digit at plan time", func(t *testing.T) {
+		t.Parallel()
+
 		config := `
 			resource "github_repository_autolink_reference" "autolink_invalid" {
 				repository          = "some-repo"

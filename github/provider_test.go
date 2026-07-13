@@ -23,48 +23,49 @@ func Test_configureProviderMeta(t *testing.T) {
 	t.Parallel()
 
 	for _, tt := range []struct {
-		name        string
-		installResp *string
-		userResp    *string
-		orgResp     *string
-		conf        *Config
-		wantName    string
-		wantIsOrg   bool
-		wantOrgId   int64
-		wantErr     string
+		name          string
+		installResp   *string
+		tokenUserResp *string
+		userResp      *string
+		conf          *Config
+		wantName      string
+		wantIsOrg     bool
+		wantOrgId     int64
+		wantErr       string
 	}{
 		{
 			name: "anonymous",
 			conf: &Config{},
 		},
-		// {
-		// 	name:        "app_auth_organization",
-		// 	installResp: new(`{"id": 999999}`),
-		// 	orgResp:     new(`{"id": 123456}`),
-		// 	conf: &Config{
-		// 		AppID:             new("111111"),
-		// 		AppInstallationID: new("999999"),
-		// 		AppPEM:            mustNewPEM(t),
-		// 		Owner:             "test-org",
-		// 	},
-		// 	wantName:  "test-org",
-		// 	wantIsOrg: true,
-		// 	wantOrgId: 123456,
-		// },
-		// {
-		// 	name:        "app_auth_user",
-		// 	installResp: new(`{"id": 999999}`),
-		// 	conf: &Config{
-		// 		AppID:             new("111111"),
-		// 		AppInstallationID: new("999999"),
-		// 		AppPEM:            mustNewPEM(t),
-		// 		Owner:             "test-user",
-		// 	},
-		// 	wantName: "test-user",
-		// },
 		{
-			name:    "token_auth_organization",
-			orgResp: new(`{"id": 123456}`),
+			name:        "app_auth_organization",
+			installResp: new(`{"id": 999999}`),
+			userResp:    new(`{"id": 123456, "type": "Organization"}`),
+			conf: &Config{
+				AppID:             new("111111"),
+				AppInstallationID: new("999999"),
+				AppPEM:            mustNewPEM(t),
+				Owner:             "test-org",
+			},
+			wantName:  "test-org",
+			wantIsOrg: true,
+			wantOrgId: 123456,
+		},
+		{
+			name:        "app_auth_user",
+			installResp: new(`{"id": 999999}`),
+			userResp:    new(`{"id": 123456, "type": "User"}`),
+			conf: &Config{
+				AppID:             new("111111"),
+				AppInstallationID: new("999999"),
+				AppPEM:            mustNewPEM(t),
+				Owner:             "test-user",
+			},
+			wantName: "test-user",
+		},
+		{
+			name:     "token_auth_organization",
+			userResp: new(`{"id": 123456, "type": "Organization"}`),
 			conf: &Config{
 				Owner: "test-org",
 				Token: "test-token",
@@ -74,7 +75,8 @@ func Test_configureProviderMeta(t *testing.T) {
 			wantOrgId: 123456,
 		},
 		{
-			name: "token_auth_user",
+			name:     "token_auth_user",
+			userResp: new(`{"id": 123456, "type": "User"}`),
 			conf: &Config{
 				Owner: "test-user",
 				Token: "test-token",
@@ -89,6 +91,14 @@ func Test_configureProviderMeta(t *testing.T) {
 			wantErr: "owner must be set when authenticating using the new client implementation",
 		},
 		{
+			name: "errors_on_non_existent_owner",
+			conf: &Config{
+				Owner: "test-user",
+				Token: "test-token",
+			},
+			wantErr: "failed to lookup owner",
+		},
+		{
 			name: "legacy_client_anonymous",
 			conf: &Config{
 				LegacyClient: true,
@@ -97,7 +107,7 @@ func Test_configureProviderMeta(t *testing.T) {
 		{
 			name:        "legacy_client_app_auth_organization",
 			installResp: new(`{"id": 999999}`),
-			orgResp:     new(`{"id": 123456}`),
+			userResp:    new(`{"id": 123456, "type": "Organization"}`),
 			conf: &Config{
 				LegacyClient:      true,
 				AppID:             new("111111"),
@@ -112,6 +122,7 @@ func Test_configureProviderMeta(t *testing.T) {
 		{
 			name:        "legacy_client_app_auth_user",
 			installResp: new(`{"id": 999999}`),
+			userResp:    new(`{"id": 123456, "type": "User"}`),
 			conf: &Config{
 				LegacyClient:      true,
 				AppID:             new("111111"),
@@ -122,7 +133,20 @@ func Test_configureProviderMeta(t *testing.T) {
 			wantName: "test-user",
 		},
 		{
-			name: "legacy_client_token_auth_user",
+			name:     "legacy_client_token_auth_organization",
+			userResp: new(`{"id": 123456, "type": "Organization"}`),
+			conf: &Config{
+				LegacyClient: true,
+				Owner:        "test-org",
+				Token:        "test-token",
+			},
+			wantName:  "test-org",
+			wantIsOrg: true,
+			wantOrgId: 123456,
+		},
+		{
+			name:     "legacy_client_token_auth_user",
+			userResp: new(`{"id": 123456, "type": "User"}`),
 			conf: &Config{
 				LegacyClient: true,
 				Owner:        "test-user",
@@ -131,8 +155,9 @@ func Test_configureProviderMeta(t *testing.T) {
 			wantName: "test-user",
 		},
 		{
-			name:     "legacy_client_token_auth_no_owner",
-			userResp: new(`{"login": "test-user"}`),
+			name:          "legacy_client_token_auth_no_owner",
+			tokenUserResp: new(`{"login": "test-user"}`),
+			userResp:      new(`{"id": 123456, "type": "User"}`),
 			conf: &Config{
 				LegacyClient: true,
 				Token:        "test-token",
@@ -140,18 +165,33 @@ func Test_configureProviderMeta(t *testing.T) {
 			wantName: "test-user",
 		},
 		{
-			name: "legacy_client_token_auth_no_owner_found",
+			name: "legacy_client_token_auth_errors_if_no_owner_found",
 			conf: &Config{
 				LegacyClient: true,
 				Token:        "test-token",
 			},
 			wantErr: "owner cannot be found by token",
 		},
+		{
+			name: "legacy_client_errors_on_non_existent_owner",
+			conf: &Config{
+				LegacyClient: true,
+				Owner:        "test-user",
+				Token:        "test-token",
+			},
+			wantErr: "failed to lookup owner",
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
 			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if regexp.MustCompile(`/access_tokens$`).MatchString(r.URL.Path) {
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(`{"token": "test-token", "expires_at": "2024-12-31T23:59:59Z"}`))
+					return
+				}
+
 				if regexp.MustCompile(`/installation$`).MatchString(r.URL.Path) {
 					if tt.installResp == nil {
 						w.WriteHeader(http.StatusNotFound)
@@ -164,6 +204,17 @@ func Test_configureProviderMeta(t *testing.T) {
 				}
 
 				if regexp.MustCompile(`/user$`).MatchString(r.URL.Path) {
+					if tt.tokenUserResp == nil {
+						w.WriteHeader(http.StatusNotFound)
+						return
+					}
+
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(*tt.tokenUserResp))
+					return
+				}
+
+				if regexp.MustCompile(`/users/[^/]+$`).MatchString(r.URL.Path) {
 					if tt.userResp == nil {
 						w.WriteHeader(http.StatusNotFound)
 						return
@@ -171,17 +222,6 @@ func Test_configureProviderMeta(t *testing.T) {
 
 					w.WriteHeader(http.StatusOK)
 					_, _ = w.Write([]byte(*tt.userResp))
-					return
-				}
-
-				if regexp.MustCompile(`/orgs/[^/]+$`).MatchString(r.URL.Path) {
-					if tt.orgResp == nil {
-						w.WriteHeader(http.StatusNotFound)
-						return
-					}
-
-					w.WriteHeader(http.StatusOK)
-					_, _ = w.Write([]byte(*tt.orgResp))
 					return
 				}
 
