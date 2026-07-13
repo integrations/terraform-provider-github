@@ -1341,9 +1341,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("check_web_commit_signoff_required_organization_enabled_but_not_set", func(t *testing.T) {
-		t.Parallel()
-
-		t.Skip("This test should be run manually after confirming that the test organization has 'Require contributors to sign off on web-based commits' enabled under Organizations -> Settings -> Repository -> Repository defaults.")
+		// This test can't be run in parallel because it modifies the organization settings, which could affect other tests.
+		mustRequireWebCommitSignoffForOrganization(t, testAccConf.owner)
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%scommit-signoff-%s", testResourcePrefix, randomID)
@@ -1374,8 +1373,7 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("check_allow_forking_not_set", func(t *testing.T) {
-		t.Parallel()
-
+		// This test can't be run in parallel because it modifies the organization settings, which could affect other tests.
 		mustDisableForkingForOrganization(t, testAccConf.owner)
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -1403,6 +1401,7 @@ resource "github_repository" "private" {
 		})
 	})
 
+	// TODO: Delete test when removing deprecated vulnerability_alerts attribute.
 	t.Run("check_vulnerability_alerts_not_set", func(t *testing.T) {
 		t.Parallel()
 
