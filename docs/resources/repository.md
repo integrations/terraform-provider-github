@@ -87,7 +87,8 @@ resource "github_repository" "forked_repo" {
 - `template` (Block List, Max: 1) Use a template repository to create this resource.
 
   ~> **Note on `internal` visibility with templates**: When creating a repository from a template with `visibility = "internal"`, the provider uses a two-step process due to GitHub API limitations. The template creation API only supports a `private` boolean parameter. Therefore, repositories with `visibility = "internal"` are initially created as private and then immediately updated to internal visibility. This ensures internal repositories are never exposed publicly during creation. (see [below for nested schema](#nestedblock--template))
-- `topics` (Set of String) The list of topics of the repository.
+- `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
+- `topics` (Set of String, Deprecated) The list of topics of the repository.
 - `visibility` (String) Can be 'public' or 'private'. If your organization is associated with an enterprise account using GitHub Enterprise Cloud or GitHub Enterprise Server 2.20+, visibility can also be 'internal'.
 - `vulnerability_alerts` (Boolean, Deprecated) Set to 'true' to enable security alerts for vulnerable dependencies. Enabling requires alerts to be enabled on the owner level. (Note for importing: GitHub enables the alerts on all repos by default). Note that vulnerability alerts have not been successfully tested on any GitHub Enterprise instance and may be unavailable in those settings.
 - `web_commit_signoff_required` (Boolean) Require contributors to sign off on web-based commits.
@@ -206,6 +207,17 @@ Required:
 Optional:
 
 - `include_all_branches` (Boolean) Whether the new repository should include all the branches from the template repository (defaults to 'false', which includes only the default branch from the template).
+
+
+<a id="nestedblock--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- `create` (String)
+- `delete` (String)
+- `read` (String)
+- `update` (String)
 
 ## Import
 
