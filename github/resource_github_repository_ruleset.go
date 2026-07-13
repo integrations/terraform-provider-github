@@ -60,7 +60,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 			"bypass_actors": {
 				Type:             schema.TypeList,
 				Optional:         true,
-				DiffSuppressFunc: bypassActorsDiffSuppressFunc,
+				DiffSuppressFunc: suppressUnorderedListDiff("bypass_actors", bypassActorCompareIdentity),
 				Description:      "The actors that can bypass the rules in this ruleset.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
