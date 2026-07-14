@@ -64,16 +64,19 @@ func resourceGithubTeamMembers() *schema.Resource {
 				Required:    true,
 				Description: "List of users that should be members of the team.",
 				Set: func(v any) int {
-					username := v.(map[string]any)["username"].(string)
+					username, _ := v.(map[string]any)["username"].(string)
 					return schema.HashString(strings.ToLower(username))
 				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"username": {
-							Type:             schema.TypeString,
-							Required:         true,
-							DiffSuppressFunc: caseInsensitive(),
-							Description:      "User to add to the team.",
+							Type:     schema.TypeString,
+							Required: true,
+							StateFunc: func(v any) string {
+								val, _ := v.(string)
+								return strings.ToLower(val)
+							},
+							Description: "User to add to the team.",
 						},
 						"role": {
 							Type:             schema.TypeString,
