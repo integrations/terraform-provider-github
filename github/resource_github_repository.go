@@ -538,7 +538,7 @@ func customDiffFunction(ctx context.Context, diff *schema.ResourceDiff, v any) e
 	// We need to check the `allow_squash_merge` flag by checking if the `squash_merge_commit_title` and `squash_merge_commit_message` are set in the configuration.
 	isSquashMergeCommitTitleSet := !diff.GetRawConfig().GetAttr("squash_merge_commit_title").IsNull()
 	isSquashMergeCommitMessageSet := !diff.GetRawConfig().GetAttr("squash_merge_commit_message").IsNull()
-	if isSquashMergeCommitMessageSet || isSquashMergeCommitTitleSet {
+	if (isSquashMergeCommitMessageSet || isSquashMergeCommitTitleSet) && diff.NewValueKnown("allow_squash_merge") {
 		allowSquashMerge, _ := diff.Get("allow_squash_merge").(bool)
 		if !allowSquashMerge {
 			return fmt.Errorf("allow_squash_merge is required when squash_merge_commit_title or squash_merge_commit_message is set")
@@ -548,7 +548,7 @@ func customDiffFunction(ctx context.Context, diff *schema.ResourceDiff, v any) e
 	// We need to check the `allow_merge_commit` flag by checking if the `merge_commit_title` and `merge_commit_message` are set in the configuration.
 	isMergeCommitTitleSet := !diff.GetRawConfig().GetAttr("merge_commit_title").IsNull()
 	isMergeCommitMessageSet := !diff.GetRawConfig().GetAttr("merge_commit_message").IsNull()
-	if isMergeCommitMessageSet || isMergeCommitTitleSet {
+	if (isMergeCommitMessageSet || isMergeCommitTitleSet) && diff.NewValueKnown("allow_merge_commit") {
 		allowMergeCommit, _ := diff.Get("allow_merge_commit").(bool)
 		if !allowMergeCommit {
 			return fmt.Errorf("allow_merge_commit is required when merge_commit_title or merge_commit_message is set")
