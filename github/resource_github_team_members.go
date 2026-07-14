@@ -70,8 +70,9 @@ func resourceGithubTeamMembers() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"username": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:             schema.TypeString,
+							Required:         true,
+							DiffSuppressFunc: caseInsensitive(),
 							StateFunc: func(v any) string {
 								val, _ := v.(string)
 								return strings.ToLower(val)
