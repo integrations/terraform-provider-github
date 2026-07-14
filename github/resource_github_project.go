@@ -2,12 +2,18 @@ package github
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"github.com/shurcooL/githubv4"
+
+	"github.com/integrations/terraform-provider-github/v6/internal/application/projects"
+	projectapplication "github.com/integrations/terraform-provider-github/v6/internal/application/projects/project"
+	projectusecases "github.com/integrations/terraform-provider-github/v6/internal/application/projects/project/use-cases"
+	projectgithub "github.com/integrations/terraform-provider-github/v6/internal/infrastructure/providers/github/projects/v2/project"
 )
 
 func resourceGithubProject() *schema.Resource {
@@ -78,41 +84,28 @@ func resourceGithubProject() *schema.Resource {
 }
 
 func resourceGithubProjectCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v4client
-	ownerType := d.Get("owner_type").(string)
-	owner := projectV2OwnerLogin(d, meta)
-	ownerID, err := projectV2OwnerID(ctx, client, ownerType, owner)
+	gateway := projectgithub.NewGateway(projectV2OwnerMetadata(meta).v4client)
+	project, err := projectusecases.NewCreate(gateway).Run(ctx, projectapplication.CreateInput{
+		OwnerKind: projectapplication.OwnerKind(projectV2Get[string](d, "owner_type")), Owner: projectV2OwnerLogin(d, meta),
+		Title: projectV2Get[string](d, "title"), ShortDescription: projectV2Get[string](d, "short_description"), Readme: projectV2Get[string](d, "readme"),
+		Public: projectV2Get[bool](d, "public"), Closed: projectV2Get[bool](d, "closed"),
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	var mutation struct {
-		CreateProjectV2 struct {
-			Project projectV2Node `graphql:"projectV2"`
-		} `graphql:"createProjectV2(input: $input)"`
-	}
-	input := githubv4.CreateProjectV2Input{
-		OwnerID: ownerID,
-		Title:   githubv4.String(d.Get("title").(string)),
-	}
-	if err := client.Mutate(ctx, &mutation, input, nil); err != nil {
-		return diag.FromErr(err)
-	}
-
-	id := string(mutation.CreateProjectV2.Project.ID)
-	if id == "" {
+	if project.ID == "" {
 		return diag.Errorf("GitHub returned a Projects V2 project without an ID")
 	}
-	d.SetId(id)
-	if diags := resourceGithubProjectUpdate(ctx, d, meta); diags.HasError() {
-		return diags
+	d.SetId(project.ID)
+	if err := setProjectV2State(d, project); err != nil {
+		return diag.FromErr(err)
 	}
-	return resourceGithubProjectRead(ctx, d, meta)
+	return nil
 }
 
 func resourceGithubProjectRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	project, err := queryProjectV2(ctx, meta.(*Owner).v4client, d.Id())
-	if isProjectV2NotFound(err) {
+	project, err := projectusecases.NewGet(projectgithub.NewGateway(projectV2OwnerMetadata(meta).v4client)).Run(ctx, d.Id())
+	if errors.Is(err, projects.ErrNotFound) {
 		tflog.Info(ctx, "Removing project from state because it no longer exists in GitHub", map[string]any{"id": d.Id()})
 		d.SetId("")
 		return nil
@@ -127,41 +120,40 @@ func resourceGithubProjectRead(ctx context.Context, d *schema.ResourceData, meta
 }
 
 func resourceGithubProjectUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v4client
-	title := githubv4.String(d.Get("title").(string))
-	shortDescription := githubv4.String(d.Get("short_description").(string))
-	readme := githubv4.String(d.Get("readme").(string))
-	public := githubv4.Boolean(d.Get("public").(bool))
-	closed := githubv4.Boolean(d.Get("closed").(bool))
-	input := githubv4.UpdateProjectV2Input{
-		ProjectID:        githubv4.ID(d.Id()),
-		Title:            &title,
-		ShortDescription: &shortDescription,
-		Readme:           &readme,
-		Public:           &public,
-		Closed:           &closed,
+	update := projectapplication.UpdateInput{
+		ID: d.Id(), Title: projectV2Get[string](d, "title"), ShortDescription: projectV2Get[string](d, "short_description"), Readme: projectV2Get[string](d, "readme"),
+		Public: projectV2Get[bool](d, "public"), Closed: projectV2Get[bool](d, "closed"),
 	}
-	var mutation struct {
-		UpdateProjectV2 struct {
-			Project projectV2Node `graphql:"projectV2"`
-		} `graphql:"updateProjectV2(input: $input)"`
-	}
-	if err := client.Mutate(ctx, &mutation, input, nil); err != nil {
+	if err := projectusecases.NewUpdate(projectgithub.NewGateway(projectV2OwnerMetadata(meta).v4client)).Run(ctx, update); err != nil {
 		return diag.FromErr(err)
 	}
 	return nil
 }
 
 func resourceGithubProjectDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	var mutation struct {
-		DeleteProjectV2 struct {
-			ClientMutationID githubv4.String
-		} `graphql:"deleteProjectV2(input: $input)"`
-	}
-	input := githubv4.DeleteProjectV2Input{ProjectID: githubv4.ID(d.Id())}
-	err := meta.(*Owner).v4client.Mutate(ctx, &mutation, input, nil)
-	if err != nil && !isProjectV2NotFound(err) {
+	err := projectusecases.NewDelete(projectgithub.NewGateway(projectV2OwnerMetadata(meta).v4client)).Run(ctx, d.Id())
+	if err != nil && !errors.Is(err, projects.ErrNotFound) {
 		return diag.FromErr(err)
 	}
 	return nil
+}
+
+func setProjectV2State(d *schema.ResourceData, project projectapplication.Result) error {
+	values := map[string]any{
+		"owner_type": string(project.OwnerKind), "owner": project.Owner, "number": project.Number, "title": project.Title,
+		"short_description": project.ShortDescription, "readme": project.Readme, "public": project.Public, "closed": project.Closed, "url": project.URL,
+	}
+	for key, value := range values {
+		if err := d.Set(key, value); err != nil {
+			return fmt.Errorf("setting %s: %w", key, err)
+		}
+	}
+	return nil
+}
+
+func projectV2OwnerLogin(d *schema.ResourceData, meta any) string {
+	if owner := projectV2Get[string](d, "owner"); owner != "" {
+		return owner
+	}
+	return projectV2OwnerMetadata(meta).name
 }

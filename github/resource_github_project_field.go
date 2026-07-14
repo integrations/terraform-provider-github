@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -10,60 +11,16 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"github.com/shurcooL/githubv4"
+
+	"github.com/integrations/terraform-provider-github/v6/internal/application/projects"
+	fieldapplication "github.com/integrations/terraform-provider-github/v6/internal/application/projects/field"
+	fieldusecases "github.com/integrations/terraform-provider-github/v6/internal/application/projects/field/use-cases"
+	fieldgithub "github.com/integrations/terraform-provider-github/v6/internal/infrastructure/providers/github/projects/v2/field"
 )
 
 var projectV2FieldTypes = []string{"TEXT", "SINGLE_SELECT", "NUMBER", "DATE", "ITERATION"}
 
 var projectV2FieldColors = []string{"GRAY", "BLUE", "GREEN", "YELLOW", "ORANGE", "RED", "PINK", "PURPLE"}
-
-type projectV2FieldFragment struct {
-	ID       githubv4.String
-	Name     githubv4.String
-	DataType githubv4.ProjectV2FieldType
-	Project  struct {
-		ID githubv4.String
-	}
-}
-
-type projectV2SingleSelectFieldFragment struct {
-	projectV2FieldFragment
-	Options []struct {
-		ID          githubv4.String
-		Name        githubv4.String
-		Description githubv4.String
-		Color       githubv4.ProjectV2SingleSelectFieldOptionColor
-	}
-}
-
-type projectV2IterationFieldFragment struct {
-	projectV2FieldFragment
-	Configuration struct {
-		Duration            githubv4.Int
-		Iterations          []projectV2IterationFragment
-		CompletedIterations []projectV2IterationFragment
-	}
-}
-
-type projectV2IterationFragment struct {
-	ID        githubv4.String
-	Title     githubv4.String
-	StartDate githubv4.Date
-	Duration  githubv4.Int
-}
-
-type projectV2FieldNode struct {
-	Typename githubv4.String `graphql:"__typename"`
-	Field    struct {
-		projectV2FieldFragment
-	} `graphql:"... on ProjectV2Field"`
-	SingleSelect struct {
-		projectV2SingleSelectFieldFragment
-	} `graphql:"... on ProjectV2SingleSelectField"`
-	Iteration struct {
-		projectV2IterationFieldFragment
-	} `graphql:"... on ProjectV2IterationField"`
-}
 
 func resourceGithubProjectField() *schema.Resource {
 	return &schema.Resource{
@@ -167,9 +124,9 @@ func resourceGithubProjectField() *schema.Resource {
 }
 
 func resourceGithubProjectFieldValidate(_ context.Context, d *schema.ResourceDiff, _ any) error {
-	dataType := d.Get("data_type").(string)
-	options := d.Get("single_select_option").([]any)
-	iterations := d.Get("iteration_configuration").([]any)
+	dataType := projectV2Get[string](d, "data_type")
+	options := projectV2Get[[]any](d, "single_select_option")
+	iterations := projectV2Get[[]any](d, "iteration_configuration")
 	if dataType == "SINGLE_SELECT" && len(options) == 0 {
 		return fmt.Errorf("single_select_option must contain at least one option for a SINGLE_SELECT field")
 	}
@@ -186,33 +143,30 @@ func resourceGithubProjectFieldValidate(_ context.Context, d *schema.ResourceDif
 }
 
 func resourceGithubProjectFieldCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	input := githubv4.CreateProjectV2FieldInput{
-		ProjectID: githubv4.ID(d.Get("project_id").(string)),
-		Name:      githubv4.String(d.Get("name").(string)),
-		DataType:  githubv4.ProjectV2CustomFieldType(d.Get("data_type").(string)),
-	}
-	if err := expandProjectV2FieldConfiguration(d, &input.SingleSelectOptions, &input.IterationConfiguration); err != nil {
+	configuration, err := expandProjectV2FieldConfiguration(d)
+	if err != nil {
 		return diag.FromErr(err)
 	}
-	var mutation struct {
-		CreateProjectV2Field struct {
-			Field projectV2FieldNode `graphql:"projectV2Field"`
-		} `graphql:"createProjectV2Field(input: $input)"`
+	input := fieldapplication.CreateInput{
+		ProjectID: projectV2Get[string](d, "project_id"), Name: projectV2Get[string](d, "name"), DataType: projectV2Get[string](d, "data_type"), Configuration: configuration,
 	}
-	if err := meta.(*Owner).v4client.Mutate(ctx, &mutation, input, nil); err != nil {
+	field, err := fieldusecases.NewCreate(fieldgithub.NewGateway(projectV2OwnerMetadata(meta).v4client)).Run(ctx, input)
+	if err != nil {
 		return diag.FromErr(err)
 	}
-	id := projectV2FieldNodeID(mutation.CreateProjectV2Field.Field)
-	if id == "" {
+	if field.ID == "" {
 		return diag.Errorf("GitHub returned a Projects V2 field without an ID")
 	}
-	d.SetId(id)
-	return resourceGithubProjectFieldRead(ctx, d, meta)
+	d.SetId(field.ID)
+	if err := setProjectV2FieldState(d, field); err != nil {
+		return diag.FromErr(err)
+	}
+	return nil
 }
 
 func resourceGithubProjectFieldRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	field, err := queryProjectV2Field(ctx, meta.(*Owner).v4client, d.Id())
-	if isProjectV2NotFound(err) {
+	field, err := fieldusecases.NewGet(fieldgithub.NewGateway(projectV2OwnerMetadata(meta).v4client)).Run(ctx, d.Id())
+	if errors.Is(err, projects.ErrNotFound) {
 		tflog.Info(ctx, "Removing project field from state because it no longer exists in GitHub", map[string]any{"id": d.Id()})
 		d.SetId("")
 		return nil
@@ -227,129 +181,87 @@ func resourceGithubProjectFieldRead(ctx context.Context, d *schema.ResourceData,
 }
 
 func resourceGithubProjectFieldUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	name := githubv4.String(d.Get("name").(string))
-	input := githubv4.UpdateProjectV2FieldInput{FieldID: githubv4.ID(d.Id()), Name: &name}
-	var singleSelectOptions *[]githubv4.ProjectV2SingleSelectFieldOptionInput
-	var iterationConfiguration *githubv4.ProjectV2IterationFieldConfigurationInput
+	input := fieldapplication.UpdateInput{ID: d.Id(), Name: projectV2Get[string](d, "name")}
 	if d.HasChange("single_select_option") || d.HasChange("iteration_configuration") {
-		if err := expandProjectV2FieldConfiguration(d, &singleSelectOptions, &iterationConfiguration); err != nil {
+		configuration, err := expandProjectV2FieldConfiguration(d)
+		if err != nil {
 			return diag.FromErr(err)
 		}
+		input.Configuration = &configuration
 	}
-	input.SingleSelectOptions = singleSelectOptions
-	input.IterationConfiguration = iterationConfiguration
-	var mutation struct {
-		UpdateProjectV2Field struct {
-			Field projectV2FieldNode `graphql:"projectV2Field"`
-		} `graphql:"updateProjectV2Field(input: $input)"`
-	}
-	if err := meta.(*Owner).v4client.Mutate(ctx, &mutation, input, nil); err != nil {
+	field, err := fieldusecases.NewUpdate(fieldgithub.NewGateway(projectV2OwnerMetadata(meta).v4client)).Run(ctx, input)
+	if err != nil {
 		return diag.FromErr(err)
 	}
-	return resourceGithubProjectFieldRead(ctx, d, meta)
+	if err := setProjectV2FieldState(d, field); err != nil {
+		return diag.FromErr(err)
+	}
+	return nil
 }
 
 func resourceGithubProjectFieldDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	var mutation struct {
-		DeleteProjectV2Field struct {
-			ClientMutationID githubv4.String
-		} `graphql:"deleteProjectV2Field(input: $input)"`
-	}
-	err := meta.(*Owner).v4client.Mutate(ctx, &mutation, githubv4.DeleteProjectV2FieldInput{FieldID: githubv4.ID(d.Id())}, nil)
-	if err != nil && !isProjectV2NotFound(err) {
+	err := fieldusecases.NewDelete(fieldgithub.NewGateway(projectV2OwnerMetadata(meta).v4client)).Run(ctx, d.Id())
+	if err != nil && !errors.Is(err, projects.ErrNotFound) {
 		return diag.FromErr(err)
 	}
 	return nil
 }
 
-func queryProjectV2Field(ctx context.Context, client *githubv4.Client, id string) (projectV2FieldNode, error) {
-	var query struct {
-		Node projectV2FieldNode `graphql:"node(id: $id)"`
-	}
-	err := client.Query(ctx, &query, map[string]any{"id": githubv4.ID(id)})
-	return query.Node, err
-}
-
-func projectV2FieldNodeID(field projectV2FieldNode) string {
-	switch field.Typename {
-	case "ProjectV2Field":
-		return string(field.Field.ID)
-	case "ProjectV2SingleSelectField":
-		return string(field.SingleSelect.ID)
-	case "ProjectV2IterationField":
-		return string(field.Iteration.ID)
-	}
-	return ""
-}
-
-func expandProjectV2FieldConfiguration(d *schema.ResourceData, options **[]githubv4.ProjectV2SingleSelectFieldOptionInput, configuration **githubv4.ProjectV2IterationFieldConfigurationInput) error {
-	switch d.Get("data_type").(string) {
+func expandProjectV2FieldConfiguration(d *schema.ResourceData) (fieldapplication.Configuration, error) {
+	var configuration fieldapplication.Configuration
+	switch projectV2Get[string](d, "data_type") {
 	case "SINGLE_SELECT":
-		expanded := make([]githubv4.ProjectV2SingleSelectFieldOptionInput, 0)
-		for _, raw := range d.Get("single_select_option").([]any) {
-			option := raw.(map[string]any)
-			expanded = append(expanded, githubv4.ProjectV2SingleSelectFieldOptionInput{
-				Name:        githubv4.String(option["name"].(string)),
-				Description: githubv4.String(option["description"].(string)),
-				Color:       githubv4.ProjectV2SingleSelectFieldOptionColor(option["color"].(string)),
+		configuration.SingleSelectOptions = make([]fieldapplication.SingleSelectOptionInput, 0)
+		for _, raw := range projectV2Get[[]any](d, "single_select_option") {
+			option := projectV2As[map[string]any](raw, "single_select_option")
+			configuration.SingleSelectOptions = append(configuration.SingleSelectOptions, fieldapplication.SingleSelectOptionInput{
+				Name: projectV2MapGet[string](option, "name"), Description: projectV2MapGet[string](option, "description"), Color: projectV2MapGet[string](option, "color"),
 			})
 		}
-		*options = &expanded
 	case "ITERATION":
-		raw := d.Get("iteration_configuration").([]any)[0].(map[string]any)
-		startDate, err := time.Parse(time.DateOnly, raw["start_date"].(string))
+		raw := projectV2As[map[string]any](projectV2Get[[]any](d, "iteration_configuration")[0], "iteration_configuration")
+		startDate, err := time.Parse(time.DateOnly, projectV2MapGet[string](raw, "start_date"))
 		if err != nil {
-			return err
+			return configuration, err
 		}
-		iterations := make([]githubv4.ProjectV2Iteration, 0)
-		for _, value := range raw["iteration"].([]any) {
-			iteration := value.(map[string]any)
-			iterationStart, err := time.Parse(time.DateOnly, iteration["start_date"].(string))
+		iterations := make([]fieldapplication.IterationInput, 0)
+		for _, value := range projectV2MapGet[[]any](raw, "iteration") {
+			iteration := projectV2As[map[string]any](value, "iteration")
+			iterationStart, err := time.Parse(time.DateOnly, projectV2MapGet[string](iteration, "start_date"))
 			if err != nil {
-				return err
+				return configuration, err
 			}
-			iterations = append(iterations, githubv4.ProjectV2Iteration{
-				Title:     githubv4.String(iteration["title"].(string)),
-				StartDate: githubv4.Date{Time: iterationStart},
-				Duration:  githubv4.Int(iteration["duration"].(int)),
+			iterations = append(iterations, fieldapplication.IterationInput{
+				Title: projectV2MapGet[string](iteration, "title"), StartDate: iterationStart, Duration: projectV2MapGet[int](iteration, "duration"),
 			})
 		}
-		*configuration = &githubv4.ProjectV2IterationFieldConfigurationInput{
-			StartDate:  githubv4.Date{Time: startDate},
-			Duration:   githubv4.Int(raw["duration"].(int)),
-			Iterations: iterations,
+		configuration.Iteration = &fieldapplication.IterationConfigurationInput{
+			StartDate: startDate, Duration: projectV2MapGet[int](raw, "duration"), Iterations: iterations,
 		}
 	}
-	return nil
+	return configuration, nil
 }
 
-func setProjectV2FieldState(d *schema.ResourceData, field projectV2FieldNode) error {
-	var base projectV2FieldFragment
+func setProjectV2FieldState(d *schema.ResourceData, field fieldapplication.Result) error {
 	var options []map[string]any
 	var configuration []map[string]any
-	switch field.Typename {
-	case "ProjectV2Field":
-		base = field.Field.projectV2FieldFragment
-	case "ProjectV2SingleSelectField":
-		base = field.SingleSelect.projectV2FieldFragment
-		for _, option := range field.SingleSelect.Options {
+	if field.SingleSelectOptions != nil {
+		for _, option := range field.SingleSelectOptions {
 			options = append(options, map[string]any{"id": option.ID, "name": option.Name, "description": option.Description, "color": option.Color})
 		}
-	case "ProjectV2IterationField":
-		base = field.Iteration.projectV2FieldFragment
-		iterations := make([]map[string]any, 0, len(field.Iteration.Configuration.Iterations))
-		for _, iteration := range field.Iteration.Configuration.Iterations {
+	}
+	if field.IterationConfiguration != nil {
+		iterations := make([]map[string]any, 0, len(field.IterationConfiguration.Iterations))
+		for _, iteration := range field.IterationConfiguration.Iterations {
 			iterations = append(iterations, map[string]any{
-				"id": iteration.ID, "title": iteration.Title, "start_date": iteration.StartDate.Format(time.DateOnly), "duration": int(iteration.Duration),
+				"id": iteration.ID, "title": iteration.Title, "start_date": iteration.StartDate.Format(time.DateOnly), "duration": iteration.Duration,
 			})
 		}
-		startDate := projectV2IterationStartDate(d, field.Iteration.Configuration.CompletedIterations, field.Iteration.Configuration.Iterations)
-		configuration = []map[string]any{{"start_date": startDate, "duration": int(field.Iteration.Configuration.Duration), "iteration": iterations}}
-	default:
-		return fmt.Errorf("GitHub returned an unsupported Projects V2 field type")
+		startDate := projectV2IterationStartDate(d, field.IterationConfiguration.CompletedIterations, field.IterationConfiguration.Iterations)
+		configuration = []map[string]any{{"start_date": startDate, "duration": field.IterationConfiguration.Duration, "iteration": iterations}}
 	}
 
-	values := map[string]any{"project_id": base.Project.ID, "name": base.Name, "data_type": base.DataType, "single_select_option": options, "iteration_configuration": configuration}
+	values := map[string]any{"project_id": field.ProjectID, "name": field.Name, "data_type": field.DataType, "single_select_option": options, "iteration_configuration": configuration}
 	for key, value := range values {
 		if err := d.Set(key, value); err != nil {
 			return fmt.Errorf("setting %s: %w", key, err)
@@ -358,9 +270,10 @@ func setProjectV2FieldState(d *schema.ResourceData, field projectV2FieldNode) er
 	return nil
 }
 
-func projectV2IterationStartDate(d *schema.ResourceData, completed, current []projectV2IterationFragment) string {
-	if configured := d.Get("iteration_configuration").([]any); len(configured) > 0 && configured[0] != nil {
-		if startDate, ok := configured[0].(map[string]any)["start_date"].(string); ok && startDate != "" {
+func projectV2IterationStartDate(d *schema.ResourceData, completed, current []fieldapplication.Iteration) string {
+	if configured := projectV2Get[[]any](d, "iteration_configuration"); len(configured) > 0 && configured[0] != nil {
+		configuration := projectV2As[map[string]any](configured[0], "iteration_configuration")
+		if startDate, ok := configuration["start_date"].(string); ok && startDate != "" {
 			return startDate
 		}
 	}
@@ -368,7 +281,7 @@ func projectV2IterationStartDate(d *schema.ResourceData, completed, current []pr
 	var earliest time.Time
 	for _, iteration := range append(completed, current...) {
 		if earliest.IsZero() || iteration.StartDate.Before(earliest) {
-			earliest = iteration.StartDate.Time
+			earliest = iteration.StartDate
 		}
 	}
 	if earliest.IsZero() {

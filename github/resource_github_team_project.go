@@ -2,21 +2,18 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/shurcooL/githubv4"
-)
 
-type projectV2TeamNode struct {
-	ID           githubv4.String
-	Slug         githubv4.String
-	Organization struct {
-		Login githubv4.String
-	}
-}
+	"github.com/integrations/terraform-provider-github/v6/internal/application/projects"
+	linkapplication "github.com/integrations/terraform-provider-github/v6/internal/application/projects/team/link"
+	linkusecases "github.com/integrations/terraform-provider-github/v6/internal/application/projects/team/link/use-cases"
+	linkgithub "github.com/integrations/terraform-provider-github/v6/internal/infrastructure/providers/github/projects/v2/team/link"
+)
 
 func resourceGithubTeamProject() *schema.Resource {
 	return &schema.Resource{
@@ -51,25 +48,21 @@ func resourceGithubTeamProject() *schema.Resource {
 }
 
 func resourceGithubTeamProjectCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	team, err := queryProjectV2TeamBySlug(ctx, meta.(*Owner).v4client, projectV2TeamOrganization(d, meta), d.Get("team_slug").(string))
+	link, err := linkusecases.NewAttach(linkgithub.NewGateway(projectV2OwnerMetadata(meta).v4client)).Run(ctx, linkapplication.AttachInput{
+		ProjectID: projectV2Get[string](d, "project_id"), Organization: projectV2TeamOrganization(d, meta), Slug: projectV2Get[string](d, "team_slug"),
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	var mutation struct {
-		LinkProjectV2ToTeam struct {
-			Team projectV2TeamNode
-		} `graphql:"linkProjectV2ToTeam(input: $input)"`
-	}
-	input := githubv4.LinkProjectV2ToTeamInput{ProjectID: githubv4.ID(d.Get("project_id").(string)), TeamID: githubv4.ID(team.ID)}
-	if err := meta.(*Owner).v4client.Mutate(ctx, &mutation, input, nil); err != nil {
-		return diag.FromErr(err)
-	}
-	id, err := buildID(d.Get("project_id").(string), string(team.ID))
+	id, err := buildID(link.ProjectID, link.TeamID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	d.SetId(id)
-	return resourceGithubTeamProjectRead(ctx, d, meta)
+	if err := setProjectV2TeamState(d, link); err != nil {
+		return diag.FromErr(err)
+	}
+	return nil
 }
 
 func resourceGithubTeamProjectRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
@@ -77,9 +70,8 @@ func resourceGithubTeamProjectRead(ctx context.Context, d *schema.ResourceData, 
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	client := meta.(*Owner).v4client
-	linked, err := projectV2HasTeam(ctx, client, projectID, teamID)
-	if isProjectV2NotFound(err) || (err == nil && !linked) {
+	link, err := linkusecases.NewGet(linkgithub.NewGateway(projectV2OwnerMetadata(meta).v4client)).Run(ctx, projectID, teamID)
+	if errors.Is(err, projects.ErrNotFound) {
 		tflog.Info(ctx, "Removing team project link from state because it no longer exists in GitHub", map[string]any{"id": d.Id()})
 		d.SetId("")
 		return nil
@@ -87,14 +79,8 @@ func resourceGithubTeamProjectRead(ctx context.Context, d *schema.ResourceData, 
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	team, err := queryProjectV2TeamByID(ctx, client, teamID)
-	if err != nil {
+	if err := setProjectV2TeamState(d, link); err != nil {
 		return diag.FromErr(err)
-	}
-	for key, value := range map[string]any{"project_id": projectID, "organization": team.Organization.Login, "team_slug": team.Slug} {
-		if err := d.Set(key, value); err != nil {
-			return diag.FromErr(fmt.Errorf("setting %s: %w", key, err))
-		}
 	}
 	return nil
 }
@@ -104,15 +90,18 @@ func resourceGithubTeamProjectDelete(ctx context.Context, d *schema.ResourceData
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	var mutation struct {
-		UnlinkProjectV2FromTeam struct {
-			Team projectV2TeamNode
-		} `graphql:"unlinkProjectV2FromTeam(input: $input)"`
-	}
-	input := githubv4.UnlinkProjectV2FromTeamInput{ProjectID: githubv4.ID(projectID), TeamID: githubv4.ID(teamID)}
-	err = meta.(*Owner).v4client.Mutate(ctx, &mutation, input, nil)
-	if err != nil && !isProjectV2NotFound(err) {
+	err = linkusecases.NewDetach(linkgithub.NewGateway(projectV2OwnerMetadata(meta).v4client)).Run(ctx, projectID, teamID)
+	if err != nil && !errors.Is(err, projects.ErrNotFound) {
 		return diag.FromErr(err)
+	}
+	return nil
+}
+
+func setProjectV2TeamState(d *schema.ResourceData, link linkapplication.Result) error {
+	for key, value := range map[string]any{"project_id": link.ProjectID, "organization": link.Organization, "team_slug": link.Slug} {
+		if err := d.Set(key, value); err != nil {
+			return fmt.Errorf("setting %s: %w", key, err)
+		}
 	}
 	return nil
 }
@@ -125,58 +114,8 @@ func resourceGithubTeamProjectImport(_ context.Context, d *schema.ResourceData, 
 }
 
 func projectV2TeamOrganization(d *schema.ResourceData, meta any) string {
-	if organization := d.Get("organization").(string); organization != "" {
+	if organization := projectV2Get[string](d, "organization"); organization != "" {
 		return organization
 	}
-	return meta.(*Owner).name
-}
-
-func queryProjectV2TeamBySlug(ctx context.Context, client *githubv4.Client, organization, slug string) (projectV2TeamNode, error) {
-	var query struct {
-		Organization struct {
-			Team projectV2TeamNode `graphql:"team(slug: $slug)"`
-		} `graphql:"organization(login: $organization)"`
-	}
-	err := client.Query(ctx, &query, map[string]any{"organization": githubv4.String(organization), "slug": githubv4.String(slug)})
-	return query.Organization.Team, err
-}
-
-func queryProjectV2TeamByID(ctx context.Context, client *githubv4.Client, id string) (projectV2TeamNode, error) {
-	var query struct {
-		Node struct {
-			Team projectV2TeamNode `graphql:"... on Team"`
-		} `graphql:"node(id: $id)"`
-	}
-	err := client.Query(ctx, &query, map[string]any{"id": githubv4.ID(id)})
-	return query.Node.Team, err
-}
-
-func projectV2HasTeam(ctx context.Context, client *githubv4.Client, projectID, teamID string) (bool, error) {
-	var after *githubv4.String
-	for {
-		var query struct {
-			Node struct {
-				Project struct {
-					Teams struct {
-						Nodes    []struct{ ID githubv4.String }
-						PageInfo PageInfo
-					} `graphql:"teams(first: 100, after: $after)"`
-				} `graphql:"... on ProjectV2"`
-			} `graphql:"node(id: $id)"`
-		}
-		err := client.Query(ctx, &query, map[string]any{"id": githubv4.ID(projectID), "after": after})
-		if err != nil {
-			return false, err
-		}
-		for _, team := range query.Node.Project.Teams.Nodes {
-			if string(team.ID) == teamID {
-				return true, nil
-			}
-		}
-		if !bool(query.Node.Project.Teams.PageInfo.HasNextPage) {
-			return false, nil
-		}
-		cursor := query.Node.Project.Teams.PageInfo.EndCursor
-		after = &cursor
-	}
+	return projectV2OwnerMetadata(meta).name
 }
