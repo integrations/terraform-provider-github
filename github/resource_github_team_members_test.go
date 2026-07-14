@@ -462,6 +462,11 @@ resource "github_team_members" "test" {
 				},
 				{
 					Config: fmt.Sprintf(config, testAccConf.testOrgUser1),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_team_members.test", plancheck.ResourceActionNoop),
+						},
+					},
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
 						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members").AtSliceIndex(0).AtMapKey("username"), knownvalue.StringExact(strings.ToLower(testAccConf.testOrgUser1))),
