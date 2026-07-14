@@ -59,6 +59,8 @@ jobs:
             test="true"
             environment="acctest-dotcom"
             echo "::notice::Running in ${GITHUB_EVENT_NAME} context, proceeding with tests."
+          elif [[ "${INPUT_ACCTEST_LABEL_SET}" == "false" ]]; then
+            echo "::notice::Skipping tests acctest label is not set."
           else
             if [[ "${INPUT_GITHUB_HEAD_REPO}" == "${INPUT_GITHUB_BASE_REPO}" ]]; then
               fork="false"
@@ -66,12 +68,8 @@ jobs:
               environment="acctest-dotcom"
               echo "::notice::Running in ${GITHUB_EVENT_NAME} context from the base repository, proceeding with tests."
             else
-              if [[ "${INPUT_ACCTEST_LABEL_SET}" == "true" ]]; then
-                test="true"
-                echo "::warning::Running in ${GITHUB_EVENT_NAME} context from a fork ${repository}, proceeding with tests as acctest label is set."
-              else
-                echo "::warning::Running in ${GITHUB_EVENT_NAME} context from a fork ${repository}, skipping tests as acctest label is not set."
-              fi
+              test="true"
+              echo "::warning::Running in ${GITHUB_EVENT_NAME} context from a fork ${repository}, proceeding with tests."
             fi
           fi
 
