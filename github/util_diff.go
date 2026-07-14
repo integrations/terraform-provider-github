@@ -5,7 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
+	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -288,4 +291,44 @@ func diffTeamCheck(ctx context.Context, client *github.Client, owner string, tea
 	}
 
 	return false, nil
+}
+
+// suppressUnorderedListDiff returns a schema.SchemaDiffSuppressFunc that suppresses diffs for unordered lists of any type.
+func suppressUnorderedListDiff(fieldKey string, f func(a, b any) int) schema.SchemaDiffSuppressFunc {
+	countKey := fieldKey + ".#"
+
+	return func(k, o, n string, d *schema.ResourceData) bool {
+		// Only handle this field subtree.
+		if k != fieldKey && !strings.HasPrefix(k, fieldKey+".") {
+			return false
+		}
+
+		// Count changed => definitely not suppressible.
+		if k == countKey {
+			return false
+		}
+
+		oldRaw, newRaw := d.GetChange(fieldKey)
+		oldListOrig, ok := oldRaw.([]any)
+		if !ok {
+			return false
+		}
+		newListOrig, ok := newRaw.([]any)
+		if !ok {
+			return false
+		}
+
+		// If the lengths are different, definitely not suppressible.
+		if len(oldListOrig) != len(newListOrig) {
+			return false
+		}
+
+		oldList := slices.Clone(oldListOrig)
+		newList := slices.Clone(newListOrig)
+
+		slices.SortFunc(oldList, f)
+		slices.SortFunc(newList, f)
+
+		return reflect.DeepEqual(oldList, newList)
+	}
 }
