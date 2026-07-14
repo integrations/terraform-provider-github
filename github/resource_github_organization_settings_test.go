@@ -41,6 +41,8 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 			dependency_graph_enabled_for_new_repositories = false
 			secret_scanning_enabled_for_new_repositories = false
 			secret_scanning_push_protection_enabled_for_new_repositories = false
+			secret_scanning_push_protection_custom_link_enabled = true
+			secret_scanning_push_protection_custom_link = "https://example.com/secret-scanning-help"
 		  }`
 
 		check := resource.ComposeTestCheckFunc(
@@ -161,6 +163,7 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 			dependency_graph_enabled_for_new_repositories = false
 			secret_scanning_enabled_for_new_repositories = false
 			secret_scanning_push_protection_enabled_for_new_repositories = false
+			secret_scanning_push_protection_custom_link_enabled = false
 		}`
 
 		check := resource.ComposeTestCheckFunc(
@@ -208,6 +211,10 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 				"github_organization_settings.test",
 				"secret_scanning_push_protection_enabled_for_new_repositories", "false",
 			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"secret_scanning_push_protection_custom_link_enabled", "false",
+			),
 		)
 
 		resource.Test(t, resource.TestCase{
@@ -236,6 +243,8 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 			dependency_graph_enabled_for_new_repositories = true
 			secret_scanning_enabled_for_new_repositories = false
 			secret_scanning_push_protection_enabled_for_new_repositories = true
+			secret_scanning_push_protection_custom_link_enabled = true
+			secret_scanning_push_protection_custom_link = "https://example.com/secret-scanning-help"
 		}`
 
 		check := resource.ComposeTestCheckFunc(
@@ -282,6 +291,14 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 			resource.TestCheckResourceAttr(
 				"github_organization_settings.test",
 				"secret_scanning_push_protection_enabled_for_new_repositories", "true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"secret_scanning_push_protection_custom_link_enabled", "true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"secret_scanning_push_protection_custom_link", "https://example.com/secret-scanning-help",
 			),
 		)
 
