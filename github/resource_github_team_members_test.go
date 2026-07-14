@@ -3,6 +3,7 @@ package github
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -18,6 +19,7 @@ func TestAccGithubTeamMembers(t *testing.T) {
 
 	skipUnlessHasOrgs(t)
 	skipUnlessHasOrgUser1(t)
+	flippedCaseUsername := flipUsernameCase(testAccConf.testOrgUser1)
 
 	t.Run("team_by_slug", func(t *testing.T) {
 		t.Parallel()
@@ -33,7 +35,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetSlug(), testAccConf.testOrgUser1)
+`, team.GetSlug(), flippedCaseUsername)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -71,7 +73,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetSlug(), testAccConf.testOrgUser1)
+`, team.GetSlug(), flippedCaseUsername)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -110,7 +112,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetID(), testAccConf.testOrgUser1)
+`, team.GetID(), flippedCaseUsername)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -148,7 +150,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetSlug(), testAccConf.testOrgUser1)
+`, team.GetSlug(), flippedCaseUsername)
 
 		configMigrate := fmt.Sprintf(`
 resource "github_team_members" "test" {
@@ -159,7 +161,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetSlug(), testAccConf.testOrgUser1)
+`, team.GetSlug(), flippedCaseUsername)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -201,7 +203,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetID(), testAccConf.testOrgUser1)
+`, team.GetID(), flippedCaseUsername)
 
 		configMigrate := fmt.Sprintf(`
 resource "github_team_members" "test" {
@@ -212,7 +214,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetSlug(), testAccConf.testOrgUser1)
+`, team.GetSlug(), flippedCaseUsername)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -257,7 +259,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetSlug(), testAccConf.testOrgUser1)
+`, team.GetSlug(), flippedCaseUsername)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -296,7 +298,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetSlug(), testAccConf.testOrgUser1)
+`, team.GetSlug(), flippedCaseUsername)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -326,7 +328,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, testAccConf.testOrgUser1)
+`, flippedCaseUsername)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -364,7 +366,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetSlug(), testAccConf.testOrgUser1)
+`, team.GetSlug(), flippedCaseUsername)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -403,7 +405,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, testAccConf.testOrgUser1)
+`, flippedCaseUsername)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -425,6 +427,44 @@ resource "github_team_members" "test" {
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("team_id"), knownvalue.StringExact(strconv.FormatInt(newTeam.GetID(), 10))),
 						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("is_case_insensitive", func(t *testing.T) {
+		t.Parallel()
+
+		team := mustCreateTestTeam(t, nil)
+
+		config := fmt.Sprintf(`
+resource "github_team_members" "test" {
+  team_slug = "%s"
+
+  members {
+    username = "%%s"
+    role     = "maintainer"
+  }
+}
+`, team.GetSlug())
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, flippedCaseUsername),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members").AtSliceIndex(0).AtMapKey("username"), knownvalue.StringExact(strings.ToLower(testAccConf.testOrgUser1))),
+					},
+				},
+				{
+					Config: fmt.Sprintf(config, testAccConf.testOrgUser1),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members").AtSliceIndex(0).AtMapKey("username"), knownvalue.StringExact(strings.ToLower(testAccConf.testOrgUser1))),
 					},
 				},
 			},
