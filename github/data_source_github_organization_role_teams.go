@@ -2,7 +2,7 @@ package github
 
 import (
 	"context"
-	"fmt"
+	"strconv"
 
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -11,13 +11,13 @@ import (
 
 func dataSourceGithubOrganizationRoleTeams() *schema.Resource {
 	return &schema.Resource{
-		Description: "Lookup all teams assigned to a custom organization role.",
-
 		ReadContext: dataSourceGithubOrganizationRoleTeamsRead,
+
+		Description: "Data source to list all teams assigned to a custom organization role.",
 
 		Schema: map[string]*schema.Schema{
 			"role_id": {
-				Description: "The unique identifier of the organization role.",
+				Description: "ID of the organization role.",
 				Type:        schema.TypeInt,
 				Required:    true,
 				ForceNew:    true,
@@ -28,43 +28,71 @@ func dataSourceGithubOrganizationRoleTeams() *schema.Resource {
 				Computed:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"team_id": {
-							Description: "The ID of the team.",
+						"id": {
+							Description: "ID of the team.",
 							Type:        schema.TypeInt,
 							Computed:    true,
 						},
+						"team_id": {
+							Description: "ID of the team.",
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Deprecated:  "The `team_id` attribute is deprecated and will be removed in a future version of the provider. Use `id` instead.",
+						},
 						"slug": {
-							Description: "The Slug of the team name.",
+							Description: "Slug of the team name.",
 							Type:        schema.TypeString,
 							Computed:    true,
 						},
 						"name": {
-							Description: "The name of the team.",
+							Description: "Name of the team.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"description": {
+							Description: "Description of the team.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"type": {
+							Description: "Ownership type of the team; one of `enterprise` or `organization`.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"privacy": {
+							Description: "Privacy level of the team; one of `secret` or `closed`.",
 							Type:        schema.TypeString,
 							Computed:    true,
 						},
 						"permission": {
-							Description: "The permission that the team will have for its repositories.",
+							Description: "Legacy default repository permission for the team (typically pull, push, or admin), used when adding a repository without specifying an explicit permission. This does not represent effective access for all repositories or custom repository roles.",
 							Type:        schema.TypeString,
 							Computed:    true,
 						},
-						// TODO: Add these fields when go-github is v68+
-						// See https://github.com/google/go-github/issues/3364
-						// "assignment": {
-						// 	Description: "Determines if the team has a direct, indirect, or mixed relationship to a role.",
-						// 	Type:        schema.TypeString,
-						// 	Computed:    true,
-						// },
-						// "parent_team_id": {
-						// 	Description: "The ID of the parent team if this is an indirect assignment.",
-						// 	Type:        schema.TypeString,
-						// 	Computed:    true,
-						// },
-						// "parent_team_slug": {
-						// 	Description: "The slug of the parent team if this is an indirect assignment.",
-						// 	Type:        schema.TypeString,
-						// 	Computed:    true,
-						// },
+						"assignment": {
+							Description: "Relationship a team has with a role; one of `direct`, `indirect`, or `mixed`.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"parent_team": {
+							Description: "Parent team; only set if this is an indirect assignment.",
+							Type:        schema.TypeList,
+							Computed:    true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"id": {
+										Description: "ID of the parent team.",
+										Type:        schema.TypeInt,
+										Computed:    true,
+									},
+									"slug": {
+										Description: "Slug of the parent team name.",
+										Type:        schema.TypeString,
+										Computed:    true,
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -72,43 +100,50 @@ func dataSourceGithubOrganizationRoleTeams() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationRoleTeamsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+func dataSourceGithubOrganizationRoleTeamsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 
-	roleId := int64(d.Get("role_id").(int))
-
-	allTeams := make([]any, 0)
-
-	opts := &github.ListOptions{
-		PerPage: maxPerPage,
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
 	}
 
-	for {
-		teams, resp, err := client.Organizations.ListTeamsAssignedToOrgRole(ctx, orgName, roleId, opts)
+	roleIdInt, _ := d.Get("role_id").(int)
+	roleID := int64(roleIdInt)
+
+	teams := make([]any, 0)
+	for team, err := range meta.v3client.Organizations.ListTeamsAssignedToOrgRoleIter(ctx, meta.name, roleID, &github.ListOptions{PerPage: maxPerPage}) {
 		if err != nil {
 			return diag.FromErr(err)
 		}
 
-		for _, team := range teams {
-			t := map[string]any{
-				"team_id":    int(team.GetID()),
-				"slug":       team.GetSlug(),
-				"name":       team.GetName(),
-				"permission": team.GetPermission(),
-			}
-			allTeams = append(allTeams, t)
+		t := map[string]any{
+			"id":          int(team.GetID()),
+			"team_id":     int(team.GetID()),
+			"slug":        team.GetSlug(),
+			"name":        team.GetName(),
+			"description": team.GetDescription(),
+			"type":        team.GetType(),
+			"privacy":     team.GetPrivacy(),
+			"permission":  team.GetPermission(),
+			"assignment":  team.GetAssignment(),
 		}
 
-		if resp.NextPage == 0 {
-			break
+		if team.Parent != nil {
+			t["parent_team"] = []map[string]any{
+				{
+					"id":   int(team.Parent.GetID()),
+					"slug": team.Parent.GetSlug(),
+				},
+			}
 		}
-		opts.Page = resp.NextPage
+
+		teams = append(teams, t)
 	}
 
-	d.SetId(fmt.Sprintf("%d", roleId))
-	if err := d.Set("teams", allTeams); err != nil {
-		return diag.FromErr(fmt.Errorf("error setting teams: %w", err))
+	d.SetId(strconv.FormatInt(roleID, 10))
+
+	if err := d.Set("teams", teams); err != nil {
+		return diag.Errorf("error setting teams: %v", err)
 	}
 
 	return nil

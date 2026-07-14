@@ -53,6 +53,80 @@ func mustCreateTestGitHubClient(t *testing.T, baseURL string, opts ...github.Cli
 	return client
 }
 
+func mustGetOrganizationRole(t *testing.T, roleID int64) *github.CustomOrgRole {
+	t.Helper()
+
+	role, _, err := testAccConf.meta.v3client.Organizations.GetOrgRole(t.Context(), testAccConf.meta.name, roleID)
+	if err != nil {
+		t.Fatalf("failed to get test organization role: %v", err)
+	}
+	return role
+}
+
+func mustAddOrganizationRoleUser(t *testing.T, role *github.CustomOrgRole, username string) {
+	t.Helper()
+
+	_, err := testAccConf.meta.v3client.Organizations.AssignOrgRoleToUser(t.Context(), testAccConf.meta.name, username, role.GetID())
+	if err != nil {
+		t.Fatalf("failed to add user %s to test organization role %s: %v", username, role.GetName(), err)
+	}
+
+	t.Cleanup(func() {
+		if _, err := testAccConf.meta.v3client.Organizations.RemoveOrgRoleFromUser(context.Background(), testAccConf.meta.name, username, role.GetID()); err != nil {
+			if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == 404 {
+				return
+			}
+			t.Logf("failed to remove user %s from test organization role %s: %v", username, role.GetName(), err)
+		}
+	})
+}
+
+func mustAddOrganizationRoleTeam(t *testing.T, role *github.CustomOrgRole, team *github.Team) {
+	t.Helper()
+
+	_, err := testAccConf.meta.v3client.Organizations.AssignOrgRoleToTeam(t.Context(), testAccConf.meta.name, team.GetSlug(), role.GetID())
+	if err != nil {
+		t.Fatalf("failed to add team %s to test organization role %s: %v", team.GetName(), role.GetName(), err)
+	}
+
+	t.Cleanup(func() {
+		if _, err := testAccConf.meta.v3client.Organizations.RemoveOrgRoleFromTeam(context.Background(), testAccConf.meta.name, team.GetSlug(), role.GetID()); err != nil {
+			if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == 404 {
+				return
+			}
+			t.Logf("failed to remove team %s from test organization role %s: %v", team.GetName(), role.GetName(), err)
+		}
+	})
+}
+
+func mustCreateTestOrganizationRepositoryRole(t *testing.T) *github.CustomRepoRoles {
+	t.Helper()
+
+	randomID := acctest.RandString(testRandomIDLength)
+	name := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+
+	role, _, err := testAccConf.meta.v3client.Organizations.CreateCustomRepoRole(t.Context(), testAccConf.meta.name, &github.CreateOrUpdateCustomRepoRoleOptions{
+		Name:        &name,
+		Description: new("Test organization repository role."),
+		BaseRole:    new("read"),
+		Permissions: []string{},
+	})
+	if err != nil {
+		t.Fatalf("failed to create test organization repository role: %v", err)
+	}
+
+	t.Cleanup(func() {
+		if _, err := testAccConf.meta.v3client.Organizations.DeleteCustomRepoRole(context.Background(), testAccConf.meta.name, role.GetID()); err != nil {
+			if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == 404 {
+				return
+			}
+			t.Logf("failed to delete test organization repository role %s: %v", name, err)
+		}
+	})
+
+	return role
+}
+
 func mustCreateTestOrganizationRepositoryCustomProperty(t *testing.T, valType string, allowed []string) *github.CustomProperty {
 	t.Helper()
 
@@ -211,6 +285,15 @@ func mustAddRepositoryCollaborator(t *testing.T, repo *github.Repository, userna
 	_, _, err := testAccConf.meta.v3client.Repositories.AddCollaborator(t.Context(), testAccConf.meta.name, repo.GetName(), username, &github.RepositoryAddCollaboratorOptions{Permission: "push"})
 	if err != nil {
 		t.Fatalf("failed to add collaborator %s to test repository %s: %v", username, repo.GetName(), err)
+	}
+}
+
+func mustAddRepositoryTeam(t *testing.T, repo *github.Repository, team *github.Team) {
+	t.Helper()
+
+	_, err := testAccConf.meta.v3client.Teams.AddTeamRepoByID(t.Context(), testAccConf.meta.id, team.GetID(), testAccConf.meta.name, repo.GetName(), &github.TeamAddTeamRepoOptions{Permission: "pull"})
+	if err != nil {
+		t.Fatalf("failed to add team %s to test repository %s: %v", team.GetName(), repo.GetName(), err)
 	}
 }
 

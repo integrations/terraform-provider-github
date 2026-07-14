@@ -10,33 +10,33 @@ import (
 
 func dataSourceGithubOrganizationRepositoryRole() *schema.Resource {
 	return &schema.Resource{
-		Description: "Lookup a custom organization repository role.",
-
 		ReadContext: dataSourceGithubOrganizationRepositoryRoleRead,
+
+		Description: "Data source to lookup a custom organization repository role.",
 
 		Schema: map[string]*schema.Schema{
 			"role_id": {
-				Description: "The ID of the organization repository role.",
+				Description: "ID of the organization repository role.",
 				Type:        schema.TypeInt,
 				Required:    true,
 			},
 			"name": {
-				Description: "The name of the organization repository role.",
+				Description: "Name of the organization repository role.",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
 			"description": {
-				Description: "The description of the organization repository role.",
+				Description: "Description of the organization repository role.",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
 			"base_role": {
-				Description: "The system role from which this role inherits permissions.",
+				Description: "System role from which this role inherits permissions.",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
 			"permissions": {
-				Description: "The permissions included in this role.",
+				Description: "Additional permissions included in this role.",
 				Type:        schema.TypeSet,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 				Computed:    true,
@@ -45,13 +45,17 @@ func dataSourceGithubOrganizationRepositoryRole() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationRepositoryRoleRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+func dataSourceGithubOrganizationRepositoryRoleRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 
-	roleId := int64(d.Get("role_id").(int))
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
+	}
 
-	role, _, err := client.Organizations.GetCustomRepoRole(ctx, orgName, roleId)
+	roleIdInt, _ := d.Get("role_id").(int)
+	roleID := int64(roleIdInt)
+
+	role, _, err := meta.v3client.Organizations.GetCustomRepoRole(ctx, meta.name, roleID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
