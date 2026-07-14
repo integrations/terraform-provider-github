@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-testing/compare"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
@@ -449,6 +450,7 @@ resource "github_team_members" "test" {
 }
 `, team.GetSlug())
 
+		usernameIsSameComparer := statecheck.CompareValue(compare.ValuesSame())
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
@@ -456,6 +458,7 @@ resource "github_team_members" "test" {
 				{
 					Config: fmt.Sprintf(config, flippedCaseUsername),
 					ConfigStateChecks: []statecheck.StateCheck{
+						usernameIsSameComparer.AddStateValue("github_team_members.test", tfjsonpath.New("members").AtSliceIndex(0).AtMapKey("username")),
 						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
 						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members").AtSliceIndex(0).AtMapKey("username"), knownvalue.StringExact(strings.ToLower(testAccConf.testOrgUser1))),
 					},
@@ -468,8 +471,8 @@ resource "github_team_members" "test" {
 						},
 					},
 					ConfigStateChecks: []statecheck.StateCheck{
+						usernameIsSameComparer.AddStateValue("github_team_members.test", tfjsonpath.New("members").AtSliceIndex(0).AtMapKey("username")),
 						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
-						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members").AtSliceIndex(0).AtMapKey("username"), knownvalue.StringExact(strings.ToLower(testAccConf.testOrgUser1))),
 					},
 				},
 			},
