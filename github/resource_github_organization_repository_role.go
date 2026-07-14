@@ -200,8 +200,7 @@ func resourceGithubOrganizationRepositoryRoleDelete(ctx context.Context, d *sche
 	return nil
 }
 
-// Snapshot of the response to https://docs.github.com/en/enterprise-cloud@latest/rest/orgs/custom-roles?apiVersion=2026-03-10#list-repository-fine-grained-permissions-for-an-organization
-// The endpoint isn't covered in the SDK yet.
+// Snapshot of the response to https://docs.github.com/en/enterprise-cloud@latest/rest/orgs/custom-roles?apiVersion=2022-11-28#list-repository-fine-grained-permissions-for-an-organization
 var validRolePermissions = []string{
 	"add_assignee",
 	"add_label",
