@@ -39,14 +39,17 @@ type projectV2SingleSelectFieldFragment struct {
 type projectV2IterationFieldFragment struct {
 	projectV2FieldFragment
 	Configuration struct {
-		Duration   githubv4.Int
-		Iterations []struct {
-			ID        githubv4.String
-			Title     githubv4.String
-			StartDate githubv4.Date
-			Duration  githubv4.Int
-		}
+		Duration            githubv4.Int
+		Iterations          []projectV2IterationFragment
+		CompletedIterations []projectV2IterationFragment
 	}
+}
+
+type projectV2IterationFragment struct {
+	ID        githubv4.String
+	Title     githubv4.String
+	StartDate githubv4.Date
+	Duration  githubv4.Int
 }
 
 type projectV2FieldNode struct {
@@ -228,8 +231,10 @@ func resourceGithubProjectFieldUpdate(ctx context.Context, d *schema.ResourceDat
 	input := githubv4.UpdateProjectV2FieldInput{FieldID: githubv4.ID(d.Id()), Name: &name}
 	var singleSelectOptions *[]githubv4.ProjectV2SingleSelectFieldOptionInput
 	var iterationConfiguration *githubv4.ProjectV2IterationFieldConfigurationInput
-	if err := expandProjectV2FieldConfiguration(d, &singleSelectOptions, &iterationConfiguration); err != nil {
-		return diag.FromErr(err)
+	if d.HasChange("single_select_option") || d.HasChange("iteration_configuration") {
+		if err := expandProjectV2FieldConfiguration(d, &singleSelectOptions, &iterationConfiguration); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	input.SingleSelectOptions = singleSelectOptions
 	input.IterationConfiguration = iterationConfiguration
@@ -338,10 +343,7 @@ func setProjectV2FieldState(d *schema.ResourceData, field projectV2FieldNode) er
 				"id": iteration.ID, "title": iteration.Title, "start_date": iteration.StartDate.Format(time.DateOnly), "duration": int(iteration.Duration),
 			})
 		}
-		startDate := ""
-		if len(field.Iteration.Configuration.Iterations) > 0 {
-			startDate = field.Iteration.Configuration.Iterations[0].StartDate.Format(time.DateOnly)
-		}
+		startDate := projectV2IterationStartDate(d, field.Iteration.Configuration.CompletedIterations, field.Iteration.Configuration.Iterations)
 		configuration = []map[string]any{{"start_date": startDate, "duration": int(field.Iteration.Configuration.Duration), "iteration": iterations}}
 	default:
 		return fmt.Errorf("GitHub returned an unsupported Projects V2 field type")
@@ -354,4 +356,23 @@ func setProjectV2FieldState(d *schema.ResourceData, field projectV2FieldNode) er
 		}
 	}
 	return nil
+}
+
+func projectV2IterationStartDate(d *schema.ResourceData, completed, current []projectV2IterationFragment) string {
+	if configured := d.Get("iteration_configuration").([]any); len(configured) > 0 && configured[0] != nil {
+		if startDate, ok := configured[0].(map[string]any)["start_date"].(string); ok && startDate != "" {
+			return startDate
+		}
+	}
+
+	var earliest time.Time
+	for _, iteration := range append(completed, current...) {
+		if earliest.IsZero() || iteration.StartDate.Before(earliest) {
+			earliest = iteration.StartDate.Time
+		}
+	}
+	if earliest.IsZero() {
+		return ""
+	}
+	return earliest.Format(time.DateOnly)
 }

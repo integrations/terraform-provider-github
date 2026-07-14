@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
@@ -315,6 +316,47 @@ func TestValidateProjectV2Date(t *testing.T) {
 	if _, errors := validateProjectV2Date("2026-07-14T00:00:00Z", "date"); len(errors) == 0 {
 		t.Fatal("RFC3339 timestamp was accepted as a Projects V2 date")
 	}
+}
+
+func TestSetProjectV2FieldStatePreservesIterationStartDate(t *testing.T) {
+	t.Parallel()
+
+	resource := resourceGithubProjectField()
+	d := schema.TestResourceDataRaw(t, resource.Schema, map[string]any{
+		"project_id": "PVT_1",
+		"name":       "Sprint",
+		"data_type":  "ITERATION",
+		"iteration_configuration": []any{map[string]any{
+			"start_date": "2026-01-05",
+			"duration":   14,
+		}},
+	})
+	field := projectV2FieldNode{Typename: "ProjectV2IterationField"}
+	field.Iteration.ID = "PVTF_1"
+	field.Iteration.Name = "Sprint"
+	field.Iteration.DataType = "ITERATION"
+	field.Iteration.Project.ID = "PVT_1"
+	field.Iteration.Configuration.Duration = 14
+	field.Iteration.Configuration.Iterations = []projectV2IterationFragment{{
+		ID: "iteration-1", Title: "Sprint 14", StartDate: githubv4.Date{Time: mustParseProjectV2Date(t, "2026-07-06")}, Duration: 14,
+	}}
+
+	if err := setProjectV2FieldState(d, field); err != nil {
+		t.Fatalf("setting iteration field state: %v", err)
+	}
+	configuration := d.Get("iteration_configuration").([]any)[0].(map[string]any)
+	if got := configuration["start_date"].(string); got != "2026-01-05" {
+		t.Fatalf("iteration start date changed to %q", got)
+	}
+}
+
+func mustParseProjectV2Date(t *testing.T, value string) time.Time {
+	t.Helper()
+	parsed, err := time.Parse(time.DateOnly, value)
+	if err != nil {
+		t.Fatalf("parsing date: %v", err)
+	}
+	return parsed
 }
 
 func newProjectV2TestClient(t *testing.T, response func(query string) string) (*githubv4.Client, *[]string) {
