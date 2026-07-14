@@ -19,11 +19,12 @@ func dataSourceGithubTeam() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"team_id": {
-				Description:  "ID of the team.",
-				Type:         schema.TypeInt,
-				Optional:     true,
-				Computed:     true,
-				ExactlyOneOf: []string{"team_id", "slug"},
+				Description:      "ID of the team.",
+				Type:             schema.TypeInt,
+				Optional:         true,
+				Computed:         true,
+				ExactlyOneOf:     []string{"team_id", "slug"},
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(1)),
 			},
 			"slug": {
 				Description:  "Slug of the team name.",

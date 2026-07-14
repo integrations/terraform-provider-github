@@ -93,16 +93,20 @@ data "github_team" "test" {
 		t.Parallel()
 
 		skipUnlessHasOrgUser1(t)
+		skipUnlessHasOrgUser2(t)
 
 		team := mustCreateTestTeam(t, nil)
-		repo := mustCreateTestRepository(t)
 		mustAddTeamMember(t, team, testAccConf.testOrgUser1)
+		childTeam := mustCreateTestTeam(t, new(team.GetID()))
+		mustAddTeamMember(t, childTeam, testAccConf.testOrgUser2)
+		repo := mustCreateTestRepository(t)
 		mustAddRepositoryTeam(t, repo, team)
 
 		config := fmt.Sprintf(`
 data "github_team" "test" {
-  slug         = "%s"
-  summary_only = false
+  slug            = "%s"
+  summary_only    = false
+  membership_type = "%%v"
 }
 `, team.GetSlug())
 
@@ -110,7 +114,36 @@ data "github_team" "test" {
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: config,
+					Config: fmt.Sprintf(config, "all"),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("team_id"), knownvalue.Int32Exact(int32(team.GetID()))),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("slug"), knownvalue.StringExact(team.GetSlug())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("node_id"), knownvalue.StringExact(team.GetNodeID())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("name"), knownvalue.StringExact(team.GetName())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("description"), knownvalue.StringExact(team.GetDescription())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("type"), knownvalue.StringExact(team.GetType())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("privacy"), knownvalue.StringExact(team.GetPrivacy())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("notification_setting"), knownvalue.StringExact(team.GetNotificationSetting())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("permission"), knownvalue.StringExact(team.GetPermission())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("parent_team"), knownvalue.Null()),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("members"), knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.StringExact(testAccConf.testOrgUser1),
+							knownvalue.StringExact(testAccConf.testOrgUser2),
+						})),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("repositories"), knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.StringExact(repo.GetName()),
+						})),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("repositories_detailed"), knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"repo_id":   knownvalue.Int32Exact(int32(repo.GetID())),
+								"repo_name": knownvalue.StringExact(repo.GetName()),
+								"role_name": knownvalue.StringExact("read"),
+							}),
+						})),
+					},
+				},
+				{
+					Config: fmt.Sprintf(config, "immediate"),
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("team_id"), knownvalue.Int32Exact(int32(team.GetID()))),
 						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("slug"), knownvalue.StringExact(team.GetSlug())),

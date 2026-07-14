@@ -92,9 +92,10 @@ func dataSourceGithubRepositoryTeams() *schema.Resource {
 func dataSourceGithubRepositoryTeamsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 
-	if ok, diags := checkOrganizationOK(meta); !ok {
-		return diags
-	}
+	// TODO: Reinstate this check for v7 when `full_name` is removed from the schema.
+	// if ok, diags := checkOrganizationOK(meta); !ok {
+	// 	return diags
+	// }
 
 	var owner, repoName string
 	if v, ok := d.GetOk("full_name"); ok {

@@ -71,7 +71,7 @@ data "github_organization_teams" "test" {
 								"members":      knownvalue.ListSizeExact(0),
 								"repositories": knownvalue.ListSizeExact(0),
 								"parent": knownvalue.MapExact(map[string]knownvalue.Check{
-									"id":   knownvalue.StringExact(strconv.FormatInt(team1.GetID(), 10)),
+									"id":   knownvalue.StringExact(team1.GetNodeID()),
 									"slug": knownvalue.StringExact(team1.GetSlug()),
 									"name": knownvalue.StringExact(team1.GetName()),
 								}),

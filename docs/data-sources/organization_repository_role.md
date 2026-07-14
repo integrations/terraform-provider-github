@@ -9,6 +9,8 @@ description: |-
 
 Data source to lookup a custom organization repository role.
 
+~> Custom organization repository roles are currently only available for GitHub Enterprise organizations.
+
 ## Example Usage
 
 ```terraform
