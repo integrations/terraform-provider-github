@@ -174,8 +174,9 @@ func dataSourceGithubRepository() *schema.Resource {
 							Description: "The path of the license file in the repository.",
 						},
 						"license": {
-							Type:     schema.TypeList,
-							Computed: true,
+							Type:        schema.TypeList,
+							Computed:    true,
+							Description: "The license information for the license file in the repository.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"key": {
@@ -296,7 +297,7 @@ func dataSourceGithubRepository() *schema.Resource {
 				Type:        schema.TypeList,
 				Computed:    true,
 				Deprecated:  "Use the github_repository_pages data source instead. This field will be removed in a future version.",
-				Description: "The repository's GitHub Pages configuration. Use the `github_repository_pages` data source instead. This field will be removed in a future version.",
+				Description: "Use the `github_repository_pages` data source instead. This field will be removed in a future version.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"source": {
@@ -380,12 +381,14 @@ func dataSourceGithubRepository() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"owner": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Owner of the template repository.",
 						},
 						"repository": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Name of the template repository.",
 						},
 					},
 				},
