@@ -109,7 +109,7 @@ func mustCreateTestOrganizationRepositoryRole(t *testing.T) *github.CustomRepoRo
 		Name:        &name,
 		Description: new("Test organization repository role."),
 		BaseRole:    new("read"),
-		Permissions: []string{},
+		Permissions: []string{"reopen_issue"},
 	})
 	if err != nil {
 		t.Fatalf("failed to create test organization repository role: %v", err)

@@ -68,7 +68,7 @@ Read-Only:
 - `id` (Number) ID of the team.
 - `name` (String) Name of the team.
 - `node_id` (String) Node ID of the team.
-- `permission` (String) Legacy default repository permission for the team (typically pull, push, or admin), used when adding a repository without specifying an explicit permission. This does not represent effective access for all repositories or custom repository roles.
+- `permission` (String) Permission the team has for this repository.
 - `privacy` (String) Privacy level of the team; one of `secret` or `closed`.
 - `slug` (String) Slug of the team name.
 - `type` (String) Ownership type of the team; one of `enterprise` or `organization`.

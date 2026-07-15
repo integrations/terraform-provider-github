@@ -198,10 +198,9 @@ func dataSourceGithubTeamRead(ctx context.Context, d *schema.ResourceData, m any
 		}
 	}
 
+	var members, repositories []string
+	var repositoriesDetailed []map[string]any
 	if !summaryOnly {
-		var members, repositories []string
-		var repositoriesDetailed []map[string]any
-
 		membershipType, _ := d.Get("membership_type").(string)
 
 		for member, err := range client.Teams.ListTeamMembersBySlugIter(ctx, meta.name, team.GetSlug(), &github.TeamListTeamMembersOptions{ListOptions: github.ListOptions{PerPage: maxPerPage}}) {
@@ -229,11 +228,11 @@ func dataSourceGithubTeamRead(ctx context.Context, d *schema.ResourceData, m any
 				"role_name": repo.GetRoleName(),
 			})
 		}
-
-		t["members"] = members
-		t["repositories"] = repositories
-		t["repositories_detailed"] = repositoriesDetailed
 	}
+
+	t["members"] = members
+	t["repositories"] = repositories
+	t["repositories_detailed"] = repositoriesDetailed
 
 	d.SetId(strconv.FormatInt(team.GetID(), 10))
 

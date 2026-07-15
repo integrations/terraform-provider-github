@@ -73,7 +73,7 @@ func dataSourceGithubRepositoryTeams() *schema.Resource {
 							Computed:    true,
 						},
 						"permission": {
-							Description: "Legacy default repository permission for the team (typically pull, push, or admin), used when adding a repository without specifying an explicit permission. This does not represent effective access for all repositories or custom repository roles.",
+							Description: "Permission the team has for this repository.",
 							Type:        schema.TypeString,
 							Computed:    true,
 						},
