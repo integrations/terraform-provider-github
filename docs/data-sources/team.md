@@ -103,4 +103,4 @@ Read-Only:
 
 - `repo_id` (Number) ID of the repository.
 - `repo_name` (String) Name of the repository.
-- `role_name` (String) Role of the team for the repository; one of `admin`, `maintain`, `push`, `triage`, or `pull`.
+- `role_name` (String) Role the team has for the repository.

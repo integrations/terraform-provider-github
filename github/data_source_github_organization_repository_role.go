@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func dataSourceGithubOrganizationRepositoryRole() *schema.Resource {
@@ -16,9 +17,10 @@ func dataSourceGithubOrganizationRepositoryRole() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"role_id": {
-				Description: "ID of the organization repository role.",
-				Type:        schema.TypeInt,
-				Required:    true,
+				Description:      "ID of the organization repository role.",
+				Type:             schema.TypeInt,
+				Required:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(1)),
 			},
 			"name": {
 				Description: "Name of the organization repository role.",

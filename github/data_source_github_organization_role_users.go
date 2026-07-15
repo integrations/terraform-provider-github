@@ -7,6 +7,7 @@ import (
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func dataSourceGithubOrganizationRoleUsers() *schema.Resource {
@@ -17,10 +18,11 @@ func dataSourceGithubOrganizationRoleUsers() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"role_id": {
-				Description: "ID of the organization role.",
-				Type:        schema.TypeInt,
-				Required:    true,
-				ForceNew:    true,
+				Description:      "ID of the organization role.",
+				Type:             schema.TypeInt,
+				Required:         true,
+				ForceNew:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(1)),
 			},
 			"users": {
 				Description: "Users assigned to the organization role.",

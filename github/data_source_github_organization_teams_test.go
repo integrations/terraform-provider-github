@@ -123,8 +123,12 @@ data "github_organization_teams" "test" {
 								"parent_team_slug":     knownvalue.StringExact(""),
 							}),
 						})),
+						statecheck.ExpectKnownValue("data.github_organization_teams.test", tfjsonpath.New("teams"), SetAbsent([]knownvalue.Check{
+							knownvalue.MapPartial(map[string]knownvalue.Check{
+								"slug": knownvalue.StringExact(team2.GetSlug()),
+							}),
+						})),
 					},
-					Check: checkCollectionItemAbsent("data.github_organization_teams.test", "teams", "slug", team2.GetSlug()),
 				},
 			},
 		})

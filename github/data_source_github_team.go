@@ -130,7 +130,7 @@ func dataSourceGithubTeam() *schema.Resource {
 							Computed:    true,
 						},
 						"role_name": {
-							Description: "Role of the team for the repository; one of `admin`, `maintain`, `push`, `triage`, or `pull`.",
+							Description: "Role the team has for the repository.",
 							Type:        schema.TypeString,
 							Computed:    true,
 						},
