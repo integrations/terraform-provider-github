@@ -16,3 +16,7 @@ func Error(operation string, err error) error {
 	}
 	return fmt.Errorf("%s: %w", operation, err)
 }
+
+func NotFound(operation string) error {
+	return fmt.Errorf("%s: %w", operation, projects.ErrNotFound)
+}

@@ -62,6 +62,23 @@ func TestSetProjectV2FieldStatePreservesIterationStartDate(t *testing.T) {
 	}
 }
 
+func TestResourceGithubProjectFieldReadRemovesDeletedField(t *testing.T) {
+	t.Parallel()
+	client, _ := newProjectV2TestClient(t, func(projectV2GraphQLRequest) string {
+		return `{"data":{"node":null}}`
+	})
+	d := schema.TestResourceDataRaw(t, resourceGithubProjectField().Schema, map[string]any{
+		"project_id": "PVT_1", "name": "Status", "data_type": "TEXT",
+	})
+	d.SetId("PVTF_deleted")
+	if diagnostics := resourceGithubProjectFieldRead(t.Context(), d, &Owner{v4client: client}); diagnostics.HasError() {
+		t.Fatalf("reading deleted field returned diagnostics: %v", diagnostics)
+	}
+	if d.Id() != "" {
+		t.Fatalf("deleted field remained in state with ID %q", d.Id())
+	}
+}
+
 func mustParseProjectV2Date(t *testing.T, value string) time.Time {
 	t.Helper()
 	parsed, err := time.Parse(time.DateOnly, value)

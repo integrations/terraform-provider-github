@@ -54,7 +54,7 @@ func resourceGithubTeamProject() *schema.Resource {
 }
 
 func resourceGithubTeamProjectUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	projectID, teamID, err := parseID2(d.Id())
+	projectID, teamID, err := parseProjectV2ID2(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -79,7 +79,7 @@ func resourceGithubTeamProjectCreate(ctx context.Context, d *schema.ResourceData
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	id, err := buildID(link.ProjectID, link.TeamID)
+	id, err := buildProjectV2ID(link.ProjectID, link.TeamID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -91,7 +91,7 @@ func resourceGithubTeamProjectCreate(ctx context.Context, d *schema.ResourceData
 }
 
 func resourceGithubTeamProjectRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	projectID, teamID, err := parseID2(d.Id())
+	projectID, teamID, err := parseProjectV2ID2(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -111,7 +111,7 @@ func resourceGithubTeamProjectRead(ctx context.Context, d *schema.ResourceData, 
 }
 
 func resourceGithubTeamProjectDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	projectID, teamID, err := parseID2(d.Id())
+	projectID, teamID, err := parseProjectV2ID2(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -132,7 +132,7 @@ func setProjectV2TeamState(d *schema.ResourceData, link linkapplication.Result) 
 }
 
 func resourceGithubTeamProjectImport(_ context.Context, d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
-	if _, _, err := parseID2(d.Id()); err != nil {
+	if _, _, err := parseProjectV2ID2(d.Id()); err != nil {
 		return nil, err
 	}
 	return []*schema.ResourceData{d}, nil

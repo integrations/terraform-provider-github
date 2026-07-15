@@ -29,11 +29,15 @@ func (gateway *Gateway) Create(ctx context.Context, input application.CreateInpu
 }
 
 func (gateway *Gateway) Get(ctx context.Context, id string) (application.Result, error) {
+	operation := fmt.Sprintf("querying Projects V2 field %q", id)
 	var query struct {
 		Node node `graphql:"node(id: $id)"`
 	}
 	if err := gateway.client.Query(ctx, &query, map[string]any{"id": githubv4.ID(id)}); err != nil {
-		return application.Result{}, projectgraphql.Error(fmt.Sprintf("querying Projects V2 field %q", id), err)
+		return application.Result{}, projectgraphql.Error(operation, err)
+	}
+	if query.Node.Typename == "" {
+		return application.Result{}, projectgraphql.NotFound(operation)
 	}
 	return resultFromNode(query.Node)
 }

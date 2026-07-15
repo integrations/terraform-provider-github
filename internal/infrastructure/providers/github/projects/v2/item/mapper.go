@@ -7,6 +7,9 @@ import (
 )
 
 func resultFromNode(value node) (application.Result, error) {
+	if value.ID == "" {
+		return application.Result{}, fmt.Errorf("GitHub returned a Projects V2 item without an ID")
+	}
 	contentID := value.Content.Issue.ID
 	if contentID == "" {
 		contentID = value.Content.PullRequest.ID

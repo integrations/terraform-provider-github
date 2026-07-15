@@ -54,7 +54,7 @@ func resourceGithubProjectRepository() *schema.Resource {
 }
 
 func resourceGithubProjectRepositoryUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	projectID, repositoryID, err := parseID2(d.Id())
+	projectID, repositoryID, err := parseProjectV2ID2(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -79,7 +79,7 @@ func resourceGithubProjectRepositoryCreate(ctx context.Context, d *schema.Resour
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	id, err := buildID(link.ProjectID, link.RepositoryID)
+	id, err := buildProjectV2ID(link.ProjectID, link.RepositoryID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -91,7 +91,7 @@ func resourceGithubProjectRepositoryCreate(ctx context.Context, d *schema.Resour
 }
 
 func resourceGithubProjectRepositoryRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	projectID, repositoryID, err := parseID2(d.Id())
+	projectID, repositoryID, err := parseProjectV2ID2(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -111,7 +111,7 @@ func resourceGithubProjectRepositoryRead(ctx context.Context, d *schema.Resource
 }
 
 func resourceGithubProjectRepositoryDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	projectID, repositoryID, err := parseID2(d.Id())
+	projectID, repositoryID, err := parseProjectV2ID2(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -132,7 +132,7 @@ func setProjectV2RepositoryState(d *schema.ResourceData, link linkapplication.Re
 }
 
 func resourceGithubProjectRepositoryImport(_ context.Context, d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
-	if _, _, err := parseID2(d.Id()); err != nil {
+	if _, _, err := parseProjectV2ID2(d.Id()); err != nil {
 		return nil, err
 	}
 	return []*schema.ResourceData{d}, nil

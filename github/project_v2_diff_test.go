@@ -57,6 +57,35 @@ func TestProjectV2IdentityDiffPreservesRenames(t *testing.T) {
 	}
 }
 
+func TestProjectV2RepositoryDiffDoesNotReplaceUnresolvedIdentity(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.NotFoundHandler())
+	t.Cleanup(server.Close)
+	baseURL := server.URL + "/"
+	client, err := goGithub.NewClient(goGithub.WithHTTPClient(server.Client()), goGithub.WithURLs(&baseURL, nil))
+	if err != nil {
+		t.Fatalf("creating test GitHub client: %v", err)
+	}
+
+	diff, err := resourceGithubProjectRepository().Diff(
+		t.Context(),
+		&terraform.InstanceState{ID: "existing", Attributes: map[string]string{
+			"project_id": "PVT_1", "repository_owner": "atls", "repository": "planning", "repository_id": "101",
+		}},
+		terraform.NewResourceConfigRaw(map[string]any{
+			"project_id": "PVT_1", "repository_owner": "atls", "repository": "missing",
+		}),
+		&Owner{name: "atls", v3client: client, IsOrganization: true},
+	)
+	if err != nil {
+		t.Fatalf("calculating unresolved repository diff: %v", err)
+	}
+	if diff.RequiresNew() {
+		t.Fatalf("unresolved repository identity must not replace the existing link: %#v", diff)
+	}
+}
+
 func assertProjectV2IdentityDiff(t *testing.T, resource *schema.Resource, state map[string]string, config map[string]any, requestURI, response string, wantRequiresNew bool) {
 	t.Helper()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {

@@ -92,7 +92,7 @@ func resourceGithubProjectItemFieldValueCreateOrUpdate(ctx context.Context, d *s
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	id, err := buildID(projectV2Get[string](d, "project_id"), projectV2Get[string](d, "item_id"), projectV2Get[string](d, "field_id"))
+	id, err := buildProjectV2ID(projectV2Get[string](d, "project_id"), projectV2Get[string](d, "item_id"), projectV2Get[string](d, "field_id"))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -128,7 +128,7 @@ func resourceGithubProjectItemFieldValueDelete(ctx context.Context, d *schema.Re
 }
 
 func resourceGithubProjectItemFieldValueImport(_ context.Context, d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
-	projectID, itemID, fieldID, err := parseID3(d.Id())
+	projectID, itemID, fieldID, err := parseProjectV2ID3(d.Id())
 	if err != nil {
 		return nil, err
 	}

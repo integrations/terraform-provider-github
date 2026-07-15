@@ -67,3 +67,18 @@ func TestResourceGithubProjectDefaultsOwnerKindFromProvider(t *testing.T) {
 		t.Fatalf("provider user owner was not preserved: operations=%d owner_type=%v owner=%v", len(*requests), d.Get("owner_type"), d.Get("owner"))
 	}
 }
+
+func TestResourceGithubProjectReadRemovesDeletedProject(t *testing.T) {
+	t.Parallel()
+	client, _ := newProjectV2TestClient(t, func(projectV2GraphQLRequest) string {
+		return `{"data":{"node":null}}`
+	})
+	d := schema.TestResourceDataRaw(t, resourceGithubProject().Schema, map[string]any{"title": "Planning"})
+	d.SetId("PVT_deleted")
+	if diagnostics := resourceGithubProjectRead(t.Context(), d, &Owner{v4client: client}); diagnostics.HasError() {
+		t.Fatalf("reading deleted project returned diagnostics: %v", diagnostics)
+	}
+	if d.Id() != "" {
+		t.Fatalf("deleted project remained in state with ID %q", d.Id())
+	}
+}

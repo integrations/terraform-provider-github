@@ -14,3 +14,10 @@ func TestErrorMapsGlobalNodeLookupFailure(t *testing.T) {
 		t.Fatalf("expected not found error, got %v", err)
 	}
 }
+
+func TestNotFoundMapsNullableNode(t *testing.T) {
+	err := NotFound("querying project")
+	if !errors.Is(err, projects.ErrNotFound) {
+		t.Fatalf("expected not found error, got %v", err)
+	}
+}

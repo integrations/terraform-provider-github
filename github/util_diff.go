@@ -68,8 +68,8 @@ func diffRepositoryWithOwner(ctx context.Context, diff *schema.ResourceDiff, m a
 		repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 		if err != nil {
 			if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "Repository not found, assuming it was deleted and will be recreated. Forcing new resource.", map[string]any{"repository": repoName})
-				return forceNewChangedFields(diff, changedFields...)
+				tflog.Info(ctx, "Repository not found while checking repository identity; keeping the change in place so apply cannot destroy the existing resource before resolution fails.", map[string]any{"repository": repoName})
+				return nil
 			}
 
 			return err
