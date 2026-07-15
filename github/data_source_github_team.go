@@ -19,7 +19,7 @@ func dataSourceGithubTeam() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"team_id": {
-				Description:      "ID of the team.",
+				Description:      "ID of the team. One of `team_id` or `slug` must be specified.",
 				Type:             schema.TypeInt,
 				Optional:         true,
 				Computed:         true,
@@ -27,7 +27,7 @@ func dataSourceGithubTeam() *schema.Resource {
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(1)),
 			},
 			"slug": {
-				Description:  "Slug of the team name.",
+				Description:  "Slug of the team name. One of `team_id` or `slug` must be specified.",
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,

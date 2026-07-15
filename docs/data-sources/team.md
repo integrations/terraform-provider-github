@@ -24,9 +24,9 @@ data "github_team" "example" {
 
 - `membership_type` (String) If `summary_only` is `false` this controls which members are returned; this can be set to either `all` or `immediate`.
 - `results_per_page` (Number, Deprecated) This is unused and will be removed in a future version of the provider.
-- `slug` (String) Slug of the team name.
+- `slug` (String) Slug of the team name. One of `team_id` or `slug` must be specified.
 - `summary_only` (Boolean) If true, non-default team details such as `members` & `repositories` will be omitted.
-- `team_id` (Number) ID of the team.
+- `team_id` (Number) ID of the team. One of `team_id` or `slug` must be specified.
 
 ### Read-Only
 
@@ -68,9 +68,9 @@ Read-Only:
 
 - `membership_type` (String) If `summary_only` is `false` this controls which members are returned; this can be set to either `all` or `immediate`.
 - `results_per_page` (Number, Deprecated) This is unused and will be removed in a future version of the provider.
-- `slug` (String) Slug of the team name.
+- `slug` (String) Slug of the team name. One of `team_id` or `slug` must be specified.
 - `summary_only` (Boolean) If true, non-default team details such as `members` & `repositories` will be omitted.
-- `team_id` (Number) ID of the team.
+- `team_id` (Number) ID of the team. One of `team_id` or `slug` must be specified.
 
 ### Read-Only
 

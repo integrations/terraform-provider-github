@@ -77,7 +77,7 @@ func dataSourceGithubOrganizationRoleTeams() *schema.Resource {
 							Computed:    true,
 						},
 						"parent_team": {
-							Description: "Parent team; only set if this is an indirect assignment.",
+							Description: "Parent team; only set if this team is not a root team.",
 							Type:        schema.TypeList,
 							Computed:    true,
 							Elem: &schema.Resource{

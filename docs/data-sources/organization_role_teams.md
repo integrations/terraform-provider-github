@@ -74,7 +74,7 @@ Read-Only:
 - `description` (String) Description of the team.
 - `id` (Number) ID of the team.
 - `name` (String) Name of the team.
-- `parent_team` (List of Object) Parent team; only set if this is an indirect assignment. (see [below for nested schema](#nestedobjatt--teams--parent_team))
+- `parent_team` (List of Object) Parent team; only set if this team is not a root team. (see [below for nested schema](#nestedobjatt--teams--parent_team))
 - `permission` (String) Legacy default repository permission for the team (typically pull, push, or admin), used when adding a repository without specifying an explicit permission. This does not represent effective access for all repositories or custom repository roles.
 - `privacy` (String) Privacy level of the team; one of `secret` or `closed`.
 - `slug` (String) Slug of the team name.
