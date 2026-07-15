@@ -6,7 +6,11 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubCodeSecurityConfiguration(t *testing.T) {
@@ -39,37 +43,37 @@ func TestAccGithubCodeSecurityConfiguration(t *testing.T) {
 			`, randomID),
 		}
 
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr("github_code_security_configuration.test", "name", fmt.Sprintf("tf-acc-test-%s", randomID)),
-				resource.TestCheckResourceAttr("github_code_security_configuration.test", "description", "Terraform acceptance test configuration"),
-				resource.TestCheckResourceAttr("github_code_security_configuration.test", "dependency_graph", "enabled"),
-				resource.TestCheckResourceAttr("github_code_security_configuration.test", "dependabot_alerts", "disabled"),
-				resource.TestCheckResourceAttr("github_code_security_configuration.test", "private_vulnerability_reporting", "disabled"),
-				resource.TestCheckResourceAttr("github_code_security_configuration.test", "enforcement", "unenforced"),
-				resource.TestCheckResourceAttr("github_code_security_configuration.test", "target_type", "organization"),
-				resource.TestCheckResourceAttrSet("github_code_security_configuration.test", "configuration_id"),
-				resource.TestCheckResourceAttrSet("github_code_security_configuration.test", "html_url"),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr("github_code_security_configuration.test", "description", "Terraform acceptance test configuration (updated)"),
-				resource.TestCheckResourceAttr("github_code_security_configuration.test", "dependabot_alerts", "enabled"),
-				resource.TestCheckResourceAttr("github_code_security_configuration.test", "private_vulnerability_reporting", "enabled"),
-				resource.TestCheckResourceAttr("github_code_security_configuration.test", "enforcement", "enforced"),
-			),
-		}
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: configs["before"],
-					Check:  checks["before"],
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_code_security_configuration.test", tfjsonpath.New("name"), knownvalue.StringExact(fmt.Sprintf("tf-acc-test-%s", randomID))),
+						statecheck.ExpectKnownValue("github_code_security_configuration.test", tfjsonpath.New("description"), knownvalue.StringExact("Terraform acceptance test configuration")),
+						statecheck.ExpectKnownValue("github_code_security_configuration.test", tfjsonpath.New("dependency_graph"), knownvalue.StringExact("enabled")),
+						statecheck.ExpectKnownValue("github_code_security_configuration.test", tfjsonpath.New("dependabot_alerts"), knownvalue.StringExact("disabled")),
+						statecheck.ExpectKnownValue("github_code_security_configuration.test", tfjsonpath.New("private_vulnerability_reporting"), knownvalue.StringExact("disabled")),
+						statecheck.ExpectKnownValue("github_code_security_configuration.test", tfjsonpath.New("enforcement"), knownvalue.StringExact("unenforced")),
+						statecheck.ExpectKnownValue("github_code_security_configuration.test", tfjsonpath.New("target_type"), knownvalue.StringExact("organization")),
+						statecheck.ExpectKnownValue("github_code_security_configuration.test", tfjsonpath.New("configuration_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_code_security_configuration.test", tfjsonpath.New("html_url"), knownvalue.NotNull()),
+					},
 				},
 				{
 					Config: configs["after"],
-					Check:  checks["after"],
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_code_security_configuration.test", plancheck.ResourceActionUpdate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_code_security_configuration.test", tfjsonpath.New("description"), knownvalue.StringExact("Terraform acceptance test configuration (updated)")),
+						statecheck.ExpectKnownValue("github_code_security_configuration.test", tfjsonpath.New("dependabot_alerts"), knownvalue.StringExact("enabled")),
+						statecheck.ExpectKnownValue("github_code_security_configuration.test", tfjsonpath.New("private_vulnerability_reporting"), knownvalue.StringExact("enabled")),
+						statecheck.ExpectKnownValue("github_code_security_configuration.test", tfjsonpath.New("enforcement"), knownvalue.StringExact("enforced")),
+					},
 				},
 			},
 		})
@@ -95,12 +99,139 @@ func TestAccGithubCodeSecurityConfiguration(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  resource.TestCheckResourceAttr("github_code_security_configuration.test", "name", fmt.Sprintf("tf-acc-test-%s", randomID)),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_code_security_configuration.test", tfjsonpath.New("name"), knownvalue.StringExact(fmt.Sprintf("tf-acc-test-%s", randomID))),
+					},
 				},
 				{
 					ResourceName:      "github_code_security_configuration.test",
 					ImportState:       true,
 					ImportStateVerify: true,
+				},
+			},
+		})
+	})
+
+	t.Run("manages default_for_new_repos on an organization configuration without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+		configs := map[string]string{
+			"set": fmt.Sprintf(`
+			resource "github_code_security_configuration" "test" {
+				name        = "tf-acc-test-%s"
+				description = "Terraform acceptance test default configuration"
+
+				dependency_graph  = "enabled"
+				dependabot_alerts = "enabled"
+				enforcement       = "unenforced"
+
+				default_for_new_repos = "private_and_internal"
+			}
+			`, randomID),
+
+			"changed": fmt.Sprintf(`
+			resource "github_code_security_configuration" "test" {
+				name        = "tf-acc-test-%s"
+				description = "Terraform acceptance test default configuration"
+
+				dependency_graph  = "enabled"
+				dependabot_alerts = "enabled"
+				enforcement       = "unenforced"
+
+				default_for_new_repos = "all"
+			}
+			`, randomID),
+
+			"removed": fmt.Sprintf(`
+			resource "github_code_security_configuration" "test" {
+				name        = "tf-acc-test-%s"
+				description = "Terraform acceptance test default configuration"
+
+				dependency_graph  = "enabled"
+				dependabot_alerts = "enabled"
+				enforcement       = "unenforced"
+			}
+			`, randomID),
+		}
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: configs["set"],
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_code_security_configuration.test", tfjsonpath.New("name"), knownvalue.StringExact(fmt.Sprintf("tf-acc-test-%s", randomID))),
+						statecheck.ExpectKnownValue("github_code_security_configuration.test", tfjsonpath.New("default_for_new_repos"), knownvalue.StringExact("private_and_internal")),
+					},
+				},
+				{
+					Config: configs["changed"],
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_code_security_configuration.test", plancheck.ResourceActionUpdate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_code_security_configuration.test", tfjsonpath.New("default_for_new_repos"), knownvalue.StringExact("all")),
+					},
+				},
+				{
+					Config: configs["removed"],
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_code_security_configuration.test", tfjsonpath.New("default_for_new_repos"), knownvalue.StringExact("")),
+					},
+				},
+				{
+					Config: configs["removed"],
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectEmptyPlan(),
+						},
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("attaches an organization configuration to repositories by scope without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+		// attach_scope is write-only: the attachment cannot be read back from
+		// the API, so these steps only assert that the configured value is
+		// held in state and that re-planning the same config is a no-op.
+		config := fmt.Sprintf(`
+		resource "github_code_security_configuration" "test" {
+			name        = "tf-acc-test-%s"
+			description = "Terraform acceptance test attach configuration"
+
+			dependency_graph  = "enabled"
+			dependabot_alerts = "enabled"
+			enforcement       = "unenforced"
+
+			attach_scope = "all_without_configurations"
+		}
+		`, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_code_security_configuration.test", tfjsonpath.New("name"), knownvalue.StringExact(fmt.Sprintf("tf-acc-test-%s", randomID))),
+						statecheck.ExpectKnownValue("github_code_security_configuration.test", tfjsonpath.New("attach_scope"), knownvalue.StringExact("all_without_configurations")),
+						statecheck.ExpectKnownValue("github_code_security_configuration.test", tfjsonpath.New("configuration_id"), knownvalue.NotNull()),
+					},
+				},
+				{
+					Config: config,
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectEmptyPlan(),
+						},
+					},
 				},
 			},
 		})
@@ -135,29 +266,29 @@ func TestAccGithubCodeSecurityConfiguration(t *testing.T) {
 			`, testAccConf.enterpriseSlug, randomID),
 		}
 
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr("github_code_security_configuration.test", "enterprise_slug", testAccConf.enterpriseSlug),
-				resource.TestCheckResourceAttr("github_code_security_configuration.test", "name", fmt.Sprintf("tf-acc-test-%s", randomID)),
-				resource.TestCheckResourceAttr("github_code_security_configuration.test", "dependabot_alerts", "disabled"),
-				resource.TestCheckResourceAttr("github_code_security_configuration.test", "target_type", "enterprise"),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr("github_code_security_configuration.test", "dependabot_alerts", "enabled"),
-			),
-		}
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: configs["before"],
-					Check:  checks["before"],
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_code_security_configuration.test", tfjsonpath.New("enterprise_slug"), knownvalue.StringExact(testAccConf.enterpriseSlug)),
+						statecheck.ExpectKnownValue("github_code_security_configuration.test", tfjsonpath.New("name"), knownvalue.StringExact(fmt.Sprintf("tf-acc-test-%s", randomID))),
+						statecheck.ExpectKnownValue("github_code_security_configuration.test", tfjsonpath.New("dependabot_alerts"), knownvalue.StringExact("disabled")),
+						statecheck.ExpectKnownValue("github_code_security_configuration.test", tfjsonpath.New("target_type"), knownvalue.StringExact("enterprise")),
+					},
 				},
 				{
 					Config: configs["after"],
-					Check:  checks["after"],
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_code_security_configuration.test", plancheck.ResourceActionUpdate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_code_security_configuration.test", tfjsonpath.New("dependabot_alerts"), knownvalue.StringExact("enabled")),
+					},
 				},
 				{
 					ResourceName:      "github_code_security_configuration.test",

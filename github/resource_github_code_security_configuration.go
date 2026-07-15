@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -18,11 +19,11 @@ func resourceGithubCodeSecurityConfiguration() *schema.Resource {
 	featureValueDiag := validation.ToDiagFunc(validation.StringInSlice([]string{"enabled", "disabled", "not_set"}, false))
 
 	return &schema.Resource{
-		Description: "Manages a GitHub Code Security Configuration at the organization or enterprise level.",
-		Create:      resourceGithubCodeSecurityConfigurationCreate,
-		Read:        resourceGithubCodeSecurityConfigurationRead,
-		Update:      resourceGithubCodeSecurityConfigurationUpdate,
-		Delete:      resourceGithubCodeSecurityConfigurationDelete,
+		Description:   "Manages a GitHub Code Security Configuration at the organization or enterprise level.",
+		CreateContext: resourceGithubCodeSecurityConfigurationCreate,
+		ReadContext:   resourceGithubCodeSecurityConfigurationRead,
+		UpdateContext: resourceGithubCodeSecurityConfigurationUpdate,
+		DeleteContext: resourceGithubCodeSecurityConfigurationDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceGithubCodeSecurityConfigurationImport,
 		},
@@ -171,10 +172,10 @@ func buildCodeSecurityConfiguration(d *schema.ResourceData) github.CodeSecurityC
 	}
 }
 
-func resourceGithubCodeSecurityConfigurationCreate(d *schema.ResourceData, meta any) error {
-	owner := meta.(*Owner)
-	client := owner.v3client
-	ctx := context.Background()
+func resourceGithubCodeSecurityConfigurationCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 	body := buildCodeSecurityConfiguration(d)
@@ -182,44 +183,54 @@ func resourceGithubCodeSecurityConfigurationCreate(d *schema.ResourceData, meta 
 	var config *github.CodeSecurityConfiguration
 	var err error
 	if enterpriseSlug != "" {
-		log.Printf("[DEBUG] Creating code security configuration %q for enterprise: %s", body.Name, enterpriseSlug)
+		tflog.Debug(ctx, "Creating code security configuration for enterprise", map[string]any{"name": body.Name, "enterprise_slug": enterpriseSlug})
 		config, _, err = client.Enterprise.CreateCodeSecurityConfiguration(ctx, enterpriseSlug, body)
 	} else {
-		if err := checkOrganization(meta); err != nil {
-			return err
+		if err := checkOrganization(m); err != nil {
+			return diag.FromErr(err)
 		}
-		log.Printf("[DEBUG] Creating code security configuration %q for organization: %s", body.Name, owner.name)
-		config, _, err = client.Organizations.CreateCodeSecurityConfiguration(ctx, owner.name, body)
+		tflog.Debug(ctx, "Creating code security configuration for organization", map[string]any{"name": body.Name, "owner": owner})
+		config, _, err = client.Organizations.CreateCodeSecurityConfiguration(ctx, owner, body)
 	}
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(config.GetID(), 10))
 
+	if err := d.Set("configuration_id", config.GetID()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("target_type", config.GetTargetType()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("html_url", config.GetHTMLURL()); err != nil {
+		return diag.FromErr(err)
+	}
+
 	if v, ok := d.GetOk("default_for_new_repos"); ok {
-		if err := setCodeSecurityConfigurationDefault(ctx, client, owner.name, enterpriseSlug, config.GetID(), v.(string)); err != nil {
-			return err
+		if err := setCodeSecurityConfigurationDefault(ctx, client, owner, enterpriseSlug, config.GetID(), v.(string)); err != nil {
+			return diag.FromErr(err)
 		}
 	}
 
 	if v, ok := d.GetOk("attach_scope"); ok {
-		if err := attachCodeSecurityConfiguration(ctx, client, owner.name, enterpriseSlug, config.GetID(), v.(string)); err != nil {
-			return err
+		if err := attachCodeSecurityConfiguration(ctx, client, owner, enterpriseSlug, config.GetID(), v.(string)); err != nil {
+			return diag.FromErr(err)
 		}
 	}
 
-	return resourceGithubCodeSecurityConfigurationRead(d, meta)
+	return nil
 }
 
-func resourceGithubCodeSecurityConfigurationRead(d *schema.ResourceData, meta any) error {
-	owner := meta.(*Owner)
-	client := owner.v3client
-	ctx := context.Background()
+func resourceGithubCodeSecurityConfigurationRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
 	configID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
+		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 
@@ -227,71 +238,70 @@ func resourceGithubCodeSecurityConfigurationRead(d *schema.ResourceData, meta an
 	if enterpriseSlug != "" {
 		config, _, err = client.Enterprise.GetCodeSecurityConfiguration(ctx, enterpriseSlug, configID)
 	} else {
-		config, _, err = client.Organizations.GetCodeSecurityConfiguration(ctx, owner.name, configID)
+		config, _, err = client.Organizations.GetCodeSecurityConfiguration(ctx, owner, configID)
 	}
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
-			log.Printf("[INFO] Removing code security configuration %s from state because it no longer exists in GitHub", d.Id())
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Removing code security configuration from state because it no longer exists in GitHub.", map[string]any{"resource_id": d.Id(), "owner": owner, "enterprise_slug": enterpriseSlug})
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err := d.Set("name", config.Name); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("description", config.Description); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("advanced_security", config.GetAdvancedSecurity()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("dependency_graph", config.GetDependencyGraph()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("dependabot_alerts", config.GetDependabotAlerts()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("dependabot_security_updates", config.GetDependabotSecurityUpdates()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("code_scanning_default_setup", config.GetCodeScanningDefaultSetup()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("secret_scanning", config.GetSecretScanning()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("secret_scanning_push_protection", config.GetSecretScanningPushProtection()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("secret_scanning_validity_checks", config.GetSecretScanningValidityChecks()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("secret_scanning_non_provider_patterns", config.GetSecretScanningNonProviderPatterns()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("private_vulnerability_reporting", config.GetPrivateVulnerabilityReporting()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("enforcement", config.GetEnforcement()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("configuration_id", config.GetID()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("target_type", config.GetTargetType()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("html_url", config.GetHTMLURL()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// default_for_new_repos is only surfaced via the /defaults listing.
-	defaultForNewRepos, err := readCodeSecurityConfigurationDefault(ctx, client, owner.name, enterpriseSlug, configID)
+	defaultForNewRepos, err := readCodeSecurityConfigurationDefault(ctx, client, owner, enterpriseSlug, configID)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	// A configuration that is not a default (or is explicitly "none") does not
 	// appear in the defaults listing; preserve an explicit "none" in state.
@@ -299,7 +309,7 @@ func resourceGithubCodeSecurityConfigurationRead(d *schema.ResourceData, meta an
 		defaultForNewRepos = "none"
 	}
 	if err := d.Set("default_for_new_repos", defaultForNewRepos); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// attach_scope is write-only: the API does not expose the scope a
@@ -308,27 +318,40 @@ func resourceGithubCodeSecurityConfigurationRead(d *schema.ResourceData, meta an
 	return nil
 }
 
-func resourceGithubCodeSecurityConfigurationUpdate(d *schema.ResourceData, meta any) error {
-	owner := meta.(*Owner)
-	client := owner.v3client
-	ctx := context.Background()
+func resourceGithubCodeSecurityConfigurationUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
 	configID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
+		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 	body := buildCodeSecurityConfiguration(d)
 
+	var config *github.CodeSecurityConfiguration
 	if enterpriseSlug != "" {
-		log.Printf("[DEBUG] Updating code security configuration %d for enterprise: %s", configID, enterpriseSlug)
-		_, _, err = client.Enterprise.UpdateCodeSecurityConfiguration(ctx, enterpriseSlug, configID, body)
+		tflog.Debug(ctx, "Updating code security configuration for enterprise", map[string]any{"configuration_id": configID, "enterprise_slug": enterpriseSlug})
+		config, _, err = client.Enterprise.UpdateCodeSecurityConfiguration(ctx, enterpriseSlug, configID, body)
 	} else {
-		log.Printf("[DEBUG] Updating code security configuration %d for organization: %s", configID, owner.name)
-		_, _, err = client.Organizations.UpdateCodeSecurityConfiguration(ctx, owner.name, configID, body)
+		tflog.Debug(ctx, "Updating code security configuration for organization", map[string]any{"configuration_id": configID, "owner": owner})
+		config, _, err = client.Organizations.UpdateCodeSecurityConfiguration(ctx, owner, configID, body)
 	}
 	if err != nil {
-		return err
+		return diag.FromErr(err)
+	}
+
+	if config != nil {
+		if err := d.Set("configuration_id", config.GetID()); err != nil {
+			return diag.FromErr(err)
+		}
+		if err := d.Set("target_type", config.GetTargetType()); err != nil {
+			return diag.FromErr(err)
+		}
+		if err := d.Set("html_url", config.GetHTMLURL()); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	if d.HasChange("default_for_new_repos") {
@@ -337,41 +360,48 @@ func resourceGithubCodeSecurityConfigurationUpdate(d *schema.ResourceData, meta 
 			// Removing the attribute reverts the default to "none".
 			newReposParam = "none"
 		}
-		if err := setCodeSecurityConfigurationDefault(ctx, client, owner.name, enterpriseSlug, configID, newReposParam); err != nil {
-			return err
+		if err := setCodeSecurityConfigurationDefault(ctx, client, owner, enterpriseSlug, configID, newReposParam); err != nil {
+			return diag.FromErr(err)
 		}
 	}
 
 	if d.HasChange("attach_scope") {
 		if v, ok := d.GetOk("attach_scope"); ok {
-			if err := attachCodeSecurityConfiguration(ctx, client, owner.name, enterpriseSlug, configID, v.(string)); err != nil {
-				return err
+			if err := attachCodeSecurityConfiguration(ctx, client, owner, enterpriseSlug, configID, v.(string)); err != nil {
+				return diag.FromErr(err)
 			}
 		}
 	}
 
-	return resourceGithubCodeSecurityConfigurationRead(d, meta)
+	return nil
 }
 
-func resourceGithubCodeSecurityConfigurationDelete(d *schema.ResourceData, meta any) error {
-	owner := meta.(*Owner)
-	client := owner.v3client
-	ctx := context.Background()
+func resourceGithubCodeSecurityConfigurationDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
 	configID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
+		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 
 	if enterpriseSlug != "" {
-		log.Printf("[DEBUG] Deleting code security configuration %d for enterprise: %s", configID, enterpriseSlug)
+		tflog.Debug(ctx, "Deleting code security configuration for enterprise", map[string]any{"configuration_id": configID, "enterprise_slug": enterpriseSlug})
 		_, err = client.Enterprise.DeleteCodeSecurityConfiguration(ctx, enterpriseSlug, configID)
 	} else {
-		log.Printf("[DEBUG] Deleting code security configuration %d for organization: %s", configID, owner.name)
-		_, err = client.Organizations.DeleteCodeSecurityConfiguration(ctx, owner.name, configID)
+		tflog.Debug(ctx, "Deleting code security configuration for organization", map[string]any{"configuration_id": configID, "owner": owner})
+		_, err = client.Organizations.DeleteCodeSecurityConfiguration(ctx, owner, configID)
 	}
-	return err
+	if err != nil {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Code security configuration no longer exists in GitHub; treating delete as successful.", map[string]any{"resource_id": d.Id(), "owner": owner, "enterprise_slug": enterpriseSlug})
+			return nil
+		}
+		return diag.FromErr(err)
+	}
+	return nil
 }
 
 // resourceGithubCodeSecurityConfigurationImport supports two import ID formats:
@@ -401,25 +431,46 @@ func resourceGithubCodeSecurityConfigurationImport(ctx context.Context, d *schem
 func setCodeSecurityConfigurationDefault(ctx context.Context, client *github.Client, org, enterpriseSlug string, configID int64, newReposParam string) error {
 	var err error
 	if enterpriseSlug != "" {
-		log.Printf("[DEBUG] Setting code security configuration %d as default (%s) for enterprise: %s", configID, newReposParam, enterpriseSlug)
+		tflog.Debug(ctx, "Setting code security configuration as default for enterprise", map[string]any{"configuration_id": configID, "default_for_new_repos": newReposParam, "enterprise_slug": enterpriseSlug})
 		_, _, err = client.Enterprise.SetDefaultCodeSecurityConfiguration(ctx, enterpriseSlug, configID, newReposParam)
 	} else {
-		log.Printf("[DEBUG] Setting code security configuration %d as default (%s) for organization: %s", configID, newReposParam, org)
+		tflog.Debug(ctx, "Setting code security configuration as default for organization", map[string]any{"configuration_id": configID, "default_for_new_repos": newReposParam, "owner": org})
 		_, _, err = client.Organizations.SetDefaultCodeSecurityConfiguration(ctx, org, configID, newReposParam)
 	}
 	return err
 }
 
 func attachCodeSecurityConfiguration(ctx context.Context, client *github.Client, org, enterpriseSlug string, configID int64, scope string) error {
-	var err error
+	// The go-github v89 Attach helpers dereference the response status code even
+	// when the request fails before a response exists, which panics on transport
+	// errors. Issue the request directly so a nil response is handled safely.
+	var u string
 	if enterpriseSlug != "" {
-		log.Printf("[DEBUG] Attaching code security configuration %d with scope %s for enterprise: %s", configID, scope, enterpriseSlug)
-		_, err = client.Enterprise.AttachCodeSecurityConfigurationToRepositories(ctx, enterpriseSlug, configID, scope)
+		tflog.Debug(ctx, "Attaching code security configuration for enterprise", map[string]any{"configuration_id": configID, "scope": scope, "enterprise_slug": enterpriseSlug})
+		u = fmt.Sprintf("enterprises/%s/code-security/configurations/%d/attach", enterpriseSlug, configID)
 	} else {
-		log.Printf("[DEBUG] Attaching code security configuration %d with scope %s for organization: %s", configID, scope, org)
-		_, err = client.Organizations.AttachCodeSecurityConfigurationToRepositories(ctx, org, configID, scope, nil)
+		tflog.Debug(ctx, "Attaching code security configuration for organization", map[string]any{"configuration_id": configID, "scope": scope, "owner": org})
+		u = fmt.Sprintf("orgs/%s/code-security/configurations/%d/attach", org, configID)
 	}
-	return err
+
+	req, err := client.NewRequest(ctx, http.MethodPost, u, map[string]any{"scope": scope})
+	if err != nil {
+		return err
+	}
+
+	resp, err := client.Do(req, nil)
+	if err != nil {
+		// The attach endpoint responds 202 Accepted; go-github surfaces that as
+		// an AcceptedError, which is a success for our purposes.
+		if _, ok := errors.AsType[*github.AcceptedError](err); ok {
+			return nil
+		}
+		if resp != nil && resp.StatusCode == http.StatusAccepted {
+			return nil
+		}
+		return err
+	}
+	return nil
 }
 
 func readCodeSecurityConfigurationDefault(ctx context.Context, client *github.Client, org, enterpriseSlug string, configID int64) (string, error) {
