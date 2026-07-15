@@ -20,7 +20,9 @@ func resourceGithubProjectRepository() *schema.Resource {
 		Description:   "Links a repository to a GitHub Projects V2 project.",
 		CreateContext: resourceGithubProjectRepositoryCreate,
 		ReadContext:   resourceGithubProjectRepositoryRead,
+		UpdateContext: resourceGithubProjectRepositoryUpdate,
 		DeleteContext: resourceGithubProjectRepositoryDelete,
+		CustomizeDiff: diffProjectV2Repository,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceGithubProjectRepositoryImport,
 		},
@@ -34,17 +36,40 @@ func resourceGithubProjectRepository() *schema.Resource {
 			"repository_owner": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				ForceNew:    true,
+				Computed:    true,
 				Description: "Repository owner. Defaults to the provider owner.",
 			},
 			"repository": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "Repository name.",
+			},
+			"repository_id": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "Stable database ID of the repository.",
 			},
 		},
 	}
+}
+
+func resourceGithubProjectRepositoryUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	projectID, repositoryID, err := parseID2(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	link, err := linkusecases.NewResolve(linkgithub.NewGateway(projectV2OwnerMetadata(meta).v4client)).Run(ctx, projectV2RepositoryOwner(d, meta), projectV2Get[string](d, "repository"))
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	if link.RepositoryID != repositoryID {
+		return diag.Errorf("repository identity changed during apply: expected %q, got %q", repositoryID, link.RepositoryID)
+	}
+	link.ProjectID = projectID
+	if err := setProjectV2RepositoryState(d, link); err != nil {
+		return diag.FromErr(err)
+	}
+	return nil
 }
 
 func resourceGithubProjectRepositoryCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
@@ -98,7 +123,7 @@ func resourceGithubProjectRepositoryDelete(ctx context.Context, d *schema.Resour
 }
 
 func setProjectV2RepositoryState(d *schema.ResourceData, link linkapplication.Result) error {
-	for key, value := range map[string]any{"project_id": link.ProjectID, "repository_owner": link.Owner, "repository": link.Name} {
+	for key, value := range map[string]any{"project_id": link.ProjectID, "repository_owner": link.Owner, "repository": link.Name, "repository_id": link.DatabaseID} {
 		if err := d.Set(key, value); err != nil {
 			return fmt.Errorf("setting %s: %w", key, err)
 		}

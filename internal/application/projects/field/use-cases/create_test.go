@@ -7,27 +7,25 @@ import (
 	"github.com/integrations/terraform-provider-github/v6/internal/application/projects/field"
 )
 
-type fieldStoreStub struct{ created, loaded bool }
+type fieldStoreStub struct{ created bool }
 
-func (store *fieldStoreStub) Create(context.Context, field.CreateInput) (string, error) {
+func (store *fieldStoreStub) Create(context.Context, field.CreateInput) (field.Result, error) {
 	store.created = true
-	return "PVTF_1", nil
+	return field.Result{ID: "PVTF_1", Name: "Estimate"}, nil
 }
 
-func (store *fieldStoreStub) Get(context.Context, string) (field.Result, error) {
-	store.loaded = true
-	return field.Result{ID: "PVTF_1"}, nil
+func (*fieldStoreStub) Update(context.Context, field.UpdateInput) (field.Result, error) {
+	return field.Result{}, nil
 }
-func (*fieldStoreStub) Update(context.Context, field.UpdateInput) error { return nil }
-func (*fieldStoreStub) Delete(context.Context, string) error            { return nil }
+func (*fieldStoreStub) Delete(context.Context, string) error { return nil }
 
-func TestCreateReturnsLoadedField(t *testing.T) {
+func TestCreateReturnsMutationResult(t *testing.T) {
 	store := &fieldStoreStub{}
 	result, err := NewCreate(store).Run(t.Context(), field.CreateInput{Name: "Estimate"})
 	if err != nil {
 		t.Fatalf("creating field: %v", err)
 	}
-	if result.ID != "PVTF_1" || !store.created || !store.loaded {
+	if result.ID != "PVTF_1" || result.Name != "Estimate" || !store.created {
 		t.Fatalf("unexpected orchestration: %#v", result)
 	}
 }

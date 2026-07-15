@@ -20,7 +20,9 @@ func resourceGithubTeamProject() *schema.Resource {
 		Description:   "Links a team to a GitHub Projects V2 project.",
 		CreateContext: resourceGithubTeamProjectCreate,
 		ReadContext:   resourceGithubTeamProjectRead,
+		UpdateContext: resourceGithubTeamProjectUpdate,
 		DeleteContext: resourceGithubTeamProjectDelete,
+		CustomizeDiff: diffProjectV2Team,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceGithubTeamProjectImport,
 		},
@@ -34,17 +36,40 @@ func resourceGithubTeamProject() *schema.Resource {
 			"organization": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				ForceNew:    true,
+				Computed:    true,
 				Description: "Organization login. Defaults to the provider owner.",
 			},
 			"team_slug": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "Team slug.",
+			},
+			"team_id": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "Stable database ID of the team.",
 			},
 		},
 	}
+}
+
+func resourceGithubTeamProjectUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	projectID, teamID, err := parseID2(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	link, err := linkusecases.NewResolve(linkgithub.NewGateway(projectV2OwnerMetadata(meta).v4client)).Run(ctx, projectV2TeamOrganization(d, meta), projectV2Get[string](d, "team_slug"))
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	if link.TeamID != teamID {
+		return diag.Errorf("team identity changed during apply: expected %q, got %q", teamID, link.TeamID)
+	}
+	link.ProjectID = projectID
+	if err := setProjectV2TeamState(d, link); err != nil {
+		return diag.FromErr(err)
+	}
+	return nil
 }
 
 func resourceGithubTeamProjectCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
@@ -98,7 +123,7 @@ func resourceGithubTeamProjectDelete(ctx context.Context, d *schema.ResourceData
 }
 
 func setProjectV2TeamState(d *schema.ResourceData, link linkapplication.Result) error {
-	for key, value := range map[string]any{"project_id": link.ProjectID, "organization": link.Organization, "team_slug": link.Slug} {
+	for key, value := range map[string]any{"project_id": link.ProjectID, "organization": link.Organization, "team_slug": link.Slug, "team_id": link.DatabaseID} {
 		if err := d.Set(key, value); err != nil {
 			return fmt.Errorf("setting %s: %w", key, err)
 		}

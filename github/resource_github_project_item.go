@@ -52,12 +52,20 @@ func resourceGithubProjectItemCreate(ctx context.Context, d *schema.ResourceData
 	item, err := itemusecases.NewAdd(itemgithub.NewGateway(projectV2OwnerMetadata(meta).v4client)).Run(ctx, itemapplication.AddInput{
 		ProjectID: projectV2Get[string](d, "project_id"), ContentID: projectV2Get[string](d, "content_id"), Archived: projectV2Get[bool](d, "archived"),
 	})
+	if item.ID != "" {
+		d.SetId(item.ID)
+		if stateErr := setProjectV2ItemState(d, item); stateErr != nil {
+			if err != nil {
+				return diag.FromErr(errors.Join(err, stateErr))
+			}
+			return diag.FromErr(stateErr)
+		}
+	}
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(item.ID)
-	if err := setProjectV2ItemState(d, item); err != nil {
-		return diag.FromErr(err)
+	if item.ID == "" {
+		return diag.Errorf("GitHub returned a Projects V2 item without an ID")
 	}
 	return nil
 }

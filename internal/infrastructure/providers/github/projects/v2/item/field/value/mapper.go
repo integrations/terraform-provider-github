@@ -32,6 +32,20 @@ func resultFromNode(value node) (application.Result, error) {
 	}
 }
 
+func nodeFieldID(value node) string {
+	ids := []githubv4.String{
+		value.Field.Field.ID,
+		value.Field.SingleSelect.ID,
+		value.Field.Iteration.ID,
+	}
+	for _, id := range ids {
+		if id != "" {
+			return string(id)
+		}
+	}
+	return ""
+}
+
 func fieldValueInput(value application.Result) githubv4.ProjectV2FieldValue {
 	var result githubv4.ProjectV2FieldValue
 	switch value.Kind {

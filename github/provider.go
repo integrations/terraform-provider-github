@@ -626,8 +626,8 @@ func configureProviderMeta(ctx context.Context, version string, c *Config) (*Own
 
 		if o.GetType() == "Organization" {
 			owner.IsOrganization = true
-			owner.id = o.GetID()
 		}
+		owner.id = o.GetID()
 	}
 
 	return owner, nil

@@ -11,14 +11,11 @@ import (
 
 func TestResourceGithubProjectItemFieldValueCreate(t *testing.T) {
 	t.Parallel()
-	client, requests := newProjectV2TestClient(t, func(query string) string {
+	client, requests := newProjectV2TestClient(t, func(request projectV2GraphQLRequest) string {
+		query := request.Query
 		switch {
 		case strings.Contains(query, "updateProjectV2ItemFieldValue"):
 			return `{"data":{"updateProjectV2ItemFieldValue":{"projectV2Item":{"id":"PVTI_1"}}}}`
-		case strings.Contains(query, "fieldValueByName"):
-			return `{"data":{"node":{"__typename":"ProjectV2Item","fieldValueByName":{"__typename":"ProjectV2ItemFieldNumberValue","number":0}}}}`
-		case strings.Contains(query, "node(id:"):
-			return `{"data":{"node":{"__typename":"ProjectV2Field","id":"PVTF_1","name":"Estimate","dataType":"NUMBER","project":{"id":"PVT_1"}}}}`
 		default:
 			t.Fatalf("unexpected GraphQL operation: %s", query)
 			return ""
@@ -30,8 +27,28 @@ func TestResourceGithubProjectItemFieldValueCreate(t *testing.T) {
 	if diags.HasError() {
 		t.Fatalf("creating project item field value returned diagnostics: %v\nrequests: %v", diags, *requests)
 	}
-	if d.Id() != "PVT_1:PVTI_1:PVTF_1" || len(*requests) != 3 {
+	if d.Id() != "PVT_1:PVTI_1:PVTF_1" || len(*requests) != 1 {
 		t.Fatalf("unexpected field value result: id=%q operations=%d", d.Id(), len(*requests))
+	}
+	assertProjectV2GraphQLInput(t, (*requests)[0], map[string]any{"projectId": "PVT_1", "itemId": "PVTI_1", "fieldId": "PVTF_1"})
+}
+
+func TestResourceGithubProjectItemFieldValueReadUsesFieldID(t *testing.T) {
+	t.Parallel()
+	client, requests := newProjectV2TestClient(t, func(request projectV2GraphQLRequest) string {
+		if !strings.Contains(request.Query, "fieldValues(first:") {
+			t.Fatalf("unexpected GraphQL operation: %s", request.Query)
+		}
+		return `{"data":{"node":{"fieldValues":{"nodes":[{"__typename":"ProjectV2ItemFieldNumberValue","field":{"__typename":"ProjectV2Field","id":"PVTF_OTHER"},"number":9},{"__typename":"ProjectV2ItemFieldNumberValue","field":{"__typename":"ProjectV2Field","id":"PVTF_1"},"number":0}],"pageInfo":{"hasNextPage":false,"endCursor":null}}}}}`
+	})
+	resource := resourceGithubProjectItemFieldValue()
+	d := schema.TestResourceDataRaw(t, resource.Schema, map[string]any{"project_id": "PVT_1", "item_id": "PVTI_1", "field_id": "PVTF_1", "number": 5.0})
+	d.SetId("PVT_1:PVTI_1:PVTF_1")
+	if diagnostics := resourceGithubProjectItemFieldValueRead(t.Context(), d, &Owner{v4client: client}); diagnostics.HasError() {
+		t.Fatalf("reading project item field value returned diagnostics: %v", diagnostics)
+	}
+	if len(*requests) != 1 || projectV2Get[float64](d, "number") != 0 {
+		t.Fatalf("unexpected field value read: operations=%d number=%v", len(*requests), d.Get("number"))
 	}
 }
 

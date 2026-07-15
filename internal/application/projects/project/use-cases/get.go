@@ -7,10 +7,10 @@ import (
 )
 
 type Get struct {
-	store project.Store
+	store project.Reader
 }
 
-func NewGet(store project.Store) *Get {
+func NewGet(store project.Reader) *Get {
 	return &Get{store: store}
 }
 

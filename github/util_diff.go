@@ -18,16 +18,29 @@ import (
 // diffRepository checks if the repository has changed and forces a new resource if the repository ID does not match.
 // The resource must have both "repository" and "repository_id" attributes.
 func diffRepository(ctx context.Context, diff *schema.ResourceDiff, m any) error {
+	return diffRepositoryWithOwner(ctx, diff, m, "")
+}
+
+func diffRepositoryWithOwner(ctx context.Context, diff *schema.ResourceDiff, m any, ownerField string) error {
 	if len(diff.Id()) == 0 {
 		return nil
 	}
 
 	ctx = tflog.SetField(ctx, "id", diff.Id())
 
-	if diff.HasChange("repository") {
+	changedFields := []string{"repository"}
+	if ownerField != "" {
+		changedFields = append(changedFields, ownerField)
+	}
+	if diff.HasChanges(changedFields...) {
 		meta, _ := m.(*Owner)
 		client := meta.v3client
 		owner := meta.name
+		if ownerField != "" {
+			if configuredOwner, ok := diff.Get(ownerField).(string); ok && configuredOwner != "" {
+				owner = configuredOwner
+			}
+		}
 
 		var repoName string
 		old, n := diff.GetChange("repository")
@@ -49,14 +62,14 @@ func diffRepository(ctx context.Context, diff *schema.ResourceDiff, m any) error
 				"old_repository": old,
 				"new_repository": repoName,
 			})
-			return diff.ForceNew("repository")
+			return forceNewChangedFields(diff, changedFields...)
 		}
 
 		repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 		if err != nil {
 			if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
 				tflog.Info(ctx, "Repository not found, assuming it was deleted and will be recreated. Forcing new resource.", map[string]any{"repository": repoName})
-				return nil
+				return forceNewChangedFields(diff, changedFields...)
 			}
 
 			return err
@@ -71,10 +84,21 @@ func diffRepository(ctx context.Context, diff *schema.ResourceDiff, m any) error
 				"new_repository":    repoName,
 				"new_repository_id": repo.GetID(),
 			})
-			return diff.ForceNew("repository")
+			return forceNewChangedFields(diff, changedFields...)
 		}
 	}
 
+	return nil
+}
+
+func forceNewChangedFields(diff *schema.ResourceDiff, fields ...string) error {
+	for _, field := range fields {
+		if diff.HasChange(field) {
+			if err := diff.ForceNew(field); err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
 
@@ -240,12 +264,20 @@ func diffLegacyTeam(ctx context.Context, diff *schema.ResourceDiff, m any) error
 
 // diffTeam compares the team_id and team_slug fields to determine if the team has changed.
 func diffTeam(ctx context.Context, diff *schema.ResourceDiff, m any) error {
+	return diffTeamWithOrganization(ctx, diff, m, "")
+}
+
+func diffTeamWithOrganization(ctx context.Context, diff *schema.ResourceDiff, m any, organizationField string) error {
 	// Skip for new resources - no existing team_id to compare against
 	if len(diff.Id()) == 0 {
 		return nil
 	}
 
-	if !diff.HasChanges("team_slug") {
+	changedFields := []string{"team_slug"}
+	if organizationField != "" {
+		changedFields = append(changedFields, organizationField)
+	}
+	if !diff.HasChanges(changedFields...) {
 		return nil
 	}
 
@@ -254,6 +286,11 @@ func diffTeam(ctx context.Context, diff *schema.ResourceDiff, m any) error {
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
+	if organizationField != "" {
+		if configuredOrganization, ok := diff.Get(organizationField).(string); ok && configuredOrganization != "" {
+			owner = configuredOrganization
+		}
+	}
 
 	teamID := toInt64(diff.Get("team_id"))
 	slug, _ := diff.Get("team_slug").(string)
@@ -264,8 +301,8 @@ func diffTeam(ctx context.Context, diff *schema.ResourceDiff, m any) error {
 	}
 
 	if changed {
-		if err := diff.ForceNew("team_slug"); err != nil {
-			return fmt.Errorf("failed to force new for team_slug: %w", err)
+		if err := forceNewChangedFields(diff, changedFields...); err != nil {
+			return fmt.Errorf("failed to force new for team identity: %w", err)
 		}
 	}
 

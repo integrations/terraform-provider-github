@@ -12,12 +12,11 @@ import (
 
 func TestResourceGithubProjectFieldCreate(t *testing.T) {
 	t.Parallel()
-	client, requests := newProjectV2TestClient(t, func(query string) string {
+	client, requests := newProjectV2TestClient(t, func(request projectV2GraphQLRequest) string {
+		query := request.Query
 		switch {
 		case strings.Contains(query, "createProjectV2Field"):
 			return `{"data":{"createProjectV2Field":{"projectV2Field":{"__typename":"ProjectV2SingleSelectField","id":"PVTF_1","name":"Status","dataType":"SINGLE_SELECT","project":{"id":"PVT_1"},"options":[{"id":"opt-1","name":"To Do","description":"Ready","color":"GRAY"}]}}}}`
-		case strings.Contains(query, "node(id:"):
-			return `{"data":{"node":{"__typename":"ProjectV2SingleSelectField","id":"PVTF_1","name":"Status","dataType":"SINGLE_SELECT","project":{"id":"PVT_1"},"options":[{"id":"opt-1","name":"To Do","description":"Ready","color":"GRAY"}]}}}`
 		default:
 			t.Fatalf("unexpected GraphQL operation: %s", query)
 			return ""
@@ -32,12 +31,13 @@ func TestResourceGithubProjectFieldCreate(t *testing.T) {
 	if diags.HasError() {
 		t.Fatalf("creating project field returned diagnostics: %v\nrequests: %v", diags, *requests)
 	}
-	if d.Id() != "PVTF_1" || len(*requests) != 2 {
+	if d.Id() != "PVTF_1" || len(*requests) != 1 {
 		t.Fatalf("unexpected field result: id=%q operations=%d", d.Id(), len(*requests))
 	}
-	if !strings.Contains((*requests)[0], "... on ProjectV2SingleSelectField") {
-		t.Fatalf("create mutation does not request single-select field data: %s", (*requests)[0])
+	if !strings.Contains((*requests)[0].Query, "... on ProjectV2SingleSelectField") {
+		t.Fatalf("create mutation does not request single-select field data: %s", (*requests)[0].Query)
 	}
+	assertProjectV2GraphQLInput(t, (*requests)[0], map[string]any{"projectId": "PVT_1", "name": "Status", "dataType": "SINGLE_SELECT"})
 }
 
 func TestSetProjectV2FieldStatePreservesIterationStartDate(t *testing.T) {

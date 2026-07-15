@@ -7,10 +7,10 @@ import (
 )
 
 type Delete struct {
-	store project.Store
+	store project.Writer
 }
 
-func NewDelete(store project.Store) *Delete {
+func NewDelete(store project.Writer) *Delete {
 	return &Delete{store: store}
 }
 

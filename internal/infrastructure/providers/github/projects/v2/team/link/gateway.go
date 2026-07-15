@@ -28,34 +28,22 @@ func (gateway *Gateway) Resolve(ctx context.Context, organization, slug string) 
 	return resultFromNode("", query.Organization.Team), nil
 }
 
-func (gateway *Gateway) Attach(ctx context.Context, projectID, teamID string) error {
+func (gateway *Gateway) Attach(ctx context.Context, projectID, teamID string) (application.Result, error) {
 	var mutation struct {
 		LinkProjectV2ToTeam struct{ Team teamNode } `graphql:"linkProjectV2ToTeam(input: $input)"`
 	}
 	variables := githubv4.LinkProjectV2ToTeamInput{ProjectID: githubv4.ID(projectID), TeamID: githubv4.ID(teamID)}
 	if err := gateway.client.Mutate(ctx, &mutation, variables, nil); err != nil {
-		return projectgraphql.Error(fmt.Sprintf("linking team %q to Projects V2 project %q", teamID, projectID), err)
+		return application.Result{}, projectgraphql.Error(fmt.Sprintf("linking team %q to Projects V2 project %q", teamID, projectID), err)
 	}
-	return nil
+	if mutation.LinkProjectV2ToTeam.Team.ID == "" {
+		return application.Result{}, fmt.Errorf("GitHub returned a linked team without an ID")
+	}
+	return resultFromNode(projectID, mutation.LinkProjectV2ToTeam.Team), nil
 }
 
 func (gateway *Gateway) Get(ctx context.Context, projectID, teamID string) (application.Result, error) {
-	linked, err := gateway.has(ctx, projectID, teamID)
-	if err != nil {
-		return application.Result{}, err
-	}
-	if !linked {
-		return application.Result{}, fmt.Errorf("team %q link to project %q: %w", teamID, projectID, projects.ErrNotFound)
-	}
-	var query struct {
-		Node struct {
-			Team teamNode `graphql:"... on Team"`
-		} `graphql:"node(id: $id)"`
-	}
-	if err := gateway.client.Query(ctx, &query, map[string]any{"id": githubv4.ID(teamID)}); err != nil {
-		return application.Result{}, projectgraphql.Error(fmt.Sprintf("querying team %q", teamID), err)
-	}
-	return resultFromNode(projectID, query.Node.Team), nil
+	return gateway.find(ctx, projectID, teamID)
 }
 
 func (gateway *Gateway) Detach(ctx context.Context, projectID, teamID string) error {
@@ -69,29 +57,29 @@ func (gateway *Gateway) Detach(ctx context.Context, projectID, teamID string) er
 	return nil
 }
 
-func (gateway *Gateway) has(ctx context.Context, projectID, teamID string) (bool, error) {
+func (gateway *Gateway) find(ctx context.Context, projectID, teamID string) (application.Result, error) {
 	var after *githubv4.String
 	for {
 		var query struct {
 			Node struct {
 				Project struct {
 					Teams struct {
-						Nodes    []struct{ ID githubv4.String }
+						Nodes    []teamNode
 						PageInfo pageInfo
 					} `graphql:"teams(first: 100, after: $after)"`
 				} `graphql:"... on ProjectV2"`
 			} `graphql:"node(id: $id)"`
 		}
 		if err := gateway.client.Query(ctx, &query, map[string]any{"id": githubv4.ID(projectID), "after": after}); err != nil {
-			return false, projectgraphql.Error(fmt.Sprintf("querying teams linked to Projects V2 project %q", projectID), err)
+			return application.Result{}, projectgraphql.Error(fmt.Sprintf("querying teams linked to Projects V2 project %q", projectID), err)
 		}
 		for _, team := range query.Node.Project.Teams.Nodes {
 			if string(team.ID) == teamID {
-				return true, nil
+				return resultFromNode(projectID, team), nil
 			}
 		}
 		if !bool(query.Node.Project.Teams.PageInfo.HasNextPage) {
-			return false, nil
+			return application.Result{}, fmt.Errorf("team %q link to project %q: %w", teamID, projectID, projects.ErrNotFound)
 		}
 		after = new(query.Node.Project.Teams.PageInfo.EndCursor)
 	}

@@ -23,6 +23,7 @@ func resourceGithubProject() *schema.Resource {
 		ReadContext:   resourceGithubProjectRead,
 		UpdateContext: resourceGithubProjectUpdate,
 		DeleteContext: resourceGithubProjectDelete,
+		CustomizeDiff: diffProjectV2Owner,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -31,16 +32,20 @@ func resourceGithubProject() *schema.Resource {
 			"owner_type": {
 				Type:             schema.TypeString,
 				Optional:         true,
-				Default:          projectV2OwnerOrganization,
-				ForceNew:         true,
+				Computed:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{projectV2OwnerOrganization, projectV2OwnerUser}, false)),
 				Description:      "Type of project owner. Must be `organization` or `user`.",
 			},
 			"owner": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				ForceNew:    true,
+				Computed:    true,
 				Description: "Login of the project owner. Defaults to the provider owner.",
+			},
+			"owner_id": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "Stable database ID of the project owner.",
 			},
 			"title": {
 				Type:        schema.TypeString,
@@ -86,19 +91,24 @@ func resourceGithubProject() *schema.Resource {
 func resourceGithubProjectCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	gateway := projectgithub.NewGateway(projectV2OwnerMetadata(meta).v4client)
 	project, err := projectusecases.NewCreate(gateway).Run(ctx, projectapplication.CreateInput{
-		OwnerKind: projectapplication.OwnerKind(projectV2Get[string](d, "owner_type")), Owner: projectV2OwnerLogin(d, meta),
+		OwnerKind: projectapplication.OwnerKind(projectV2OwnerKind(d, meta)), Owner: projectV2OwnerLogin(d, meta),
 		Title: projectV2Get[string](d, "title"), ShortDescription: projectV2Get[string](d, "short_description"), Readme: projectV2Get[string](d, "readme"),
 		Public: projectV2Get[bool](d, "public"), Closed: projectV2Get[bool](d, "closed"),
 	})
+	if project.ID != "" {
+		d.SetId(project.ID)
+		if stateErr := setProjectV2State(d, project); stateErr != nil {
+			if err != nil {
+				return diag.FromErr(errors.Join(err, stateErr))
+			}
+			return diag.FromErr(stateErr)
+		}
+	}
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	if project.ID == "" {
 		return diag.Errorf("GitHub returned a Projects V2 project without an ID")
-	}
-	d.SetId(project.ID)
-	if err := setProjectV2State(d, project); err != nil {
-		return diag.FromErr(err)
 	}
 	return nil
 }
@@ -140,7 +150,7 @@ func resourceGithubProjectDelete(ctx context.Context, d *schema.ResourceData, me
 
 func setProjectV2State(d *schema.ResourceData, project projectapplication.Result) error {
 	values := map[string]any{
-		"owner_type": string(project.OwnerKind), "owner": project.Owner, "number": project.Number, "title": project.Title,
+		"owner_type": string(project.OwnerKind), "owner": project.Owner, "owner_id": project.OwnerID, "number": project.Number, "title": project.Title,
 		"short_description": project.ShortDescription, "readme": project.Readme, "public": project.Public, "closed": project.Closed, "url": project.URL,
 	}
 	for key, value := range values {
@@ -156,4 +166,11 @@ func projectV2OwnerLogin(d *schema.ResourceData, meta any) string {
 		return owner
 	}
 	return projectV2OwnerMetadata(meta).name
+}
+
+func projectV2OwnerKind(d *schema.ResourceData, meta any) string {
+	if kind := projectV2Get[string](d, "owner_type"); kind != "" {
+		return kind
+	}
+	return projectV2DefaultOwnerKind(meta)
 }

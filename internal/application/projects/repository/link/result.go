@@ -3,6 +3,7 @@ package link
 type Result struct {
 	ProjectID    string
 	RepositoryID string
+	DatabaseID   int
 	Owner        string
 	Name         string
 }

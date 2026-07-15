@@ -9,12 +9,11 @@ import (
 
 func TestResourceGithubProjectItemCreate(t *testing.T) {
 	t.Parallel()
-	client, requests := newProjectV2TestClient(t, func(query string) string {
+	client, requests := newProjectV2TestClient(t, func(request projectV2GraphQLRequest) string {
+		query := request.Query
 		switch {
 		case strings.Contains(query, "addProjectV2ItemById"):
-			return `{"data":{"addProjectV2ItemById":{"item":{"id":"PVTI_1"}}}}`
-		case strings.Contains(query, "node(id:"):
-			return `{"data":{"node":{"id":"PVTI_1","isArchived":false,"project":{"id":"PVT_1"},"content":{"id":"I_1"}}}}`
+			return `{"data":{"addProjectV2ItemById":{"item":{"id":"PVTI_1","isArchived":false,"project":{"id":"PVT_1"},"content":{"id":"I_1"}}}}}`
 		default:
 			t.Fatalf("unexpected GraphQL operation: %s", query)
 			return ""
@@ -26,7 +25,8 @@ func TestResourceGithubProjectItemCreate(t *testing.T) {
 	if diags.HasError() {
 		t.Fatalf("creating project item returned diagnostics: %v\nrequests: %v", diags, *requests)
 	}
-	if d.Id() != "PVTI_1" || len(*requests) != 2 {
+	if d.Id() != "PVTI_1" || len(*requests) != 1 {
 		t.Fatalf("unexpected item result: id=%q operations=%d", d.Id(), len(*requests))
 	}
+	assertProjectV2GraphQLInput(t, (*requests)[0], map[string]any{"projectId": "PVT_1", "contentId": "I_1"})
 }

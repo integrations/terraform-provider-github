@@ -14,10 +14,10 @@ type Gateway struct{ client *githubv4.Client }
 
 func NewGateway(client *githubv4.Client) *Gateway { return &Gateway{client: client} }
 
-func (gateway *Gateway) Create(ctx context.Context, input application.CreateInput) (string, error) {
+func (gateway *Gateway) Create(ctx context.Context, input application.CreateInput) (application.Result, error) {
 	ownerID, err := gateway.ownerID(ctx, input.OwnerKind, input.Owner)
 	if err != nil {
-		return "", err
+		return application.Result{}, err
 	}
 	var mutation struct {
 		CreateProjectV2 struct {
@@ -26,13 +26,9 @@ func (gateway *Gateway) Create(ctx context.Context, input application.CreateInpu
 	}
 	create := githubv4.CreateProjectV2Input{OwnerID: ownerID, Title: githubv4.String(input.Title)}
 	if err := gateway.client.Mutate(ctx, &mutation, create, nil); err != nil {
-		return "", projectgraphql.Error("creating Projects V2 project", err)
+		return application.Result{}, projectgraphql.Error("creating Projects V2 project", err)
 	}
-	id := string(mutation.CreateProjectV2.Project.ID)
-	if err := gateway.Update(ctx, application.UpdateInput{ID: id, Title: input.Title, ShortDescription: input.ShortDescription, Readme: input.Readme, Public: input.Public, Closed: input.Closed}); err != nil {
-		return "", err
-	}
-	return id, nil
+	return resultFromNode(mutation.CreateProjectV2.Project)
 }
 
 func (gateway *Gateway) Get(ctx context.Context, id string) (application.Result, error) {
@@ -44,10 +40,10 @@ func (gateway *Gateway) Get(ctx context.Context, id string) (application.Result,
 	if err := gateway.client.Query(ctx, &query, map[string]any{"id": githubv4.ID(id)}); err != nil {
 		return application.Result{}, projectgraphql.Error(fmt.Sprintf("querying Projects V2 project %q", id), err)
 	}
-	return resultFromNode(query.Node.Project), nil
+	return resultFromNode(query.Node.Project)
 }
 
-func (gateway *Gateway) Update(ctx context.Context, input application.UpdateInput) error {
+func (gateway *Gateway) Update(ctx context.Context, input application.UpdateInput) (application.Result, error) {
 	title, description, readme := githubv4.String(input.Title), githubv4.String(input.ShortDescription), githubv4.String(input.Readme)
 	public, closed := githubv4.Boolean(input.Public), githubv4.Boolean(input.Closed)
 	variables := githubv4.UpdateProjectV2Input{ProjectID: githubv4.ID(input.ID), Title: &title, ShortDescription: &description, Readme: &readme, Public: &public, Closed: &closed}
@@ -57,9 +53,9 @@ func (gateway *Gateway) Update(ctx context.Context, input application.UpdateInpu
 		} `graphql:"updateProjectV2(input: $input)"`
 	}
 	if err := gateway.client.Mutate(ctx, &mutation, variables, nil); err != nil {
-		return projectgraphql.Error(fmt.Sprintf("updating Projects V2 project %q", input.ID), err)
+		return application.Result{}, projectgraphql.Error(fmt.Sprintf("updating Projects V2 project %q", input.ID), err)
 	}
-	return nil
+	return resultFromNode(mutation.UpdateProjectV2.Project)
 }
 
 func (gateway *Gateway) Delete(ctx context.Context, id string) error {

@@ -18,6 +18,7 @@ type Result struct {
 	URL              string
 	OwnerKind        OwnerKind
 	Owner            string
+	OwnerID          int
 }
 
 type CreateInput struct {

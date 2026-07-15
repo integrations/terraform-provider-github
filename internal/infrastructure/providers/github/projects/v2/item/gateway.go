@@ -14,15 +14,15 @@ type Gateway struct{ client *githubv4.Client }
 
 func NewGateway(client *githubv4.Client) *Gateway { return &Gateway{client: client} }
 
-func (gateway *Gateway) Add(ctx context.Context, projectID, contentID string) (string, error) {
+func (gateway *Gateway) Add(ctx context.Context, projectID, contentID string) (application.Result, error) {
 	var mutation struct {
 		AddProjectV2ItemByID struct{ Item node } `graphql:"addProjectV2ItemById(input: $input)"`
 	}
 	variables := githubv4.AddProjectV2ItemByIdInput{ProjectID: githubv4.ID(projectID), ContentID: githubv4.ID(contentID)}
 	if err := gateway.client.Mutate(ctx, &mutation, variables, nil); err != nil {
-		return "", projectgraphql.Error(fmt.Sprintf("adding content to Projects V2 project %q", projectID), err)
+		return application.Result{}, projectgraphql.Error(fmt.Sprintf("adding content to Projects V2 project %q", projectID), err)
 	}
-	return string(mutation.AddProjectV2ItemByID.Item.ID), nil
+	return resultFromNode(mutation.AddProjectV2ItemByID.Item)
 }
 
 func (gateway *Gateway) Get(ctx context.Context, id string) (application.Result, error) {
@@ -37,25 +37,25 @@ func (gateway *Gateway) Get(ctx context.Context, id string) (application.Result,
 	return resultFromNode(query.Node.Item)
 }
 
-func (gateway *Gateway) SetArchived(ctx context.Context, projectID, itemID string, archived bool) error {
+func (gateway *Gateway) SetArchived(ctx context.Context, projectID, itemID string, archived bool) (application.Result, error) {
 	if archived {
 		var mutation struct {
 			ArchiveProjectV2Item struct{ Item node } `graphql:"archiveProjectV2Item(input: $input)"`
 		}
 		variables := githubv4.ArchiveProjectV2ItemInput{ProjectID: githubv4.ID(projectID), ItemID: githubv4.ID(itemID)}
 		if err := gateway.client.Mutate(ctx, &mutation, variables, nil); err != nil {
-			return projectgraphql.Error(fmt.Sprintf("archiving Projects V2 item %q", itemID), err)
+			return application.Result{}, projectgraphql.Error(fmt.Sprintf("archiving Projects V2 item %q", itemID), err)
 		}
-		return nil
+		return resultFromNode(mutation.ArchiveProjectV2Item.Item)
 	}
 	var mutation struct {
 		UnarchiveProjectV2Item struct{ Item node } `graphql:"unarchiveProjectV2Item(input: $input)"`
 	}
 	variables := githubv4.UnarchiveProjectV2ItemInput{ProjectID: githubv4.ID(projectID), ItemID: githubv4.ID(itemID)}
 	if err := gateway.client.Mutate(ctx, &mutation, variables, nil); err != nil {
-		return projectgraphql.Error(fmt.Sprintf("unarchiving Projects V2 item %q", itemID), err)
+		return application.Result{}, projectgraphql.Error(fmt.Sprintf("unarchiving Projects V2 item %q", itemID), err)
 	}
-	return nil
+	return resultFromNode(mutation.UnarchiveProjectV2Item.Item)
 }
 
 func (gateway *Gateway) Remove(ctx context.Context, projectID, itemID string) error {

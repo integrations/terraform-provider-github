@@ -26,34 +26,22 @@ func (gateway *Gateway) Resolve(ctx context.Context, owner, name string) (applic
 	return resultFromNode("", query.Repository), nil
 }
 
-func (gateway *Gateway) Attach(ctx context.Context, projectID, repositoryID string) error {
+func (gateway *Gateway) Attach(ctx context.Context, projectID, repositoryID string) (application.Result, error) {
 	var mutation struct {
 		LinkProjectV2ToRepository struct{ Repository repositoryNode } `graphql:"linkProjectV2ToRepository(input: $input)"`
 	}
 	variables := githubv4.LinkProjectV2ToRepositoryInput{ProjectID: githubv4.ID(projectID), RepositoryID: githubv4.ID(repositoryID)}
 	if err := gateway.client.Mutate(ctx, &mutation, variables, nil); err != nil {
-		return projectgraphql.Error(fmt.Sprintf("linking repository %q to Projects V2 project %q", repositoryID, projectID), err)
+		return application.Result{}, projectgraphql.Error(fmt.Sprintf("linking repository %q to Projects V2 project %q", repositoryID, projectID), err)
 	}
-	return nil
+	if mutation.LinkProjectV2ToRepository.Repository.ID == "" {
+		return application.Result{}, fmt.Errorf("GitHub returned a linked repository without an ID")
+	}
+	return resultFromNode(projectID, mutation.LinkProjectV2ToRepository.Repository), nil
 }
 
 func (gateway *Gateway) Get(ctx context.Context, projectID, repositoryID string) (application.Result, error) {
-	linked, err := gateway.has(ctx, projectID, repositoryID)
-	if err != nil {
-		return application.Result{}, err
-	}
-	if !linked {
-		return application.Result{}, fmt.Errorf("repository %q link to project %q: %w", repositoryID, projectID, projects.ErrNotFound)
-	}
-	var query struct {
-		Node struct {
-			Repository repositoryNode `graphql:"... on Repository"`
-		} `graphql:"node(id: $id)"`
-	}
-	if err := gateway.client.Query(ctx, &query, map[string]any{"id": githubv4.ID(repositoryID)}); err != nil {
-		return application.Result{}, projectgraphql.Error(fmt.Sprintf("querying repository %q", repositoryID), err)
-	}
-	return resultFromNode(projectID, query.Node.Repository), nil
+	return gateway.find(ctx, projectID, repositoryID)
 }
 
 func (gateway *Gateway) Detach(ctx context.Context, projectID, repositoryID string) error {
@@ -67,29 +55,29 @@ func (gateway *Gateway) Detach(ctx context.Context, projectID, repositoryID stri
 	return nil
 }
 
-func (gateway *Gateway) has(ctx context.Context, projectID, repositoryID string) (bool, error) {
+func (gateway *Gateway) find(ctx context.Context, projectID, repositoryID string) (application.Result, error) {
 	var after *githubv4.String
 	for {
 		var query struct {
 			Node struct {
 				Project struct {
 					Repositories struct {
-						Nodes    []struct{ ID githubv4.String }
+						Nodes    []repositoryNode
 						PageInfo pageInfo
 					} `graphql:"repositories(first: 100, after: $after)"`
 				} `graphql:"... on ProjectV2"`
 			} `graphql:"node(id: $id)"`
 		}
 		if err := gateway.client.Query(ctx, &query, map[string]any{"id": githubv4.ID(projectID), "after": after}); err != nil {
-			return false, projectgraphql.Error(fmt.Sprintf("querying repositories linked to Projects V2 project %q", projectID), err)
+			return application.Result{}, projectgraphql.Error(fmt.Sprintf("querying repositories linked to Projects V2 project %q", projectID), err)
 		}
 		for _, repository := range query.Node.Project.Repositories.Nodes {
 			if string(repository.ID) == repositoryID {
-				return true, nil
+				return resultFromNode(projectID, repository), nil
 			}
 		}
 		if !bool(query.Node.Project.Repositories.PageInfo.HasNextPage) {
-			return false, nil
+			return application.Result{}, fmt.Errorf("repository %q link to project %q: %w", repositoryID, projectID, projects.ErrNotFound)
 		}
 		after = new(query.Node.Project.Repositories.PageInfo.EndCursor)
 	}

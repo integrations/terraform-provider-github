@@ -7,13 +7,14 @@ import (
 )
 
 type Update struct {
-	store project.Store
+	store project.Writer
 }
 
-func NewUpdate(store project.Store) *Update {
+func NewUpdate(store project.Writer) *Update {
 	return &Update{store: store}
 }
 
 func (useCase *Update) Run(ctx context.Context, input project.UpdateInput) error {
-	return useCase.store.Update(ctx, input)
+	_, err := useCase.store.Update(ctx, input)
+	return err
 }

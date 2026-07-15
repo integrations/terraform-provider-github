@@ -35,6 +35,9 @@ func resultFromNode(value node) (application.Result, error) {
 		return application.Result{}, fmt.Errorf("GitHub returned unsupported Projects V2 field type %q", value.Typename)
 	}
 	result.ID, result.ProjectID, result.Name, result.DataType = string(base.ID), string(base.Project.ID), string(base.Name), string(base.DataType)
+	if result.ID == "" {
+		return application.Result{}, fmt.Errorf("GitHub returned a Projects V2 field without an ID")
+	}
 	return result, nil
 }
 
@@ -48,19 +51,6 @@ func iterationsFromNodes(values []iterationValue) ([]application.Iteration, erro
 		results = append(results, application.Iteration{ID: string(value.ID), Title: string(value.Title), StartDate: date, Duration: int(value.Duration)})
 	}
 	return results, nil
-}
-
-func nodeID(value node) string {
-	switch value.Typename {
-	case "ProjectV2Field":
-		return string(value.Field.ID)
-	case "ProjectV2SingleSelectField":
-		return string(value.SingleSelect.ID)
-	case "ProjectV2IterationField":
-		return string(value.Iteration.ID)
-	default:
-		return ""
-	}
 }
 
 func configurationInput(configuration application.Configuration) (*[]githubv4.ProjectV2SingleSelectFieldOptionInput, *githubv4.ProjectV2IterationFieldConfigurationInput) {

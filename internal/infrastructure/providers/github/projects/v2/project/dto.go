@@ -12,8 +12,14 @@ type node struct {
 	Closed           githubv4.Boolean
 	URL              githubv4.URI
 	Owner            struct {
-		Typename     githubv4.String                 `graphql:"__typename"`
-		Organization struct{ Login githubv4.String } `graphql:"... on Organization"`
-		User         struct{ Login githubv4.String } `graphql:"... on User"`
+		Typename     githubv4.String `graphql:"__typename"`
+		Organization struct {
+			DatabaseID githubv4.Int
+			Login      githubv4.String
+		} `graphql:"... on Organization"`
+		User struct {
+			DatabaseID githubv4.Int
+			Login      githubv4.String
+		} `graphql:"... on User"`
 	}
 }
