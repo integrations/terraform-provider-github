@@ -196,6 +196,17 @@ func dataSourceGithubOrganizationTeamsRead(ctx context.Context, d *schema.Resour
 
 			t["parent_team_id"] = strconv.FormatInt(team.Parent.GetID(), 10)
 			t["parent_team_slug"] = team.Parent.GetSlug()
+		} else {
+			t["parent_team"] = nil
+
+			t["parent"] = map[string]any{
+				"id":   "",
+				"slug": "",
+				"name": "",
+			}
+
+			t["parent_team_id"] = ""
+			t["parent_team_slug"] = ""
 		}
 
 		if !summaryOnly {

@@ -137,6 +137,8 @@ func dataSourceGithubOrganizationRoleTeamsRead(ctx context.Context, d *schema.Re
 					"slug": team.Parent.GetSlug(),
 				},
 			}
+		} else {
+			t["parent_team"] = nil
 		}
 
 		teams = append(teams, t)

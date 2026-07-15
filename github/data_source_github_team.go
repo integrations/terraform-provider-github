@@ -196,6 +196,8 @@ func dataSourceGithubTeamRead(ctx context.Context, d *schema.ResourceData, m any
 				"slug": team.Parent.GetSlug(),
 			},
 		}
+	} else {
+		t["parent_team"] = nil
 	}
 
 	var members, repositories []string

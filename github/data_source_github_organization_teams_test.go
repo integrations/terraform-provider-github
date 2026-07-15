@@ -48,9 +48,13 @@ data "github_organization_teams" "test" {
 								"parent_team":          knownvalue.ListSizeExact(0),
 								"members":              knownvalue.ListSizeExact(0),
 								"repositories":         knownvalue.ListSizeExact(0),
-								"parent":               knownvalue.MapExact(map[string]knownvalue.Check{}),
-								"parent_team_id":       knownvalue.StringExact(""),
-								"parent_team_slug":     knownvalue.StringExact(""),
+								"parent": knownvalue.MapExact(map[string]knownvalue.Check{
+									"id":   knownvalue.StringExact(""),
+									"slug": knownvalue.StringExact(""),
+									"name": knownvalue.StringExact(""),
+								}),
+								"parent_team_id":   knownvalue.StringExact(""),
+								"parent_team_slug": knownvalue.StringExact(""),
 							}),
 							knownvalue.MapExact(map[string]knownvalue.Check{
 								"id":                   knownvalue.Int32Exact(int32(team2.GetID())),
@@ -118,9 +122,13 @@ data "github_organization_teams" "test" {
 								"parent_team":          knownvalue.ListSizeExact(0),
 								"members":              knownvalue.ListSizeExact(0),
 								"repositories":         knownvalue.ListSizeExact(0),
-								"parent":               knownvalue.MapExact(map[string]knownvalue.Check{}),
-								"parent_team_id":       knownvalue.StringExact(""),
-								"parent_team_slug":     knownvalue.StringExact(""),
+								"parent": knownvalue.MapExact(map[string]knownvalue.Check{
+									"id":   knownvalue.StringExact(""),
+									"slug": knownvalue.StringExact(""),
+									"name": knownvalue.StringExact(""),
+								}),
+								"parent_team_id":   knownvalue.StringExact(""),
+								"parent_team_slug": knownvalue.StringExact(""),
 							}),
 						})),
 						statecheck.ExpectKnownValue("data.github_organization_teams.test", tfjsonpath.New("teams"), SetAbsent([]knownvalue.Check{
@@ -179,7 +187,11 @@ data "github_organization_teams" "test" {
 								"repositories": knownvalue.ListExact([]knownvalue.Check{
 									knownvalue.StringExact(repo.GetName()),
 								}),
-								"parent":           knownvalue.MapExact(map[string]knownvalue.Check{}),
+								"parent": knownvalue.MapExact(map[string]knownvalue.Check{
+									"id":   knownvalue.StringExact(""),
+									"slug": knownvalue.StringExact(""),
+									"name": knownvalue.StringExact(""),
+								}),
 								"parent_team_id":   knownvalue.StringExact(""),
 								"parent_team_slug": knownvalue.StringExact(""),
 							}),
@@ -196,9 +208,13 @@ data "github_organization_teams" "test" {
 								"parent_team":          knownvalue.ListSizeExact(0),
 								"members":              knownvalue.ListSizeExact(0),
 								"repositories":         knownvalue.ListSizeExact(0),
-								"parent":               knownvalue.MapExact(map[string]knownvalue.Check{}),
-								"parent_team_id":       knownvalue.StringExact(""),
-								"parent_team_slug":     knownvalue.StringExact(""),
+								"parent": knownvalue.MapExact(map[string]knownvalue.Check{
+									"id":   knownvalue.StringExact(""),
+									"slug": knownvalue.StringExact(""),
+									"name": knownvalue.StringExact(""),
+								}),
+								"parent_team_id":   knownvalue.StringExact(""),
+								"parent_team_slug": knownvalue.StringExact(""),
 							}),
 							knownvalue.MapExact(map[string]knownvalue.Check{
 								"id":                   knownvalue.Int32Exact(int32(team3.GetID())),
