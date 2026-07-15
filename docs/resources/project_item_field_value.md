@@ -34,11 +34,11 @@ resource "github_project_item_field_value" "status" {
 
 ### Optional
 
-- `date` (String)
-- `iteration_id` (String)
-- `number` (Number)
-- `single_select_option_id` (String)
-- `text` (String)
+- `date` (String) Date value to assign in YYYY-MM-DD format.
+- `iteration_id` (String) Stable node ID of the iteration to assign.
+- `number` (Number) Numeric value to assign to a number field.
+- `single_select_option_id` (String) Stable node ID of the single-select option to assign.
+- `text` (String) Text value to assign to a text field.
 
 ### Read-Only
 

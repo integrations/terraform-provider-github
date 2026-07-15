@@ -32,6 +32,7 @@ resource "github_project_repository" "planning" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+- `repository_id` (Number) Stable database ID of the repository.
 
 ## Import
 

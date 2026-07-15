@@ -32,6 +32,7 @@ resource "github_team_project" "platform" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+- `team_id` (Number) Stable database ID of the team.
 
 ## Import
 

@@ -53,25 +53,25 @@ resource "github_project_field" "status" {
 
 Required:
 
-- `duration` (Number)
-- `start_date` (String)
+- `duration` (Number) Default iteration duration in days.
+- `start_date` (String) Start date of the iteration schedule in YYYY-MM-DD format.
 
 Optional:
 
-- `iteration` (Block List) (see [below for nested schema](#nestedblock--iteration_configuration--iteration))
+- `iteration` (Block List) Configured iterations in schedule order. (see [below for nested schema](#nestedblock--iteration_configuration--iteration))
 
 <a id="nestedblock--iteration_configuration--iteration"></a>
 ### Nested Schema for `iteration_configuration.iteration`
 
 Required:
 
-- `duration` (Number)
-- `start_date` (String)
-- `title` (String)
+- `duration` (Number) Iteration duration in days.
+- `start_date` (String) Start date of the iteration in YYYY-MM-DD format.
+- `title` (String) Display title of the iteration.
 
 Read-Only:
 
-- `id` (String)
+- `id` (String) Stable node ID of the iteration.
 
 
 
@@ -80,16 +80,16 @@ Read-Only:
 
 Required:
 
-- `color` (String)
-- `name` (String)
+- `color` (String) Color of the single-select option.
+- `name` (String) Display name of the single-select option.
 
 Optional:
 
-- `description` (String)
+- `description` (String) Description of the single-select option.
 
 Read-Only:
 
-- `id` (String)
+- `id` (String) Stable node ID of the single-select option.
 
 ## Import
 

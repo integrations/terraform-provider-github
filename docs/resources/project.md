@@ -39,6 +39,7 @@ resource "github_project" "planning" {
 
 - `id` (String) The ID of this resource.
 - `number` (Number) Project number scoped to the owner.
+- `owner_id` (Number) Stable database ID of the project owner.
 - `url` (String) URL of the project.
 
 ## Import
