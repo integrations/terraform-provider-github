@@ -37,7 +37,7 @@ data "github_organization_teams" "example" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `teams` (List of Object) (see [below for nested schema](#nestedatt--teams))
+- `teams` (List of Object) Organization teams. (see [below for nested schema](#nestedatt--teams))
 
 <a id="nestedatt--teams"></a>
 ### Nested Schema for `teams`
@@ -80,7 +80,7 @@ Read-Only:
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `teams` (List of Object) (see [below for nested schema](#nestedatt--teams))
+- `teams` (List of Object) Organization teams. (see [below for nested schema](#nestedatt--teams))
 
 <a id="nestedatt--teams"></a>
 ### Nested Schema for `teams`

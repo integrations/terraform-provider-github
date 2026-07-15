@@ -138,12 +138,15 @@ data "github_organization_teams" "test" {
 		t.Parallel()
 
 		skipUnlessHasOrgUser1(t)
+		skipUnlessHasOrgUser2(t)
 
 		repo := mustCreateTestRepository(t)
 		team1 := mustCreateTestTeam(t, nil)
 		mustAddTeamMember(t, team1, testAccConf.testOrgUser1)
 		mustAddRepositoryTeam(t, repo, team1)
 		team2 := mustCreateTestTeam(t, nil)
+		team3 := mustCreateTestTeam(t, new(team1.GetID()))
+		mustAddTeamMember(t, team3, testAccConf.testOrgUser2)
 
 		config := `
 data "github_organization_teams" "test" {
@@ -196,6 +199,36 @@ data "github_organization_teams" "test" {
 								"parent":               knownvalue.MapExact(map[string]knownvalue.Check{}),
 								"parent_team_id":       knownvalue.StringExact(""),
 								"parent_team_slug":     knownvalue.StringExact(""),
+							}),
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"id":                   knownvalue.Int32Exact(int32(team3.GetID())),
+								"node_id":              knownvalue.StringExact(team3.GetNodeID()),
+								"slug":                 knownvalue.StringExact(team3.GetSlug()),
+								"name":                 knownvalue.StringExact(team3.GetName()),
+								"description":          knownvalue.StringExact(team3.GetDescription()),
+								"type":                 knownvalue.StringExact(team3.GetType()),
+								"privacy":              knownvalue.StringExact(team3.GetPrivacy()),
+								"notification_setting": knownvalue.StringExact(team3.GetNotificationSetting()),
+								"permission":           knownvalue.StringExact(team3.GetPermission()),
+								"parent_team": knownvalue.ListExact([]knownvalue.Check{
+									knownvalue.MapExact(map[string]knownvalue.Check{
+										"id":   knownvalue.Int32Exact(int32(team1.GetID())),
+										"slug": knownvalue.StringExact(team1.GetSlug()),
+									}),
+								}),
+								"members": knownvalue.ListExact([]knownvalue.Check{
+									knownvalue.StringExact(testAccConf.testOrgUser2),
+								}),
+								"repositories": knownvalue.ListExact([]knownvalue.Check{
+									knownvalue.StringExact(repo.GetName()),
+								}),
+								"parent": knownvalue.MapExact(map[string]knownvalue.Check{
+									"id":   knownvalue.StringExact(team1.GetNodeID()),
+									"slug": knownvalue.StringExact(team1.GetSlug()),
+									"name": knownvalue.StringExact(team1.GetName()),
+								}),
+								"parent_team_id":   knownvalue.StringExact(strconv.FormatInt(team1.GetID(), 10)),
+								"parent_team_slug": knownvalue.StringExact(team1.GetSlug()),
 							}),
 						})),
 					},

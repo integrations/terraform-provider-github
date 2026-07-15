@@ -41,8 +41,9 @@ func dataSourceGithubOrganizationTeams() *schema.Resource {
 				Deprecated:       "The `results_per_page` argument is deprecated and will be removed in a future version of the provider.",
 			},
 			"teams": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Description: "Organization teams.",
+				Type:        schema.TypeList,
+				Computed:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
@@ -207,6 +208,10 @@ func dataSourceGithubOrganizationTeamsRead(ctx context.Context, d *schema.Resour
 						continue
 					}
 					return diag.FromErr(err)
+				}
+
+				if member.GetInherited() {
+					continue
 				}
 
 				members = append(members, member.GetLogin())
