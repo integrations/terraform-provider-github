@@ -154,6 +154,61 @@ resource "github_repository_ruleset" "test" {
 		})
 	})
 
+	t.Run("create_branch_ruleset_with_update_allows_fetch_and_merge_on_fork", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandString(5)
+		repoName := fmt.Sprintf("%sfork-ruleset-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_repository" "forked" {
+	name         = "%s"
+	fork         = true
+	source_owner = "integrations"
+	source_repo  = "terraform-provider-github"
+}
+
+resource "github_repository_ruleset" "test" {
+	name        = "test-fork-update-allows-fetch-and-merge"
+	repository  = github_repository.forked.name
+	target      = "branch"
+	enforcement = "active"
+
+	conditions {
+		ref_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	rules {
+		update = true
+		update_allows_fetch_and_merge = true
+	}
+}
+`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_ruleset.test", plancheck.ResourceActionCreate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("target"), knownvalue.StringExact("branch")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("update"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("update_allows_fetch_and_merge"), knownvalue.Bool(true)),
+					},
+				},
+			},
+		})
+	})
+
 	t.Run("create_branch_ruleset_with_user_bypass_actor", func(t *testing.T) {
 		t.Parallel()
 
