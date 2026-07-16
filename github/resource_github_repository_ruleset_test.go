@@ -154,6 +154,53 @@ resource "github_repository_ruleset" "test" {
 		})
 	})
 
+	t.Run("validates_forked_repo_for_update_rule_parameter_branch_ruleset", func(t *testing.T) {
+		t.Parallel()
+
+		testRepo := mustCreateTestRepository(t)
+
+		config := fmt.Sprintf(`
+
+resource "github_repository_ruleset" "test" {
+	name        = "test"
+	repository  = "%s"
+	target      = "branch"
+	enforcement = "active"
+
+	
+	conditions {
+		ref_name {
+			include = ["refs/heads/main"]
+			exclude = []
+		}
+	}
+
+	rules {
+		update = true
+		update_allows_fetch_and_merge = %%t
+	}
+}
+`, testRepo.GetName())
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      fmt.Sprintf(config, true),
+					ExpectError: regexp.MustCompile(`cannot set update_allows_fetch_and_merge when repository is not a forked repository`),
+				},
+				{
+					Config: fmt.Sprintf(config, false),
+				},
+				{
+					Config:      fmt.Sprintf(config, true),
+					ExpectError: regexp.MustCompile(`cannot set update_allows_fetch_and_merge when repository is not a forked repository`),
+				},
+			},
+		})
+	})
+
 	t.Run("create_branch_ruleset_with_update_allows_fetch_and_merge_on_fork", func(t *testing.T) {
 		t.Parallel()
 
