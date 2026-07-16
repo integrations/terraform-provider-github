@@ -14,7 +14,11 @@ import (
 )
 
 func TestAccGithubRepositoryFile(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates and manages files", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -60,6 +64,8 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 		})
 	})
 	t.Run("validates_commit_email_must_be_specified_if_commit_author_is_specified", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -93,6 +99,8 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 	})
 
 	t.Run("validates_commit_author_must_be_specified_if_commit_email_is_specified", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -126,6 +134,8 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 	})
 
 	t.Run("can be configured to overwrite files on create", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -193,6 +203,8 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 	})
 
 	t.Run("creates and manages files on default branch if branch is omitted", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -256,6 +268,8 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 	})
 
 	t.Run("creates and manages files on auto created branch if branch does not exist", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := `
@@ -306,6 +320,8 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 	})
 
 	t.Run("can delete files from archived repositories without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-file-arch-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -361,6 +377,8 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 		})
 	})
 	t.Run("imports_files_without_error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%sfile-import-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -410,6 +428,8 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 		})
 	})
 	t.Run("imports_files_with_branch_in_id_without_error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%sfile-import-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -460,6 +480,8 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 	})
 
 	t.Run("verify_that_id_can_contain_colon_in_file_path", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		filePathWithColon := "repro/example:one.yaml"

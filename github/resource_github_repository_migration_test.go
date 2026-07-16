@@ -18,6 +18,8 @@ func testResourceGithubRepositoryInstanceStateDataV1() map[string]any {
 }
 
 func TestGithub_MigrateRepositoryStateV0toV1(t *testing.T) {
+	// IMPORTANT: This test is not parallelized because it uses global state.
+
 	t.Run("migrates state without errors", func(t *testing.T) {
 		expected := testResourceGithubRepositoryInstanceStateDataV1()
 		actual, err := resourceGithubRepositoryInstanceStateUpgradeV0(t.Context(), testResourceGithubRepositoryInstanceStateDataV0(), nil)
