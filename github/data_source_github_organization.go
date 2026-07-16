@@ -141,6 +141,26 @@ func dataSourceGithubOrganization() *schema.Resource {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
+			"members_can_delete_repositories": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"members_can_invite_outside_collaborators": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"members_can_delete_issues": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"display_commenter_full_name_setting_enabled": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"readers_can_create_discussions": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
 			"summary_only": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -265,6 +285,11 @@ func dataSourceGithubOrganizationRead(ctx context.Context, d *schema.ResourceDat
 		_ = d.Set("dependency_graph_enabled_for_new_repositories", organization.GetDependencyGraphEnabledForNewRepos())
 		_ = d.Set("secret_scanning_enabled_for_new_repositories", organization.GetSecretScanningEnabledForNewRepos())
 		_ = d.Set("secret_scanning_push_protection_enabled_for_new_repositories", organization.GetSecretScanningPushProtectionEnabledForNewRepos())
+		_ = d.Set("members_can_delete_repositories", organization.GetMembersCanDeleteRepositories())
+		_ = d.Set("members_can_invite_outside_collaborators", organization.GetMembersCanInviteOutsideCollaborators())
+		_ = d.Set("members_can_delete_issues", organization.GetMembersCanDeleteIssues())
+		_ = d.Set("display_commenter_full_name_setting_enabled", organization.GetDisplayCommenterFullNameSettingEnabled())
+		_ = d.Set("readers_can_create_discussions", organization.GetReadersCanCreateDiscussions())
 	}
 
 	d.SetId(strconv.FormatInt(organization.GetID(), 10))
