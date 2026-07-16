@@ -173,14 +173,12 @@ resource "github_repository_ruleset" "test" {
 		testRepo := mustCreateTestRepository(t)
 
 		config := fmt.Sprintf(`
-
 resource "github_repository_ruleset" "test" {
 	name        = "test"
 	repository  = "%s"
 	target      = "branch"
 	enforcement = "active"
 
-	
 	conditions {
 		ref_name {
 			include = ["refs/heads/main"]
@@ -422,20 +420,25 @@ resource "github_repository_ruleset" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", "test-push"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "target", "push"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "enforcement", "active"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.#", "2"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.0.actor_type", "DeployKey"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.0.bypass_mode", "always"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.1.actor_id", "5"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.1.actor_type", "RepositoryRole"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.1.bypass_mode", "always"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.file_path_restriction.0.restricted_file_paths.0", "test.txt"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.max_file_size.0.max_file_size", "99"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.file_extension_restriction.0.restricted_file_extensions.0", "*.zip"),
-					),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_ruleset.test", plancheck.ResourceActionCreate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact("test-push")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("target"), knownvalue.StringExact("push")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("enforcement"), knownvalue.StringExact("active")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors"), knownvalue.ListSizeExact(2)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("actor_type"), knownvalue.StringExact("DeployKey")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("bypass_mode"), knownvalue.StringExact("always")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(1).AtMapKey("actor_id"), knownvalue.Int64Exact(5)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(1).AtMapKey("actor_type"), knownvalue.StringExact("RepositoryRole")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(1).AtMapKey("bypass_mode"), knownvalue.StringExact("always")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("file_path_restriction").AtSliceIndex(0).AtMapKey("restricted_file_paths").AtSliceIndex(0), knownvalue.StringExact("test.txt")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("max_file_size").AtSliceIndex(0).AtMapKey("max_file_size"), knownvalue.Int64Exact(99)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("file_extension_restriction").AtSliceIndex(0).AtMapKey("restricted_file_extensions").AtSliceIndex(0), knownvalue.StringExact("*.zip")),
+					},
 				},
 			},
 		})
@@ -469,15 +472,20 @@ resource "github_repository_ruleset" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config: fmt.Sprintf(config, name),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", name),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(name)),
+					},
 				},
 				{
 					Config: fmt.Sprintf(config, nameUpdated),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", nameUpdated),
-					),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_ruleset.test", plancheck.ResourceActionUpdate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(nameUpdated)),
+					},
 				},
 			},
 		})
@@ -530,15 +538,20 @@ resource "github_repository_ruleset" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.#", "2"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors"), knownvalue.ListSizeExact(2)),
+					},
 				},
 				{
 					Config: configUpdated,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.#", "0"),
-					),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_ruleset.test", plancheck.ResourceActionUpdate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors"), knownvalue.ListSizeExact(0)),
+					},
 				},
 			},
 		})
@@ -584,15 +597,20 @@ resource "github_repository_ruleset" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config: fmt.Sprintf(config, repo.GetName(), bypassMode),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.0.bypass_mode", bypassMode),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("bypass_mode"), knownvalue.StringExact(bypassMode)),
+					},
 				},
 				{
 					Config: fmt.Sprintf(config, repo.GetName(), bypassModeUpdated),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.0.bypass_mode", bypassModeUpdated),
-					),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_ruleset.test", plancheck.ResourceActionUpdate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("bypass_mode"), knownvalue.StringExact(bypassModeUpdated)),
+					},
 				},
 			},
 		})
@@ -956,22 +974,27 @@ resource "github_repository_ruleset" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config: fmt.Sprintf(config, 1),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", rulesetName),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "target", "branch"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "enforcement", "active"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.#", "1"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.minimum_approvals", "1"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.#", "1"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.0", "*.go"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.reviewer.0.type", "Team"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(rulesetName)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("target"), knownvalue.StringExact("branch")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("enforcement"), knownvalue.StringExact("active")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("pull_request").AtSliceIndex(0).AtMapKey("required_reviewers"), knownvalue.ListSizeExact(1)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("pull_request").AtSliceIndex(0).AtMapKey("required_reviewers").AtSliceIndex(0).AtMapKey("minimum_approvals"), knownvalue.Int64Exact(1)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("pull_request").AtSliceIndex(0).AtMapKey("required_reviewers").AtSliceIndex(0).AtMapKey("file_patterns"), knownvalue.ListSizeExact(1)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("pull_request").AtSliceIndex(0).AtMapKey("required_reviewers").AtSliceIndex(0).AtMapKey("file_patterns").AtSliceIndex(0), knownvalue.StringExact("*.go")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("pull_request").AtSliceIndex(0).AtMapKey("required_reviewers").AtSliceIndex(0).AtMapKey("reviewer").AtSliceIndex(0).AtMapKey("type"), knownvalue.StringExact("Team")),
+					},
 				},
 				{
 					Config: fmt.Sprintf(config, 2),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.minimum_approvals", "2"),
-					),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_ruleset.test", plancheck.ResourceActionUpdate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("pull_request").AtSliceIndex(0).AtMapKey("required_reviewers").AtSliceIndex(0).AtMapKey("minimum_approvals"), knownvalue.Int64Exact(2)),
+					},
 				},
 				{
 					ResourceName:            "github_repository_ruleset.test",
