@@ -24,25 +24,17 @@ func TestAccGithubRepositoryRuleset(t *testing.T) {
 	t.Run("create_branch_ruleset", func(t *testing.T) {
 		t.Parallel()
 
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%srepo-ruleset-%s", testResourcePrefix, randomID)
+		testRepo := mustCreateTestRepository(t)
 
 		config := fmt.Sprintf(`
-resource "github_repository" "test" {
-	name = "%s"
-	auto_init = true
-	vulnerability_alerts = true
-	visibility = "%s"
-}
-
 resource "github_repository_environment" "example" {
 	environment  = "test"
-	repository   = github_repository.test.name
+	repository   = "%s"
 }
 
 resource "github_repository_ruleset" "test" {
 	name        = "test"
-	repository  = github_repository.test.id
+	repository  = "%s"
 	target      = "branch"
 	enforcement = "active"
 
@@ -124,7 +116,7 @@ resource "github_repository_ruleset" "test" {
 		non_fast_forward = true
 	}
 }
-`, repoName, testAccConf.testRepositoryVisibility)
+`, testRepo.GetName(), testRepo.GetName())
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -132,23 +124,44 @@ resource "github_repository_ruleset" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", "test"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "target", "branch"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "enforcement", "active"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.#", "2"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.0.actor_type", "DeployKey"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.0.bypass_mode", "always"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.1.actor_id", "5"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.1.actor_type", "RepositoryRole"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.1.bypass_mode", "always"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.allowed_merge_methods.#", "2"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.alerts_threshold", "errors"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.security_alerts_threshold", "high_or_higher"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.tool", "CodeQL"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.copilot_code_review.0.review_on_push", "true"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.copilot_code_review.0.review_draft_pull_requests", "false"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact("test")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("target"), knownvalue.StringExact("branch")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("enforcement"), knownvalue.StringExact("active")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors"), knownvalue.ListSizeExact(2)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("actor_type"), knownvalue.StringExact("DeployKey")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("bypass_mode"), knownvalue.StringExact("always")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(1).AtMapKey("actor_id"), knownvalue.Int64Exact(5)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(1).AtMapKey("actor_type"), knownvalue.StringExact("RepositoryRole")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(1).AtMapKey("bypass_mode"), knownvalue.StringExact("always")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("creation"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("update"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("deletion"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("required_linear_history"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("required_signatures"), knownvalue.Bool(false)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("non_fast_forward"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("merge_queue").AtSliceIndex(0).AtMapKey("check_response_timeout_minutes"), knownvalue.Int64Exact(10)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("merge_queue").AtSliceIndex(0).AtMapKey("grouping_strategy"), knownvalue.StringExact("ALLGREEN")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("merge_queue").AtSliceIndex(0).AtMapKey("max_entries_to_build"), knownvalue.Int64Exact(5)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("merge_queue").AtSliceIndex(0).AtMapKey("max_entries_to_merge"), knownvalue.Int64Exact(5)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("merge_queue").AtSliceIndex(0).AtMapKey("merge_method"), knownvalue.StringExact("SQUASH")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("merge_queue").AtSliceIndex(0).AtMapKey("min_entries_to_merge"), knownvalue.Int64Exact(1)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("merge_queue").AtSliceIndex(0).AtMapKey("min_entries_to_merge_wait_minutes"), knownvalue.Int64Exact(60)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("required_deployments").AtSliceIndex(0).AtMapKey("required_deployment_environments"), knownvalue.ListSizeExact(1)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("required_deployments").AtSliceIndex(0).AtMapKey("required_deployment_environments").AtSliceIndex(0), knownvalue.StringExact("test")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("pull_request").AtSliceIndex(0).AtMapKey("allowed_merge_methods"), knownvalue.ListSizeExact(2)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("pull_request").AtSliceIndex(0).AtMapKey("required_approving_review_count"), knownvalue.Int64Exact(2)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("pull_request").AtSliceIndex(0).AtMapKey("required_review_thread_resolution"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("pull_request").AtSliceIndex(0).AtMapKey("require_code_owner_review"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("pull_request").AtSliceIndex(0).AtMapKey("dismiss_stale_reviews_on_push"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("pull_request").AtSliceIndex(0).AtMapKey("require_last_push_approval"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("required_status_checks").AtSliceIndex(0).AtMapKey("required_check"), knownvalue.SetSizeExact(1)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("required_status_checks").AtSliceIndex(0).AtMapKey("strict_required_status_checks_policy"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("required_status_checks").AtSliceIndex(0).AtMapKey("do_not_enforce_on_create"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("required_code_scanning").AtSliceIndex(0).AtMapKey("required_code_scanning_tool"), knownvalue.SetSizeExact(1)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("copilot_code_review").AtSliceIndex(0).AtMapKey("review_on_push"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("copilot_code_review").AtSliceIndex(0).AtMapKey("review_draft_pull_requests"), knownvalue.Bool(false)),
+					},
 				},
 			},
 		})
