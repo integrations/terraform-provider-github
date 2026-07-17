@@ -4,61 +4,63 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubRepositoryTeamsDataSource(t *testing.T) {
 	t.Parallel()
 
-	t.Run("queries teams of an existing repository", func(t *testing.T) {
+	skipUnlessHasOrgs(t)
+
+	t.Run("queries_all_teams", func(t *testing.T) {
 		t.Parallel()
 
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
-		repoName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
+		repo := mustCreateTestRepository(t)
+		team1 := mustCreateTestTeam(t, nil)
+		mustAddRepositoryTeam(t, repo, team1)
+		team2 := mustCreateTestTeam(t, nil)
+		mustAddRepositoryTeam(t, repo, team2)
 
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name      = "%s"
-				auto_init = true
-			}
-
-			resource "github_team" "test" {
-				name      = "%s"
-			}
-
-			resource "github_team_repository" "test" {
-				team_id    = github_team.test.id
-				repository = github_repository.test.name
-				permission = "push"
-			}
-		`, repoName, teamName)
-
-		config2 := config + `
-			data "github_repository_teams" "test" {
-				name = github_repository.test.name
-			}
-		`
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("data.github_repository_teams.test", "name", repoName),
-			resource.TestCheckResourceAttr("data.github_repository_teams.test", "teams.#", "1"),
-			resource.TestCheckResourceAttr("data.github_repository_teams.test", "teams.0.slug", teamName),
-			resource.TestCheckResourceAttr("data.github_repository_teams.test", "teams.0.permission", "push"),
-		)
+data "github_repository_teams" "test" {
+  name = "%v"
+}
+`, repo.GetName())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  resource.ComposeTestCheckFunc(),
-				},
-				{
-					Config: config2,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_repository_teams.test", tfjsonpath.New("teams"), knownvalue.SetPartial([]knownvalue.Check{
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"id":            knownvalue.Int32Exact(int32(team1.GetID())),
+								"node_id":       knownvalue.StringExact(team1.GetNodeID()),
+								"slug":          knownvalue.StringExact(team1.GetSlug()),
+								"name":          knownvalue.StringExact(team1.GetName()),
+								"description":   knownvalue.StringExact(team1.GetDescription()),
+								"type":          knownvalue.StringExact(team1.GetType()),
+								"privacy":       knownvalue.StringExact(team1.GetPrivacy()),
+								"permission":    knownvalue.StringExact("pull"),
+								"access_source": knownvalue.StringExact("direct"),
+							}),
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"id":            knownvalue.Int32Exact(int32(team2.GetID())),
+								"node_id":       knownvalue.StringExact(team2.GetNodeID()),
+								"slug":          knownvalue.StringExact(team2.GetSlug()),
+								"name":          knownvalue.StringExact(team2.GetName()),
+								"description":   knownvalue.StringExact(team2.GetDescription()),
+								"type":          knownvalue.StringExact(team2.GetType()),
+								"privacy":       knownvalue.StringExact(team2.GetPrivacy()),
+								"permission":    knownvalue.StringExact("pull"),
+								"access_source": knownvalue.StringExact("direct"),
+							}),
+						})),
+					},
 				},
 			},
 		})

@@ -1,48 +1,112 @@
 ---
 page_title: "github_organization_teams (Data Source) - GitHub"
+subcategory: ""
 description: |-
-  Get information on all GitHub teams of an organization.
+  Data source to list all organization teams.
 ---
 
 # github_organization_teams (Data Source)
 
-Use this data source to retrieve information about all GitHub teams in an organization.
+Data source to list all organization teams.
 
 ## Example Usage
 
-To retrieve *all- teams of the organization:
-
 ```terraform
-data "github_organization_teams" "all" {}
+# All teams
+
+data "github_organization_teams" "example" {}
 ```
 
-To retrieve only the team's at the root of the organization:
-
 ```terraform
-data "github_organization_teams" "root_teams" {
+# Only find teams without a parent team (root teams only)
+
+data "github_organization_teams" "example" {
   root_teams_only = true
 }
 ```
 
-## Attributes Reference
+<!--
+## Schema
 
-- `teams` - (Required) An Array of GitHub Teams. Each `team` block consists of the fields documented below.
-- `root_teams_only` - (Optional) Only return teams that are at the organization's root, i.e. no nested teams. Defaults to `false`.
-- `summary_only` - (Optional) Exclude the members and repositories of the team from the returned result. Defaults to `false`.
-- `results_per_page` - (Optional) Set the number of results per graphql query. Reducing this number can alleviate timeout errors. Accepts a value between 0 - 100. Defaults to `100`.
+### Optional
 
----
+- `results_per_page` (Number, Deprecated) This is unused and will be removed in a future version of the provider.
+- `root_teams_only` (Boolean) If true, only root teams (teams without a parent) will be returned.
+- `summary_only` (Boolean) If true, non-default team details such as `members` & `repositories` will be omitted.
 
-The `team` block consists of:
+### Read-Only
 
-- `id` - The ID of the team.
-- `node_id` - The Node ID of the team.
-- `slug` - The slug of the team.
-- `name` - The team's full name.
-- `description` - The team's description.
-- `privacy` - The team's privacy type.
-- `members` - List of team members. Not returned if `summary_only = true`
-- `repositories` - List of team repositories. Not returned if `summary_only = true`
-- `parent_team_id` - The ID of the parent team, if there is one.
-- `parent_team_slug` - The slug of the parent team, if there is one.
-- `parent` - (**DEPRECATED**) The parent team, use `parent_team_id` or `parent_team_slug` instead.
+- `id` (String) The ID of this resource.
+- `teams` (List of Object) Organization teams. (see [below for nested schema](#nestedatt--teams))
+
+<a id="nestedatt--teams"></a>
+### Nested Schema for `teams`
+
+Read-Only:
+
+- `description` (String)
+- `id` (Number)
+- `members` (List of String)
+- `name` (String)
+- `node_id` (String)
+- `notification_setting` (String)
+- `parent` (Map of String)
+- `parent_team` (List of Object) (see [below for nested schema](#nestedobjatt--teams--parent_team))
+- `parent_team_id` (String)
+- `parent_team_slug` (String)
+- `permission` (String)
+- `privacy` (String)
+- `repositories` (List of String)
+- `slug` (String)
+- `type` (String)
+
+<a id="nestedobjatt--teams--parent_team"></a>
+### Nested Schema for `teams.parent_team`
+
+Read-Only:
+
+- `id` (Number)
+- `slug` (String)
+-->
+
+## Schema
+
+### Optional
+
+- `results_per_page` (Number, Deprecated) This is unused and will be removed in a future version of the provider.
+- `root_teams_only` (Boolean) If true, only root teams (teams without a parent) will be returned.
+- `summary_only` (Boolean) If true, non-default team details such as `members` & `repositories` will be omitted.
+
+### Read-Only
+
+- `id` (String) The ID of this resource.
+- `teams` (List of Object) Organization teams. (see [below for nested schema](#nestedatt--teams))
+
+<a id="nestedatt--teams"></a>
+### Nested Schema for `teams`
+
+Read-Only:
+
+- `description` (String) Description of the team.
+- `id` (Number) ID of the team.
+- `members` (List of String) List of members in the team.
+- `name` (String) Name of the team.
+- `node_id` (String) Node ID of the team.
+- `notification_setting` (String) Notification setting for the team; one of `notifications_enabled`, or `notifications_disabled`.
+- `parent` (Map of String, Deprecated) Map of parent team attributes; only set if this team is not a root team.
+- `parent_team` (List of Object) Parent team; only set if this team is not a root team. (see [below for nested schema](#nestedobjatt--teams--parent_team))
+- `parent_team_id` (String, Deprecated) ID of the parent team; only set if this team is not a root team.
+- `parent_team_slug` (String, Deprecated) Slug of the parent team; only set if this team is not a root team.
+- `permission` (String) Legacy default repository permission for the team (typically pull, push, or admin), used when adding a repository without specifying an explicit permission. This does not represent effective access for all repositories or custom repository roles.
+- `privacy` (String) Privacy level of the team; one of `secret` or `closed`.
+- `repositories` (List of String) List of repositories the team has access to.
+- `slug` (String) Slug of the team name.
+- `type` (String) Ownership type of the team; one of `enterprise` or `organization`.
+
+<a id="nestedobjatt--teams--parent_team"></a>
+### Nested Schema for `teams.parent_team`
+
+Read-Only:
+
+- `id` (Number) ID of the parent team.
+- `slug` (String) Slug of the parent team name.
