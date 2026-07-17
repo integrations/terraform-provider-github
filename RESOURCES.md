@@ -69,7 +69,7 @@ The overall status of each resource or data source is captured in this document 
 | `github_dependabot_public_key` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_dependabot_secrets` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_enterprise` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| `github_external_groups` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
+| `github_external_groups` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_ip_ranges` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_issue_labels` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_membership` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
