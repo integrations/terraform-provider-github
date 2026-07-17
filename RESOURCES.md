@@ -79,15 +79,15 @@ The overall status of each resource or data source is captured in this document 
 | `github_organization_custom_role` (🚫) | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_organization_external_identities` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_organization_ip_allow_list` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| `github_organization_repository_role` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| `github_organization_repository_roles` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| `github_organization_role` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| `github_organization_role_teams` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| `github_organization_role_users` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| `github_organization_roles` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
+| `github_organization_repository_role` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `github_organization_repository_roles` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `github_organization_role` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `github_organization_role_teams` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `github_organization_role_users` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `github_organization_roles` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_organization_security_managers` (🚫) | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_organization_team_sync_groups` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| `github_organization_teams` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
+| `github_organization_teams` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_organization_webhooks` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_ref` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_release` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
@@ -106,11 +106,11 @@ The overall status of each resource or data source is captured in this document 
 | `github_repository_pages` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_repository_pull_request` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_repository_pull_requests` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| `github_repository_teams` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
+| `github_repository_teams` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_repository_webhooks` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_rest_api` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_ssh_keys` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| `github_team` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
+| `github_team` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_tree` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_user` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_user_external_identity` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |

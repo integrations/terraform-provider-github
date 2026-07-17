@@ -6,8 +6,6 @@ import (
 
 	"github.com/google/go-github/v89/github"
 
-	"github.com/shurcooL/githubv4"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -17,219 +15,233 @@ func dataSourceGithubTeam() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceGithubTeamRead,
 
+		Description: "Data source to lookup a team.",
+
 		Schema: map[string]*schema.Schema{
+			"team_id": {
+				Description:      "ID of the team. One of `team_id` or `slug` must be specified.",
+				Type:             schema.TypeInt,
+				Optional:         true,
+				Computed:         true,
+				ExactlyOneOf:     []string{"team_id", "slug"},
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(1)),
+			},
 			"slug": {
-				Type:     schema.TypeString,
-				Required: true,
+				Description:  "Slug of the team name. One of `team_id` or `slug` must be specified.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ExactlyOneOf: []string{"team_id", "slug"},
+			},
+			"summary_only": {
+				Description: "If true, non-default team details such as `members` & `repositories` will be omitted.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+			},
+			"membership_type": {
+				Description:      "If `summary_only` is `false` this controls which members are returned; this can be set to either `all` or `immediate`.",
+				Type:             schema.TypeString,
+				Optional:         true,
+				Default:          "all",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"all", "immediate"}, false)),
+			},
+			"node_id": {
+				Description: "Node ID of the team.",
+				Type:        schema.TypeString,
+				Computed:    true,
 			},
 			"name": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Description: "Name of the team.",
+				Type:        schema.TypeString,
+				Computed:    true,
 			},
 			"description": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Description: "Description of the team.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"type": {
+				Description: "Ownership type of the team; one of `enterprise` or `organization`.",
+				Type:        schema.TypeString,
+				Computed:    true,
 			},
 			"privacy": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Description: "Privacy level of the team; one of `secret` or `closed`.",
+				Type:        schema.TypeString,
+				Computed:    true,
 			},
 			"notification_setting": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Description: "Notification setting for the team; one of `notifications_enabled`, or `notifications_disabled`.",
+				Type:        schema.TypeString,
+				Computed:    true,
 			},
 			"permission": {
-				Type:       schema.TypeString,
-				Computed:   true,
-				Deprecated: "Closing down notice.",
+				Description: "Legacy default repository permission for the team (typically pull, push, or admin), used when adding a repository without specifying an explicit permission. This does not represent effective access for all repositories or custom repository roles.",
+				Type:        schema.TypeString,
+				Computed:    true,
 			},
-			"members": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"repositories": {
-				Deprecated: "Use repositories_detailed instead.",
-				Type:       schema.TypeList,
-				Computed:   true,
-				Elem:       &schema.Schema{Type: schema.TypeString},
-			},
-			"repositories_detailed": {
-				Type:     schema.TypeList,
-				Computed: true,
+			"parent_team": {
+				Description: "Parent team; only set if this team is not a root team.",
+				Type:        schema.TypeList,
+				Computed:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"repo_id": {
-							Type:     schema.TypeInt,
-							Computed: true,
+						"id": {
+							Description: "ID of the parent team.",
+							Type:        schema.TypeInt,
+							Computed:    true,
 						},
-						"repo_name": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"role_name": {
-							Type:     schema.TypeString,
-							Computed: true,
+						"slug": {
+							Description: "Slug of the parent team name.",
+							Type:        schema.TypeString,
+							Computed:    true,
 						},
 					},
 				},
 			},
-			"node_id": {
-				Type:     schema.TypeString,
-				Computed: true,
+			"members": {
+				Description: "List of members of the team.",
+				Type:        schema.TypeList,
+				Computed:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
-			"membership_type": {
-				Type:             schema.TypeString,
-				Default:          "all",
-				Optional:         true,
-				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"all", "immediate"}, false)),
+			"repositories": {
+				Description: "List of repositories the team has access to.",
+				Type:        schema.TypeList,
+				Computed:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Deprecated:  "The `repositories` attribute is deprecated and will be removed in a future version of the provider. Use `repositories_detailed` instead.",
 			},
-			"summary_only": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+			"repositories_detailed": {
+				Description: "List of repositories the team has access to.",
+				Type:        schema.TypeList,
+				Computed:    true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"repo_id": {
+							Description: "ID of the repository.",
+							Type:        schema.TypeInt,
+							Computed:    true,
+						},
+						"repo_name": {
+							Description: "Name of the repository.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"role_name": {
+							Description: "Role the team has for the repository.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+					},
+				},
 			},
 			"results_per_page": {
+				Description:      "This is unused and will be removed in a future version of the provider.",
 				Type:             schema.TypeInt,
 				Optional:         true,
 				Default:          100,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 100)),
-				Deprecated:       "This is deprecated and will be removed in a future release.",
+				Deprecated:       "The `results_per_page` argument is deprecated and will be removed in a future version of the provider.",
 			},
 		},
 	}
 }
 
-func dataSourceGithubTeamRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func dataSourceGithubTeamRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	slug := d.Get("slug").(string)
-
-	team, _, err := client.Teams.GetTeamBySlug(ctx, meta.(*Owner).name, slug)
-	if err != nil {
-		return diag.FromErr(err)
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
 	}
 
-	d.SetId(strconv.FormatInt(team.GetID(), 10))
-	if err = d.Set("name", team.GetName()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("description", team.GetDescription()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("privacy", team.GetPrivacy()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("notification_setting", team.GetNotificationSetting()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("permission", team.GetPermission()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("node_id", team.GetNodeID()); err != nil {
-		return diag.FromErr(err)
+	summaryOnly, _ := d.Get("summary_only").(bool)
+
+	var team *github.Team
+	if v, ok := d.GetOk("team_id"); ok {
+		teamIDInt, _ := v.(int)
+		teamID := int64(teamIDInt)
+		t, _, err := client.Teams.GetTeamByID(ctx, meta.id, teamID)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		team = t
+	} else {
+		slug, _ := d.Get("slug").(string)
+		t, _, err := client.Teams.GetTeamBySlug(ctx, meta.name, slug)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		team = t
 	}
 
-	var members []string
-	var repositories []string
-	var repositories_detailed []any
+	t := map[string]any{
+		"team_id":              int(team.GetID()),
+		"slug":                 team.GetSlug(),
+		"node_id":              team.GetNodeID(),
+		"name":                 team.GetName(),
+		"description":          team.GetDescription(),
+		"type":                 team.GetType(),
+		"privacy":              team.GetPrivacy(),
+		"notification_setting": team.GetNotificationSetting(),
+		"permission":           team.GetPermission(),
+	}
 
-	summaryOnly := d.Get("summary_only").(bool)
-	if !summaryOnly {
-		resultsPerPage := d.Get("results_per_page").(int)
-		options := github.TeamListTeamMembersOptions{
-			ListOptions: github.ListOptions{
-				PerPage: resultsPerPage,
+	if team.Parent != nil {
+		t["parent_team"] = []map[string]any{
+			{
+				"id":   int(team.Parent.GetID()),
+				"slug": team.Parent.GetSlug(),
 			},
 		}
+	} else {
+		t["parent_team"] = nil
+	}
 
-		if d.Get("membership_type").(string) == "all" {
-			for {
-				member, resp, err := client.Teams.ListTeamMembersBySlug(ctx, owner, team.GetSlug(), &options)
-				if err != nil {
-					return diag.FromErr(err)
-				}
+	var members, repositories []string
+	var repositoriesDetailed []map[string]any
+	if !summaryOnly {
+		membershipType, _ := d.Get("membership_type").(string)
 
-				for _, v := range member {
-					members = append(members, v.GetLogin())
-				}
-
-				if resp.NextPage == 0 {
-					break
-				}
-				options.Page = resp.NextPage
-			}
-		} else {
-			type member struct {
-				Login string
-			}
-			var query struct {
-				Organization struct {
-					Team struct {
-						Members struct {
-							Nodes    []member
-							PageInfo struct {
-								EndCursor   githubv4.String
-								HasNextPage bool
-							}
-						} `graphql:"members(first:100,after:$memberCursor,membership:IMMEDIATE)"`
-					} `graphql:"team(slug:$slug)"`
-				} `graphql:"organization(login:$owner)"`
-			}
-			variables := map[string]any{
-				"owner":        githubv4.String(meta.(*Owner).name),
-				"slug":         githubv4.String(slug),
-				"memberCursor": (*githubv4.String)(nil),
-			}
-			client := meta.(*Owner).v4client
-			for {
-				nameErr := client.Query(ctx, &query, variables)
-				if nameErr != nil {
-					return diag.FromErr(nameErr)
-				}
-				for _, v := range query.Organization.Team.Members.Nodes {
-					members = append(members, v.Login)
-				}
-				if query.Organization.Team.Members.PageInfo.HasNextPage {
-					variables["memberCursor"] = query.Organization.Team.Members.PageInfo.EndCursor
-				} else {
-					break
-				}
-			}
-		}
-
-		repositories_detailed = make([]any, 0, resultsPerPage)
-		for {
-			repository, resp, err := client.Teams.ListTeamReposBySlug(ctx, owner, team.GetSlug(), &options.ListOptions)
+		for member, err := range client.Teams.ListTeamMembersBySlugIter(ctx, meta.name, team.GetSlug(), &github.TeamListTeamMembersOptions{ListOptions: github.ListOptions{PerPage: maxPerPage}}) {
 			if err != nil {
 				return diag.FromErr(err)
 			}
 
-			for _, v := range repository {
-				repositories = append(repositories, v.GetName())
-				repositories_detailed = append(repositories_detailed, map[string]any{
-					"repo_id":   v.GetID(),
-					"repo_name": v.GetName(),
-					"role_name": v.GetRoleName(),
-				})
+			if membershipType == "immediate" && member.GetInherited() {
+				continue
 			}
 
-			if resp.NextPage == 0 {
-				break
+			members = append(members, member.GetLogin())
+		}
+
+		for repo, err := range client.Teams.ListTeamReposBySlugIter(ctx, meta.name, team.GetSlug(), &github.ListOptions{PerPage: maxPerPage}) {
+			if err != nil {
+				return diag.FromErr(err)
 			}
-			options.Page = resp.NextPage
+
+			repositories = append(repositories, repo.GetName())
+
+			repositoriesDetailed = append(repositoriesDetailed, map[string]any{
+				"repo_id":   repo.GetID(),
+				"repo_name": repo.GetName(),
+				"role_name": repo.GetRoleName(),
+			})
 		}
 	}
 
-	if err = d.Set("members", members); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("repositories", repositories); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("repositories_detailed", repositories_detailed); err != nil {
-		return diag.FromErr(err)
+	t["members"] = members
+	t["repositories"] = repositories
+	t["repositories_detailed"] = repositoriesDetailed
+
+	d.SetId(strconv.FormatInt(team.GetID(), 10))
+
+	for k, v := range t {
+		if err := d.Set(k, v); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	return nil
