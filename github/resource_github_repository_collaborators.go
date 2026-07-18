@@ -18,6 +18,19 @@ import (
 
 func resourceGithubRepositoryCollaborators() *schema.Resource {
 	return &schema.Resource{
+		CreateContext: resourceGithubRepositoryCollaboratorsCreate,
+		ReadContext:   resourceGithubRepositoryCollaboratorsRead,
+		UpdateContext: resourceGithubRepositoryCollaboratorsUpdate,
+		DeleteContext: resourceGithubRepositoryCollaboratorsDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: resourceGithubRepositoryCollaboratorsImport,
+		},
+
+		CustomizeDiff: customdiff.Sequence(
+			diffRepository,
+			resourceGithubRepositoryCollaboratorsDiff,
+		),
+
 		SchemaVersion: 2,
 		StateUpgraders: []schema.StateUpgrader{
 			{
@@ -33,14 +46,6 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 		},
 
 		Description: "Manage the complete set of collaborators (users and teams) for a GitHub repository.",
-
-		CreateContext: resourceGithubRepositoryCollaboratorsCreate,
-		ReadContext:   resourceGithubRepositoryCollaboratorsRead,
-		UpdateContext: resourceGithubRepositoryCollaboratorsUpdate,
-		DeleteContext: resourceGithubRepositoryCollaboratorsDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: resourceGithubRepositoryCollaboratorsImport,
-		},
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -122,11 +127,6 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 				},
 			},
 		},
-
-		CustomizeDiff: customdiff.Sequence(
-			diffRepository,
-			resourceGithubRepositoryCollaboratorsDiff,
-		),
 	}
 }
 

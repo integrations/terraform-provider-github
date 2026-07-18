@@ -96,6 +96,14 @@ func parseID4(id string) (string, string, string, string, error) {
 	return parts[0], parts[1], parts[2], parts[3], nil
 }
 
+func checkOrganizationOK(meta *Owner) (bool, diag.Diagnostics) {
+	if !meta.IsOrganization {
+		return false, diag.Errorf("this resource can only be used in the context of an organization, %q is a user", meta.name)
+	}
+
+	return true, nil
+}
+
 func checkOrganization(meta any) error {
 	if !meta.(*Owner).IsOrganization {
 		return fmt.Errorf("this resource can only be used in the context of an organization, %q is a user", meta.(*Owner).name)
