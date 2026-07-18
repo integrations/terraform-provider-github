@@ -78,7 +78,7 @@ provider "github" {
 }
 ```
 
-~> As of v6.13.0, no `app_auth` block is needed when authenticating through the `GITHUB_APP_XXX` environment variables; the provider reads them directly. On earlier versions, an empty `app_auth {}` block is required to allow provider configuration from environment variables (see: <https://github.com/hashicorp/terraform-plugin-sdk/issues/142>), but be aware that it fails `terraform validate` in environments where the variables are not set, because the block's arguments are schema-required.
+~> No `app_auth` block is needed when authenticating through the `GITHUB_APP_XXX` environment variables; the provider reads them directly. The previously documented empty `app_auth {}` block is no longer required and should be removed: its arguments are schema-required, so it fails `terraform validate` in environments where the variables are not set.
 
 #### .env
 
@@ -94,7 +94,6 @@ export GITHUB_APP_PEM_FILE="..." # Required: Contents of the PEM file for the Gi
 provider "github" {
   owner = var.github_organization
   # Credentials come from the `GITHUB_APP_XXX` environment variables.
-  # On provider versions below v6.13.0, add: app_auth {}
 }
 ```
 
