@@ -18,7 +18,7 @@ func TestAccGithubActionsVariablesDataSource(t *testing.T) {
 
 		repo := mustCreateTestRepository(t)
 		value := "foo"
-		varName := mustCreateTestRepositoryVariable(t, repo, value)
+		varName := mustCreateTestRepositoryVariable(t, repo, nil, &value)
 
 		config := fmt.Sprintf(`
 data "github_actions_variables" "test" {

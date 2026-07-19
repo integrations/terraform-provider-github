@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -18,6 +18,19 @@ import (
 
 func resourceGithubRepositoryCollaborators() *schema.Resource {
 	return &schema.Resource{
+		CreateContext: resourceGithubRepositoryCollaboratorsCreate,
+		ReadContext:   resourceGithubRepositoryCollaboratorsRead,
+		UpdateContext: resourceGithubRepositoryCollaboratorsUpdate,
+		DeleteContext: resourceGithubRepositoryCollaboratorsDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: resourceGithubRepositoryCollaboratorsImport,
+		},
+
+		CustomizeDiff: customdiff.Sequence(
+			diffRepository,
+			resourceGithubRepositoryCollaboratorsDiff,
+		),
+
 		SchemaVersion: 2,
 		StateUpgraders: []schema.StateUpgrader{
 			{
@@ -33,14 +46,6 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 		},
 
 		Description: "Manage the complete set of collaborators (users and teams) for a GitHub repository.",
-
-		CreateContext: resourceGithubRepositoryCollaboratorsCreate,
-		ReadContext:   resourceGithubRepositoryCollaboratorsRead,
-		UpdateContext: resourceGithubRepositoryCollaboratorsUpdate,
-		DeleteContext: resourceGithubRepositoryCollaboratorsDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: resourceGithubRepositoryCollaboratorsImport,
-		},
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -122,11 +127,6 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 				},
 			},
 		},
-
-		CustomizeDiff: customdiff.Sequence(
-			diffRepository,
-			resourceGithubRepositoryCollaboratorsDiff,
-		),
 	}
 }
 
@@ -511,7 +511,7 @@ func resourceGithubRepositoryCollaboratorsDelete(ctx context.Context, d *schema.
 
 func resourceGithubRepositoryCollaboratorsImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
 	tflog.Debug(ctx, "Importing repository collaborators")
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 

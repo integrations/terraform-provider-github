@@ -2,88 +2,144 @@ package github
 
 import (
 	"context"
+	"errors"
+	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"github.com/shurcooL/githubv4"
 )
 
 func dataSourceGithubOrganizationTeams() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceGithubOrganizationTeamsRead,
 
+		Description: "Data source to list all organization teams.",
+
 		Schema: map[string]*schema.Schema{
 			"root_teams_only": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Description: "If true, only root teams (teams without a parent) will be returned.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
 			},
 			"summary_only": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Description: "If true, non-default team details such as `members` & `repositories` will be omitted.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
 			},
 			"results_per_page": {
+				Description:      "This is unused and will be removed in a future version of the provider.",
 				Type:             schema.TypeInt,
 				Optional:         true,
 				Default:          100,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 100)),
+				Deprecated:       "The `results_per_page` argument is deprecated and will be removed in a future version of the provider.",
 			},
 			"teams": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Description: "Organization teams.",
+				Type:        schema.TypeList,
+				Computed:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
-							Type:     schema.TypeInt,
-							Computed: true,
+							Description: "ID of the team.",
+							Type:        schema.TypeInt,
+							Computed:    true,
 						},
 						"node_id": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Description: "Node ID of the team.",
+							Type:        schema.TypeString,
+							Computed:    true,
 						},
 						"slug": {
-							Type:     schema.TypeString,
-							Required: true,
+							Description: "Slug of the team name.",
+							Type:        schema.TypeString,
+							Required:    true,
 						},
 						"name": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Description: "Name of the team.",
+							Type:        schema.TypeString,
+							Computed:    true,
 						},
 						"description": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Description: "Description of the team.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"type": {
+							Description: "Ownership type of the team; one of `enterprise` or `organization`.",
+							Type:        schema.TypeString,
+							Computed:    true,
 						},
 						"privacy": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Description: "Privacy level of the team; one of `secret` or `closed`.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"notification_setting": {
+							Description: "Notification setting for the team; one of `notifications_enabled`, or `notifications_disabled`.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"permission": {
+							Description: "Legacy default repository permission for the team (typically pull, push, or admin), used when adding a repository without specifying an explicit permission. This does not represent effective access for all repositories or custom repository roles.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"parent_team": {
+							Description: "Parent team; only set if this team is not a root team.",
+							Type:        schema.TypeList,
+							Computed:    true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"id": {
+										Description: "ID of the parent team.",
+										Type:        schema.TypeInt,
+										Computed:    true,
+									},
+									"slug": {
+										Description: "Slug of the parent team name.",
+										Type:        schema.TypeString,
+										Computed:    true,
+									},
+								},
+							},
 						},
 						"members": {
-							Type:     schema.TypeList,
-							Computed: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
+							Description: "List of members in the team.",
+							Type:        schema.TypeList,
+							Computed:    true,
+							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
 						"repositories": {
-							Type:     schema.TypeList,
-							Computed: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
+							Description: "List of repositories the team has access to.",
+							Type:        schema.TypeList,
+							Computed:    true,
+							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
 						"parent": {
-							Deprecated: "Use parent_team_id and parent_team_slug instead.",
-							Type:       schema.TypeMap,
-							Computed:   true,
-							Elem:       &schema.Schema{Type: schema.TypeString},
+							Description: "Map of parent team attributes; only set if this team is not a root team.",
+							Type:        schema.TypeMap,
+							Computed:    true,
+							Elem:        &schema.Schema{Type: schema.TypeString},
+							Deprecated:  "The `parent` attribute is deprecated and will be removed in a future version of the provider. Use `parent_team` instead.",
 						},
 						"parent_team_id": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Description: "ID of the parent team; only set if this team is not a root team.",
+							Type:        schema.TypeString,
+							Computed:    true,
+							Deprecated:  "The `parent_team_id` attribute is deprecated and will be removed in a future version of the provider. Use `parent_team` instead.",
 						},
 						"parent_team_slug": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Description: "Slug of the parent team; only set if this team is not a root team.",
+							Type:        schema.TypeString,
+							Computed:    true,
+							Deprecated:  "The `parent_team_slug` attribute is deprecated and will be removed in a future version of the provider. Use `parent_team` instead.",
 						},
 					},
 				},
@@ -92,114 +148,110 @@ func dataSourceGithubOrganizationTeams() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationTeamsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	err := checkOrganization(meta)
-	if err != nil {
-		return diag.FromErr(err)
+func dataSourceGithubOrganizationTeamsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
 	}
 
-	clientv3 := meta.(*Owner).v3client
-	client := meta.(*Owner).v4client
-	orgName := meta.(*Owner).name
-	rootTeamsOnly := d.Get("root_teams_only").(bool)
-	summaryOnly := d.Get("summary_only").(bool)
-	resultsPerPage := d.Get("results_per_page").(int)
+	rootTeamsOnly, _ := d.Get("root_teams_only").(bool)
+	summaryOnly, _ := d.Get("summary_only").(bool)
 
-	var query TeamsQuery
-
-	variables := map[string]any{
-		"first":         githubv4.Int(resultsPerPage),
-		"login":         githubv4.String(orgName),
-		"cursor":        (*githubv4.String)(nil),
-		"rootTeamsOnly": githubv4.Boolean(rootTeamsOnly),
-		"summaryOnly":   githubv4.Boolean(summaryOnly),
-	}
-
-	var teams []any
-	for {
-		err = client.Query(ctx, &query, variables)
+	teams := make([]map[string]any, 0)
+	for team, err := range meta.v3client.Teams.ListTeamsIter(ctx, meta.name, &github.ListOptions{PerPage: maxPerPage}) {
 		if err != nil {
 			return diag.FromErr(err)
 		}
 
-		additionalTeams, err := flattenGitHubTeams(clientv3, ctx, orgName, query)
-		if err != nil {
-			return diag.FromErr(err)
+		if rootTeamsOnly && team.Parent != nil {
+			continue
 		}
-		teams = append(teams, additionalTeams...)
 
-		if !query.Organization.Teams.PageInfo.HasNextPage {
-			break
+		t := map[string]any{
+			"id":                   int(team.GetID()),
+			"node_id":              team.GetNodeID(),
+			"slug":                 team.GetSlug(),
+			"name":                 team.GetName(),
+			"description":          team.GetDescription(),
+			"type":                 team.GetType(),
+			"privacy":              team.GetPrivacy(),
+			"notification_setting": team.GetNotificationSetting(),
+			"permission":           team.GetPermission(),
 		}
-		variables["cursor"] = new(query.Organization.Teams.PageInfo.EndCursor)
+
+		if team.Parent != nil {
+			t["parent_team"] = []map[string]any{
+				{
+					"id":   int(team.Parent.GetID()),
+					"slug": team.Parent.GetSlug(),
+				},
+			}
+
+			t["parent"] = map[string]any{
+				"id":   team.Parent.GetNodeID(),
+				"slug": team.Parent.GetSlug(),
+				"name": team.Parent.GetName(),
+			}
+
+			t["parent_team_id"] = strconv.FormatInt(team.Parent.GetID(), 10)
+			t["parent_team_slug"] = team.Parent.GetSlug()
+		} else {
+			t["parent_team"] = nil
+
+			t["parent"] = map[string]any{
+				"id":   "",
+				"slug": "",
+				"name": "",
+			}
+
+			t["parent_team_id"] = ""
+			t["parent_team_slug"] = ""
+		}
+
+		if !summaryOnly {
+			var members, repositories []string
+
+			for member, err := range meta.v3client.Teams.ListTeamMembersBySlugIter(ctx, meta.name, team.GetSlug(), &github.TeamListTeamMembersOptions{ListOptions: github.ListOptions{PerPage: maxPerPage}}) {
+				if err != nil {
+					if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+						tflog.Warn(ctx, "Team members are not accessible, this is likely because the team has been deleted.", map[string]any{"team": team.GetSlug()})
+						continue
+					}
+					return diag.FromErr(err)
+				}
+
+				if member.GetInherited() {
+					continue
+				}
+
+				members = append(members, member.GetLogin())
+			}
+
+			for repo, err := range meta.v3client.Teams.ListTeamReposBySlugIter(ctx, meta.name, team.GetSlug(), &github.ListOptions{PerPage: maxPerPage}) {
+				if err != nil {
+					if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+						tflog.Warn(ctx, "Team repositories are not accessible, this is likely because the team has been deleted.", map[string]any{"team": team.GetSlug()})
+						continue
+					}
+					return diag.FromErr(err)
+				}
+
+				repositories = append(repositories, repo.GetName())
+			}
+
+			t["members"] = members
+			t["repositories"] = repositories
+		}
+
+		teams = append(teams, t)
 	}
 
-	d.SetId(string(query.Organization.ID))
-	err = d.Set("teams", teams)
-	if err != nil {
-		return diag.FromErr(err)
+	d.SetId(meta.name)
+
+	if err := d.Set("teams", teams); err != nil {
+		return diag.Errorf("error setting teams: %v", err)
 	}
 
 	return nil
-}
-
-func flattenGitHubTeams(client *github.Client, ctx context.Context, org string, tq TeamsQuery) ([]any, error) {
-	teams := tq.Organization.Teams.Nodes
-
-	if len(teams) == 0 {
-		return make([]any, 0), nil
-	}
-
-	flatTeams := make([]any, len(teams))
-
-	for i, team := range teams {
-		t := make(map[string]any)
-
-		t["id"] = team.DatabaseID
-		t["node_id"] = team.ID
-		t["slug"] = team.Slug
-		t["name"] = team.Name
-		t["description"] = team.Description
-		t["privacy"] = team.Privacy
-		members := team.Members.Nodes
-		flatMembers := make([]string, len(members))
-
-		for i, member := range members {
-			flatMembers[i] = string(member.Login)
-		}
-
-		t["members"] = flatMembers
-
-		var parentTeamId string
-		if len(team.Parent.Slug) != 0 {
-			parentTeam, _, err := client.Teams.GetTeamBySlug(ctx, org, string(team.Parent.Slug))
-			if err != nil {
-				return nil, err
-			}
-			parentTeamId = strconv.FormatInt(parentTeam.GetID(), 10)
-		}
-
-		t["parent_team_id"] = parentTeamId
-		t["parent_team_slug"] = team.Parent.Slug
-
-		parentTeam := make(map[string]any)
-		parentTeam["id"] = team.Parent.ID
-		parentTeam["slug"] = team.Parent.Slug
-		parentTeam["name"] = team.Parent.Name
-		t["parent"] = parentTeam
-
-		repositories := team.Repositories.Nodes
-
-		flatRepositories := make([]string, len(repositories))
-
-		for i, repository := range repositories {
-			flatRepositories[i] = string(repository.Name)
-		}
-
-		t["repositories"] = flatRepositories
-
-		flatTeams[i] = t
-	}
-
-	return flatTeams, nil
 }

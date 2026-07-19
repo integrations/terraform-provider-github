@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -118,7 +118,7 @@ func resourceGithubTeam() *schema.Resource {
 }
 
 func resourceGithubTeamCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	ownerName := meta.name
 
@@ -321,7 +321,7 @@ func resourceGithubTeamRead(ctx context.Context, d *schema.ResourceData, meta an
 }
 
 func resourceGithubTeamUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	orgId := meta.id
 
@@ -450,7 +450,7 @@ func resourceGithubTeamDelete(ctx context.Context, d *schema.ResourceData, meta 
 }
 
 func resourceGithubTeamImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 
 	teamId, err := getTeamID(ctx, meta, d.Id())
 	if err != nil {

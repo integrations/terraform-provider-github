@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 )
 
@@ -71,7 +72,7 @@ func retryUntilResourceFound[T any](ctx context.Context, f func() (T, error), op
 	return retryUntilOK(ctx, func() (T, bool, error) {
 		val, err := f()
 		if err != nil {
-			if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response != nil && ghErr.Response.StatusCode == 404 {
+			if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
 				return val, false, nil
 			}
 			return val, false, err

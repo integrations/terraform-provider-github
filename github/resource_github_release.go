@@ -4,75 +4,89 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubRelease() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceGithubReleaseCreateUpdate,
-		UpdateContext: resourceGithubReleaseCreateUpdate,
+		CreateContext: resourceGithubReleaseCreate,
 		ReadContext:   resourceGithubReleaseRead,
+		UpdateContext: resourceGithubReleaseUpdate,
 		DeleteContext: resourceGithubReleaseDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourceGithubReleaseImport,
+			StateContext: resourceGithubReleaseImport,
 		},
+
+		CustomizeDiff: diffRepository,
+
+		SchemaVersion: 1,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceGithubReleaseV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceGithubReleaseStateUpgradeV0,
+				Version: 0,
+			},
+		},
+
+		Description: "Resource to manage a GitHub release.",
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
-				Description: "The name of the repository.",
+				Description: "Name of the repository.",
+			},
+			"repository_id": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "ID of the repository.",
 			},
 			"tag_name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "The name of the tag.",
+				Description: "Name of the tag.",
 			},
 			"target_commitish": {
 				Type:        schema.TypeString,
 				Default:     "main",
 				Optional:    true,
 				ForceNew:    true,
-				Description: " The branch name or commit SHA the tag is created from.",
+				Description: "The branch name or commit SHA the tag is created from; this defaults to `main`.",
 			},
 			"name": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				ForceNew:    false,
 				Description: "The name of the release.",
 			},
 			"body": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				ForceNew:    false,
 				Description: "Text describing the contents of the tag.",
 			},
 			"draft": {
 				Type:        schema.TypeBool,
 				Default:     true,
 				Optional:    true,
-				ForceNew:    true,
-				Description: "Set to 'false' to create a published release.",
+				Description: "Set to `false` to create a published release.",
 			},
 			"prerelease": {
 				Type:        schema.TypeBool,
 				Default:     true,
 				Optional:    true,
-				Description: "Set to 'false' to identify the release as a full release.",
+				Description: "Set to `false` to identify the release as a full release.",
 			},
 			"generate_release_notes": {
 				Type:        schema.TypeBool,
 				Default:     false,
 				Optional:    true,
-				Description: "Set to 'true' to automatically generate the name and body for this release. If 'name' is specified, the specified name will be used; otherwise, a name will be automatically generated. If 'body' is specified, the body will be pre-pended to the automatically generated notes.",
+				Description: "Set to `true` to automatically generate the name and body for this release when it is created. If `name` is specified, the specified name will be used; otherwise, a name will be automatically generated. If `body` is specified, the body will be pre-pended to the automatically generated notes.",
 			},
 			"discussion_category_name": {
 				Type:        schema.TypeString,
@@ -139,22 +153,29 @@ func resourceGithubRelease() *schema.Resource {
 				Computed:    true,
 				Description: "The URL for the tarball of the release.",
 			},
+			"etag": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The ETag of the release.",
+			},
 		},
 	}
 }
 
-func resourceGithubReleaseCreateUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
-	tagName := d.Get("tag_name").(string)
-	targetCommitish := d.Get("target_commitish").(string)
-	draft := d.Get("draft").(bool)
-	prerelease := d.Get("prerelease").(bool)
-	generateReleaseNotes := d.Get("generate_release_notes").(bool)
+func resourceGithubReleaseCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
-	req := &github.RepositoryRelease{
-		TagName:              new(tagName),
+	repoName, _ := d.Get("repository").(string)
+	tagName, _ := d.Get("tag_name").(string)
+	targetCommitish, _ := d.Get("target_commitish").(string)
+	draft, _ := d.Get("draft").(bool)
+	prerelease, _ := d.Get("prerelease").(bool)
+	generateReleaseNotes, _ := d.Get("generate_release_notes").(bool)
+
+	req := github.CreateReleaseRequest{
+		TagName:              tagName,
 		TargetCommitish:      new(targetCommitish),
 		Draft:                new(draft),
 		Prerelease:           new(prerelease),
@@ -162,154 +183,253 @@ func resourceGithubReleaseCreateUpdate(ctx context.Context, d *schema.ResourceDa
 	}
 
 	if v, ok := d.GetOk("body"); ok {
-		req.Body = new(v.(string))
+		s, _ := v.(string)
+		req.Body = new(s)
 	}
 
 	if v, ok := d.GetOk("name"); ok {
-		req.Name = new(v.(string))
+		s, _ := v.(string)
+		req.Name = new(s)
 	}
 
 	if v, ok := d.GetOk("discussion_category_name"); ok {
-		req.DiscussionCategoryName = new(v.(string))
+		s, _ := v.(string)
+		req.DiscussionCategoryName = new(s)
 	}
 
-	var release *github.RepositoryRelease
-	var resp *github.Response
-	var err error
-	if d.IsNewResource() {
-		log.Printf("[DEBUG] Creating release: %s (%s/%s)",
-			targetCommitish, owner, repoName)
-		release, resp, err = client.Repositories.CreateRelease(ctx, owner, repoName, req)
-		if resp != nil {
-			log.Printf("[DEBUG] Response from creating release: %#v", *resp)
-		}
-		if err != nil {
-			return diag.FromErr(err)
-		}
-	} else {
-		id, err := strconv.ParseInt(d.Id(), 10, 64)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		log.Printf("[DEBUG] Updating release: %d:%s (%s/%s)",
-			id, targetCommitish, owner, repoName)
-		release, resp, err = client.Repositories.EditRelease(ctx, owner, repoName, id, req)
-		if resp != nil {
-			log.Printf("[DEBUG] Response from updating release: %#v", *resp)
-		}
-		if err != nil {
-			return diag.FromErr(err)
-		}
-	}
+	tflog.Debug(ctx, "Creating release.", map[string]any{"target_commitish": targetCommitish, "release_tag": tagName, "repository": repoName, "owner": owner})
 
-	transformResponseToResourceData(d, release, repoName)
-	return nil
-}
-
-func resourceGithubReleaseRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	repository := d.Get("repository").(string)
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	releaseID, err := strconv.ParseInt(d.Id(), 10, 64)
+	release, _, err := client.Repositories.CreateRelease(ctx, owner, repoName, req)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	if releaseID == 0 {
-		return diag.Errorf("`release_id` must be present")
+
+	d.SetId(strconv.FormatInt(release.GetID(), 10))
+	if err := d.Set("release_id", release.GetID()); err != nil {
+		return diag.FromErr(err)
+	}
+
+	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	repoID := int(repo.GetID())
+
+	if err := d.Set("repository_id", repoID); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := repositoryReleaseToComputedResourceData(d, release); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
+}
+
+func resourceGithubReleaseRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
+	repository, _ := d.Get("repository").(string)
+	releaseID, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("unable to convert release id %s to int64: %w", d.Id(), err))
 	}
 
 	release, _, err := client.Repositories.GetRelease(ctx, owner, repository, releaseID)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing release ID %d for repository %s from state, because it no longer exists on GitHub", releaseID, repository)
-				d.SetId("")
-				return nil
-			}
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Removing release from state because it no longer exists on GitHub.", map[string]any{"release_id": releaseID, "repository": repository})
+			d.SetId("")
+			return nil
 		}
 		return diag.FromErr(err)
 	}
-	transformResponseToResourceData(d, release, repository)
+
+	if _, ok := d.GetOk("name"); ok {
+		if err := d.Set("name", release.GetName()); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	if _, ok := d.GetOk("body"); ok {
+		if err := d.Set("body", release.GetBody()); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	if err := d.Set("draft", release.GetDraft()); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := d.Set("prerelease", release.GetPrerelease()); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := repositoryReleaseToComputedResourceData(d, release); err != nil {
+		return diag.FromErr(err)
+	}
+
 	return nil
 }
 
-func resourceGithubReleaseDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	repository := d.Get("repository").(string)
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubReleaseUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
-	releaseIDStr := d.Id()
+	repoName, _ := d.Get("repository").(string)
+
 	releaseID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return diag.FromErr(unconvertibleIdErr(releaseIDStr, err))
-	}
-	if releaseID == 0 {
-		return diag.Errorf("`release_id` must be present")
+		return diag.FromErr(fmt.Errorf("unable to convert release id %s to int64: %w", d.Id(), err))
 	}
 
-	_, err = client.Repositories.DeleteRelease(ctx, owner, repository, releaseID)
+	draft, _ := d.Get("draft").(bool)
+	prerelease, _ := d.Get("prerelease").(bool)
+
+	req := github.UpdateReleaseRequest{
+		Draft:      new(draft),
+		Prerelease: new(prerelease),
+	}
+
+	if v, ok := d.GetOk("body"); ok {
+		s, _ := v.(string)
+		req.Body = new(s)
+	}
+
+	if v, ok := d.GetOk("name"); ok {
+		s, _ := v.(string)
+		req.Name = new(s)
+	}
+
+	if v, ok := d.GetOk("discussion_category_name"); ok {
+		s, _ := v.(string)
+		req.DiscussionCategoryName = new(s)
+	}
+
+	tflog.Debug(ctx, "Updating release.", map[string]any{"release_id": releaseID, "repository": repoName, "owner": owner})
+
+	release, _, err := client.Repositories.UpdateRelease(ctx, owner, repoName, releaseID, req)
 	if err != nil {
-		return diag.Errorf("error deleting GitHub release reference %s/%s (%s): %v",
-			fmt.Sprint(releaseID), repository, owner, err)
+		return diag.FromErr(err)
+	}
+
+	if err := repositoryReleaseToComputedResourceData(d, release); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
+}
+
+func resourceGithubReleaseDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
+	repository, _ := d.Get("repository").(string)
+
+	releaseID, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("unable to convert release id %s to int64: %w", d.Id(), err))
+	}
+
+	if _, err = client.Repositories.DeleteRelease(ctx, owner, repository, releaseID); err != nil {
+		return diag.Errorf("error deleting release %s/%s/%d: %v", owner, repository, releaseID, err)
 	}
 	return nil
 }
 
-func resourceGithubReleaseImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubReleaseImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
 	repoName, releaseIDStr, err := parseID2(d.Id())
 	if err != nil {
-		return []*schema.ResourceData{d}, err
+		return nil, err
 	}
 
 	releaseID, err := strconv.ParseInt(releaseIDStr, 10, 64)
 	if err != nil {
-		return []*schema.ResourceData{d}, unconvertibleIdErr(releaseIDStr, err)
+		return nil, fmt.Errorf("unable to convert release id %s to int64: %w", releaseIDStr, err)
 	}
 	if releaseID == 0 {
-		return []*schema.ResourceData{d}, fmt.Errorf("`release_id` must be present")
+		return nil, fmt.Errorf("release_id must be present")
 	}
-	log.Printf("[DEBUG] Importing release with ID: %d, for repository: %s", releaseID, repoName)
 
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	ctx := context.Background()
+	tflog.Debug(ctx, "Importing release.", map[string]any{"release_id": releaseID, "repository": repoName})
+
 	repository, _, err := client.Repositories.Get(ctx, owner, repoName)
-	if repository == nil || err != nil {
-		return []*schema.ResourceData{d}, err
+	if err != nil {
+		return nil, err
 	}
-	if err = d.Set("repository", *repository.Name); err != nil {
-		return []*schema.ResourceData{d}, err
+	if err = d.Set("repository", repository.GetName()); err != nil {
+		return nil, err
+	}
+	if err = d.Set("repository_id", repository.GetID()); err != nil {
+		return nil, err
 	}
 
-	release, _, err := client.Repositories.GetRelease(ctx, owner, *repository.Name, releaseID)
-	if release == nil || err != nil {
-		return []*schema.ResourceData{d}, err
+	release, _, err := client.Repositories.GetRelease(ctx, owner, repository.GetName(), releaseID)
+	if err != nil {
+		return nil, err
 	}
 	d.SetId(strconv.FormatInt(release.GetID(), 10))
+	if err := d.Set("release_id", release.GetID()); err != nil {
+		return nil, err
+	}
+	if err := d.Set("tag_name", release.GetTagName()); err != nil {
+		return nil, err
+	}
+	if err := d.Set("target_commitish", release.GetTargetCommitish()); err != nil {
+		return nil, err
+	}
+	if err := d.Set("draft", release.GetDraft()); err != nil {
+		return nil, err
+	}
+	if err := d.Set("prerelease", release.GetPrerelease()); err != nil {
+		return nil, err
+	}
+	if err := d.Set("generate_release_notes", false); err != nil {
+		return nil, err
+	}
+	if err := repositoryReleaseToComputedResourceData(d, release); err != nil {
+		return nil, err
+	}
 
 	return []*schema.ResourceData{d}, nil
 }
 
-func transformResponseToResourceData(d *schema.ResourceData, release *github.RepositoryRelease, repository string) {
-	d.SetId(strconv.FormatInt(release.GetID(), 10))
-	_ = d.Set("release_id", release.GetID())
-	_ = d.Set("node_id", release.GetNodeID())
-	_ = d.Set("repository", repository)
-	_ = d.Set("tag_name", release.GetTagName())
-	_ = d.Set("target_commitish", release.GetTargetCommitish())
-	_ = d.Set("name", release.GetName())
-	_ = d.Set("body", release.GetBody())
-	_ = d.Set("draft", release.GetDraft())
-	_ = d.Set("generate_release_notes", release.GetGenerateReleaseNotes())
-	_ = d.Set("prerelease", release.GetPrerelease())
-	_ = d.Set("discussion_category_name", release.GetDiscussionCategoryName())
-	_ = d.Set("created_at", release.GetCreatedAt().String())
-	_ = d.Set("published_at", release.GetPublishedAt().String())
-	_ = d.Set("url", release.GetURL())
-	_ = d.Set("html_url", release.GetHTMLURL())
-	_ = d.Set("assets_url", release.GetAssetsURL())
-	_ = d.Set("upload_url", release.GetUploadURL())
-	_ = d.Set("zipball_url", release.GetZipballURL())
-	_ = d.Set("tarball_url", release.GetTarballURL())
+func repositoryReleaseToComputedResourceData(d *schema.ResourceData, release *github.RepositoryRelease) error {
+	if err := d.Set("node_id", release.GetNodeID()); err != nil {
+		return err
+	}
+	if err := d.Set("created_at", release.GetCreatedAt().String()); err != nil {
+		return err
+	}
+	if err := d.Set("published_at", release.GetPublishedAt().String()); err != nil {
+		return err
+	}
+	if err := d.Set("url", release.GetURL()); err != nil {
+		return err
+	}
+	if err := d.Set("html_url", release.GetHTMLURL()); err != nil {
+		return err
+	}
+	if err := d.Set("assets_url", release.GetAssetsURL()); err != nil {
+		return err
+	}
+	if err := d.Set("upload_url", release.GetUploadURL()); err != nil {
+		return err
+	}
+	if err := d.Set("zipball_url", release.GetZipballURL()); err != nil {
+		return err
+	}
+	if err := d.Set("tarball_url", release.GetTarballURL()); err != nil {
+		return err
+	}
+
+	return nil
 }
