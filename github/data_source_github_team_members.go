@@ -54,6 +54,21 @@ func dataSourceGithubTeamMembers() *schema.Resource {
 							Type:        schema.TypeString,
 							Computed:    true,
 						},
+						"email": {
+							Description: "Email of the member.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"role": {
+							Description: "Role of the member in the team; can be one of `member` or `maintainer`.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"inherited": {
+							Description: "Whether the member is inherited from a parent team.",
+							Type:        schema.TypeBool,
+							Computed:    true,
+						},
 					},
 				},
 			},
@@ -91,9 +106,12 @@ func dataSourceGithubTeamMembersRead(ctx context.Context, d *schema.ResourceData
 		}
 
 		u := map[string]any{
-			"id":      user.GetID(),
-			"node_id": user.GetNodeID(),
-			"login":   user.GetLogin(),
+			"id":        user.GetID(),
+			"node_id":   user.GetNodeID(),
+			"login":     user.GetLogin(),
+			"email":     user.GetEmail(),
+			"role":      user.GetRole(),
+			"inherited": user.GetInherited(),
 		}
 		members = append(members, u)
 	}

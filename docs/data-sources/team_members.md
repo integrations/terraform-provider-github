@@ -35,9 +35,12 @@ data "github_team_members" "example" {
 
 Read-Only:
 
+- `email` (String)
 - `id` (Number)
+- `inherited` (Boolean)
 - `login` (String)
 - `node_id` (String)
+- `role` (String)
 -->
 
 ## Schema
@@ -57,6 +60,9 @@ Read-Only:
 
 Read-Only:
 
+- `email` (String) Email of the member.
 - `id` (Number) ID of the member.
+- `inherited` (Boolean) Whether the member is inherited from a parent team.
 - `login` (String) Login of the member.
 - `node_id` (String) Node ID of the member.
+- `role` (String) Role of the member in the team; can be one of `member` or `maintainer`.
