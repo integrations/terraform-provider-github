@@ -51,7 +51,7 @@ Some API operations may not be available when using a GitHub App installation co
 
 {{ tffile "examples/provider/app_auth/main.tf" }}
 
-~> When using environment variables, an empty `app_auth` block is required to allow provider configurations from environment variables to be specified. See: <https://github.com/hashicorp/terraform-plugin-sdk/issues/142>
+~> No `app_auth` block is needed when authenticating through the `GITHUB_APP_XXX` environment variables; the provider reads them directly. The previously documented empty `app_auth {}` block is no longer required and should be removed: its arguments are schema-required, so it fails `terraform validate` in environments where the variables are not set.
 
 #### .env
 
