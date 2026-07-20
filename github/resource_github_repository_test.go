@@ -2,6 +2,7 @@ package github
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -843,6 +844,70 @@ resource "github_repository" "test" {
 						resource.TestCheckResourceAttr("github_repository.test", "merge_commit_title", updatedMergeCommitTitle),
 						resource.TestCheckResourceAttr("github_repository.test", "merge_commit_message", updatedMergeCommitMessage),
 					),
+				},
+			},
+		})
+	})
+
+	t.Run("errors at plan when merge_commit_* is set while merge commits are disabled", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%splan-err-co-%s", testResourcePrefix, randomID)
+
+		// See https://github.com/integrations/terraform-provider-github/issues/3554
+		// GitHub rejects any change to merge_commit_title/message while merge
+		// commits are disabled (HTTP 422 "no_merge_strategy"), so this config can
+		// never be applied. The provider must fail the plan with a clear message.
+		config := fmt.Sprintf(`
+resource "github_repository" "test" {
+		name                 = "%[1]s"
+		allow_merge_commit   = false
+		merge_commit_title   = "MERGE_MESSAGE"
+		merge_commit_message = "PR_TITLE"
+		visibility           = "%[2]s"
+}
+`, testRepoName, testAccConf.testRepositoryVisibility)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					PlanOnly:    true,
+					ExpectError: regexp.MustCompile(`"merge_commit_title" cannot be set while allow_merge_commit is false`),
+				},
+			},
+		})
+	})
+
+	t.Run("errors at plan when squash_merge_commit_* is set while squash merges are disabled", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%splan-err-sq-%s", testResourcePrefix, randomID)
+
+		// allow_merge_commit defaults to true, so the repo still has a valid
+		// merge strategy while squash merges are disabled.
+		config := fmt.Sprintf(`
+resource "github_repository" "test" {
+		name                        = "%[1]s"
+		allow_squash_merge          = false
+		squash_merge_commit_title   = "COMMIT_OR_PR_TITLE"
+		squash_merge_commit_message = "COMMIT_MESSAGES"
+		visibility                  = "%[2]s"
+}
+`, testRepoName, testAccConf.testRepositoryVisibility)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					PlanOnly:    true,
+					ExpectError: regexp.MustCompile(`"squash_merge_commit_title" cannot be set while allow_squash_merge is false`),
 				},
 			},
 		})
