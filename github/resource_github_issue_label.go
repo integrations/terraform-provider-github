@@ -89,7 +89,26 @@ func resourceGithubIssueLabelCreate(ctx context.Context, d *schema.ResourceData,
 		return diag.Errorf(`expected "description" to be string`)
 	}
 	label.Description = &description
-	githubLabel, resp, err := client.Issues.CreateLabel(ctx, orgName, repoName, label)
+
+	// Issue labels are keyed off of their "name", so a label with the same
+	// name that already exists on the repository outside of Terraform causes
+	// CreateLabel to fail with "422 Validation Failed [already_exists]". This
+	// is common because GitHub seeds every new repository with a set of default
+	// labels (bug, documentation, enhancement, etc.). To preserve the
+	// documented adopt-existing behavior, first check whether the label already
+	// exists and, if so, update it instead of creating it.
+	existing, resp, err := client.Issues.GetLabel(ctx, orgName, repoName, name)
+	if err != nil && (resp == nil || resp.StatusCode != http.StatusNotFound) {
+		return diag.FromErr(err)
+	}
+
+	var githubLabel *github.Label
+	if existing != nil {
+		tflog.Info(ctx, "Adopting existing issue label", map[string]any{"name": name, "org_name": orgName, "repo_name": repoName})
+		githubLabel, resp, err = client.Issues.EditLabel(ctx, orgName, repoName, name, label)
+	} else {
+		githubLabel, resp, err = client.Issues.CreateLabel(ctx, orgName, repoName, label)
+	}
 	if err != nil {
 		return diag.FromErr(err)
 	}
