@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -68,7 +69,7 @@ func dataSourceGithubExternalGroupsRead(ctx context.Context, d *schema.ResourceD
 		g := map[string]any{
 			"group_id":   group.GetGroupID(),
 			"group_name": group.GetGroupName(),
-			"updated_at": group.GetUpdatedAt().String(),
+			"updated_at": group.GetUpdatedAt().Format(time.RFC3339),
 		}
 
 		groups = append(groups, g)
