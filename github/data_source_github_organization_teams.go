@@ -115,12 +115,14 @@ func dataSourceGithubOrganizationTeams() *schema.Resource {
 							Type:        schema.TypeList,
 							Computed:    true,
 							Elem:        &schema.Schema{Type: schema.TypeString},
+							Deprecated:  "The `members` attribute is deprecated and will be removed in a future version of the provider. Use the `github_team_members` data source instead.",
 						},
 						"repositories": {
 							Description: "List of repositories the team has access to.",
 							Type:        schema.TypeList,
 							Computed:    true,
 							Elem:        &schema.Schema{Type: schema.TypeString},
+							Deprecated:  "The `repositories` attribute is deprecated and will be removed in a future version of the provider. Use the `github_team_repositories` data source instead.",
 						},
 						"parent": {
 							Description: "Map of parent team attributes; only set if this team is not a root team.",

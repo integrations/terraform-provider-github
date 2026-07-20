@@ -12,8 +12,7 @@ Data source to list all custom roles in an organization.
 ## Example Usage
 
 ```terraform
-data "github_organization_roles" "example" {
-}
+data "github_organization_roles" "example" {}
 ```
 
 <!--

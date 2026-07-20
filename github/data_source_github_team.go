@@ -27,11 +27,12 @@ func dataSourceGithubTeam() *schema.Resource {
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(1)),
 			},
 			"slug": {
-				Description:  "Slug of the team name. One of `team_id` or `slug` must be specified.",
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ExactlyOneOf: []string{"team_id", "slug"},
+				Description:      "Slug of the team name. One of `team_id` or `slug` must be specified.",
+				Type:             schema.TypeString,
+				Optional:         true,
+				Computed:         true,
+				ExactlyOneOf:     []string{"team_id", "slug"},
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsNotEmpty),
 			},
 			"summary_only": {
 				Description: "If true, non-default team details such as `members` & `repositories` will be omitted.",
@@ -105,18 +106,20 @@ func dataSourceGithubTeam() *schema.Resource {
 				Type:        schema.TypeList,
 				Computed:    true,
 				Elem:        &schema.Schema{Type: schema.TypeString},
+				Deprecated:  "The `members` attribute is deprecated and will be removed in a future version of the provider. Use the `github_team_members` data source instead.",
 			},
 			"repositories": {
 				Description: "List of repositories the team has access to.",
 				Type:        schema.TypeList,
 				Computed:    true,
 				Elem:        &schema.Schema{Type: schema.TypeString},
-				Deprecated:  "The `repositories` attribute is deprecated and will be removed in a future version of the provider. Use `repositories_detailed` instead.",
+				Deprecated:  "The `repositories` attribute is deprecated and will be removed in a future version of the provider. Use the `github_team_repositories` data source instead.",
 			},
 			"repositories_detailed": {
 				Description: "List of repositories the team has access to.",
 				Type:        schema.TypeList,
 				Computed:    true,
+				Deprecated:  "The `repositories_detailed` attribute is deprecated and will be removed in a future version of the provider. Use the `github_team_repositories` data source instead.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"repo_id": {
