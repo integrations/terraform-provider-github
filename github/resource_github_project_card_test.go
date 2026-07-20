@@ -11,9 +11,13 @@ import (
 )
 
 func TestAccGithubProjectCard(t *testing.T) {
+	t.Parallel()
+
 	t.Skip("Skipping test as the GitHub API no longer supports classic projects")
 
 	t.Run("creates a project card using a note", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testResourceName := fmt.Sprintf("%sproject-card-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -54,6 +58,8 @@ func TestAccGithubProjectCard(t *testing.T) {
 	})
 
 	t.Run("creates a project card using an issue", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-project-card-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`

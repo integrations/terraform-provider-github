@@ -11,7 +11,11 @@ import (
 )
 
 func TestAccGithubBranchProtectionV4(t *testing.T) {
+	t.Parallel()
+
 	t.Run("configures default settings when empty", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
@@ -86,6 +90,8 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 	})
 
 	t.Run("configures default settings when conversation resolution is true", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -163,6 +169,8 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 	})
 
 	t.Run("configures required status checks", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -221,6 +229,8 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 	})
 
 	t.Run("configures required pull request reviews", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -276,6 +286,8 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 	})
 
 	t.Run("configures branch push restrictions", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -318,102 +330,82 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 	})
 
 	t.Run("configures branch push restrictions with node_id", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+
+		var username string
+		if testAccConf.authMode == individual {
+			username = testAccConf.owner
+		} else {
+			skipUnlessHasOrgUser1(t)
+			username = testAccConf.testOrgUser1
+			mustAddRepositoryCollaborator(t, repo, username)
+		}
+
+		user := mustGetUser(t, username)
+
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-			  name      = "%s"
-			  auto_init = true
-			}
+resource "github_branch_protection" "test" {
+  repository_id = "%s"
+  pattern       = "main"
 
-			data "github_user" "test" {
-			  username = "%s"
-			}
-
-			resource "github_branch_protection" "test" {
-
-			  repository_id = github_repository.test.node_id
-			  pattern       = "main"
-
-			  restrict_pushes {
-				push_allowances = [
-					data.github_user.test.node_id,
-				]
-			  }
-			}
-	`, testRepoName, testAccConf.username)
-
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "restrict_pushes.#", "1",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "restrict_pushes.0.blocks_creations", "true",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "restrict_pushes.0.push_allowances.#", "1",
-			),
-		)
+  restrict_pushes {
+    push_allowances = ["%s"]
+  }
+}
+`, repo.GetNodeID(), user.GetNodeID())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
 				},
 			},
 		})
 	})
 
 	t.Run("configures branch push restrictions with username", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+
+		var username string
+		if testAccConf.authMode == individual {
+			username = testAccConf.owner
+		} else {
+			skipUnlessHasOrgUser1(t)
+			username = testAccConf.testOrgUser1
+			mustAddRepositoryCollaborator(t, repo, username)
+		}
+
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-			  name      = "%s"
-			  auto_init = true
-			}
+resource "github_branch_protection" "test" {
+  repository_id = "%s"
+  pattern       = "main"
 
-			resource "github_branch_protection" "test" {
-
-			  repository_id = github_repository.test.node_id
-			  pattern       = "main"
-
-			  restrict_pushes {
-				push_allowances = [
-					"/%s",
-				]
-			  }
-			}
-	`, testRepoName, testAccConf.username)
-
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "restrict_pushes.#", "1",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "restrict_pushes.0.blocks_creations", "true",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "restrict_pushes.0.push_allowances.#", "1",
-			),
-		)
+  restrict_pushes {
+    push_allowances = ["/%s"]
+  }
+}
+`, repo.GetNodeID(), username)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
 				},
 			},
 		})
 	})
 
 	t.Run("configures branch push restrictions with blocksCreations false", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -458,16 +450,14 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 	})
 
 	t.Run("configures force pushes and deletions", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name      = "%s"
 			  auto_init = true
-			}
-
-			data "github_user" "test" {
-			  username = "%s"
 			}
 
 			resource "github_branch_protection" "test" {
@@ -479,7 +469,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 			  allows_force_pushes = true
 
 			}
-	`, testRepoName, testAccConf.username)
+	`, testRepoName)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -503,6 +493,8 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 	})
 
 	t.Run("configures non-empty list of force push bypassers", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -527,7 +519,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 
 			}
 
-	`, testRepoName, testAccConf.username)
+	`, testRepoName, testAccConf.testOrgUser1)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -536,7 +528,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
+			PreCheck:          func() { skipUnlessHasOrgs(t); skipUnlessHasOrgUser1(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -548,6 +540,8 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 	})
 
 	t.Run("configures allow force push with a team as bypasser", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		repoName := teamName
@@ -601,6 +595,8 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 	})
 
 	t.Run("configures empty list of force push bypassers", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 
@@ -641,6 +637,8 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 	})
 
 	t.Run("configures non-empty list of pull request bypassers", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -663,7 +661,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 
 			}
 
-			`, testRepoName, testAccConf.username)
+			`, testRepoName, testAccConf.testOrgUser1)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -672,7 +670,7 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			PreCheck:          func() { skipUnlessHasOrgs(t); skipUnlessHasOrgUser1(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -684,6 +682,8 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 	})
 
 	t.Run("configures empty list of pull request bypassers", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`

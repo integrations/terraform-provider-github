@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -69,6 +69,10 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 				Required:    true,
 				ForceNew:    true,
 				Description: "This prefix appended by a number will generate a link any time it is found in an issue, pull request, or commit",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringMatch(
+					regexp.MustCompile(`^[a-zA-Z0-9.=+:/#_-]*[a-zA-Z.=+:/#_-]$`),
+					"must only contain letters, numbers, or .-_+=:/# and must not end with a number",
+				)),
 			},
 			"target_url_template": {
 				Type:             schema.TypeString,

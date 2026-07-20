@@ -10,6 +10,8 @@ import (
 
 // TestAccGithubRepositoryEtagPresent tests that etag field is populated.
 func TestAccGithubRepositoryEtagPresent(t *testing.T) {
+	t.Parallel()
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 	repoName := fmt.Sprintf("%srepo-etag-%s", testResourcePrefix, randomID)
 
@@ -37,6 +39,8 @@ func TestAccGithubRepositoryEtagPresent(t *testing.T) {
 
 // TestAccGithubRepositoryEtagNoDiff tests that re-running the same config shows no changes.
 func TestAccGithubRepositoryEtagNoDiff(t *testing.T) {
+	t.Parallel()
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 	repoName := fmt.Sprintf("%srepo-etag-nodiff-%s", testResourcePrefix, randomID)
 
