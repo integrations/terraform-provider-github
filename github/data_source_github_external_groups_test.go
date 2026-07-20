@@ -13,9 +13,7 @@ import (
 func TestAccDataSourceGithubExternalGroups(t *testing.T) {
 	t.Parallel()
 
-	if testAccConf.authMode != enterprise && !testAccConf.enterpriseIsEMU {
-		t.Skip("Skipping as test mode is not enterprise using EMU")
-	}
+	skipUnlessEMUEnterprise(t)
 
 	t.Run("queries_all_external_groups", func(t *testing.T) {
 		t.Parallel()
@@ -62,7 +60,6 @@ data "github_external_groups" "example" {
 }
 `, testAccConf.testExternalGroup1DisplayName)
 
-		// TODO: Use new not in set matcher when available from #3537
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
@@ -72,6 +69,11 @@ data "github_external_groups" "example" {
 						statecheck.ExpectKnownValue("data.github_external_groups.example", tfjsonpath.New("groups"), knownvalue.ListExact([]knownvalue.Check{
 							knownvalue.MapPartial(map[string]knownvalue.Check{
 								"group_id": knownvalue.Int32Exact(groupID),
+							}),
+						})),
+						statecheck.ExpectKnownValue("data.github_external_groups.example", tfjsonpath.New("groups"), SetAbsent([]knownvalue.Check{
+							knownvalue.MapPartial(map[string]knownvalue.Check{
+								"group_id": knownvalue.Int32Exact(int32(testAccConf.testExternalGroup2ID)),
 							}),
 						})),
 					},
