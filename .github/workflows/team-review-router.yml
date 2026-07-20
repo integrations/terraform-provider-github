@@ -1,0 +1,85 @@
+# Team Review Router - minimal label path (no src/, single file).
+#
+# When a write+/maintain/admin maintainer (non-bot) applies the
+# `needs-github-review` label to a PR, request the GitHub-employee review team
+# as a reviewer. This is the entire router - no scanner, no TypeScript.
+#
+# It authenticates as the GitHub App, because the repo GITHUB_TOKEN has no org
+# scope and cannot see or request the team.
+#
+# SAFETY: `pull_request_target` runs with secrets in scope. This workflow does
+# NOT check out or execute any PR code - it only calls the GitHub API - so there
+# is no untrusted-code risk.
+name: Team Review Router - label routing
+
+on:
+  pull_request_target:
+    types: [labeled]
+
+# We never use GITHUB_TOKEN here (every call goes through the App token), so
+# down-scope it to nothing sensitive.
+permissions:
+  contents: read
+
+jobs:
+  route:
+    # Cheap gate: only the trigger label spins up a job.
+    if: github.event.label.name == 'needs-github-review'
+    runs-on: ubuntu-latest
+    # One in-flight run per PR; don't cancel (each labeled event is idempotent).
+    concurrency:
+      group: team-review-router-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+    # Protected environment holding APP_ID / APP_PRIVATE_KEY. Configure it in the
+    # repo UI: restricted to the default branch, NO required reviewers, ZERO wait
+    # timer (either would pause this "immediate" path).
+    environment: team-review-router
+    steps:
+      # Pin this to a full commit SHA before production use (repo convention).
+      - name: Mint GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.TF_TEAM_REVIEW_APP_ID }}
+          private-key: ${{ secrets.TF_TEAM_REVIEW_APP_PRIVATE_KEY }}
+
+      - name: Request team review
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          TEAM: ${{ vars.TF_TEAM_REVIEW_TEAM_SLUG }}
+          ACTOR: ${{ github.event.sender.login }}
+          ACTOR_TYPE: ${{ github.event.sender.type }}
+          DRY_RUN: ${{ vars.TF_TEAM_REVIEW_DRY_RUN || 'false' }}
+        run: |
+          set -euo pipefail
+
+          # 1. Ignore bot actors (defense in depth).
+          if [ "$ACTOR_TYPE" = "Bot" ] || case "$ACTOR" in *"[bot]") true;; *) false;; esac; then
+            echo "::notice::Labeler '$ACTOR' is a bot; no action."
+            exit 0
+          fi
+
+          # 2. Re-verify the labeler has write+ on the repo at run time.
+          perm=$(gh api "repos/$REPO/collaborators/$ACTOR/permission" --jq '.permission')
+          case "$perm" in
+            admin|write|maintain) : ;;
+            *) echo "::notice::Labeler '$ACTOR' has '$perm' (needs write+); no action."; exit 0 ;;
+          esac
+
+          # 3. Idempotency: skip if the team is already a requested reviewer.
+          if gh api "repos/$REPO/pulls/$PR" --jq '.requested_teams[].slug' \
+              | grep -qx "$TEAM"; then
+            echo "::notice::Team '$TEAM' already requested on PR #$PR; no action."
+            exit 0
+          fi
+
+          # 4. Request the team.
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "::notice::[dry-run] would request team '$TEAM' on PR #$PR."
+            exit 0
+          fi
+          printf '{"team_reviewers":["%s"]}' "$TEAM" \
+            | gh api --method POST "repos/$REPO/pulls/$PR/requested_reviewers" --input -
+          echo "::notice::Requested team '$TEAM' on PR #$PR."
