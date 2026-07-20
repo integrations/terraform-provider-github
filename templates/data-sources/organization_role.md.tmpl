@@ -1,27 +1,21 @@
 ---
 page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+subcategory: ""
 description: |-
-  Lookup a custom organization role.
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
 ---
 
 # {{.Name}} ({{.Type}})
 
-Lookup a custom organization role.
+{{ .Description | trimspace }}
 
+{{ if .HasExamples -}}
 ## Example Usage
 
-{{ tffile "examples/data-sources/organization_role/example_1.tf" }}
+{{- range .ExampleFiles }}
 
-## Schema
+{{ tffile . }}
+{{- end }}
+{{- end }}
 
-### Required
-
-- `role_id` (Number) The ID of the organization role.
-
-### Read-Only
-
-- `name` (String) The name of the organization role.
-- `description` (String) The description of the organization role.
-- `source` (String) The source of this role; one of `Predefined`, `Organization`, or `Enterprise`.
-- `base_role` (String) The system role from which this role inherits permissions.
-- `permissions` (Set of String) The permissions included in this role.
+{{ .SchemaMarkdown | trimspace }}

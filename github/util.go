@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -94,6 +94,14 @@ func parseID4(id string) (string, string, string, string, error) {
 	}
 
 	return parts[0], parts[1], parts[2], parts[3], nil
+}
+
+func checkOrganizationOK(meta *Owner) (bool, diag.Diagnostics) {
+	if !meta.IsOrganization {
+		return false, diag.Errorf("this resource can only be used in the context of an organization, %q is a user", meta.name)
+	}
+
+	return true, nil
 }
 
 func checkOrganization(meta any) error {

@@ -5,10 +5,10 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -18,6 +18,19 @@ import (
 
 func resourceGithubActionsSecret() *schema.Resource {
 	return &schema.Resource{
+		CreateContext: resourceGithubActionsSecretCreate,
+		ReadContext:   resourceGithubActionsSecretRead,
+		UpdateContext: resourceGithubActionsSecretUpdate,
+		DeleteContext: resourceGithubActionsSecretDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: resourceGithubActionsSecretImport,
+		},
+
+		CustomizeDiff: customdiff.All(
+			diffRepository,
+			diffSecret,
+		),
+
 		SchemaVersion: 2,
 		StateUpgraders: []schema.StateUpgrader{
 			{
@@ -31,6 +44,8 @@ func resourceGithubActionsSecret() *schema.Resource {
 				Version: 1,
 			},
 		},
+
+		Description: "Resource to manage a GitHub Actions secret for a repository.",
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -93,48 +108,35 @@ func resourceGithubActionsSecret() *schema.Resource {
 			"created_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Date of secret creation.",
+				Description: "Timestamp of when the secret was created.",
 			},
 			"updated_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Date of secret update.",
+				Description: "Timestamp of when the secret was last updated by the provider.",
 			},
 			"remote_updated_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Date of secret update at the remote.",
+				Description: "Timestamp for when the secret was last updated.",
 			},
 			"destroy_on_drift": {
 				Type:       schema.TypeBool,
 				Optional:   true,
-				Deprecated: "This is no longer required and will be removed in a future release. Drift detection is now always performed, and external changes will result in the secret being updated to match the Terraform configuration. If you want to ignore external changes, you can use the `lifecycle` block with `ignore_changes` on the `remote_updated_at` field.",
+				Deprecated: "This is no longer required and will be removed in a future release. Drift detection is now always performed, and external changes will result in the secret being updated to match the Terraform configuration. If you want to ignore external changes, you can use the `lifecycle` block with `ignore_changes` on the `updated_at` field.",
 			},
-		},
-
-		CustomizeDiff: customdiff.All(
-			diffRepository,
-			diffSecret,
-		),
-
-		CreateContext: resourceGithubActionsSecretCreate,
-		ReadContext:   resourceGithubActionsSecretRead,
-		UpdateContext: resourceGithubActionsSecretUpdate,
-		DeleteContext: resourceGithubActionsSecretDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: resourceGithubActionsSecretImport,
 		},
 	}
 }
 
 func resourceGithubActionsSecretCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	secretName := d.Get("secret_name").(string)
-	keyID := d.Get("key_id").(string)
+	repoName, _ := d.Get("repository").(string)
+	secretName, _ := d.Get("secret_name").(string)
+	keyID, _ := d.Get("key_id").(string)
 	encryptedValue, _ := resourceKeysGetOk[string](d, "value_encrypted", "encrypted_value")
 
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
@@ -164,14 +166,12 @@ func resourceGithubActionsSecretCreate(ctx context.Context, d *schema.ResourceDa
 		encryptedValue = base64.StdEncoding.EncodeToString(encryptedBytes)
 	}
 
-	secret := github.EncryptedSecret{
-		Name:           secretName,
+	secretReq := github.SecretRequest{
 		KeyID:          keyID,
 		EncryptedValue: encryptedValue,
 	}
 
-	_, err = client.Actions.CreateOrUpdateRepoSecret(ctx, owner, repoName, &secret)
-	if err != nil {
+	if _, err = client.Actions.CreateOrUpdateRepoSecret(ctx, owner, repoName, secretName, secretReq); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -188,8 +188,11 @@ func resourceGithubActionsSecretCreate(ctx context.Context, d *schema.ResourceDa
 		return diag.FromErr(err)
 	}
 
-	// GitHub API does not return on create so we have to lookup the secret to get timestamps
-	if secret, _, err := client.Actions.GetRepoSecret(ctx, owner, repoName, secretName); err == nil {
+	// GitHub API does not return on create so we have to lookup the secret to get timestamps.
+	if secret, err := retryUntilResourceFound(ctx, func() (*github.Secret, error) {
+		val, _, err := client.Actions.GetRepoSecret(ctx, owner, repoName, secretName)
+		return val, err
+	}, nil); err == nil {
 		if err := d.Set("created_at", secret.CreatedAt.String()); err != nil {
 			return diag.FromErr(err)
 		}
@@ -205,22 +208,19 @@ func resourceGithubActionsSecretCreate(ctx context.Context, d *schema.ResourceDa
 }
 
 func resourceGithubActionsSecretRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	secretName := d.Get("secret_name").(string)
+	repoName, _ := d.Get("repository").(string)
+	secretName, _ := d.Get("secret_name").(string)
 
 	secret, _, err := client.Actions.GetRepoSecret(ctx, owner, repoName, secretName)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing actions secret %s from state because it no longer exists in GitHub", d.Id())
-				d.SetId("")
-				return nil
-			}
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Removing actions secret from state because it no longer exists in GitHub", map[string]any{"secret_name": secretName, "repository": repoName})
+			d.SetId("")
+			return nil
 		}
 		return diag.FromErr(err)
 	}
@@ -251,13 +251,13 @@ func resourceGithubActionsSecretRead(ctx context.Context, d *schema.ResourceData
 }
 
 func resourceGithubActionsSecretUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	secretName := d.Get("secret_name").(string)
-	keyID := d.Get("key_id").(string)
+	repoName, _ := d.Get("repository").(string)
+	secretName, _ := d.Get("secret_name").(string)
+	keyID, _ := d.Get("key_id").(string)
 	encryptedValue, _ := resourceKeysGetOk[string](d, "value_encrypted", "encrypted_value")
 
 	var publicKey string
@@ -281,14 +281,12 @@ func resourceGithubActionsSecretUpdate(ctx context.Context, d *schema.ResourceDa
 		encryptedValue = base64.StdEncoding.EncodeToString(encryptedBytes)
 	}
 
-	secret := github.EncryptedSecret{
-		Name:           secretName,
+	secretReq := github.SecretRequest{
 		KeyID:          keyID,
 		EncryptedValue: encryptedValue,
 	}
 
-	_, err := client.Actions.CreateOrUpdateRepoSecret(ctx, owner, repoName, &secret)
-	if err != nil {
+	if _, err := client.Actions.CreateOrUpdateRepoSecret(ctx, owner, repoName, secretName, secretReq); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -302,8 +300,11 @@ func resourceGithubActionsSecretUpdate(ctx context.Context, d *schema.ResourceDa
 		return diag.FromErr(err)
 	}
 
-	// GitHub API does not return on update so we have to lookup the secret to get timestamps
-	if secret, _, err := client.Actions.GetRepoSecret(ctx, owner, repoName, secretName); err == nil {
+	// GitHub API does not return on update so we have to lookup the secret to get timestamps.
+	if secret, err := retryUntilResourceFound(ctx, func() (*github.Secret, error) {
+		val, _, err := client.Actions.GetRepoSecret(ctx, owner, repoName, secretName)
+		return val, err
+	}, nil); err == nil {
 		if err := d.Set("created_at", secret.CreatedAt.String()); err != nil {
 			return diag.FromErr(err)
 		}
@@ -313,29 +314,21 @@ func resourceGithubActionsSecretUpdate(ctx context.Context, d *schema.ResourceDa
 		if err := d.Set("remote_updated_at", secret.UpdatedAt.String()); err != nil {
 			return diag.FromErr(err)
 		}
-	} else {
-		if err := d.Set("updated_at", nil); err != nil {
-			return diag.FromErr(err)
-		}
-		if err := d.Set("remote_updated_at", nil); err != nil {
-			return diag.FromErr(err)
-		}
 	}
 
 	return nil
 }
 
 func resourceGithubActionsSecretDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	secretName := d.Get("secret_name").(string)
+	repoName, _ := d.Get("repository").(string)
+	secretName, _ := d.Get("secret_name").(string)
 
-	log.Printf("[INFO] Deleting actions repo secret: %s", d.Id())
-	_, err := client.Actions.DeleteRepoSecret(ctx, owner, repoName, secretName)
-	if err != nil {
+	tflog.Info(ctx, "Deleting actions repo secret", map[string]any{"secret_name": secretName, "repository": repoName})
+	if _, err := client.Actions.DeleteRepoSecret(ctx, owner, repoName, secretName); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -343,7 +336,7 @@ func resourceGithubActionsSecretDelete(ctx context.Context, d *schema.ResourceDa
 }
 
 func resourceGithubActionsSecretImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 

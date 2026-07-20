@@ -6,18 +6,22 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccGithubTeamMembership(t *testing.T) {
-	if len(testAccConf.testOrgUser) == 0 {
+	t.Parallel()
+
+	if len(testAccConf.testOrgUser1) == 0 {
 		t.Skip("No test user provided")
 	}
 
 	t.Run("creates a team membership", func(t *testing.T) {
+		t.Parallel()
+
 		ctx := t.Context()
 
 		var membership github.Membership
@@ -29,7 +33,7 @@ func TestAccGithubTeamMembership(t *testing.T) {
 			CheckDestroy:      testAccCheckGithubTeamMembershipDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: testAccGithubTeamMembershipConfig(randString, testAccConf.testOrgUser, "member"),
+					Config: testAccGithubTeamMembershipConfig(randString, testAccConf.testOrgUser1, "member"),
 					Check: resource.ComposeTestCheckFunc(
 						testAccCheckGithubTeamMembershipExists(ctx, "github_team_membership.test_team_membership", &membership),
 						testAccCheckGithubTeamMembershipRoleState(ctx, "github_team_membership.test_team_membership", "member", &membership),
@@ -38,7 +42,7 @@ func TestAccGithubTeamMembership(t *testing.T) {
 					),
 				},
 				{
-					Config: testAccGithubTeamMembershipConfig(randString, testAccConf.testOrgUser, "maintainer"),
+					Config: testAccGithubTeamMembershipConfig(randString, testAccConf.testOrgUser1, "maintainer"),
 					Check: resource.ComposeTestCheckFunc(
 						testAccCheckGithubTeamMembershipExists(ctx, "github_team_membership.test_team_membership", &membership),
 						testAccCheckGithubTeamMembershipRoleState(ctx, "github_team_membership.test_team_membership", "maintainer", &membership),
@@ -51,6 +55,8 @@ func TestAccGithubTeamMembership(t *testing.T) {
 	})
 
 	t.Run("is case insensitive", func(t *testing.T) {
+		t.Parallel()
+
 		ctx := t.Context()
 
 		var membership github.Membership
@@ -59,7 +65,7 @@ func TestAccGithubTeamMembership(t *testing.T) {
 		rn := "github_team_membership.test_team_membership"
 		randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
-		otherCase := flipUsernameCase(testAccConf.testOrgUser)
+		otherCase := flipUsernameCase(testAccConf.testOrgUser1)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -67,7 +73,7 @@ func TestAccGithubTeamMembership(t *testing.T) {
 			CheckDestroy:      testAccCheckGithubTeamMembershipDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: testAccGithubTeamMembershipConfig(randString, testAccConf.testOrgUser, "member"),
+					Config: testAccGithubTeamMembershipConfig(randString, testAccConf.testOrgUser1, "member"),
 					Check: resource.ComposeTestCheckFunc(
 						testAccCheckGithubTeamMembershipExists(ctx, rn, &membership),
 					),
@@ -85,12 +91,8 @@ func TestAccGithubTeamMembership(t *testing.T) {
 }
 
 func testAccCheckGithubTeamMembershipDestroy(s *terraform.State) error {
-	meta, err := getTestMeta()
-	if err != nil {
-		return err
-	}
-	conn := meta.v3client
-	orgId := meta.id
+	conn := testAccConf.meta.v3client
+	orgId := testAccConf.meta.id
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_team_membership" {
@@ -102,7 +104,7 @@ func testAccCheckGithubTeamMembershipDestroy(s *terraform.State) error {
 			return err
 		}
 
-		teamId, err := getTeamID(context.Background(), meta, teamIdString)
+		teamId, err := getTeamID(context.Background(), testAccConf.meta, teamIdString)
 		if err != nil {
 			return unconvertibleIdErr(teamIdString, err)
 		}
@@ -133,18 +135,14 @@ func testAccCheckGithubTeamMembershipExists(ctx context.Context, n string, membe
 			return fmt.Errorf("no team membership ID is set")
 		}
 
-		meta, err := getTestMeta()
-		if err != nil {
-			return err
-		}
-		conn := meta.v3client
-		orgId := meta.id
+		conn := testAccConf.meta.v3client
+		orgId := testAccConf.meta.id
 		teamIdString, username, err := parseID2(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
 
-		teamId, err := getTeamID(context.Background(), meta, teamIdString)
+		teamId, err := getTeamID(context.Background(), testAccConf.meta, teamIdString)
 		if err != nil {
 			return unconvertibleIdErr(teamIdString, err)
 		}
@@ -169,17 +167,13 @@ func testAccCheckGithubTeamMembershipRoleState(ctx context.Context, n, expected 
 			return fmt.Errorf("no team membership ID is set")
 		}
 
-		meta, err := getTestMeta()
-		if err != nil {
-			return err
-		}
-		conn := meta.v3client
-		orgId := meta.id
+		conn := testAccConf.meta.v3client
+		orgId := testAccConf.meta.id
 		teamIdString, username, err := parseID2(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
-		teamId, err := getTeamID(context.Background(), meta, teamIdString)
+		teamId, err := getTeamID(context.Background(), testAccConf.meta, teamIdString)
 		if err != nil {
 			return unconvertibleIdErr(teamIdString, err)
 		}

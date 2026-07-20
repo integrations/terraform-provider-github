@@ -3,8 +3,8 @@ package github
 import (
 	"context"
 	"fmt"
-	"log"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -51,11 +51,11 @@ func resourceGithubActionsEnvironmentVariableV0() *schema.Resource {
 }
 
 func resourceGithubActionsEnvironmentVariableStateUpgradeV0(ctx context.Context, rawState map[string]any, m any) (map[string]any, error) {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
-	log.Printf("[DEBUG] GitHub Actions Environment Variable Attributes before migration: %#v", rawState)
+	tflog.Debug(ctx, "GitHub Actions Environment Variable migration from v0 to v1 started.", map[string]any{"raw_state": rawState})
 
 	repoName, ok := rawState["repository"].(string)
 	if !ok {
@@ -86,7 +86,7 @@ func resourceGithubActionsEnvironmentVariableStateUpgradeV0(ctx context.Context,
 	rawState["id"] = id
 	rawState["repository_id"] = repoID
 
-	log.Printf("[DEBUG] GitHub Actions Environment Variable Attributes after migration: %#v", rawState)
+	tflog.Debug(ctx, "GitHub Actions Environment Variable migration from v0 to v1 completed.", map[string]any{"raw_state": rawState})
 
 	return rawState, nil
 }
