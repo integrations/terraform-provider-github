@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -55,7 +55,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 			"bypass_actors": {
 				Type:             schema.TypeList, // TODO: These are returned from GH API sorted by actor_id, we might want to investigate if we want to include sorting
 				Optional:         true,
-				DiffSuppressFunc: bypassActorsDiffSuppressFunc,
+				DiffSuppressFunc: suppressUnorderedListDiff("bypass_actors", bypassActorCompareIdentity),
 				Description:      "The actors that can bypass the rules in this ruleset.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{

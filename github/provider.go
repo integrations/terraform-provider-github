@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -13,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -615,16 +613,14 @@ func configureProviderMeta(ctx context.Context, version string, c *Config) (*Own
 	}
 
 	if owner.name != "" {
-		org, _, err := owner.v3client.Organizations.Get(ctx, owner.name)
+		o, _, err := owner.v3client.Users.Get(ctx, owner.name)
 		if err != nil {
-			if ghErr, ok := errors.AsType[*github.ErrorResponse](err); !ok || ghErr.Response == nil || ghErr.Response.StatusCode != http.StatusNotFound {
-				return nil, fmt.Errorf("failed to lookup organization %q: %w", owner.name, err)
-			}
+			return nil, fmt.Errorf("failed to lookup owner %q: %w", owner.name, err)
 		}
 
-		if org != nil {
-			owner.id = org.GetID()
+		if o.GetType() == "Organization" {
 			owner.IsOrganization = true
+			owner.id = o.GetID()
 		}
 	}
 

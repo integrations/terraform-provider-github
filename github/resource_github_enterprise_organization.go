@@ -7,7 +7,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
@@ -18,7 +18,7 @@ func isSAMLEnforcementError(err error) bool {
 	}
 
 	if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
-		return ghErr.Response != nil && ghErr.Response.StatusCode == 403 && strings.Contains(ghErr.Message, "SAML enforcement")
+		return ghErr.Response.StatusCode == 403 && strings.Contains(ghErr.Message, "SAML enforcement")
 	}
 
 	return strings.Contains(err.Error(), "Resource protected by organization SAML enforcement")

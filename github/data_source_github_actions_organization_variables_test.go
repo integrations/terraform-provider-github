@@ -15,7 +15,7 @@ func TestAccGithubActionsOrganizationVariablesDataSource(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		_ = mustCreateTestOrganizationVariable(t, "foo")
+		mustCreateTestOrganizationVariable(t, nil, nil)
 
 		config := `
 data "github_actions_organization_variables" "test" {}

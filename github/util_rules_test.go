@@ -3,7 +3,7 @@ package github
 import (
 	"testing"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -1363,5 +1363,97 @@ func TestFlattenRulesetRepositoryPropertyTargetParameters_NilPropertyValues(t *t
 		if valSlice, ok := values.([]string); ok && len(valSlice) != 0 {
 			t.Errorf("Expected property_values to be nil or empty, got %v", values)
 		}
+	}
+}
+
+func Test_bypassActorCompareIdentity(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name     string
+		a        any
+		b        any
+		wantSame bool
+	}{
+		{
+			name:     "same_actor_type_and_actor_id",
+			a:        map[string]any{"actor_type": "user", "actor_id": 1},
+			b:        map[string]any{"actor_type": "user", "actor_id": 1},
+			wantSame: true,
+		},
+		{
+			name:     "different_actor_type",
+			a:        map[string]any{"actor_type": "user", "actor_id": 1},
+			b:        map[string]any{"actor_type": "team", "actor_id": 1},
+			wantSame: false,
+		},
+		{
+			name:     "different_actor_id",
+			a:        map[string]any{"actor_type": "user", "actor_id": 1},
+			b:        map[string]any{"actor_type": "user", "actor_id": 2},
+			wantSame: false,
+		},
+		{
+			name:     "different_actor_type_and_actor_id",
+			a:        map[string]any{"actor_type": "user", "actor_id": 1},
+			b:        map[string]any{"actor_type": "team", "actor_id": 2},
+			wantSame: false,
+		},
+		{
+			name:     "invalid_a",
+			a:        "test",
+			b:        map[string]any{"actor_type": "user", "actor_id": 1},
+			wantSame: true,
+		},
+		{
+			name:     "invalid_b",
+			a:        map[string]any{"actor_type": "user", "actor_id": 1},
+			b:        "test",
+			wantSame: true,
+		},
+		{
+			name:     "invalid_a_and_b",
+			a:        "test",
+			b:        "test",
+			wantSame: true,
+		},
+		{
+			name:     "invalid_actor_type_a",
+			a:        map[string]any{"actor_type": 123, "actor_id": 1},
+			b:        map[string]any{"actor_type": "user", "actor_id": 1},
+			wantSame: true,
+		},
+		{
+			name:     "invalid_actor_type_b",
+			a:        map[string]any{"actor_type": "user", "actor_id": 1},
+			b:        map[string]any{"actor_type": 123, "actor_id": 1},
+			wantSame: true,
+		},
+		{
+			name:     "invalid_actor_id_a",
+			a:        map[string]any{"actor_type": "user", "actor_id": "test"},
+			b:        map[string]any{"actor_type": "user", "actor_id": 1},
+			wantSame: true,
+		},
+		{
+			name:     "invalid_actor_id_b",
+			a:        map[string]any{"actor_type": "user", "actor_id": 1},
+			b:        map[string]any{"actor_type": "user", "actor_id": "test"},
+			wantSame: true,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := bypassActorCompareIdentity(tt.a, tt.b)
+
+			if tt.wantSame && got != 0 {
+				t.Errorf("bypassActorCompareIdentity() = %v, want 0", got)
+			}
+
+			if !tt.wantSame && got == 0 {
+				t.Errorf("bypassActorCompareIdentity() = %v, want non-zero", got)
+			}
+		})
 	}
 }
