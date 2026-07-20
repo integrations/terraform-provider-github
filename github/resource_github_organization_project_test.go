@@ -7,15 +7,19 @@ package github
 // 	"strings"
 // 	"testing"
 
-// 	"github.com/google/go-github/v84/github"
+// 	"github.com/google/go-github/v89/github"
 // 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 // 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 // )
 
 // func TestAccGithubOrganizationProject_basic(t *testing.T) {
+// t.Parallel()
+
 // 	t.Skip("Skipping test as the GitHub API no longer supports classic projects")
 
 // 	t.Run("creates organization project", func(t *testing.T) {
+// 		t.Parallel()
+
 // 		var project github.Project
 // 		config := `
 // resource "github_organization_project" "test" {
@@ -52,6 +56,8 @@ package github
 // }
 
 // func testAccGithubOrganizationProjectDestroy(s *terraform.State) error {
+// t.Parallel()
+
 // 	meta, err := getTestMeta()
 // 	if err != nil {
 // 		return err
@@ -68,7 +74,7 @@ package github
 // 			return err
 // 		}
 
-// 		project, res, err := conn.Projects.GetProject(context.Background(), projectID)
+// 		project, res, err := conn.Projects.GetProject(t.Context(), projectID)
 // 		if err == nil {
 // 			if project != nil &&
 // 				project.GetID() == projectID {
@@ -84,6 +90,8 @@ package github
 // }
 
 // func testAccCheckGithubOrganizationProjectExists(n string, project *github.Project) resource.TestCheckFunc {
+// t.Parallel()
+
 // 	return func(s *terraform.State) error {
 // 		rs, ok := s.RootModule().Resources[n]
 // 		if !ok {
@@ -101,7 +109,7 @@ package github
 // 		}
 // 		conn := meta.v3client
 
-// 		gotProject, _, err := conn.Projects.GetProject(context.Background(), projectID)
+// 		gotProject, _, err := conn.Projects.GetProject(t.Context(), projectID)
 // 		if err != nil {
 // 			return err
 // 		}
@@ -116,6 +124,8 @@ package github
 // }
 
 // func testAccCheckGithubOrganizationProjectAttributes(project *github.Project, want *testAccGithubOrganizationProjectExpectedAttributes) resource.TestCheckFunc {
+// t.Parallel()
+
 // 	return func(s *terraform.State) error {
 // 		if name := project.GetName(); name != want.Name {
 // 			return fmt.Errorf("got project %q; want %q", name, want.Name)

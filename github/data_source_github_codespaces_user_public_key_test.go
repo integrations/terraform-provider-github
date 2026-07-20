@@ -7,9 +7,13 @@ import (
 )
 
 func TestAccGithubCodespacesUserPublicKeyDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("queries an user public key without error", func(t *testing.T) {
+		t.Parallel()
+
 		config := `
-			data "github_codespaces_user_public_key" "test" {}
+data "github_codespaces_user_public_key" "test" {}
 		`
 
 		check := resource.ComposeTestCheckFunc(
@@ -19,7 +23,7 @@ func TestAccGithubCodespacesUserPublicKeyDataSource(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
+			PreCheck:          func() { skipUnauthenticated(t); skipApp(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

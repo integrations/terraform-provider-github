@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -89,7 +89,7 @@ func resourceGithubEnterpriseSecurityAnalysisSettingsCreateOrUpdate(d *schema.Re
 	}
 
 	log.Printf("[DEBUG] Updating security analysis settings for enterprise: %s", enterpriseSlug)
-	_, err := client.Enterprise.UpdateCodeSecurityAndAnalysis(ctx, enterpriseSlug, settings)
+	_, err := client.Enterprise.UpdateCodeSecurityAndAnalysis(ctx, enterpriseSlug, settings) //nolint:staticcheck // SA1019: UpdateCodeSecurityAndAnalysis is deprecated but still needed for legacy compatibility
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func resourceGithubEnterpriseSecurityAnalysisSettingsRead(d *schema.ResourceData
 	enterpriseSlug := d.Id()
 	log.Printf("[DEBUG] Reading security analysis settings for enterprise: %s", enterpriseSlug)
 
-	settings, _, err := client.Enterprise.GetCodeSecurityAndAnalysis(ctx, enterpriseSlug)
+	settings, _, err := client.Enterprise.GetCodeSecurityAndAnalysis(ctx, enterpriseSlug) //nolint:staticcheck // SA1019: GetCodeSecurityAndAnalysis is deprecated but still needed for legacy compatibility
 	if err != nil {
 		return err
 	}
@@ -147,7 +147,7 @@ func resourceGithubEnterpriseSecurityAnalysisSettingsDelete(d *schema.ResourceDa
 		SecretScanningValidityChecksEnabled:                   new(false),
 	}
 
-	_, err := client.Enterprise.UpdateCodeSecurityAndAnalysis(ctx, enterpriseSlug, settings)
+	_, err := client.Enterprise.UpdateCodeSecurityAndAnalysis(ctx, enterpriseSlug, settings) //nolint:staticcheck // SA1019: UpdateCodeSecurityAndAnalysis is deprecated but still needed for legacy compatibility
 	if err != nil {
 		return err
 	}

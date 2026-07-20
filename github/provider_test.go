@@ -1,266 +1,279 @@
 package github
 
 import (
-	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"regexp"
 	"testing"
-
-	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestProvider(t *testing.T) {
-	t.Run("runs internal validation without error", func(t *testing.T) {
-		if err := Provider().InternalValidate(); err != nil {
+	t.Parallel()
+
+	t.Run("validate", func(t *testing.T) {
+		t.Parallel()
+
+		if err := NewProvider("test", "none")().InternalValidate(); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	})
-
-	t.Run("has an implementation", func(t *testing.T) {
-		// FIXME: unsure if this is useful; refactored from:
-		// func TestProvider_impl(t *testing.T) {
-		// 	var _ terraform.ResourceProvider = Provider()
-		// }
-
-		_ = *Provider()
-	})
 }
 
-func TestAccProviderConfigure(t *testing.T) {
-	t.Run("can_be_configured_to_run_anonymously", func(t *testing.T) {
-		config := `
-		provider "github" {
-		}
-		data "github_ip_ranges" "test" {}
-		`
+func Test_configureProviderMeta(t *testing.T) {
+	t.Parallel()
 
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { t.Setenv("GITHUB_TOKEN", ""); t.Setenv("GH_PATH", "none-existent-path") },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config:             config,
-					PlanOnly:           true,
-					ExpectNonEmptyPlan: false,
-				},
+	for _, tt := range []struct {
+		name          string
+		installResp   *string
+		tokenUserResp *string
+		userResp      *string
+		conf          *Config
+		wantName      string
+		wantIsOrg     bool
+		wantOrgId     int64
+		wantErr       string
+	}{
+		{
+			name: "anonymous",
+			conf: &Config{},
+		},
+		{
+			name:        "app_auth_organization",
+			installResp: new(`{"id": 999999}`),
+			userResp:    new(`{"id": 123456, "type": "Organization"}`),
+			conf: &Config{
+				AppID:             new("111111"),
+				AppInstallationID: new("999999"),
+				AppPEM:            mustNewPEM(t),
+				Owner:             "test-org",
 			},
-		})
-	})
+			wantName:  "test-org",
+			wantIsOrg: true,
+			wantOrgId: 123456,
+		},
+		{
+			name:        "app_auth_user",
+			installResp: new(`{"id": 999999}`),
+			userResp:    new(`{"id": 123456, "type": "User"}`),
+			conf: &Config{
+				AppID:             new("111111"),
+				AppInstallationID: new("999999"),
+				AppPEM:            mustNewPEM(t),
+				Owner:             "test-user",
+			},
+			wantName: "test-user",
+		},
+		{
+			name:     "token_auth_organization",
+			userResp: new(`{"id": 123456, "type": "Organization"}`),
+			conf: &Config{
+				Owner: "test-org",
+				Token: "test-token",
+			},
+			wantName:  "test-org",
+			wantIsOrg: true,
+			wantOrgId: 123456,
+		},
+		{
+			name:     "token_auth_user",
+			userResp: new(`{"id": 123456, "type": "User"}`),
+			conf: &Config{
+				Owner: "test-user",
+				Token: "test-token",
+			},
+			wantName: "test-user",
+		},
+		{
+			name: "errors_on_missing_owner",
+			conf: &Config{
+				Token: "test-token",
+			},
+			wantErr: "owner must be set when authenticating using the new client implementation",
+		},
+		{
+			name: "errors_on_non_existent_owner",
+			conf: &Config{
+				Owner: "test-user",
+				Token: "test-token",
+			},
+			wantErr: "failed to lookup owner",
+		},
+		{
+			name: "legacy_client_anonymous",
+			conf: &Config{
+				LegacyClient: true,
+			},
+		},
+		{
+			name:        "legacy_client_app_auth_organization",
+			installResp: new(`{"id": 999999}`),
+			userResp:    new(`{"id": 123456, "type": "Organization"}`),
+			conf: &Config{
+				LegacyClient:      true,
+				AppID:             new("111111"),
+				AppInstallationID: new("999999"),
+				AppPEM:            mustNewPEM(t),
+				Owner:             "test-org",
+			},
+			wantName:  "test-org",
+			wantIsOrg: true,
+			wantOrgId: 123456,
+		},
+		{
+			name:        "legacy_client_app_auth_user",
+			installResp: new(`{"id": 999999}`),
+			userResp:    new(`{"id": 123456, "type": "User"}`),
+			conf: &Config{
+				LegacyClient:      true,
+				AppID:             new("111111"),
+				AppInstallationID: new("999999"),
+				AppPEM:            mustNewPEM(t),
+				Owner:             "test-user",
+			},
+			wantName: "test-user",
+		},
+		{
+			name:     "legacy_client_token_auth_organization",
+			userResp: new(`{"id": 123456, "type": "Organization"}`),
+			conf: &Config{
+				LegacyClient: true,
+				Owner:        "test-org",
+				Token:        "test-token",
+			},
+			wantName:  "test-org",
+			wantIsOrg: true,
+			wantOrgId: 123456,
+		},
+		{
+			name:     "legacy_client_token_auth_user",
+			userResp: new(`{"id": 123456, "type": "User"}`),
+			conf: &Config{
+				LegacyClient: true,
+				Owner:        "test-user",
+				Token:        "test-token",
+			},
+			wantName: "test-user",
+		},
+		{
+			name:          "legacy_client_token_auth_no_owner",
+			tokenUserResp: new(`{"login": "test-user"}`),
+			userResp:      new(`{"id": 123456, "type": "User"}`),
+			conf: &Config{
+				LegacyClient: true,
+				Token:        "test-token",
+			},
+			wantName: "test-user",
+		},
+		{
+			name: "legacy_client_token_auth_errors_if_no_owner_found",
+			conf: &Config{
+				LegacyClient: true,
+				Token:        "test-token",
+			},
+			wantErr: "owner cannot be found by token",
+		},
+		{
+			name: "legacy_client_errors_on_non_existent_owner",
+			conf: &Config{
+				LegacyClient: true,
+				Owner:        "test-user",
+				Token:        "test-token",
+			},
+			wantErr: "failed to lookup owner",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	t.Run("can_be_configured_with_app_auth_and_ignore_github_token", func(t *testing.T) {
-		t.Skip("This test requires a valid app auth setup to run.")
-		config := fmt.Sprintf(`
-provider "github" {
-	owner = "%s"
-	app_auth {
-		id = "1234567890"
-		installation_id = "1234567890"
-		pem_file = "1234567890"
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if regexp.MustCompile(`/access_tokens$`).MatchString(r.URL.Path) {
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(`{"token": "test-token", "expires_at": "2024-12-31T23:59:59Z"}`))
+					return
+				}
+
+				if regexp.MustCompile(`/installation$`).MatchString(r.URL.Path) {
+					if tt.installResp == nil {
+						w.WriteHeader(http.StatusNotFound)
+						return
+					}
+
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(*tt.installResp))
+					return
+				}
+
+				if regexp.MustCompile(`/user$`).MatchString(r.URL.Path) {
+					if tt.tokenUserResp == nil {
+						w.WriteHeader(http.StatusNotFound)
+						return
+					}
+
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(*tt.tokenUserResp))
+					return
+				}
+
+				if regexp.MustCompile(`/users/[^/]+$`).MatchString(r.URL.Path) {
+					if tt.userResp == nil {
+						w.WriteHeader(http.StatusNotFound)
+						return
+					}
+
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(*tt.userResp))
+					return
+				}
+
+				w.WriteHeader(http.StatusNotFound)
+			}))
+			t.Cleanup(ts.Close)
+
+			tt.conf.BaseURL = mustNewURL(t, ts.URL)
+
+			meta, err := configureProviderMeta(t.Context(), "test", tt.conf)
+			if err != nil {
+				if tt.wantErr == "" {
+					t.Fatalf("unexpected error: %v", err)
+				}
+
+				if !regexp.MustCompile(regexp.QuoteMeta(tt.wantErr)).MatchString(err.Error()) {
+					t.Fatalf("expected error to match %q, got %v", tt.wantErr, err)
+				}
+
+				return
+			}
+
+			if tt.wantErr != "" {
+				t.Fatalf("expected error %q, got nil", tt.wantErr)
+			}
+
+			if meta.name != tt.wantName {
+				t.Errorf("expected owner name to be %q, got %q", tt.wantName, meta.name)
+			}
+
+			if meta.IsOrganization != tt.wantIsOrg {
+				t.Errorf("expected IsOrganization to be %v, got %v", tt.wantIsOrg, meta.IsOrganization)
+			}
+
+			if meta.id != tt.wantOrgId {
+				t.Errorf("expected owner id to be %d, got %d", tt.wantOrgId, meta.id)
+			}
+
+			if meta.v3client == nil {
+				t.Errorf("expected rest client to be non-nil")
+			}
+
+			if tt.conf.Owner != "" && meta.v4client == nil {
+				t.Errorf("expected graphql client to be non-nil")
+			}
+		})
 	}
 }
 
-data "github_ip_ranges" "test" {}
-`, testAccConf.owner)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { t.Setenv("GITHUB_TOKEN", "1234567890") },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config:             config,
-					ExpectNonEmptyPlan: false,
-				},
-			},
-		})
-	})
-
-	t.Run("can be configured to run insecurely", func(t *testing.T) {
-		config := `
-		provider "github" {
-			insecure = true
-		}
-		data "github_ip_ranges" "test" {}
-		`
-
-		resource.Test(t, resource.TestCase{
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config:             config,
-					PlanOnly:           true,
-					ExpectNonEmptyPlan: false,
-				},
-			},
-		})
-	})
-
-	t.Run("can be configured with an individual account", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			provider "github" {
-				token = "%s"
-				owner = "%s"
-			}
-			`, testAccConf.token, testAccConf.owner)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, individual) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config:             config,
-					PlanOnly:           true,
-					ExpectNonEmptyPlan: false,
-				},
-			},
-		})
-	})
-
-	t.Run("can be configured with an organization account", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			provider "github" {
-				token = "%s"
-				owner = "%[2]s"
-			}
-
-			data "github_organization" "test" {
-				name = "%[2]s"
-			}
-			`, testAccConf.token, testAccConf.owner)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-				},
-			},
-		})
-	})
-
-	t.Run("can be configured with an organization account legacy", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			provider "github" {
-				token = "%s"
-				organization = "%s"
-			}`, testAccConf.token, testAccConf.owner)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config:             config,
-					PlanOnly:           true,
-					ExpectNonEmptyPlan: false,
-				},
-			},
-		})
-	})
-
-	t.Run("can be configured with a GHES deployment", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			provider "github" {
-				token = "%s"
-				base_url = "%s"
-			}`, testAccConf.token, testAccConf.baseURL)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck: func() {
-				skipUnlessMode(t, enterprise)
-				if testAccConf.baseURL.Host != "api.github.com" {
-					t.Skip("Skipping as test mode is not GHES")
-				}
-			},
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config:             config,
-					ExpectNonEmptyPlan: false,
-				},
-			},
-		})
-	})
-
-	t.Run("can be configured with max retries", func(t *testing.T) {
-		testMaxRetries := -1
-		config := fmt.Sprintf(`
-			provider "github" {
-				owner = "%s"
-				max_retries = %d
-			}
-
-			data "github_ip_ranges" "test" {}
-			`, testAccConf.owner, testMaxRetries)
-
-		resource.Test(t, resource.TestCase{
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config:             config,
-					ExpectNonEmptyPlan: false,
-					ExpectError:        regexp.MustCompile("max_retries must be greater than or equal to 0"),
-				},
-			},
-		})
-	})
-
-	t.Run("can be configured with max per page", func(t *testing.T) {
-		testMaxPerPage := 101
-		config := fmt.Sprintf(`
-			provider "github" {
-				owner = "%s"
-				max_per_page = %d
-			}
-
-			data "github_ip_ranges" "test" {}
-			`, testAccConf.owner, testMaxPerPage)
-
-		resource.Test(t, resource.TestCase{
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config:             config,
-					ExpectNonEmptyPlan: false,
-					Check: func(_ *terraform.State) error {
-						if maxPerPage != testMaxPerPage {
-							return fmt.Errorf("max_per_page should be set to %d, got %d", testMaxPerPage, maxPerPage)
-						}
-						return nil
-					},
-				},
-			},
-		})
-	})
-	t.Run("should not allow both token and app_auth to be configured", func(t *testing.T) {
-		t.Skip("This would be a semver breaking change, this will be reinstated for v7.")
-		config := fmt.Sprintf(`
-			provider "github" {
-				owner = "%s"
-				token = "%s"
-				app_auth {
-					id = "1234567890"
-					installation_id = "1234567890"
-					pem_file = "1234567890"
-				}
-			}
-
-			data "github_ip_ranges" "test" {}
-			`, testAccConf.owner, testAccConf.token)
-
-		resource.Test(t, resource.TestCase{
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config:      config,
-					ExpectError: regexp.MustCompile(`"app_auth": conflicts with token`),
-				},
-			},
-		})
-	})
-}
-
 func Test_ghCLIHostFromAPIHost(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name         string
 		host         string
@@ -295,6 +308,8 @@ func Test_ghCLIHostFromAPIHost(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := ghCLIHostFromAPIHost(tc.host)
 			if got != tc.expectedHost {
 				t.Errorf("ghCLIHostFromAPIHost(%q) = %q, want %q", tc.host, got, tc.expectedHost)

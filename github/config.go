@@ -9,24 +9,29 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
 )
 
 type Config struct {
-	Token            string
-	Owner            string
-	BaseURL          *url.URL
-	IsGHES           bool
-	Insecure         bool
-	WriteDelay       time.Duration
-	ReadDelay        time.Duration
-	RetryDelay       time.Duration
-	RetryableErrors  map[int]bool
-	MaxRetries       int
-	ParallelRequests bool
+	AppID             *string
+	AppInstallationID *string
+	AppPEM            []byte
+	BaseURL           *url.URL
+	IsGHES            bool
+	CachePath         string
+	Insecure          bool
+	LegacyClient      bool
+	MaxRetries        int
+	Owner             string
+	ParallelRequests  bool
+	ReadDelay         time.Duration
+	RetryableErrors   map[int]bool
+	RetryDelay        time.Duration
+	Token             string
+	WriteDelay        time.Duration
 }
 
 type Owner struct {
@@ -45,8 +50,14 @@ const (
 	DotComHost = "github.com"
 	// DotComAPIHost is the API hostname for github.com.
 	DotComAPIHost = "api.github.com"
+	// RESTAPIPath is the rest api path for api.github.com & ghe.com.
+	RESTAPIPath = "/"
+	// GraphQLAPIPath is the graphql api path for api.github.com & ghe.com.
+	GraphQLAPIPath = "/graphql"
 	// GHESRESTAPISuffix is the rest api suffix for GitHub Enterprise Server.
 	GHESRESTAPIPath = "api/v3/"
+	// GHESGraphQLAPISuffix is the GraphQL api suffix for GitHub Enterprise Server.
+	GHESGraphQLAPIPath = "api/graphql"
 )
 
 var (
@@ -83,37 +94,33 @@ func (c *Config) AuthenticatedHTTPClient() *http.Client {
 }
 
 func (c *Config) Anonymous() bool {
-	return c.Token == ""
+	return c.AppID == nil && c.Token == ""
 }
 
 func (c *Config) AnonymousHTTPClient() *http.Client {
-	client := &http.Client{Transport: &http.Transport{}}
+	client := &http.Client{Transport: http.DefaultTransport.(*http.Transport).Clone()}
 	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay, c.RetryDelay, c.ParallelRequests, c.RetryableErrors, c.MaxRetries)
 }
 
 func (c *Config) NewGraphQLClient(client *http.Client) (*githubv4.Client, error) {
-	var path string
+	pathSuffix := GraphQLAPIPath
 	if c.IsGHES {
-		path = "api/graphql"
-	} else {
-		path = "graphql"
+		pathSuffix = GHESGraphQLAPIPath
 	}
 
-	return githubv4.NewEnterpriseClient(c.BaseURL.JoinPath(path).String(), client), nil
+	return githubv4.NewEnterpriseClient(c.BaseURL.JoinPath(pathSuffix).String(), client), nil
 }
 
 func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
-	path := ""
+	pathSuffix := RESTAPIPath
 	if c.IsGHES {
-		path = GHESRESTAPIPath
+		pathSuffix = GHESRESTAPIPath
 	}
 
-	v3client := github.NewClient(client)
-	v3client.BaseURL = c.BaseURL.JoinPath(path)
-
-	return v3client, nil
+	return github.NewClient(github.WithHTTPClient(client), github.WithURLs(new(c.BaseURL.JoinPath(pathSuffix).String()), nil))
 }
 
+// Deprecated: This is no longer required as [configureProviderMeta] is now used to configure the provider meta parameter with the necessary clients and owner information. Use [configureProviderMeta] instead.
 func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 	ctx := context.Background()
 	owner.name = c.Owner
@@ -142,34 +149,9 @@ func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 
 // Meta returns the meta parameter that is passed into subsequent resources
 // https://godoc.org/github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema#ConfigureFunc
+// Deprecated: Use [configureProviderMeta] instead.
 func (c *Config) Meta() (any, error) {
-	var client *http.Client
-	if c.Anonymous() {
-		client = c.AnonymousHTTPClient()
-	} else {
-		client = c.AuthenticatedHTTPClient()
-	}
-
-	v3client, err := c.NewRESTClient(client)
-	if err != nil {
-		return nil, err
-	}
-
-	v4client, err := c.NewGraphQLClient(client)
-	if err != nil {
-		return nil, err
-	}
-
-	var owner Owner
-	owner.v4client = v4client
-	owner.v3client = v3client
-	owner.StopContext = context.Background()
-
-	_, err = c.ConfigureOwner(&owner)
-	if err != nil {
-		return &owner, err
-	}
-	return &owner, nil
+	return configureProviderMeta(context.Background(), "", c)
 }
 
 type previewHeaderInjectorTransport struct {
@@ -203,8 +185,8 @@ func (injector *previewHeaderInjectorTransport) RoundTrip(req *http.Request) (*h
 
 // getBaseURL returns a correctly configured base URL and a bool as to if this is GitHub Enterprise Server.
 func getBaseURL(s string) (*url.URL, bool, error) {
-	if len(s) == 0 {
-		s = DotComAPIURL
+	if s == "" {
+		return nil, false, fmt.Errorf("base url must not be empty")
 	}
 
 	u, err := url.Parse(s)

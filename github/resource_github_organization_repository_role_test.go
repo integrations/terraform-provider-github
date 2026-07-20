@@ -9,7 +9,11 @@ import (
 )
 
 func TestAccGithubOrganizationRepositoryRole(t *testing.T) {
+	t.Parallel()
+
 	t.Run("can create an organization repository role without erroring", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		name := fmt.Sprintf("tf-acc-org-repo-role-%s", randomID)
 		description := "This is a test org repo role."
@@ -30,7 +34,7 @@ func TestAccGithubOrganizationRepositoryRole(t *testing.T) {
 		`, name, description, baseRole, permission0, permission1)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -52,6 +56,8 @@ func TestAccGithubOrganizationRepositoryRole(t *testing.T) {
 	})
 
 	t.Run("can create an minimal organization repository role without erroring", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		name := fmt.Sprintf("tf-acc-org-repo-role-%s", randomID)
 		permission0 := "reopen_issue"
@@ -67,7 +73,7 @@ func TestAccGithubOrganizationRepositoryRole(t *testing.T) {
 		`, name, permission0)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

@@ -8,14 +8,15 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 	"time"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
 )
 
 func TestEtagTransport(t *testing.T) {
+	// IMPORTANT: This test is not parallelized because it uses global state.
+
 	ts := githubApiMock([]*mockResponse{
 		{
 			ExpectedUri: "/repos/test/blah",
@@ -29,14 +30,8 @@ func TestEtagTransport(t *testing.T) {
 	})
 	defer ts.Close()
 
-	httpClient := http.DefaultClient
-	httpClient.Transport = NewEtagTransport(http.DefaultTransport)
-
-	client := github.NewClient(httpClient)
-	u, _ := url.Parse(ts.URL + "/")
-	client.BaseURL = u
-
-	ctx := context.WithValue(context.Background(), ctxEtag, "something")
+	client := mustCreateTestGitHubClient(t, ts.URL, github.WithTransport(NewEtagTransport(http.DefaultTransport)))
+	ctx := context.WithValue(t.Context(), ctxEtag, "something")
 	r, _, err := client.Repositories.Get(ctx, "test", "blah")
 	if err != nil {
 		t.Fatal(err)
@@ -111,6 +106,8 @@ func githubApiMock(responseSequence []*mockResponse) *httptest.Server {
 }
 
 func TestRateLimitTransport_abuseLimit_get(t *testing.T) {
+	// IMPORTANT: This test is not parallelized because it uses global state.
+
 	ts := githubApiMock([]*mockResponse{
 		{
 			ExpectedUri: "/repos/test/blah",
@@ -142,14 +139,9 @@ func TestRateLimitTransport_abuseLimit_get(t *testing.T) {
 	})
 	defer ts.Close()
 
-	httpClient := http.DefaultClient
-	httpClient.Transport = NewRateLimitTransport(http.DefaultTransport)
+	client := mustCreateTestGitHubClient(t, ts.URL, github.WithTransport(NewRateLimitTransport(http.DefaultTransport)))
 
-	client := github.NewClient(httpClient)
-	u, _ := url.Parse(ts.URL + "/")
-	client.BaseURL = u
-
-	ctx := context.WithValue(context.Background(), ctxId, t.Name())
+	ctx := context.WithValue(t.Context(), ctxId, t.Name())
 	r, _, err := client.Repositories.Get(ctx, "test", "blah")
 	if err != nil {
 		t.Fatal(err)
@@ -161,6 +153,8 @@ func TestRateLimitTransport_abuseLimit_get(t *testing.T) {
 }
 
 func TestRateLimitTransport_abuseLimit_get_cancelled(t *testing.T) {
+	// IMPORTANT: This test is not parallelized because it uses global state.
+
 	ts := githubApiMock([]*mockResponse{
 		{
 			ExpectedUri: "/repos/test/blah",
@@ -176,12 +170,7 @@ func TestRateLimitTransport_abuseLimit_get_cancelled(t *testing.T) {
 	})
 	defer ts.Close()
 
-	httpClient := http.DefaultClient
-	httpClient.Transport = NewRateLimitTransport(http.DefaultTransport)
-
-	client := github.NewClient(httpClient)
-	u, _ := url.Parse(ts.URL + "/")
-	client.BaseURL = u
+	client := mustCreateTestGitHubClient(t, ts.URL, github.WithTransport(NewRateLimitTransport(http.DefaultTransport)))
 
 	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
 	defer cancel()
@@ -197,6 +186,8 @@ func TestRateLimitTransport_abuseLimit_get_cancelled(t *testing.T) {
 }
 
 func TestRateLimitTransport_abuseLimit_post(t *testing.T) {
+	// IMPORTANT: This test is not parallelized because it uses global state.
+
 	ts := githubApiMock([]*mockResponse{
 		{
 			ExpectedUri:    "/orgs/tada/repos",
@@ -223,14 +214,9 @@ func TestRateLimitTransport_abuseLimit_post(t *testing.T) {
 	})
 	defer ts.Close()
 
-	httpClient := http.DefaultClient
-	httpClient.Transport = NewRateLimitTransport(http.DefaultTransport)
+	client := mustCreateTestGitHubClient(t, ts.URL, github.WithTransport(NewRateLimitTransport(http.DefaultTransport)))
 
-	client := github.NewClient(httpClient)
-	u, _ := url.Parse(ts.URL + "/")
-	client.BaseURL = u
-
-	ctx := context.WithValue(context.Background(), ctxId, t.Name())
+	ctx := context.WithValue(t.Context(), ctxId, t.Name())
 	r, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
 		Name:        new("radek-example-48"),
 		Description: new(""),
@@ -245,6 +231,8 @@ func TestRateLimitTransport_abuseLimit_post(t *testing.T) {
 }
 
 func TestRateLimitTransport_abuseLimit_post_error(t *testing.T) {
+	// IMPORTANT: This test is not parallelized because it uses global state.
+
 	ts := githubApiMock([]*mockResponse{
 		{
 			ExpectedUri:    "/orgs/tada/repos",
@@ -283,14 +271,9 @@ func TestRateLimitTransport_abuseLimit_post_error(t *testing.T) {
 	})
 	defer ts.Close()
 
-	httpClient := http.DefaultClient
-	httpClient.Transport = NewRateLimitTransport(http.DefaultTransport)
+	client := mustCreateTestGitHubClient(t, ts.URL, github.WithTransport(NewRateLimitTransport(http.DefaultTransport)))
 
-	client := github.NewClient(httpClient)
-	u, _ := url.Parse(ts.URL + "/")
-	client.BaseURL = u
-
-	ctx := context.WithValue(context.Background(), ctxId, t.Name())
+	ctx := context.WithValue(t.Context(), ctxId, t.Name())
 	_, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
 		Name:        new("radek-example-48"),
 		Description: new(""),
@@ -312,6 +295,8 @@ func TestRateLimitTransport_abuseLimit_post_error(t *testing.T) {
 }
 
 func TestRateLimitTransport_smart_lock(t *testing.T) {
+	// IMPORTANT: This test is not parallelized because it uses global state.
+
 	t.Run("With parallelRequests true it does not lock the rate limit transport", func(t *testing.T) {
 		rlt := NewRateLimitTransport(http.DefaultTransport, WithParallelRequests(true))
 
@@ -382,6 +367,8 @@ func TestRateLimitTransport_smart_lock(t *testing.T) {
 }
 
 func TestRetryTransport_retry_post_error(t *testing.T) {
+	// IMPORTANT: This test is not parallelized because it uses global state.
+
 	ts := githubApiMock([]*mockResponse{
 		{
 			ExpectedUri:    "/orgs/tada/repos",
@@ -416,14 +403,9 @@ func TestRetryTransport_retry_post_error(t *testing.T) {
 	})
 	defer ts.Close()
 
-	httpClient := http.DefaultClient
-	httpClient.Transport = NewRetryTransport(http.DefaultTransport, WithMaxRetries(1))
+	client := mustCreateTestGitHubClient(t, ts.URL, github.WithTransport(NewRetryTransport(http.DefaultTransport, WithMaxRetries(1))))
 
-	client := github.NewClient(httpClient)
-	u, _ := url.Parse(ts.URL + "/")
-	client.BaseURL = u
-
-	ctx := context.WithValue(context.Background(), ctxId, t.Name())
+	ctx := context.WithValue(t.Context(), ctxId, t.Name())
 	_, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
 		Name:        new("radek-example-48"),
 		Description: new(""),
@@ -445,6 +427,8 @@ func TestRetryTransport_retry_post_error(t *testing.T) {
 }
 
 func TestRetryTransport_retry_post_success(t *testing.T) {
+	// IMPORTANT: This test is not parallelized because it uses global state.
+
 	ts := githubApiMock([]*mockResponse{
 		{
 			ExpectedUri:    "/orgs/tada/repos",
@@ -479,14 +463,9 @@ func TestRetryTransport_retry_post_success(t *testing.T) {
 	})
 	defer ts.Close()
 
-	httpClient := http.DefaultClient
-	httpClient.Transport = NewRetryTransport(http.DefaultTransport, WithMaxRetries(2), WithRetryDelay(time.Second))
+	client := mustCreateTestGitHubClient(t, ts.URL, github.WithTransport(NewRetryTransport(http.DefaultTransport, WithMaxRetries(2), WithRetryDelay(time.Second))))
 
-	client := github.NewClient(httpClient)
-	u, _ := url.Parse(ts.URL + "/")
-	client.BaseURL = u
-
-	ctx := context.WithValue(context.Background(), ctxId, t.Name())
+	ctx := context.WithValue(t.Context(), ctxId, t.Name())
 	_, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
 		Name:        new("radek-example-48"),
 		Description: new(""),

@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -42,7 +42,7 @@ func dataSourceGithubRepositoryAutolinkReferences() *schema.Resource {
 }
 
 func dataSourceGithubRepositoryAutolinkReferencesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 

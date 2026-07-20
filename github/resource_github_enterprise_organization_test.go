@@ -8,12 +8,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestIsSAMLEnforcementError(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		err      error
@@ -62,6 +64,8 @@ func TestIsSAMLEnforcementError(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := isSAMLEnforcementError(tc.err)
 			if result != tc.expected {
 				t.Errorf("isSAMLEnforcementError(%v) = %v, want %v", tc.err, result, tc.expected)
@@ -71,7 +75,11 @@ func TestIsSAMLEnforcementError(t *testing.T) {
 }
 
 func TestAccGithubEnterpriseOrganization(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates and updates an enterprise organization without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		orgName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
@@ -128,7 +136,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 		}
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -146,6 +154,8 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 	})
 
 	t.Run("deletes an enterprise organization without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		orgName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
@@ -169,7 +179,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 			`, testAccConf.enterpriseSlug, orgName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -181,6 +191,8 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 	})
 
 	t.Run("creates and updates org with display name", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		orgName := fmt.Sprintf("tf-acc-test-displayname%s", randomID)
 
@@ -249,7 +261,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 		}
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -270,6 +282,8 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 	})
 
 	t.Run("creates org without display name, set and update display name", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		orgName := fmt.Sprintf("tf-acc-test-adddisplayname%s", randomID)
 
@@ -380,7 +394,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 		}
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -415,6 +429,8 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 	})
 
 	t.Run("imports enterprise organization without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		orgName := fmt.Sprintf("tf-acc-test-import%s", randomID)
 
@@ -440,7 +456,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 		check := resource.ComposeTestCheckFunc()
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -458,6 +474,8 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 	})
 
 	t.Run("imports enterprise organization invalid enterprise name", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		orgName := fmt.Sprintf("tf-acc-test-adddisplayname%s", randomID)
 
@@ -484,7 +502,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 		check := resource.ComposeTestCheckFunc()
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -502,6 +520,8 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 	})
 
 	t.Run("imports enterprise organization invalid organization name", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		orgName := fmt.Sprintf("tf-acc-test-adddisplayname%s", randomID)
 
@@ -528,7 +548,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 		check := resource.ComposeTestCheckFunc()
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

@@ -6,17 +6,21 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccGithubMembership(t *testing.T) {
-	if len(testAccConf.testExternalUser) == 0 {
+	t.Parallel()
+
+	if len(testAccConf.testExternalUser1) == 0 {
 		t.Skip("No external user provided")
 	}
 
 	t.Run("creates organization membership", func(t *testing.T) {
+		// IMPORTANT: Do not run this sub test in parallel is it uses shared state.
+
 		ctx := t.Context()
 
 		var membership github.Membership
@@ -28,7 +32,7 @@ func TestAccGithubMembership(t *testing.T) {
 			CheckDestroy:      testAccCheckGithubMembershipDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: testAccGithubMembershipConfig(testAccConf.testExternalUser),
+					Config: testAccGithubMembershipConfig(testAccConf.testExternalUser1),
 					Check: resource.ComposeTestCheckFunc(
 						testAccCheckGithubMembershipExists(ctx, rn, &membership),
 						testAccCheckGithubMembershipRoleState(ctx, rn, &membership),
@@ -44,6 +48,8 @@ func TestAccGithubMembership(t *testing.T) {
 	})
 
 	t.Run("creates organization membership with downgrade", func(t *testing.T) {
+		// IMPORTANT: Do not run this sub test in parallel is it uses shared state.
+
 		ctx := t.Context()
 
 		var membership github.Membership
@@ -55,7 +61,7 @@ func TestAccGithubMembership(t *testing.T) {
 			CheckDestroy:      testAccCheckGithubMembershipDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: testAccGithubMembershipConfigDowngradable(testAccConf.testExternalUser),
+					Config: testAccGithubMembershipConfigDowngradable(testAccConf.testExternalUser1),
 					Check: resource.ComposeTestCheckFunc(
 						testAccCheckGithubMembershipExists(ctx, rn, &membership),
 						testAccCheckGithubMembershipRoleState(ctx, rn, &membership),
@@ -70,13 +76,15 @@ func TestAccGithubMembership(t *testing.T) {
 	})
 
 	t.Run("creates organization membership with case insensitivity", func(t *testing.T) {
+		// IMPORTANT: Do not run this sub test in parallel is it uses shared state.
+
 		ctx := t.Context()
 
 		var membership github.Membership
 		var otherMembership github.Membership
 
 		rn := "github_membership.test_org_membership"
-		otherCase := flipUsernameCase(testAccConf.testExternalUser)
+		otherCase := flipUsernameCase(testAccConf.testExternalUser1)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -84,7 +92,7 @@ func TestAccGithubMembership(t *testing.T) {
 			CheckDestroy:      testAccCheckGithubMembershipDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: testAccGithubMembershipConfig(testAccConf.testExternalUser),
+					Config: testAccGithubMembershipConfig(testAccConf.testExternalUser1),
 					Check: resource.ComposeTestCheckFunc(
 						testAccCheckGithubMembershipExists(ctx, rn, &membership),
 					),
@@ -108,18 +116,14 @@ func TestAccGithubMembership(t *testing.T) {
 
 func testAccCheckGithubMembershipDestroy(s *terraform.State) error {
 	ctx := context.Background()
-	meta, err := getTestMeta()
-	if err != nil {
-		return err
-	}
-	conn := meta.v3client
+	conn := testAccConf.meta.v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_membership" {
 			continue
 		}
 
-		orgName, username, err := parseTwoPartID(rs.Primary.ID, "organization", "username")
+		orgName, username, err := parseID2(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
@@ -164,13 +168,9 @@ func testAccCheckGithubMembershipExists(ctx context.Context, n string, membershi
 			return fmt.Errorf("no membership ID is set")
 		}
 
-		meta, err := getTestMeta()
-		if err != nil {
-			return err
-		}
-		conn := meta.v3client
+		conn := testAccConf.meta.v3client
 
-		orgName, username, err := parseTwoPartID(rs.Primary.ID, "organization", "username")
+		orgName, username, err := parseID2(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
@@ -195,13 +195,9 @@ func testAccCheckGithubMembershipRoleState(ctx context.Context, n string, member
 			return fmt.Errorf("no membership ID is set")
 		}
 
-		meta, err := getTestMeta()
-		if err != nil {
-			return err
-		}
-		conn := meta.v3client
+		conn := testAccConf.meta.v3client
 
-		orgName, username, err := parseTwoPartID(rs.Primary.ID, "organization", "username")
+		orgName, username, err := parseID2(rs.Primary.ID)
 		if err != nil {
 			return err
 		}

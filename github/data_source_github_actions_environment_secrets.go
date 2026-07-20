@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/url"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -16,16 +16,16 @@ func dataSourceGithubActionsEnvironmentSecrets() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"full_name": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				Computed:      true,
-				ConflictsWith: []string{"name"},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ExactlyOneOf: []string{"full_name", "name"},
 			},
 			"name": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				Computed:      true,
-				ConflictsWith: []string{"full_name"},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ExactlyOneOf: []string{"full_name", "name"},
 			},
 			"environment": {
 				Type:     schema.TypeString,
@@ -55,56 +55,40 @@ func dataSourceGithubActionsEnvironmentSecrets() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsEnvironmentSecretsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	var repoName string
+func dataSourceGithubActionsEnvironmentSecretsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
-	envName := d.Get("environment").(string)
+	var repoName string
+	envName, _ := d.Get("environment").(string)
 
 	if fullName, ok := d.GetOk("full_name"); ok {
-		var err error
-		owner, repoName, err = splitRepoFullName(fullName.(string))
+		fn, _ := fullName.(string)
+		o, r, err := splitRepoFullName(fn)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-	}
-
-	if name, ok := d.GetOk("name"); ok {
-		repoName = name.(string)
-	}
-
-	if repoName == "" {
-		return diag.Errorf("one of %q or %q has to be provided", "full_name", "name")
-	}
-
-	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	options := github.ListOptions{
-		PerPage: maxPerPage,
+		owner = o
+		repoName = r
+	} else {
+		if name, ok := d.GetOk("name"); ok {
+			repoName, _ = name.(string)
+		}
 	}
 
 	var all_secrets []map[string]string
-	for {
-		secrets, resp, err := client.Actions.ListEnvSecrets(ctx, int(repo.GetID()), url.PathEscape(envName), &options)
+	for secret, err := range client.Actions.ListEnvSecretsIter(ctx, owner, repoName, url.PathEscape(envName), &github.ListOptions{PerPage: maxPerPage}) {
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		for _, secret := range secrets.Secrets {
-			new_secret := map[string]string{
-				"name":       secret.Name,
-				"created_at": secret.CreatedAt.String(),
-				"updated_at": secret.UpdatedAt.String(),
-			}
-			all_secrets = append(all_secrets, new_secret)
+
+		new_secret := map[string]string{
+			"name":       secret.Name,
+			"created_at": secret.CreatedAt.String(),
+			"updated_at": secret.UpdatedAt.String(),
 		}
-		if resp.NextPage == 0 {
-			break
-		}
-		options.Page = resp.NextPage
+		all_secrets = append(all_secrets, new_secret)
 	}
 
 	id, err := buildID(repoName, escapeIDPart(envName))

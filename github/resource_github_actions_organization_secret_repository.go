@@ -2,10 +2,10 @@ package github
 
 import (
 	"context"
-	"log"
 	"strconv"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -42,23 +42,19 @@ func resourceGithubActionsOrganizationSecretRepositoryCreate(ctx context.Context
 		return diag.FromErr(err)
 	}
 
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
-	secretName := d.Get("secret_name").(string)
-	repoID := d.Get("repository_id").(int)
+	secretName, _ := d.Get("secret_name").(string)
+	repoIDInt, _ := d.Get("repository_id").(int)
+	repoID := int64(repoIDInt)
 
-	repository := &github.Repository{
-		ID: new(int64(repoID)),
-	}
-
-	_, err := client.Actions.AddSelectedRepoToOrgSecret(ctx, owner, secretName, repository)
-	if err != nil {
+	if _, err := client.Actions.AddSelectedRepoToOrgSecret(ctx, owner, secretName, repoID); err != nil {
 		return diag.FromErr(err)
 	}
 
-	id, err := buildID(secretName, strconv.Itoa(repoID))
+	id, err := buildID(secretName, strconv.Itoa(repoIDInt))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -72,36 +68,25 @@ func resourceGithubActionsOrganizationSecretRepositoryRead(ctx context.Context, 
 		return diag.FromErr(err)
 	}
 
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
-	secretName := d.Get("secret_name").(string)
-	repoID := int64(d.Get("repository_id").(int))
+	secretName, _ := d.Get("secret_name").(string)
+	repoIDInt, _ := d.Get("repository_id").(int)
+	repoID := int64(repoIDInt)
 
-	opt := &github.ListOptions{
-		PerPage: maxPerPage,
-	}
-
-	for {
-		repos, resp, err := client.Actions.ListSelectedReposForOrgSecret(ctx, owner, secretName, opt)
+	for repo, err := range client.Actions.ListSelectedReposForOrgSecretIter(ctx, owner, secretName, &github.ListOptions{PerPage: maxPerPage}) {
 		if err != nil {
 			return diag.FromErr(err)
 		}
 
-		for _, repo := range repos.Repositories {
-			if repo.GetID() == repoID {
-				return nil
-			}
+		if repo.GetID() == repoID {
+			return nil
 		}
-
-		if resp.NextPage == 0 {
-			break
-		}
-		opt.Page = resp.NextPage
 	}
 
-	log.Printf("[INFO] Removing secret repository association %s from state because it no longer exists in GitHub", d.Id())
+	tflog.Info(ctx, "Removing secret repository association from state because it no longer exists in GitHub", map[string]any{"secret_name": secretName, "repository_id": repoIDInt})
 	d.SetId("")
 
 	return nil
@@ -112,18 +97,15 @@ func resourceGithubActionsOrganizationSecretRepositoryDelete(ctx context.Context
 		return diag.FromErr(err)
 	}
 
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
-	secretName := d.Get("secret_name").(string)
-	repoID := d.Get("repository_id").(int)
+	secretName, _ := d.Get("secret_name").(string)
+	repoIDInt, _ := d.Get("repository_id").(int)
+	repoID := int64(repoIDInt)
 
-	repository := &github.Repository{
-		ID: new(int64(repoID)),
-	}
-	_, err := client.Actions.RemoveSelectedRepoFromOrgSecret(ctx, owner, secretName, repository)
-	if err != nil {
+	if _, err := client.Actions.RemoveSelectedRepoFromOrgSecret(ctx, owner, secretName, repoID); err != nil {
 		return diag.FromErr(err)
 	}
 

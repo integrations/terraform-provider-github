@@ -1,0 +1,78 @@
+---
+page_title: "{{.RenderedProviderName}} Provider"
+description: |-
+  The GitHub Terraform provider is used to interact with GitHub resources either as an authenticated client or anonymously.
+---
+
+# {{.RenderedProviderName}} Provider
+
+The GitHub Terraform provider is used to interact with GitHub resources either as an authenticated client or anonymously.
+
+!> You **must** add a `required_providers` block to every module that will create resources with this provider. If you do not explicitly require `integrations/github` in a submodule, your Terraform code run may [break in hard-to-troubleshoot ways](https://github.com/integrations/terraform-provider-github/issues/876#issuecomment-1303790559).
+
+## Example Usage
+
+{{- range .ExampleFiles }}
+
+{{ tffile . }}
+{{- end }}
+
+## Owner
+
+For backwards compatibility; if more than one of `owner`, `organization`, `GITHUB_OWNER` and `GITHUB_ORGANIZATION` are set the first in this list takes priority.
+
+1. Setting `organization` in the GitHub provider configuration.
+2. Setting the `GITHUB_ORGANIZATION` environment variable.
+3. Setting the `GITHUB_OWNER` environment variable.
+4. Setting `owner` in the GitHub provider configuration.
+
+!> It is a bug that `GITHUB_OWNER` takes precedence over `owner`; this will be fixed in a future major release. For compatibility with future releases, please set only one of `GITHUB_OWNER` and `owner`.
+
+## Authentication
+
+The GitHub provider offers multiple ways to authenticate with GitHub API. It uses the following authentication fallback chain (first match wins):
+
+1. [**Explicit Token**](#oauth-or-personal-access-token-pat) — `token` argument or `GITHUB_TOKEN` environment variable
+2. [**GitHub App Installation**](#github-app-installation) — `app_auth` block with `id`, `installation_id`, and `pem_file`
+3. [**GitHub CLI**](#github-cli-authentication) — Falls back to `gh auth token` if neither token nor app_auth is set
+4. **Anonymous** — Read-only access when no credentials are available
+
+### OAuth or Personal Access Token (PAT)
+
+To authenticate using OAuth tokens, ensure that the `token` argument or the `GITHUB_TOKEN` environment variable is set.
+
+{{ tffile "examples/provider/token_auth/main.tf" }}
+
+### GitHub App Installation
+
+To authenticate using a GitHub App installation, ensure that arguments in the `app_auth` block or the `GITHUB_APP_XXX` environment variables are set. The `owner` parameter required in this situation. Leaving out will throw a `403 "Resource not accessible by integration"` error.
+
+Some API operations may not be available when using a GitHub App installation configuration. For more information, refer to the list of [supported endpoints](https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps).
+
+{{ tffile "examples/provider/app_auth/main.tf" }}
+
+~> When using environment variables, an empty `app_auth` block is required to allow provider configurations from environment variables to be specified. See: <https://github.com/hashicorp/terraform-plugin-sdk/issues/142>
+
+#### .env
+
+{{ codefile "shell" "examples/provider/app_auth_env/.env" }}
+
+#### main.tf
+
+{{ tffile "examples/provider/app_auth_env/main.tf" }}
+
+### GitHub CLI Authentication
+
+~> The GitHub CLI authentication fallback is only available when using the legacy client implementation and will be removed in a future major release. To use the legacy client implementation, set `legacy_client = true` in the provider configuration or set the `GITHUB_LEGACY_CLIENT` environment variable to `true`.
+
+When using the GitHub CLI authentication fallback, you can optionally specify the path to the `gh` executable using the `GH_PATH` environment variable. This is useful when the provider cannot properly determine the path to GitHub CLI, such as in cygwin terminals. If not specified, the provider looks for `gh` in your system PATH.
+
+#### .env
+
+{{ codefile "shell" "examples/provider/gh_auth/.env" }}
+
+#### main.tf
+
+{{ tffile "examples/provider/gh_auth/main.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}

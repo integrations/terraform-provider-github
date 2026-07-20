@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
+	// IMPORTANT: Do not run these tests in parallel as they modify the organization state.
+
 	t.Run("test setting of basic actions enterprise permissions", func(t *testing.T) {
 		allowedActions := "local_only"
 		enabledOrganizations := "all"
@@ -31,7 +33,7 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -101,7 +103,7 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -149,7 +151,7 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -221,7 +223,7 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

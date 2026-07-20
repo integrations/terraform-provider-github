@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -56,7 +56,7 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateCreateO
 		return errors.New("include_claim_keys cannot be set when use_default is true")
 	}
 
-	customOIDCSubjectClaimTemplate := &github.OIDCSubjectClaimCustomTemplate{
+	customOIDCSubjectClaimTemplate := github.OIDCSubjectClaimCustomTemplate{
 		UseDefault: &useDefault,
 	}
 
@@ -116,7 +116,7 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDelete(
 	repository := d.Get("repository").(string)
 	owner := meta.(*Owner).name
 
-	customOIDCSubjectClaimTemplate := &github.OIDCSubjectClaimCustomTemplate{
+	customOIDCSubjectClaimTemplate := github.OIDCSubjectClaimCustomTemplate{
 		UseDefault: new(true),
 	}
 

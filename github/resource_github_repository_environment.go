@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
@@ -127,27 +127,51 @@ func resourceGithubRepositoryEnvironmentDiff(_ context.Context, d *schema.Resour
 		return nil
 	}
 
-	if v, ok := d.GetOk("reviewers"); ok {
-		count := 0
-		o := v.([]any)[0]
-		if t, ok := o.(map[string]any)["teams"]; ok {
-			count += t.(*schema.Set).Len()
-		}
+	reviewersVal, ok := d.GetOk("reviewers")
+	if !ok {
+		return nil
+	}
 
-		if t, ok := o.(map[string]any)["users"]; ok {
-			count += t.(*schema.Set).Len()
-		}
+	reviewersCol, ok := reviewersVal.([]any)
+	if !ok || len(reviewersCol) == 0 || reviewersCol[0] == nil {
+		return nil
+	}
 
-		if count > 6 {
-			return fmt.Errorf("a maximum of 6 reviewers (users and teams combined) can be set for an environment")
+	reviewers, ok := reviewersCol[0].(map[string]any)
+	if !ok {
+		return nil
+	}
+
+	teamsVal, teamsOk := reviewers["teams"]
+	usersVal, usersOk := reviewers["users"]
+
+	if !teamsOk && !usersOk {
+		return nil
+	}
+
+	reviewersCount := 0
+
+	if teamsOk {
+		if teamsCol, ok := teamsVal.(*schema.Set); ok {
+			reviewersCount += teamsCol.Len()
 		}
+	}
+
+	if usersOk {
+		if usersCol, ok := usersVal.(*schema.Set); ok {
+			reviewersCount += usersCol.Len()
+		}
+	}
+
+	if reviewersCount > 6 {
+		return fmt.Errorf("a maximum of 6 reviewers (users and teams combined) can be set for an environment")
 	}
 
 	return nil
 }
 
 func resourceGithubRepositoryEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -181,7 +205,7 @@ func resourceGithubRepositoryEnvironmentCreate(ctx context.Context, d *schema.Re
 func resourceGithubRepositoryEnvironmentRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	ctx = tflog.SetField(ctx, "id", d.Id())
 
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -265,7 +289,7 @@ func resourceGithubRepositoryEnvironmentRead(ctx context.Context, d *schema.Reso
 }
 
 func resourceGithubRepositoryEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -288,7 +312,7 @@ func resourceGithubRepositoryEnvironmentUpdate(ctx context.Context, d *schema.Re
 }
 
 func resourceGithubRepositoryEnvironmentDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -304,7 +328,7 @@ func resourceGithubRepositoryEnvironmentDelete(ctx context.Context, d *schema.Re
 }
 
 func resourceGithubRepositoryEnvironmentImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 

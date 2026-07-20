@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -55,7 +55,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 			"bypass_actors": {
 				Type:             schema.TypeList, // TODO: These are returned from GH API sorted by actor_id, we might want to investigate if we want to include sorting
 				Optional:         true,
-				DiffSuppressFunc: bypassActorsDiffSuppressFunc,
+				DiffSuppressFunc: suppressUnorderedListDiff("bypass_actors", bypassActorCompareIdentity),
 				Description:      "The actors that can bypass the rules in this ruleset.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -63,13 +63,13 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Type:        schema.TypeInt,
 							Optional:    true,
 							Default:     nil,
-							Description: "The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `1`. Some resources such as DeployKey do not have an ID and this should be omitted.",
+							Description: "The ID of the actor that can bypass a ruleset. Must be omitted for ID-less actor types: `OrganizationAdmin`, `EnterpriseOwner`, and `DeployKey` — the GitHub API does not use an ID for these types and will ignore any value set.",
 						},
 						"actor_type": {
 							Type:             schema.TypeString,
 							Required:         true,
-							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"Integration", "OrganizationAdmin", "RepositoryRole", "Team", "DeployKey"}, false)),
-							Description:      "The type of actor that can bypass a ruleset. Can be one of: `Integration`, `OrganizationAdmin`, `RepositoryRole`, `Team`, or `DeployKey`.",
+							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"Integration", "OrganizationAdmin", "RepositoryRole", "Team", "DeployKey", "EnterpriseOwner"}, false)),
+							Description:      "The type of actor that can bypass a ruleset. Can be one of: `Integration`, `OrganizationAdmin`, `RepositoryRole`, `Team`, `DeployKey`, or `EnterpriseOwner`.",
 						},
 						"bypass_mode": {
 							Type:             schema.TypeString,
@@ -864,7 +864,7 @@ func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.Resour
 	if err := d.Set("enforcement", ruleset.Enforcement); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors)); err != nil {
+	if err := d.Set("bypass_actors", flattenBypassActors(ctx, ruleset.BypassActors)); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("conditions", flattenConditions(ctx, ruleset.GetConditions(), true)); err != nil {

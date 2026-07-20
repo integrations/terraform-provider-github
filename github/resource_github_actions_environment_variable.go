@@ -3,17 +3,27 @@ package github
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 	"net/url"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubActionsEnvironmentVariable() *schema.Resource {
 	return &schema.Resource{
+		CreateContext: resourceGithubActionsEnvironmentVariableCreate,
+		ReadContext:   resourceGithubActionsEnvironmentVariableRead,
+		UpdateContext: resourceGithubActionsEnvironmentVariableUpdate,
+		DeleteContext: resourceGithubActionsEnvironmentVariableDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: resourceGithubActionsEnvironmentVariableImport,
+		},
+
+		CustomizeDiff: diffRepository,
+
 		SchemaVersion: 1,
 		StateUpgraders: []schema.StateUpgrader{
 			{
@@ -22,6 +32,8 @@ func resourceGithubActionsEnvironmentVariable() *schema.Resource {
 				Version: 0,
 			},
 		},
+
+		Description: "Resource to manage a GitHub Actions environment variable for a repository environment.",
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -55,44 +67,35 @@ func resourceGithubActionsEnvironmentVariable() *schema.Resource {
 			"created_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Date of 'actions_variable' creation.",
+				Description: "Timestamp for when the variable was created.",
 			},
 			"updated_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Date of 'actions_variable' update.",
+				Description: "Timestamp for when the variable was last updated.",
 			},
-		},
-
-		CustomizeDiff: diffRepository,
-
-		CreateContext: resourceGithubActionsEnvironmentVariableCreate,
-		ReadContext:   resourceGithubActionsEnvironmentVariableRead,
-		UpdateContext: resourceGithubActionsEnvironmentVariableUpdate,
-		DeleteContext: resourceGithubActionsEnvironmentVariableDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: resourceGithubActionsEnvironmentVariableImport,
 		},
 	}
 }
 
 func resourceGithubActionsEnvironmentVariableCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	envName := d.Get("environment").(string)
-	varName := d.Get("variable_name").(string)
+	repoName, _ := d.Get("repository").(string)
+	envName, _ := d.Get("environment").(string)
+	varName, _ := d.Get("variable_name").(string)
+	varValue, _ := d.Get("value").(string)
 
 	escapedEnvName := url.PathEscape(envName)
 
-	variable := github.ActionsVariable{
+	varReq := github.ActionsVariableCreateRequest{
 		Name:  varName,
-		Value: d.Get("value").(string),
+		Value: varValue,
 	}
 
-	_, err := client.Actions.CreateEnvVariable(ctx, owner, repoName, escapedEnvName, &variable)
+	_, err := client.Actions.CreateEnvVariable(ctx, owner, repoName, escapedEnvName, varReq)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -113,8 +116,11 @@ func resourceGithubActionsEnvironmentVariableCreate(ctx context.Context, d *sche
 		return diag.FromErr(err)
 	}
 
-	// GitHub API does not return on create so we have to lookup the variable to get timestamps
-	if variable, _, err := client.Actions.GetEnvVariable(ctx, owner, repoName, escapedEnvName, varName); err == nil {
+	// GitHub API does not return on create so we have to lookup the variable to get timestamps.
+	if variable, err := retryUntilResourceFound(ctx, func() (*github.ActionsVariable, error) {
+		val, _, err := client.Actions.GetEnvVariable(ctx, owner, repoName, escapedEnvName, varName)
+		return val, err
+	}, nil); err == nil {
 		if err := d.Set("created_at", variable.CreatedAt.String()); err != nil {
 			return diag.FromErr(err)
 		}
@@ -127,23 +133,20 @@ func resourceGithubActionsEnvironmentVariableCreate(ctx context.Context, d *sche
 }
 
 func resourceGithubActionsEnvironmentVariableRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	envName := d.Get("environment").(string)
-	varName := d.Get("variable_name").(string)
+	repoName, _ := d.Get("repository").(string)
+	envName, _ := d.Get("environment").(string)
+	varName, _ := d.Get("variable_name").(string)
 
 	variable, _, err := client.Actions.GetEnvVariable(ctx, owner, repoName, url.PathEscape(envName), varName)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing actions variable %s from state because it no longer exists in GitHub", d.Id())
-				d.SetId("")
-				return nil
-			}
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Removing actions variable from state because it no longer exists in GitHub.", map[string]any{"variable_name": varName, "repository": repoName, "environment": envName})
+			d.SetId("")
+			return nil
 		}
 		return diag.FromErr(err)
 	}
@@ -162,22 +165,23 @@ func resourceGithubActionsEnvironmentVariableRead(ctx context.Context, d *schema
 }
 
 func resourceGithubActionsEnvironmentVariableUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	envName := d.Get("environment").(string)
-	varName := d.Get("variable_name").(string)
+	repoName, _ := d.Get("repository").(string)
+	envName, _ := d.Get("environment").(string)
+	varName, _ := d.Get("variable_name").(string)
+	varValue, _ := d.Get("value").(string)
 
 	escapedEnvName := url.PathEscape(envName)
 
-	variable := github.ActionsVariable{
-		Name:  varName,
-		Value: d.Get("value").(string),
+	varReq := github.ActionsVariableUpdateRequest{
+		Name:  new(varName),
+		Value: new(varValue),
 	}
 
-	_, err := client.Actions.UpdateEnvVariable(ctx, owner, repoName, escapedEnvName, &variable)
+	_, err := client.Actions.UpdateEnvVariable(ctx, owner, repoName, escapedEnvName, varName, varReq)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -188,16 +192,15 @@ func resourceGithubActionsEnvironmentVariableUpdate(ctx context.Context, d *sche
 	}
 	d.SetId(id)
 
-	// GitHub API does not return on create so we have to lookup the variable to get timestamps
-	if variable, _, err := client.Actions.GetEnvVariable(ctx, owner, repoName, escapedEnvName, varName); err == nil {
+	// GitHub API does not return on update so we have to lookup the variable to get timestamps.
+	if variable, err := retryUntilResourceFound(ctx, func() (*github.ActionsVariable, error) {
+		val, _, err := client.Actions.GetEnvVariable(ctx, owner, repoName, escapedEnvName, varName)
+		return val, err
+	}, nil); err == nil {
 		if err := d.Set("created_at", variable.CreatedAt.String()); err != nil {
 			return diag.FromErr(err)
 		}
 		if err := d.Set("updated_at", variable.UpdatedAt.String()); err != nil {
-			return diag.FromErr(err)
-		}
-	} else {
-		if err := d.Set("updated_at", nil); err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -206,13 +209,13 @@ func resourceGithubActionsEnvironmentVariableUpdate(ctx context.Context, d *sche
 }
 
 func resourceGithubActionsEnvironmentVariableDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	envName := d.Get("environment").(string)
-	varName := d.Get("variable_name").(string)
+	repoName, _ := d.Get("repository").(string)
+	envName, _ := d.Get("environment").(string)
+	varName, _ := d.Get("variable_name").(string)
 
 	_, err := client.Actions.DeleteEnvVariable(ctx, owner, repoName, url.PathEscape(envName), varName)
 	if err != nil {
@@ -223,7 +226,7 @@ func resourceGithubActionsEnvironmentVariableDelete(ctx context.Context, d *sche
 }
 
 func resourceGithubActionsEnvironmentVariableImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 

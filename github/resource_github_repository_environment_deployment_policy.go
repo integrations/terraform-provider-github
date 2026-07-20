@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
@@ -100,7 +100,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyDiff(_ context.Context, 
 }
 
 func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -150,7 +150,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(ctx context.Conte
 func resourceGithubRepositoryEnvironmentDeploymentPolicyRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	ctx = tflog.SetField(ctx, "id", d.Id())
 
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -187,7 +187,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyRead(ctx context.Context
 }
 
 func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -221,7 +221,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(ctx context.Conte
 }
 
 func resourceGithubRepositoryEnvironmentDeploymentPolicyDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -238,7 +238,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyDelete(ctx context.Conte
 }
 
 func resourceGithubRepositoryEnvironmentDeploymentPolicyImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 

@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -18,15 +18,6 @@ import (
 
 func resourceGithubRepositoryCollaborators() *schema.Resource {
 	return &schema.Resource{
-		SchemaVersion: 1,
-		StateUpgraders: []schema.StateUpgrader{
-			{
-				Type:    resourceGithubRepositoryCollaboratorsV0().CoreConfigSchema().ImpliedType(),
-				Upgrade: resourceGithubRepositoryCollaboratorsStateUpgradeV0,
-				Version: 0,
-			},
-		},
-
 		CreateContext: resourceGithubRepositoryCollaboratorsCreate,
 		ReadContext:   resourceGithubRepositoryCollaboratorsRead,
 		UpdateContext: resourceGithubRepositoryCollaboratorsUpdate,
@@ -34,6 +25,27 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceGithubRepositoryCollaboratorsImport,
 		},
+
+		CustomizeDiff: customdiff.Sequence(
+			diffRepository,
+			resourceGithubRepositoryCollaboratorsDiff,
+		),
+
+		SchemaVersion: 2,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceGithubRepositoryCollaboratorsV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceGithubRepositoryCollaboratorsStateUpgradeV0,
+				Version: 0,
+			},
+			{
+				Type:    resourceGithubRepositoryCollaboratorsV1().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceGithubRepositoryCollaboratorsStateUpgradeV1,
+				Version: 1,
+			},
+		},
+
+		Description: "Manage the complete set of collaborators (users and teams) for a GitHub repository.",
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -49,19 +61,20 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 			"user": {
 				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: "List of users.",
+				Description: "Users to grant access to the repository.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"username": {
 							Type:             schema.TypeString,
-							Description:      "(Required) The user to add to the repository as a collaborator.",
+							Description:      "Login for the user to add to the repository as a collaborator.",
 							Required:         true,
 							DiffSuppressFunc: caseInsensitive(),
 						},
 						"permission": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "push",
+							Type:        schema.TypeString,
+							Description: "Permission to grant to the user. Must be one of `pull`, `triage`, `push`, `maintain`, `admin` or the name of an existing [custom repository role](https://docs.github.com/en/enterprise-cloud@latest/organizations/managing-peoples-access-to-your-organization-with-roles/managing-custom-repository-roles-for-an-organization) within the organization. Must be `push` for personal repositories. Defaults to `push`.",
+							Optional:    true,
+							Default:     "push",
 						},
 					},
 				},
@@ -69,25 +82,31 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 			"team": {
 				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: "List of teams.",
+				Description: "Teams to grant access to the repository.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"team_id": {
 							Type:        schema.TypeString,
-							Description: "Team ID or slug to add to the repository as a collaborator.",
+							Description: "ID or slug of the team to add to the repository as a collaborator.",
 							Required:    true,
 						},
 						"permission": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "push",
+							Type:        schema.TypeString,
+							Description: "Permission to grant to the team. Must be one of `pull`, `triage`, `push`, `maintain`, `admin` or the name of an existing [custom repository role](https://docs.github.com/en/enterprise-cloud@latest/organizations/managing-peoples-access-to-your-organization-with-roles/managing-custom-repository-roles-for-an-organization) within the organization. Defaults to `push`.",
+							Optional:    true,
+							Default:     "push",
 						},
 					},
 				},
 			},
+			"owner_configured": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Indicates whether the owner of a personal repository is configured as a collaborator.",
+			},
 			"invitation_ids": {
 				Type:        schema.TypeMap,
-				Description: "Map of usernames to invitation ID for any users added",
+				Description: "Map of usernames to invitation ID for users that haven't yet accepted their invitation to become a collaborator. This is only set on read, and is used internally to track pending invitations for users that aren't yet collaborators.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -96,7 +115,7 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 			"ignore_team": {
 				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: "List of teams to ignore.",
+				Description: "Teams to ignore when managing repository collaborators.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"team_id": {
@@ -108,23 +127,38 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 				},
 			},
 		},
-
-		CustomizeDiff: customdiff.Sequence(
-			diffRepository,
-			resourceGithubRepositoryCollaboratorsDiff,
-		),
 	}
 }
 
 func resourceGithubRepositoryCollaboratorsDiff(ctx context.Context, d *schema.ResourceDiff, m any) error {
+	tflog.Debug(ctx, "Diffing collaborators")
+
+	meta, _ := m.(*Owner)
+
 	if d.HasChange("user") {
-		users := d.Get("user").(*schema.Set).List()
+		users, ok := d.Get("user").(*schema.Set)
+		if !ok {
+			return fmt.Errorf("error reading user config")
+		}
+
 		seen := make(map[string]any)
+		for _, u := range users.List() {
+			user, ok := u.(map[string]any)
+			if !ok {
+				return fmt.Errorf("error reading user config")
+			}
 
-		for _, u := range users {
-			user := u.(map[string]any)
-			username := user["username"].(string)
+			usernameVal, ok := user["username"]
+			if !ok {
+				return fmt.Errorf("error reading user config")
+			}
 
+			username, ok := usernameVal.(string)
+			if !ok {
+				return fmt.Errorf("error reading user config")
+			}
+
+			username = strings.ToLower(username)
 			if _, ok := seen[username]; ok {
 				return fmt.Errorf("duplicate username %s found in user collaborators", username)
 			}
@@ -157,7 +191,63 @@ func resourceGithubRepositoryCollaboratorsDiff(ctx context.Context, d *schema.Re
 		}
 	}
 
-	if len(d.Id()) == 0 {
+	if meta.IsOrganization {
+		// If the repository belongs to an organization the owner cannot be a,
+		// collaborator, so owner_configured is always false.
+
+		if err := d.SetNew("owner_configured", false); err != nil {
+			return fmt.Errorf("error setting owner_configured: %w", err)
+		}
+	} else if d.NewValueKnown("user") {
+		// If the repository belongs to a user and we know the new value of user,
+		// then we can determine the value of owner_configured by checking if
+		// the owner is included in the list of users.
+
+		ownerConfigured := false
+		owner := meta.name
+
+		users, ok := d.Get("user").(*schema.Set)
+		if !ok {
+			return fmt.Errorf("error reading user config")
+		}
+
+		for _, u := range users.List() {
+			user, ok := u.(map[string]any)
+			if !ok {
+				return fmt.Errorf("error reading user config")
+			}
+
+			usernameVal, ok := user["username"]
+			if !ok {
+				return fmt.Errorf("error reading user config")
+			}
+
+			username, ok := usernameVal.(string)
+			if !ok {
+				return fmt.Errorf("error reading user config")
+			}
+
+			if strings.EqualFold(username, owner) {
+				ownerConfigured = true
+				break
+			}
+		}
+
+		if err := d.SetNew("owner_configured", ownerConfigured); err != nil {
+			return fmt.Errorf("error setting owner_configured: %w", err)
+		}
+	} else {
+		// If the repository belongs to a user but we don't know the new value of user,
+		// then we don't know if the owner is configured as a collaborator or not,
+		// so we set owner_configured to computed to indicate that Terraform should
+		// determine the value during apply.
+
+		if err := d.SetNewComputed("owner_configured"); err != nil {
+			return fmt.Errorf("error setting owner_configured to computed: %w", err)
+		}
+	}
+
+	if d.Id() == "" {
 		return nil
 	}
 
@@ -181,9 +271,34 @@ func resourceGithubRepositoryCollaboratorsCreate(ctx context.Context, d *schema.
 	teams := d.Get("team").(*schema.Set).List()
 	ignoreTeams := d.Get("ignore_team").(*schema.Set).List()
 
+	tflog.Debug(ctx, "Creating repository collaborators", map[string]any{"users": users, "teams": teams, "ignoreTeams": ignoreTeams})
+
 	inUsers, err := getUserCollaborators(users)
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	ownerConfigured := false
+	inIgnoreUsers := make([]string, 0)
+	if !isOrg {
+		ownerConfigured, _ = d.Get("owner_configured").(bool)
+
+		if !ownerConfigured {
+			for _, u := range inUsers {
+				if strings.EqualFold(u.login, owner) {
+					ownerConfigured = true
+					break
+				}
+			}
+
+			if !ownerConfigured {
+				inIgnoreUsers = append(inIgnoreUsers, strings.ToLower(owner))
+			}
+
+			if err := d.Set("owner_configured", ownerConfigured); err != nil {
+				return diag.FromErr(err)
+			}
+		}
 	}
 
 	inTeams, err := getTeamCollaborators(teams)
@@ -196,7 +311,7 @@ func resourceGithubRepositoryCollaboratorsCreate(ctx context.Context, d *schema.
 		return diag.FromErr(err)
 	}
 
-	invitations, err := updateUserCollaboratorsAndInvites(ctx, client, owner, repoName, inUsers)
+	invitations, err := updateUserCollaboratorsAndInvites(ctx, client, owner, repoName, inUsers, inIgnoreUsers)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -226,6 +341,7 @@ func resourceGithubRepositoryCollaboratorsCreate(ctx context.Context, d *schema.
 }
 
 func resourceGithubRepositoryCollaboratorsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	tflog.Debug(ctx, "Reading repository collaborators")
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
@@ -234,6 +350,12 @@ func resourceGithubRepositoryCollaboratorsRead(ctx context.Context, d *schema.Re
 	repoName := d.Get("repository").(string)
 	teams := d.Get("team").(*schema.Set).List()
 	ignoreTeams := d.Get("ignore_team").(*schema.Set).List()
+	ownerConfigured, _ := d.Get("owner_configured").(bool)
+
+	inIgnoreUsers := make([]string, 0)
+	if !isOrg && !ownerConfigured {
+		inIgnoreUsers = append(inIgnoreUsers, strings.ToLower(owner))
+	}
 
 	inTeams, err := getTeamCollaborators(teams)
 	if err != nil {
@@ -245,17 +367,13 @@ func resourceGithubRepositoryCollaboratorsRead(ctx context.Context, d *schema.Re
 		return diag.FromErr(err)
 	}
 
-	ghUsers, err := listUserCollaborators(ctx, client, owner, repoName)
+	ghUsers, err := listUserCollaborators(ctx, client, owner, repoName, inIgnoreUsers)
 	if err != nil {
 		if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == 404 {
 			tflog.Debug(ctx, fmt.Sprintf("Repository %s not found when listing users, removing from state.", repoName))
 			d.SetId("")
 			return nil
 		}
-		return diag.FromErr(err)
-	}
-
-	if err := d.Set("user", ghUsers.flatten()); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -280,6 +398,11 @@ func resourceGithubRepositoryCollaboratorsRead(ctx context.Context, d *schema.Re
 		return diag.FromErr(err)
 	}
 
+	combinedUsersAndInvitations := slices.Concat(ghUsers, ghInvitations)
+	if err := d.Set("user", combinedUsersAndInvitations.flatten()); err != nil {
+		return diag.FromErr(err)
+	}
+
 	if err = d.Set("invitation_ids", ghInvitations.flattenInvitations()); err != nil {
 		return diag.FromErr(err)
 	}
@@ -288,6 +411,7 @@ func resourceGithubRepositoryCollaboratorsRead(ctx context.Context, d *schema.Re
 }
 
 func resourceGithubRepositoryCollaboratorsUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	tflog.Debug(ctx, "Updating repository collaborators")
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
@@ -303,6 +427,29 @@ func resourceGithubRepositoryCollaboratorsUpdate(ctx context.Context, d *schema.
 		return diag.FromErr(err)
 	}
 
+	ownerConfigured := false
+	inIgnoreUsers := make([]string, 0)
+	if !isOrg {
+		ownerConfigured, _ = d.Get("owner_configured").(bool)
+
+		if !ownerConfigured {
+			for _, u := range inUsers {
+				if strings.EqualFold(u.login, owner) {
+					ownerConfigured = true
+					break
+				}
+			}
+
+			if !ownerConfigured {
+				inIgnoreUsers = append(inIgnoreUsers, strings.ToLower(owner))
+			}
+
+			if err := d.Set("owner_configured", ownerConfigured); err != nil {
+				return diag.FromErr(err)
+			}
+		}
+	}
+
 	inTeams, err := getTeamCollaborators(teams)
 	if err != nil {
 		return diag.FromErr(err)
@@ -313,7 +460,7 @@ func resourceGithubRepositoryCollaboratorsUpdate(ctx context.Context, d *schema.
 		return diag.FromErr(err)
 	}
 
-	invitations, err := updateUserCollaboratorsAndInvites(ctx, client, owner, repoName, inUsers)
+	invitations, err := updateUserCollaboratorsAndInvites(ctx, client, owner, repoName, inUsers, inIgnoreUsers)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -333,6 +480,7 @@ func resourceGithubRepositoryCollaboratorsUpdate(ctx context.Context, d *schema.
 }
 
 func resourceGithubRepositoryCollaboratorsDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	tflog.Debug(ctx, "Deleting repository collaborators")
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
@@ -348,14 +496,12 @@ func resourceGithubRepositoryCollaboratorsDelete(ctx context.Context, d *schema.
 
 	tflog.Debug(ctx, fmt.Sprintf("Removing all collaborators from repository %s.", repoName))
 
-	_, err = updateUserCollaboratorsAndInvites(ctx, client, owner, repoName, nil)
-	if err != nil {
+	if _, err := updateUserCollaboratorsAndInvites(ctx, client, owner, repoName, nil, nil); err != nil {
 		return diag.FromErr(err)
 	}
 
 	if isOrg {
-		err = updateTeamCollaborators(ctx, client, meta.id, owner, repoName, nil, inIgnoreTeams)
-		if err != nil {
+		if err := updateTeamCollaborators(ctx, client, meta.id, owner, repoName, nil, inIgnoreTeams); err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -364,7 +510,8 @@ func resourceGithubRepositoryCollaboratorsDelete(ctx context.Context, d *schema.
 }
 
 func resourceGithubRepositoryCollaboratorsImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-	meta := m.(*Owner)
+	tflog.Debug(ctx, "Importing repository collaborators")
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -447,7 +594,7 @@ func getTeamCollaborators(col []any) (teamCollaborators, error) {
 
 		permission, ok := m["permission"].(string)
 		if !ok || len(permission) == 0 {
-			return nil, fmt.Errorf("team input must include 'permission'")
+			return nil, fmt.Errorf("team input must include permission")
 		}
 
 		collaborators[i] = teamCollaborator{
@@ -483,7 +630,7 @@ func getTeamIdentity(d any) (teamIdentity, error) {
 
 	o, ok := m["team_id"]
 	if !ok {
-		return teamIdentity{}, fmt.Errorf("team input must include 'team_id'")
+		return teamIdentity{}, fmt.Errorf("team input must include team_id")
 	}
 
 	id, ok := o.(string)
@@ -494,9 +641,12 @@ func getTeamIdentity(d any) (teamIdentity, error) {
 	return newLegacyTeamIdentity(id), nil
 }
 
-func listUserCollaborators(ctx context.Context, client *github.Client, owner, repoName string) (userCollaborators, error) {
+func listUserCollaborators(ctx context.Context, client *github.Client, owner, repoName string, ignoreUsers []string) (userCollaborators, error) {
 	col := make([]userCollaborator, 0)
-
+	tflog.Debug(ctx, "Listing user collaborators", map[string]any{
+		"owner":    owner,
+		"repoName": repoName,
+	})
 	affiliations := []string{"direct", "outside"}
 	for _, affiliation := range affiliations {
 		opt := &github.ListCollaboratorsOptions{
@@ -513,6 +663,10 @@ func listUserCollaborators(ctx context.Context, client *github.Client, owner, re
 			}
 
 			for _, c := range collaborators {
+				if slices.Contains(ignoreUsers, strings.ToLower(c.GetLogin())) {
+					continue
+				}
+
 				col = append(col, userCollaborator{
 					userIdentity: userIdentity{
 						login: c.GetLogin(),
@@ -624,7 +778,7 @@ func listTeamCollaborators(ctx context.Context, client *github.Client, orgName, 
 	return col, nil
 }
 
-func updateUserCollaboratorsAndInvites(ctx context.Context, client *github.Client, owner, repoName string, inUsers userCollaborators) (userCollaborators, error) {
+func updateUserCollaboratorsAndInvites(ctx context.Context, client *github.Client, owner, repoName string, inUsers userCollaborators, ignoreUsers []string) (userCollaborators, error) {
 	lookup := make(map[string]userCollaborator)
 	seen := make(map[string]any)
 	remove := make([]string, 0)
@@ -633,7 +787,15 @@ func updateUserCollaboratorsAndInvites(ctx context.Context, client *github.Clien
 		lookup[inUser.login] = inUser
 	}
 
-	ghUsers, err := listUserCollaborators(ctx, client, owner, repoName)
+	tflog.Debug(ctx, "Updating user collaborators and invitations", map[string]any{
+		"repoName": repoName,
+		"inUsers":  inUsers,
+		"lookup":   lookup,
+		"seen":     seen,
+		"remove":   remove,
+	})
+
+	ghUsers, err := listUserCollaborators(ctx, client, owner, repoName, ignoreUsers)
 	if err != nil {
 		return nil, err
 	}
@@ -691,8 +853,14 @@ func updateUserCollaboratorsAndInvites(ctx context.Context, client *github.Clien
 		if err != nil {
 			return nil, err
 		}
-		inUser.invitationID = inv.ID
-		ghInvites = append(ghInvites, inUser)
+
+		// AddCollaborator returns 204 No Content (inv == nil) when the invitee
+		// is an organization member gaining direct access without an
+		// invitation. In that case there is no invitation ID to record.
+		if inv != nil {
+			inUser.invitationID = inv.ID
+			ghInvites = append(ghInvites, inUser)
+		}
 	}
 
 	for _, l := range remove {

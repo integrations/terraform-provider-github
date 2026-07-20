@@ -2,9 +2,10 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
 )
 
 // teamIdentity represents a GitHub team.
@@ -113,16 +114,6 @@ func parseTeamID(s string) (int64, bool) {
 	return 0, false
 }
 
-// getTeamSlug returns the slug of the team identified by the given string, which may be either a team ID or a team slug.
-func getTeamSlug(ctx context.Context, meta *Owner, s string) (string, error) {
-	if id, ok := parseTeamID(s); ok {
-		// The given id is an integer, assume it is the team ID and look up the corresponding team slug.
-		return lookupTeamSlug(ctx, meta.v3client, meta.id, id)
-	}
-	// The given id not an integer, assume it is a team slug.
-	return s, nil
-}
-
 // getTeamID returns the id of the team identified by the given string, which may be either a team ID or a team slug.
 func getTeamID(ctx context.Context, meta *Owner, s string) (int64, error) {
 	if id, ok := parseTeamID(s); ok {
@@ -133,15 +124,6 @@ func getTeamID(ctx context.Context, meta *Owner, s string) (int64, error) {
 	return lookupTeamID(ctx, meta.v3client, meta.name, s)
 }
 
-// lookupTeamSlug looks up the slug of a team by its ID.
-func lookupTeamSlug(ctx context.Context, client *github.Client, orgID, id int64) (string, error) {
-	team, _, err := client.Teams.GetTeamByID(ctx, orgID, id) //nolint:staticcheck
-	if err != nil {
-		return "", err
-	}
-	return team.GetSlug(), nil
-}
-
 // lookupTeamID looks up the ID of a team by its slug.
 func lookupTeamID(ctx context.Context, client *github.Client, orgName, slug string) (int64, error) {
 	team, _, err := client.Teams.GetTeamBySlug(ctx, orgName, slug)
@@ -149,4 +131,37 @@ func lookupTeamID(ctx context.Context, client *github.Client, orgName, slug stri
 		return 0, err
 	}
 	return team.GetID(), nil
+}
+
+// lookupTeamSlug looks up the slug of a team by its ID.
+func lookupTeamSlug(ctx context.Context, client *github.Client, orgID, id int64) (string, error) {
+	team, _, err := client.Teams.GetTeamByID(ctx, orgID, id)
+	if err != nil {
+		return "", err
+	}
+	return team.GetSlug(), nil
+}
+
+// Given a string that is either a team id or team slug, return the
+// team object it is referring to.
+func getTeam(ctx context.Context, meta *Owner, idOrSlug string) (*github.Team, error) {
+	client := meta.v3client
+	orgName := meta.name
+	orgId := meta.id
+
+	if id, ok := parseTeamID(idOrSlug); ok {
+		// The given id is an integer, assume it is the team ID.
+		team, _, err := client.Teams.GetTeamByID(ctx, orgId, id)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get team by ID (%d): %w", id, err)
+		}
+		return team, nil
+	}
+
+	// The given id not an integer, assume it is a team slug
+	team, _, err := client.Teams.GetTeamBySlug(ctx, orgName, idOrSlug)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get team by slug (%s): %w", idOrSlug, err)
+	}
+	return team, nil
 }

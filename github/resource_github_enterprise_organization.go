@@ -7,7 +7,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
@@ -16,12 +16,11 @@ func isSAMLEnforcementError(err error) bool {
 	if err == nil {
 		return false
 	}
-	var ghErr *github.ErrorResponse
-	if errors.As(err, &ghErr) {
-		return ghErr.Response != nil &&
-			ghErr.Response.StatusCode == 403 &&
-			strings.Contains(ghErr.Message, "SAML enforcement")
+
+	if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
+		return ghErr.Response.StatusCode == 403 && strings.Contains(ghErr.Message, "SAML enforcement")
 	}
+
 	return strings.Contains(err.Error(), "Resource protected by organization SAML enforcement")
 }
 
@@ -268,7 +267,7 @@ func resourceGithubEnterpriseOrganizationImport(data *schema.ResourceData, meta 
 	v4 := meta.(*Owner).v4client
 	ctx := context.Background()
 
-	enterpriseId, err := getEnterpriseId(ctx, v4, parts[0])
+	enterpriseId, err := getEnterpriseID(ctx, v4, parts[0])
 	if err != nil {
 		return nil, err
 	}
@@ -285,20 +284,6 @@ func resourceGithubEnterpriseOrganizationImport(data *schema.ResourceData, meta 
 		return nil, err
 	}
 	return []*schema.ResourceData{data}, nil
-}
-
-func getEnterpriseId(ctx context.Context, v4 *githubv4.Client, enterpriseSlug string) (string, error) {
-	var query struct {
-		Enterprise struct {
-			ID githubv4.String
-		} `graphql:"enterprise(slug: $enterpriseSlug)"`
-	}
-
-	err := v4.Query(ctx, &query, map[string]any{"enterpriseSlug": githubv4.String(enterpriseSlug)})
-	if err != nil {
-		return "", err
-	}
-	return string(query.Enterprise.ID), nil
 }
 
 func getOrganizationId(ctx context.Context, v4 *githubv4.Client, orgName string) (string, error) {

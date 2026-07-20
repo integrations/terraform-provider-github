@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -113,7 +113,7 @@ func resourceGithubTeam() *schema.Resource {
 }
 
 func resourceGithubTeamCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	ownerName := meta.name
 
@@ -131,8 +131,10 @@ func resourceGithubTeamCreate(ctx context.Context, d *schema.ResourceData, m any
 		NotificationSetting: new(d.Get("notification_setting").(string)),
 	}
 
-	if ldapDN := d.Get("ldap_dn").(string); ldapDN != "" {
-		newTeam.LDAPDN = &ldapDN
+	if ldapDNVal, ok := d.GetOk("ldap_dn"); ok {
+		if ldapDN, _ := ldapDNVal.(string); ldapDN != "" {
+			newTeam.LDAPDN = &ldapDN
+		}
 	}
 
 	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
@@ -291,8 +293,14 @@ func resourceGithubTeamRead(ctx context.Context, d *schema.ResourceData, meta an
 			return diag.FromErr(err)
 		}
 	}
-	if err = d.Set("ldap_dn", team.GetLDAPDN()); err != nil {
-		return diag.FromErr(err)
+	if team.LDAPDN != nil {
+		if err := d.Set("ldap_dn", team.GetLDAPDN()); err != nil {
+			return diag.FromErr(err)
+		}
+	} else if _, ok := d.GetOk("ldap_dn"); ok {
+		if err := d.Set("ldap_dn", nil); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if err = d.Set("members_count", team.GetMembersCount()); err != nil {
 		return diag.FromErr(err)
@@ -308,7 +316,7 @@ func resourceGithubTeamRead(ctx context.Context, d *schema.ResourceData, meta an
 }
 
 func resourceGithubTeamUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	orgId := meta.id
 
@@ -437,7 +445,7 @@ func resourceGithubTeamDelete(ctx context.Context, d *schema.ResourceData, meta 
 }
 
 func resourceGithubTeamImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 
 	teamId, err := getTeamID(ctx, meta, d.Id())
 	if err != nil {

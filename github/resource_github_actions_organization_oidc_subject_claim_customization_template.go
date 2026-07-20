@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -48,7 +48,7 @@ func resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateCreat
 		claimsStr[i] = v.(string)
 	}
 
-	_, err = client.Actions.SetOrgOIDCSubjectClaimCustomTemplate(ctx, orgName, &github.OIDCSubjectClaimCustomTemplate{
+	_, err = client.Actions.SetOrgOIDCSubjectClaimCustomTemplate(ctx, orgName, github.OIDCSubjectClaimCustomTemplate{
 		IncludeClaimKeys: claimsStr,
 	})
 	if err != nil {
@@ -93,7 +93,7 @@ func resourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplateDelet
 		return err
 	}
 
-	_, err = client.Actions.SetOrgOIDCSubjectClaimCustomTemplate(ctx, orgName, &github.OIDCSubjectClaimCustomTemplate{
+	_, err = client.Actions.SetOrgOIDCSubjectClaimCustomTemplate(ctx, orgName, github.OIDCSubjectClaimCustomTemplate{
 		IncludeClaimKeys: []string{"repo", "context"},
 	})
 	if err != nil {

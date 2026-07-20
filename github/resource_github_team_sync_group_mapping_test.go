@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -13,13 +13,17 @@ import (
 )
 
 func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates a team sync group mapping", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-sync-%s", testResourcePrefix, randomID)
 		rn := "github_team_sync_group_mapping.test_mapping"
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSyncGroupMappingDestroy,
 			Steps: []resource.TestStep{
@@ -46,12 +50,14 @@ func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
 	})
 
 	t.Run("creates a team sync group mapping and then deletes it", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-sync-%s", testResourcePrefix, randomID)
 		rn := "github_team_sync_group_mapping.test_mapping"
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSyncGroupMappingDestroy,
 			Steps: []resource.TestStep{
@@ -67,13 +73,15 @@ func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
 	})
 
 	t.Run("creates a team sync group mapping and then updates it", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-sync-%s", testResourcePrefix, randomID)
 		description := "tf-acc-group-description-update"
 		rn := "github_team_sync_group_mapping.test_mapping"
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSyncGroupMappingDestroy,
 			Steps: []resource.TestStep{
@@ -112,12 +120,14 @@ func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
 	})
 
 	t.Run("creates empty team sync group mapping", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-sync-%s", testResourcePrefix, randomID)
 		rn := "github_team_sync_group_mapping.test_mapping"
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSyncGroupMappingDestroy,
 			Steps: []resource.TestStep{
@@ -139,12 +149,8 @@ func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
 }
 
 func testAccCheckGithubTeamSyncGroupMappingDestroy(s *terraform.State) error {
-	meta, err := getTestMeta()
-	if err != nil {
-		return err
-	}
-	conn := meta.v3client
-	orgName := meta.name
+	conn := testAccConf.meta.v3client
+	orgName := testAccConf.meta.name
 	ctx := context.Background()
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_team_sync_group_mapping" {
@@ -171,16 +177,12 @@ func testAccCheckGithubTeamSyncGroupMappingDisappears(ctx context.Context, resou
 		if !ok {
 			return fmt.Errorf("not found: %s", resourceName)
 		}
-		meta, err := getTestMeta()
-		if err != nil {
-			return err
-		}
-		conn := meta.v3client
-		orgName := meta.name
+		conn := testAccConf.meta.v3client
+		orgName := testAccConf.meta.name
 		slug := rs.Primary.Attributes["team_slug"]
 
 		emptyGroupList := github.IDPGroupList{Groups: []*github.IDPGroup{}}
-		_, _, err = conn.Teams.CreateOrUpdateIDPGroupConnectionsBySlug(ctx, orgName, slug, emptyGroupList)
+		_, _, err := conn.Teams.CreateOrUpdateIDPGroupConnectionsBySlug(ctx, orgName, slug, emptyGroupList)
 
 		return err
 	}
