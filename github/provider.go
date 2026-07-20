@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -18,12 +20,17 @@ import (
 	"github.com/integrations/terraform-provider-github/v6/internal/ghclient"
 )
 
+const (
+	providerName = "terraform-provider-github"
+	providerURL  = "https://github.com/integrations/terraform-provider-github"
+)
+
 func init() {
 	schema.DescriptionKind = schema.StringMarkdown
 }
 
 // NewProvider returns a function that returns the schema.Provider for this provider.
-func NewProvider() func() *schema.Provider {
+func NewProvider(version, commit string) func() *schema.Provider {
 	return func() *schema.Provider {
 		return &schema.Provider{
 			Schema: map[string]*schema.Schema{
@@ -326,22 +333,23 @@ func NewProvider() func() *schema.Provider {
 				"github_repository_environment_deployment_policies":                     dataSourceGithubRepositoryEnvironmentDeploymentPolicies(),
 			},
 
-			ConfigureContextFunc: configureProvider(),
+			ConfigureContextFunc: configureProvider(version, commit),
 		}
 	}
 }
 
 // configureProvider initializes the provider meta parameter with the necessary clients and owner information based on the provided configuration. It returns the initialized meta parameter or an error if the configuration is invalid or if there are issues initializing the clients.
-func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.Diagnostics) {
+func configureProvider(version, commit string) func(context.Context, *schema.ResourceData) (any, diag.Diagnostics) {
 	return func(ctx context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
+		tflog.Debug(ctx, "Configuring provider.", map[string]any{"name": providerName, "url": providerURL, "version": version, "commit": commit})
+
 		baseURL, err := url.Parse(DotComAPIURL)
 		if err != nil {
 			return nil, diag.FromErr(err)
 		}
 
 		config := &Config{
-			BaseURL:        baseURL,
-			GraphQLAPIPath: "graphql",
+			BaseURL: baseURL,
 		}
 
 		if v, ok := d.GetOk("legacy_client"); ok {
@@ -359,11 +367,10 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 
 				tflog.Debug(ctx, "Using base URL from provider configuration.", map[string]any{"base_url": baseURL.String()})
 				config.BaseURL = baseURL
+				config.IsGHES = isGHES
 
 				if isGHES {
 					tflog.Debug(ctx, "Base URL indicates GitHub Enterprise Server (GHES) usage; enabling GHES mode.", map[string]any{"base_url": baseURL.String()})
-					config.RESTAPIPath = GHESRESTAPIPath
-					config.GraphQLAPIPath = GHESGraphQLAPIPath
 				}
 			}
 		}
@@ -418,7 +425,12 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 
 		if config.LegacyClient {
 			if config.AppID != nil {
-				appToken, err := GenerateOAuthTokenFromApp(config.BaseURL.JoinPath(config.RESTAPIPath), *config.AppID, *config.AppInstallationID, string(config.AppPEM))
+				pathSuffix := RESTAPIPath
+				if config.IsGHES {
+					pathSuffix = GHESRESTAPIPath
+				}
+
+				appToken, err := GenerateOAuthTokenFromApp(config.BaseURL.JoinPath(pathSuffix), *config.AppID, *config.AppInstallationID, string(config.AppPEM))
 				if err != nil {
 					return nil, diag.FromErr(err)
 				}
@@ -504,11 +516,11 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 		if v, ok := d.GetOk("cache_path"); ok {
 			if s, ok := v.(string); ok && s != "" {
 				tflog.Debug(ctx, "Using cache path from provider configuration.", map[string]any{"cache_path": s})
-				config.CachePath = &s
+				config.CachePath = s
 			}
 		}
 
-		meta, err := configureProviderMeta(ctx, config)
+		meta, err := configureProviderMeta(ctx, version, config)
 		if err != nil {
 			return nil, diag.FromErr(err)
 		}
@@ -518,7 +530,7 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 }
 
 // configureProviderMeta initializes the provider metadata, including setting up the GitHub API clients based on the provided configuration. It returns the initialized metadata or an error if the configuration is invalid or if there are issues initializing the clients.
-func configureProviderMeta(ctx context.Context, c *Config) (*Owner, error) {
+func configureProviderMeta(ctx context.Context, version string, c *Config) (*Owner, error) {
 	owner := &Owner{
 		name: c.Owner,
 	}
@@ -542,14 +554,33 @@ func configureProviderMeta(ctx context.Context, c *Config) (*Owner, error) {
 			return nil, err
 		}
 		owner.v4client = v4client
+
+		if owner.name == "" && c.Token != "" {
+			user, _, err := owner.v3client.Users.Get(ctx, "")
+			if err != nil {
+				return nil, fmt.Errorf("owner cannot be found by token: %w", err)
+			}
+			owner.name = user.GetLogin()
+		}
 	} else {
-		options := ghclient.Options{
-			RESTAPIURL:   new(c.BaseURL.JoinPath(c.RESTAPIPath).String()),
-			GraphQLURL:   new(c.BaseURL.JoinPath(c.GraphQLAPIPath).String()),
-			CachePath:    c.CachePath,
-			RetryMax:     c.MaxRetries,
-			RetryWaitMin: c.RetryDelay,
-			RetryWaitMax: c.RetryDelay,
+		if !c.Anonymous() && owner.name == "" {
+			return nil, fmt.Errorf("owner must be set when authenticating using the new client implementation")
+		}
+
+		var cacheBasePath string
+		if c.CachePath != "" {
+			cacheBasePath = filepath.Join(c.CachePath, "terraform-provider-github")
+		}
+
+		options := ghclient.SourceOptions{
+			BaseURL:       c.BaseURL.String(),
+			IsGHES:        c.IsGHES,
+			UserAgent:     fmt.Sprintf("%s/%s (+%s; go/%s; os/%s; arch/%s)", providerName, version, providerURL, runtime.Version(), runtime.GOOS, runtime.GOARCH),
+			Cache:         true,
+			CacheBasePath: cacheBasePath,
+			RetryMax:      c.MaxRetries,
+			RetryWaitMin:  c.RetryDelay,
+			RetryWaitMax:  c.RetryDelay,
 		}
 
 		var source ghclient.Source
@@ -587,18 +618,15 @@ func configureProviderMeta(ctx context.Context, c *Config) (*Owner, error) {
 		owner.v4client = v4client
 	}
 
-	if owner.name == "" && c.Token != "" {
-		user, _, err := owner.v3client.Users.Get(ctx, "")
-		if err != nil {
-			return nil, err
-		}
-		owner.name = user.GetLogin()
-	}
-
 	if owner.name != "" {
-		if org, _, err := owner.v3client.Organizations.Get(ctx, owner.name); err == nil && org != nil {
-			owner.id = org.GetID()
+		o, _, err := owner.v3client.Users.Get(ctx, owner.name)
+		if err != nil {
+			return nil, fmt.Errorf("failed to lookup owner %q: %w", owner.name, err)
+		}
+
+		if o.GetType() == "Organization" {
 			owner.IsOrganization = true
+			owner.id = o.GetID()
 		}
 	}
 

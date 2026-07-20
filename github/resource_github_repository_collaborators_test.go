@@ -13,8 +13,11 @@ import (
 )
 
 func TestAccGithubRepositoryCollaborators(t *testing.T) {
+	// TODO: Make this test parallel once we can ignore non-direct teams.
+	// t.Parallel()
+
 	t.Run("create", func(t *testing.T) {
-		if len(testAccConf.testOrgUser) == 0 {
+		if len(testAccConf.testOrgUser1) == 0 {
 			t.Skip("No organization user provided")
 		}
 
@@ -22,7 +25,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		teamName0 := fmt.Sprintf("%s%s-0", testResourcePrefix, randomID)
 		teamName1 := fmt.Sprintf("%s%s-1", testResourcePrefix, randomID)
-		collaboratorUser := testAccConf.testOrgUser
+		collaboratorUser := testAccConf.testOrgUser1
 
 		config := fmt.Sprintf(`
 resource "github_repository" "test" {
@@ -95,7 +98,7 @@ resource "github_repository_collaborators" "test" {
 	})
 
 	t.Run("add_external_user", func(t *testing.T) {
-		if len(testAccConf.testExternalUser) == 0 {
+		if len(testAccConf.testExternalUser1) == 0 {
 			t.Skip("No external user provided")
 		}
 
@@ -116,7 +119,7 @@ resource "github_repository_collaborators" "test" {
 		permission = "push"
 	}
 }
-`, repoName, testAccConf.testExternalUser)
+`, repoName, testAccConf.testExternalUser1)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -317,7 +320,7 @@ resource "github_repository_collaborators" "test" {
 	})
 
 	t.Run("remove_user", func(t *testing.T) {
-		if len(testAccConf.testOrgUser) == 0 {
+		if len(testAccConf.testOrgUser1) == 0 {
 			t.Skip("No organization user provided")
 		}
 
@@ -342,7 +345,7 @@ resource "github_repository_collaborators" "test" {
 		permission = "admin"
 	}
 }
-`, configPre, testAccConf.testOrgUser)
+`, configPre, testAccConf.testOrgUser1)
 
 		config1 := fmt.Sprintf(`
 %s

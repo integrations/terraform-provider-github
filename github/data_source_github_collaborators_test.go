@@ -9,7 +9,11 @@ import (
 )
 
 func TestAccGithubCollaboratorsDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("gets all collaborators", func(t *testing.T) {
+		t.Parallel()
+
 		repoName := fmt.Sprintf("%srepo-collab-%s", testResourcePrefix, acctest.RandString(5))
 		config := fmt.Sprintf(`
 resource "github_repository" "test" {
@@ -40,6 +44,8 @@ data "github_collaborators" "test" {
 	})
 
 	t.Run("gets admin collaborators", func(t *testing.T) {
+		t.Parallel()
+
 		repoName := fmt.Sprintf("%srepo-collab-%s", testResourcePrefix, acctest.RandString(5))
 		config := fmt.Sprintf(`
 resource "github_repository" "test" {

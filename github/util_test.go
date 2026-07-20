@@ -471,6 +471,8 @@ func Test_resourceKeysGetOk_string(t *testing.T) {
 }
 
 func TestGithubUtilRole_validation(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		Value    string
 		ErrCount int
@@ -518,6 +520,8 @@ func flipUsernameCase(username string) string {
 }
 
 func TestGithubUtilValidateSecretName(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		Name  string
 		Error bool
@@ -758,6 +762,8 @@ func Test_chunkStringSlice(t *testing.T) {
 }
 
 func TestGithubUtilValidateSecretName_invalid_input(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		Name  any
 		Error bool

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
@@ -36,11 +36,11 @@ type testAccConfig struct {
 	// Target configuration
 	legacyClient bool
 	baseURL      *url.URL
+	isGHES       bool
 
 	// Auth configuration
 	authMode          testMode
 	owner             string
-	username          string
 	token             string
 	appID             string
 	appInstallationID string
@@ -54,27 +54,23 @@ type testAccConfig struct {
 	testPublicRepository              string
 	testPublicRepositoryOwner         string
 	testPublicReleaseId               int
-	testPublicRelaseAssetId           string
-	testPublicRelaseAssetName         string
+	testPublicReleaseAssetId          string
+	testPublicReleaseAssetName        string
 	testPublicReleaseAssetContent     string
 	testPublicTemplateRepository      string
 	testPublicTemplateRepositoryOwner string
 	testGHActionsAppInstallationId    int
 
-	// User test configuration
-	testUserRepository string
-
 	// Org test configuration
-	testOrgUser               string
-	testOrgSecretName         string
-	testOrgRepository         string
-	testOrgTemplateRepository string
-	testOrgAppInstallationId  int
+	testOrgUser1             string
+	testOrgUser2             string
+	testOrgUser3             string
+	testOrgAppInstallationId int
 
 	// External test configuration
-	testExternalUser      string
-	testExternalUserToken string
-	testExternalUser2     string
+	testExternalUser1      string
+	testExternalUser1Token string
+	testExternalUser2      string
 
 	// Enterprise test configuration
 	testEnterpriseEMUGroupId int
@@ -84,6 +80,9 @@ type testAccConfig struct {
 
 	// Test repository configuration
 	testRepositoryVisibility string
+
+	// Provider metadata
+	meta *Owner
 }
 
 var testAccConf *testAccConfig
@@ -94,11 +93,15 @@ var testAccConf *testAccConfig
 var providerFactories = map[string]func() (*schema.Provider, error){
 	//nolint:unparam
 	"github": func() (*schema.Provider, error) {
-		return NewProvider()(), nil
+		return NewProvider("acctest", "none")(), nil
 	},
 }
 
 func TestMain(m *testing.M) {
+	if os.Getenv("TF_ACC") == "" {
+		os.Exit(m.Run())
+	}
+
 	authMode := testMode(os.Getenv("GH_TEST_AUTH_MODE"))
 	if len(authMode) == 0 {
 		authMode = anonymous
@@ -109,108 +112,113 @@ func TestMain(m *testing.M) {
 		u = DotComAPIURL
 	}
 
-	baseURL, err := url.Parse(u)
+	baseURL, isGHES, err := getBaseURL(u)
 	if err != nil {
 		fmt.Printf("Error parsing base URL: %s\n", err)
 		os.Exit(1)
 	}
 
-	config := testAccConfig{
+	conf := &testAccConfig{
 		legacyClient:                      os.Getenv("GITHUB_LEGACY_CLIENT") != "false",
 		baseURL:                           baseURL,
+		isGHES:                            isGHES,
 		authMode:                          authMode,
 		testPublicRepository:              "terraform-provider-github",
 		testPublicRepositoryOwner:         "integrations",
 		testPublicReleaseId:               186531906, // The terraform-provider-github_6.4.0_manifest.json asset ID from https://github.com/integrations/terraform-provider-github/releases/tag/v6.4.0
-		testPublicRelaseAssetId:           "207956097",
-		testPublicRelaseAssetName:         "terraform-provider-github_6.4.0_manifest.json",
+		testPublicReleaseAssetId:          "207956097",
+		testPublicReleaseAssetName:        "terraform-provider-github_6.4.0_manifest.json",
 		testPublicReleaseAssetContent:     "{\n  \"version\": 1,\n  \"metadata\": {\n    \"protocol_versions\": [\n      \"5.0\"\n    ]\n  }\n}",
 		testPublicTemplateRepository:      "template-repository",
 		testPublicTemplateRepositoryOwner: "template-repository",
 		testGHActionsAppInstallationId:    15368,
-		testUserRepository:                os.Getenv("GH_TEST_USER_REPOSITORY"),
-		testOrgUser:                       os.Getenv("GH_TEST_ORG_USER"),
-		testOrgSecretName:                 os.Getenv("GH_TEST_ORG_SECRET_NAME"),
-		testOrgRepository:                 os.Getenv("GH_TEST_ORG_REPOSITORY"),
-		testOrgTemplateRepository:         os.Getenv("GH_TEST_ORG_TEMPLATE_REPOSITORY"),
-		testExternalUser:                  os.Getenv("GH_TEST_EXTERNAL_USER"),
-		testExternalUserToken:             os.Getenv("GH_TEST_EXTERNAL_USER_TOKEN"),
+		testOrgUser1:                      os.Getenv("GH_TEST_ORG_USER1"),
+		testOrgUser2:                      os.Getenv("GH_TEST_ORG_USER2"),
+		testOrgUser3:                      os.Getenv("GH_TEST_ORG_USER3"),
+		testExternalUser1:                 os.Getenv("GH_TEST_EXTERNAL_USER1"),
+		testExternalUser1Token:            os.Getenv("GH_TEST_EXTERNAL_USER1_TOKEN"),
 		testExternalUser2:                 os.Getenv("GH_TEST_EXTERNAL_USER2"),
 		testAdvancedSecurity:              os.Getenv("GH_TEST_ADVANCED_SECURITY") == "true",
 		testRepositoryVisibility:          "public",
 	}
 
-	if config.authMode != anonymous {
-		config.owner = os.Getenv("GITHUB_OWNER")
-		config.username = os.Getenv("GITHUB_USERNAME")
-		config.token = os.Getenv("GITHUB_TOKEN")
-		config.appID = os.Getenv("GITHUB_APP_ID")
-		config.appInstallationID = os.Getenv("GITHUB_APP_INSTALLATION_ID")
-		config.appPEM = os.Getenv("GITHUB_APP_PEM_FILE")
+	if conf.authMode != anonymous {
+		conf.owner = os.Getenv("GITHUB_OWNER")
+		conf.token = os.Getenv("GITHUB_TOKEN")
+		conf.appID = os.Getenv("GITHUB_APP_ID")
+		conf.appInstallationID = os.Getenv("GITHUB_APP_INSTALLATION_ID")
+		conf.appPEM = os.Getenv("GITHUB_APP_PEM_FILE")
 
-		if len(config.owner) == 0 {
+		if len(conf.owner) == 0 {
 			fmt.Println("GITHUB_OWNER environment variable not set")
 			os.Exit(1)
 		}
 
-		if config.authMode == individual && len(config.username) == 0 {
-			fmt.Println("GITHUB_USERNAME environment variable not set")
-			os.Exit(1)
-		}
-
-		if config.token == "" && config.appID == "" {
+		if conf.token == "" && conf.appID == "" {
 			fmt.Println("authentication not configured")
 			os.Exit(1)
 		}
 
-		if config.token != "" && config.appID != "" {
+		if conf.token != "" && conf.appID != "" {
 			fmt.Println("Both token and app auth configured")
 			os.Exit(1)
 		}
 
-		if config.appID != "" && (config.appInstallationID == "" || config.appPEM == "") {
+		if conf.appID != "" && (conf.appInstallationID == "" || conf.appPEM == "") {
 			fmt.Println("App auth configured without all required parameters")
 			os.Exit(1)
 		}
 	}
 
-	if config.authMode != anonymous && config.authMode != individual {
+	if conf.authMode != anonymous && conf.authMode != individual {
 		if i, err := strconv.Atoi(os.Getenv("GH_TEST_ORG_APP_INSTALLATION_ID")); err == nil {
-			config.testOrgAppInstallationId = i
+			conf.testOrgAppInstallationId = i
 		}
 	}
 
-	if config.authMode == enterprise {
-		config.enterpriseSlug = os.Getenv("GITHUB_ENTERPRISE_SLUG")
+	if conf.authMode == enterprise {
+		conf.enterpriseSlug = os.Getenv("GITHUB_ENTERPRISE_SLUG")
 
-		if len(config.enterpriseSlug) == 0 {
+		if len(conf.enterpriseSlug) == 0 {
 			fmt.Println("GITHUB_ENTERPRISE_SLUG environment variable not set")
 			os.Exit(1)
 		}
 
 		if os.Getenv("GH_TEST_ENTERPRISE_IS_EMU") == "true" {
-			config.enterpriseIsEMU = true
-			config.testRepositoryVisibility = "private"
+			conf.enterpriseIsEMU = true
+			conf.testRepositoryVisibility = "private"
 
 			if i, err := strconv.Atoi(os.Getenv("GH_TEST_ENTERPRISE_EMU_GROUP_ID")); err == nil {
-				config.testEnterpriseEMUGroupId = i
+				conf.testEnterpriseEMUGroupId = i
 			}
 		}
 	}
 
-	testAccConf = &config
+	meta, err := getTestMeta(conf)
+	if err != nil {
+		fmt.Printf("Error configuring provider meta: %s\n", err)
+		os.Exit(1)
+	}
+	conf.meta = meta
+
+	testAccConf = conf
 
 	configureSweepers()
 
 	resource.TestMain(m)
 }
 
-func getTestAppToken() (string, error) {
-	if testAccConf.appID == "" || testAccConf.appInstallationID == "" || testAccConf.appPEM == "" {
+func getTestAppToken(conf *testAccConfig) (string, error) {
+	if conf.appID == "" || conf.appInstallationID == "" || conf.appPEM == "" {
 		return "", fmt.Errorf("app auth not configured")
 	}
 
-	appToken, err := GenerateOAuthTokenFromApp(testAccConf.baseURL, testAccConf.appID, testAccConf.appInstallationID, testAccConf.appPEM)
+	restAPIPath := ""
+	if conf.isGHES {
+		restAPIPath = GHESRESTAPIPath
+	}
+
+	appToken, err := GenerateOAuthTokenFromApp(conf.baseURL.JoinPath(restAPIPath), conf.appID, conf.appInstallationID, conf.appPEM)
 	if err != nil {
 		return "", err
 	}
@@ -218,35 +226,35 @@ func getTestAppToken() (string, error) {
 	return appToken, nil
 }
 
-func getTestToken() (string, error) {
-	if testAccConf.token != "" {
-		return testAccConf.token, nil
+func getTestToken(conf *testAccConfig) (string, error) {
+	if conf.token != "" {
+		return conf.token, nil
 	}
 
-	return getTestAppToken()
+	return getTestAppToken(conf)
 }
 
-func getTestMeta() (*Owner, error) {
+func getTestMeta(conf *testAccConfig) (*Owner, error) {
 	config := &Config{
-		GraphQLAPIPath: "graphql",
-		LegacyClient:   testAccConf.legacyClient,
-		BaseURL:        testAccConf.baseURL,
-		Owner:          testAccConf.owner,
+		LegacyClient: conf.legacyClient,
+		BaseURL:      conf.baseURL,
+		IsGHES:       conf.isGHES,
+		Owner:        conf.owner,
 	}
 
-	if config.LegacyClient || testAccConf.appID == "" {
-		token, err := getTestToken()
+	if config.LegacyClient || conf.appID == "" {
+		token, err := getTestToken(conf)
 		if err != nil {
 			return nil, fmt.Errorf("error getting test token: %w", err)
 		}
 		config.Token = token
 	} else {
-		config.AppID = &testAccConf.appID
-		config.AppInstallationID = &testAccConf.appInstallationID
-		config.AppPEM = []byte(testAccConf.appPEM)
+		config.AppID = &conf.appID
+		config.AppInstallationID = &conf.appInstallationID
+		config.AppPEM = []byte(conf.appPEM)
 	}
 
-	return configureProviderMeta(context.Background(), config)
+	return configureProviderMeta(context.Background(), "test", config)
 }
 
 func configureSweepers() {
@@ -268,13 +276,8 @@ func sweepTeams(_ string) error {
 
 	fmt.Println("sweeping teams")
 
-	meta, err := getTestMeta()
-	if err != nil {
-		return fmt.Errorf("could not get test meta for sweeper: %w", err)
-	}
-
-	client := meta.v3client
-	owner := meta.name
+	client := testAccConf.meta.v3client
+	owner := testAccConf.meta.name
 	ctx := context.Background()
 
 	teams, _, err := client.Teams.ListTeams(ctx, owner, nil)
@@ -298,13 +301,8 @@ func sweepTeams(_ string) error {
 func sweepRepositories(_ string) error {
 	fmt.Println("sweeping repositories")
 
-	meta, err := getTestMeta()
-	if err != nil {
-		return fmt.Errorf("could not get test meta for sweeper: %w", err)
-	}
-
-	client := meta.v3client
-	owner := meta.name
+	client := testAccConf.meta.v3client
+	owner := testAccConf.meta.name
 	ctx := context.Background()
 
 	var repos []*github.Repository
@@ -364,12 +362,7 @@ func skipUnlessEnterprise(t *testing.T) {
 func skipUnlessHasAppInstallations(t *testing.T) {
 	t.Helper()
 
-	meta, err := getTestMeta()
-	if err != nil {
-		t.Fatalf("failed to get test meta: %s", err)
-	}
-
-	installations, _, err := meta.v3client.Organizations.ListInstallations(t.Context(), meta.name, nil)
+	installations, _, err := testAccConf.meta.v3client.Organizations.ListInstallations(t.Context(), testAccConf.meta.name, nil)
 	if err != nil {
 		t.Fatalf("failed to list app installations: %s", err)
 	}
@@ -396,3 +389,21 @@ func skipUnlessMode(t *testing.T, testModes ...testMode) {
 		t.Skip("Skipping as not supported test mode")
 	}
 }
+
+func skipUnlessHasOrgUser1(t *testing.T) {
+	if testAccConf.testOrgUser1 == "" {
+		t.Skip("Skipping as no test org user is configured")
+	}
+}
+
+func skipUnlessHasOrgUser2(t *testing.T) {
+	if testAccConf.testOrgUser2 == "" {
+		t.Skip("Skipping as no test org user 2 is configured")
+	}
+}
+
+// func skipUnlessHasOrgUser3(t *testing.T) {
+// 	if testAccConf.testOrgUser3 == "" {
+// 		t.Skip("Skipping as no test org user 3 is configured")
+// 	}
+// }

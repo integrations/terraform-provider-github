@@ -16,6 +16,8 @@ import (
 )
 
 func TestSuppressDeployKeyDiff(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		OldValue, NewValue string
 		ExpectSuppression  bool
@@ -52,7 +54,11 @@ func TestSuppressDeployKeyDiff(t *testing.T) {
 }
 
 func TestAccGithubRepositoryDeployKey_basic(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates repository deploy key without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		keyName := fmt.Sprintf("%s_rsa", randomID)
 		cmd := exec.Command("bash", "-c", fmt.Sprintf("ssh-keygen -t rsa -b 4096 -C test@example.com -N '' -f test-fixtures/%s>/dev/null <<< y >/dev/null", keyName))
@@ -86,18 +92,14 @@ func TestAccGithubRepositoryDeployKey_basic(t *testing.T) {
 }
 
 func testAccCheckGithubRepositoryDeployKeyDestroy(s *terraform.State) error {
-	meta, err := getTestMeta()
-	if err != nil {
-		return err
-	}
-	conn := meta.v3client
+	conn := testAccConf.meta.v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_repository_deploy_key" {
 			continue
 		}
 
-		owner := meta.name
+		owner := testAccConf.meta.name
 		repoName, idString, err := parseID2(rs.Primary.ID)
 		if err != nil {
 			return err
@@ -130,12 +132,8 @@ func testAccCheckGithubRepositoryDeployKeyExists(ctx context.Context, n string) 
 			return fmt.Errorf("no membership ID is set")
 		}
 
-		meta, err := getTestMeta()
-		if err != nil {
-			return err
-		}
-		conn := meta.v3client
-		owner := meta.name
+		conn := testAccConf.meta.v3client
+		owner := testAccConf.meta.name
 		repoName, idString, err := parseID2(rs.Primary.ID)
 		if err != nil {
 			return err
@@ -171,7 +169,11 @@ resource "github_repository_deploy_key" "test_repo_deploy_key" {
 }
 
 func TestAccGithubRepositoryDeployKeyArchivedRepo(t *testing.T) {
+	t.Parallel()
+
 	t.Run("can delete deploy keys from archived repositories without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		keyName := fmt.Sprintf("%s_rsa", randomID)
 		cmd := exec.Command("bash", "-c", fmt.Sprintf("ssh-keygen -t rsa -b 4096 -C test@example.com -N '' -f test-fixtures/%s>/dev/null <<< y >/dev/null", keyName))

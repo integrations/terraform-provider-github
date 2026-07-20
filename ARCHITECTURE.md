@@ -95,7 +95,7 @@ func resourceExampleRead(ctx context.Context, d *schema.ResourceData, m any) dia
     // Single API call to get all needed data
     resource, _, err := client.Resources.Get(ctx, owner, name)
     if err != nil {
-        if ghErr, ok := errors.AsType[github.ErrorResponse](err); ok {
+        if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
             if ghErr.Response.StatusCode == http.StatusNotFound {
                 tflog.Info(ctx, "Removing resource from state because it no longer exists", map[string]any{"name": name})
                 d.SetId("")
@@ -178,7 +178,10 @@ func resourceGithubExample() *schema.Resource {
             StateContext: resourceGithubExampleImport,
         },
 
-        // Include SchemaVersion and StateUpgraders if state migrations exist
+        // Only if required.
+        CustomizeDiff: diffExample,
+
+        // Include SchemaVersion and StateUpgraders if state migrations exist.
         SchemaVersion: 1,
         StateUpgraders: []schema.StateUpgrader{
             {
@@ -188,8 +191,10 @@ func resourceGithubExample() *schema.Resource {
             },
         },
 
+        Description: "Manages an example GitHub resource.",
+
         Schema: map[string]*schema.Schema{
-            // Schema definition
+            // Schema definition.
         },
     }
 }
@@ -286,7 +291,7 @@ All authentication configuration is handled in `config.go`. See the [Explicit Au
 
 ```go
 func resourceGithubExampleCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-    meta := m.(*Owner)
+    meta, _ := m.(*Owner)
     client := meta.v3client
     owner := meta.name
 
@@ -314,7 +319,7 @@ func resourceGithubExampleDelete(ctx context.Context, d *schema.ResourceData, m 
 
 ```go
 func resourceExampleRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-    meta := m.(*Owner)
+    meta, _ :=  m.(*Owner)
     // REST API client (go-github)
     client := meta.v3client
 
@@ -337,7 +342,7 @@ Handle 404s gracefully by removing from state:
 ```go
 resource, _, err := client.Resources.Get(ctx, owner, name)
 if err != nil {
-    if ghErr, ok := errors.AsType[github.ErrorResponse](err); ok {
+    if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
         if ghErr.Response.StatusCode == http.StatusNotFound {
             tflog.Info(ctx, "Removing resource from state because it no longer exists", map[string]any{"name": name})
             d.SetId("")
@@ -457,8 +462,10 @@ import (
 )
 
 func TestAccGithubExample(t *testing.T) {
+    t.Parallel()
 
     t.Run("creates resource without error", func(t *testing.T) {
+        t.Parallel()
         randomID := acctest.RandStrin(5)
         testResourceName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
         config := fmt.Sprintf(`
@@ -486,6 +493,7 @@ func TestAccGithubExample(t *testing.T) {
     })
 
     t.Run("forces new when field changes", func(t *testing.T) {
+        t.Parallel()
         // ... config steps ...
 
         resource.Test(t, resource.TestCase{

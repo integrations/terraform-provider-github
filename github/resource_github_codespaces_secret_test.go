@@ -12,7 +12,11 @@ import (
 )
 
 func TestAccGithubCodespacesSecret(t *testing.T) {
+	t.Parallel()
+
 	t.Run("reads a repository public key without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-codespaces-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -49,6 +53,8 @@ func TestAccGithubCodespacesSecret(t *testing.T) {
 	})
 
 	t.Run("creates and updates secrets without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-codespaces-%s", testResourcePrefix, randomID)
 		secretValue := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
@@ -126,6 +132,8 @@ func TestAccGithubCodespacesSecret(t *testing.T) {
 	})
 
 	t.Run("creates and updates repository name without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-codespaces-%s", testResourcePrefix, randomID)
 		updatedRepoName := fmt.Sprintf("%s-updated", repoName)
@@ -209,6 +217,8 @@ func TestAccGithubCodespacesSecret(t *testing.T) {
 	})
 
 	t.Run("deletes secrets without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-codespaces-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`

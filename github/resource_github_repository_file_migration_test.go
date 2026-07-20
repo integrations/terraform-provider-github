@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 )
 
 func buildMockResponsesForRepositoryFileMigrationV0toV1(mockOwner, mockRepo string, wantRepoID int) []*mockResponse {
@@ -165,7 +165,7 @@ func Test_resourceGithubRepositoryFileStateUpgradeV0toV1(t *testing.T) {
 			ts := githubApiMock(buildMockResponsesForRepositoryFileMigrationV0toV1(meta.name, wantRepositoryName, wantRepositoryID))
 			defer ts.Close()
 
-			client := mustGitHubClient(t, ts.URL)
+			client := mustCreateTestGitHubClient(t, ts.URL)
 			meta.v3client = client
 
 			got, err := resourceGithubRepositoryFileStateUpgradeV0(t.Context(), d.rawState, meta)
