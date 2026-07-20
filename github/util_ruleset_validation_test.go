@@ -3,10 +3,12 @@ package github
 import (
 	"testing"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 )
 
 func Test_validateConditionsFieldForPushTarget(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		conditions  map[string]any
@@ -42,6 +44,8 @@ func Test_validateConditionsFieldForPushTarget(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := validateConditionsFieldForPushTarget(t.Context(), tt.conditions)
 			if tt.expectError {
 				if err == nil {
@@ -59,6 +63,8 @@ func Test_validateConditionsFieldForPushTarget(t *testing.T) {
 }
 
 func Test_validateRepositoryRulesetConditionsFieldForBranchAndTagTargets(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		target      github.RulesetTarget
@@ -114,6 +120,8 @@ func Test_validateRepositoryRulesetConditionsFieldForBranchAndTagTargets(t *test
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := validateConditionsFieldForBranchAndTagTargets(t.Context(), tt.target, tt.conditions, false)
 			if tt.expectError {
 				if err == nil {
@@ -131,6 +139,8 @@ func Test_validateRepositoryRulesetConditionsFieldForBranchAndTagTargets(t *test
 }
 
 func Test_validateConditionsFieldForBranchAndTagTargets(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		target      github.RulesetTarget
@@ -169,6 +179,8 @@ func Test_validateConditionsFieldForBranchAndTagTargets(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := validateConditionsFieldForBranchAndTagTargets(t.Context(), tt.target, tt.conditions, true)
 			if tt.expectError {
 				if err == nil {
@@ -186,6 +198,8 @@ func Test_validateConditionsFieldForBranchAndTagTargets(t *testing.T) {
 }
 
 func Test_ruleListsDoNotOverlap(t *testing.T) {
+	t.Parallel()
+
 	for _, pushRule := range pushOnlyRules {
 		for _, branchTagRule := range branchTagOnlyRules {
 			if pushRule == branchTagRule {

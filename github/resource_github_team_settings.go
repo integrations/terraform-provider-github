@@ -82,7 +82,7 @@ func resourceGithubTeamSettings() *schema.Resource {
 }
 
 func resourceGithubTeamSettingsCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	if err := checkOrganization(m); err != nil {
 		return diag.FromErr(err)
 	}
@@ -226,7 +226,7 @@ func resourceGithubTeamSettingsRead(ctx context.Context, d *schema.ResourceData,
 
 func resourceGithubTeamSettingsUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	if d.HasChange("review_request_delegation") || d.HasChange("notify") {
-		meta := m.(*Owner)
+		meta, _ := m.(*Owner)
 		graphql := meta.v4client
 		reviewRequestDelegation := d.Get("review_request_delegation").([]any)
 		notify := resolveNotify(ctx, d)

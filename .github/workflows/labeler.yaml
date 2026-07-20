@@ -18,6 +18,6 @@ jobs:
         shell: bash
     steps:
       - name: Run Labeler
-        uses: actions/labeler@f27b608878404679385c85cfa523b85ccb86e213 # v6.1.0
+        uses: actions/labeler@b8dd2d9be0f68b860e7dae5dae7d772984eacd6d # v6.2.0
         with:
           sync-labels: false # Whether or not to remove labels when matching files are reverted or no longer changed by the PR

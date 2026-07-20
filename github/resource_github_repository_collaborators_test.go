@@ -13,6 +13,9 @@ import (
 )
 
 func TestAccGithubRepositoryCollaborators(t *testing.T) {
+	// TODO: Make this test parallel once we can ignore non-direct teams.
+	// t.Parallel()
+
 	t.Run("create", func(t *testing.T) {
 		if len(testAccConf.testOrgUser1) == 0 {
 			t.Skip("No organization user provided")

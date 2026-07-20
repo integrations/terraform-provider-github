@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -44,7 +44,7 @@ func resourceGithubActionsOrganizationSecretRepositoriesCreateOrUpdate(ctx conte
 		return diag.FromErr(err)
 	}
 
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -71,7 +71,7 @@ func resourceGithubActionsOrganizationSecretRepositoriesRead(ctx context.Context
 		return diag.FromErr(err)
 	}
 
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -109,7 +109,7 @@ func resourceGithubActionsOrganizationSecretRepositoriesDelete(ctx context.Conte
 		return diag.FromErr(err)
 	}
 
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -122,7 +122,7 @@ func resourceGithubActionsOrganizationSecretRepositoriesDelete(ctx context.Conte
 }
 
 func resourceGithubActionsOrganizationSecretRepositoriesImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 

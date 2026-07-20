@@ -38,7 +38,7 @@ func Test_cloneTransport(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			opts := Options{maxIdleConns: 10, idleConnTimeout: 30 * time.Second}
+			opts := ClientOptions{MaxIdleConns: 10, IdleConnTimeout: 30 * time.Second}
 			cloned := cloneTransport(tt.source, opts)
 
 			if !tt.httpTransport && cloned != tt.source {
@@ -67,16 +67,16 @@ func Test_cloneTransport(t *testing.T) {
 				t.Fatal("expected ForceAttemptHTTP2 to be true")
 			}
 
-			if htr.MaxIdleConns != opts.maxIdleConns {
-				t.Fatalf("expected MaxIdleConns to be %d, got %d", opts.maxIdleConns, htr.MaxIdleConns)
+			if htr.MaxIdleConns != opts.MaxIdleConns {
+				t.Fatalf("expected MaxIdleConns to be %d, got %d", opts.MaxIdleConns, htr.MaxIdleConns)
 			}
 
-			if htr.MaxIdleConnsPerHost != opts.maxIdleConns {
-				t.Fatalf("expected MaxIdleConnsPerHost to be %d, got %d", opts.maxIdleConns, htr.MaxIdleConnsPerHost)
+			if htr.MaxIdleConnsPerHost != opts.MaxIdleConns {
+				t.Fatalf("expected MaxIdleConnsPerHost to be %d, got %d", opts.MaxIdleConns, htr.MaxIdleConnsPerHost)
 			}
 
-			if htr.IdleConnTimeout != opts.idleConnTimeout {
-				t.Fatalf("expected IdleConnTimeout to be %v, got %v", opts.idleConnTimeout, htr.IdleConnTimeout)
+			if htr.IdleConnTimeout != opts.IdleConnTimeout {
+				t.Fatalf("expected IdleConnTimeout to be %v, got %v", opts.IdleConnTimeout, htr.IdleConnTimeout)
 			}
 		})
 	}
@@ -93,43 +93,43 @@ func Test_newTransport(t *testing.T) {
 	for _, tt := range []struct {
 		name        string
 		tokenSource oauth2.TokenSource
-		opts        Options
+		opts        ClientOptions
 		wantErr     string
 	}{
 		{
 			name:        "succeeds_with_empty_options",
 			tokenSource: nil,
-			opts:        Options{},
+			opts:        ClientOptions{},
 		},
 		{
 			name:        "succeeds_with_token",
 			tokenSource: oauth2.StaticTokenSource(&oauth2.Token{AccessToken: "test-token"}),
-			opts:        Options{},
+			opts:        ClientOptions{},
 		},
 		{
 			name:        "succeeds_with_retry",
 			tokenSource: nil,
-			opts:        Options{RetryMax: 1, RetryWaitMin: time.Millisecond, RetryWaitMax: time.Millisecond},
+			opts:        ClientOptions{RetryMax: 1, RetryWaitMin: time.Millisecond, RetryWaitMax: time.Millisecond},
 		},
 		{
 			name:        "succeeds_with_throttler",
 			tokenSource: nil,
-			opts:        Options{sema: semaphore.NewWeighted(1)},
+			opts:        ClientOptions{Sema: semaphore.NewWeighted(1)},
 		},
 		{
 			name:        "succeeds_with_cache",
 			tokenSource: nil,
-			opts:        Options{CachePath: mustMkdirTemp(t, cacheBasePath, "*")},
+			opts:        ClientOptions{Cache: true, CachePath: mustMkdirTemp(t, cacheBasePath, "*")},
 		},
 		{
 			name:        "succeeds_with_all_options",
 			tokenSource: oauth2.StaticTokenSource(&oauth2.Token{AccessToken: "test-token"}),
-			opts:        Options{RetryMax: 1, RetryWaitMin: time.Millisecond, RetryWaitMax: time.Millisecond, sema: semaphore.NewWeighted(1), CachePath: mustMkdirTemp(t, cacheBasePath, "*")},
+			opts:        ClientOptions{RetryMax: 1, RetryWaitMin: time.Millisecond, RetryWaitMax: time.Millisecond, Sema: semaphore.NewWeighted(1), Cache: true, CachePath: mustMkdirTemp(t, cacheBasePath, "*")},
 		},
 		{
 			name:        "errors_with_invalid_cache_path",
 			tokenSource: nil,
-			opts:        Options{CachePath: "\x00c"},
+			opts:        ClientOptions{Cache: true, CachePath: "\x00c"},
 			wantErr:     "failed to create cache store",
 		},
 	} {
@@ -215,7 +215,7 @@ func Test_newTransport(t *testing.T) {
 				}))
 				defer ts.Close()
 
-				opts := Options{RetryMax: tt.retryMax, RetryWaitMin: time.Millisecond, RetryWaitMax: time.Millisecond}
+				opts := ClientOptions{RetryMax: tt.retryMax, RetryWaitMin: time.Millisecond, RetryWaitMax: time.Millisecond}
 				tr, err := newTransport(nil, opts)
 				if err != nil {
 					t.Fatalf("failed to create transport: %v", err)
@@ -280,7 +280,7 @@ func Test_newTransport(t *testing.T) {
 		}))
 		defer ts.Close()
 
-		opts := Options{sema: semaphore.NewWeighted(1)}
+		opts := ClientOptions{Sema: semaphore.NewWeighted(1)}
 		tr, err := newTransport(nil, opts)
 		if err != nil {
 			t.Fatalf("failed to create transport: %v", err)
@@ -292,14 +292,14 @@ func Test_newTransport(t *testing.T) {
 
 		client := &http.Client{Transport: tr}
 
-		if err := opts.sema.Acquire(t.Context(), 1); err != nil {
+		if err := opts.Sema.Acquire(t.Context(), 1); err != nil {
 			t.Fatalf("failed to acquire semaphore: %v", err)
 		}
 
 		go func() {
 			time.Sleep(1 * time.Second)
 			result = "PASS"
-			opts.sema.Release(1)
+			opts.Sema.Release(1)
 		}()
 
 		res, err := client.Get(ts.URL)
@@ -340,7 +340,7 @@ func Test_newTransport(t *testing.T) {
 		}))
 		defer ts.Close()
 
-		opts := Options{CachePath: mustMkdirTemp(t, cacheBasePath, "*")}
+		opts := ClientOptions{Cache: true, CachePath: mustMkdirTemp(t, cacheBasePath, "*")}
 		tr, err := newTransport(nil, opts)
 		if err != nil {
 			t.Fatalf("failed to create transport: %v", err)
