@@ -34,7 +34,7 @@ data "github_external_groups" "example" {}
 				{
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("data.github_external_groups.example", tfjsonpath.New("groups"), knownvalue.SetPartial([]knownvalue.Check{
+						statecheck.ExpectKnownValue("data.github_external_groups.example", tfjsonpath.New("external_groups"), knownvalue.SetPartial([]knownvalue.Check{
 							knownvalue.MapPartial(map[string]knownvalue.Check{
 								"group_id": knownvalue.Int32Exact(groupID),
 							}),
@@ -66,12 +66,12 @@ data "github_external_groups" "example" {
 				{
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("data.github_external_groups.example", tfjsonpath.New("groups"), knownvalue.ListExact([]knownvalue.Check{
+						statecheck.ExpectKnownValue("data.github_external_groups.example", tfjsonpath.New("external_groups"), knownvalue.ListExact([]knownvalue.Check{
 							knownvalue.MapPartial(map[string]knownvalue.Check{
 								"group_id": knownvalue.Int32Exact(groupID),
 							}),
 						})),
-						statecheck.ExpectKnownValue("data.github_external_groups.example", tfjsonpath.New("groups"), SetAbsent([]knownvalue.Check{
+						statecheck.ExpectKnownValue("data.github_external_groups.example", tfjsonpath.New("external_groups"), SetAbsent([]knownvalue.Check{
 							knownvalue.MapPartial(map[string]knownvalue.Check{
 								"group_id": knownvalue.Int32Exact(int32(testAccConf.testExternalGroup2ID)),
 							}),
