@@ -35,10 +35,9 @@ jobs:
     # timer (either would pause this "immediate" path).
     environment: team-review-router
     steps:
-      # Pin this to a full commit SHA before production use (repo convention).
       - name: Mint GitHub App token
         id: app-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
         with:
           app-id: ${{ secrets.TF_TEAM_REVIEW_APP_ID }}
           private-key: ${{ secrets.TF_TEAM_REVIEW_APP_PRIVATE_KEY }}
