@@ -67,6 +67,10 @@ To authenticate using a GitHub App installation, ensure that arguments in the `a
 
 Some API operations may not be available when using a GitHub App installation configuration. For more information, refer to the list of [supported endpoints](https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps).
 
+~> The `app_auth` block is optional: the provider reads the `GITHUB_APP_XXX` environment variables directly. When you deliberately want GitHub App auth, keeping the block is recommended: its required arguments make `terraform validate` fail fast if a value is missing, and it lets you set non-secret values such as the App `id` directly. Drive auth from the environment without a block when the same configuration must also validate without the variables set, such as CI linting. The three patterns below cover each case.
+
+#### Block with values
+
 ```terraform
 provider "github" {
   owner = var.github_organization
@@ -78,9 +82,7 @@ provider "github" {
 }
 ```
 
-~> No `app_auth` block is needed when authenticating through the `GITHUB_APP_XXX` environment variables; the provider reads them directly. The previously documented empty `app_auth {}` block is no longer required and should be removed: its arguments are schema-required, so it fails `terraform validate` in environments where the variables are not set.
-
-#### .env
+#### Environment variables only
 
 ```shell
 export GITHUB_APP_ID="12332432" # Required: The GitHub App ID for authentication
@@ -88,12 +90,24 @@ export GITHUB_APP_INSTALLATION_ID="12435523" # Required: The GitHub App Installa
 export GITHUB_APP_PEM_FILE="..." # Required: Contents of the PEM file for the GitHub App, not the path to the PEM file
 ```
 
-#### main.tf
-
 ```terraform
 provider "github" {
   owner = var.github_organization
   # Credentials come from the `GITHUB_APP_XXX` environment variables.
+}
+```
+
+#### Non-secret values in configuration, secret from the environment
+
+```terraform
+provider "github" {
+  owner = var.github_organization
+  app_auth {
+    id              = "123456"   # the App ID and installation ID are not secret,
+    installation_id = "78901234" # so they can be set directly in configuration
+    # pem_file is omitted; it falls back to the GITHUB_APP_PEM_FILE variable,
+    # keeping the secret out of configuration
+  }
 }
 ```
 
