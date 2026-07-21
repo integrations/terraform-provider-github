@@ -2,7 +2,19 @@ package github
 
 import (
 	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+// expandOptionalString returns a pointer to the configured string at key, or nil when the value is
+// unset. GetOk treats an empty string as unset, matching the Optional (non-computed) attributes.
+func expandOptionalString(d *schema.ResourceData, key string) *string {
+	v, ok := d.GetOk(key)
+	if !ok {
+		return nil
+	}
+	s, _ := v.(string)
+	return new(s)
+}
 
 // flattenDependencyGraphAutosubmitActionOptions converts DependencyGraphAutosubmitActionOptions to a Terraform-compatible format.
 func flattenDependencyGraphAutosubmitActionOptions(options *github.DependencyGraphAutosubmitActionOptions) []any {
