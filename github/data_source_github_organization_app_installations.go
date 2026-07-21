@@ -101,7 +101,7 @@ func dataSourceGithubOrganizationAppInstallationsRead(ctx context.Context, d *sc
 	client := meta.v3client
 
 	options := &github.ListOptions{
-		PerPage: maxPerPage,
+		PerPage: meta.maxPerPage,
 	}
 
 	results := make([]map[string]any, 0)

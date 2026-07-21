@@ -205,7 +205,7 @@ func dataSourceGithubTeamRead(ctx context.Context, d *schema.ResourceData, m any
 	if !summaryOnly {
 		membershipType, _ := d.Get("membership_type").(string)
 
-		for member, err := range client.Teams.ListTeamMembersBySlugIter(ctx, meta.name, team.GetSlug(), &github.TeamListTeamMembersOptions{ListOptions: github.ListOptions{PerPage: maxPerPage}}) {
+		for member, err := range client.Teams.ListTeamMembersBySlugIter(ctx, meta.name, team.GetSlug(), &github.TeamListTeamMembersOptions{ListOptions: github.ListOptions{PerPage: meta.maxPerPage}}) {
 			if err != nil {
 				return diag.FromErr(err)
 			}
@@ -217,7 +217,7 @@ func dataSourceGithubTeamRead(ctx context.Context, d *schema.ResourceData, m any
 			members = append(members, member.GetLogin())
 		}
 
-		for repo, err := range client.Teams.ListTeamReposBySlugIter(ctx, meta.name, team.GetSlug(), &github.ListOptions{PerPage: maxPerPage}) {
+		for repo, err := range client.Teams.ListTeamReposBySlugIter(ctx, meta.name, team.GetSlug(), &github.ListOptions{PerPage: meta.maxPerPage}) {
 			if err != nil {
 				return diag.FromErr(err)
 			}

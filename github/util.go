@@ -22,9 +22,6 @@ const (
 	idSeparatorEscaped = `??`
 )
 
-// https://developer.github.com/guides/traversing-with-pagination/#basics-of-pagination
-var maxPerPage = 100
-
 // escapeIDPart escapes any idSeparator characters in a string.
 func escapeIDPart(part string) string {
 	return strings.ReplaceAll(part, idSeparator, idSeparatorEscaped)

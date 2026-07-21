@@ -125,7 +125,8 @@ func resourceGithubActionsEnterpriseRunnerGroupCreate(d *schema.ResourceData, me
 
 	ctx := context.Background()
 
-	enterpriseRunnerGroup, resp, err := client.Enterprise.CreateEnterpriseRunnerGroup(ctx,
+	enterpriseRunnerGroup, resp, err := client.Enterprise.CreateEnterpriseRunnerGroup(
+		ctx,
 		enterpriseSlug,
 		github.CreateEnterpriseRunnerGroupRequest{
 			Name:                     &name,
@@ -189,8 +190,9 @@ func getEnterpriseRunnerGroup(client *github.Client, ctx context.Context, ent st
 	return enterpriseRunnerGroup, resp, err
 }
 
-func resourceGithubActionsEnterpriseRunnerGroupRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubActionsEnterpriseRunnerGroupRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 	runnerGroupID, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -254,7 +256,7 @@ func resourceGithubActionsEnterpriseRunnerGroupRead(d *schema.ResourceData, meta
 
 	selectedOrganizationIDs := []int64{}
 	optionsOrgs := github.ListOptions{
-		PerPage: maxPerPage,
+		PerPage: meta.maxPerPage,
 	}
 
 	for {
@@ -281,8 +283,9 @@ func resourceGithubActionsEnterpriseRunnerGroupRead(d *schema.ResourceData, meta
 	return nil
 }
 
-func resourceGithubActionsEnterpriseRunnerGroupUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubActionsEnterpriseRunnerGroupUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
 	name := d.Get("name").(string)
 	enterpriseSlug := d.Get("enterprise_slug").(string)
@@ -334,8 +337,9 @@ func resourceGithubActionsEnterpriseRunnerGroupUpdate(d *schema.ResourceData, me
 	return resourceGithubActionsEnterpriseRunnerGroupRead(d, meta)
 }
 
-func resourceGithubActionsEnterpriseRunnerGroupDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubActionsEnterpriseRunnerGroupDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 	enterpriseRunnerGroupID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -348,7 +352,7 @@ func resourceGithubActionsEnterpriseRunnerGroupDelete(d *schema.ResourceData, me
 	return err
 }
 
-func resourceGithubActionsEnterpriseRunnerGroupImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubActionsEnterpriseRunnerGroupImport(d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
 	parts := strings.Split(d.Id(), "/")
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("invalid import specified: supplied import must be written as <enterprise_slug>/<runner_group_id>")
