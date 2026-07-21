@@ -85,7 +85,7 @@ func dataSourceGithubTeamMembersRead(ctx context.Context, d *schema.ResourceData
 
 	opts := &github.TeamListTeamMembersOptions{
 		ListOptions: github.ListOptions{
-			PerPage: maxPerPage,
+			PerPage: meta.maxPerPage,
 		},
 	}
 
@@ -100,20 +100,20 @@ func dataSourceGithubTeamMembersRead(ctx context.Context, d *schema.ResourceData
 	}
 
 	members := make([]map[string]any, 0)
-	for user, err := range iter {
+	for member, err := range iter {
 		if err != nil {
 			return diag.FromErr(err)
 		}
 
-		u := map[string]any{
-			"id":        user.GetID(),
-			"node_id":   user.GetNodeID(),
-			"login":     user.GetLogin(),
-			"email":     user.GetEmail(),
-			"role":      user.GetRole(),
-			"inherited": user.GetInherited(),
+		m := map[string]any{
+			"id":        member.GetID(),
+			"node_id":   member.GetNodeID(),
+			"login":     member.GetLogin(),
+			"email":     member.GetEmail(),
+			"role":      member.GetRole(),
+			"inherited": member.GetInherited(),
 		}
-		members = append(members, u)
+		members = append(members, m)
 	}
 
 	d.SetId(meta.name)

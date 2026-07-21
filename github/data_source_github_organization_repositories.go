@@ -61,7 +61,7 @@ func dataSourceGithubOrganizationRepositoriesRead(ctx context.Context, d *schema
 	}
 
 	repos := make([]map[string]any, 0)
-	for repo, err := range meta.v3client.Repositories.ListByOrgIter(ctx, meta.name, &github.RepositoryListByOrgOptions{ListOptions: github.ListOptions{PerPage: maxPerPage}}) {
+	for repo, err := range meta.v3client.Repositories.ListByOrgIter(ctx, meta.name, &github.RepositoryListByOrgOptions{ListOptions: github.ListOptions{PerPage: meta.maxPerPage}}) {
 		if err != nil {
 			return diag.FromErr(err)
 		}

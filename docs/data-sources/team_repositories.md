@@ -39,6 +39,7 @@ Read-Only:
 - `id` (Number)
 - `name` (String)
 - `node_id` (String)
+- `role_name` (String)
 - `visibility` (String)
 -->
 
@@ -63,4 +64,5 @@ Read-Only:
 - `id` (Number) ID of the repository.
 - `name` (String) Name of the repository.
 - `node_id` (String) Node ID of the repository.
+- `role_name` (String) Role the team has for the repository.
 - `visibility` (String) Visibility of the repository; one of `public`, `private`, or `internal`.

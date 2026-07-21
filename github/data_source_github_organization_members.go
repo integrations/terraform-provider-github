@@ -50,23 +50,23 @@ func dataSourceGithubOrganizationMembersRead(ctx context.Context, d *schema.Reso
 		return diags
 	}
 
-	users := make([]map[string]any, 0)
-	for user, err := range meta.v3client.Organizations.ListMembersIter(ctx, meta.name, &github.ListMembersOptions{ListOptions: github.ListOptions{PerPage: maxPerPage}}) {
+	members := make([]map[string]any, 0)
+	for member, err := range meta.v3client.Organizations.ListMembersIter(ctx, meta.name, &github.ListMembersOptions{ListOptions: github.ListOptions{PerPage: meta.maxPerPage}}) {
 		if err != nil {
 			return diag.FromErr(err)
 		}
 
-		u := map[string]any{
-			"id":      user.GetID(),
-			"node_id": user.GetNodeID(),
-			"login":   user.GetLogin(),
+		m := map[string]any{
+			"id":      member.GetID(),
+			"node_id": member.GetNodeID(),
+			"login":   member.GetLogin(),
 		}
-		users = append(users, u)
+		members = append(members, m)
 	}
 
 	d.SetId(meta.name)
 
-	if err := d.Set("members", users); err != nil {
+	if err := d.Set("members", members); err != nil {
 		return diag.Errorf("error setting members: %v", err)
 	}
 

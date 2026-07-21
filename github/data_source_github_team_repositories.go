@@ -64,6 +64,11 @@ func dataSourceGithubTeamRepositories() *schema.Resource {
 							Type:        schema.TypeBool,
 							Computed:    true,
 						},
+						"role_name": {
+							Description: "Role the team has for the repository.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
 					},
 				},
 			},
@@ -79,7 +84,7 @@ func dataSourceGithubTeamRepositoriesRead(ctx context.Context, d *schema.Resourc
 	}
 
 	opts := &github.ListOptions{
-		PerPage: maxPerPage,
+		PerPage: meta.maxPerPage,
 	}
 
 	var iter iter.Seq2[*github.Repository, error]
@@ -104,6 +109,7 @@ func dataSourceGithubTeamRepositoriesRead(ctx context.Context, d *schema.Resourc
 			"name":       repo.GetName(),
 			"visibility": repo.GetVisibility(),
 			"archived":   repo.GetArchived(),
+			"role_name":  repo.GetRoleName(),
 		}
 		repos = append(repos, r)
 	}
