@@ -61,7 +61,7 @@ func dataSourceGithubExternalGroupsRead(ctx context.Context, d *schema.ResourceD
 	}
 
 	groups := make([]map[string]any, 0)
-	for group, err := range meta.v3client.Teams.ListExternalGroupsIter(ctx, meta.name, &github.ListExternalGroupsOptions{DisplayName: filter, ListOptions: github.ListOptions{PerPage: maxPerPage}}) {
+	for group, err := range meta.v3client.Teams.ListExternalGroupsIter(ctx, meta.name, &github.ListExternalGroupsOptions{DisplayName: filter, ListOptions: github.ListOptions{PerPage: meta.maxPerPage}}) {
 		if err != nil {
 			return diag.FromErr(err)
 		}
