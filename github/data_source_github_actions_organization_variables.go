@@ -46,12 +46,13 @@ func dataSourceGithubActionsOrganizationVariables() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsOrganizationVariablesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func dataSourceGithubActionsOrganizationVariablesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
 	options := github.ListOptions{
-		PerPage: 100,
+		PerPage: meta.maxPerPage,
 	}
 
 	var all_variables []map[string]string

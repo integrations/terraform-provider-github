@@ -68,20 +68,22 @@ func dataSourceGithubOrganizationExternalIdentities() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationExternalIdentitiesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	name := meta.(*Owner).name
+func dataSourceGithubOrganizationExternalIdentitiesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	name := meta.name
 
-	client4 := meta.(*Owner).v4client
+	client4 := meta.v4client
 
 	var query struct {
 		Organization struct {
 			SamlIdentityProvider struct {
-				ExternalIdentities `graphql:"externalIdentities(first: 100, after: $after)"`
+				ExternalIdentities `graphql:"externalIdentities(first: $first, after: $after)"`
 			}
 		} `graphql:"organization(login: $login)"`
 	}
 	variables := map[string]any{
 		"login": githubv4.String(name),
+		"first": githubv4.Int(meta.maxPerPage),
 		"after": (*githubv4.String)(nil),
 	}
 

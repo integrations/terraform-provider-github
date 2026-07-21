@@ -79,7 +79,7 @@ func resourceGithubActionsOrganizationVariableRepositoriesRead(ctx context.Conte
 
 	repoIDs := []int64{}
 	opt := &github.ListOptions{
-		PerPage: maxPerPage,
+		PerPage: meta.maxPerPage,
 	}
 	for {
 		results, resp, err := client.Actions.ListSelectedReposForOrgVariable(ctx, owner, variableName, opt)
@@ -134,7 +134,7 @@ func resourceGithubActionsOrganizationVariableRepositoriesImport(ctx context.Con
 
 	repoIDs := []int64{}
 	opt := &github.ListOptions{
-		PerPage: maxPerPage,
+		PerPage: meta.maxPerPage,
 	}
 	for {
 		results, resp, err := client.Actions.ListSelectedReposForOrgVariable(ctx, owner, variableName, opt)
