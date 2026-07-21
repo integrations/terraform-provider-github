@@ -79,6 +79,8 @@ The overall status of each resource or data source is captured in this document 
 | `github_organization_custom_role` (🚫) | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_organization_external_identities` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_organization_ip_allow_list` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
+| `github_organization_members` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `github_organization_repositories` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_organization_repository_role` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_organization_repository_roles` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_organization_role` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
@@ -111,6 +113,8 @@ The overall status of each resource or data source is captured in this document 
 | `github_rest_api` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_ssh_keys` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_team` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `github_team_members` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `github_team_repositories` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_tree` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_user` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_user_external_identity` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
