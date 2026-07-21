@@ -150,11 +150,12 @@ func dataSourceGithubOrganization() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	name := d.Get("name").(string)
+func dataSourceGithubOrganizationRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client4 := meta.v4client
+	client3 := meta.v3client
 
-	client4 := meta.(*Owner).v4client
-	client3 := meta.(*Owner).v3client
+	name, _ := d.Get("name").(string)
 
 	organization, _, err := client3.Organizations.Get(ctx, name)
 	if err != nil {
@@ -168,7 +169,7 @@ func dataSourceGithubOrganizationRead(ctx context.Context, d *schema.ResourceDat
 	}
 
 	opts := &github.RepositoryListByOrgOptions{
-		ListOptions: github.ListOptions{PerPage: 100, Page: 1},
+		ListOptions: github.ListOptions{PerPage: meta.maxPerPage, Page: 1},
 	}
 
 	summaryOnly := d.Get("summary_only").(bool)
@@ -215,11 +216,12 @@ func dataSourceGithubOrganizationRead(ctx context.Context, d *schema.ResourceDat
 						EndCursor   githubv4.String
 						HasNextPage bool
 					}
-				} `graphql:"membersWithRole(first: 100, after: $after)"`
+				} `graphql:"membersWithRole(first: $first, after: $after)"`
 			} `graphql:"organization(login: $login)"`
 		}
 		variables := map[string]any{
 			"login": githubv4.String(name),
+			"first": githubv4.Int(meta.maxPerPage),
 			"after": (*githubv4.String)(nil),
 		}
 		var members []string

@@ -38,13 +38,14 @@ func dataSourceGithubOrganizationTeamSyncGroups() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationTeamSyncGroupsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func dataSourceGithubOrganizationTeamSyncGroupsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	orgName := meta.(*Owner).name
+	orgName := meta.name
 	options := &github.ListIDPGroupsOptions{
 		ListCursorOptions: github.ListCursorOptions{
-			PerPage: maxPerPage,
+			PerPage: meta.maxPerPage,
 		},
 	}
 

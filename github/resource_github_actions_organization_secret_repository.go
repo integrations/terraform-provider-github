@@ -76,7 +76,7 @@ func resourceGithubActionsOrganizationSecretRepositoryRead(ctx context.Context, 
 	repoIDInt, _ := d.Get("repository_id").(int)
 	repoID := int64(repoIDInt)
 
-	for repo, err := range client.Actions.ListSelectedReposForOrgSecretIter(ctx, owner, secretName, &github.ListOptions{PerPage: maxPerPage}) {
+	for repo, err := range client.Actions.ListSelectedReposForOrgSecretIter(ctx, owner, secretName, &github.ListOptions{PerPage: meta.maxPerPage}) {
 		if err != nil {
 			return diag.FromErr(err)
 		}

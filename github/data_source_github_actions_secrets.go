@@ -50,9 +50,10 @@ func dataSourceGithubActionsSecrets() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsSecretsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func dataSourceGithubActionsSecretsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 	var repoName string
 
 	if fullName, ok := d.GetOk("full_name"); ok {
@@ -72,7 +73,7 @@ func dataSourceGithubActionsSecretsRead(ctx context.Context, d *schema.ResourceD
 	}
 
 	options := github.ListOptions{
-		PerPage: 100,
+		PerPage: meta.maxPerPage,
 	}
 
 	var all_secrets []map[string]string

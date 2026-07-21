@@ -488,8 +488,7 @@ func configureProvider(version, commit string) func(context.Context, *schema.Res
 		if v, ok := d.GetOk("max_per_page"); ok {
 			if i, ok := v.(int); ok {
 				tflog.Debug(ctx, "Using max per page from provider configuration.", map[string]any{"max_per_page": i})
-				// TODO: Move max per page to the provider metadata and remove the global variable.
-				maxPerPage = i
+				config.MaxPerPage = i
 			}
 		}
 
@@ -526,7 +525,8 @@ func configureProvider(version, commit string) func(context.Context, *schema.Res
 // configureProviderMeta initializes the provider metadata, including setting up the GitHub API clients based on the provided configuration. It returns the initialized metadata or an error if the configuration is invalid or if there are issues initializing the clients.
 func configureProviderMeta(ctx context.Context, version string, c *Config) (*Owner, error) {
 	owner := &Owner{
-		name: c.Owner,
+		name:       c.Owner,
+		maxPerPage: c.MaxPerPage,
 	}
 
 	if c.LegacyClient {
