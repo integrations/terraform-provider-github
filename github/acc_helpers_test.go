@@ -6,11 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 )
 
@@ -219,7 +222,38 @@ func mustAddTeamMember(t *testing.T, team *github.Team, username string) {
 	}
 }
 
+func mustArchiveTestRepository(t *testing.T, repo *github.Repository) {
+	t.Helper()
+
+	archived := true
+	err := retry.RetryContext(t.Context(), 2*time.Minute, func() *retry.RetryError {
+		_, resp, err := testAccConf.meta.v3client.Repositories.Edit(t.Context(), testAccConf.meta.name, repo.GetName(), &github.Repository{Archived: &archived})
+		if err != nil {
+			if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == http.StatusUnprocessableEntity {
+				return retry.RetryableError(fmt.Errorf("Expected repository to be archived but got response: %v", resp))
+			}
+		}
+
+		if err != nil {
+			return retry.NonRetryableError(err)
+		} else {
+			return nil
+		}
+	})
+	if err != nil {
+		t.Fatalf("failed to archive test repository %s: %v", repo.GetName(), err)
+	}
+}
+
 func mustCreateTestRepository(t *testing.T) *github.Repository {
+	return mustCreateConfigurableTestRepository(t, "")
+}
+
+func mustCreateInternalTestRepository(t *testing.T) *github.Repository {
+	return mustCreateConfigurableTestRepository(t, "internal")
+}
+
+func mustCreateConfigurableTestRepository(t *testing.T, visibility string) *github.Repository {
 	t.Helper()
 
 	randomID := acctest.RandString(testRandomIDLength)
@@ -228,6 +262,10 @@ func mustCreateTestRepository(t *testing.T) *github.Repository {
 	req := &github.Repository{
 		Name:     &name,
 		AutoInit: new(true),
+	}
+
+	if visibility != "" {
+		req.Visibility = &visibility
 	}
 
 	repo, _, err := testAccConf.meta.v3client.Repositories.Create(t.Context(), testAccConf.meta.name, req)
