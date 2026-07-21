@@ -460,12 +460,12 @@ func resourceGithubOrganizationSecurityConfigurationDelete(ctx context.Context, 
 }
 
 func resourceGithubOrganizationSecurityConfigurationImport(_ context.Context, d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
-	configID, err := strconv.ParseInt(d.Id(), 10, 64)
+	configID, err := strconv.Atoi(d.Id())
 	if err != nil {
 		return nil, fmt.Errorf("invalid configuration_id %q: %w", d.Id(), err)
 	}
 
-	if err = d.Set("configuration_id", int(configID)); err != nil {
+	if err = d.Set("configuration_id", configID); err != nil {
 		return nil, err
 	}
 
@@ -475,81 +475,50 @@ func resourceGithubOrganizationSecurityConfigurationImport(_ context.Context, d 
 // resourceGithubOrganizationSecurityConfigurationExpand builds a CodeSecurityConfiguration from Terraform resource data,
 // including the organization-only secret scanning delegated bypass fields.
 func resourceGithubOrganizationSecurityConfigurationExpand(d *schema.ResourceData) github.CodeSecurityConfiguration {
+	name, _ := d.Get("name").(string)
 	config := github.CodeSecurityConfiguration{
-		Name: d.Get("name").(string),
+		Name: name,
 	}
 	if val, ok := d.GetOk("description"); ok {
-		config.Description = val.(string)
+		config.Description, _ = val.(string)
 	}
 
-	if val, ok := d.GetOk("advanced_security"); ok {
-		config.AdvancedSecurity = new(val.(string))
-	}
-	if val, ok := d.GetOk("dependency_graph"); ok {
-		config.DependencyGraph = new(val.(string))
-	}
-	if val, ok := d.GetOk("dependency_graph_autosubmit_action"); ok {
-		config.DependencyGraphAutosubmitAction = new(val.(string))
-	}
-	if val, ok := d.GetOk("dependabot_alerts"); ok {
-		config.DependabotAlerts = new(val.(string))
-	}
-	if val, ok := d.GetOk("dependabot_security_updates"); ok {
-		config.DependabotSecurityUpdates = new(val.(string))
-	}
-	if val, ok := d.GetOk("code_scanning_default_setup"); ok {
-		config.CodeScanningDefaultSetup = new(val.(string))
-	}
-	if val, ok := d.GetOk("code_scanning_delegated_alert_dismissal"); ok {
-		config.CodeScanningDelegatedAlertDismissal = new(val.(string))
-	}
-	if val, ok := d.GetOk("code_security"); ok {
-		config.CodeSecurity = new(val.(string))
-	}
-	if val, ok := d.GetOk("secret_scanning"); ok {
-		config.SecretScanning = new(val.(string))
-	}
-	if val, ok := d.GetOk("secret_scanning_push_protection"); ok {
-		config.SecretScanningPushProtection = new(val.(string))
-	}
-	if val, ok := d.GetOk("secret_scanning_validity_checks"); ok {
-		config.SecretScanningValidityChecks = new(val.(string))
-	}
-	if val, ok := d.GetOk("secret_scanning_non_provider_patterns"); ok {
-		config.SecretScanningNonProviderPatterns = new(val.(string))
-	}
-	if val, ok := d.GetOk("secret_scanning_generic_secrets"); ok {
-		config.SecretScanningGenericSecrets = new(val.(string))
-	}
-	if val, ok := d.GetOk("secret_scanning_delegated_alert_dismissal"); ok {
-		config.SecretScanningDelegatedAlertDismissal = new(val.(string))
-	}
-	if val, ok := d.GetOk("secret_protection"); ok {
-		config.SecretProtection = new(val.(string))
-	}
-	if val, ok := d.GetOk("private_vulnerability_reporting"); ok {
-		config.PrivateVulnerabilityReporting = new(val.(string))
-	}
-	if val, ok := d.GetOk("enforcement"); ok {
-		config.Enforcement = new(val.(string))
-	}
+	config.AdvancedSecurity = expandOptionalString(d, "advanced_security")
+	config.DependencyGraph = expandOptionalString(d, "dependency_graph")
+	config.DependencyGraphAutosubmitAction = expandOptionalString(d, "dependency_graph_autosubmit_action")
+	config.DependabotAlerts = expandOptionalString(d, "dependabot_alerts")
+	config.DependabotSecurityUpdates = expandOptionalString(d, "dependabot_security_updates")
+	config.CodeScanningDefaultSetup = expandOptionalString(d, "code_scanning_default_setup")
+	config.CodeScanningDelegatedAlertDismissal = expandOptionalString(d, "code_scanning_delegated_alert_dismissal")
+	config.CodeSecurity = expandOptionalString(d, "code_security")
+	config.SecretScanning = expandOptionalString(d, "secret_scanning")
+	config.SecretScanningPushProtection = expandOptionalString(d, "secret_scanning_push_protection")
+	config.SecretScanningValidityChecks = expandOptionalString(d, "secret_scanning_validity_checks")
+	config.SecretScanningNonProviderPatterns = expandOptionalString(d, "secret_scanning_non_provider_patterns")
+	config.SecretScanningGenericSecrets = expandOptionalString(d, "secret_scanning_generic_secrets")
+	config.SecretScanningDelegatedAlertDismissal = expandOptionalString(d, "secret_scanning_delegated_alert_dismissal")
+	config.SecretProtection = expandOptionalString(d, "secret_protection")
+	config.PrivateVulnerabilityReporting = expandOptionalString(d, "private_vulnerability_reporting")
+	config.Enforcement = expandOptionalString(d, "enforcement")
 
 	if val, ok := d.GetOk("dependency_graph_autosubmit_action_options"); ok {
-		optionsList := val.([]any)
+		optionsList, _ := val.([]any)
 		if len(optionsList) > 0 {
-			autosubmitOpts := optionsList[0].(map[string]any)
+			autosubmitOpts, _ := optionsList[0].(map[string]any)
+			labeledRunners, _ := autosubmitOpts["labeled_runners"].(bool)
 			config.DependencyGraphAutosubmitActionOptions = &github.DependencyGraphAutosubmitActionOptions{
-				LabeledRunners: new(autosubmitOpts["labeled_runners"].(bool)),
+				LabeledRunners: new(labeledRunners),
 			}
 		}
 	}
 
 	if val, ok := d.GetOk("code_scanning_default_setup_options"); ok {
-		optionsList := val.([]any)
+		optionsList, _ := val.([]any)
 		if len(optionsList) > 0 {
-			setupOpts := optionsList[0].(map[string]any)
+			setupOpts, _ := optionsList[0].(map[string]any)
+			runnerType, _ := setupOpts["runner_type"].(string)
 			config.CodeScanningDefaultSetupOptions = &github.CodeScanningDefaultSetupOptions{
-				RunnerType: setupOpts["runner_type"].(string),
+				RunnerType: runnerType,
 			}
 			if runnerLabel, ok := setupOpts["runner_label"].(string); ok && runnerLabel != "" {
 				config.CodeScanningDefaultSetupOptions.RunnerLabel = new(runnerLabel)
@@ -558,31 +527,32 @@ func resourceGithubOrganizationSecurityConfigurationExpand(d *schema.ResourceDat
 	}
 
 	if val, ok := d.GetOk("code_scanning_options"); ok {
-		optionsList := val.([]any)
+		optionsList, _ := val.([]any)
 		if len(optionsList) > 0 {
-			scanOpts := optionsList[0].(map[string]any)
+			scanOpts, _ := optionsList[0].(map[string]any)
+			allowAdvanced, _ := scanOpts["allow_advanced"].(bool)
 			config.CodeScanningOptions = &github.CodeScanningOptions{
-				AllowAdvanced: new(scanOpts["allow_advanced"].(bool)),
+				AllowAdvanced: new(allowAdvanced),
 			}
 		}
 	}
 
-	if val, ok := d.GetOk("secret_scanning_delegated_bypass"); ok {
-		config.SecretScanningDelegatedBypass = new(val.(string))
-	}
+	config.SecretScanningDelegatedBypass = expandOptionalString(d, "secret_scanning_delegated_bypass")
 	if val, ok := d.GetOk("secret_scanning_delegated_bypass_options"); ok {
-		optionsList := val.([]any)
+		optionsList, _ := val.([]any)
 		if len(optionsList) > 0 {
-			bypassOpts := optionsList[0].(map[string]any)
+			bypassOpts, _ := optionsList[0].(map[string]any)
 			options := &github.SecretScanningDelegatedBypassOptions{}
 			if reviewersVal, ok := bypassOpts["reviewers"]; ok {
-				reviewersList := reviewersVal.([]any)
+				reviewersList, _ := reviewersVal.([]any)
 				reviewers := make([]*github.BypassReviewer, 0, len(reviewersList))
 				for _, reviewerRaw := range reviewersList {
-					reviewerMap := reviewerRaw.(map[string]any)
+					reviewerMap, _ := reviewerRaw.(map[string]any)
+					reviewerID, _ := reviewerMap["reviewer_id"].(int)
+					reviewerType, _ := reviewerMap["reviewer_type"].(string)
 					reviewers = append(reviewers, &github.BypassReviewer{
-						ReviewerID:   int64(reviewerMap["reviewer_id"].(int)),
-						ReviewerType: reviewerMap["reviewer_type"].(string),
+						ReviewerID:   int64(reviewerID),
+						ReviewerType: reviewerType,
 					})
 				}
 				options.Reviewers = reviewers
