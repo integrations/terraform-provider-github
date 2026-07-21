@@ -83,7 +83,8 @@ func resourceGithubEnterpriseOrganization() *schema.Resource {
 	}
 }
 
-func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, meta any) error {
+func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	var mutate struct {
 		CreateEnterpriseOrganization struct {
 			Organization struct {
@@ -92,9 +93,8 @@ func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, meta 
 		} `graphql:"createEnterpriseOrganization(input:$input)"`
 	}
 
-	owner := meta.(*Owner)
-	v3 := owner.v3client
-	v4 := owner.v4client
+	v3 := meta.v3client
+	v4 := meta.v4client
 
 	var adminLogins []githubv4.String
 	for _, v := range data.Get("admin_logins").(*schema.Set).List() {
@@ -155,7 +155,9 @@ func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, meta 
 	return nil
 }
 
-func resourceGithubEnterpriseOrganizationRead(data *schema.ResourceData, meta any) error {
+func resourceGithubEnterpriseOrganizationRead(data *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+
 	var query struct {
 		Node struct {
 			Organization struct {
@@ -173,20 +175,21 @@ func resourceGithubEnterpriseOrganizationRead(data *schema.ResourceData, meta an
 						Role githubv4.String
 					} `graphql:"edges"`
 					PageInfo PageInfo
-				} `graphql:"membersWithRole(first:100, after:$cursor)"`
+				} `graphql:"membersWithRole(first:$first, after:$cursor)"`
 			} `graphql:"... on Organization"`
 		} `graphql:"node(id: $id)"`
 	}
 
 	variables := map[string]any{
 		"id":     data.Id(),
+		"first":  githubv4.Int(meta.maxPerPage),
 		"cursor": (*githubv4.String)(nil),
 	}
 
 	var adminLogins []any
 
 	for {
-		v4 := meta.(*Owner).v4client
+		v4 := meta.v4client
 		err := v4.Query(context.Background(), &query, variables)
 		if err != nil {
 			if strings.Contains(err.Error(), "Could not resolve to a node with the global id") {
@@ -241,9 +244,9 @@ func resourceGithubEnterpriseOrganizationRead(data *schema.ResourceData, meta an
 	return err
 }
 
-func resourceGithubEnterpriseOrganizationDelete(data *schema.ResourceData, meta any) error {
-	owner := meta.(*Owner)
-	v3 := owner.v3client
+func resourceGithubEnterpriseOrganizationDelete(data *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	v3 := meta.v3client
 
 	ctx := context.WithValue(context.Background(), ctxId, data.Id())
 
@@ -258,13 +261,14 @@ func resourceGithubEnterpriseOrganizationDelete(data *schema.ResourceData, meta 
 	return err
 }
 
-func resourceGithubEnterpriseOrganizationImport(data *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubEnterpriseOrganizationImport(data *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+	meta, _ := m.(*Owner)
 	parts := strings.Split(data.Id(), "/")
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <enterprise_slug>/<org_name>")
 	}
 
-	v4 := meta.(*Owner).v4client
+	v4 := meta.v4client
 	ctx := context.Background()
 
 	enterpriseId, err := getEnterpriseID(ctx, v4, parts[0])
@@ -461,9 +465,10 @@ func updateBillingEmail(ctx context.Context, data *schema.ResourceData, orgName 
 	return nil
 }
 
-func resourceGithubEnterpriseOrganizationUpdate(data *schema.ResourceData, meta any) error {
-	v3 := meta.(*Owner).v3client
-	v4 := meta.(*Owner).v4client
+func resourceGithubEnterpriseOrganizationUpdate(data *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	v3 := meta.v3client
+	v4 := meta.v4client
 	ctx := context.Background()
 
 	err := updateDisplayName(ctx, data, v3)
