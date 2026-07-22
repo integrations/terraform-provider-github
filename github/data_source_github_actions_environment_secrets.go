@@ -78,7 +78,7 @@ func dataSourceGithubActionsEnvironmentSecretsRead(ctx context.Context, d *schem
 	}
 
 	var all_secrets []map[string]string
-	for secret, err := range client.Actions.ListEnvSecretsIter(ctx, owner, repoName, url.PathEscape(envName), &github.ListOptions{PerPage: maxPerPage}) {
+	for secret, err := range client.Actions.ListEnvSecretsIter(ctx, owner, repoName, url.PathEscape(envName), &github.ListOptions{PerPage: meta.maxPerPage}) {
 		if err != nil {
 			return diag.FromErr(err)
 		}

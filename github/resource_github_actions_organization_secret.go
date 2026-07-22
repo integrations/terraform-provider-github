@@ -248,7 +248,7 @@ func resourceGithubActionsOrganizationSecretRead(ctx context.Context, d *schema.
 	if secret.Visibility == "selected" {
 		if _, ok := d.GetOk("selected_repository_ids"); ok {
 			var repoIDs []int64
-			for repo, err := range client.Actions.ListSelectedReposForOrgSecretIter(ctx, owner, secretName, &github.ListOptions{PerPage: maxPerPage}) {
+			for repo, err := range client.Actions.ListSelectedReposForOrgSecretIter(ctx, owner, secretName, &github.ListOptions{PerPage: meta.maxPerPage}) {
 				if err != nil {
 					return diag.FromErr(err)
 				}

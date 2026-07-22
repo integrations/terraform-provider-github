@@ -289,6 +289,8 @@ func NewProvider(version, commit string) func() *schema.Provider {
 				"github_organization_external_identities":                               dataSourceGithubOrganizationExternalIdentities(),
 				"github_organization_ip_allow_list":                                     dataSourceGithubOrganizationIpAllowList(),
 				"github_organization_private_registry":                                  dataSourceGithubOrganizationPrivateRegistry(),
+				"github_organization_members":                                           dataSourceGithubOrganizationMembers(),
+				"github_organization_repositories":                                      dataSourceGithubOrganizationRepositories(),
 				"github_organization_repository_role":                                   dataSourceGithubOrganizationRepositoryRole(),
 				"github_organization_repository_roles":                                  dataSourceGithubOrganizationRepositoryRoles(),
 				"github_organization_role":                                              dataSourceGithubOrganizationRole(),
@@ -321,6 +323,8 @@ func NewProvider(version, commit string) func() *schema.Provider {
 				"github_rest_api":                                                       dataSourceGithubRestApi(),
 				"github_ssh_keys":                                                       dataSourceGithubSshKeys(),
 				"github_team":                                                           dataSourceGithubTeam(),
+				"github_team_members":                                                   dataSourceGithubTeamMembers(),
+				"github_team_repositories":                                              dataSourceGithubTeamRepositories(),
 				"github_tree":                                                           dataSourceGithubTree(),
 				"github_user":                                                           dataSourceGithubUser(),
 				"github_user_external_identity":                                         dataSourceGithubUserExternalIdentity(),
@@ -490,8 +494,7 @@ func configureProvider(version, commit string) func(context.Context, *schema.Res
 		if v, ok := d.GetOk("max_per_page"); ok {
 			if i, ok := v.(int); ok {
 				tflog.Debug(ctx, "Using max per page from provider configuration.", map[string]any{"max_per_page": i})
-				// TODO: Move max per page to the provider metadata and remove the global variable.
-				maxPerPage = i
+				config.MaxPerPage = i
 			}
 		}
 
@@ -528,7 +531,8 @@ func configureProvider(version, commit string) func(context.Context, *schema.Res
 // configureProviderMeta initializes the provider metadata, including setting up the GitHub API clients based on the provided configuration. It returns the initialized metadata or an error if the configuration is invalid or if there are issues initializing the clients.
 func configureProviderMeta(ctx context.Context, version string, c *Config) (*Owner, error) {
 	owner := &Owner{
-		name: c.Owner,
+		name:       c.Owner,
+		maxPerPage: c.MaxPerPage,
 	}
 
 	if c.LegacyClient {

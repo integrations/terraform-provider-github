@@ -22,9 +22,6 @@ const (
 	idSeparatorEscaped = `??`
 )
 
-// https://developer.github.com/guides/traversing-with-pagination/#basics-of-pagination
-var maxPerPage = 100
-
 // escapeIDPart escapes any idSeparator characters in a string.
 func escapeIDPart(part string) string {
 	return strings.ReplaceAll(part, idSeparator, idSeparatorEscaped)
@@ -94,6 +91,14 @@ func parseID4(id string) (string, string, string, string, error) {
 	}
 
 	return parts[0], parts[1], parts[2], parts[3], nil
+}
+
+func checkOrganizationOK(meta *Owner) (bool, diag.Diagnostics) {
+	if !meta.IsOrganization {
+		return false, diag.Errorf("this resource can only be used in the context of an organization, %q is a user", meta.name)
+	}
+
+	return true, nil
 }
 
 func checkOrganization(meta any) error {
