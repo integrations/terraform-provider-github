@@ -209,8 +209,13 @@ func NewProvider(version, commit string) func() *schema.Provider {
 				"github_organization_security_manager":                                  resourceGithubOrganizationSecurityManager(),
 				"github_organization_settings":                                          resourceGithubOrganizationSettings(),
 				"github_organization_webhook":                                           resourceGithubOrganizationWebhook(),
+				"github_project":                                                        resourceGithubProject(),
 				"github_project_card":                                                   resourceGithubProjectCard(),
 				"github_project_column":                                                 resourceGithubProjectColumn(),
+				"github_project_field":                                                  resourceGithubProjectField(),
+				"github_project_item":                                                   resourceGithubProjectItem(),
+				"github_project_item_field_value":                                       resourceGithubProjectItemFieldValue(),
+				"github_project_repository":                                             resourceGithubProjectRepository(),
 				"github_release":                                                        resourceGithubRelease(),
 				"github_repository":                                                     resourceGithubRepository(),
 				"github_repository_autolink_reference":                                  resourceGithubRepositoryAutolinkReference(),
@@ -234,6 +239,7 @@ func NewProvider(version, commit string) func() *schema.Provider {
 				"github_team":                                                           resourceGithubTeam(),
 				"github_team_members":                                                   resourceGithubTeamMembers(),
 				"github_team_membership":                                                resourceGithubTeamMembership(),
+				"github_team_project":                                                   resourceGithubTeamProject(),
 				"github_team_repository":                                                resourceGithubTeamRepository(),
 				"github_team_settings":                                                  resourceGithubTeamSettings(),
 				"github_team_sync_group_mapping":                                        resourceGithubTeamSyncGroupMapping(),
@@ -624,8 +630,8 @@ func configureProviderMeta(ctx context.Context, version string, c *Config) (*Own
 
 		if o.GetType() == "Organization" {
 			owner.IsOrganization = true
-			owner.id = o.GetID()
 		}
+		owner.id = o.GetID()
 	}
 
 	return owner, nil
