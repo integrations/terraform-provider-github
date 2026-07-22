@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
@@ -73,7 +73,10 @@ type testAccConfig struct {
 	testExternalUser2      string
 
 	// Enterprise test configuration
-	testEnterpriseEMUGroupId int
+	testEnterpriseEMUGroupId      int
+	testExternalGroup1ID          int
+	testExternalGroup1DisplayName string
+	testExternalGroup2ID          int
 
 	// Test options
 	testAdvancedSecurity bool

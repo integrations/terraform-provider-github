@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 )
 
 func flattenLabels(labels []*github.Label) []any {
@@ -27,15 +27,15 @@ func flattenLabels(labels []*github.Label) []any {
 	return results
 }
 
-func listLabels(client *github.Client, ctx context.Context, owner, repository string) ([]*github.Label, error) {
+func listLabels(meta *Owner, ctx context.Context, owner, repository string) ([]*github.Label, error) {
 	options := &github.ListOptions{
-		PerPage: maxPerPage,
+		PerPage: meta.maxPerPage,
 	}
 
 	labels := make([]*github.Label, 0)
 
 	for {
-		ls, resp, err := client.Issues.ListLabels(ctx, owner, repository, options)
+		ls, resp, err := meta.v3client.Issues.ListLabels(ctx, owner, repository, options)
 		if err != nil {
 			return nil, err
 		}

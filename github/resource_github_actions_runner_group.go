@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -96,14 +96,16 @@ func resourceGithubActionsRunnerGroup() *schema.Resource {
 	}
 }
 
-func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
+
 	name := d.Get("name").(string)
 	restrictedToWorkflows := d.Get("restricted_to_workflows").(bool)
 	visibility := d.Get("visibility").(string)
@@ -133,7 +135,8 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, meta any) er
 
 	ctx := context.Background()
 
-	runnerGroup, resp, err := client.Actions.CreateOrganizationRunnerGroup(ctx,
+	runnerGroup, resp, err := client.Actions.CreateOrganizationRunnerGroup(
+		ctx,
 		orgName,
 		github.CreateRunnerGroupRequest{
 			Name:                     &name,
@@ -201,14 +204,15 @@ func getOrganizationRunnerGroup(client *github.Client, ctx context.Context, org 
 	return runnerGroup, resp, err
 }
 
-func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 
 	runnerGroupID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -274,7 +278,7 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta any) erro
 
 	selectedRepositoryIDs := []int64{}
 	options := github.ListOptions{
-		PerPage: maxPerPage,
+		PerPage: meta.maxPerPage,
 	}
 
 	for {
@@ -301,14 +305,15 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, meta any) erro
 	return nil
 }
 
-func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 
 	name := d.Get("name").(string)
 	visibility := d.Get("visibility").(string)
@@ -359,14 +364,15 @@ func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, meta any) er
 	return resourceGithubActionsRunnerGroupRead(d, meta)
 }
 
-func resourceGithubActionsRunnerGroupDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsRunnerGroupDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 	runnerGroupID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return err

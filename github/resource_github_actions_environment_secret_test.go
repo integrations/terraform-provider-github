@@ -3,12 +3,12 @@ package github
 import (
 	"encoding/base64"
 	"fmt"
-	"net/url"
 	"testing"
 
-	"github.com/google/go-github/v88/github"
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
@@ -16,716 +16,363 @@ import (
 func TestAccGithubActionsEnvironmentSecret(t *testing.T) {
 	t.Parallel()
 
-	t.Run("create_plaintext", func(t *testing.T) {
+	skipUnauthenticated(t)
+
+	t.Run("with_value", func(t *testing.T) {
 		t.Parallel()
 
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
-		envName := "test"
-		secretName := "test"
-		value := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
+		repo := mustCreateTestRepository(t)
+		env := mustCreateTestRepositoryEnvironment(t, repo)
 
 		config := fmt.Sprintf(`
-resource "github_repository" "test" {
-	name = "%s"
-}
-
-resource "github_repository_environment" "test" {
-	repository  = github_repository.test.name
-	environment = "%s"
-}
-
 resource "github_actions_environment_secret" "test" {
-	repository  = github_repository.test.name
-	environment = github_repository_environment.test.environment
-	secret_name = "%s"
-	value       = "%s"
+  repository  = "%s"
+  environment = "%s"
+  secret_name = "TEST"
+  value       = "%%s"
 }
-`, repoName, envName, secretName, value)
+`, repo.GetName(), env.GetName())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrPair("github_actions_environment_secret.test", "repository", "github_repository.test", "name"),
-						resource.TestCheckResourceAttr("github_actions_environment_secret.test", "environment", envName),
-						resource.TestCheckResourceAttr("github_actions_environment_secret.test", "secret_name", secretName),
-						resource.TestCheckResourceAttr("github_actions_environment_secret.test", "value", value),
-						resource.TestCheckNoResourceAttr("github_actions_environment_secret.test", "value_encrypted"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "key_id"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "created_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "updated_at"),
-					),
-				},
-			},
-		})
-	})
-
-	t.Run("create_with_env_name_id_separator_character", func(t *testing.T) {
-		t.Parallel()
-
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
-		envName := "env:test"
-		secretName := "test"
-		value := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
-
-		config := fmt.Sprintf(`
-resource "github_repository" "test" {
-	name = "%s"
-}
-
-resource "github_repository_environment" "test" {
-	repository  = github_repository.test.name
-	environment = "%s"
-}
-
-resource "github_actions_environment_secret" "test" {
-	repository  = github_repository.test.name
-	environment = github_repository_environment.test.environment
-	secret_name = "%s"
-	value       = "%s"
-}
-`, repoName, envName, secretName, value)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrPair("github_actions_environment_secret.test", "repository", "github_repository.test", "name"),
-						resource.TestCheckResourceAttr("github_actions_environment_secret.test", "environment", envName),
-						resource.TestCheckResourceAttr("github_actions_environment_secret.test", "secret_name", secretName),
-						resource.TestCheckResourceAttr("github_actions_environment_secret.test", "value", value),
-						resource.TestCheckNoResourceAttr("github_actions_environment_secret.test", "value_encrypted"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "key_id"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "created_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "updated_at"),
-					),
-				},
-			},
-		})
-	})
-
-	t.Run("create_update_plaintext", func(t *testing.T) {
-		t.Parallel()
-
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
-		envName := "test"
-		secretName := "test"
-		value := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
-		updatedValue := base64.StdEncoding.EncodeToString([]byte("updated_super_secret_value"))
-
-		config := `
-resource "github_repository" "test" {
-	name = "%s"
-}
-
-resource "github_repository_environment" "test" {
-	repository  = github_repository.test.name
-	environment = "%s"
-}
-
-resource "github_actions_environment_secret" "test" {
-	repository  = github_repository.test.name
-	environment = github_repository_environment.test.environment
-	secret_name = "%s"
-	value       = "%s"
-}
-`
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: fmt.Sprintf(config, repoName, envName, secretName, value),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrPair("github_actions_environment_secret.test", "repository", "github_repository.test", "name"),
-						resource.TestCheckResourceAttr("github_actions_environment_secret.test", "environment", envName),
-						resource.TestCheckResourceAttr("github_actions_environment_secret.test", "secret_name", secretName),
-						resource.TestCheckResourceAttr("github_actions_environment_secret.test", "value", value),
-						resource.TestCheckNoResourceAttr("github_actions_environment_secret.test", "value_encrypted"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "key_id"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "created_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "updated_at"),
-					),
-				},
-				{
-					Config: fmt.Sprintf(config, repoName, envName, secretName, updatedValue),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrPair("github_actions_environment_secret.test", "repository", "github_repository.test", "name"),
-						resource.TestCheckResourceAttr("github_actions_environment_secret.test", "environment", envName),
-						resource.TestCheckResourceAttr("github_actions_environment_secret.test", "secret_name", secretName),
-						resource.TestCheckResourceAttr("github_actions_environment_secret.test", "value", updatedValue),
-						resource.TestCheckNoResourceAttr("github_actions_environment_secret.test", "value_encrypted"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "key_id"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "created_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "updated_at"),
-					),
-				},
-			},
-		})
-	})
-
-	t.Run("create_update_encrypted", func(t *testing.T) {
-		t.Parallel()
-
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
-		envName := "test"
-		secretName := "test"
-		value := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
-		updatedValue := base64.StdEncoding.EncodeToString([]byte("updated_super_secret_value"))
-
-		config := `
-resource "github_repository" "test" {
-	name = "%s"
-}
-
-resource "github_repository_environment" "test" {
-	repository  = github_repository.test.name
-	environment = "%s"
-}
-
-resource "github_actions_environment_secret" "test" {
-	repository      = github_repository.test.name
-	environment     = github_repository_environment.test.environment
-	secret_name     = "%s"
-	value_encrypted = "%s"
-}
-`
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: fmt.Sprintf(config, repoName, envName, secretName, value),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrPair("github_actions_environment_secret.test", "repository", "github_repository.test", "name"),
-						resource.TestCheckResourceAttr("github_actions_environment_secret.test", "environment", envName),
-						resource.TestCheckResourceAttr("github_actions_environment_secret.test", "secret_name", secretName),
-						resource.TestCheckNoResourceAttr("github_actions_environment_secret.test", "value"),
-						resource.TestCheckResourceAttr("github_actions_environment_secret.test", "value_encrypted", value),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "key_id"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "created_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "updated_at"),
-					),
-				},
-				{
-					Config: fmt.Sprintf(config, repoName, envName, secretName, updatedValue),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrPair("github_actions_environment_secret.test", "repository", "github_repository.test", "name"),
-						resource.TestCheckResourceAttr("github_actions_environment_secret.test", "environment", envName),
-						resource.TestCheckResourceAttr("github_actions_environment_secret.test", "secret_name", secretName),
-						resource.TestCheckNoResourceAttr("github_actions_environment_secret.test", "value"),
-						resource.TestCheckResourceAttr("github_actions_environment_secret.test", "value_encrypted", updatedValue),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "key_id"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "created_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "updated_at"),
-					),
-				},
-			},
-		})
-	})
-
-	t.Run("create_update_encrypted_with_key", func(t *testing.T) {
-		t.Parallel()
-
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
-		envName := "test"
-		secretName := "test"
-		value := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
-		updatedValue := base64.StdEncoding.EncodeToString([]byte("updated_super_secret_value"))
-
-		config := `
-resource "github_repository" "test" {
-	name = "%s"
-}
-
-resource "github_repository_environment" "test" {
-	repository  = github_repository.test.name
-	environment = "%s"
-}
-
-data "github_actions_environment_public_key" "test" {
-	repository  = github_repository.test.name
-	environment = github_repository_environment.test.environment
-}
-
-resource "github_actions_environment_secret" "test" {
-	repository      = github_repository.test.name
-	environment     = github_repository_environment.test.environment
-	key_id          = data.github_actions_environment_public_key.test.key_id
-	secret_name     = "%s"
-	value_encrypted = "%s"
-}
-`
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: fmt.Sprintf(config, repoName, envName, secretName, value),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrPair("github_actions_environment_secret.test", "repository", "github_repository.test", "name"),
-						resource.TestCheckResourceAttr("github_actions_environment_secret.test", "environment", envName),
-						resource.TestCheckResourceAttr("github_actions_environment_secret.test", "secret_name", secretName),
-						resource.TestCheckNoResourceAttr("github_actions_environment_secret.test", "value"),
-						resource.TestCheckResourceAttr("github_actions_environment_secret.test", "value_encrypted", value),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "key_id"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "created_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "updated_at"),
-					),
-				},
-				{
-					Config: fmt.Sprintf(config, repoName, envName, secretName, updatedValue),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrPair("github_actions_environment_secret.test", "repository", "github_repository.test", "name"),
-						resource.TestCheckResourceAttr("github_actions_environment_secret.test", "environment", envName),
-						resource.TestCheckResourceAttr("github_actions_environment_secret.test", "secret_name", secretName),
-						resource.TestCheckNoResourceAttr("github_actions_environment_secret.test", "value"),
-						resource.TestCheckResourceAttr("github_actions_environment_secret.test", "value_encrypted", updatedValue),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "key_id"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "created_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "updated_at"),
-					),
-				},
-			},
-		})
-	})
-
-	t.Run("update_on_drift", func(t *testing.T) {
-		t.Parallel()
-
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
-		envName := "test"
-		secretName := "test"
-
-		config := fmt.Sprintf(`
-resource "github_repository" "test" {
-	name = "%s"
-}
-
-resource "github_repository_environment" "test" {
-	repository  = github_repository.test.name
-	environment = "%s"
-}
-
-resource "github_actions_environment_secret" "test" {
-	repository  = github_repository.test.name
-	environment = github_repository_environment.test.environment
-	secret_name = "%s"
-	value       = "test"
-}
-`, repoName, envName, secretName)
-
-		var beforeCreatedAt string
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "created_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "updated_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "remote_updated_at"),
-						func(s *terraform.State) error {
-							beforeCreatedAt = s.RootModule().Resources["github_actions_environment_secret.test"].Primary.Attributes["created_at"]
-							return nil
-						},
-					),
-				},
-				{
-					PreConfig: func() {
-						client := testAccConf.meta.v3client
-						owner := testAccConf.meta.name
-						ctx := t.Context()
-
-						escapedEnvName := url.PathEscape(envName)
-
-						repo, _, err := client.Repositories.Get(ctx, owner, repoName)
-						if err != nil {
-							t.Fatal(err.Error())
-						}
-						repoID := int(repo.GetID())
-
-						keyID, _, err := getEnvironmentPublicKeyDetails(ctx, testAccConf.meta, repoID, escapedEnvName)
-						if err != nil {
-							t.Fatal(err.Error())
-						}
-
-						_, err = client.Actions.CreateOrUpdateEnvSecret(ctx, repoID, escapedEnvName, &github.EncryptedSecret{
-							Name:           secretName,
-							EncryptedValue: base64.StdEncoding.EncodeToString([]byte("updated_super_secret_value")),
-							KeyID:          keyID,
-						})
-						if err != nil {
-							t.Fatal(err.Error())
-						}
+					Config: fmt.Sprintf(config, "super_secret_value"),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_environment_secret.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_environment_secret.test", tfjsonpath.New("key_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_environment_secret.test", tfjsonpath.New("created_at"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_environment_secret.test", tfjsonpath.New("updated_at"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_environment_secret.test", tfjsonpath.New("remote_updated_at"), knownvalue.NotNull()),
 					},
-					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "created_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "updated_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "remote_updated_at"),
-						func(s *terraform.State) error {
-							afterCreatedAt := s.RootModule().Resources["github_actions_environment_secret.test"].Primary.Attributes["created_at"]
-
-							if afterCreatedAt != beforeCreatedAt {
-								return fmt.Errorf("expected resource to be updated, but created_at has been modified: %s", beforeCreatedAt)
-							}
-							return nil
-						},
-					),
-				},
-			},
-		})
-	})
-
-	t.Run("lifecycle_can_ignore_drift", func(t *testing.T) {
-		t.Parallel()
-
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
-		envName := "test"
-		secretName := "test"
-
-		config := fmt.Sprintf(`
-resource "github_repository" "test" {
-	name = "%s"
-}
-
-resource "github_repository_environment" "test" {
-	repository  = github_repository.test.name
-	environment = "%s"
-}
-
-resource "github_actions_environment_secret" "test" {
-	repository  = github_repository.test.name
-	environment = github_repository_environment.test.environment
-	secret_name = "%s"
-	value       = "test"
-
-	lifecycle {
-		ignore_changes = [remote_updated_at]
-	}
-}
-`, repoName, envName, secretName)
-
-		var beforeUpdatedAt string
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "created_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "updated_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "remote_updated_at"),
-						func(s *terraform.State) error {
-							beforeUpdatedAt = s.RootModule().Resources["github_actions_environment_secret.test"].Primary.Attributes["updated_at"]
-							return nil
-						},
-					),
 				},
 				{
-					PreConfig: func() {
-						client := testAccConf.meta.v3client
-						owner := testAccConf.meta.name
-						ctx := t.Context()
-
-						escapedEnvName := url.PathEscape(envName)
-
-						repo, _, err := client.Repositories.Get(ctx, owner, repoName)
-						if err != nil {
-							t.Fatal(err.Error())
-						}
-						repoID := int(repo.GetID())
-
-						keyID, _, err := getEnvironmentPublicKeyDetails(ctx, testAccConf.meta, repoID, escapedEnvName)
-						if err != nil {
-							t.Fatal(err.Error())
-						}
-
-						_, err = client.Actions.CreateOrUpdateEnvSecret(ctx, repoID, escapedEnvName, &github.EncryptedSecret{
-							Name:           secretName,
-							EncryptedValue: base64.StdEncoding.EncodeToString([]byte("updated_super_secret_value")),
-							KeyID:          keyID,
-						})
-						if err != nil {
-							t.Fatal(err.Error())
-						}
+					Config: fmt.Sprintf(config, "super_secret_value_2"),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_environment_secret.test", plancheck.ResourceActionUpdate),
+						},
 					},
-					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "created_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "updated_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "remote_updated_at"),
-						func(s *terraform.State) error {
-							afterUpdatedAt := s.RootModule().Resources["github_actions_environment_secret.test"].Primary.Attributes["updated_at"]
-
-							if afterUpdatedAt != beforeUpdatedAt {
-								return fmt.Errorf("expected resource to ignore drift, but updated_at has been modified: %s", beforeUpdatedAt)
-							}
-							return nil
-						},
-					),
-				},
-			},
-		})
-	})
-
-	t.Run("update_renamed_repo", func(t *testing.T) {
-		t.Parallel()
-
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
-		updatedRepoName := fmt.Sprintf("%s%s-updated", testResourcePrefix, randomID)
-
-		// TODO: Remove lifecycle ignore_changes block when repo rename is supported
-		config := `
-resource "github_repository" "test" {
-	name = "%s"
-}
-
-resource "github_repository_environment" "test" {
-	repository  = github_repository.test.name
-	environment = "test"
-
-	lifecycle {
-		ignore_changes = all
-	}
-}
-
-resource "github_actions_environment_secret" "test" {
-	repository  = github_repository.test.name
-	environment = github_repository_environment.test.environment
-	secret_name = "test"
-	value       = "test"
-}
-`
-
-		var beforeCreatedAt string
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: fmt.Sprintf(config, repoName),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "created_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "updated_at"),
-						func(s *terraform.State) error {
-							beforeCreatedAt = s.RootModule().Resources["github_actions_environment_secret.test"].Primary.Attributes["created_at"]
-							return nil
-						},
-					),
-				},
-				{
-					Config: fmt.Sprintf(config, updatedRepoName),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "created_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "updated_at"),
-						func(s *terraform.State) error {
-							afterCreatedAt := s.RootModule().Resources["github_actions_environment_secret.test"].Primary.Attributes["created_at"]
-
-							if afterCreatedAt != beforeCreatedAt {
-								return fmt.Errorf("expected resource to not be recreated, but created_at has been modified: %s", beforeCreatedAt)
-							}
-							return nil
-						},
-					),
-				},
-			},
-		})
-	})
-
-	t.Run("recreate_changed_repo", func(t *testing.T) {
-		t.Parallel()
-
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
-		repoName2 := fmt.Sprintf("%supdated-%s", testResourcePrefix, randomID)
-
-		config := fmt.Sprintf(`
-resource "github_repository" "test" {
-	name = "%s"
-}
-
-resource "github_repository_environment" "test" {
-	repository  = github_repository.test.name
-	environment = "test"
-}
-
-resource "github_repository" "test2" {
-	name = "%s"
-}
-
-resource "github_repository_environment" "test2" {
-	repository  = github_repository.test2.name
-	environment = "test"
-}
-
-resource "github_actions_environment_secret" "test" {
-	repository  = github_repository.test.name
-	environment = github_repository_environment.test.environment
-	secret_name = "test"
-	value       = "test"
-}
-`, repoName, repoName2)
-
-		configUpdated := fmt.Sprintf(`
-resource "github_repository" "test" {
-	name = "%s"
-}
-
-resource "github_repository_environment" "test" {
-	repository  = github_repository.test.name
-	environment = "test"
-}
-
-resource "github_repository" "test2" {
-	name = "%s"
-}
-
-resource "github_repository_environment" "test2" {
-	repository  = github_repository.test2.name
-	environment = "test"
-}
-
-resource "github_actions_environment_secret" "test" {
-	repository  = github_repository.test2.name
-	environment = github_repository_environment.test2.environment
-	secret_name = "test"
-	value       = "test"
-}
-`, repoName, repoName2)
-
-		var beforeCreatedAt string
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "created_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "updated_at"),
-						func(s *terraform.State) error {
-							beforeCreatedAt = s.RootModule().Resources["github_actions_environment_secret.test"].Primary.Attributes["created_at"]
-							return nil
-						},
-					),
-				},
-				{
-					Config: configUpdated,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "created_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_secret.test", "updated_at"),
-						func(s *terraform.State) error {
-							afterCreatedAt := s.RootModule().Resources["github_actions_environment_secret.test"].Primary.Attributes["created_at"]
-
-							if afterCreatedAt == beforeCreatedAt {
-								return fmt.Errorf("expected resource to be recreated, but created_at has not been modified: %s", beforeCreatedAt)
-							}
-							return nil
-						},
-					),
-				},
-			},
-		})
-	})
-
-	t.Run("destroy", func(t *testing.T) {
-		t.Parallel()
-
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
-
-		config := fmt.Sprintf(`
-	resource "github_repository" "test" {
-		name = "%s"
-	}
-
-	resource "github_repository_environment" "test" {
-		repository  = github_repository.test.name
-		environment = "test"
-	}
-
-	resource "github_actions_environment_secret" "test" {
-		repository  = github_repository.test.name
-		environment = github_repository_environment.test.environment
-		secret_name = "test"
-		value       = "test"
-	}
-`, repoName)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-				},
-				{
-					Config:  config,
-					Destroy: true,
-				},
-			},
-		})
-	})
-
-	t.Run("import", func(t *testing.T) {
-		t.Parallel()
-
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
-		envName := "test"
-		secretName := "test"
-
-		config := fmt.Sprintf(`
-resource "github_repository" "test" {
-	name = "%s"
-}
-
-resource "github_repository_environment" "test" {
-	repository  = github_repository.test.name
-	environment = "%s"
-}
-
-resource "github_actions_environment_secret" "test" {
-	repository  = github_repository.test.name
-	environment = github_repository_environment.test.environment
-	secret_name = "%s"
-	value       = "test"
-}
-`, repoName, envName, secretName)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
 				},
 				{
 					ResourceName:            "github_actions_environment_secret.test",
 					ImportState:             true,
 					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"key_id", "value", "created_at", "updated_at"},
+					ImportStateVerifyIgnore: []string{"key_id", "value"},
+				},
+			},
+		})
+	})
+
+	t.Run("with_value_encrypted", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+		env := mustCreateTestRepositoryEnvironment(t, repo)
+		key := mustGetTestRepositoryEnvironmentPublicKey(t, repo, env)
+
+		config := fmt.Sprintf(`
+resource "github_actions_environment_secret" "test" {
+  repository      = "%s"
+  environment     = "%s"
+  secret_name     = "TEST"
+	key_id          = "%s"
+  value_encrypted = "%%s"
+}
+`, repo.GetName(), env.GetName(), key.GetKeyID())
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, base64.StdEncoding.EncodeToString([]byte("super_secret_value"))),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_environment_secret.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_environment_secret.test", tfjsonpath.New("created_at"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_environment_secret.test", tfjsonpath.New("updated_at"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_environment_secret.test", tfjsonpath.New("remote_updated_at"), knownvalue.NotNull()),
+					},
+				},
+				{
+					Config: fmt.Sprintf(config, base64.StdEncoding.EncodeToString([]byte("super_secret_value_2"))),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_environment_secret.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+				{
+					ResourceName:            "github_actions_environment_secret.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"key_id", "value_encrypted"},
+				},
+			},
+		})
+	})
+
+	t.Run("with_plaintext_value", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+		env := mustCreateTestRepositoryEnvironment(t, repo)
+
+		config := fmt.Sprintf(`
+resource "github_actions_environment_secret" "test" {
+  repository      = "%s"
+  environment     = "%s"
+  secret_name     = "TEST"
+  plaintext_value = "%%s"
+}
+`, repo.GetName(), env.GetName())
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, "super_secret_value"),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_environment_secret.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_environment_secret.test", tfjsonpath.New("key_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_environment_secret.test", tfjsonpath.New("created_at"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_environment_secret.test", tfjsonpath.New("updated_at"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_environment_secret.test", tfjsonpath.New("remote_updated_at"), knownvalue.NotNull()),
+					},
+				},
+				{
+					Config: fmt.Sprintf(config, "super_secret_value_2"),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_environment_secret.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+				{
+					ResourceName:            "github_actions_environment_secret.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"key_id", "plaintext_value"},
+				},
+			},
+		})
+	})
+
+	t.Run("with_encrypted_value", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+		env := mustCreateTestRepositoryEnvironment(t, repo)
+
+		config := fmt.Sprintf(`
+resource "github_actions_environment_secret" "test" {
+  repository      = "%s"
+  environment     = "%s"
+  secret_name     = "TEST"
+  encrypted_value = "%%s"
+}
+`, repo.GetName(), env.GetName())
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, base64.StdEncoding.EncodeToString([]byte("super_secret_value"))),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_environment_secret.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_environment_secret.test", tfjsonpath.New("key_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_environment_secret.test", tfjsonpath.New("created_at"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_environment_secret.test", tfjsonpath.New("updated_at"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_environment_secret.test", tfjsonpath.New("remote_updated_at"), knownvalue.NotNull()),
+					},
+				},
+				{
+					Config: fmt.Sprintf(config, base64.StdEncoding.EncodeToString([]byte("super_secret_value_2"))),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_environment_secret.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+				{
+					ResourceName:            "github_actions_environment_secret.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"key_id", "encrypted_value"},
+				},
+			},
+		})
+	})
+
+	t.Run("with_env_name_id_separator_character", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+		env := mustCreateTestRepositoryEnvironment(t, repo, withTestCreateName("env:test"))
+
+		config := fmt.Sprintf(`
+resource "github_actions_environment_secret" "test" {
+  repository  = "%s"
+  environment = "%s"
+  secret_name = "TEST"
+  value       = "super_secret_value"
+}
+`, repo.GetName(), env.GetName())
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+				},
+			},
+		})
+	})
+
+	t.Run("updates_on_drift", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+		env := mustCreateTestRepositoryEnvironment(t, repo)
+		secretName := "TEST"
+
+		config := fmt.Sprintf(`
+resource "github_actions_environment_secret" "test" {
+  repository  = "%s"
+  environment = "%s"
+  secret_name = "%s"
+  value       = "super_secret_value"
+}
+`, repo.GetName(), env.GetName(), secretName)
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+				},
+				{
+					PreConfig: func() {
+						mustUpdateTestRepositoryEnvironmentSecret(t, repo, env, secretName, "super_secret_value_2")
+					},
+					Config: config,
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_environment_secret.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("lifecycle_ignore_suppresses_drift", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+		env := mustCreateTestRepositoryEnvironment(t, repo)
+		secretName := "TEST"
+
+		config := fmt.Sprintf(`
+resource "github_actions_environment_secret" "test" {
+  repository  = "%s"
+  environment = "%s"
+  secret_name = "%s"
+  value       = "super_secret_value"
+
+  lifecycle {
+    ignore_changes = [updated_at]
+  }
+}
+`, repo.GetName(), env.GetName(), secretName)
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+				},
+				{
+					PreConfig: func() {
+						mustUpdateTestRepositoryEnvironmentSecret(t, repo, env, secretName, "super_secret_value_2")
+					},
+					Config: config,
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_environment_secret.test", plancheck.ResourceActionNoop),
+						},
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("updates_renamed_repo", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+		env := mustCreateTestRepositoryEnvironment(t, repo)
+		newRepoName := fmt.Sprintf("%s-updated", repo.GetName())
+
+		config := fmt.Sprintf(`
+resource "github_actions_environment_secret" "test" {
+  repository  = "%%s"
+  environment = "%s"
+  secret_name = "TEST"
+  value       = "super_secret_value"
+}
+`, env.GetName())
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, repo.GetName()),
+				},
+				{
+					PreConfig: func() {
+						mustRenameTestRepository(t, repo, newRepoName)
+					},
+					Config: fmt.Sprintf(config, newRepoName),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_environment_secret.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("recreates_changed_repo", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+		env := mustCreateTestRepositoryEnvironment(t, repo)
+		repo2 := mustCreateTestRepository(t)
+		_ = mustCreateTestRepositoryEnvironment(t, repo2, withTestCreateName(env.GetName()))
+
+		config := fmt.Sprintf(`
+resource "github_actions_environment_secret" "test" {
+  repository  = "%%s"
+  environment = "%s"
+  secret_name = "TEST"
+  value       = "super_secret_value"
+}
+`, env.GetName())
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, repo.GetName()),
+				},
+				{
+					Config: fmt.Sprintf(config, repo2.GetName()),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_environment_secret.test", plancheck.ResourceActionReplace),
+						},
+					},
 				},
 			},
 		})

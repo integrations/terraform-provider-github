@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -67,13 +67,14 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
 	username := d.Get("username").(string)
 	repoName := d.Get("repository").(string)
 
-	owner, repoNameWithoutOwner := parseRepoName(repoName, meta.(*Owner).name)
+	owner, repoNameWithoutOwner := parseRepoName(repoName, meta.name)
 
 	ctx := context.Background()
 
@@ -93,18 +94,19 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta any
 	return resourceGithubRepositoryCollaboratorRead(d, meta)
 }
 
-func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
 	repoName, username, err := parseID2(d.Id())
-	owner, repoNameWithoutOwner := parseRepoName(repoName, meta.(*Owner).name)
+	owner, repoNameWithoutOwner := parseRepoName(repoName, meta.name)
 	if err != nil {
 		return err
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	// First, check if the user has been invited but has not yet accepted
-	invitation, err := findRepoInvitation(client, ctx, owner, repoNameWithoutOwner, username)
+	invitation, err := findRepoInvitation(meta, ctx, owner, repoNameWithoutOwner, username)
 	if err != nil {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) {
@@ -141,7 +143,7 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta any) 
 
 	// Next, check if the user has accepted the invite and is a full collaborator
 	opt := &github.ListCollaboratorsOptions{ListOptions: github.ListOptions{
-		PerPage: maxPerPage,
+		PerPage: meta.maxPerPage,
 	}}
 
 	for {
@@ -180,22 +182,23 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta any) 
 	return nil
 }
 
-func resourceGithubRepositoryCollaboratorUpdate(d *schema.ResourceData, meta any) error {
-	return resourceGithubRepositoryCollaboratorRead(d, meta)
+func resourceGithubRepositoryCollaboratorUpdate(d *schema.ResourceData, m any) error {
+	return resourceGithubRepositoryCollaboratorRead(d, m)
 }
 
-func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
 	username := d.Get("username").(string)
 	repoName := d.Get("repository").(string)
 
-	owner, repoNameWithoutOwner := parseRepoName(repoName, meta.(*Owner).name)
+	owner, repoNameWithoutOwner := parseRepoName(repoName, meta.name)
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	// Delete any pending invitations
-	invitation, err := findRepoInvitation(client, ctx, owner, repoNameWithoutOwner, username)
+	invitation, err := findRepoInvitation(meta, ctx, owner, repoNameWithoutOwner, username)
 	if err != nil {
 		return handleArchivedRepoDelete(err, "repository collaborator invitation", username, owner, repoNameWithoutOwner)
 	} else if invitation != nil {
@@ -207,10 +210,10 @@ func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta any
 	return handleArchivedRepoDelete(err, "repository collaborator", username, owner, repoNameWithoutOwner)
 }
 
-func findRepoInvitation(client *github.Client, ctx context.Context, owner, repo, collaborator string) (*github.RepositoryInvitation, error) {
-	opt := &github.ListOptions{PerPage: maxPerPage}
+func findRepoInvitation(meta *Owner, ctx context.Context, owner, repo, collaborator string) (*github.RepositoryInvitation, error) {
+	opt := &github.ListOptions{PerPage: meta.maxPerPage}
 	for {
-		invitations, resp, err := client.Repositories.ListInvitations(ctx, owner, repo, opt)
+		invitations, resp, err := meta.v3client.Repositories.ListInvitations(ctx, owner, repo, opt)
 		if err != nil {
 			return nil, err
 		}

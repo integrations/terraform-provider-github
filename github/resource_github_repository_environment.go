@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
@@ -171,7 +171,7 @@ func resourceGithubRepositoryEnvironmentDiff(_ context.Context, d *schema.Resour
 }
 
 func resourceGithubRepositoryEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -205,7 +205,7 @@ func resourceGithubRepositoryEnvironmentCreate(ctx context.Context, d *schema.Re
 func resourceGithubRepositoryEnvironmentRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	ctx = tflog.SetField(ctx, "id", d.Id())
 
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -289,7 +289,7 @@ func resourceGithubRepositoryEnvironmentRead(ctx context.Context, d *schema.Reso
 }
 
 func resourceGithubRepositoryEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -312,7 +312,7 @@ func resourceGithubRepositoryEnvironmentUpdate(ctx context.Context, d *schema.Re
 }
 
 func resourceGithubRepositoryEnvironmentDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -328,7 +328,7 @@ func resourceGithubRepositoryEnvironmentDelete(ctx context.Context, d *schema.Re
 }
 
 func resourceGithubRepositoryEnvironmentImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
