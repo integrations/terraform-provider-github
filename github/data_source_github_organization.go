@@ -50,6 +50,7 @@ func dataSourceGithubOrganization() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+				Deprecated: "The `repositories` attribute is deprecated and will be removed in a future version of the provider. Use the `github_organization_repositories` data source instead.",
 			},
 			"members": {
 				Type:     schema.TypeList,
@@ -57,7 +58,7 @@ func dataSourceGithubOrganization() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Deprecated: "Use `users` instead by replacing `github_organization.example.members` to `github_organization.example.users[*].login`. Expect this field to be removed in next major version.",
+				Deprecated: "The `members` attribute is deprecated and will be removed in a future version of the provider. Use the `github_organization_members` data source instead.",
 			},
 			"users": {
 				Type:     schema.TypeList,
@@ -68,6 +69,7 @@ func dataSourceGithubOrganization() *schema.Resource {
 						Type: schema.TypeString,
 					},
 				},
+				Deprecated: "The `users` attribute is deprecated and will be removed in a future version of the provider. Use the `github_organization_members` data source instead.",
 			},
 			"default_repository_permission": {
 				Type:     schema.TypeString,
