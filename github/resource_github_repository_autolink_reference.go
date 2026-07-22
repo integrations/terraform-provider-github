@@ -115,8 +115,6 @@ func resourceGithubRepositoryAutolinkReferenceCreate(ctx context.Context, d *sch
 }
 
 func resourceGithubRepositoryAutolinkReferenceRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	ctx = tflog.SetField(ctx, "id", d.Id())
-
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
@@ -125,10 +123,6 @@ func resourceGithubRepositoryAutolinkReferenceRead(ctx context.Context, d *schem
 	autolinkRefID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
-	}
-
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
 	autolinkRef, _, err := client.Repositories.GetAutolink(ctx, owner, repoName, autolinkRefID)
@@ -174,17 +168,11 @@ func resourceGithubRepositoryAutolinkReferenceRead(ctx context.Context, d *schem
 }
 
 func resourceGithubRepositoryAutolinkReferenceUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	tflog.Warn(ctx, "Update function of autolink reference. This should not be called. But it's necessary when 'repository' doesn't have `ForceNew`", map[string]any{
-		"repository":    d.Get("repository"),
-		"repository_id": d.Get("repository_id"),
-		"id":            d.Id(),
-	})
+	tflog.Warn(ctx, "Update function of autolink reference. This should not be called. But it's necessary when 'repository' doesn't have `ForceNew`", map[string]any{"repository": d.Get("repository"), "repository_id": d.Get("repository_id"), "id": d.Id()})
 	return nil
 }
 
 func resourceGithubRepositoryAutolinkReferenceDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	ctx = tflog.SetField(ctx, "id", d.Id())
-
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
