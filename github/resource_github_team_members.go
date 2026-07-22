@@ -65,7 +65,8 @@ func resourceGithubTeamMembers() *schema.Resource {
 				Description: "List of users that should be members of the team.",
 				Set: func(v any) int {
 					username, _ := v.(map[string]any)["username"].(string)
-					return schema.HashString(strings.ToLower(username))
+					role, _ := v.(map[string]any)["role"].(string)
+					return schema.HashString(strings.ToLower(username) + ":" + strings.ToLower(role))
 				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
