@@ -11,7 +11,6 @@ import (
 	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -22,6 +21,7 @@ func resourceGithubRepositoryEnvironmentDeploymentProtectionRule() *schema.Resou
 				Description: "The name of the GitHub repository.",
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 			},
 			"environment": {
 				Description: "The name of the environment.",
@@ -36,10 +36,6 @@ func resourceGithubRepositoryEnvironmentDeploymentProtectionRule() *schema.Resou
 				ForceNew:    true,
 			},
 		},
-
-		CustomizeDiff: customdiff.All(
-			diffRepository,
-		),
 
 		CreateContext: resourceGithubRepositoryEnvironmentDeploymentProtectionRuleCreate,
 		ReadContext:   resourceGithubRepositoryEnvironmentDeploymentProtectionRuleRead,
