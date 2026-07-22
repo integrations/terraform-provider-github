@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -13,6 +14,9 @@ func dataSourceGithubIpRanges() *schema.Resource {
 	return &schema.Resource{
 		Description: "Get the GitHub IP ranges used by various GitHub services.",
 		ReadContext: dataSourceGithubIpRangesRead,
+		Timeouts: &schema.ResourceTimeout{
+			Read: schema.DefaultTimeout(5 * time.Minute),
+		},
 		Schema: map[string]*schema.Schema{
 			"hooks": {
 				Type:     schema.TypeList,

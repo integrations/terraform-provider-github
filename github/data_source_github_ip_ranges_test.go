@@ -2,12 +2,28 @@ package github
 
 import (
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
+
+func TestUnitGithubIpRangesDataSource_schemaTimeouts(t *testing.T) {
+	t.Parallel()
+
+	r := dataSourceGithubIpRanges()
+	if r.Timeouts == nil {
+		t.Fatal("expected Timeouts to be configured on github_ip_ranges data source")
+	}
+	if r.Timeouts.Read == nil {
+		t.Fatal("expected default read timeout to be configured")
+	}
+	if got := *r.Timeouts.Read; got != 5*time.Minute {
+		t.Fatalf("expected default read timeout 5m, got %v", got)
+	}
+}
 
 func TestAccGithubIpRangesDataSource(t *testing.T) {
 	t.Parallel()
