@@ -749,8 +749,13 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
+				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the ruleset for caching purposes.",
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 		},
 	}

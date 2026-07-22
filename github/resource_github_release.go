@@ -91,7 +91,17 @@ func resourceGithubRelease() *schema.Resource {
 			"discussion_category_name": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "If specified, a discussion of the specified category is created and linked to the release. The value must be a category that already exists in the repository. If there is already a discussion linked to the release, this parameter is ignored.",
+				ForceNew:    true,
+				Description: "If specified, a discussion of the specified category is created and linked to the release. The value must be a category that already exists in the repository.",
+			},
+			"etag": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 			"release_id": {
 				Type:        schema.TypeInt,
