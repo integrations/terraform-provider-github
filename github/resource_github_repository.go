@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -255,28 +256,32 @@ func resourceGithubRepository() *schema.Resource {
 				Description: "Set to 'true' to allow private forking on the repository; this is only relevant if the repository is owned by an organization and is private or internal.",
 			},
 			"squash_merge_commit_title": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "COMMIT_OR_PR_TITLE",
-				Description: "Can be 'PR_TITLE' or 'COMMIT_OR_PR_TITLE' for a default squash merge commit title.",
+				Type:             schema.TypeString,
+				Optional:         true,
+				Default:          "COMMIT_OR_PR_TITLE",
+				DiffSuppressFunc: suppressDiffIfSquashMergeDisabled,
+				Description:      "Can be 'PR_TITLE' or 'COMMIT_OR_PR_TITLE' for a default squash merge commit title.",
 			},
 			"squash_merge_commit_message": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "COMMIT_MESSAGES",
-				Description: "Can be 'PR_BODY', 'COMMIT_MESSAGES', or 'BLANK' for a default squash merge commit message.",
+				Type:             schema.TypeString,
+				Optional:         true,
+				Default:          "COMMIT_MESSAGES",
+				DiffSuppressFunc: suppressDiffIfSquashMergeDisabled,
+				Description:      "Can be 'PR_BODY', 'COMMIT_MESSAGES', or 'BLANK' for a default squash merge commit message.",
 			},
 			"merge_commit_title": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "MERGE_MESSAGE",
-				Description: "Can be 'PR_TITLE' or 'MERGE_MESSAGE' for a default merge commit title.",
+				Type:             schema.TypeString,
+				Optional:         true,
+				Default:          "MERGE_MESSAGE",
+				DiffSuppressFunc: suppressDiffIfMergeCommitDisabled,
+				Description:      "Can be 'PR_TITLE' or 'MERGE_MESSAGE' for a default merge commit title.",
 			},
 			"merge_commit_message": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "PR_TITLE",
-				Description: "Can be 'PR_BODY', 'PR_TITLE', or 'BLANK' for a default merge commit message.",
+				Type:             schema.TypeString,
+				Optional:         true,
+				Default:          "PR_TITLE",
+				DiffSuppressFunc: suppressDiffIfMergeCommitDisabled,
+				Description:      "Can be 'PR_BODY', 'PR_TITLE', or 'BLANK' for a default merge commit message.",
 			},
 			"delete_branch_on_merge": {
 				Type:        schema.TypeBool,
@@ -509,6 +514,75 @@ func valueChangedButNotEmpty(ctx context.Context, oldVal, newVal, meta any) bool
 	oldValStr := oldVal.(string)
 	newValStr := newVal.(string)
 	return oldValStr != "" && oldValStr != newValStr
+}
+
+// suppressDiffIfMergeCommitDisabled suppresses diffs on merge_commit_title /
+// merge_commit_message while allow_merge_commit is false. GitHub rejects any
+// attempt to change these values while the merge commit strategy is disabled
+// (HTTP 422 "no_merge_strategy"), so a change to them can never be applied and
+// would otherwise produce a permanent, non-convergent plan. See issue #3554.
+func suppressDiffIfMergeCommitDisabled(_, _, _ string, d *schema.ResourceData) bool {
+	return !d.Get("allow_merge_commit").(bool)
+}
+
+// suppressDiffIfSquashMergeDisabled is the squash-merge counterpart of
+// suppressDiffIfMergeCommitDisabled: GitHub likewise rejects changes to
+// squash_merge_commit_title / squash_merge_commit_message while
+// allow_squash_merge is false.
+func suppressDiffIfSquashMergeDisabled(_, _, _ string, d *schema.ResourceData) bool {
+	return !d.Get("allow_squash_merge").(bool)
+}
+
+// warnIgnoredMergeCommitSettings returns warning diagnostics when the user has
+// explicitly configured merge_commit_* or squash_merge_commit_* values while
+// the corresponding merge strategy is disabled. GitHub refuses to change these
+// values while the strategy is off (HTTP 422 "no_merge_strategy"), so the
+// provider does not send them and the configured values have no effect. We
+// surface that as a warning rather than a silent no-op. See issue #3554.
+func warnIgnoredMergeCommitSettings(d *schema.ResourceData) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	rawConfig := d.GetRawConfig()
+	// During delete or when config is unavailable, rawConfig is null; nothing
+	// to warn about.
+	if rawConfig.IsNull() {
+		return diags
+	}
+
+	// configured reports whether the user explicitly set a (non-null) value for
+	// the given attribute in the configuration.
+	configured := func(attr string) bool {
+		v := rawConfig.GetAttr(attr)
+		return !v.IsNull()
+	}
+
+	if !d.Get("allow_merge_commit").(bool) {
+		for _, attr := range []string{"merge_commit_title", "merge_commit_message"} {
+			if configured(attr) {
+				diags = append(diags, diag.Diagnostic{
+					Severity:      diag.Warning,
+					Summary:       "merge commit setting ignored",
+					Detail:        fmt.Sprintf("%q is ignored because allow_merge_commit is false; GitHub does not allow changing it while merge commits are disabled.", attr),
+					AttributePath: cty.GetAttrPath(attr),
+				})
+			}
+		}
+	}
+
+	if !d.Get("allow_squash_merge").(bool) {
+		for _, attr := range []string{"squash_merge_commit_title", "squash_merge_commit_message"} {
+			if configured(attr) {
+				diags = append(diags, diag.Diagnostic{
+					Severity:      diag.Warning,
+					Summary:       "squash merge setting ignored",
+					Detail:        fmt.Sprintf("%q is ignored because allow_squash_merge is false; GitHub does not allow changing it while squash merges are disabled.", attr),
+					AttributePath: cty.GetAttrPath(attr),
+				})
+			}
+		}
+	}
+
+	return diags
 }
 
 func customDiffFunction(_ context.Context, diff *schema.ResourceDiff, v any) error {
@@ -1021,7 +1095,11 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 		}
 	}
 
-	return resourceGithubRepositoryRead(ctx, d, meta)
+	// Warn if the user configured merge/squash commit title/message values that
+	// are ignored because the corresponding strategy is disabled (see #3554).
+	diags := warnIgnoredMergeCommitSettings(d)
+	diags = append(diags, resourceGithubRepositoryRead(ctx, d, meta)...)
+	return diags
 }
 
 func resourceGithubRepositoryDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
