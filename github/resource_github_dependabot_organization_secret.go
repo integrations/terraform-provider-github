@@ -236,7 +236,7 @@ func resourceGithubDependabotOrganizationSecretRead(ctx context.Context, d *sche
 		if _, ok := d.GetOk("selected_repository_ids"); ok {
 			repoIDs := []int64{}
 			opt := &github.ListOptions{
-				PerPage: maxPerPage,
+				PerPage: meta.maxPerPage,
 			}
 			for {
 				results, resp, err := client.Dependabot.ListSelectedReposForOrgSecret(ctx, owner, secretName, opt)
@@ -386,7 +386,7 @@ func resourceGithubDependabotOrganizationSecretImport(ctx context.Context, d *sc
 	selectedRepositoryIDs := []int64{}
 	if secret.Visibility == "selected" {
 		opt := &github.ListOptions{
-			PerPage: maxPerPage,
+			PerPage: meta.maxPerPage,
 		}
 		for {
 			results, resp, err := client.Dependabot.ListSelectedReposForOrgSecret(ctx, owner, secretName, opt)

@@ -159,7 +159,7 @@ func dataSourceGithubOrganizationTeamsRead(ctx context.Context, d *schema.Resour
 	summaryOnly, _ := d.Get("summary_only").(bool)
 
 	teams := make([]map[string]any, 0)
-	for team, err := range meta.v3client.Teams.ListTeamsIter(ctx, meta.name, &github.ListOptions{PerPage: maxPerPage}) {
+	for team, err := range meta.v3client.Teams.ListTeamsIter(ctx, meta.name, &github.ListOptions{PerPage: meta.maxPerPage}) {
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -212,7 +212,7 @@ func dataSourceGithubOrganizationTeamsRead(ctx context.Context, d *schema.Resour
 		if !summaryOnly {
 			var members, repositories []string
 
-			for member, err := range meta.v3client.Teams.ListTeamMembersBySlugIter(ctx, meta.name, team.GetSlug(), &github.TeamListTeamMembersOptions{ListOptions: github.ListOptions{PerPage: maxPerPage}}) {
+			for member, err := range meta.v3client.Teams.ListTeamMembersBySlugIter(ctx, meta.name, team.GetSlug(), &github.TeamListTeamMembersOptions{ListOptions: github.ListOptions{PerPage: meta.maxPerPage}}) {
 				if err != nil {
 					if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
 						tflog.Warn(ctx, "Team members are not accessible, this is likely because the team has been deleted.", map[string]any{"team": team.GetSlug()})
@@ -228,7 +228,7 @@ func dataSourceGithubOrganizationTeamsRead(ctx context.Context, d *schema.Resour
 				members = append(members, member.GetLogin())
 			}
 
-			for repo, err := range meta.v3client.Teams.ListTeamReposBySlugIter(ctx, meta.name, team.GetSlug(), &github.ListOptions{PerPage: maxPerPage}) {
+			for repo, err := range meta.v3client.Teams.ListTeamReposBySlugIter(ctx, meta.name, team.GetSlug(), &github.ListOptions{PerPage: meta.maxPerPage}) {
 				if err != nil {
 					if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
 						tflog.Warn(ctx, "Team repositories are not accessible, this is likely because the team has been deleted.", map[string]any{"team": team.GetSlug()})
