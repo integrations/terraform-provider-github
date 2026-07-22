@@ -1,0 +1,1 @@
+terraform import github_enterprise_custom_property.security_tier my-enterprise:securityTier

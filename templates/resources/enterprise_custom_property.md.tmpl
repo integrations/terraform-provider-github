@@ -1,0 +1,61 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Creates and manages custom property definitions for a GitHub enterprise
+---
+
+# {{.Name}} ({{.Type}})
+
+This resource allows you to create and manage custom property definitions for a GitHub enterprise.
+
+Custom properties enable you to add metadata to repositories across your enterprise. Properties defined at the enterprise level are available to all organizations within the enterprise. You can use them to add context about repositories, such as security classification, compliance requirements, or team ownership.
+
+~> **Note** You must be an enterprise owner to manage enterprise custom properties.
+
+## Example Usage
+
+{{ tffile "examples/resources/github_enterprise_custom_property/example_1.tf" }}
+
+## Example Usage - String Property
+
+{{ tffile "examples/resources/github_enterprise_custom_property/example_2.tf" }}
+
+## Example Usage - Boolean Property
+
+{{ tffile "examples/resources/github_enterprise_custom_property/example_3.tf" }}
+
+## Example Usage - Allow Repository Actors to Edit
+
+{{ tffile "examples/resources/github_enterprise_custom_property/example_4.tf" }}
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `enterprise_slug` - (Required, Forces new resource) The slug of the enterprise.
+
+- `property_name` - (Required, Forces new resource) The name of the custom property.
+
+- `value_type` - (Required) The type of value for the property. Can be one of `string`, `single_select`, `multi_select`, `true_false`, or `url`.
+
+- `required` - (Optional) Whether the custom property is required on repositories. Defaults to `false`.
+
+- `description` - (Optional) A short description of the custom property.
+
+- `default_values` - (Optional) The default value(s) of the custom property. For `multi_select` properties, multiple values may be specified (e.g. `["b1", "b2"]`). For all other types, provide a single value in a list (e.g. `["value"]`).
+
+- `allowed_values` - (Optional) An ordered list of allowed values for the property. Only applicable when `value_type` is `single_select` or `multi_select`. Can have up to 200 values.
+
+- `values_editable_by` - (Optional) Who can edit the values of the property on repositories. Can be one of `org_actors` or `org_and_repo_actors`. When set to `org_actors` (the default), only organization owners can edit property values. When set to `org_and_repo_actors`, repository administrators with the custom properties permission can also edit values.
+
+## Attributes Reference
+
+In addition to all arguments above, the following attributes are exported:
+
+- `property_name` - The name of the custom property.
+
+## Import
+
+Enterprise custom properties can be imported using `<enterprise_slug>:<property_name>`:
+
+{{ codefile "shell" "examples/resources/github_enterprise_custom_property/import.sh" }}
