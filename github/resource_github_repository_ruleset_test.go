@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-log/tflogtest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -1078,7 +1078,7 @@ resource "github_repository_ruleset" "test" {
 		actor_type  = "Integration"
 		bypass_mode = "always"
 	}
-	
+
 	bypass_actors {
 		actor_id    = 1143301 # Copilot cloud agent
 		actor_type  = "Integration"

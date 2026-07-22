@@ -5,9 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
+	"slices"
 	"strconv"
+	"strings"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -22,7 +25,7 @@ func diffRepository(ctx context.Context, diff *schema.ResourceDiff, m any) error
 	ctx = tflog.SetField(ctx, "id", diff.Id())
 
 	if diff.HasChange("repository") {
-		meta := m.(*Owner)
+		meta, _ := m.(*Owner)
 		client := meta.v3client
 		owner := meta.name
 
@@ -51,28 +54,24 @@ func diffRepository(ctx context.Context, diff *schema.ResourceDiff, m any) error
 
 		repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 		if err != nil {
-			var ghErr *github.ErrorResponse
-			if errors.As(err, &ghErr) {
-				if ghErr.Response.StatusCode != http.StatusNotFound {
-					return ghErr
-				}
-
+			if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
 				tflog.Info(ctx, "Repository not found, assuming it was deleted and will be recreated. Forcing new resource.", map[string]any{"repository": repoName})
-			} else {
-				return err
+				return nil
 			}
-		} else {
-			tflog.Debug(ctx, "Repository found when checking repository change.", map[string]any{"repository": repoName})
 
-			if repoID != int(repo.GetID()) {
-				tflog.Info(ctx, "Repository ID changed, forcing new resource.", map[string]any{
-					"old_repository":    old,
-					"old_repository_id": repoID,
-					"new_repository":    repoName,
-					"new_repository_id": repo.GetID(),
-				})
-				return diff.ForceNew("repository")
-			}
+			return err
+		}
+
+		tflog.Debug(ctx, "Repository found when checking repository change.", map[string]any{"repository": repoName})
+
+		if repoID != int(repo.GetID()) {
+			tflog.Info(ctx, "Repository ID changed, forcing new resource.", map[string]any{
+				"old_repository":    old,
+				"old_repository_id": repoID,
+				"new_repository":    repoName,
+				"new_repository_id": repo.GetID(),
+			})
+			return diff.ForceNew("repository")
 		}
 	}
 
@@ -85,23 +84,23 @@ func diffSecret(ctx context.Context, diff *schema.ResourceDiff, _ any) error {
 		return nil
 	}
 
-	if diff.HasChange("remote_updated_at") {
-		remoteUpdatedAt := diff.Get("remote_updated_at").(string)
-		if len(remoteUpdatedAt) == 0 {
-			return nil
-		}
-
-		updatedAt := diff.Get("updated_at").(string)
-		if updatedAt != remoteUpdatedAt {
-			if len(updatedAt) == 0 {
-				return diff.SetNew("updated_at", remoteUpdatedAt)
-			}
-
-			return diff.SetNewComputed("updated_at")
-		}
+	remoteUpdatedAt, _ := diff.Get("remote_updated_at").(string)
+	if remoteUpdatedAt == "" {
+		return nil
 	}
 
-	return nil
+	updatedAt, _ := diff.Get("updated_at").(string)
+	if updatedAt == remoteUpdatedAt {
+		return nil
+	}
+
+	tflog.Debug(ctx, "Secret drift detected from timestamp fields.", map[string]any{"updated_at": updatedAt, "remote_updated_at": remoteUpdatedAt})
+
+	if updatedAt == "" {
+		return diff.SetNew("updated_at", remoteUpdatedAt)
+	}
+
+	return diff.SetNewComputed("updated_at")
 }
 
 // diffSecretVariableVisibility ensures that selected_repository_ids is only set when visibility is set to selected.
@@ -292,4 +291,44 @@ func diffTeamCheck(ctx context.Context, client *github.Client, owner string, tea
 	}
 
 	return false, nil
+}
+
+// suppressUnorderedListDiff returns a schema.SchemaDiffSuppressFunc that suppresses diffs for unordered lists of any type.
+func suppressUnorderedListDiff(fieldKey string, f func(a, b any) int) schema.SchemaDiffSuppressFunc {
+	countKey := fieldKey + ".#"
+
+	return func(k, o, n string, d *schema.ResourceData) bool {
+		// Only handle this field subtree.
+		if k != fieldKey && !strings.HasPrefix(k, fieldKey+".") {
+			return false
+		}
+
+		// Count changed => definitely not suppressible.
+		if k == countKey {
+			return false
+		}
+
+		oldRaw, newRaw := d.GetChange(fieldKey)
+		oldListOrig, ok := oldRaw.([]any)
+		if !ok {
+			return false
+		}
+		newListOrig, ok := newRaw.([]any)
+		if !ok {
+			return false
+		}
+
+		// If the lengths are different, definitely not suppressible.
+		if len(oldListOrig) != len(newListOrig) {
+			return false
+		}
+
+		oldList := slices.Clone(oldListOrig)
+		newList := slices.Clone(newListOrig)
+
+		slices.SortFunc(oldList, f)
+		slices.SortFunc(newList, f)
+
+		return reflect.DeepEqual(oldList, newList)
+	}
 }

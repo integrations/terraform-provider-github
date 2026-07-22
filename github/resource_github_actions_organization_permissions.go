@@ -5,7 +5,7 @@ import (
 	"errors"
 	"log"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -137,9 +137,10 @@ func resourceGithubActionsEnabledRepositoriesObject(d *schema.ResourceData) ([]i
 	return enabled, nil
 }
 
-func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
 	ctx := context.Background()
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxId, d.Id())
@@ -201,8 +202,9 @@ func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.Resour
 	return resourceGithubActionsOrganizationPermissionsRead(d, meta)
 }
 
-func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	ctx := context.Background()
 
 	err := checkOrganization(meta)
@@ -250,7 +252,7 @@ func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, me
 	}
 
 	if actionsPermissions.GetEnabledRepositories() == "selected" {
-		opts := github.ListOptions{PerPage: maxPerPage}
+		opts := github.ListOptions{PerPage: meta.maxPerPage}
 		var repoList []int64
 		var allRepos []*github.Repository
 
@@ -303,9 +305,10 @@ func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, me
 	return nil
 }
 
-func resourceGithubActionsOrganizationPermissionsDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+func resourceGithubActionsOrganizationPermissionsDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	err := checkOrganization(meta)

@@ -18,7 +18,7 @@ func TestAccGithubActionsEnvironmentSecretsDataSource(t *testing.T) {
 
 		repo := mustCreateTestRepository(t)
 		env := mustCreateTestRepositoryEnvironment(t, repo)
-		secretName := mustCreateTestRepositoryEnvironmentSecret(t, repo, env)
+		secretName := mustCreateTestRepositoryEnvironmentSecret(t, repo, env, "super_secret_value")
 
 		config := fmt.Sprintf(`
 data "github_actions_environment_secrets" "test" {
