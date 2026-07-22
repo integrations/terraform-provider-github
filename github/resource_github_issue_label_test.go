@@ -129,4 +129,53 @@ func TestAccGithubIssueLabel(t *testing.T) {
 			},
 		})
 	})
+
+	t.Run("adopts a pre-existing label on create without error", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-issue-label-adopt-%s", testResourcePrefix, randomID)
+
+		// An auto-initialized repository is seeded with GitHub's default labels
+		// (bug, documentation, enhancement, ...). Managing one of those names
+		// must adopt and update the existing label rather than failing the
+		// initial apply with "422 Validation Failed [already_exists]".
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name      = "%s"
+				auto_init = true
+			}
+
+			resource "github_issue_label" "test" {
+				repository  = github_repository.test.name
+				name        = "bug"
+				color       = "123456"
+				description = "adopted bug label"
+			}
+		`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"github_issue_label.test", "name",
+							"bug",
+						),
+						resource.TestCheckResourceAttr(
+							"github_issue_label.test", "color",
+							"123456",
+						),
+						resource.TestCheckResourceAttr(
+							"github_issue_label.test", "description",
+							"adopted bug label",
+						),
+					),
+				},
+			},
+		})
+	})
 }
