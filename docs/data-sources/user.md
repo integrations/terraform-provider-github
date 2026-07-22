@@ -26,13 +26,27 @@ output "current_github_login" {
 }
 ```
 
+### Lookup by stable user ID
+
+```terraform
+# Retrieve information about a GitHub user by their stable numeric ID.
+# Useful when the user may rename themselves: the lookup keeps working.
+data "github_user" "by_id" {
+  user_id = 1
+}
+```
+
 ## Argument Reference
 
-- `username` - (Required) The username. Use an empty string `""` to retrieve information about the currently authenticated user.
+Exactly one of the following must be set:
+
+- `username` - (Optional) The username (login). Use an empty string `""` to retrieve information about the currently authenticated user.
+- `user_id` - (Optional) The GitHub numeric user ID. Stable across username changes, so prefer this if you need lookups that survive a rename.
 
 ## Attributes Reference
 
 - `id` - the ID of the user.
+- `user_id` - the GitHub numeric user ID (same value as `id`, also settable as an input).
 - `node_id` - the Node ID of the user.
 - `login` - the user's login.
 - `avatar_url` - the user's avatar URL.

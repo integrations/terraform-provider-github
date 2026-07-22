@@ -20,18 +20,46 @@ resource "github_membership" "membership_for_some_user" {
 }
 ```
 
+### Identifying the user by stable numeric ID
+
+Using `user_id` instead of `username` makes the membership resilient to the user renaming their GitHub account. After a rename, the next `terraform refresh` updates the `username` attribute in state with no diff, and the resource continues to manage the same membership.
+
+```terraform
+# Manage organization membership by stable GitHub user ID.
+# Recommended over `username` for production: if the user renames their
+# account, the membership stays in sync without drift.
+resource "github_membership" "membership_by_user_id" {
+  user_id = 1
+  role    = "member"
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
 
-- `username` - (Required) The user to add to the organization.
+Exactly one of:
+
+- `username` - (Optional) The user (login) to add to the organization. Note: usernames can change; if the user renames themselves, the resource will recreate unless `user_id` is used instead.
+- `user_id` - (Optional) The GitHub numeric user ID to add to the organization. Stable across username changes. Recommended for production use.
+
+Other arguments:
+
 - `role` - (Optional) The role of the user within the organization. Must be one of `member` or `admin`. Defaults to `member`. `admin` role represents the `owner` role available via GitHub UI.
 - `downgrade_on_destroy` - (Optional) Defaults to `false`. If set to true, when this resource is destroyed, the member will not be removed from the organization. Instead, the member's role will be downgraded to 'member'.
 
+## Attributes Reference
+
+- `username` - The user's current login. When the resource is identified by `user_id`, this attribute tracks the user's live login at refresh time.
+- `user_id` - The GitHub numeric user ID.
+- `etag` - The etag of the membership object.
+
 ## Import
 
-GitHub Membership can be imported using an ID made up of `organization:username`, e.g.
+GitHub Membership can be imported using an ID made up of `organization:user_id`, e.g.
 
 ```shell
-terraform import github_membership.member hashicorp:someuser
+terraform import github_membership.member hashicorp:12345
 ```
+
+Legacy IDs of the form `organization:username` are still accepted on import and will be migrated to the numeric form on the next refresh.
