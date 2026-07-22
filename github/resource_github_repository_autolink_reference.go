@@ -127,16 +127,10 @@ func resourceGithubRepositoryAutolinkReferenceRead(ctx context.Context, d *schem
 
 	autolinkRef, _, err := client.Repositories.GetAutolink(ctx, owner, repoName, autolinkRefID)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "Autolink reference not found, removing from state.", map[string]any{
-					"owner":      owner,
-					"repository": repoName,
-				})
-				d.SetId("")
-				return nil
-			}
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Autolink reference not found, removing from state.", map[string]any{"owner": owner, "repository": repoName})
+			d.SetId("")
+			return nil
 		}
 		return diag.FromErr(err)
 	}
