@@ -227,6 +227,7 @@ func NewProvider(version, commit string) func() *schema.Provider {
 				"github_repository_pages":                                               resourceGithubRepositoryPages(),
 				"github_repository_project":                                             resourceGithubRepositoryProject(),
 				"github_repository_pull_request":                                        resourceGithubRepositoryPullRequest(),
+				"github_repository_pull_request_creation_policy":                        resourceGithubRepositoryPullRequestCreationPolicy(),
 				"github_repository_ruleset":                                             resourceGithubRepositoryRuleset(),
 				"github_repository_topics":                                              resourceGithubRepositoryTopics(),
 				"github_repository_webhook":                                             resourceGithubRepositoryWebhook(),

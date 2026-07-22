@@ -1,0 +1,138 @@
+package github
+
+import (
+	"context"
+
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+)
+
+func resourceGithubRepositoryPullRequestCreationPolicy() *schema.Resource {
+	return &schema.Resource{
+		Description:   "Manages the pull request creation policy for a repository.",
+		CreateContext: resourceGithubRepositoryPullRequestCreationPolicyCreate,
+		ReadContext:   resourceGithubRepositoryPullRequestCreationPolicyRead,
+		UpdateContext: resourceGithubRepositoryPullRequestCreationPolicyUpdate,
+		DeleteContext: resourceGithubRepositoryPullRequestCreationPolicyDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
+		CustomizeDiff: diffRepository,
+
+		Schema: map[string]*schema.Schema{
+			"repository": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The name of the GitHub repository.",
+			},
+			"repository_id": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The numeric ID of the GitHub repository.",
+			},
+			"policy": {
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "Controls who can create pull requests for the repository. Can be `all` or `collaborators_only`.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"all", "collaborators_only"}, false)),
+			},
+		},
+	}
+}
+
+func resourceGithubRepositoryPullRequestCreationPolicyCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	owner := meta.(*Owner).name
+	repoName := d.Get("repository").(string)
+	policy := d.Get("policy").(string)
+
+	nodeID, databaseID, err := getRepositoryNodeAndDatabaseID(ctx, owner, repoName, meta)
+	if err != nil {
+		return diag.Errorf("error resolving repository ID for %s: %s", repoName, err)
+	}
+
+	if err := updateRepositoryPullRequestCreationPolicy(ctx, nodeID, policy, meta); err != nil {
+		return diag.Errorf("error setting pull request creation policy for %s: %s", repoName, err)
+	}
+
+	d.SetId(repoName)
+	if err := d.Set("repository_id", databaseID); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
+}
+
+func resourceGithubRepositoryPullRequestCreationPolicyRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	owner := meta.(*Owner).name
+	repoName := d.Id()
+
+	policy, databaseID, err := getRepositoryPullRequestCreationPolicy(ctx, owner, repoName, meta)
+	if err != nil {
+		if isRepositoryNotFoundError(err) {
+			tflog.Info(ctx, "Repository no longer exists, removing pull request creation policy from state", map[string]any{
+				"owner":      owner,
+				"repository": repoName,
+			})
+			d.SetId("")
+			return nil
+		}
+		return diag.Errorf("error reading pull request creation policy for %s/%s: %s", owner, repoName, err)
+	}
+
+	if err := d.Set("policy", policy); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("repository", repoName); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("repository_id", databaseID); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
+}
+
+func resourceGithubRepositoryPullRequestCreationPolicyUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	owner := meta.(*Owner).name
+	repoName := d.Get("repository").(string)
+	policy := d.Get("policy").(string)
+
+	nodeID, databaseID, err := getRepositoryNodeAndDatabaseID(ctx, owner, repoName, meta)
+	if err != nil {
+		return diag.Errorf("error resolving repository ID for %s: %s", repoName, err)
+	}
+
+	if err := updateRepositoryPullRequestCreationPolicy(ctx, nodeID, policy, meta); err != nil {
+		return diag.Errorf("error updating pull request creation policy for %s: %s", repoName, err)
+	}
+
+	d.SetId(repoName)
+	if err := d.Set("repository_id", databaseID); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
+}
+
+func resourceGithubRepositoryPullRequestCreationPolicyDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	repoName := d.Id()
+
+	nodeID, err := getRepositoryID(repoName, meta)
+	if err != nil {
+		if isRepositoryNotFoundError(err) {
+			tflog.Info(ctx, "Repository no longer exists, nothing to reset for the pull request creation policy", map[string]any{
+				"repository": repoName,
+			})
+			return nil
+		}
+		return diag.Errorf("error resolving repository node ID for %s: %s", repoName, err)
+	}
+
+	if err := updateRepositoryPullRequestCreationPolicy(ctx, nodeID, "all", meta); err != nil {
+		return diag.Errorf("error resetting pull request creation policy for %s: %s", repoName, err)
+	}
+
+	return nil
+}
