@@ -186,7 +186,8 @@ func resourceGithubRepositoryAutolinkReferenceDelete(ctx context.Context, d *sch
 }
 
 func resourceGithubRepositoryAutolinkReferenceImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-	parts := strings.Split(d.Id(), "/")
+	importID := d.Id()
+	parts := strings.Split(importID, "/")
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository>/<autolink_reference_id>")
 	}
@@ -202,14 +203,20 @@ func resourceGithubRepositoryAutolinkReferenceImport(ctx context.Context, d *sch
 	// caller provided the key prefix for the autolink reference, and look up
 	// the autolink by the key prefix.
 
-	_, err := strconv.Atoi(id)
+	autolinkID, err := strconv.Atoi(id)
+	var autolink *github.Autolink
 	if err != nil {
-		autolink, err := getAutolinkByKeyPrefix(ctx, client, owner, repository, id)
+		autolink, err = getAutolinkByKeyPrefix(ctx, client, owner, repository, id)
 		if err != nil {
 			return nil, err
 		}
 
-		id = strconv.FormatInt(*autolink.ID, 10)
+		id = strconv.FormatInt(autolink.GetID(), 10)
+	} else {
+		autolink, _, err = client.Repositories.GetAutolink(ctx, owner, repository, int64(autolinkID))
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch autolink with ID: %d for repository %s/%s. Error: %w", autolinkID, owner, repository, err)
+		}
 	}
 
 	d.SetId(id)
@@ -219,11 +226,15 @@ func resourceGithubRepositoryAutolinkReferenceImport(ctx context.Context, d *sch
 		return nil, fmt.Errorf("failed to retrieve repository %s: %w", repository, err)
 	}
 
-	if err = d.Set("repository", repository); err != nil {
-		return nil, err
-	}
-	if err = d.Set("repository_id", int(repo.GetID())); err != nil {
-		return nil, err
+	err = errors.Join(
+		d.Set("key_prefix", autolink.GetKeyPrefix()),
+		d.Set("target_url_template", autolink.GetURLTemplate()),
+		d.Set("is_alphanumeric", autolink.GetIsAlphanumeric()),
+		d.Set("repository", repository),
+		d.Set("repository_id", int(repo.GetID())),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set state values in import of ID: %s. Error: %w", importID, err)
 	}
 
 	return []*schema.ResourceData{d}, nil
