@@ -60,6 +60,41 @@ resource "github_team_members" "test" {
 		})
 	})
 
+	t.Run("updates_team_member_role", func(t *testing.T) {
+		t.Parallel()
+
+		team := mustCreateTestTeam(t, nil)
+
+		config := fmt.Sprintf(`
+resource "github_team_members" "test" {
+  team_slug = "%s"
+
+  members {
+    username = "%s"
+    role     = "%%s"
+  }
+}
+`, team.GetSlug(), flippedCaseUsername)
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, "maintainer"),
+				},
+				{
+					Config: fmt.Sprintf(config, "member"),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_team_members.test", plancheck.ResourceActionUpdate),
+							plancheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members").AtSliceIndex(0).AtMapKey("role"), knownvalue.StringExact("member")),
+						},
+					},
+				},
+			},
+		})
+	})
+
 	t.Run("team_by_id_as_slug", func(t *testing.T) {
 		t.Parallel()
 
