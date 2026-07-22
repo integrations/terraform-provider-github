@@ -15,7 +15,7 @@ resource "github_repository" "repo" {
   name        = "my-repo"
   description = "GitHub repo managed by Terraform"
 
-  private = false
+  visibility = "public"
 }
 
 resource "github_repository_autolink_reference" "autolink" {
@@ -31,7 +31,7 @@ resource "github_repository_autolink_reference" "autolink" {
 
 The following arguments are supported:
 
-- `repository` - (Required) The repository of the autolink reference.
+- `repository` - (Required) The repository name. If the repository is renamed, the autolink reference will be updated in-place rather than recreated.
 
 - `key_prefix` - (Required) This prefix appended by a number will generate a link any time it is found in an issue, pull request, or commit.
 
@@ -44,6 +44,7 @@ The following arguments are supported:
 The following additional attributes are exported:
 
 - `etag` - An etag representing the autolink reference object.
+- `repository_id` - The ID of the repository.
 
 ## Import
 
