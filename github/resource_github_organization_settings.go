@@ -173,8 +173,12 @@ func resourceGithubOrganizationSettings() *schema.Resource {
 	}
 }
 
-// buildOrganizationSettings creates a github.Organization struct with only the fields that are explicitly configured.
-// For updates, it only includes fields that have actually changed to avoid API validation errors.
+// buildOrganizationSettings creates a github.Organization struct.
+// On create, boolean fields are always included (their schema default is a
+// definite value and d.GetOk cannot distinguish an explicit false from unset),
+// while non-boolean fields are included only when explicitly configured.
+// On update, it only includes fields that have actually changed to avoid API
+// validation errors.
 func buildOrganizationSettings(d *schema.ResourceData, isEnterprise bool) *github.Organization {
 	settings := &github.Organization{}
 
@@ -183,13 +187,19 @@ func buildOrganizationSettings(d *schema.ResourceData, isEnterprise bool) *githu
 
 	// Helper function to check if field should be included
 	shouldInclude := func(fieldName string) bool {
-		if !isUpdate {
-			// For creates, include if explicitly configured
-			_, ok := d.GetOk(fieldName)
-			return ok
-		}
 		// For updates, only include if the field has changed
-		return d.HasChange(fieldName)
+		if isUpdate {
+			return d.HasChange(fieldName)
+		}
+		// For creates, boolean attributes always carry a definite value from
+		// their schema default, and d.GetOk cannot tell an explicit false from
+		// an unset field, so include them unconditionally. Other types are
+		// included only when explicitly configured.
+		if s, ok := resourceGithubOrganizationSettings().Schema[fieldName]; ok && s.Type == schema.TypeBool {
+			return true
+		}
+		_, ok := d.GetOk(fieldName)
+		return ok
 	}
 
 	// Required field - always include if configured (API requires it even if unchanged)
