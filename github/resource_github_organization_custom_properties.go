@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
@@ -121,8 +122,19 @@ func resourceGithubCustomPropertiesRead(d *schema.ResourceData, meta any) error 
 		return err
 	}
 
-	// TODO: Add support for other types of default values
-	defaultValue, _ := customProperty.DefaultValueString()
+	// multi_select is not supported: its default value is a []string, which
+	// cannot round-trip through the TypeString default_value attribute.
+	var defaultValue string
+	switch customProperty.ValueType {
+	case github.PropertyValueTypeTrueFalse:
+		if b, ok := customProperty.DefaultValueBool(); ok {
+			defaultValue = strconv.FormatBool(b)
+		}
+	default:
+		if s, ok := customProperty.DefaultValueString(); ok {
+			defaultValue = s
+		}
+	}
 
 	d.SetId(*customProperty.PropertyName)
 	_ = d.Set("allowed_values", customProperty.AllowedValues)
