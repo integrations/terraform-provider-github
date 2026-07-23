@@ -19,7 +19,7 @@ func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
 		t.Parallel()
 
 		team1 := mustCreateTestTeam(t, nil)
-		team2 := mustCreateTestTeam(t, new(team1.GetID()))
+		team2 := mustCreateTestTeam(t, withNewTeamParent(team1.GetID()))
 
 		config := `
 data "github_organization_teams" "test" {
@@ -93,7 +93,7 @@ data "github_organization_teams" "test" {
 		t.Parallel()
 
 		team1 := mustCreateTestTeam(t, nil)
-		team2 := mustCreateTestTeam(t, new(team1.GetID()))
+		team2 := mustCreateTestTeam(t, withNewTeamParent(team1.GetID()))
 
 		config := `
 data "github_organization_teams" "test" {
@@ -151,9 +151,9 @@ data "github_organization_teams" "test" {
 		repo := mustCreateTestRepository(t)
 		team1 := mustCreateTestTeam(t, nil)
 		mustAddTeamMember(t, team1, testAccConf.testOrgUser1)
-		mustAddRepositoryTeam(t, repo, team1)
+		mustAddRepositoryToTeam(t, team1, repo)
 		team2 := mustCreateTestTeam(t, nil)
-		team3 := mustCreateTestTeam(t, new(team1.GetID()))
+		team3 := mustCreateTestTeam(t, withNewTeamParent(team1.GetID()))
 		mustAddTeamMember(t, team3, testAccConf.testOrgUser2)
 
 		config := `

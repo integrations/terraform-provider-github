@@ -2,12 +2,12 @@
 page_title: "github_repository_collaborators (Resource) - GitHub"
 subcategory: ""
 description: |-
-  Manage the complete set of collaborators (users and teams) for a GitHub repository.
+  Resource to manage the complete set of collaborators (users and teams) for a repository.
 ---
 
 # github_repository_collaborators (Resource)
 
-Manage the complete set of collaborators (users and teams) for a GitHub repository.
+Resource to manage the complete set of collaborators (users and teams) for a repository.
 
 ~> This resource (`github_repository_collaborators`) cannot be used in conjunction with [`github_repository_collaborator`](repository_collaborator) or [`github_team_repository`](team_repository) as they will conflict over the management of collaborators.
 
@@ -76,7 +76,7 @@ resource "github_repository_collaborators" "some_repo_collaborators" {
 
 ### Optional
 
-- `ignore_team` (Block Set) Teams to ignore when managing repository collaborators. (see [below for nested schema](#nestedblock--ignore_team))
+- `ignore_team` (Block Set, Deprecated) Teams to ignore when managing repository collaborators. (see [below for nested schema](#nestedblock--ignore_team))
 - `team` (Block Set) Teams to grant access to the repository. (see [below for nested schema](#nestedblock--team))
 - `user` (Block Set) Users to grant access to the repository. (see [below for nested schema](#nestedblock--user))
 

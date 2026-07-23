@@ -284,7 +284,7 @@ resource "github_team_members" "test" {
 		skipUnlessHasOrgUser2(t)
 
 		team := mustCreateTestTeam(t, nil)
-		childTeam := mustCreateTestTeam(t, team.ID)
+		childTeam := mustCreateTestTeam(t, withNewTeamParent(team.GetID()))
 		mustAddTeamMember(t, childTeam, testAccConf.testOrgUser2)
 
 		config := fmt.Sprintf(`
@@ -339,7 +339,7 @@ resource "github_team_members" "test" {
 					},
 				},
 				{
-					PreConfig: func() { mustRenameTestTeam(t, team, newTeamName) },
+					PreConfig: func() { mustRenameTeam(t, team, newTeamName) },
 					Config:    fmt.Sprintf(config, newTeamName),
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("team_id"), knownvalue.StringExact(strconv.FormatInt(team.GetID(), 10))),
@@ -376,7 +376,7 @@ resource "github_team_members" "test" {
 					},
 				},
 				{
-					PreConfig:          func() { mustDeleteTestTeam(t, team) },
+					PreConfig:          func() { mustDeleteTeam(t, team) },
 					RefreshState:       true,
 					ExpectNonEmptyPlan: true,
 				},

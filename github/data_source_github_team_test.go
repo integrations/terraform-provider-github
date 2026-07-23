@@ -97,10 +97,10 @@ data "github_team" "test" {
 
 		team := mustCreateTestTeam(t, nil)
 		mustAddTeamMember(t, team, testAccConf.testOrgUser1)
-		childTeam := mustCreateTestTeam(t, new(team.GetID()))
+		childTeam := mustCreateTestTeam(t, withNewTeamParent(team.GetID()))
 		mustAddTeamMember(t, childTeam, testAccConf.testOrgUser2)
 		repo := mustCreateTestRepository(t)
-		mustAddRepositoryTeam(t, repo, team)
+		mustAddRepositoryToTeam(t, team, repo)
 
 		config := fmt.Sprintf(`
 data "github_team" "test" {
@@ -178,7 +178,7 @@ data "github_team" "test" {
 		t.Parallel()
 
 		parentTeam := mustCreateTestTeam(t, nil)
-		team := mustCreateTestTeam(t, new(parentTeam.GetID()))
+		team := mustCreateTestTeam(t, withNewTeamParent(parentTeam.GetID()))
 
 		config := fmt.Sprintf(`
 data "github_team" "test" {
