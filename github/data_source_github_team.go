@@ -34,8 +34,14 @@ func dataSourceGithubTeam() *schema.Resource {
 				ExactlyOneOf:     []string{"team_id", "slug"},
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsNotEmpty),
 			},
+			"lookup_child_teams": {
+				Description: "If `true`, child teams will be looked up and returned in the `child_teams` attribute.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+			},
 			"summary_only": {
-				Description: "If true, non-default team details such as `members` & `repositories` will be omitted.",
+				Description: "If `true`, non-default team details such as `members` & `repositories` will be omitted.",
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
@@ -95,6 +101,95 @@ func dataSourceGithubTeam() *schema.Resource {
 						},
 						"slug": {
 							Description: "Slug of the parent team name.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"node_id": {
+							Description: "Node ID of the parent team.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"name": {
+							Description: "Name of the parent team.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"description": {
+							Description: "Description of the parent team.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"type": {
+							Description: "Ownership type of the parent team; one of `enterprise` or `organization`.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"privacy": {
+							Description: "Privacy level of the parent team; one of `secret` or `closed`.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"notification_setting": {
+							Description: "Notification setting for the parent team; one of `notifications_enabled`, or `notifications_disabled`.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"permission": {
+							Description: "Legacy default repository permission for the parent team (typically pull, push, or admin), used when adding a repository without specifying an explicit permission. This does not represent effective access for all repositories or custom repository roles.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+					},
+				},
+			},
+			"child_teams": {
+				Description: "List of child teams; only set if `lookup_child_teams` is `true`.",
+				Type:        schema.TypeList,
+				Computed:    true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id": {
+							Description: "ID of the child team.",
+							Type:        schema.TypeInt,
+							Computed:    true,
+						},
+						"slug": {
+							Description: "Slug of the child team name.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"node_id": {
+							Description: "Node ID of the child team.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"name": {
+							Description: "Name of the child team.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"description": {
+							Description: "Description of the child team.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"type": {
+							Description: "Ownership type of the child team; one of `enterprise` or `organization`.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"privacy": {
+							Description: "Privacy level of the child team; one of `secret` or `closed`.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"notification_setting": {
+							Description: "Notification setting for the child team; one of `notifications_enabled`, or `notifications_disabled`.",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"permission": {
+							Description: "Legacy default repository permission for the child team (typically pull, push, or admin), used when adding a repository without specifying an explicit permission. This does not represent effective access for all repositories or custom repository roles.",
 							Type:        schema.TypeString,
 							Computed:    true,
 						},
@@ -160,8 +255,6 @@ func dataSourceGithubTeamRead(ctx context.Context, d *schema.ResourceData, m any
 		return diags
 	}
 
-	summaryOnly, _ := d.Get("summary_only").(bool)
-
 	var team *github.Team
 	if v, ok := d.GetOk("team_id"); ok {
 		teamIDInt, _ := v.(int)
@@ -195,16 +288,48 @@ func dataSourceGithubTeamRead(ctx context.Context, d *schema.ResourceData, m any
 	if team.Parent != nil {
 		t["parent_team"] = []map[string]any{
 			{
-				"id":   int(team.Parent.GetID()),
-				"slug": team.Parent.GetSlug(),
+				"id":                   int(team.Parent.GetID()),
+				"slug":                 team.Parent.GetSlug(),
+				"node_id":              team.Parent.GetNodeID(),
+				"name":                 team.Parent.GetName(),
+				"description":          team.Parent.GetDescription(),
+				"type":                 team.Parent.GetType(),
+				"privacy":              team.Parent.GetPrivacy(),
+				"notification_setting": team.Parent.GetNotificationSetting(),
+				"permission":           team.Parent.GetPermission(),
 			},
 		}
 	} else {
 		t["parent_team"] = nil
 	}
 
+	childTeams := make([]map[string]any, 0)
+	lookupChildTeams, _ := d.Get("lookup_child_teams").(bool)
+	if lookupChildTeams {
+		for childTeam, err := range client.Teams.ListChildTeamsByParentSlugIter(ctx, meta.name, team.GetSlug(), &github.ListOptions{PerPage: meta.maxPerPage}) {
+			if err != nil {
+				return diag.FromErr(err)
+			}
+
+			c := map[string]any{
+				"id":                   int(childTeam.GetID()),
+				"slug":                 childTeam.GetSlug(),
+				"node_id":              childTeam.GetNodeID(),
+				"name":                 childTeam.GetName(),
+				"description":          childTeam.GetDescription(),
+				"type":                 childTeam.GetType(),
+				"privacy":              childTeam.GetPrivacy(),
+				"notification_setting": childTeam.GetNotificationSetting(),
+				"permission":           childTeam.GetPermission(),
+			}
+			childTeams = append(childTeams, c)
+		}
+	}
+	t["child_teams"] = childTeams
+
 	var members, repositories []string
 	var repositoriesDetailed []map[string]any
+	summaryOnly, _ := d.Get("summary_only").(bool)
 	if !summaryOnly {
 		membershipType, _ := d.Get("membership_type").(string)
 
