@@ -88,9 +88,13 @@ func mustAddTeamMember(t *testing.T, team *github.Team, username string) {
 func mustAddTeamMaintainer(t *testing.T, team *github.Team, username string) {
 	t.Helper()
 
-	_, _, err := testAccConf.meta.v3client.Teams.AddTeamMembershipBySlug(t.Context(), testAccConf.meta.name, team.GetSlug(), username, &github.TeamAddTeamMembershipOptions{Role: "maintainer"})
+	membership, _, err := testAccConf.meta.v3client.Teams.AddTeamMembershipBySlug(t.Context(), testAccConf.meta.name, team.GetSlug(), username, &github.TeamAddTeamMembershipOptions{Role: "maintainer"})
 	if err != nil {
 		t.Fatalf("failed to add member %s to test team %s: %v", username, team.GetName(), err)
+	}
+
+	if membership.GetState() != "active" {
+		t.Fatalf("failed to add member %s to test team %s: membership state is %s", username, team.GetName(), membership.GetState())
 	}
 }
 
