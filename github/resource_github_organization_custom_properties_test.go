@@ -265,6 +265,42 @@ resource "github_organization_custom_properties" "test" {
 		})
 	})
 
+	t.Run("true_false property with default_value produces no drift", func(t *testing.T) {
+		t.Parallel()
+
+		name := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(5))
+
+		config := fmt.Sprintf(`
+resource "github_organization_custom_properties" "test" {
+  property_name = "%s"
+  value_type    = "true_false"
+  required      = false
+  description   = "Test true_false default_value"
+  default_value = "true"
+}
+`, name)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_organization_custom_properties.test", "default_value", "true"),
+					),
+				},
+				{
+					// Read must round-trip the true_false default_value so the
+					// second plan is empty (regression guard for perpetual drift).
+					Config:             config,
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
+				},
+			},
+		})
+	})
+
 	t.Run("imports existing property with values_editable_by set via UI", func(t *testing.T) {
 		t.Parallel()
 
