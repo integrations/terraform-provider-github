@@ -1,12 +1,13 @@
 ---
 page_title: "github_organization_role_users (Data Source) - GitHub"
+subcategory: ""
 description: |-
-  Lookup all users assigned to a custom organization role.
+  Data source to list all users assigned to a custom organization role.
 ---
 
 # github_organization_role_users (Data Source)
 
-Lookup all users assigned to a custom organization role.
+Data source to list all users assigned to a custom organization role.
 
 ## Example Usage
 
@@ -16,19 +17,44 @@ data "github_organization_role_users" "example" {
 }
 ```
 
+<!--
 ## Schema
 
 ### Required
 
-- `role_id` (Number) The ID of the organization role.
+- `role_id` (Number) ID of the organization role.
 
 ### Read-Only
 
-- `users` (Set of Object, see [schema](#nested-schema-for-users)) Users assigned to the organization role.
+- `id` (String) The ID of this resource.
+- `users` (List of Object) Users assigned to the organization role. (see [below for nested schema](#nestedatt--users))
 
-## Nested Schema for `users`
+<a id="nestedatt--users"></a>
+### Nested Schema for `users`
+
+Read-Only:
+
+- `assignment` (String)
+- `login` (String)
+- `user_id` (Number)
+-->
+
+## Schema
+
+### Required
+
+- `role_id` (Number) ID of the organization role.
 
 ### Read-Only
 
-- `user_id` (Number) The ID of the user.
-- `login` (String) The login for the GitHub user account.
+- `id` (String) The ID of this resource.
+- `users` (List of Object) Users assigned to the organization role. (see [below for nested schema](#nestedatt--users))
+
+<a id="nestedatt--users"></a>
+### Nested Schema for `users`
+
+Read-Only:
+
+- `assignment` (String) Relationship a user has with a role; one of `direct`, `indirect`, or `mixed`.
+- `login` (String) Login of the user.
+- `user_id` (Number) ID of the user.
