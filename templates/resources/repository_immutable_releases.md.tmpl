@@ -1,0 +1,39 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Manages immutable releases for a GitHub repository
+---
+
+# {{.Name}} ({{.Type}})
+
+This resource allows you to manage [immutable releases](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases) for a GitHub repository. Once enabled, newly published releases lock their assets and associated Git tags against modification.
+
+-> **Note:** Existing releases remain mutable. Immutability applies only to releases published after this setting is enabled. Prefer a draft → attach assets → publish workflow when attaching release assets.
+
+## Example Usage
+
+{{tffile "examples/resources/repository_immutable_releases/example_1.tf"}}
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `repository` - (Required) The name of the repository to configure immutable releases for.
+
+- `enabled` - (Optional) Whether immutable releases are enabled for the repository. Defaults to `true`.
+
+## Attribute Reference
+
+In addition to the above arguments, the following attributes are exported:
+
+- `repository_id` - The ID of the repository.
+
+- `enforced_by_owner` - Whether immutable releases are enforced by the repository owner (organization).
+
+## Import
+
+Repository immutable releases settings can be imported using the `repository_name`:
+
+```sh
+terraform import github_repository_immutable_releases.example my-repo
+```

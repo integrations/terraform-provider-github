@@ -230,6 +230,7 @@ func NewProvider(version, commit string) func() *schema.Provider {
 				"github_repository_ruleset":                                             resourceGithubRepositoryRuleset(),
 				"github_repository_topics":                                              resourceGithubRepositoryTopics(),
 				"github_repository_webhook":                                             resourceGithubRepositoryWebhook(),
+				"github_repository_immutable_releases":                                  resourceGithubRepositoryImmutableReleases(),
 				"github_repository_vulnerability_alerts":                                resourceGithubRepositoryVulnerabilityAlerts(),
 				"github_team":                                                           resourceGithubTeam(),
 				"github_team_members":                                                   resourceGithubTeamMembers(),
