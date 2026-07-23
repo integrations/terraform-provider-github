@@ -49,17 +49,21 @@ To authenticate using a GitHub App installation, ensure that arguments in the `a
 
 Some API operations may not be available when using a GitHub App installation configuration. For more information, refer to the list of [supported endpoints](https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps).
 
+~> The `app_auth` block is optional: the provider reads the `GITHUB_APP_XXX` environment variables directly. When you deliberately want GitHub App auth, keeping the block is recommended: its required arguments make `terraform validate` fail fast if a value is missing, and it lets you set non-secret values such as the App `id` directly. Drive auth from the environment without a block when the same configuration must also validate without the variables set, such as CI linting. The three patterns below cover each case.
+
+#### Block with values
+
 {{ tffile "examples/provider/app_auth/main.tf" }}
 
-~> When using environment variables, an empty `app_auth` block is required to allow provider configurations from environment variables to be specified. See: <https://github.com/hashicorp/terraform-plugin-sdk/issues/142>
-
-#### .env
+#### Environment variables only
 
 {{ codefile "shell" "examples/provider/app_auth_env/.env" }}
 
-#### main.tf
-
 {{ tffile "examples/provider/app_auth_env/main.tf" }}
+
+#### Non-secret values in configuration, secret from the environment
+
+{{ tffile "examples/provider/app_auth_mixed/main.tf" }}
 
 ### GitHub CLI Authentication
 
