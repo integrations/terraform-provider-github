@@ -26,7 +26,7 @@ func TestAccDataSourceGithubTeamMembers(t *testing.T) {
 		mustAddTeamMaintainer(t, team1, user1.GetLogin())
 
 		user2 := mustGetUser(t, testAccConf.testOrgUser2)
-		team2 := mustCreateTestTeam(t, team1.ID)
+		team2 := mustCreateTestTeam(t, withNewTeamParent(team1.GetID()))
 		mustAddTeamMember(t, team2, user2.GetLogin())
 
 		config := fmt.Sprintf(`
@@ -76,7 +76,7 @@ data "github_team_members" "test" {
 		mustAddTeamMaintainer(t, team1, user1.GetLogin())
 
 		user2 := mustGetUser(t, testAccConf.testOrgUser2)
-		team2 := mustCreateTestTeam(t, team1.ID)
+		team2 := mustCreateTestTeam(t, withNewTeamParent(team1.GetID()))
 		mustAddTeamMember(t, team2, user2.GetLogin())
 
 		config := fmt.Sprintf(`

@@ -186,7 +186,7 @@ The overall status of each resource or data source is captured in this document 
 | `github_repository` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_repository_autolink_reference` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_repository_collaborator` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
-| `github_repository_collaborators` | ⚠️ | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ |
+| `github_repository_collaborators` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_repository_custom_property` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_repository_dependabot_security_updates` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_repository_deploy_key` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |

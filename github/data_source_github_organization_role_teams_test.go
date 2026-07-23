@@ -18,16 +18,16 @@ func TestAccDataSourceGithubOrganizationRoleTeams(t *testing.T) {
 	t.Run("queries_teams", func(t *testing.T) {
 		t.Parallel()
 
-		role := mustGetOrganizationRole(t, 138)
+		roleID := int64(138)
 		team1 := mustCreateTestTeam(t, nil)
-		team2 := mustCreateTestTeam(t, new(team1.GetID()))
-		mustAddOrganizationRoleTeam(t, role, team1)
+		team2 := mustCreateTestTeam(t, withNewTeamParent(team1.GetID()))
+		mustAssignOrganizationRoleToTeam(t, team1, roleID)
 
 		config := fmt.Sprintf(`
 data "github_organization_role_teams" "test" {
 	role_id = %v
 }
-`, role.GetID())
+`, roleID)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,

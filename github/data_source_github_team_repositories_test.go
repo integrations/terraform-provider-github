@@ -20,7 +20,7 @@ func TestAccDataSourceGithubTeamRepositories(t *testing.T) {
 
 		team := mustCreateTestTeam(t, nil)
 		repo := mustCreateTestRepository(t)
-		mustAddRepositoryTeam(t, repo, team)
+		mustAddRepositoryToTeam(t, team, repo)
 
 		config := fmt.Sprintf(`
 data "github_team_repositories" "test" {
@@ -55,7 +55,7 @@ data "github_team_repositories" "test" {
 
 		team := mustCreateTestTeam(t, nil)
 		repo := mustCreateTestRepository(t)
-		mustAddRepositoryTeam(t, repo, team)
+		mustAddRepositoryToTeam(t, team, repo)
 
 		config := fmt.Sprintf(`
 data "github_team_repositories" "test" {
