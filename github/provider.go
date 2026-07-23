@@ -240,6 +240,7 @@ func NewProvider(version, commit string) func() *schema.Provider {
 				"github_user_gpg_key":                                                   resourceGithubUserGpgKey(),
 				"github_user_invitation_accepter":                                       resourceGithubUserInvitationAccepter(),
 				"github_user_ssh_key":                                                   resourceGithubUserSshKey(),
+				"github_enterprise_app_installation":                                    resourceGithubEnterpriseAppInstallation(),
 				"github_enterprise_organization":                                        resourceGithubEnterpriseOrganization(),
 				"github_enterprise_actions_runner_group":                                resourceGithubActionsEnterpriseRunnerGroup(),
 				"github_enterprise_ip_allow_list_entry":                                 resourceGithubEnterpriseIpAllowListEntry(),
