@@ -299,7 +299,7 @@ func resourceGithubRepositoryCollaboratorsDiff(ctx context.Context, d *schema.Re
 			}
 		}
 
-		if hasAddedUser {
+		if hasAddedUser || oldUsers.Len() > newUsers.Len() {
 			if err := d.SetNewComputed("invitation_ids"); err != nil {
 				return fmt.Errorf("error setting invitation_ids to computed: %w", err)
 			}
