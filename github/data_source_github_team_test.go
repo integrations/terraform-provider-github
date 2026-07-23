@@ -18,7 +18,7 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 	t.Run("queries_root_team_by_slug_summary", func(t *testing.T) {
 		t.Parallel()
 
-		team := mustCreateTestTeam(t, nil)
+		team := mustCreateTestTeam(t)
 
 		config := fmt.Sprintf(`
 data "github_team" "test" {
@@ -55,7 +55,7 @@ data "github_team" "test" {
 	t.Run("queries_root_team_by_id_summary", func(t *testing.T) {
 		t.Parallel()
 
-		team := mustCreateTestTeam(t, nil)
+		team := mustCreateTestTeam(t)
 
 		config := fmt.Sprintf(`
 data "github_team" "test" {
@@ -95,12 +95,12 @@ data "github_team" "test" {
 		skipUnlessHasOrgUser1(t)
 		skipUnlessHasOrgUser2(t)
 
-		team := mustCreateTestTeam(t, nil)
+		team := mustCreateTestTeam(t)
 		mustAddTeamMember(t, team, testAccConf.testOrgUser1)
-		childTeam := mustCreateTestTeam(t, new(team.GetID()))
+		childTeam := mustCreateTestTeam(t, withNewTeamParent(team.GetID()))
 		mustAddTeamMember(t, childTeam, testAccConf.testOrgUser2)
 		repo := mustCreateTestRepository(t)
-		mustAddRepositoryTeam(t, repo, team)
+		mustAddRepositoryToTeam(t, team, repo)
 
 		config := fmt.Sprintf(`
 data "github_team" "test" {
@@ -177,8 +177,8 @@ data "github_team" "test" {
 	t.Run("queries_child_team", func(t *testing.T) {
 		t.Parallel()
 
-		parentTeam := mustCreateTestTeam(t, nil)
-		team := mustCreateTestTeam(t, new(parentTeam.GetID()))
+		parentTeam := mustCreateTestTeam(t)
+		team := mustCreateTestTeam(t, withNewTeamParent(parentTeam.GetID()))
 
 		config := fmt.Sprintf(`
 data "github_team" "test" {
