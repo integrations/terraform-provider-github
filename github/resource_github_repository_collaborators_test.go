@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
@@ -119,6 +120,11 @@ resource "github_repository_collaborators" "test" {
 				},
 				{
 					Config: fmt.Sprintf(config, team1.GetSlug(), "pull", team2.GetSlug()),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_collaborators.test", plancheck.ResourceActionUpdate),
+						},
+					},
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("repository_id"), knownvalue.Int32Exact(int32(repo.GetID()))),
 						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("owner_configured"), knownvalue.Bool(false)),
@@ -127,6 +133,11 @@ resource "github_repository_collaborators" "test" {
 				},
 				{
 					Config: fmt.Sprintf(config, team1.GetSlug(), "push", team2.GetSlug()),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_collaborators.test", plancheck.ResourceActionUpdate),
+						},
+					},
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("repository_id"), knownvalue.Int32Exact(int32(repo.GetID()))),
 						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("owner_configured"), knownvalue.Bool(false)),
@@ -141,6 +152,11 @@ resource "github_repository_collaborators" "test" {
 				},
 				{
 					Config: fmt.Sprintf(configRemoveTeam, team1.GetSlug(), "push"),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_collaborators.test", plancheck.ResourceActionUpdate),
+						},
+					},
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("repository_id"), knownvalue.Int32Exact(int32(repo.GetID()))),
 						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("owner_configured"), knownvalue.Bool(false)),
@@ -202,6 +218,11 @@ resource "github_repository_collaborators" "test" {
 				},
 				{
 					Config: fmt.Sprintf(config, testAccConf.testOrgUser1, "push", testAccConf.testOrgUser2),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_collaborators.test", plancheck.ResourceActionUpdate),
+						},
+					},
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("repository_id"), knownvalue.Int32Exact(int32(repo.GetID()))),
 						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("owner_configured"), knownvalue.Bool(false)),
@@ -216,6 +237,11 @@ resource "github_repository_collaborators" "test" {
 				},
 				{
 					Config: fmt.Sprintf(configRemoveUser, testAccConf.testOrgUser1, "push"),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_collaborators.test", plancheck.ResourceActionUpdate),
+						},
+					},
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("repository_id"), knownvalue.Int32Exact(int32(repo.GetID()))),
 						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("owner_configured"), knownvalue.Bool(false)),
@@ -230,6 +256,11 @@ resource "github_repository_collaborators" "test" {
 						return false, nil
 					},
 					Config: fmt.Sprintf(config, testAccConf.testOrgUser1, "push", testAccConf.testExternalUser1),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_collaborators.test", plancheck.ResourceActionUpdate),
+						},
+					},
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("repository_id"), knownvalue.Int32Exact(int32(repo.GetID()))),
 						statecheck.ExpectKnownValue("github_repository_collaborators.test", tfjsonpath.New("owner_configured"), knownvalue.Bool(false)),

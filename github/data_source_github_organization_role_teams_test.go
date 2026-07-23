@@ -19,7 +19,7 @@ func TestAccDataSourceGithubOrganizationRoleTeams(t *testing.T) {
 		t.Parallel()
 
 		roleID := int64(138)
-		team1 := mustCreateTestTeam(t, nil)
+		team1 := mustCreateTestTeam(t)
 		team2 := mustCreateTestTeam(t, withNewTeamParent(team1.GetID()))
 		mustAssignOrganizationRoleToTeam(t, team1, roleID)
 

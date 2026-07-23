@@ -22,7 +22,7 @@ func TestAccDataSourceGithubTeamMembers(t *testing.T) {
 		skipUnlessHasOrgUser2(t)
 
 		user1 := mustGetUser(t, testAccConf.testOrgUser1)
-		team1 := mustCreateTestTeam(t, nil)
+		team1 := mustCreateTestTeam(t)
 		mustAddTeamMaintainer(t, team1, user1.GetLogin())
 
 		user2 := mustGetUser(t, testAccConf.testOrgUser2)
@@ -72,7 +72,7 @@ data "github_team_members" "test" {
 		skipUnlessHasOrgUser2(t)
 
 		user1 := mustGetUser(t, testAccConf.testOrgUser1)
-		team1 := mustCreateTestTeam(t, nil)
+		team1 := mustCreateTestTeam(t)
 		mustAddTeamMaintainer(t, team1, user1.GetLogin())
 
 		user2 := mustGetUser(t, testAccConf.testOrgUser2)

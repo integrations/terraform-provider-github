@@ -22,7 +22,7 @@ func TestAccGithubTeamMembers(t *testing.T) {
 	t.Run("team_by_slug", func(t *testing.T) {
 		t.Parallel()
 
-		team := mustCreateTestTeam(t, nil)
+		team := mustCreateTestTeam(t)
 
 		config := fmt.Sprintf(`
 resource "github_team_members" "test" {
@@ -60,7 +60,7 @@ resource "github_team_members" "test" {
 	t.Run("team_by_id_as_slug", func(t *testing.T) {
 		t.Parallel()
 
-		team := mustCreateTestTeam(t, nil)
+		team := mustCreateTestTeam(t)
 
 		config := fmt.Sprintf(`
 resource "github_team_members" "test" {
@@ -99,7 +99,7 @@ resource "github_team_members" "test" {
 	t.Run("team_by_id", func(t *testing.T) {
 		t.Parallel()
 
-		team := mustCreateTestTeam(t, nil)
+		team := mustCreateTestTeam(t)
 
 		config := fmt.Sprintf(`
 resource "github_team_members" "test" {
@@ -137,7 +137,7 @@ resource "github_team_members" "test" {
 	t.Run("migrate_team_by_id_as_slug_to_slug", func(t *testing.T) {
 		t.Parallel()
 
-		team := mustCreateTestTeam(t, nil)
+		team := mustCreateTestTeam(t)
 
 		config := fmt.Sprintf(`
 resource "github_team_members" "test" {
@@ -190,7 +190,7 @@ resource "github_team_members" "test" {
 	t.Run("migrate_team_by_id_to_slug", func(t *testing.T) {
 		t.Parallel()
 
-		team := mustCreateTestTeam(t, nil)
+		team := mustCreateTestTeam(t)
 
 		config := fmt.Sprintf(`
 resource "github_team_members" "test" {
@@ -245,7 +245,7 @@ resource "github_team_members" "test" {
 
 		skipUnlessHasOrgUser2(t)
 
-		team := mustCreateTestTeam(t, nil)
+		team := mustCreateTestTeam(t)
 		mustAddTeamMember(t, team, testAccConf.testOrgUser2)
 
 		config := fmt.Sprintf(`
@@ -283,7 +283,7 @@ resource "github_team_members" "test" {
 
 		skipUnlessHasOrgUser2(t)
 
-		team := mustCreateTestTeam(t, nil)
+		team := mustCreateTestTeam(t)
 		childTeam := mustCreateTestTeam(t, withNewTeamParent(team.GetID()))
 		mustAddTeamMember(t, childTeam, testAccConf.testOrgUser2)
 
@@ -314,7 +314,7 @@ resource "github_team_members" "test" {
 	t.Run("team_rename_handled", func(t *testing.T) {
 		t.Parallel()
 
-		team := mustCreateTestTeam(t, nil)
+		team := mustCreateTestTeam(t)
 		newTeamName := fmt.Sprintf("%s-renamed", team.GetName())
 
 		config := fmt.Sprintf(`
@@ -353,7 +353,7 @@ resource "github_team_members" "test" {
 	t.Run("team_delete_handled", func(t *testing.T) {
 		t.Parallel()
 
-		team := mustCreateTestTeam(t, nil)
+		team := mustCreateTestTeam(t)
 
 		config := fmt.Sprintf(`
 resource "github_team_members" "test" {
@@ -391,8 +391,8 @@ resource "github_team_members" "test" {
 	t.Run("team_changed_forces_recreate", func(t *testing.T) {
 		t.Parallel()
 
-		team := mustCreateTestTeam(t, nil)
-		newTeam := mustCreateTestTeam(t, nil)
+		team := mustCreateTestTeam(t)
+		newTeam := mustCreateTestTeam(t)
 
 		config := fmt.Sprintf(`
 resource "github_team_members" "test" {
