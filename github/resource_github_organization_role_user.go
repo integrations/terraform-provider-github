@@ -39,14 +39,15 @@ func resourceGithubOrganizationRoleUser() *schema.Resource {
 	}
 }
 
-func resourceGithubOrganizationRoleUserCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubOrganizationRoleUserCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 
 	roleId := int64(d.Get("role_id").(int))
 	login := d.Get("login").(string)
@@ -61,14 +62,15 @@ func resourceGithubOrganizationRoleUserCreate(ctx context.Context, d *schema.Res
 	return nil
 }
 
-func resourceGithubOrganizationRoleUserRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubOrganizationRoleUserRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 
 	roleIdString, login, err := parseID2(d.Id())
 	if err != nil {
@@ -80,7 +82,7 @@ func resourceGithubOrganizationRoleUserRead(ctx context.Context, d *schema.Resou
 	}
 
 	opts := &github.ListOptions{
-		PerPage: maxPerPage,
+		PerPage: meta.maxPerPage,
 	}
 
 	var user *github.User
@@ -120,14 +122,15 @@ func resourceGithubOrganizationRoleUserRead(ctx context.Context, d *schema.Resou
 	return nil
 }
 
-func resourceGithubOrganizationRoleUserDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubOrganizationRoleUserDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 
 	roleId := int64(d.Get("role_id").(int))
 	login := d.Get("login").(string)

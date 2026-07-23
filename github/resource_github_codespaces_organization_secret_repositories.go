@@ -38,9 +38,10 @@ func resourceGithubCodespacesOrganizationSecretRepositories() *schema.Resource {
 	}
 }
 
-func resourceGithubCodespaceOrganizationSecretRepositoriesCreateOrUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubCodespaceOrganizationSecretRepositoriesCreateOrUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 	ctx := context.Background()
 
 	err := checkOrganization(meta)
@@ -67,9 +68,10 @@ func resourceGithubCodespaceOrganizationSecretRepositoriesCreateOrUpdate(d *sche
 	return resourceGithubCodespaceOrganizationSecretRepositoriesRead(d, meta)
 }
 
-func resourceGithubCodespaceOrganizationSecretRepositoriesRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubCodespaceOrganizationSecretRepositoriesRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 	ctx := context.Background()
 
 	err := checkOrganization(meta)
@@ -79,7 +81,7 @@ func resourceGithubCodespaceOrganizationSecretRepositoriesRead(d *schema.Resourc
 
 	selectedRepositoryIDs := github.SelectedRepoIDs{}
 	opt := &github.ListOptions{
-		PerPage: maxPerPage,
+		PerPage: meta.maxPerPage,
 	}
 	for {
 		results, resp, err := client.Codespaces.ListSelectedReposForOrgSecret(ctx, owner, d.Id(), opt)
@@ -102,9 +104,10 @@ func resourceGithubCodespaceOrganizationSecretRepositoriesRead(d *schema.Resourc
 	return nil
 }
 
-func resourceGithubCodespaceOrganizationSecretRepositoriesDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubCodespaceOrganizationSecretRepositoriesDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	err := checkOrganization(meta)

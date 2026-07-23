@@ -73,7 +73,10 @@ type testAccConfig struct {
 	testExternalUser2      string
 
 	// Enterprise test configuration
-	testEnterpriseEMUGroupId int
+	testEnterpriseEMUGroupId      int
+	testExternalGroup1ID          int
+	testExternalGroup1DisplayName string
+	testExternalGroup2ID          int
 
 	// Test options
 	testAdvancedSecurity bool

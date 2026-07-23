@@ -45,13 +45,13 @@ func dataSourceGithubOrganizationWebhooks() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationWebhooksRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	owner := meta.(*Owner).name
-
-	client := meta.(*Owner).v3client
+func dataSourceGithubOrganizationWebhooksRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	owner := meta.name
+	client := meta.v3client
 
 	options := &github.ListOptions{
-		PerPage: 100,
+		PerPage: meta.maxPerPage,
 	}
 
 	results := make([]map[string]any, 0)

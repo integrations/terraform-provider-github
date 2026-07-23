@@ -32,7 +32,7 @@ data "github_team" "example" {
 
 - `description` (String) Description of the team.
 - `id` (String) The ID of this resource.
-- `members` (List of String) List of members of the team.
+- `members` (List of String, Deprecated) List of members of the team.
 - `name` (String) Name of the team.
 - `node_id` (String) Node ID of the team.
 - `notification_setting` (String) Notification setting for the team; one of `notifications_enabled`, or `notifications_disabled`.
@@ -40,7 +40,7 @@ data "github_team" "example" {
 - `permission` (String) Legacy default repository permission for the team (typically pull, push, or admin), used when adding a repository without specifying an explicit permission. This does not represent effective access for all repositories or custom repository roles.
 - `privacy` (String) Privacy level of the team; one of `secret` or `closed`.
 - `repositories` (List of String, Deprecated) List of repositories the team has access to.
-- `repositories_detailed` (List of Object) List of repositories the team has access to. (see [below for nested schema](#nestedatt--repositories_detailed))
+- `repositories_detailed` (List of Object, Deprecated) List of repositories the team has access to. (see [below for nested schema](#nestedatt--repositories_detailed))
 - `type` (String) Ownership type of the team; one of `enterprise` or `organization`.
 
 <a id="nestedatt--parent_team"></a>
@@ -76,7 +76,7 @@ Read-Only:
 
 - `description` (String) Description of the team.
 - `id` (String) The ID of this resource.
-- `members` (List of String) List of members of the team.
+- `members` (List of String, Deprecated) List of members of the team.
 - `name` (String) Name of the team.
 - `node_id` (String) Node ID of the team.
 - `notification_setting` (String) Notification setting for the team; one of `notifications_enabled`, or `notifications_disabled`.
@@ -84,7 +84,7 @@ Read-Only:
 - `permission` (String) Legacy default repository permission for the team (typically pull, push, or admin), used when adding a repository without specifying an explicit permission. This does not represent effective access for all repositories or custom repository roles.
 - `privacy` (String) Privacy level of the team; one of `secret` or `closed`.
 - `repositories` (List of String, Deprecated) List of repositories the team has access to.
-- `repositories_detailed` (List of Object) List of repositories the team has access to. (see [below for nested schema](#nestedatt--repositories_detailed))
+- `repositories_detailed` (List of Object, Deprecated) List of repositories the team has access to. (see [below for nested schema](#nestedatt--repositories_detailed))
 - `type` (String) Ownership type of the team; one of `enterprise` or `organization`.
 
 <a id="nestedatt--parent_team"></a>
