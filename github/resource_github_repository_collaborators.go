@@ -62,10 +62,6 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 				Type:        schema.TypeSet,
 				Optional:    true,
 				Description: "Users to grant access to the repository.",
-				Set: func(v any) int {
-					username, _ := v.(map[string]any)["username"].(string)
-					return schema.HashString(strings.ToLower(username))
-				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"username": {
@@ -87,10 +83,6 @@ func resourceGithubRepositoryCollaborators() *schema.Resource {
 				Type:        schema.TypeSet,
 				Optional:    true,
 				Description: "Teams to grant access to the repository.",
-				Set: func(v any) int {
-					teamIDStr, _ := v.(map[string]any)["team_id"].(string)
-					return schema.HashString(strings.ToLower(teamIDStr))
-				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"team_id": {
@@ -613,7 +605,12 @@ func resourceGithubRepositoryCollaboratorsImport(ctx context.Context, d *schema.
 		}
 	}
 
-	ghUsers, err := listUserCollaborators(ctx, meta, owner, repoName, nil)
+	inIgnoreUsers := make([]string, 0)
+	if !meta.IsOrganization {
+		inIgnoreUsers = append(inIgnoreUsers, strings.ToLower(owner))
+	}
+
+	ghUsers, err := listUserCollaborators(ctx, meta, owner, repoName, inIgnoreUsers)
 	if err != nil {
 		return nil, err
 	}

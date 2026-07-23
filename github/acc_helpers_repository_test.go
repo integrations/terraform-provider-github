@@ -24,7 +24,9 @@ func mustCreateTestRepository(t *testing.T, f ...createTestRepositoryOptionsFunc
 	}
 
 	for _, fn := range f {
-		fn(req)
+		if fn != nil {
+			fn(req)
+		}
 	}
 
 	var org string

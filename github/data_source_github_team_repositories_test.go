@@ -18,7 +18,7 @@ func TestAccDataSourceGithubTeamRepositories(t *testing.T) {
 	t.Run("queries_all_repositories_by_slug", func(t *testing.T) {
 		t.Parallel()
 
-		team := mustCreateTestTeam(t, nil)
+		team := mustCreateTestTeam(t)
 		repo := mustCreateTestRepository(t)
 		mustAddRepositoryToTeam(t, team, repo)
 
@@ -53,7 +53,7 @@ data "github_team_repositories" "test" {
 	t.Run("queries_all_repositories_by_team_id", func(t *testing.T) {
 		t.Parallel()
 
-		team := mustCreateTestTeam(t, nil)
+		team := mustCreateTestTeam(t)
 		repo := mustCreateTestRepository(t)
 		mustAddRepositoryToTeam(t, team, repo)
 

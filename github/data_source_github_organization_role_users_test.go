@@ -22,7 +22,7 @@ func TestAccDataSourceGithubOrganizationRoleUsers(t *testing.T) {
 
 		roleID := int64(138)
 		mustAssignOrganizationRoleToUser(t, testAccConf.testOrgUser1, roleID)
-		team := mustCreateTestTeam(t, nil)
+		team := mustCreateTestTeam(t)
 		mustAddTeamMember(t, team, testAccConf.testOrgUser2)
 		mustAssignOrganizationRoleToTeam(t, team, roleID)
 

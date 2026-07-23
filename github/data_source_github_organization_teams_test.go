@@ -18,7 +18,7 @@ func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
 	t.Run("queries_all_teams_summary", func(t *testing.T) {
 		t.Parallel()
 
-		team1 := mustCreateTestTeam(t, nil)
+		team1 := mustCreateTestTeam(t)
 		team2 := mustCreateTestTeam(t, withNewTeamParent(team1.GetID()))
 
 		config := `
@@ -92,7 +92,7 @@ data "github_organization_teams" "test" {
 	t.Run("queries_root_teams_summary", func(t *testing.T) {
 		t.Parallel()
 
-		team1 := mustCreateTestTeam(t, nil)
+		team1 := mustCreateTestTeam(t)
 		team2 := mustCreateTestTeam(t, withNewTeamParent(team1.GetID()))
 
 		config := `
@@ -149,10 +149,10 @@ data "github_organization_teams" "test" {
 		skipUnlessHasOrgUser2(t)
 
 		repo := mustCreateTestRepository(t)
-		team1 := mustCreateTestTeam(t, nil)
+		team1 := mustCreateTestTeam(t)
 		mustAddTeamMember(t, team1, testAccConf.testOrgUser1)
 		mustAddRepositoryToTeam(t, team1, repo)
-		team2 := mustCreateTestTeam(t, nil)
+		team2 := mustCreateTestTeam(t)
 		team3 := mustCreateTestTeam(t, withNewTeamParent(team1.GetID()))
 		mustAddTeamMember(t, team3, testAccConf.testOrgUser2)
 
