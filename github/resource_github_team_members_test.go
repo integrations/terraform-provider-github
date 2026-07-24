@@ -20,7 +20,6 @@ func TestAccGithubTeamMembers(t *testing.T) {
 
 	skipUnlessHasOrgs(t)
 	skipUnlessHasOrgUser1(t)
-	flippedCaseUsername := flipUsernameCase(testAccConf.testOrgUser1)
 
 	t.Run("imports_team_by_slug", func(t *testing.T) {
 		t.Parallel()
@@ -36,7 +35,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetSlug(), flippedCaseUsername)
+`, team.GetSlug(), testAccConf.testOrgUser1)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -74,7 +73,7 @@ resource "github_team_members" "test" {
     role     = "%%s"
   }
 }
-`, team.GetSlug(), flippedCaseUsername)
+`, team.GetSlug(), testAccConf.testOrgUser1)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -109,7 +108,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetSlug(), flippedCaseUsername)
+`, team.GetSlug(), testAccConf.testOrgUser1)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -148,7 +147,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetID(), flippedCaseUsername)
+`, team.GetID(), testAccConf.testOrgUser1)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -186,7 +185,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetSlug(), flippedCaseUsername)
+`, team.GetSlug(), testAccConf.testOrgUser1)
 
 		configMigrate := fmt.Sprintf(`
 resource "github_team_members" "test" {
@@ -197,7 +196,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetSlug(), flippedCaseUsername)
+`, team.GetSlug(), testAccConf.testOrgUser1)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -239,7 +238,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetID(), flippedCaseUsername)
+`, team.GetID(), testAccConf.testOrgUser1)
 
 		configMigrate := fmt.Sprintf(`
 resource "github_team_members" "test" {
@@ -250,7 +249,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetSlug(), flippedCaseUsername)
+`, team.GetSlug(), testAccConf.testOrgUser1)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -295,7 +294,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetSlug(), flippedCaseUsername)
+`, team.GetSlug(), testAccConf.testOrgUser1)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -334,7 +333,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetSlug(), flippedCaseUsername)
+`, team.GetSlug(), testAccConf.testOrgUser1)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -364,7 +363,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, flippedCaseUsername)
+`, testAccConf.testOrgUser1)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -402,7 +401,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, team.GetSlug(), flippedCaseUsername)
+`, team.GetSlug(), testAccConf.testOrgUser1)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -441,7 +440,7 @@ resource "github_team_members" "test" {
     role     = "maintainer"
   }
 }
-`, flippedCaseUsername)
+`, testAccConf.testOrgUser1)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -473,6 +472,7 @@ resource "github_team_members" "test" {
 		t.Parallel()
 
 		team := mustCreateTestTeam(t, nil)
+		flippedCaseUsername := flipUsernameCase(testAccConf.testOrgUser1)
 
 		config := fmt.Sprintf(`
 resource "github_team_members" "test" {
@@ -495,7 +495,7 @@ resource "github_team_members" "test" {
 					ConfigStateChecks: []statecheck.StateCheck{
 						usernameIsSameComparer.AddStateValue("github_team_members.test", tfjsonpath.New("members").AtSliceIndex(0).AtMapKey("username")),
 						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
-						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members").AtSliceIndex(0).AtMapKey("username"), knownvalue.StringExact(strings.ToLower(testAccConf.testOrgUser1))),
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members").AtSliceIndex(0).AtMapKey("username"), knownvalue.StringExact(strings.ToLower(flippedCaseUsername))),
 					},
 				},
 				{
