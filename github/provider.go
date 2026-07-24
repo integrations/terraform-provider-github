@@ -456,7 +456,7 @@ func configureProvider(version, commit string) func(context.Context, *schema.Res
 				config.Token = appToken
 			}
 
-			if authMode != "none" && config.Token == "" {
+			if authMode == "auto" && config.Token == "" {
 				tflog.Debug(ctx, "No token found, using GitHub CLI to get token from base URL.", map[string]any{"base_url": config.BaseURL.String()})
 				config.Token = tokenFromGHCLI(ctx, config.BaseURL)
 			}
@@ -692,6 +692,8 @@ func tokenFromGHCLI(ctx context.Context, u *url.URL) string {
 
 // getAppAuth retrieves GitHub App authentication parameters from the provider configuration, environment variables, or defaults, and validates them. It returns the app ID, installation ID, PEM file content, and a boolean indicating whether valid app authentication parameters were found.
 func getAppAuth(d *schema.ResourceData, envPrefix string) (*string, *string, []byte, bool) {
+	envPrefix = strings.TrimSuffix(envPrefix, "_") + "_"
+
 	appID := os.Getenv(envPrefix + "ID")
 	appInstallationID := os.Getenv(envPrefix + "INSTALLATION_ID")
 	appPEM := os.Getenv(envPrefix + "PEM_FILE")
