@@ -405,8 +405,8 @@ func skipUnlessHasOrgUser2(t *testing.T) {
 	}
 }
 
-// func skipUnlessHasOrgUser3(t *testing.T) {
-// 	if testAccConf.testOrgUser3 == "" {
-// 		t.Skip("Skipping as no test org user 3 is configured")
-// 	}
-// }
+func skipUnlessHasOrgUser3(t *testing.T) {
+	if testAccConf.testOrgUser3 == "" {
+		t.Skip("Skipping as no test org user 3 is configured")
+	}
+}
