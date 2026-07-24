@@ -69,11 +69,13 @@ func resourceGithubTeamMembers() *schema.Resource {
 							Type:             schema.TypeString,
 							Required:         true,
 							DiffSuppressFunc: caseInsensitive(),
+							Description:      "User to add to the team.",
+							// This seems to be the only way to ensure that the username is in lowercase.
+							// Without this the tests fail because the value is compared in a case-sensitive manner.
 							StateFunc: func(v any) string {
 								val, _ := v.(string)
 								return strings.ToLower(val)
 							},
-							Description: "User to add to the team.",
 						},
 						"role": {
 							Type:             schema.TypeString,
