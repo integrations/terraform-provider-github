@@ -22,7 +22,7 @@ func TestAccGithubTeamMembers(t *testing.T) {
 	skipUnlessHasOrgUser1(t)
 	flippedCaseUsername := flipUsernameCase(testAccConf.testOrgUser1)
 
-	t.Run("team_by_slug", func(t *testing.T) {
+	t.Run("imports_team_by_slug", func(t *testing.T) {
 		t.Parallel()
 
 		team := mustCreateTestTeam(t, nil)
@@ -95,7 +95,7 @@ resource "github_team_members" "test" {
 		})
 	})
 
-	t.Run("team_by_id_as_slug", func(t *testing.T) {
+	t.Run("imports_team_by_id_as_slug", func(t *testing.T) {
 		t.Parallel()
 
 		team := mustCreateTestTeam(t, nil)
@@ -134,7 +134,7 @@ resource "github_team_members" "test" {
 		})
 	})
 
-	t.Run("team_by_id", func(t *testing.T) {
+	t.Run("imports_team_by_id", func(t *testing.T) {
 		t.Parallel()
 
 		team := mustCreateTestTeam(t, nil)
