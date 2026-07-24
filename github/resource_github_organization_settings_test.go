@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
@@ -612,4 +613,150 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 			})
 		})
 	})
+}
+
+func Test_buildOrganizationSettings(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name         string
+		raw          map[string]any
+		id           string // a non-empty ID exercises the update path
+		isEnterprise bool
+
+		wantBillingEmail                  *string
+		wantCompany                       *string
+		wantHasOrganizationProjects       *bool
+		wantWebCommitSignoffRequired      *bool
+		wantMembersCanCreateInternalRepos *bool
+		wantOmitted                       []string
+	}{
+		{
+			// Regression test for the create path dropping booleans configured as
+			// false, which only corrected itself on a second apply through the
+			// update/HasChange path.
+			name: "create_includes_explicitly_false_booleans",
+			raw: map[string]any{
+				"billing_email":               "org@example.com",
+				"has_organization_projects":   false,
+				"web_commit_signoff_required": false,
+			},
+			wantBillingEmail:             new("org@example.com"),
+			wantHasOrganizationProjects:  new(false),
+			wantWebCommitSignoffRequired: new(false),
+		},
+		{
+			name: "create_includes_true_booleans",
+			raw: map[string]any{
+				"billing_email":               "org@example.com",
+				"web_commit_signoff_required": true,
+			},
+			wantBillingEmail:             new("org@example.com"),
+			wantWebCommitSignoffRequired: new(true),
+		},
+		{
+			// Only booleans are included unconditionally on create; an
+			// unconfigured optional string stays omitted.
+			name: "create_omits_unconfigured_optional_string",
+			raw: map[string]any{
+				"billing_email": "org@example.com",
+			},
+			wantBillingEmail: new("org@example.com"),
+			wantOmitted:      []string{"company"},
+		},
+		{
+			name: "update_omits_unchanged_booleans",
+			raw: map[string]any{
+				"billing_email":             "org@example.com",
+				"has_organization_projects": false,
+			},
+			id:          "example-org",
+			wantOmitted: []string{"has_organization_projects"},
+		},
+		{
+			name: "enterprise_create_includes_internal_repositories_boolean",
+			raw: map[string]any{
+				"billing_email": "org@example.com",
+				"members_can_create_internal_repositories": false,
+			},
+			isEnterprise:                      true,
+			wantMembersCanCreateInternalRepos: new(false),
+		},
+		{
+			name: "non_enterprise_create_omits_internal_repositories_boolean",
+			raw: map[string]any{
+				"billing_email": "org@example.com",
+				"members_can_create_internal_repositories": false,
+			},
+			wantOmitted: []string{"members_can_create_internal_repositories"},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			d := schema.TestResourceDataRaw(t, resourceGithubOrganizationSettings().Schema, tt.raw)
+			if tt.id != "" {
+				d.SetId(tt.id)
+			}
+
+			got := buildOrganizationSettings(d, tt.isEnterprise)
+
+			assertStringPtr(t, "billing_email", got.BillingEmail, tt.wantBillingEmail)
+			assertStringPtr(t, "company", got.Company, tt.wantCompany)
+			assertBoolPtr(t, "has_organization_projects", got.HasOrganizationProjects, tt.wantHasOrganizationProjects)
+			assertBoolPtr(t, "web_commit_signoff_required", got.WebCommitSignoffRequired, tt.wantWebCommitSignoffRequired)
+			assertBoolPtr(t, "members_can_create_internal_repositories", got.MembersCanCreateInternalRepos, tt.wantMembersCanCreateInternalRepos)
+
+			omitted := map[string]bool{
+				"billing_email":                            got.BillingEmail == nil,
+				"company":                                  got.Company == nil,
+				"has_organization_projects":                got.HasOrganizationProjects == nil,
+				"web_commit_signoff_required":              got.WebCommitSignoffRequired == nil,
+				"members_can_create_internal_repositories": got.MembersCanCreateInternalRepos == nil,
+			}
+			for _, field := range tt.wantOmitted {
+				isOmitted, ok := omitted[field]
+				if !ok {
+					t.Fatalf("wantOmitted references unknown field %q", field)
+				}
+				if !isOmitted {
+					t.Errorf("%s should have been omitted from the payload", field)
+				}
+			}
+		})
+	}
+}
+
+// assertBoolPtr checks a boolean field of the built payload. A nil want means
+// the field is not asserted by this test case; use wantOmitted to require that
+// a field is absent.
+func assertBoolPtr(t *testing.T, field string, got, want *bool) {
+	t.Helper()
+
+	if want == nil {
+		return
+	}
+	if got == nil {
+		t.Errorf("%s was omitted from the payload, want %v", field, *want)
+		return
+	}
+	if *got != *want {
+		t.Errorf("%s = %v, want %v", field, *got, *want)
+	}
+}
+
+// assertStringPtr is the string counterpart of assertBoolPtr.
+func assertStringPtr(t *testing.T, field string, got, want *string) {
+	t.Helper()
+
+	if want == nil {
+		return
+	}
+	if got == nil {
+		t.Errorf("%s was omitted from the payload, want %q", field, *want)
+		return
+	}
+	if *got != *want {
+		t.Errorf("%s = %q, want %q", field, *got, *want)
+	}
 }
