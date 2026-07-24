@@ -53,12 +53,25 @@ func NewProvider(version, commit string) func() *schema.Provider {
 					Description: "GitHub organization to manage. This can also be set by the `GITHUB_ORGANIZATION` environment variable.",
 					Deprecated:  "This argument is deprecated and will be removed in a future major release; use `owner` instead.",
 				},
+				"auth_mode": {
+					Type:             schema.TypeString,
+					Optional:         true,
+					DefaultFunc:      schema.EnvDefaultFunc("GITHUB_AUTH_MODE", "auto"),
+					ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"auto", "app", "token", "none"}, false)),
+					Description:      "The authentication mode to use; this can be one of `auto`, `app`, `token` or `none` and defaults to `auto` which will detect the highest priority authentication mode available (`app` -> `token` -> `none`). This can also be set by the `GITHUB_AUTH_MODE` environment variable.",
+				},
 				"token": {
 					Type:        schema.TypeString,
 					Optional:    true,
 					DefaultFunc: schema.EnvDefaultFunc("GITHUB_TOKEN", nil),
 					Description: "GitHub OAuth or Personal Access Token (PAT) to use for authentication. This can also be set by the `GITHUB_TOKEN` environment variable.",
 					// ConflictsWith: []string{"app_auth"}, // TODO: Enable as part of v7.
+				},
+				"app_auth_env_prefix": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "GITHUB_APP_",
+					Description: "The environment variable prefix for the GitHub App authentication used to determine the environment variable names for the GitHub App's ID, installation ID, and PEM file content. This defaults to `GITHUB_APP_`.",
 				},
 				"app_auth": {
 					Type:        schema.TypeList,
@@ -71,21 +84,18 @@ func NewProvider(version, commit string) func() *schema.Provider {
 							"id": {
 								Type:        schema.TypeString,
 								Required:    true,
-								DefaultFunc: schema.EnvDefaultFunc("GITHUB_APP_ID", nil),
-								Description: "The GitHub App's identifier. This can also be set by the `GITHUB_APP_ID` environment variable.",
+								Description: "The GitHub App's identifier. This can also be set by the `GITHUB_APP_ID` environment variable when `app_auth_env_prefix` is `GITHUB_APP_` (modify the prefix as needed).",
 							},
 							"installation_id": {
 								Type:        schema.TypeString,
 								Required:    true,
-								DefaultFunc: schema.EnvDefaultFunc("GITHUB_APP_INSTALLATION_ID", nil),
-								Description: "The GitHub App's installation identifier. This can also be set by the `GITHUB_APP_INSTALLATION_ID` environment variable.",
+								Description: "The GitHub App's installation identifier. This can also be set by the `GITHUB_APP_INSTALLATION_ID` environment variable when `app_auth_env_prefix` is `GITHUB_APP_` (modify the prefix as needed).",
 							},
 							"pem_file": {
 								Type:        schema.TypeString,
 								Required:    true,
 								Sensitive:   true,
-								DefaultFunc: schema.EnvDefaultFunc("GITHUB_APP_PEM_FILE", nil),
-								Description: "The GitHub App's PEM file content; `\\n` can be used for newlines. This can also be set by the `GITHUB_APP_PEM_FILE` environment variable.",
+								Description: "The GitHub App's PEM file content; `\\n` can be used for newlines. This can also be set by the `GITHUB_APP_PEM_FILE` environment variable when `app_auth_env_prefix` is `GITHUB_APP_` (modify the prefix as needed).",
 							},
 						},
 					},
@@ -346,6 +356,9 @@ func configureProvider(version, commit string) func(context.Context, *schema.Res
 			return nil, diag.FromErr(err)
 		}
 
+		authMode, _ := d.Get("auth_mode").(string)
+		appAuthEnvPrefix, _ := d.Get("app_auth_env_prefix").(string)
+
 		config := &Config{
 			BaseURL: baseURL,
 		}
@@ -397,28 +410,36 @@ func configureProvider(version, commit string) func(context.Context, *schema.Res
 			}
 		}
 
-		if appID, appInstallationID, appPEM, ok := getAppAuth(d); ok {
-			tflog.Debug(ctx, "Using GitHub App authentication.", map[string]any{"app_id": appID, "app_installation_id": appInstallationID})
-			config.AppID = appID
-			config.AppInstallationID = appInstallationID
-			config.AppPEM = appPEM
+		if authMode == "app" || authMode == "auto" {
+			if appID, appInstallationID, appPEM, ok := getAppAuth(d, appAuthEnvPrefix); ok {
+				tflog.Debug(ctx, "Using GitHub App authentication.", map[string]any{"app_id": appID, "app_installation_id": appInstallationID})
+				config.AppID = appID
+				config.AppInstallationID = appInstallationID
+				config.AppPEM = appPEM
+			}
+
+			if config.AppID != nil && config.Owner == "" {
+				return nil, diag.Errorf("owner must be set for github app authentication")
+			}
 		}
 
 		if config.AppID == nil {
+			if authMode == "app" {
+				return nil, diag.Errorf("auth_mode is set to app but required fields for github app authentication are missing or contain empty values")
+			}
+
 			if _, ok := d.GetOk("app_auth"); ok {
 				return nil, diag.Errorf("app_auth block is set but required fields are missing or contains empty values")
 			}
 
-			if v, ok := d.GetOk("token"); ok {
-				if s, ok := v.(string); ok && s != "" {
-					tflog.Debug(ctx, "Using token from provider configuration.")
-					config.Token = s
+			if authMode != "none" {
+				if v, ok := d.GetOk("token"); ok {
+					if s, ok := v.(string); ok && s != "" {
+						tflog.Debug(ctx, "Using token from provider configuration.")
+						config.Token = s
+					}
 				}
 			}
-		}
-
-		if config.Owner == "" && config.AppID != nil {
-			return nil, diag.Errorf("owner must be set for github app authentication")
 		}
 
 		if config.LegacyClient {
@@ -435,10 +456,14 @@ func configureProvider(version, commit string) func(context.Context, *schema.Res
 				config.Token = appToken
 			}
 
-			if config.Token == "" {
+			if authMode != "none" && config.Token == "" {
 				tflog.Debug(ctx, "No token found, using GitHub CLI to get token from base URL.", map[string]any{"base_url": config.BaseURL.String()})
 				config.Token = tokenFromGHCLI(ctx, config.BaseURL)
 			}
+		}
+
+		if authMode == "token" && config.Token == "" {
+			return nil, diag.Errorf("auth_mode is set to token but no token was provided")
 		}
 
 		if v, ok := d.GetOk("read_delay_ms"); ok {
@@ -666,10 +691,10 @@ func tokenFromGHCLI(ctx context.Context, u *url.URL) string {
 }
 
 // getAppAuth retrieves GitHub App authentication parameters from the provider configuration, environment variables, or defaults, and validates them. It returns the app ID, installation ID, PEM file content, and a boolean indicating whether valid app authentication parameters were found.
-func getAppAuth(d *schema.ResourceData) (*string, *string, []byte, bool) {
-	appID := os.Getenv("GITHUB_APP_ID")
-	appInstallationID := os.Getenv("GITHUB_APP_INSTALLATION_ID")
-	appPEM := os.Getenv("GITHUB_APP_PEM_FILE")
+func getAppAuth(d *schema.ResourceData, envPrefix string) (*string, *string, []byte, bool) {
+	appID := os.Getenv(envPrefix + "ID")
+	appInstallationID := os.Getenv(envPrefix + "INSTALLATION_ID")
+	appPEM := os.Getenv(envPrefix + "PEM_FILE")
 
 	v, ok := d.GetOk("app_auth")
 	if !ok {
