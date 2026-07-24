@@ -213,18 +213,25 @@ func mustDeleteTestTeam(t *testing.T, team *github.Team) {
 func mustAddTeamMember(t *testing.T, team *github.Team, username string) {
 	t.Helper()
 
-	_, _, err := testAccConf.meta.v3client.Teams.AddTeamMembershipBySlug(t.Context(), testAccConf.meta.name, team.GetSlug(), username, &github.TeamAddTeamMembershipOptions{Role: "member"})
+	addedTeamMembership, _, err := testAccConf.meta.v3client.Teams.AddTeamMembershipBySlug(t.Context(), testAccConf.meta.name, team.GetSlug(), username, &github.TeamAddTeamMembershipOptions{Role: "member"})
 	if err != nil {
 		t.Fatalf("failed to add member %s to test team %s: %v", username, team.GetName(), err)
+	}
+
+	if addedTeamMembership.GetState() == "pending" {
+		t.Fatalf("membership for member %s in test team %s is pending", username, team.GetName())
 	}
 }
 
 func mustAddTeamMaintainer(t *testing.T, team *github.Team, username string) {
 	t.Helper()
 
-	_, _, err := testAccConf.meta.v3client.Teams.AddTeamMembershipBySlug(t.Context(), testAccConf.meta.name, team.GetSlug(), username, &github.TeamAddTeamMembershipOptions{Role: "maintainer"})
+	addedTeamMembership, _, err := testAccConf.meta.v3client.Teams.AddTeamMembershipBySlug(t.Context(), testAccConf.meta.name, team.GetSlug(), username, &github.TeamAddTeamMembershipOptions{Role: "maintainer"})
 	if err != nil {
 		t.Fatalf("failed to add member %s to test team %s: %v", username, team.GetName(), err)
+	}
+	if addedTeamMembership.GetState() == "pending" {
+		t.Fatalf("membership for member %s in test team %s is pending", username, team.GetName())
 	}
 }
 

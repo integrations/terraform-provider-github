@@ -3,8 +3,10 @@ package github
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-testing/compare"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
@@ -19,7 +21,7 @@ func TestAccGithubTeamMembers(t *testing.T) {
 	skipUnlessHasOrgs(t)
 	skipUnlessHasOrgUser1(t)
 
-	t.Run("team_by_slug", func(t *testing.T) {
+	t.Run("imports_team_by_slug", func(t *testing.T) {
 		t.Parallel()
 
 		team := mustCreateTestTeam(t, nil)
@@ -57,7 +59,42 @@ resource "github_team_members" "test" {
 		})
 	})
 
-	t.Run("team_by_id_as_slug", func(t *testing.T) {
+	t.Run("updates_team_member_role", func(t *testing.T) {
+		t.Parallel()
+
+		team := mustCreateTestTeam(t, nil)
+
+		config := fmt.Sprintf(`
+resource "github_team_members" "test" {
+  team_slug = "%s"
+
+  members {
+    username = "%s"
+    role     = "%%s"
+  }
+}
+`, team.GetSlug(), testAccConf.testOrgUser1)
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, "maintainer"),
+				},
+				{
+					Config: fmt.Sprintf(config, "member"),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_team_members.test", plancheck.ResourceActionUpdate),
+							plancheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members").AtSliceIndex(0).AtMapKey("role"), knownvalue.StringExact("member")),
+						},
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("imports_team_by_id_as_slug", func(t *testing.T) {
 		t.Parallel()
 
 		team := mustCreateTestTeam(t, nil)
@@ -96,7 +133,7 @@ resource "github_team_members" "test" {
 		})
 	})
 
-	t.Run("team_by_id", func(t *testing.T) {
+	t.Run("imports_team_by_id", func(t *testing.T) {
 		t.Parallel()
 
 		team := mustCreateTestTeam(t, nil)
@@ -266,12 +303,94 @@ resource "github_team_members" "test" {
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), SetAbsent([]knownvalue.Check{
+							knownvalue.MapPartial(map[string]knownvalue.Check{
+								"username": knownvalue.StringExact(testAccConf.testOrgUser2),
+							}),
+						})),
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetExact([]knownvalue.Check{
+							knownvalue.MapPartial(map[string]knownvalue.Check{
+								"username": knownvalue.StringExact(testAccConf.testOrgUser1),
+							}),
+						})),
 					},
 				}, {
 					PreConfig: func() { mustAddTeamMember(t, team, testAccConf.testOrgUser2) },
 					Config:    config,
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), SetAbsent([]knownvalue.Check{
+							knownvalue.MapPartial(map[string]knownvalue.Check{
+								"username": knownvalue.StringExact(testAccConf.testOrgUser2),
+							}),
+						})),
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetExact([]knownvalue.Check{
+							knownvalue.MapPartial(map[string]knownvalue.Check{
+								"username": knownvalue.StringExact(testAccConf.testOrgUser1),
+							}),
+						})),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("updates_team_members_changes", func(t *testing.T) {
+		t.Parallel()
+
+		skipUnlessHasOrgUser2(t)
+		skipUnlessHasOrgUser3(t)
+
+		team := mustCreateTestTeam(t, nil)
+		flippedCaseUsername2 := flipUsernameCase(testAccConf.testOrgUser2)
+		flippedCaseUsername3 := flipUsernameCase(testAccConf.testOrgUser3)
+
+		memberConfig := `
+  members {
+    username = "%s"
+    role     = "%s"
+  }
+`
+
+		baseConfig := `
+resource "github_team_members" "test" {
+  team_slug = "%s"
+
+  %s
+	%s
+	%s
+}`
+		initialConfig := fmt.Sprintf(baseConfig, team.GetSlug(), fmt.Sprintf(memberConfig, testAccConf.testOrgUser1, "maintainer"), "", "")
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: initialConfig,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
+					},
+				},
+				{
+					Config: fmt.Sprintf(baseConfig, team.GetSlug(), fmt.Sprintf(memberConfig, testAccConf.testOrgUser1, "maintainer"), fmt.Sprintf(memberConfig, flippedCaseUsername2, "member"), fmt.Sprintf(memberConfig, flippedCaseUsername3, "member")),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_team_members.test", plancheck.ResourceActionUpdate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(3)),
+					},
+				},
+				{
+					Config: fmt.Sprintf(baseConfig, team.GetSlug(), fmt.Sprintf(memberConfig, testAccConf.testOrgUser1, "maintainer"), fmt.Sprintf(memberConfig, flippedCaseUsername2, "member"), ""),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_team_members.test", plancheck.ResourceActionUpdate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(2)),
 					},
 				},
 			},
@@ -424,6 +543,52 @@ resource "github_team_members" "test" {
 					},
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("team_id"), knownvalue.StringExact(strconv.FormatInt(newTeam.GetID(), 10))),
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("is_case_insensitive", func(t *testing.T) {
+		t.Parallel()
+
+		team := mustCreateTestTeam(t, nil)
+		flippedCaseUsername := flipUsernameCase(testAccConf.testOrgUser1)
+
+		config := fmt.Sprintf(`
+resource "github_team_members" "test" {
+  team_slug = "%s"
+
+  members {
+    username = "%%s"
+    role     = "maintainer"
+  }
+}
+`, team.GetSlug())
+
+		usernameIsSameComparer := statecheck.CompareValue(compare.ValuesSame())
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, flippedCaseUsername),
+					ConfigStateChecks: []statecheck.StateCheck{
+						usernameIsSameComparer.AddStateValue("github_team_members.test", tfjsonpath.New("members").AtSliceIndex(0).AtMapKey("username")),
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members").AtSliceIndex(0).AtMapKey("username"), knownvalue.StringExact(strings.ToLower(flippedCaseUsername))),
+					},
+				},
+				{
+					Config: fmt.Sprintf(config, testAccConf.testOrgUser1),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_team_members.test", plancheck.ResourceActionNoop),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						usernameIsSameComparer.AddStateValue("github_team_members.test", tfjsonpath.New("members").AtSliceIndex(0).AtMapKey("username")),
 						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
 					},
 				},

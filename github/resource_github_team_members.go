@@ -70,6 +70,12 @@ func resourceGithubTeamMembers() *schema.Resource {
 							Required:         true,
 							DiffSuppressFunc: caseInsensitive(),
 							Description:      "User to add to the team.",
+							// This seems to be the only way to ensure that the username is in lowercase.
+							// Without this the tests fail because the value is compared in a case-sensitive manner.
+							StateFunc: func(v any) string {
+								val, _ := v.(string)
+								return strings.ToLower(val)
+							},
 						},
 						"role": {
 							Type:             schema.TypeString,
@@ -400,11 +406,12 @@ func updateTeamMembers(ctx context.Context, meta *Owner, slug string, wantMember
 	}
 
 	for _, member := range currentMembers {
-		if _, ok := want[member.login]; !ok {
-			tflog.Debug(ctx, "Removing team member.", map[string]any{"team_slug": slug, "username": member.login})
+		login := strings.ToLower(member.login)
+		if _, ok := want[login]; !ok {
+			tflog.Debug(ctx, "Removing team member.", map[string]any{"team_slug": slug, "username": login})
 
-			if _, err := client.Teams.RemoveTeamMembershipBySlug(ctx, orgName, slug, member.login); err != nil {
-				return fmt.Errorf("could not remove existing team member %q: %w", member.login, err)
+			if _, err := client.Teams.RemoveTeamMembershipBySlug(ctx, orgName, slug, login); err != nil {
+				return fmt.Errorf("could not remove existing team member %q: %w", login, err)
 			}
 		}
 	}
