@@ -83,17 +83,17 @@ func NewProvider(version, commit string) func() *schema.Provider {
 						Schema: map[string]*schema.Schema{
 							"id": {
 								Type:        schema.TypeString,
-								Required:    true,
+								Optional:    true,
 								Description: "The GitHub App's identifier. This can also be set by the `GITHUB_APP_ID` environment variable when `app_auth_env_prefix` is `GITHUB_APP_` (modify the prefix as needed).",
 							},
 							"installation_id": {
 								Type:        schema.TypeString,
-								Required:    true,
+								Optional:    true,
 								Description: "The GitHub App's installation identifier. This can also be set by the `GITHUB_APP_INSTALLATION_ID` environment variable when `app_auth_env_prefix` is `GITHUB_APP_` (modify the prefix as needed).",
 							},
 							"pem_file": {
 								Type:        schema.TypeString,
-								Required:    true,
+								Optional:    true,
 								Sensitive:   true,
 								Description: "The GitHub App's PEM file content; `\\n` can be used for newlines. This can also be set by the `GITHUB_APP_PEM_FILE` environment variable when `app_auth_env_prefix` is `GITHUB_APP_` (modify the prefix as needed).",
 							},

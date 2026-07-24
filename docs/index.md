@@ -171,7 +171,7 @@ provider "github" {
 <a id="nestedblock--app_auth"></a>
 ### Nested Schema for `app_auth`
 
-Required:
+Optional:
 
 - `id` (String) The GitHub App's identifier. This can also be set by the `GITHUB_APP_ID` environment variable when `app_auth_env_prefix` is `GITHUB_APP_` (modify the prefix as needed).
 - `installation_id` (String) The GitHub App's installation identifier. This can also be set by the `GITHUB_APP_INSTALLATION_ID` environment variable when `app_auth_env_prefix` is `GITHUB_APP_` (modify the prefix as needed).
