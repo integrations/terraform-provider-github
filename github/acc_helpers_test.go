@@ -256,6 +256,35 @@ func mustCreateTestRepository(t *testing.T) *github.Repository {
 	return repo
 }
 
+func mustCreateTemplateRepository(t *testing.T) *github.Repository {
+	t.Helper()
+
+	randomID := acctest.RandString(testRandomIDLength)
+	name := fmt.Sprintf("%stemplate-%s", testResourcePrefix, randomID)
+
+	req := &github.Repository{
+		Name:       &name,
+		AutoInit:   new(true),
+		IsTemplate: new(true),
+	}
+
+	repo, _, err := testAccConf.meta.v3client.Repositories.Create(t.Context(), testAccConf.meta.name, req)
+	if err != nil {
+		t.Fatalf("failed to create template repository: %v", err)
+	}
+
+	t.Cleanup(func() {
+		if _, err := testAccConf.meta.v3client.Repositories.Delete(context.Background(), testAccConf.meta.name, name); err != nil {
+			if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == 404 {
+				return
+			}
+			t.Logf("failed to delete template repository %s: %v", name, err)
+		}
+	})
+
+	return repo
+}
+
 func mustRenameTestRepository(t *testing.T, repo *github.Repository, newName string) {
 	t.Helper()
 
@@ -693,4 +722,60 @@ func mustUpdateRepositoryDependabotSecret(t *testing.T, repo *github.Repository,
 	}); err != nil {
 		t.Fatalf("failed to update test repository dependabot secret: %v", err)
 	}
+}
+
+func mustDisableForkingForOrganization(t *testing.T, orgName string) {
+	t.Helper()
+
+	currentSettings, _, err := testAccConf.meta.v3client.Organizations.Get(t.Context(), orgName)
+	if err != nil {
+		t.Fatalf("failed to get current organization settings for %s: %v", orgName, err)
+	}
+
+	if currentSettings.GetMembersCanForkPrivateRepos() == false {
+		return
+	}
+
+	orgSettingsReq := &github.Organization{
+		MembersCanForkPrivateRepos: new(false),
+	}
+
+	_, _, err = testAccConf.meta.v3client.Organizations.Edit(t.Context(), orgName, orgSettingsReq)
+	if err != nil {
+		t.Fatalf("failed to update organization settings for %s: %v", orgName, err)
+	}
+
+	t.Cleanup(func() {
+		if _, _, err := testAccConf.meta.v3client.Organizations.Edit(context.WithoutCancel(t.Context()), orgName, &github.Organization{MembersCanForkPrivateRepos: new(true)}); err != nil {
+			t.Logf("failed to reset organization setting for %s: %v", orgName, err)
+		}
+	})
+}
+
+func mustRequireWebCommitSignoffForOrganization(t *testing.T, orgName string) {
+	t.Helper()
+
+	currentSettings, _, err := testAccConf.meta.v3client.Organizations.Get(t.Context(), orgName)
+	if err != nil {
+		t.Fatalf("failed to get current organization settings for %s: %v", orgName, err)
+	}
+
+	if currentSettings.GetWebCommitSignoffRequired() == true {
+		return
+	}
+
+	orgSettingsReq := &github.Organization{
+		WebCommitSignoffRequired: new(true),
+	}
+
+	_, _, err = testAccConf.meta.v3client.Organizations.Edit(t.Context(), orgName, orgSettingsReq)
+	if err != nil {
+		t.Fatalf("failed to update organization settings for %s: %v", orgName, err)
+	}
+
+	t.Cleanup(func() {
+		if _, _, err := testAccConf.meta.v3client.Organizations.Edit(context.WithoutCancel(t.Context()), orgName, &github.Organization{WebCommitSignoffRequired: new(false)}); err != nil {
+			t.Logf("failed to reset organization setting for %s: %v", orgName, err)
+		}
+	})
 }

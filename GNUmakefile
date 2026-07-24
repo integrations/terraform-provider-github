@@ -77,7 +77,7 @@ test:
 testacc:
 	@branch=$$(git rev-parse --abbrev-ref HEAD); \
 	printf "==> Running acceptance tests on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
-	TF_ACC=1 CGO_ENABLED=0 go test $(TESTACC) -v -run '^TestAcc' $(RUNARGS) $(TESTARGS) -timeout 120m -count=1
+	TF_ACC=1 CGO_ENABLED=0 go test $(TESTACC) -parallel=4 -v -timeout 120m -count=1 -run '^TestAcc' $(RUNARGS) $(TESTARGS)
 
 sweep:
 	@echo "WARNING: This will destroy infrastructure. Use only in development accounts."
