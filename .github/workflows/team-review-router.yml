@@ -33,7 +33,12 @@ jobs:
     # Protected environment holding APP_ID / APP_PRIVATE_KEY. Configure it in the
     # repo UI: restricted to the default branch, NO required reviewers, ZERO wait
     # timer (either would pause this "immediate" path).
-    environment: team-review-router
+    #
+    # `deployment: false` because this is a secrets container, not a deploy
+    # target - without it every labeled event leaves a stray deployment record.
+    environment:
+      name: team-review-router
+      deployment: false
     steps:
       - name: Mint GitHub App token
         id: app-token
