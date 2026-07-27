@@ -60,25 +60,28 @@ func NewProvider(version, commit string) func() *schema.Provider {
 					ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"auto", "app", "token", "none"}, false)),
 					Description:      "The authentication mode to use; this can be one of `auto`, `app`, `token` or `none` and defaults to `auto` which will detect the highest priority authentication mode available (`app` -> `token` -> `none`). This can also be set by the `GITHUB_AUTH_MODE` environment variable.",
 				},
+				"token_env_name": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "GITHUB_TOKEN",
+					Description: "The environment variable name for the GitHub token. This defaults to `GITHUB_TOKEN`.",
+				},
 				"token": {
 					Type:        schema.TypeString,
 					Optional:    true,
-					DefaultFunc: schema.EnvDefaultFunc("GITHUB_TOKEN", nil),
-					Description: "GitHub OAuth or Personal Access Token (PAT) to use for authentication. This can also be set by the `GITHUB_TOKEN` environment variable.",
-					// ConflictsWith: []string{"app_auth"}, // TODO: Enable as part of v7.
+					Description: "GitHub OAuth or Personal Access Token (PAT) to use for authentication. This can also be set by the environment variable specified in `token_env_name` which defaults to `GITHUB_TOKEN`.",
 				},
 				"app_auth_env_prefix": {
 					Type:        schema.TypeString,
 					Optional:    true,
 					Default:     "GITHUB_APP_",
-					Description: "The environment variable prefix for the GitHub App authentication used to determine the environment variable names for the GitHub App's ID, installation ID, and PEM file content. This defaults to `GITHUB_APP_`.",
+					Description: "The environment variable prefix for the GitHub App authentication used to determine the environment variable names for the GitHub App's ID (`<PREFIX>_ID`), installation ID (`<PREFIX>_INSTALLATION_ID`), and PEM file content (`<PREFIX>_PEM_FILE`). This defaults to `GITHUB_APP_`.",
 				},
 				"app_auth": {
 					Type:        schema.TypeList,
 					Optional:    true,
 					MaxItems:    1,
 					Description: "Authenticate using a GitHub App.",
-					// ConflictsWith: []string{"token"}, // TODO: Enable as part of v7.
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
 							"id": {
@@ -436,6 +439,14 @@ func configureProvider(version, commit string) func(context.Context, *schema.Res
 				if v, ok := d.GetOk("token"); ok {
 					if s, ok := v.(string); ok && s != "" {
 						tflog.Debug(ctx, "Using token from provider configuration.")
+						config.Token = s
+					}
+				}
+
+				if config.Token == "" {
+					tokenEnvName, _ := d.Get("token_env_name").(string)
+					if s, ok := os.LookupEnv(tokenEnvName); ok && s != "" {
+						tflog.Debug(ctx, "Using token from environment variable.", map[string]any{"token_env_name": tokenEnvName})
 						config.Token = s
 					}
 				}
