@@ -151,7 +151,7 @@ provider "github" {
 ### Optional
 
 - `app_auth` (Block List, Max: 1) Authenticate using a GitHub App. (see [below for nested schema](#nestedblock--app_auth))
-- `app_auth_env_prefix` (String) The environment variable prefix for the GitHub App authentication used to determine the environment variable names for the GitHub App's ID, installation ID, and PEM file content. This defaults to `GITHUB_APP_`.
+- `app_auth_env_prefix` (String) The environment variable prefix for the GitHub App authentication used to determine the environment variable names for the GitHub App's ID (`<PREFIX>_ID`), installation ID (`<PREFIX>_INSTALLATION_ID`), and PEM file content (`<PREFIX>_PEM_FILE`). This defaults to `GITHUB_APP_`.
 - `auth_mode` (String) The authentication mode to use; this can be one of `auto`, `app`, `token` or `none` and defaults to `auto` which will detect the highest priority authentication mode available (`app` -> `token` -> `none`). This can also be set by the `GITHUB_AUTH_MODE` environment variable.
 - `base_url` (String) The base URL for the GitHub API; this defaults to the GitHub API URL. If you are using GitHub Enterprise Server (GHES) or GitHub Enterprise Cloud with Data Residency (GHEC-DR), this is required. This can also be set by the `GITHUB_BASE_URL` environment variable.
 - `cache_path` (String) The path to the cache directory for persisting GitHub API requests between runs; if not set there will be no caching between runs. This can also be set by the `GITHUB_CACHE_PATH` environment variable.
@@ -165,7 +165,8 @@ provider "github" {
 - `read_delay_ms` (Number) The delay in milliseconds between read operations; this defaults to `0`. This can be used to mitigate rate limiting issues when performing a large number of read operations. This is ignored for the REST API when `legacy_client` is `false` since the new client implementation is GitHub rate limit aware.
 - `retry_delay_ms` (Number) The delay in milliseconds between retry attempts; this defaults to `1000`. This setting only applies when `max_retries` is greater than `0`.
 - `retryable_errors` (List of Number) List of HTTP status codes that should be retried; if not set this uses the provider defaults. This setting only applies when `max_retries` is greater than `0`. This is ignored for the REST API when `legacy_client` is `false` since the new client implementation handles the retry logic.
-- `token` (String) GitHub OAuth or Personal Access Token (PAT) to use for authentication. This can also be set by the `GITHUB_TOKEN` environment variable.
+- `token` (String) GitHub OAuth or Personal Access Token (PAT) to use for authentication. This can also be set by the environment variable specified in `token_env_name` which defaults to `GITHUB_TOKEN`.
+- `token_env_name` (String) The environment variable name for the GitHub token. This defaults to `GITHUB_TOKEN`.
 - `write_delay_ms` (Number) The delay in milliseconds between write operations; this defaults to `1000`. This is used to mitigate the GitHub API's abuse rate limits when writing. Note that **ALL** requests to the GraphQL API are implemented as `POST` requests under the hood, so this setting affects those calls as well. This is ignored for the REST API when `legacy_client` is `false` since the new client implementation is GitHub rate limit aware.
 
 <a id="nestedblock--app_auth"></a>
