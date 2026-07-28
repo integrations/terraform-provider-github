@@ -28,6 +28,8 @@ The following arguments are supported:
 
 - `use_default` - (Required) Whether to use the default template or not. If `true`, `include_claim_keys` must not be set.
 - `include_claim_keys` - (Optional) A list of OpenID Connect claims.
+- `use_immutable_subject` - (Optional) Whether to use immutable subject claims, which include the immutable repository and owner IDs, for this repository.
+- `sub_claim_prefix` - (Optional) An optional prefix to add to the repository's subject claim.
 
 ## Import
 
