@@ -61,6 +61,45 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *test
 		})
 	})
 
+	t.Run("creates repository oidc subject claim customization template with immutable subject without error", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-act-oidc-%s", testResourcePrefix, randomID)
+		config := fmt.Sprintf(`
+		resource "github_repository" "test" {
+			name = "%s"
+			visibility = "private"
+		}
+
+		resource "github_actions_repository_oidc_subject_claim_customization_template" "test" {
+			repository = github_repository.test.name
+			use_default = false
+			include_claim_keys = ["repo"]
+			use_immutable_subject = true
+			sub_claim_prefix = "custom-prefix"
+		}`, repoName)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_actions_repository_oidc_subject_claim_customization_template.test",
+				"use_immutable_subject", "true"),
+			resource.TestCheckResourceAttr(
+				"github_actions_repository_oidc_subject_claim_customization_template.test",
+				"sub_claim_prefix", "custom-prefix"),
+		)
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
+				},
+			},
+		})
+	})
+
 	t.Run("updates repository oidc subject claim customization template without error", func(t *testing.T) {
 		t.Parallel()
 
