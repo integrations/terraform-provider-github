@@ -32,6 +32,8 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 
 		CustomizeDiff: resourceGithubRepositoryRulesetDiff,
 
+		Description: "This resource allows you to create and manage rulesets on the repository level. When applied, a new ruleset will be created. When destroyed, that ruleset will be removed.",
+
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:             schema.TypeString,
@@ -74,7 +76,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Type:             schema.TypeString,
 							Required:         true,
 							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"RepositoryRole", "Team", "Integration", "OrganizationAdmin", "DeployKey", "EnterpriseOwner", "User"}, false)),
-							Description:      "The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`, `DeployKey`, `EnterpriseOwner`, or `User`. See https://docs.github.com/en/rest/repos/rules for more information.",
+							Description:      "The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`, `DeployKey`, `EnterpriseOwner`, or `User`. See [GitHub API Docs](https://docs.github.com/en/rest/repos/rules) for more information.",
 						},
 						"bypass_mode": {
 							Type:             schema.TypeString,
@@ -103,9 +105,10 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ref_name": {
-							Type:     schema.TypeList,
-							Required: true,
-							MaxItems: 1,
+							Type:        schema.TypeList,
+							Required:    true,
+							MaxItems:    1,
+							Description: "Targets refs that match the specified patterns. Required for `branch` and `tag` targets.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
