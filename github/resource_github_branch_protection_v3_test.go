@@ -360,6 +360,66 @@ func TestAccGithubBranchProtectionV3_computed_status_contexts_no_churn(t *testin
 	})
 }
 
+func TestAccGithubBranchProtectionV3_update_with_status_checks(t *testing.T) {
+	t.Parallel()
+
+	// A read populates both `contexts` and `checks` from the API response, so updating
+	// any other setting used to send every required check twice, which GitHub rejects
+	// with "Context must be unique per branch protection".
+	for _, statusChecksField := range []string{"contexts", "checks"} {
+		t.Run(fmt.Sprintf("updates other settings when %s is set", statusChecksField), func(t *testing.T) {
+			t.Parallel()
+
+			randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+			testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
+			config := func(enforceAdmins bool) string {
+				return fmt.Sprintf(`
+				resource "github_repository" "test" {
+					name      = "%s"
+					auto_init = true
+				}
+
+				resource "github_branch_protection_v3" "test" {
+					repository     = github_repository.test.name
+					branch         = "main"
+					enforce_admins = %t
+
+					required_status_checks {
+						strict = true
+						%s = [
+							"ci/test",
+							"ci/build"
+						]
+					}
+				}
+			`, testRepoName, enforceAdmins, statusChecksField)
+			}
+
+			resource.Test(t, resource.TestCase{
+				PreCheck:          func() { skipUnlessHasOrgs(t) },
+				ProviderFactories: providerFactories,
+				Steps: []resource.TestStep{
+					{
+						Config: config(false),
+					},
+					{
+						Config: config(true),
+						Check: resource.ComposeAggregateTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"github_branch_protection_v3.test", "enforce_admins", "true",
+							),
+							resource.TestCheckResourceAttr(
+								"github_branch_protection_v3.test",
+								fmt.Sprintf("required_status_checks.0.%s.#", statusChecksField), "2",
+							),
+						),
+					},
+				},
+			})
+		})
+	}
+}
+
 func TestAccGithubBranchProtectionV3(t *testing.T) {
 	t.Parallel()
 
