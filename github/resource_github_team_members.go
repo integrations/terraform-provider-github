@@ -28,7 +28,7 @@ func resourceGithubTeamMembers() *schema.Resource {
 			StateContext: resourceGithubTeamMembersImport,
 		},
 
-		CustomizeDiff: customdiff.Sequence(diffLegacyTeamID, diffLegacyTeam),
+		CustomizeDiff: customdiff.Sequence(resourceGithubTeamMembersDiff, diffLegacyTeamID, diffLegacyTeam),
 
 		SchemaVersion: 1,
 		StateUpgraders: []schema.StateUpgrader{
@@ -70,12 +70,6 @@ func resourceGithubTeamMembers() *schema.Resource {
 							Required:         true,
 							DiffSuppressFunc: caseInsensitive(),
 							Description:      "User to add to the team.",
-							// This seems to be the only way to ensure that the username is in lowercase.
-							// Without this the tests fail because the value is compared in a case-sensitive manner.
-							StateFunc: func(v any) string {
-								val, _ := v.(string)
-								return strings.ToLower(val)
-							},
 						},
 						"role": {
 							Type:             schema.TypeString,
@@ -89,6 +83,20 @@ func resourceGithubTeamMembers() *schema.Resource {
 			},
 		},
 	}
+}
+
+func resourceGithubTeamMembersDiff(ctx context.Context, d *schema.ResourceDiff, m any) error {
+	tflog.Debug(ctx, "diffing team members")
+
+	if err := diffNestedUsernameCheck(ctx, d, "members"); err != nil {
+		return fmt.Errorf("error diffing members config: %w", err)
+	}
+
+	if d.Id() == "" {
+		return nil
+	}
+
+	return nil
 }
 
 func resourceGithubTeamMembersCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
