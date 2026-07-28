@@ -137,29 +137,8 @@ func resourceGithubRepositoryCollaboratorsDiff(ctx context.Context, d *schema.Re
 
 	meta, _ := m.(*Owner)
 
-	if d.HasChange("user") && d.NewValueKnown("user") {
-		v, diags := d.GetRawConfigAt(cty.GetAttrPath("user"))
-		if diags.HasError() {
-			return fmt.Errorf("error reading user config: %v", diags)
-		}
-
-		if !v.IsNull() && v.IsKnown() {
-			seen := make(map[string]struct{})
-			it := v.ElementIterator()
-			for it.Next() {
-				_, elem := it.Element()
-				val := elem.GetAttr("username")
-				if val.IsNull() || !val.IsKnown() {
-					continue
-				}
-
-				username := strings.ToLower(val.AsString())
-				if _, ok := seen[username]; ok {
-					return fmt.Errorf("duplicate user %s found in user collaborators", username)
-				}
-				seen[username] = struct{}{}
-			}
-		}
+	if err := diffNestedUsernameCheck(ctx, d, "user"); err != nil {
+		return fmt.Errorf("error diffing user config: %w", err)
 	}
 
 	if d.HasChange("team") && d.NewValueKnown("team") {
