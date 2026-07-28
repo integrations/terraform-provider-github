@@ -63,6 +63,12 @@ func resourceGithubTeamMembers() *schema.Resource {
 				Type:        schema.TypeSet,
 				Required:    true,
 				Description: "List of users that should be members of the team.",
+				// The Set hash function ensures that the same user cannot be added to the team multiple times with different case.
+				Set: func(v any) int {
+					username, _ := v.(map[string]any)["username"].(string)
+					role, _ := v.(map[string]any)["role"].(string)
+					return schema.HashString("username:" + strings.ToLower(username) + ";role:" + strings.ToLower(role))
+				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"username": {
