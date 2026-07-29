@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
@@ -623,27 +625,39 @@ func Test_buildOrganizationSettings(t *testing.T) {
 		raw          map[string]any
 		id           string // a non-empty ID exercises the update path
 		isEnterprise bool
-
-		wantBillingEmail                  *string
-		wantCompany                       *string
-		wantHasOrganizationProjects       *bool
-		wantWebCommitSignoffRequired      *bool
-		wantMembersCanCreateInternalRepos *bool
-		wantOmitted                       []string
+		want         *github.Organization
 	}{
 		{
 			// Regression test for the create path dropping booleans configured as
 			// false, which only corrected itself on a second apply through the
-			// update/HasChange path.
+			// update/HasChange path. Every boolean carries a definite value on
+			// create, so the full payload is asserted here.
 			name: "create_includes_explicitly_false_booleans",
 			raw: map[string]any{
 				"billing_email":               "org@example.com",
 				"has_organization_projects":   false,
 				"web_commit_signoff_required": false,
 			},
-			wantBillingEmail:             new("org@example.com"),
-			wantHasOrganizationProjects:  new(false),
-			wantWebCommitSignoffRequired: new(false),
+			want: &github.Organization{
+				BillingEmail:                                   new("org@example.com"),
+				HasOrganizationProjects:                        new(false),
+				HasRepositoryProjects:                          new(true),
+				DefaultRepoPermission:                          new("read"),
+				MembersCanCreateRepos:                          new(true),
+				MembersCanCreatePrivateRepos:                   new(true),
+				MembersCanCreatePublicRepos:                    new(true),
+				MembersCanCreatePages:                          new(true),
+				MembersCanCreatePublicPages:                    new(true),
+				MembersCanCreatePrivatePages:                   new(true),
+				MembersCanForkPrivateRepos:                     new(false),
+				WebCommitSignoffRequired:                       new(false),
+				AdvancedSecurityEnabledForNewRepos:             new(false),
+				DependabotAlertsEnabledForNewRepos:             new(false),
+				DependabotSecurityUpdatesEnabledForNewRepos:    new(false),
+				DependencyGraphEnabledForNewRepos:              new(false),
+				SecretScanningEnabledForNewRepos:               new(false),
+				SecretScanningPushProtectionEnabledForNewRepos: new(false),
+			},
 		},
 		{
 			name: "create_includes_true_booleans",
@@ -651,27 +665,79 @@ func Test_buildOrganizationSettings(t *testing.T) {
 				"billing_email":               "org@example.com",
 				"web_commit_signoff_required": true,
 			},
-			wantBillingEmail:             new("org@example.com"),
-			wantWebCommitSignoffRequired: new(true),
+			want: &github.Organization{
+				BillingEmail:                                   new("org@example.com"),
+				HasOrganizationProjects:                        new(true),
+				HasRepositoryProjects:                          new(true),
+				DefaultRepoPermission:                          new("read"),
+				MembersCanCreateRepos:                          new(true),
+				MembersCanCreatePrivateRepos:                   new(true),
+				MembersCanCreatePublicRepos:                    new(true),
+				MembersCanCreatePages:                          new(true),
+				MembersCanCreatePublicPages:                    new(true),
+				MembersCanCreatePrivatePages:                   new(true),
+				MembersCanForkPrivateRepos:                     new(false),
+				WebCommitSignoffRequired:                       new(true),
+				AdvancedSecurityEnabledForNewRepos:             new(false),
+				DependabotAlertsEnabledForNewRepos:             new(false),
+				DependabotSecurityUpdatesEnabledForNewRepos:    new(false),
+				DependencyGraphEnabledForNewRepos:              new(false),
+				SecretScanningEnabledForNewRepos:               new(false),
+				SecretScanningPushProtectionEnabledForNewRepos: new(false),
+			},
 		},
 		{
 			// Only booleans are included unconditionally on create; an
-			// unconfigured optional string stays omitted.
+			// unconfigured optional string stays absent from the payload.
 			name: "create_omits_unconfigured_optional_string",
 			raw: map[string]any{
 				"billing_email": "org@example.com",
 			},
-			wantBillingEmail: new("org@example.com"),
-			wantOmitted:      []string{"company"},
+			want: &github.Organization{
+				BillingEmail:                                   new("org@example.com"),
+				HasOrganizationProjects:                        new(true),
+				HasRepositoryProjects:                          new(true),
+				DefaultRepoPermission:                          new("read"),
+				MembersCanCreateRepos:                          new(true),
+				MembersCanCreatePrivateRepos:                   new(true),
+				MembersCanCreatePublicRepos:                    new(true),
+				MembersCanCreatePages:                          new(true),
+				MembersCanCreatePublicPages:                    new(true),
+				MembersCanCreatePrivatePages:                   new(true),
+				MembersCanForkPrivateRepos:                     new(false),
+				WebCommitSignoffRequired:                       new(false),
+				AdvancedSecurityEnabledForNewRepos:             new(false),
+				DependabotAlertsEnabledForNewRepos:             new(false),
+				DependabotSecurityUpdatesEnabledForNewRepos:    new(false),
+				DependencyGraphEnabledForNewRepos:              new(false),
+				SecretScanningEnabledForNewRepos:               new(false),
+				SecretScanningPushProtectionEnabledForNewRepos: new(false),
+			},
 		},
 		{
+			// On update a field is only sent when it has changed, so the
+			// explicitly configured has_organization_projects is dropped. The
+			// attributes that do survive are an artifact of TestResourceDataRaw:
+			// one left out of raw reads as the zero value from state but as its
+			// schema default from d.Get, so every attribute defaulting to a
+			// non-zero value (true, "read") looks changed here.
 			name: "update_omits_unchanged_booleans",
 			raw: map[string]any{
 				"billing_email":             "org@example.com",
 				"has_organization_projects": false,
 			},
-			id:          "example-org",
-			wantOmitted: []string{"has_organization_projects"},
+			id: "example-org",
+			want: &github.Organization{
+				BillingEmail:                 new("org@example.com"),
+				HasRepositoryProjects:        new(true),
+				DefaultRepoPermission:        new("read"),
+				MembersCanCreateRepos:        new(true),
+				MembersCanCreatePrivateRepos: new(true),
+				MembersCanCreatePublicRepos:  new(true),
+				MembersCanCreatePages:        new(true),
+				MembersCanCreatePublicPages:  new(true),
+				MembersCanCreatePrivatePages: new(true),
+			},
 		},
 		{
 			name: "enterprise_create_includes_internal_repositories_boolean",
@@ -679,16 +745,57 @@ func Test_buildOrganizationSettings(t *testing.T) {
 				"billing_email": "org@example.com",
 				"members_can_create_internal_repositories": false,
 			},
-			isEnterprise:                      true,
-			wantMembersCanCreateInternalRepos: new(false),
+			isEnterprise: true,
+			want: &github.Organization{
+				BillingEmail:                                   new("org@example.com"),
+				HasOrganizationProjects:                        new(true),
+				HasRepositoryProjects:                          new(true),
+				DefaultRepoPermission:                          new("read"),
+				MembersCanCreateRepos:                          new(true),
+				MembersCanCreateInternalRepos:                  new(false),
+				MembersCanCreatePrivateRepos:                   new(true),
+				MembersCanCreatePublicRepos:                    new(true),
+				MembersCanCreatePages:                          new(true),
+				MembersCanCreatePublicPages:                    new(true),
+				MembersCanCreatePrivatePages:                   new(true),
+				MembersCanForkPrivateRepos:                     new(false),
+				WebCommitSignoffRequired:                       new(false),
+				AdvancedSecurityEnabledForNewRepos:             new(false),
+				DependabotAlertsEnabledForNewRepos:             new(false),
+				DependabotSecurityUpdatesEnabledForNewRepos:    new(false),
+				DependencyGraphEnabledForNewRepos:              new(false),
+				SecretScanningEnabledForNewRepos:               new(false),
+				SecretScanningPushProtectionEnabledForNewRepos: new(false),
+			},
 		},
 		{
+			// The enterprise-only attribute must never reach the payload for a
+			// non-enterprise organization, even when it is configured.
 			name: "non_enterprise_create_omits_internal_repositories_boolean",
 			raw: map[string]any{
 				"billing_email": "org@example.com",
 				"members_can_create_internal_repositories": false,
 			},
-			wantOmitted: []string{"members_can_create_internal_repositories"},
+			want: &github.Organization{
+				BillingEmail:                                   new("org@example.com"),
+				HasOrganizationProjects:                        new(true),
+				HasRepositoryProjects:                          new(true),
+				DefaultRepoPermission:                          new("read"),
+				MembersCanCreateRepos:                          new(true),
+				MembersCanCreatePrivateRepos:                   new(true),
+				MembersCanCreatePublicRepos:                    new(true),
+				MembersCanCreatePages:                          new(true),
+				MembersCanCreatePublicPages:                    new(true),
+				MembersCanCreatePrivatePages:                   new(true),
+				MembersCanForkPrivateRepos:                     new(false),
+				WebCommitSignoffRequired:                       new(false),
+				AdvancedSecurityEnabledForNewRepos:             new(false),
+				DependabotAlertsEnabledForNewRepos:             new(false),
+				DependabotSecurityUpdatesEnabledForNewRepos:    new(false),
+				DependencyGraphEnabledForNewRepos:              new(false),
+				SecretScanningEnabledForNewRepos:               new(false),
+				SecretScanningPushProtectionEnabledForNewRepos: new(false),
+			},
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -701,62 +808,9 @@ func Test_buildOrganizationSettings(t *testing.T) {
 
 			got := buildOrganizationSettings(d, tt.isEnterprise)
 
-			assertStringPtr(t, "billing_email", got.BillingEmail, tt.wantBillingEmail)
-			assertStringPtr(t, "company", got.Company, tt.wantCompany)
-			assertBoolPtr(t, "has_organization_projects", got.HasOrganizationProjects, tt.wantHasOrganizationProjects)
-			assertBoolPtr(t, "web_commit_signoff_required", got.WebCommitSignoffRequired, tt.wantWebCommitSignoffRequired)
-			assertBoolPtr(t, "members_can_create_internal_repositories", got.MembersCanCreateInternalRepos, tt.wantMembersCanCreateInternalRepos)
-
-			omitted := map[string]bool{
-				"billing_email":                            got.BillingEmail == nil,
-				"company":                                  got.Company == nil,
-				"has_organization_projects":                got.HasOrganizationProjects == nil,
-				"web_commit_signoff_required":              got.WebCommitSignoffRequired == nil,
-				"members_can_create_internal_repositories": got.MembersCanCreateInternalRepos == nil,
-			}
-			for _, field := range tt.wantOmitted {
-				isOmitted, ok := omitted[field]
-				if !ok {
-					t.Fatalf("wantOmitted references unknown field %q", field)
-				}
-				if !isOmitted {
-					t.Errorf("%s should have been omitted from the payload", field)
-				}
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("buildOrganizationSettings() mismatch (-want +got):\n%s", diff)
 			}
 		})
-	}
-}
-
-// assertBoolPtr checks a boolean field of the built payload. A nil want means
-// the field is not asserted by this test case; use wantOmitted to require that
-// a field is absent.
-func assertBoolPtr(t *testing.T, field string, got, want *bool) {
-	t.Helper()
-
-	if want == nil {
-		return
-	}
-	if got == nil {
-		t.Errorf("%s was omitted from the payload, want %v", field, *want)
-		return
-	}
-	if *got != *want {
-		t.Errorf("%s = %v, want %v", field, *got, *want)
-	}
-}
-
-// assertStringPtr is the string counterpart of assertBoolPtr.
-func assertStringPtr(t *testing.T, field string, got, want *string) {
-	t.Helper()
-
-	if want == nil {
-		return
-	}
-	if got == nil {
-		t.Errorf("%s was omitted from the payload, want %q", field, *want)
-		return
-	}
-	if *got != *want {
-		t.Errorf("%s = %q, want %q", field, *got, *want)
 	}
 }
