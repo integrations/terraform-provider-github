@@ -16,6 +16,12 @@ description: |-
 
 {{ tffile . }}
 {{- end }}
+{{- else }}
+## Example Usage
+
+{{ tffile "examples/resources/repository/example_1.tf" }}
+
+{{ tffile "examples/resources/repository/example_2.tf" }}
 {{- end }}
 
 {{ .SchemaMarkdown | trimspace }}
@@ -44,4 +50,12 @@ In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 {{codefile "shell" .ImportFile }}
+{{- end }}
+{{- if not (or .HasImport .HasImportIDConfig .HasImportIdentityConfig) }}
+
+## Import
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+{{ codefile "shell" "examples/resources/repository/import.sh" }}
 {{- end }}
