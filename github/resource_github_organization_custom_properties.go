@@ -45,7 +45,7 @@ func resourceGithubOrganizationCustomProperties() *schema.Resource {
 			},
 			"default_value": {
 				Type:        schema.TypeString,
-				Description: "The default value of the custom property",
+				Description: "The default value of the custom property. Not supported for multi_select properties.",
 				Optional:    true,
 				Computed:    true,
 			},
