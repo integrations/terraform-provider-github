@@ -292,6 +292,15 @@ func expandConditions(input []any, level rulesetLevel) *github.RepositoryRuleset
 			}
 
 			rulesetConditions.OrganizationID = &github.RepositoryRulesetOrganizationIDsConditionParameters{OrganizationIDs: organizationIDs}
+		} else if v, ok := inputConditions["organization_property"].([]any); ok && len(v) != 0 && v[0] != nil {
+			organizationProperties := v[0].(map[string]any)
+
+			rulesetConditions.OrganizationProperty = &github.RepositoryRulesetOrganizationPropertyConditionParameters{
+				// The enterprise API does not accept a `source` for organization properties,
+				// unlike repository properties, so the schema does not expose one either.
+				Include: expandRulesetPropertyTargets(organizationProperties["include"].([]any), false),
+				Exclude: expandRulesetPropertyTargets(organizationProperties["exclude"].([]any), false),
+			}
 		}
 	}
 
@@ -414,6 +423,13 @@ func flattenConditions(ctx context.Context, conditions *github.RepositoryRuleset
 
 		if conditions.OrganizationID != nil {
 			conditionsMap["organization_id"] = conditions.OrganizationID.OrganizationIDs
+		}
+
+		if conditions.OrganizationProperty != nil {
+			conditionsMap["organization_property"] = []map[string]any{{
+				"include": flattenRulesetPropertyTargets(conditions.OrganizationProperty.Include, false),
+				"exclude": flattenRulesetPropertyTargets(conditions.OrganizationProperty.Exclude, false),
+			}}
 		}
 	}
 
