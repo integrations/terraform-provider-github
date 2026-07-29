@@ -281,6 +281,38 @@ resource "github_repository_environment" "test" {
 		})
 	})
 
+	t.Run("prevent_self_review_defaults_false_without_reviewers", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name       = "%s"
+	visibility = "public"
+}
+
+resource "github_repository_environment" "test" {
+	repository  = github_repository.test.name
+	environment = "test"
+}
+`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_environment.test", tfjsonpath.New("prevent_self_review"), knownvalue.Bool(false)),
+					},
+				},
+			},
+		})
+	})
+
 	t.Run("errors_with_more_than_six_reviewers", func(t *testing.T) {
 		t.Parallel()
 
