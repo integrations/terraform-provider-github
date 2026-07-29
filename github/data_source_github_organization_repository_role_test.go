@@ -4,49 +4,39 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubOrganizationRepositoryRoleDataSource(t *testing.T) {
 	t.Parallel()
 
-	t.Run("queries an organization repository role", func(t *testing.T) {
+	skipUnlessEnterprise(t)
+
+	t.Run("queries_role", func(t *testing.T) {
 		t.Parallel()
 
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		roleName := fmt.Sprintf(`%s%s`, testResourcePrefix, randomID)
+		role := mustCreateTestOrganizationRepositoryRole(t)
 
 		config := fmt.Sprintf(`
-			resource "github_organization_repository_role" "test" {
-				name        = "%s"
-				description = "Test role description"
-				base_role   = "read"
-				permissions = [
-					"reopen_issue",
-					"reopen_pull_request",
-				]
-			}
-
-			data "github_organization_repository_role" "test" {
-				role_id = github_organization_repository_role.test.role_id
-
-				depends_on = [ github_organization_repository_role.test ]
-			}
-		`, roleName)
+data "github_organization_repository_role" "test" {
+  role_id = %v
+}
+`, role.GetID())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrPair("data.github_organization_repository_role.test", "name", "github_organization_repository_role.test", "name"),
-						resource.TestCheckResourceAttrPair("data.github_organization_repository_role.test", "description", "github_organization_repository_role.test", "description"),
-						resource.TestCheckResourceAttrPair("data.github_organization_repository_role.test", "base_role", "github_organization_repository_role.test", "base_role"),
-						resource.TestCheckResourceAttrPair("data.github_organization_repository_role.test", "permissions.#", "github_organization_repository_role.test", "permissions.#"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_organization_repository_role.test", tfjsonpath.New("name"), knownvalue.StringExact(role.GetName())),
+						statecheck.ExpectKnownValue("data.github_organization_repository_role.test", tfjsonpath.New("description"), knownvalue.StringExact(role.GetDescription())),
+						statecheck.ExpectKnownValue("data.github_organization_repository_role.test", tfjsonpath.New("base_role"), knownvalue.StringExact(role.GetBaseRole())),
+						statecheck.ExpectKnownValue("data.github_organization_repository_role.test", tfjsonpath.New("permissions"), knownvalue.ListSizeExact(len(role.GetPermissions()))),
+					},
 				},
 			},
 		})

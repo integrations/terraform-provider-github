@@ -69,7 +69,7 @@ The overall status of each resource or data source is captured in this document 
 | `github_dependabot_public_key` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_dependabot_secrets` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_enterprise` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| `github_external_groups` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
+| `github_external_groups` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_ip_ranges` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_issue_labels` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_membership` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
@@ -79,15 +79,17 @@ The overall status of each resource or data source is captured in this document 
 | `github_organization_custom_role` (🚫) | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_organization_external_identities` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_organization_ip_allow_list` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| `github_organization_repository_role` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| `github_organization_repository_roles` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| `github_organization_role` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| `github_organization_role_teams` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| `github_organization_role_users` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| `github_organization_roles` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
+| `github_organization_members` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `github_organization_repositories` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `github_organization_repository_role` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `github_organization_repository_roles` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `github_organization_role` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `github_organization_role_teams` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `github_organization_role_users` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `github_organization_roles` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_organization_security_managers` (🚫) | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_organization_team_sync_groups` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| `github_organization_teams` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
+| `github_organization_teams` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_organization_webhooks` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_ref` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_release` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
@@ -106,11 +108,13 @@ The overall status of each resource or data source is captured in this document 
 | `github_repository_pages` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_repository_pull_request` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_repository_pull_requests` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| `github_repository_teams` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
+| `github_repository_teams` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_repository_webhooks` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_rest_api` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_ssh_keys` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
-| `github_team` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
+| `github_team` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `github_team_members` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `github_team_repositories` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_tree` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_user` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_user_external_identity` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
@@ -182,7 +186,7 @@ The overall status of each resource or data source is captured in this document 
 | `github_repository` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_repository_autolink_reference` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_repository_collaborator` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
-| `github_repository_collaborators` | ⚠️ | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ |
+| `github_repository_collaborators` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_repository_custom_property` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_repository_dependabot_security_updates` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_repository_deploy_key` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |

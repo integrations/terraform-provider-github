@@ -156,7 +156,7 @@ resource "github_team" "test" {
 	t.Run("create_with_parent_team", func(t *testing.T) {
 		t.Parallel()
 
-		parentTeam := mustCreateTestTeam(t, nil)
+		parentTeam := mustCreateTestTeam(t)
 		teamName := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(5))
 
 		resource.Test(t, resource.TestCase{
@@ -176,7 +176,7 @@ resource "github_team" "test" {
 	t.Run("update_with_parent_team", func(t *testing.T) {
 		t.Parallel()
 
-		parentTeam := mustCreateTestTeam(t, nil)
+		parentTeam := mustCreateTestTeam(t)
 		teamName := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(5))
 
 		resource.Test(t, resource.TestCase{
