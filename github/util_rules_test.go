@@ -1457,3 +1457,394 @@ func Test_bypassActorCompareIdentity(t *testing.T) {
 		})
 	}
 }
+
+func TestExpandConditionsEnterpriseOrganizationName(t *testing.T) {
+	t.Parallel()
+
+	input := []any{map[string]any{
+		"ref_name": []any{map[string]any{"include": []any{"~ALL"}, "exclude": []any{}}},
+		"organization_name": []any{map[string]any{
+			"include": []any{"acme-*"},
+			"exclude": []any{"acme-sandbox"},
+		}},
+		"organization_id": []any{},
+	}}
+
+	result := expandConditions(input, rulesetLevelEnterprise)
+	if result == nil {
+		t.Fatal("Expected result to not be nil")
+	}
+	if result.OrganizationName == nil {
+		t.Fatal("Expected OrganizationName to be set")
+	}
+	if got := result.OrganizationName.Include; len(got) != 1 || got[0] != "acme-*" {
+		t.Errorf("Expected include [acme-*], got %v", got)
+	}
+	if got := result.OrganizationName.Exclude; len(got) != 1 || got[0] != "acme-sandbox" {
+		t.Errorf("Expected exclude [acme-sandbox], got %v", got)
+	}
+	if result.OrganizationID != nil {
+		t.Errorf("Expected OrganizationID to be nil, got %v", result.OrganizationID)
+	}
+}
+
+func TestExpandConditionsEnterpriseOrganizationID(t *testing.T) {
+	t.Parallel()
+
+	input := []any{map[string]any{
+		"organization_name": []any{},
+		"organization_id":   []any{123, 456},
+	}}
+
+	result := expandConditions(input, rulesetLevelEnterprise)
+	if result == nil {
+		t.Fatal("Expected result to not be nil")
+	}
+	if result.OrganizationID == nil {
+		t.Fatal("Expected OrganizationID to be set")
+	}
+	want := []int64{123, 456}
+	if got := result.OrganizationID.OrganizationIDs; len(got) != 2 || got[0] != want[0] || got[1] != want[1] {
+		t.Errorf("Expected organization IDs %v, got %v", want, got)
+	}
+}
+
+func TestExpandConditionsOrganizationTargetingIsEnterpriseOnly(t *testing.T) {
+	t.Parallel()
+
+	input := []any{map[string]any{
+		"organization_id": []any{123},
+	}}
+
+	for _, level := range []rulesetLevel{rulesetLevelRepository, rulesetLevelOrganization} {
+		result := expandConditions(input, level)
+		if result == nil {
+			t.Fatal("Expected result to not be nil")
+		}
+		if result.OrganizationID != nil {
+			t.Errorf("Expected OrganizationID to be ignored at level %d, got %v", level, result.OrganizationID)
+		}
+	}
+}
+
+func TestFlattenConditionsEnterpriseOrganizationTargeting(t *testing.T) {
+	t.Parallel()
+
+	conditions := &github.RepositoryRulesetConditions{
+		OrganizationName: &github.RepositoryRulesetOrganizationNamesConditionParameters{
+			Include: []string{"acme-*"},
+			Exclude: []string{},
+		},
+		OrganizationID: &github.RepositoryRulesetOrganizationIDsConditionParameters{
+			OrganizationIDs: []int64{123},
+		},
+	}
+
+	result := flattenConditions(t.Context(), conditions, rulesetLevelEnterprise)
+	if len(result) != 1 {
+		t.Fatalf("Expected 1 element in result, got %d", len(result))
+	}
+
+	conditionsMap := result[0].(map[string]any)
+
+	names, ok := conditionsMap["organization_name"].([]map[string]any)
+	if !ok {
+		t.Fatalf("Expected organization_name to be []map[string]any, got %T", conditionsMap["organization_name"])
+	}
+	if got := names[0]["include"].([]string); len(got) != 1 || got[0] != "acme-*" {
+		t.Errorf("Expected include [acme-*], got %v", got)
+	}
+
+	ids, ok := conditionsMap["organization_id"].([]int64)
+	if !ok {
+		t.Fatalf("Expected organization_id to be []int64, got %T", conditionsMap["organization_id"])
+	}
+	if len(ids) != 1 || ids[0] != 123 {
+		t.Errorf("Expected organization IDs [123], got %v", ids)
+	}
+
+	// Organization targeting must not leak into the org/repo resources, whose schemas
+	// do not declare those attributes.
+	orgLevel := flattenConditions(t.Context(), conditions, rulesetLevelOrganization)
+	if len(orgLevel) != 1 {
+		t.Fatalf("Expected 1 element in result, got %d", len(orgLevel))
+	}
+	if _, ok := orgLevel[0].(map[string]any)["organization_name"]; ok {
+		t.Error("Expected organization_name to be absent at organization level")
+	}
+	if _, ok := orgLevel[0].(map[string]any)["organization_id"]; ok {
+		t.Error("Expected organization_id to be absent at organization level")
+	}
+}
+
+func TestExpandConditionsEnterpriseOrganizationProperty(t *testing.T) {
+	t.Parallel()
+
+	input := []any{map[string]any{
+		"organization_name": []any{},
+		"organization_id":   []any{},
+		"organization_property": []any{map[string]any{
+			"include": []any{map[string]any{
+				"name":            "environment",
+				"property_values": []any{"production", "staging"},
+			}},
+			"exclude": []any{map[string]any{
+				"name":            "environment",
+				"property_values": []any{"sandbox"},
+			}},
+		}},
+	}}
+
+	result := expandConditions(input, rulesetLevelEnterprise)
+	if result == nil {
+		t.Fatal("Expected result to not be nil")
+	}
+	if result.OrganizationProperty == nil {
+		t.Fatal("Expected OrganizationProperty to be set")
+	}
+
+	include := result.OrganizationProperty.Include
+	if len(include) != 1 {
+		t.Fatalf("Expected 1 include property, got %d", len(include))
+	}
+	if include[0].Name != "environment" {
+		t.Errorf("Expected include name environment, got %q", include[0].Name)
+	}
+	if got := include[0].PropertyValues; len(got) != 2 || got[0] != "production" || got[1] != "staging" {
+		t.Errorf("Expected include property values [production staging], got %v", got)
+	}
+	// Organization properties have no `source` field in the enterprise API.
+	if include[0].Source != nil {
+		t.Errorf("Expected include source to be nil, got %v", *include[0].Source)
+	}
+
+	exclude := result.OrganizationProperty.Exclude
+	if len(exclude) != 1 {
+		t.Fatalf("Expected 1 exclude property, got %d", len(exclude))
+	}
+	if exclude[0].Source != nil {
+		t.Errorf("Expected exclude source to be nil, got %v", *exclude[0].Source)
+	}
+}
+
+func TestExpandConditionsOrganizationPropertyIsEnterpriseOnly(t *testing.T) {
+	t.Parallel()
+
+	input := []any{map[string]any{
+		"organization_property": []any{map[string]any{
+			"include": []any{map[string]any{"name": "environment", "property_values": []any{"production"}}},
+			"exclude": []any{},
+		}},
+	}}
+
+	for _, level := range []rulesetLevel{rulesetLevelRepository, rulesetLevelOrganization} {
+		result := expandConditions(input, level)
+		if result.OrganizationProperty != nil {
+			t.Errorf("Expected OrganizationProperty to be ignored at level %d, got %v", level, result.OrganizationProperty)
+		}
+	}
+}
+
+func TestFlattenConditionsEnterpriseOrganizationProperty(t *testing.T) {
+	t.Parallel()
+
+	conditions := &github.RepositoryRulesetConditions{
+		OrganizationProperty: &github.RepositoryRulesetOrganizationPropertyConditionParameters{
+			Include: []*github.RepositoryRulesetRepositoryPropertyTargetParameters{{
+				Name:           "environment",
+				PropertyValues: []string{"production"},
+			}},
+			Exclude: []*github.RepositoryRulesetRepositoryPropertyTargetParameters{},
+		},
+	}
+
+	result := flattenConditions(t.Context(), conditions, rulesetLevelEnterprise)
+	if len(result) != 1 {
+		t.Fatalf("Expected 1 element in result, got %d", len(result))
+	}
+
+	property, ok := result[0].(map[string]any)["organization_property"].([]map[string]any)
+	if !ok {
+		t.Fatalf("Expected organization_property to be []map[string]any, got %T", result[0].(map[string]any)["organization_property"])
+	}
+
+	include := property[0]["include"].([]map[string]any)
+	if len(include) != 1 {
+		t.Fatalf("Expected 1 include property, got %d", len(include))
+	}
+	if include[0]["name"] != "environment" {
+		t.Errorf("Expected include name environment, got %v", include[0]["name"])
+	}
+	// The schema has no `source` attribute for organization properties, so flatten must
+	// not emit one — d.Set would reject the unknown key.
+	if _, ok := include[0]["source"]; ok {
+		t.Error("Expected organization property include to have no source key")
+	}
+
+	// Organization targeting must not leak into the org/repo resources.
+	orgLevel := flattenConditions(t.Context(), conditions, rulesetLevelOrganization)
+	if _, ok := orgLevel[0].(map[string]any)["organization_property"]; ok {
+		t.Error("Expected organization_property to be absent at organization level")
+	}
+}
+
+func TestExpandConditionsRepositoryIDIsOrganizationOnly(t *testing.T) {
+	t.Parallel()
+
+	input := []any{map[string]any{
+		"repository_id": []any{123, 456},
+	}}
+
+	// Organization rulesets keep `repository_id` ...
+	if result := expandConditions(input, rulesetLevelOrganization); result.RepositoryID == nil {
+		t.Error("Expected RepositoryID to be set at organization level")
+	}
+
+	// ... enterprise rulesets do not: the enterprise API documents only `repository_name`
+	// and `repository_property`.
+	if result := expandConditions(input, rulesetLevelEnterprise); result.RepositoryID != nil {
+		t.Errorf("Expected RepositoryID to be ignored at enterprise level, got %v", result.RepositoryID)
+	}
+}
+
+func TestFlattenConditionsRepositoryIDIsOrganizationOnly(t *testing.T) {
+	t.Parallel()
+
+	conditions := &github.RepositoryRulesetConditions{
+		RepositoryID: &github.RepositoryRulesetRepositoryIDsConditionParameters{
+			RepositoryIDs: []int64{123},
+		},
+	}
+
+	orgLevel := flattenConditions(t.Context(), conditions, rulesetLevelOrganization)
+	if _, ok := orgLevel[0].(map[string]any)["repository_id"]; !ok {
+		t.Error("Expected repository_id to be present at organization level")
+	}
+
+	enterpriseLevel := flattenConditions(t.Context(), conditions, rulesetLevelEnterprise)
+	if _, ok := enterpriseLevel[0].(map[string]any)["repository_id"]; ok {
+		t.Error("Expected repository_id to be absent at enterprise level")
+	}
+}
+
+func TestRoundTripEnterpriseRepositoryTargetRules(t *testing.T) {
+	t.Parallel()
+
+	input := []any{map[string]any{
+		"repository_create":   true,
+		"repository_delete":   true,
+		"repository_transfer": false,
+		"repository_name": []any{map[string]any{
+			"negate":  false,
+			"pattern": "^svc-",
+		}},
+		"repository_visibility": []any{map[string]any{
+			"internal": true,
+			"private":  false,
+		}},
+	}}
+
+	expanded := expandRules(input, rulesetLevelEnterprise)
+	if expanded == nil {
+		t.Fatal("Expected expanded rules to not be nil")
+	}
+	if expanded.RepositoryCreate == nil {
+		t.Error("Expected RepositoryCreate to be set")
+	}
+	if expanded.RepositoryDelete == nil {
+		t.Error("Expected RepositoryDelete to be set")
+	}
+	if expanded.RepositoryTransfer != nil {
+		t.Error("Expected RepositoryTransfer to be nil")
+	}
+	if expanded.RepositoryName == nil || expanded.RepositoryName.Pattern != "^svc-" {
+		t.Errorf("Expected RepositoryName pattern ^svc-, got %v", expanded.RepositoryName)
+	}
+	if expanded.RepositoryVisibility == nil || !expanded.RepositoryVisibility.Internal || expanded.RepositoryVisibility.Private {
+		t.Errorf("Expected RepositoryVisibility internal only, got %v", expanded.RepositoryVisibility)
+	}
+
+	flattened := flattenRules(t.Context(), expanded, rulesetLevelEnterprise)
+	if len(flattened) != 1 {
+		t.Fatalf("Expected 1 flattened result, got %d", len(flattened))
+	}
+
+	rulesMap := flattened[0].(map[string]any)
+	if rulesMap["repository_create"] != true {
+		t.Errorf("Expected repository_create true, got %v", rulesMap["repository_create"])
+	}
+	if rulesMap["repository_transfer"] != false {
+		t.Errorf("Expected repository_transfer false, got %v", rulesMap["repository_transfer"])
+	}
+	names := rulesMap["repository_name"].([]map[string]any)
+	if names[0]["pattern"] != "^svc-" {
+		t.Errorf("Expected repository_name pattern ^svc-, got %v", names[0]["pattern"])
+	}
+	visibility := rulesMap["repository_visibility"].([]map[string]any)
+	if visibility[0]["internal"] != true || visibility[0]["private"] != false {
+		t.Errorf("Expected repository_visibility internal only, got %v", visibility[0])
+	}
+}
+
+func TestFlattenRulesRepositoryTargetRulesAreEnterpriseOnly(t *testing.T) {
+	t.Parallel()
+
+	rules := &github.RepositoryRulesetRules{
+		RepositoryCreate: &github.EmptyRuleParameters{},
+		RepositoryName:   &github.SimplePatternRuleParameters{Pattern: "^svc-"},
+	}
+
+	for _, level := range []rulesetLevel{rulesetLevelRepository, rulesetLevelOrganization} {
+		result := flattenRules(t.Context(), rules, level)
+		if len(result) != 1 {
+			t.Fatalf("Expected 1 element in result, got %d", len(result))
+		}
+		rulesMap := result[0].(map[string]any)
+		for _, key := range []string{"repository_create", "repository_delete", "repository_transfer", "repository_name", "repository_visibility"} {
+			if _, ok := rulesMap[key]; ok {
+				t.Errorf("Expected %q to be absent at level %d", key, level)
+			}
+		}
+	}
+}
+
+func TestParseEnterpriseRulesetID(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name           string
+		id             string
+		wantEnterprise string
+		wantRulesetID  int64
+		expectError    bool
+	}{
+		{name: "valid", id: "acme:12345", wantEnterprise: "acme", wantRulesetID: 12345},
+		{name: "missing ruleset id", id: "acme", expectError: true},
+		{name: "non-numeric ruleset id", id: "acme:not-a-number", expectError: true},
+		{name: "zero ruleset id", id: "acme:0", expectError: true},
+		{name: "empty", id: "", expectError: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			enterprise, rulesetID, err := parseEnterpriseRulesetID(tt.id)
+			if tt.expectError {
+				if err == nil {
+					t.Fatalf("expected error for %q but got none", tt.id)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if enterprise != tt.wantEnterprise {
+				t.Errorf("expected enterprise %q, got %q", tt.wantEnterprise, enterprise)
+			}
+			if rulesetID != tt.wantRulesetID {
+				t.Errorf("expected ruleset ID %d, got %d", tt.wantRulesetID, rulesetID)
+			}
+		})
+	}
+}
