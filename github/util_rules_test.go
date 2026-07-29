@@ -20,7 +20,7 @@ func TestExpandRulesBasicRules(t *testing.T) {
 	}
 
 	input := []any{rulesMap}
-	result := expandRules(input, false)
+	result := expandRules(input, rulesetLevelRepository)
 
 	if result == nil {
 		t.Fatal("Expected result to not be nil")
@@ -61,7 +61,7 @@ func TestFlattenRulesBasicRules(t *testing.T) {
 		NonFastForward:        &github.EmptyRuleParameters{},
 	}
 
-	result := flattenRules(t.Context(), rules, false)
+	result := flattenRules(t.Context(), rules, rulesetLevelRepository)
 
 	if len(result) != 1 {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
@@ -106,7 +106,7 @@ func TestExpandRulesMaxFilePathLength(t *testing.T) {
 	}
 
 	input := []any{rulesMap}
-	result := expandRules(input, false)
+	result := expandRules(input, rulesetLevelRepository)
 
 	if result == nil {
 		t.Fatal("Expected result to not be nil")
@@ -134,7 +134,7 @@ func TestFlattenRulesMaxFilePathLength(t *testing.T) {
 		},
 	}
 
-	result := flattenRules(t.Context(), rules, false)
+	result := flattenRules(t.Context(), rules, rulesetLevelRepository)
 
 	if len(result) != 1 {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
@@ -170,14 +170,14 @@ func TestRoundTripMaxFilePathLength(t *testing.T) {
 	input := []any{rulesMap}
 
 	// Expand to GitHub API format
-	expandedRules := expandRules(input, false)
+	expandedRules := expandRules(input, rulesetLevelRepository)
 
 	if expandedRules == nil {
 		t.Fatal("Expected expandedRules to not be nil")
 	}
 
 	// Flatten back to terraform format
-	flattenedResult := flattenRules(t.Context(), expandedRules, false)
+	flattenedResult := flattenRules(t.Context(), expandedRules, rulesetLevelRepository)
 
 	if len(flattenedResult) != 1 {
 		t.Fatalf("Expected 1 flattened result, got %d", len(flattenedResult))
@@ -210,7 +210,7 @@ func TestExpandRulesMaxFileSize(t *testing.T) {
 	}
 
 	input := []any{rulesMap}
-	result := expandRules(input, false)
+	result := expandRules(input, rulesetLevelRepository)
 
 	if result == nil {
 		t.Fatal("Expected result to not be nil")
@@ -238,7 +238,7 @@ func TestFlattenRulesMaxFileSize(t *testing.T) {
 		},
 	}
 
-	result := flattenRules(t.Context(), rules, false)
+	result := flattenRules(t.Context(), rules, rulesetLevelRepository)
 
 	if len(result) != 1 {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
@@ -271,7 +271,7 @@ func TestExpandRulesFileExtensionRestriction(t *testing.T) {
 	}
 
 	input := []any{rulesMap}
-	result := expandRules(input, false)
+	result := expandRules(input, rulesetLevelRepository)
 
 	if result == nil {
 		t.Fatal("Expected result to not be nil")
@@ -310,7 +310,7 @@ func TestFlattenRulesFileExtensionRestriction(t *testing.T) {
 		},
 	}
 
-	result := flattenRules(t.Context(), rules, false)
+	result := flattenRules(t.Context(), rules, rulesetLevelRepository)
 
 	if len(result) != 1 {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
@@ -365,7 +365,7 @@ func TestCompletePushRulesetSupport(t *testing.T) {
 	input := []any{rulesMap}
 
 	// Expand to GitHub API format
-	expandedRules := expandRules(input, false)
+	expandedRules := expandRules(input, rulesetLevelRepository)
 
 	if expandedRules == nil {
 		t.Fatal("Expected expandedRules to not be nil")
@@ -392,7 +392,7 @@ func TestCompletePushRulesetSupport(t *testing.T) {
 	}
 
 	// Flatten back to terraform format
-	flattenedResult := flattenRules(t.Context(), expandedRules, false)
+	flattenedResult := flattenRules(t.Context(), expandedRules, rulesetLevelRepository)
 
 	if len(flattenedResult) != 1 {
 		t.Fatalf("Expected 1 flattened result, got %d", len(flattenedResult))
@@ -455,7 +455,7 @@ func TestCopilotCodeReviewRoundTrip(t *testing.T) {
 	input := []any{rulesMap}
 
 	// Expand to GitHub API format
-	expandedRules := expandRules(input, false)
+	expandedRules := expandRules(input, rulesetLevelRepository)
 
 	if expandedRules == nil {
 		t.Fatal("Expected expandedRules to not be nil")
@@ -474,7 +474,7 @@ func TestCopilotCodeReviewRoundTrip(t *testing.T) {
 	}
 
 	// Flatten back to terraform format
-	flattenedResult := flattenRules(t.Context(), expandedRules, false)
+	flattenedResult := flattenRules(t.Context(), expandedRules, rulesetLevelRepository)
 
 	if len(flattenedResult) != 1 {
 		t.Fatalf("Expected 1 flattened result, got %d", len(flattenedResult))
@@ -509,7 +509,7 @@ func TestFlattenConditions_PushRuleset_WithRepositoryNameOnly(t *testing.T) {
 		},
 	}
 
-	result := flattenConditions(t.Context(), conditions, true) // org=true for organization rulesets
+	result := flattenConditions(t.Context(), conditions, rulesetLevelOrganization)
 
 	if len(result) != 1 {
 		t.Fatalf("Expected 1 conditions block, got %d", len(result))
@@ -557,7 +557,7 @@ func TestFlattenConditions_BranchRuleset_WithRefNameAndRepositoryName(t *testing
 		},
 	}
 
-	result := flattenConditions(t.Context(), conditions, true) // org=true for organization rulesets
+	result := flattenConditions(t.Context(), conditions, rulesetLevelOrganization)
 
 	if len(result) != 1 {
 		t.Fatalf("Expected 1 conditions block, got %d", len(result))
@@ -627,7 +627,7 @@ func TestFlattenConditions_PushRuleset_WithRepositoryIdOnly(t *testing.T) {
 		},
 	}
 
-	result := flattenConditions(t.Context(), conditions, true) // org=true for organization rulesets
+	result := flattenConditions(t.Context(), conditions, rulesetLevelOrganization)
 
 	if len(result) != 1 {
 		t.Fatalf("Expected 1 conditions block, got %d", len(result))
@@ -1132,7 +1132,7 @@ func TestFlattenRulesetRepositoryPropertyTargetParameters(t *testing.T) {
 		},
 	}
 
-	result := flattenRulesetRepositoryPropertyTargetParameters(input)
+	result := flattenRulesetPropertyTargets(input, true)
 
 	if len(result) != 2 {
 		t.Fatalf("Expected 2 properties, got %d", len(result))
@@ -1167,7 +1167,7 @@ func TestFlattenRulesetRepositoryPropertyTargetParameters_EmptySource(t *testing
 		},
 	}
 
-	result := flattenRulesetRepositoryPropertyTargetParameters(input)
+	result := flattenRulesetPropertyTargets(input, true)
 
 	if len(result) != 1 {
 		t.Fatalf("Expected 1 property, got %d", len(result))
@@ -1210,8 +1210,8 @@ func TestRoundTripRepositoryPropertyConditions(t *testing.T) {
 	expanded := expandRepositoryPropertyConditions(input)
 
 	// Flatten
-	flattenedInclude := flattenRulesetRepositoryPropertyTargetParameters(expanded.Include)
-	flattenedExclude := flattenRulesetRepositoryPropertyTargetParameters(expanded.Exclude)
+	flattenedInclude := flattenRulesetPropertyTargets(expanded.Include, true)
+	flattenedExclude := flattenRulesetPropertyTargets(expanded.Exclude, true)
 
 	// Verify include
 	if len(flattenedInclude) != 2 {
@@ -1251,13 +1251,13 @@ func TestFlattenRulesetRepositoryPropertyTargetParameters_Empty(t *testing.T) {
 	t.Parallel()
 
 	// Test nil input
-	result := flattenRulesetRepositoryPropertyTargetParameters(nil)
+	result := flattenRulesetPropertyTargets(nil, true)
 	if len(result) != 0 {
 		t.Errorf("Expected empty slice for nil input, got %v", result)
 	}
 
 	// Test empty slice input
-	result = flattenRulesetRepositoryPropertyTargetParameters([]*github.RepositoryRulesetRepositoryPropertyTargetParameters{})
+	result = flattenRulesetPropertyTargets([]*github.RepositoryRulesetRepositoryPropertyTargetParameters{}, true)
 	if len(result) != 0 {
 		t.Errorf("Expected empty slice for empty input, got %v", result)
 	}
@@ -1274,7 +1274,7 @@ func TestFlattenRulesetRepositoryPropertyTargetParameters_SingleProperty(t *test
 		},
 	}
 
-	result := flattenRulesetRepositoryPropertyTargetParameters(input)
+	result := flattenRulesetPropertyTargets(input, true)
 
 	if len(result) != 1 {
 		t.Fatalf("Expected 1 property, got %d", len(result))
@@ -1305,7 +1305,7 @@ func TestFlattenRulesetRepositoryPropertyTargetParameters_NilSource(t *testing.T
 		},
 	}
 
-	result := flattenRulesetRepositoryPropertyTargetParameters(input)
+	result := flattenRulesetPropertyTargets(input, true)
 
 	if len(result) != 1 {
 		t.Fatalf("Expected 1 property, got %d", len(result))
@@ -1328,7 +1328,7 @@ func TestFlattenRulesetRepositoryPropertyTargetParameters_EmptyPropertyValues(t 
 		},
 	}
 
-	result := flattenRulesetRepositoryPropertyTargetParameters(input)
+	result := flattenRulesetPropertyTargets(input, true)
 
 	if len(result) != 1 {
 		t.Fatalf("Expected 1 property, got %d", len(result))
@@ -1351,7 +1351,7 @@ func TestFlattenRulesetRepositoryPropertyTargetParameters_NilPropertyValues(t *t
 		},
 	}
 
-	result := flattenRulesetRepositoryPropertyTargetParameters(input)
+	result := flattenRulesetPropertyTargets(input, true)
 
 	if len(result) != 1 {
 		t.Fatalf("Expected 1 property, got %d", len(result))
