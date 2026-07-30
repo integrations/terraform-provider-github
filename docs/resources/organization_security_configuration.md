@@ -11,7 +11,7 @@ Resource to manage a GitHub code security configuration for an organization.
 
 This resource allows you to create and manage [code security configurations](https://docs.github.com/en/code-security/securing-your-organization/enabling-security-features-in-your-organization/creating-a-custom-security-configuration) for a GitHub organization. A code security configuration is a collection of security settings (Advanced Security, Dependabot, code scanning, secret scanning, and related features) that can be applied to repositories in the organization.
 
-You must have organization admin access to use this resource.
+The authenticated user must be an organization owner or a security manager for the organization. OAuth app tokens and personal access tokens (classic) need the `write:org` scope. See the [code security configurations REST API reference](https://docs.github.com/en/rest/code-security/configurations) for the full set of required permissions.
 
 ~> Some settings (such as `advanced_security` and `secret_scanning_generic_secrets`) require GitHub Advanced Security licensing.
 
@@ -101,7 +101,7 @@ resource "github_organization_security_configuration" "with_delegated_bypass" {
 Optional:
 
 - `runner_label` (String) Label of the runner to use for code scanning default setup.
-- `runner_type` (String) Type of runner to use for code scanning default setup. Can be one of 'standard', 'labeled'.
+- `runner_type` (String) Type of runner to use for code scanning default setup. Can be one of 'standard', 'labeled', 'not_set'. Defaults to 'not_set'.
 
 
 <a id="nestedblock--code_scanning_options"></a>

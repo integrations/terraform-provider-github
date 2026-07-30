@@ -121,8 +121,9 @@ func resourceGithubEnterpriseSecurityConfiguration() *schema.Resource {
 						"runner_type": {
 							Type:             schema.TypeString,
 							Optional:         true,
-							Description:      "Type of runner to use for code scanning default setup. Can be one of 'standard', 'labeled'.",
-							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"standard", "labeled"}, false)),
+							Default:          "not_set",
+							Description:      "Type of runner to use for code scanning default setup. Can be one of 'standard', 'labeled', 'not_set'. Defaults to 'not_set'.",
+							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"standard", "labeled", "not_set"}, false)),
 						},
 						"runner_label": {
 							Type:        schema.TypeString,
