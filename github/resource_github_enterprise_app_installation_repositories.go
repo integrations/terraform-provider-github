@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -52,21 +52,23 @@ func resourceGithubEnterpriseAppInstallationRepositories() *schema.Resource {
 	}
 }
 
-func resourceGithubEnterpriseAppInstallationRepositoriesCreateOrUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubEnterpriseAppInstallationRepositoriesCreateOrUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	ctx := context.Background()
 
-	enterprise := d.Get("enterprise_slug").(string)
-	org := d.Get("organization").(string)
-	installationIDString := d.Get("installation_id").(string)
+	enterprise, _ := d.Get("enterprise_slug").(string)
+	org, _ := d.Get("organization").(string)
+	installationIDString, _ := d.Get("installation_id").(string)
 	installationID, err := strconv.ParseInt(installationIDString, 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(installationIDString, err)
 	}
 
-	desired := stringSetFromAny(d.Get("selected_repositories").(*schema.Set).List())
+	selectedRepositories, _ := d.Get("selected_repositories").(*schema.Set)
+	desired := stringSetFromAny(selectedRepositories.List())
 
-	current, err := listEnterpriseAppInstallationRepositories(ctx, client, enterprise, org, installationID)
+	current, err := listEnterpriseAppInstallationRepositories(ctx, meta, enterprise, org, installationID)
 	if err != nil {
 		return err
 	}
@@ -104,8 +106,8 @@ func resourceGithubEnterpriseAppInstallationRepositoriesCreateOrUpdate(d *schema
 	return resourceGithubEnterpriseAppInstallationRepositoriesRead(d, meta)
 }
 
-func resourceGithubEnterpriseAppInstallationRepositoriesRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubEnterpriseAppInstallationRepositoriesRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	enterprise, org, installationIDString, err := parseID3(d.Id())
@@ -117,7 +119,7 @@ func resourceGithubEnterpriseAppInstallationRepositoriesRead(d *schema.ResourceD
 		return unconvertibleIdErr(installationIDString, err)
 	}
 
-	repos, err := listEnterpriseAppInstallationRepositories(ctx, client, enterprise, org, installationID)
+	repos, err := listEnterpriseAppInstallationRepositories(ctx, meta, enterprise, org, installationID)
 	if err != nil {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) && ghErr.Response != nil && ghErr.Response.StatusCode == http.StatusNotFound {
@@ -148,8 +150,9 @@ func resourceGithubEnterpriseAppInstallationRepositoriesRead(d *schema.ResourceD
 	return nil
 }
 
-func resourceGithubEnterpriseAppInstallationRepositoriesDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubEnterpriseAppInstallationRepositoriesDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	enterprise, org, installationIDString, err := parseID3(d.Id())
@@ -161,7 +164,7 @@ func resourceGithubEnterpriseAppInstallationRepositoriesDelete(d *schema.Resourc
 		return unconvertibleIdErr(installationIDString, err)
 	}
 
-	current, err := listEnterpriseAppInstallationRepositories(ctx, client, enterprise, org, installationID)
+	current, err := listEnterpriseAppInstallationRepositories(ctx, meta, enterprise, org, installationID)
 	if err != nil {
 		return err
 	}
@@ -178,11 +181,11 @@ func resourceGithubEnterpriseAppInstallationRepositoriesDelete(d *schema.Resourc
 	return err
 }
 
-func resourceGithubEnterpriseAppInstallationRepositoriesImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubEnterpriseAppInstallationRepositoriesImport(d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
 	if _, _, _, err := parseID3(d.Id()); err != nil {
 		return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <enterprise_slug>:<organization>:<installation_id>")
 	}
-	if err := resourceGithubEnterpriseAppInstallationRepositoriesRead(d, meta); err != nil {
+	if err := resourceGithubEnterpriseAppInstallationRepositoriesRead(d, m); err != nil {
 		return nil, err
 	}
 	return []*schema.ResourceData{d}, nil

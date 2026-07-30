@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -50,11 +50,12 @@ func dataSourceGithubEnterpriseAppAccessibleOrganizationRepositories() *schema.R
 }
 
 func dataSourceGithubEnterpriseAppAccessibleOrganizationRepositoriesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	client := m.(*Owner).v3client
-	enterprise := d.Get("enterprise_slug").(string)
-	org := d.Get("organization").(string)
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	enterprise, _ := d.Get("enterprise_slug").(string)
+	org, _ := d.Get("organization").(string)
 
-	opts := &github.ListOptions{PerPage: maxPerPage}
+	opts := &github.ListOptions{PerPage: meta.maxPerPage}
 	results := make([]map[string]any, 0)
 	for {
 		repos, resp, err := client.Enterprise.ListAppAccessibleOrganizationRepositories(ctx, enterprise, org, opts)

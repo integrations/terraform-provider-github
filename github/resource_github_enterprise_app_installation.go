@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -74,20 +74,23 @@ func resourceGithubEnterpriseAppInstallation() *schema.Resource {
 	}
 }
 
-func resourceGithubEnterpriseAppInstallationCreate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubEnterpriseAppInstallationCreate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	ctx := context.Background()
 
-	enterprise := d.Get("enterprise_slug").(string)
-	org := d.Get("organization").(string)
-	selection := d.Get("repository_selection").(string)
+	enterprise, _ := d.Get("enterprise_slug").(string)
+	org, _ := d.Get("organization").(string)
+	selection, _ := d.Get("repository_selection").(string)
+	clientID, _ := d.Get("client_id").(string)
 
 	req := github.InstallAppRequest{
-		ClientID:            d.Get("client_id").(string),
+		ClientID:            clientID,
 		RepositorySelection: selection,
 	}
 	if selection == "selected" {
-		req.Repositories = expandStringList(d.Get("repositories").(*schema.Set).List())
+		repositories, _ := d.Get("repositories").(*schema.Set)
+		req.Repositories = expandStringList(repositories.List())
 	}
 
 	installation, _, err := client.Enterprise.InstallApp(ctx, enterprise, org, req)
@@ -99,8 +102,8 @@ func resourceGithubEnterpriseAppInstallationCreate(d *schema.ResourceData, meta 
 	return resourceGithubEnterpriseAppInstallationRead(d, meta)
 }
 
-func resourceGithubEnterpriseAppInstallationRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubEnterpriseAppInstallationRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	enterprise, org, idStr, err := parseID3(d.Id())
@@ -112,7 +115,7 @@ func resourceGithubEnterpriseAppInstallationRead(d *schema.ResourceData, meta an
 		return unconvertibleIdErr(idStr, err)
 	}
 
-	installation, err := findEnterpriseAppInstallation(ctx, client, enterprise, org, installationID)
+	installation, err := findEnterpriseAppInstallation(ctx, meta, enterprise, org, installationID)
 	if err != nil {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) && ghErr.Response != nil && ghErr.Response.StatusCode == http.StatusNotFound {
@@ -150,7 +153,7 @@ func resourceGithubEnterpriseAppInstallationRead(d *schema.ResourceData, meta an
 	}
 
 	if installation.GetRepositorySelection() == "selected" {
-		repos, err := listEnterpriseAppInstallationRepositories(ctx, client, enterprise, org, installationID)
+		repos, err := listEnterpriseAppInstallationRepositories(ctx, meta, enterprise, org, installationID)
 		if err != nil {
 			return err
 		}
@@ -170,8 +173,9 @@ func resourceGithubEnterpriseAppInstallationRead(d *schema.ResourceData, meta an
 	return nil
 }
 
-func resourceGithubEnterpriseAppInstallationUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubEnterpriseAppInstallationUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	enterprise, org, idStr, err := parseID3(d.Id())
@@ -183,22 +187,21 @@ func resourceGithubEnterpriseAppInstallationUpdate(d *schema.ResourceData, meta 
 		return unconvertibleIdErr(idStr, err)
 	}
 
-	selection := d.Get("repository_selection").(string)
+	selection, _ := d.Get("repository_selection").(string)
 
 	if d.HasChange("repository_selection") {
 		opts := github.UpdateAppInstallationRepositoriesRequest{
 			RepositorySelection: &selection,
 		}
 		if selection == "selected" {
-			opts.Repositories = expandStringList(d.Get("repositories").(*schema.Set).List())
+			repositories, _ := d.Get("repositories").(*schema.Set)
+			opts.Repositories = expandStringList(repositories.List())
 		}
 		if _, _, err := client.Enterprise.UpdateAppInstallationRepositories(ctx, enterprise, org, installationID, opts); err != nil {
 			return fmt.Errorf("error updating repository_selection for installation %d: %w", installationID, err)
 		}
 	} else if selection == "selected" && d.HasChange("repositories") {
-		oldVal, newVal := d.GetChange("repositories")
-		oldSet := oldVal.(*schema.Set)
-		newSet := newVal.(*schema.Set)
+		oldSet, newSet := setChanges(d.GetChange("repositories"))
 
 		toAdd := expandStringList(newSet.Difference(oldSet).List())
 		toRemove := expandStringList(oldSet.Difference(newSet).List())
@@ -218,8 +221,9 @@ func resourceGithubEnterpriseAppInstallationUpdate(d *schema.ResourceData, meta 
 	return resourceGithubEnterpriseAppInstallationRead(d, meta)
 }
 
-func resourceGithubEnterpriseAppInstallationDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubEnterpriseAppInstallationDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	enterprise, org, idStr, err := parseID3(d.Id())
@@ -235,11 +239,11 @@ func resourceGithubEnterpriseAppInstallationDelete(d *schema.ResourceData, meta 
 	return err
 }
 
-func resourceGithubEnterpriseAppInstallationImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubEnterpriseAppInstallationImport(d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
 	if _, _, _, err := parseID3(d.Id()); err != nil {
 		return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <enterprise_slug>:<organization>:<installation_id>")
 	}
-	if err := resourceGithubEnterpriseAppInstallationRead(d, meta); err != nil {
+	if err := resourceGithubEnterpriseAppInstallationRead(d, m); err != nil {
 		return nil, err
 	}
 	return []*schema.ResourceData{d}, nil
@@ -248,10 +252,10 @@ func resourceGithubEnterpriseAppInstallationImport(d *schema.ResourceData, meta 
 // findEnterpriseAppInstallation walks the enterprise app installations on an organization
 // to locate the installation matching the given ID. The REST API does not provide a direct
 // GET endpoint for a single enterprise-owned org installation, so a list-and-filter is used.
-func findEnterpriseAppInstallation(ctx context.Context, client *github.Client, enterprise, org string, installationID int64) (*github.Installation, error) {
-	opts := &github.ListOptions{PerPage: maxPerPage}
+func findEnterpriseAppInstallation(ctx context.Context, meta *Owner, enterprise, org string, installationID int64) (*github.Installation, error) {
+	opts := &github.ListOptions{PerPage: meta.maxPerPage}
 	for {
-		installations, resp, err := client.Enterprise.ListAppInstallations(ctx, enterprise, org, opts)
+		installations, resp, err := meta.v3client.Enterprise.ListAppInstallations(ctx, enterprise, org, opts)
 		if err != nil {
 			return nil, err
 		}
@@ -267,11 +271,11 @@ func findEnterpriseAppInstallation(ctx context.Context, client *github.Client, e
 	}
 }
 
-func listEnterpriseAppInstallationRepositories(ctx context.Context, client *github.Client, enterprise, org string, installationID int64) ([]*github.AccessibleRepository, error) {
+func listEnterpriseAppInstallationRepositories(ctx context.Context, meta *Owner, enterprise, org string, installationID int64) ([]*github.AccessibleRepository, error) {
 	var all []*github.AccessibleRepository
-	opts := &github.ListOptions{PerPage: maxPerPage}
+	opts := &github.ListOptions{PerPage: meta.maxPerPage}
 	for {
-		repos, resp, err := client.Enterprise.ListRepositoriesForOrgAppInstallation(ctx, enterprise, org, installationID, opts)
+		repos, resp, err := meta.v3client.Enterprise.ListRepositoriesForOrgAppInstallation(ctx, enterprise, org, installationID, opts)
 		if err != nil {
 			return nil, err
 		}
