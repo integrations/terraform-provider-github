@@ -113,7 +113,7 @@ func dataSourceGithubOrganizationRoleTeamsRead(ctx context.Context, d *schema.Re
 	roleID := int64(roleIdInt)
 
 	teams := make([]any, 0)
-	for team, err := range meta.v3client.Organizations.ListTeamsAssignedToOrgRoleIter(ctx, meta.name, roleID, &github.ListOptions{PerPage: maxPerPage}) {
+	for team, err := range meta.v3client.Organizations.ListTeamsAssignedToOrgRoleIter(ctx, meta.name, roleID, &github.ListOptions{PerPage: meta.maxPerPage}) {
 		if err != nil {
 			return diag.FromErr(err)
 		}

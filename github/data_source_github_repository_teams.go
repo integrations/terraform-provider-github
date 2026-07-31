@@ -112,7 +112,7 @@ func dataSourceGithubRepositoryTeamsRead(ctx context.Context, d *schema.Resource
 	}
 
 	var teams []map[string]any
-	for team, err := range meta.v3client.Repositories.ListTeamsIter(ctx, owner, repoName, &github.ListOptions{PerPage: maxPerPage}) {
+	for team, err := range meta.v3client.Repositories.ListTeamsIter(ctx, owner, repoName, &github.ListOptions{PerPage: meta.maxPerPage}) {
 		if err != nil {
 			return diag.FromErr(err)
 		}

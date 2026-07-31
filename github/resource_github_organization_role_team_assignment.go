@@ -37,14 +37,15 @@ func resourceGithubOrganizationRoleTeamAssignment() *schema.Resource {
 	}
 }
 
-func resourceGithubOrganizationRoleTeamAssignmentCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRoleTeamAssignmentCreate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 	ctx := context.Background()
 
 	teamSlug := d.Get("team_slug").(string)
@@ -64,15 +65,17 @@ func resourceGithubOrganizationRoleTeamAssignmentCreate(d *schema.ResourceData, 
 	return resourceGithubOrganizationRoleTeamAssignmentRead(d, meta)
 }
 
-func resourceGithubOrganizationRoleTeamAssignmentRead(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRoleTeamAssignmentRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
+
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	client := meta.(*Owner).v3client
 	ctx := context.Background()
-	orgName := meta.(*Owner).name
 
 	teamSlug, roleIDString, err := parseID2(d.Id())
 	if err != nil {
@@ -87,7 +90,7 @@ func resourceGithubOrganizationRoleTeamAssignmentRead(d *schema.ResourceData, me
 	// There is no api for checking a specific team role assignment, so instead we iterate over all teams assigned to the role
 	// go-github pagination (https://github.com/google/go-github?tab=readme-ov-file#pagination)
 	options := &github.ListOptions{
-		PerPage: 100,
+		PerPage: meta.maxPerPage,
 	}
 	var foundTeam *github.Team
 	for {
@@ -125,14 +128,15 @@ func resourceGithubOrganizationRoleTeamAssignmentRead(d *schema.ResourceData, me
 	return nil
 }
 
-func resourceGithubOrganizationRoleTeamAssignmentDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationRoleTeamAssignmentDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 	ctx := context.Background()
 
 	teamSlug, roleIDString, err := parseID2(d.Id())
