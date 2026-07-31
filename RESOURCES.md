@@ -69,6 +69,9 @@ The overall status of each resource or data source is captured in this document 
 | `github_dependabot_public_key` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_dependabot_secrets` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_enterprise` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
+| `github_enterprise_app_accessible_organization_repositories` | ✅ | ✅ | ✅ | ✅ | ❓ | ✅ |
+| `github_enterprise_app_installable_organizations` | ✅ | ✅ | ✅ | ✅ | ❓ | ✅ |
+| `github_enterprise_app_installations` | ✅ | ✅ | ✅ | ✅ | ❓ | ✅ |
 | `github_external_groups` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_ip_ranges` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_issue_labels` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |

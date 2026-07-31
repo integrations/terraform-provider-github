@@ -329,6 +329,9 @@ func NewProvider(version, commit string) func() *schema.Provider {
 				"github_user_external_identity":                                         dataSourceGithubUserExternalIdentity(),
 				"github_users":                                                          dataSourceGithubUsers(),
 				"github_enterprise":                                                     dataSourceGithubEnterprise(),
+				"github_enterprise_app_accessible_organization_repositories":            dataSourceGithubEnterpriseAppAccessibleOrganizationRepositories(),
+				"github_enterprise_app_installable_organizations":                       dataSourceGithubEnterpriseAppInstallableOrganizations(),
+				"github_enterprise_app_installations":                                   dataSourceGithubEnterpriseAppInstallations(),
 				"github_repository_environment_deployment_policies":                     dataSourceGithubRepositoryEnvironmentDeploymentPolicies(),
 			},
 
