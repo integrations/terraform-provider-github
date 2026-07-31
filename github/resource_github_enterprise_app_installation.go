@@ -148,14 +148,15 @@ func resourceGithubEnterpriseAppInstallationCreate(ctx context.Context, d *schem
 }
 
 func resourceGithubEnterpriseAppInstallationRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+	owner := meta.(*Owner)
+	client := owner.v3client
 
 	enterpriseSlug, org, clientID, err := parseID3(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	installation, err := findEnterpriseAppInstallation(ctx, client, enterpriseSlug, org, clientID)
+	installation, err := findEnterpriseAppInstallation(ctx, owner, enterpriseSlug, org, clientID)
 	if err != nil {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
@@ -196,7 +197,7 @@ func resourceGithubEnterpriseAppInstallationRead(ctx context.Context, d *schema.
 
 	selectedRepositories := []string{}
 	if installation.GetRepositorySelection() == "selected" {
-		opts := &github.ListOptions{PerPage: maxPerPage}
+		opts := &github.ListOptions{PerPage: owner.maxPerPage}
 		for {
 			repos, resp, err := client.Enterprise.ListRepositoriesForOrgAppInstallation(ctx, enterpriseSlug, org, installation.GetID(), opts)
 			if err != nil {
@@ -345,10 +346,10 @@ func addEnterpriseAppInstallationRepositories(ctx context.Context, client *githu
 // findEnterpriseAppInstallation returns the installation of the app with the
 // given client ID on an enterprise-owned organization, or nil if the app is
 // not installed.
-func findEnterpriseAppInstallation(ctx context.Context, client *github.Client, enterpriseSlug, org, clientID string) (*github.Installation, error) {
-	opts := &github.ListOptions{PerPage: maxPerPage}
+func findEnterpriseAppInstallation(ctx context.Context, owner *Owner, enterpriseSlug, org, clientID string) (*github.Installation, error) {
+	opts := &github.ListOptions{PerPage: owner.maxPerPage}
 	for {
-		installations, resp, err := client.Enterprise.ListAppInstallations(ctx, enterpriseSlug, org, opts)
+		installations, resp, err := owner.v3client.Enterprise.ListAppInstallations(ctx, enterpriseSlug, org, opts)
 		if err != nil {
 			return nil, err
 		}
