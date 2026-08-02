@@ -2,12 +2,12 @@
 page_title: "github_actions_hosted_runner (Resource) - GitHub"
 subcategory: ""
 description: |-
-  This resource allows you to create and manage GitHub-hosted runners within your GitHub organization. You must have admin access to an organization to use this resource.
+  Resource to create and manage GitHub-hosted runners within your GitHub organization.
 ---
 
 # github_actions_hosted_runner (Resource)
 
-This resource allows you to create and manage GitHub-hosted runners within your GitHub organization. You must have admin access to an organization to use this resource.
+Resource to create and manage GitHub-hosted runners within your GitHub organization.
 
 ## Notes
 
@@ -66,7 +66,7 @@ resource "github_actions_hosted_runner" "example" {
 
 - `image` (Block List, Min: 1, Max: 1) Image configuration for the hosted runner. Cannot be changed after creation. (see [below for nested schema](#nestedblock--image))
 - `name` (String) Name of the hosted runner. Must be between 1 and 64 characters and may only contain upper and lowercase letters a-z, numbers 0-9, '.', '-', and '_'.
-- `runner_group_id` (Number) The ID of the runner group to assign this runner to.
+- `runner_group_id` (Number) ID of the runner group to assign this runner to.
 - `size` (String) Machine size for the hosted runner (e.g., `4-core`, `8-core`). Can be updated to scale the runner. To list available sizes, use the GitHub API: `GET /orgs/{org}/actions/hosted-runners/machine-sizes`.
 
 ### Optional
