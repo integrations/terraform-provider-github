@@ -99,7 +99,7 @@ func resourceGithubRepositoryAutolinkReferenceCreate(ctx context.Context, d *sch
 		IsAlphanumeric: &isAlphanumeric,
 	}
 
-	autolinkRef, _, err := client.Repositories.AddAutolink(ctx, owner, repoName, opts)
+	autolinkRef, resp, err := client.Repositories.AddAutolink(ctx, owner, repoName, opts)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -114,7 +114,11 @@ func resourceGithubRepositoryAutolinkReferenceCreate(ctx context.Context, d *sch
 		return diag.FromErr(err)
 	}
 
-	return resourceGithubRepositoryAutolinkReferenceRead(ctx, d, m)
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
 }
 
 func resourceGithubRepositoryAutolinkReferenceRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
@@ -123,12 +127,12 @@ func resourceGithubRepositoryAutolinkReferenceRead(ctx context.Context, d *schem
 	owner := meta.name
 
 	repoName := d.Get("repository").(string)
-	autolinkRefID, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
+	autolinkRefID, diags := idStringToInt64(d.Id())
+	if diags.HasError() {
+		return diags
 	}
 
-	autolinkRef, _, err := client.Repositories.GetAutolink(ctx, owner, repoName, autolinkRefID)
+	autolinkRef, resp, err := client.Repositories.GetAutolink(ctx, owner, repoName, autolinkRefID)
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
 			tflog.Info(ctx, "Autolink reference not found, removing from state.", map[string]any{"owner": owner, "repository": repoName})
@@ -139,25 +143,20 @@ func resourceGithubRepositoryAutolinkReferenceRead(ctx context.Context, d *schem
 	}
 
 	d.SetId(strconv.FormatInt(autolinkRef.GetID(), 10))
-	if err = d.Set("repository", repoName); err != nil {
+	if err := d.Set("repository", repoName); err != nil {
 		return diag.FromErr(err)
 	}
 
-	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
-	if err != nil {
+	if err := d.Set("key_prefix", autolinkRef.GetKeyPrefix()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err = d.Set("repository_id", int(repo.GetID())); err != nil {
+	if err := d.Set("target_url_template", autolinkRef.GetURLTemplate()); err != nil {
 		return diag.FromErr(err)
 	}
-
-	if err = d.Set("key_prefix", autolinkRef.KeyPrefix); err != nil {
+	if err := d.Set("is_alphanumeric", autolinkRef.GetIsAlphanumeric()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err = d.Set("target_url_template", autolinkRef.URLTemplate); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("is_alphanumeric", autolinkRef.IsAlphanumeric); err != nil {
+	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -175,13 +174,18 @@ func resourceGithubRepositoryAutolinkReferenceDelete(ctx context.Context, d *sch
 	owner := meta.name
 
 	repoName := d.Get("repository").(string)
-	autolinkRefID, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
+	autolinkRefID, diags := idStringToInt64(d.Id())
+	if diags.HasError() {
+		return diags
 	}
 
-	_, err = client.Repositories.DeleteAutolink(ctx, owner, repoName, autolinkRefID)
+	_, err := client.Repositories.DeleteAutolink(ctx, owner, repoName, autolinkRefID)
 	if err != nil {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Autolink reference not found, removing from state.", map[string]any{"owner": owner, "repository": repoName})
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
@@ -206,9 +210,10 @@ func resourceGithubRepositoryAutolinkReferenceImport(ctx context.Context, d *sch
 	// caller provided the key prefix for the autolink reference, and look up
 	// the autolink by the key prefix.
 
-	autolinkID, err := strconv.Atoi(id)
+	autolinkID, diags := idStringToInt64(id)
 	var autolink *github.Autolink
-	if err != nil {
+	if diags.HasError() {
+		var err error
 		autolink, err = getAutolinkByKeyPrefix(ctx, client, owner, repository, id)
 		if err != nil {
 			return nil, err
@@ -216,7 +221,8 @@ func resourceGithubRepositoryAutolinkReferenceImport(ctx context.Context, d *sch
 
 		id = strconv.FormatInt(autolink.GetID(), 10)
 	} else {
-		autolink, _, err = client.Repositories.GetAutolink(ctx, owner, repository, int64(autolinkID))
+		var err error
+		autolink, _, err = client.Repositories.GetAutolink(ctx, owner, repository, autolinkID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch autolink with ID: %d for repository %s/%s. Error: %w", autolinkID, owner, repository, err)
 		}
