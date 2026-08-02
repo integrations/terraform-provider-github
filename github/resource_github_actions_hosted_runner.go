@@ -32,7 +32,7 @@ func resourceGithubActionsHostedRunner() *schema.Resource {
 			Delete: schema.DefaultTimeout(10 * time.Minute),
 		},
 
-		Description: "This resource allows you to create and manage GitHub-hosted runners within your GitHub organization. You must have admin access to an organization to use this resource.",
+		Description: "Resource to create and manage GitHub-hosted runners within your GitHub organization.",
 
 		CustomizeDiff: customdiff.All(resourceGithubActionsHostedRunnerValidation),
 
@@ -85,7 +85,7 @@ func resourceGithubActionsHostedRunner() *schema.Resource {
 			"runner_group_id": {
 				Type:        schema.TypeInt,
 				Required:    true,
-				Description: "The ID of the runner group to assign this runner to.",
+				Description: "ID of the runner group to assign this runner to.",
 			},
 			"maximum_runners": {
 				Type:             schema.TypeInt,
@@ -190,12 +190,12 @@ func resourceGithubActionsHostedRunner() *schema.Resource {
 }
 
 func resourceGithubActionsHostedRunnerCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	err := checkOrganization(m)
-	if err != nil {
-		return diag.FromErr(err)
+	meta, _ := m.(*Owner)
+
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
 	}
 
-	meta, _ := m.(*Owner)
 	client := meta.v3client
 	orgName := meta.name
 
