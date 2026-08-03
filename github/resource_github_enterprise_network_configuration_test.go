@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
@@ -110,12 +110,7 @@ func TestAccGithubEnterpriseNetworkConfiguration(t *testing.T) {
 }
 
 func testAccCheckGithubEnterpriseNetworkConfigurationDestroy(s *terraform.State) error {
-	meta, err := getTestMeta()
-	if err != nil {
-		return err
-	}
-
-	client := meta.v3client
+	client := testAccConf.meta.v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_enterprise_network_configuration" {
@@ -129,8 +124,7 @@ func testAccCheckGithubEnterpriseNetworkConfigurationDestroy(s *terraform.State)
 
 		_, _, err := client.Enterprise.GetEnterpriseNetworkConfiguration(context.Background(), enterpriseSlug, rs.Primary.ID)
 		if err != nil {
-			var ghErr *github.ErrorResponse
-			if errors.As(err, &ghErr) && ghErr.Response != nil && ghErr.Response.StatusCode == http.StatusNotFound {
+			if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
 				continue
 			}
 

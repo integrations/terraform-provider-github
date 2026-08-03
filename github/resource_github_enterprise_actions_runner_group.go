@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -23,6 +24,7 @@ func resourceGithubActionsEnterpriseRunnerGroup() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubActionsEnterpriseRunnerGroupImport,
 		},
+		CustomizeDiff: customdiff.ForceNewIfChange("network_configuration_id", networkConfigurationRemoved),
 
 		Schema: map[string]*schema.Schema{
 			"enterprise_slug": {
@@ -54,7 +56,7 @@ func resourceGithubActionsEnterpriseRunnerGroup() *schema.Resource {
 			"network_configuration_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The identifier of a hosted compute network configuration to assign to the runner group.",
+				Description: "The identifier of a hosted compute network configuration to assign to the runner group. Removing this attribute replaces the runner group, because the API cannot unset an existing assignment.",
 			},
 			"runners_url": {
 				Type:        schema.TypeString,
