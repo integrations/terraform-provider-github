@@ -8,18 +8,20 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-var organizationNetworkConfigurationNamePattern = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
+// networkConfigurationNamePattern mirrors the name constraint the REST API enforces on hosted
+// compute network configurations so that invalid names are rejected at plan time.
+var networkConfigurationNamePattern = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
 
 func resourceGithubOrganizationNetworkConfiguration() *schema.Resource {
 	return &schema.Resource{
-		Description:   "This resource allows you to create and manage hosted compute network configurations for a GitHub organization.",
+		Description:   "Manages a hosted compute network configuration for a GitHub organization.",
 		CreateContext: resourceGithubOrganizationNetworkConfigurationCreate,
 		ReadContext:   resourceGithubOrganizationNetworkConfigurationRead,
 		UpdateContext: resourceGithubOrganizationNetworkConfigurationUpdate,
@@ -35,7 +37,7 @@ func resourceGithubOrganizationNetworkConfiguration() *schema.Resource {
 				ValidateDiagFunc: validation.ToDiagFunc(validation.All(
 					validation.StringLenBetween(1, 100),
 					validation.StringMatch(
-						organizationNetworkConfigurationNamePattern,
+						networkConfigurationNamePattern,
 						"name may only contain upper and lowercase letters a-z, numbers 0-9, '.', '-', and '_'",
 					),
 				)),
@@ -46,7 +48,7 @@ func resourceGithubOrganizationNetworkConfiguration() *schema.Resource {
 				Optional:         true,
 				Default:          "none",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"none", "actions"}, false)),
-				Description:      "The hosted compute service to use for the network configuration. Can be one of: 'none', 'actions'. Defaults to 'none'.",
+				Description:      "The hosted compute service the network configuration supports. Can be one of: 'none', 'actions'. Defaults to 'none'.",
 			},
 			"network_settings_ids": {
 				Type:     schema.TypeList,
@@ -61,41 +63,41 @@ func resourceGithubOrganizationNetworkConfiguration() *schema.Resource {
 			"created_on": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Timestamp when the network configuration was created.",
+				Description: "Timestamp of when the network configuration was created, in RFC3339 format.",
 			},
 		},
 	}
 }
 
 func resourceGithubOrganizationNetworkConfigurationCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	ctx = tflog.SetField(ctx, "organization", meta.(*Owner).name)
-
 	if err := checkOrganization(meta); err != nil {
 		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
+	name := d.Get("name").(string)
 	computeService := github.ComputeService(d.Get("compute_service").(string))
-	networkSettingsIDs := []string{d.Get("network_settings_ids").([]any)[0].(string)}
+	networkSettingsIDs := expandNetworkSettingsIDs(d)
 
+	ctx = tflog.SetField(ctx, "organization", orgName)
 	tflog.Debug(ctx, "Creating organization network configuration", map[string]any{
-		"name":                 d.Get("name").(string),
-		"compute_service":      d.Get("compute_service").(string),
+		"name":                 name,
+		"compute_service":      computeService,
 		"network_settings_ids": networkSettingsIDs,
 	})
 
 	configuration, _, err := client.Organizations.CreateNetworkConfiguration(ctx, orgName, github.NetworkConfigurationRequest{
-		Name:               github.Ptr(d.Get("name").(string)),
+		Name:               github.Ptr(name),
 		ComputeService:     &computeService,
 		NetworkSettingsIDs: networkSettingsIDs,
 	})
 	if err != nil {
-		return organizationNetworkConfigurationDiagnostics(err)
+		return diag.FromErr(networkSettingsScopeError(err, "organization"))
 	}
 
 	d.SetId(configuration.GetID())
-	if err := setOrganizationNetworkConfigurationState(d, configuration); err != nil {
+	if err := setNetworkConfigurationState(d, configuration); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -103,35 +105,33 @@ func resourceGithubOrganizationNetworkConfigurationCreate(ctx context.Context, d
 }
 
 func resourceGithubOrganizationNetworkConfigurationRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	ctx = tflog.SetField(ctx, "id", d.Id())
-	ctx = tflog.SetField(ctx, "organization", meta.(*Owner).name)
-
 	if err := checkOrganization(meta); err != nil {
 		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	networkConfigurationID := d.Id()
-	ctx = context.WithValue(ctx, ctxId, networkConfigurationID)
 
-	configuration, resp, err := client.Organizations.GetNetworkConfiguration(ctx, orgName, networkConfigurationID)
+	ctx = context.WithValue(ctx, ctxId, d.Id())
+	ctx = tflog.SetField(ctx, "organization", orgName)
+
+	configuration, _, err := client.Organizations.GetNetworkConfiguration(ctx, orgName, d.Id())
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) && ghErr.Response != nil && ghErr.Response.StatusCode == http.StatusNotFound {
-			tflog.Info(ctx, "Organization network configuration not found, removing from state", map[string]any{"id": networkConfigurationID})
-			d.SetId("")
-			return nil
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
+			if ghErr.Response.StatusCode == http.StatusNotModified {
+				return nil
+			}
+			if ghErr.Response.StatusCode == http.StatusNotFound {
+				tflog.Info(ctx, "Removing organization network configuration from state because it no longer exists in GitHub")
+				d.SetId("")
+				return nil
+			}
 		}
 
 		return diag.FromErr(err)
 	}
 
-	if resp != nil && resp.StatusCode == http.StatusNotModified {
-		return nil
-	}
-
-	if err := setOrganizationNetworkConfigurationState(d, configuration); err != nil {
+	if err := setNetworkConfigurationState(d, configuration); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -139,36 +139,34 @@ func resourceGithubOrganizationNetworkConfigurationRead(ctx context.Context, d *
 }
 
 func resourceGithubOrganizationNetworkConfigurationUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	ctx = tflog.SetField(ctx, "id", d.Id())
-	ctx = tflog.SetField(ctx, "organization", meta.(*Owner).name)
-
 	if err := checkOrganization(meta); err != nil {
 		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	networkConfigurationID := d.Id()
-	ctx = context.WithValue(ctx, ctxId, networkConfigurationID)
+	name := d.Get("name").(string)
 	computeService := github.ComputeService(d.Get("compute_service").(string))
-	networkSettingsIDs := []string{d.Get("network_settings_ids").([]any)[0].(string)}
+	networkSettingsIDs := expandNetworkSettingsIDs(d)
 
+	ctx = context.WithValue(ctx, ctxId, d.Id())
+	ctx = tflog.SetField(ctx, "organization", orgName)
 	tflog.Debug(ctx, "Updating organization network configuration", map[string]any{
-		"name":                 d.Get("name").(string),
-		"compute_service":      d.Get("compute_service").(string),
+		"name":                 name,
+		"compute_service":      computeService,
 		"network_settings_ids": networkSettingsIDs,
 	})
 
-	configuration, _, err := client.Organizations.UpdateNetworkConfiguration(ctx, orgName, networkConfigurationID, github.NetworkConfigurationRequest{
-		Name:               github.Ptr(d.Get("name").(string)),
+	configuration, _, err := client.Organizations.UpdateNetworkConfiguration(ctx, orgName, d.Id(), github.NetworkConfigurationRequest{
+		Name:               github.Ptr(name),
 		ComputeService:     &computeService,
 		NetworkSettingsIDs: networkSettingsIDs,
 	})
 	if err != nil {
-		return organizationNetworkConfigurationDiagnostics(err)
+		return diag.FromErr(networkSettingsScopeError(err, "organization"))
 	}
 
-	if err := setOrganizationNetworkConfigurationState(d, configuration); err != nil {
+	if err := setNetworkConfigurationState(d, configuration); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -176,9 +174,6 @@ func resourceGithubOrganizationNetworkConfigurationUpdate(ctx context.Context, d
 }
 
 func resourceGithubOrganizationNetworkConfigurationDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	ctx = tflog.SetField(ctx, "id", d.Id())
-	ctx = tflog.SetField(ctx, "organization", meta.(*Owner).name)
-
 	if err := checkOrganization(meta); err != nil {
 		return diag.FromErr(err)
 	}
@@ -186,11 +181,12 @@ func resourceGithubOrganizationNetworkConfigurationDelete(ctx context.Context, d
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 
+	ctx = context.WithValue(ctx, ctxId, d.Id())
+	ctx = tflog.SetField(ctx, "organization", orgName)
 	tflog.Debug(ctx, "Deleting organization network configuration")
-	_, err := client.Organizations.DeleteNetworkConfigurations(ctx, orgName, d.Id())
-	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) && ghErr.Response != nil && ghErr.Response.StatusCode == http.StatusNotFound {
+
+	if _, err := client.Organizations.DeleteNetworkConfigurations(ctx, orgName, d.Id()); err != nil {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
 			return nil
 		}
 
@@ -200,7 +196,21 @@ func resourceGithubOrganizationNetworkConfigurationDelete(ctx context.Context, d
 	return nil
 }
 
-func setOrganizationNetworkConfigurationState(d *schema.ResourceData, configuration *github.NetworkConfiguration) error {
+// expandNetworkSettingsIDs reads network_settings_ids, which the schema constrains to exactly
+// one element.
+func expandNetworkSettingsIDs(d *schema.ResourceData) []string {
+	ids := d.Get("network_settings_ids").([]any)
+	networkSettingsIDs := make([]string, 0, len(ids))
+	for _, id := range ids {
+		networkSettingsIDs = append(networkSettingsIDs, id.(string))
+	}
+
+	return networkSettingsIDs
+}
+
+// setNetworkConfigurationState writes the attributes shared by the organization and enterprise
+// network configuration resources. The REST API returns an identical payload for both scopes.
+func setNetworkConfigurationState(d *schema.ResourceData, configuration *github.NetworkConfiguration) error {
 	if err := d.Set("name", configuration.GetName()); err != nil {
 		return err
 	}
@@ -221,11 +231,14 @@ func setOrganizationNetworkConfigurationState(d *schema.ResourceData, configurat
 	return nil
 }
 
-func organizationNetworkConfigurationDiagnostics(err error) diag.Diagnostics {
-	var ghErr *github.ErrorResponse
-	if errors.As(err, &ghErr) && ghErr.Response != nil && ghErr.Response.StatusCode == http.StatusUnprocessableEntity {
-		return diag.FromErr(fmt.Errorf("%w. if you are using Azure private networking, ensure the provided network settings GitHubId matches the organization scope; organization-level configurations may fail when the backing GitHub.Network/networkSettings resource was created with an enterprise databaseId", err))
+// networkSettingsScopeError annotates the 422 the API returns when the referenced network
+// settings resource belongs to a different scope than the configuration being written. Azure
+// issues distinct GitHub IDs for organization and enterprise network settings, and mixing them
+// up is the most common cause of this error.
+func networkSettingsScopeError(err error, scope string) error {
+	if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusUnprocessableEntity {
+		return fmt.Errorf("%w. verify the network settings ID belongs to the same %s: Azure GitHub.Network/networkSettings resources are registered against a single organization or enterprise and cannot be shared across scopes", err, scope)
 	}
 
-	return diag.FromErr(err)
+	return err
 }
