@@ -55,6 +55,11 @@ func resourceGithubActionsRunnerGroup() *schema.Resource {
 				Required:    true,
 				Description: "Name of the runner group.",
 			},
+			"network_configuration_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The identifier of a hosted compute network configuration to assign to the runner group.",
+			},
 			"runners_url": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -135,18 +140,19 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, m any) error
 
 	ctx := context.Background()
 
-	runnerGroup, resp, err := client.Actions.CreateOrganizationRunnerGroup(
-		ctx,
-		orgName,
-		github.CreateRunnerGroupRequest{
-			Name:                     &name,
-			Visibility:               &visibility,
-			RestrictedToWorkflows:    &restrictedToWorkflows,
-			SelectedRepositoryIDs:    selectedRepositoryIDs,
-			SelectedWorkflows:        selectedWorkflows,
-			AllowsPublicRepositories: &allowsPublicRepositories,
-		},
-	)
+	createOptions := github.CreateRunnerGroupRequest{
+		Name:                     &name,
+		Visibility:               &visibility,
+		RestrictedToWorkflows:    &restrictedToWorkflows,
+		SelectedRepositoryIDs:    selectedRepositoryIDs,
+		SelectedWorkflows:        selectedWorkflows,
+		AllowsPublicRepositories: &allowsPublicRepositories,
+	}
+	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
+		createOptions.NetworkConfigurationID = github.Ptr(networkConfigurationID.(string))
+	}
+
+	runnerGroup, resp, err := client.Actions.CreateOrganizationRunnerGroup(ctx, orgName, createOptions)
 	if err != nil {
 		return err
 	}
@@ -168,6 +174,9 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, m any) error
 		return err
 	}
 	if err = d.Set("name", runnerGroup.GetName()); err != nil {
+		return err
+	}
+	if err = d.Set("network_configuration_id", runnerGroup.GetNetworkConfigurationID()); err != nil {
 		return err
 	}
 	if err = d.Set("runners_url", runnerGroup.GetRunnersURL()); err != nil {
@@ -260,6 +269,9 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, m any) error {
 	if err = d.Set("name", runnerGroup.GetName()); err != nil {
 		return err
 	}
+	if err = d.Set("network_configuration_id", runnerGroup.GetNetworkConfigurationID()); err != nil {
+		return err
+	}
 	if err = d.Set("runners_url", runnerGroup.GetRunnersURL()); err != nil {
 		return err
 	}
@@ -332,6 +344,9 @@ func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, m any) error
 		RestrictedToWorkflows:    &restrictedToWorkflows,
 		SelectedWorkflows:        selectedWorkflows,
 		AllowsPublicRepositories: &allowsPublicRepositories,
+	}
+	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
+		options.NetworkConfigurationID = github.Ptr(networkConfigurationID.(string))
 	}
 
 	runnerGroupID, err := strconv.ParseInt(d.Id(), 10, 64)
