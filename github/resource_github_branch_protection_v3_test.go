@@ -6,6 +6,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubBranchProtectionV3_required_pull_request_reviews(t *testing.T) {
@@ -370,17 +373,12 @@ func TestAccGithubBranchProtectionV3_update_with_status_checks(t *testing.T) {
 		t.Run(fmt.Sprintf("updates other settings when %s is set", statusChecksField), func(t *testing.T) {
 			t.Parallel()
 
-			randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-			testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
+			repo := mustCreateTestRepository(t)
+
 			config := func(enforceAdmins bool) string {
 				return fmt.Sprintf(`
-				resource "github_repository" "test" {
-					name      = "%s"
-					auto_init = true
-				}
-
 				resource "github_branch_protection_v3" "test" {
-					repository     = github_repository.test.name
+					repository     = "%s"
 					branch         = "main"
 					enforce_admins = %t
 
@@ -392,11 +390,11 @@ func TestAccGithubBranchProtectionV3_update_with_status_checks(t *testing.T) {
 						]
 					}
 				}
-			`, testRepoName, enforceAdmins, statusChecksField)
+			`, repo.GetName(), enforceAdmins, statusChecksField)
 			}
 
 			resource.Test(t, resource.TestCase{
-				PreCheck:          func() { skipUnlessHasOrgs(t) },
+				PreCheck:          func() { skipUnauthenticated(t) },
 				ProviderFactories: providerFactories,
 				Steps: []resource.TestStep{
 					{
@@ -404,15 +402,18 @@ func TestAccGithubBranchProtectionV3_update_with_status_checks(t *testing.T) {
 					},
 					{
 						Config: config(true),
-						Check: resource.ComposeAggregateTestCheckFunc(
-							resource.TestCheckResourceAttr(
-								"github_branch_protection_v3.test", "enforce_admins", "true",
-							),
-							resource.TestCheckResourceAttr(
+						ConfigStateChecks: []statecheck.StateCheck{
+							statecheck.ExpectKnownValue(
 								"github_branch_protection_v3.test",
-								fmt.Sprintf("required_status_checks.0.%s.#", statusChecksField), "2",
+								tfjsonpath.New("enforce_admins"),
+								knownvalue.Bool(true),
 							),
-						),
+							statecheck.ExpectKnownValue(
+								"github_branch_protection_v3.test",
+								tfjsonpath.New("required_status_checks").AtSliceIndex(0).AtMapKey(statusChecksField),
+								knownvalue.SetSizeExact(2),
+							),
+						},
 					},
 				},
 			})
