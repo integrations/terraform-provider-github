@@ -151,7 +151,7 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, m any) error
 		AllowsPublicRepositories: &allowsPublicRepositories,
 	}
 	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
-		createOptions.NetworkConfigurationID = github.Ptr(networkConfigurationID.(string))
+		createOptions.NetworkConfigurationID = new(networkConfigurationID.(string))
 	}
 
 	runnerGroup, resp, err := client.Actions.CreateOrganizationRunnerGroup(ctx, orgName, createOptions)
@@ -348,7 +348,7 @@ func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, m any) error
 		AllowsPublicRepositories: &allowsPublicRepositories,
 	}
 	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
-		options.NetworkConfigurationID = github.Ptr(networkConfigurationID.(string))
+		options.NetworkConfigurationID = new(networkConfigurationID.(string))
 	}
 
 	runnerGroupID, err := strconv.ParseInt(d.Id(), 10, 64)

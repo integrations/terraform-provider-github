@@ -249,7 +249,7 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 		`, testAccConf.enterpriseSlug, networkConfigurationName, networkSettingsID, testAccConf.enterpriseSlug, groupName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -310,7 +310,7 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 		`, testAccConf.enterpriseSlug, networkConfigurationName, networkSettingsID, testAccConf.enterpriseSlug, groupName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

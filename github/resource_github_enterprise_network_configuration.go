@@ -85,7 +85,7 @@ func resourceGithubEnterpriseNetworkConfigurationCreate(ctx context.Context, d *
 	})
 
 	configuration, _, err := client.Enterprise.CreateEnterpriseNetworkConfiguration(ctx, enterpriseSlug, github.NetworkConfigurationRequest{
-		Name:               github.Ptr(name),
+		Name:               new(name),
 		ComputeService:     &computeService,
 		NetworkSettingsIDs: networkSettingsIDs,
 	})
@@ -147,7 +147,7 @@ func resourceGithubEnterpriseNetworkConfigurationUpdate(ctx context.Context, d *
 	})
 
 	configuration, _, err := client.Enterprise.UpdateEnterpriseNetworkConfiguration(ctx, enterpriseSlug, d.Id(), github.NetworkConfigurationRequest{
-		Name:               github.Ptr(name),
+		Name:               new(name),
 		ComputeService:     &computeService,
 		NetworkSettingsIDs: networkSettingsIDs,
 	})

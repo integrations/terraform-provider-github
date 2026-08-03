@@ -141,7 +141,7 @@ func resourceGithubActionsEnterpriseRunnerGroupCreate(d *schema.ResourceData, me
 		SelectedWorkflows:        selectedWorkflows,
 	}
 	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
-		createOptions.NetworkConfigurationID = github.Ptr(networkConfigurationID.(string))
+		createOptions.NetworkConfigurationID = new(networkConfigurationID.(string))
 	}
 
 	enterpriseRunnerGroup, resp, err := client.Enterprise.CreateEnterpriseRunnerGroup(ctx, enterpriseSlug, createOptions)
@@ -321,7 +321,7 @@ func resourceGithubActionsEnterpriseRunnerGroupUpdate(d *schema.ResourceData, m 
 		AllowsPublicRepositories: &allowsPublicRepositories,
 	}
 	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
-		options.NetworkConfigurationID = github.Ptr(networkConfigurationID.(string))
+		options.NetworkConfigurationID = new(networkConfigurationID.(string))
 	}
 
 	runnerGroupID, err := strconv.ParseInt(d.Id(), 10, 64)

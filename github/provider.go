@@ -243,7 +243,7 @@ func NewProvider(version, commit string) func() *schema.Provider {
 				"github_user_ssh_key":                                                   resourceGithubUserSshKey(),
 				"github_enterprise_organization":                                        resourceGithubEnterpriseOrganization(),
 				"github_enterprise_actions_runner_group":                                resourceGithubActionsEnterpriseRunnerGroup(),
-				"github_enterprise_network_configuration":                              resourceGithubEnterpriseNetworkConfiguration(),
+				"github_enterprise_network_configuration":                               resourceGithubEnterpriseNetworkConfiguration(),
 				"github_enterprise_ip_allow_list_entry":                                 resourceGithubEnterpriseIpAllowListEntry(),
 				"github_enterprise_actions_workflow_permissions":                        resourceGithubEnterpriseActionsWorkflowPermissions(),
 				"github_actions_organization_workflow_permissions":                      resourceGithubActionsOrganizationWorkflowPermissions(),

@@ -27,7 +27,7 @@ func TestAccGithubEnterpriseNetworkConfiguration(t *testing.T) {
 		config := testAccEnterpriseNetworkConfigurationConfig(configurationName, "actions", networkSettingsID)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubEnterpriseNetworkConfigurationDestroy,
 			Steps: []resource.TestStep{
@@ -55,7 +55,7 @@ func TestAccGithubEnterpriseNetworkConfiguration(t *testing.T) {
 		afterName := fmt.Sprintf("%senterprise-network-config-%s-b", testResourcePrefix, randomID)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubEnterpriseNetworkConfigurationDestroy,
 			Steps: []resource.TestStep{
@@ -88,7 +88,7 @@ func TestAccGithubEnterpriseNetworkConfiguration(t *testing.T) {
 		config := testAccEnterpriseNetworkConfigurationConfig(configurationName, "actions", networkSettingsID)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubEnterpriseNetworkConfigurationDestroy,
 			Steps: []resource.TestStep{

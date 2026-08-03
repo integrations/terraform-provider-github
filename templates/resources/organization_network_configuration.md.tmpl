@@ -1,10 +1,10 @@
 ---
-page_title: "github_organization_network_configuration (Resource) - GitHub"
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
 description: |-
   Creates and manages a hosted compute network configuration within a GitHub organization
 ---
 
-# github_organization_network_configuration (Resource)
+# {{.Name}} ({{.Type}})
 
 This resource allows you to create and manage hosted compute network configurations for a GitHub organization. A network configuration associates an Azure virtual network with GitHub-hosted runners so that workflow jobs run inside your own private network. Assign the configuration to a runner group with `github_actions_runner_group.network_configuration_id`.
 
@@ -12,19 +12,7 @@ Before using this resource, create the backing `GitHub.Network/networkSettings` 
 
 ## Example Usage
 
-```terraform
-resource "github_organization_network_configuration" "example" {
-  name                 = "my-network-configuration"
-  compute_service      = "actions"
-  network_settings_ids = ["23456789ABCDEF1"]
-}
-
-resource "github_actions_runner_group" "example" {
-  name                     = "my-runner-group"
-  visibility               = "all"
-  network_configuration_id = github_organization_network_configuration.example.id
-}
-```
+{{tffile "examples/resources/organization_network_configuration/example_1.tf"}}
 
 ## Argument Reference
 
