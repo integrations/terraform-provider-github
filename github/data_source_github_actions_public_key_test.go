@@ -4,31 +4,25 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubActionsPublicKeyDataSource(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-	repoName := fmt.Sprintf("%srepo-actions-pubkey-%s", testResourcePrefix, randomID)
+	t.Parallel()
 
-	t.Run("queries a repository public key without error", func(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-			  name = "%[1]s"
-				auto_init = true
-			}
-
-			data "github_actions_public_key" "test" {
-				repository = github_repository.test.name
-			}
-		`, repoName)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet(
-				"data.github_actions_public_key.test", "key",
-			),
-		)
+data "github_actions_public_key" "test" {
+  repository = "%s"
+}
+`, repo.GetName())
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -36,7 +30,10 @@ func TestAccGithubActionsPublicKeyDataSource(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_actions_public_key.test", tfjsonpath.New("key_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("data.github_actions_public_key.test", tfjsonpath.New("key"), knownvalue.NotNull()),
+					},
 				},
 			},
 		})

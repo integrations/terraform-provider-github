@@ -10,11 +10,15 @@ import (
 )
 
 func TestAccGithubRepositoryCollaborator(t *testing.T) {
-	if len(testAccConf.testExternalUser) == 0 {
+	t.Parallel()
+
+	if len(testAccConf.testExternalUser1) == 0 {
 		t.Skip("No external user provided")
 	}
 
 	t.Run("creates invitations without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-collab-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -28,7 +32,7 @@ func TestAccGithubRepositoryCollaborator(t *testing.T) {
 				username   = "%s"
 				permission = "triage"
 			}
-		`, repoName, testAccConf.testExternalUser)
+		`, repoName, testAccConf.testExternalUser1)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -50,6 +54,8 @@ func TestAccGithubRepositoryCollaborator(t *testing.T) {
 	})
 
 	t.Run("creates invitations when repository contains the org name", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-collab-%s", testResourcePrefix, randomID)
 		configWithOwner := fmt.Sprintf(`
@@ -63,7 +69,7 @@ func TestAccGithubRepositoryCollaborator(t *testing.T) {
 				username   = "%s"
 				permission = "triage"
 			}
-		`, repoName, testAccConf.owner, testAccConf.testExternalUser)
+		`, repoName, testAccConf.owner, testAccConf.testExternalUser1)
 
 		checkWithOwner := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -83,50 +89,16 @@ func TestAccGithubRepositoryCollaborator(t *testing.T) {
 			},
 		})
 	})
-}
 
-func TestParseRepoName(t *testing.T) {
-	tests := []struct {
-		name         string
-		repoName     string
-		defaultOwner string
-		wantOwner    string
-		wantRepoName string
-	}{
-		{
-			name:         "Repo name without owner",
-			repoName:     "example-repo",
-			defaultOwner: "default-owner",
-			wantOwner:    "default-owner",
-			wantRepoName: "example-repo",
-		},
-		{
-			name:         "Repo name with owner",
-			repoName:     "owner-name/example-repo",
-			defaultOwner: "default-owner",
-			wantOwner:    "owner-name",
-			wantRepoName: "example-repo",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gotOwner, gotRepoName := parseRepoName(tt.repoName, tt.defaultOwner)
-			if gotOwner != tt.wantOwner || gotRepoName != tt.wantRepoName {
-				t.Errorf("parseRepoName(%q, %q) = %q, %q, want %q, %q",
-					tt.repoName, tt.defaultOwner, gotOwner, gotRepoName, tt.wantOwner, tt.wantRepoName)
-			}
-		})
-	}
-}
-
-func TestAccGithubRepositoryCollaboratorArchivedRepo(t *testing.T) {
-	// Note: This test requires GH_TEST_COLLABORATOR to be set to a valid GitHub username and it won't work with `testExternalUser`
-	testCollaborator := os.Getenv("GH_TEST_COLLABORATOR")
-	if testCollaborator == "" {
-		t.Skip("GH_TEST_COLLABORATOR not set, skipping archived repository collaborator test")
-	}
 	t.Run("can delete collaborators from archived repositories without error", func(t *testing.T) {
+		t.Parallel()
+
+		// Note: This test requires GH_TEST_COLLABORATOR to be set to a valid GitHub username and it won't work with `testExternalUser`
+		testCollaborator := os.Getenv("GH_TEST_COLLABORATOR")
+		if testCollaborator == "" {
+			t.Skip("GH_TEST_COLLABORATOR not set, skipping archived repository collaborator test")
+		}
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-collab-arch-%s", testResourcePrefix, randomID)
 
@@ -166,7 +138,7 @@ func TestAccGithubRepositoryCollaboratorArchivedRepo(t *testing.T) {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr(
 							"github_repository_collaborator.test", "username",
-							testAccConf.testExternalUser,
+							testAccConf.testExternalUser1,
 						),
 						resource.TestCheckResourceAttr(
 							"github_repository_collaborator.test", "permission",
@@ -197,4 +169,43 @@ func TestAccGithubRepositoryCollaboratorArchivedRepo(t *testing.T) {
 			},
 		})
 	})
+}
+
+func TestParseRepoName(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		repoName     string
+		defaultOwner string
+		wantOwner    string
+		wantRepoName string
+	}{
+		{
+			name:         "Repo name without owner",
+			repoName:     "example-repo",
+			defaultOwner: "default-owner",
+			wantOwner:    "default-owner",
+			wantRepoName: "example-repo",
+		},
+		{
+			name:         "Repo name with owner",
+			repoName:     "owner-name/example-repo",
+			defaultOwner: "default-owner",
+			wantOwner:    "owner-name",
+			wantRepoName: "example-repo",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			gotOwner, gotRepoName := parseRepoName(tt.repoName, tt.defaultOwner)
+			if gotOwner != tt.wantOwner || gotRepoName != tt.wantRepoName {
+				t.Errorf("parseRepoName(%q, %q) = %q, %q, want %q, %q",
+					tt.repoName, tt.defaultOwner, gotOwner, gotRepoName, tt.wantOwner, tt.wantRepoName)
+			}
+		})
+	}
 }

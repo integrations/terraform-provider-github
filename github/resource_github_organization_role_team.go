@@ -6,7 +6,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -39,14 +39,15 @@ func resourceGithubOrganizationRoleTeam() *schema.Resource {
 	}
 }
 
-func resourceGithubOrganizationRoleTeamCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubOrganizationRoleTeamCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 
 	roleId := int64(d.Get("role_id").(int))
 	teamSlug := d.Get("team_slug").(string)
@@ -61,14 +62,15 @@ func resourceGithubOrganizationRoleTeamCreate(ctx context.Context, d *schema.Res
 	return nil
 }
 
-func resourceGithubOrganizationRoleTeamRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubOrganizationRoleTeamRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 
 	roleIdString, teamSlug, err := parseID2(d.Id())
 	if err != nil {
@@ -80,7 +82,7 @@ func resourceGithubOrganizationRoleTeamRead(ctx context.Context, d *schema.Resou
 	}
 
 	opts := &github.ListOptions{
-		PerPage: maxPerPage,
+		PerPage: meta.maxPerPage,
 	}
 
 	var team *github.Team
@@ -120,14 +122,15 @@ func resourceGithubOrganizationRoleTeamRead(ctx context.Context, d *schema.Resou
 	return nil
 }
 
-func resourceGithubOrganizationRoleTeamDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubOrganizationRoleTeamDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 
 	roleId := int64(d.Get("role_id").(int))
 	teamSlug := d.Get("team_slug").(string)

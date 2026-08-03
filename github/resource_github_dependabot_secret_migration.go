@@ -3,8 +3,8 @@ package github
 import (
 	"context"
 	"fmt"
-	"log"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -57,11 +57,11 @@ func resourceGithubDependabotSecretV0() *schema.Resource {
 }
 
 func resourceGithubDependabotSecretStateUpgradeV0(ctx context.Context, rawState map[string]any, m any) (map[string]any, error) {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
-	log.Printf("[DEBUG] GitHub Dependabot Secret Attributes before migration: %#v", rawState)
+	tflog.Debug(ctx, "GitHub Dependabot Secret migration from v0 to v1 started.", map[string]any{"raw_state": rawState})
 
 	repoName, ok := rawState["repository"].(string)
 	if !ok {
@@ -75,7 +75,7 @@ func resourceGithubDependabotSecretStateUpgradeV0(ctx context.Context, rawState 
 
 	rawState["repository_id"] = int(repo.GetID())
 
-	log.Printf("[DEBUG] GitHub Dependabot Secret Attributes after migration: %#v", rawState)
+	tflog.Debug(ctx, "GitHub Dependabot Secret migration from v0 to v1 completed.", map[string]any{"raw_state": rawState})
 
 	return rawState, nil
 }

@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -42,12 +42,13 @@ func dataSourceGithubDependabotOrganizationSecrets() *schema.Resource {
 	}
 }
 
-func dataSourceGithubDependabotOrganizationSecretsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func dataSourceGithubDependabotOrganizationSecretsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
 	options := github.ListOptions{
-		PerPage: 100,
+		PerPage: meta.maxPerPage,
 	}
 
 	var all_secrets []map[string]string

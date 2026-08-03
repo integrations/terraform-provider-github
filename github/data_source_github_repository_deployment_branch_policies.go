@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -49,7 +49,7 @@ func dataSourceGithubRepositoryDeploymentBranchPolicies() *schema.Resource {
 }
 
 func dataSourceGithubRepositoryDeploymentBranchPoliciesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -57,7 +57,7 @@ func dataSourceGithubRepositoryDeploymentBranchPoliciesRead(ctx context.Context,
 	environmentName := d.Get("environment_name").(string)
 
 	results := make([]map[string]any, 0)
-	listOptions := &github.ListOptions{PerPage: maxPerPage}
+	listOptions := &github.ListOptions{PerPage: meta.maxPerPage}
 	for {
 		policies, resp, err := client.Repositories.ListDeploymentBranchPolicies(ctx, owner, repoName, environmentName, listOptions)
 		if err != nil {

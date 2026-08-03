@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -129,10 +129,11 @@ func dataSourceGithubRepositoryPullRequests() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryPullRequestsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func dataSourceGithubRepositoryPullRequestsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
-	owner := meta.(*Owner).name
 	if explicitOwner, ok := d.GetOk("owner"); ok {
 		owner = explicitOwner.(string)
 	}
@@ -145,7 +146,7 @@ func dataSourceGithubRepositoryPullRequestsRead(ctx context.Context, d *schema.R
 	direction := d.Get("sort_direction").(string)
 
 	options := &github.PullRequestListOptions{
-		ListOptions: github.ListOptions{PerPage: 100},
+		ListOptions: github.ListOptions{PerPage: meta.maxPerPage},
 		State:       state,
 		Head:        head,
 		Base:        base,

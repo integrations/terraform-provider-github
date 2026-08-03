@@ -1,35 +1,48 @@
 ---
 page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+subcategory: ""
 description: |-
-  Creates and a specific custom property for a GitHub repository
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
 ---
 
 # {{.Name}} ({{.Type}})
 
-This resource allows you to create and manage a specific custom property for a GitHub repository.
+{{ .Description | trimspace }}
+For more information, see the [GitHub API documentation](https://docs.github.com/rest/metadata/custom-properties#create-or-update-repository-custom-property).
 
+{{ if .HasExamples -}}
 ## Example Usage
 
-> Note that this assumes there already is a custom property defined on the org level called `my-cool-property` of type `string`
+{{- range .ExampleFiles }}
 
-{{ tffile "examples/resources/repository_custom_property/example_1.tf" }}
+{{ tffile . }}
+{{- end }}
+{{- end }}
 
-## Argument Reference
-
-The following arguments are supported:
-
-- `repository` - (Required) The repository of the environment.
-
-- `property_type` - (Required) Type of the custom property. Can be one of `single_select`, `multi_select`, `string`, or `true_false`
-
-- `property_name` - (Required) Name of the custom property. Note that a pre-requisiste for this resource is that a custom property of this name has already been defined on the organization level
-
-- `property_value` - (Required) Value of the custom property in the form of an array. Properties of type `single_select`, `string`, and `true_false` are represented as a string array of length 1
+{{ .SchemaMarkdown | trimspace }}
+{{- if or .HasImport .HasImportIDConfig .HasImportIdentityConfig }}
 
 ## Import
 
-GitHub Repository Custom Property can be imported using an ID made up of a combination of the names of the organization, repository, custom property separated by a `:` character, e.g.
+Import is supported using the following syntax:
+{{- end }}
+{{- if .HasImportIdentityConfig }}
 
-```shell
-terraform import github_repository_custom_property.example organization-name:repo-name:custom-property-name
-```
+In Terraform v1.12.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `identity` attribute, for example:
+
+{{tffile .ImportIdentityConfigFile }}
+
+{{ .IdentitySchemaMarkdown | trimspace }}
+{{- end }}
+{{- if .HasImportIDConfig }}
+
+In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `id` attribute, for example:
+
+{{tffile .ImportIDConfigFile }}
+{{- end }}
+{{- if .HasImport }}
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+{{codefile "shell" .ImportFile }}
+{{- end }}

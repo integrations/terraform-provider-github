@@ -73,6 +73,8 @@ const repoNoMatchTmpl = `{
 }`
 
 func TestGetRepositoryIDPositiveMatches(t *testing.T) {
+	// IMPORTANT: This test is not parallelized because it uses global state.
+
 	cases := []struct {
 		Provided string
 		Expected string
