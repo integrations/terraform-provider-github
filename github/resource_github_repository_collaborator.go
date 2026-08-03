@@ -108,16 +108,13 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, m any) err
 	// First, check if the user has been invited but has not yet accepted
 	invitation, err := findRepoInvitation(meta, ctx, owner, repoNameWithoutOwner, username)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				// this short circuits the rest of the code because if the
-				// repo is 404, no reason to try to list existing collaborators
-				log.Printf("[INFO] Removing repository collaborator %s/%s %s from state because it no longer exists in GitHub",
-					owner, repoName, username)
-				d.SetId("")
-				return nil
-			}
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			// this short circuits the rest of the code because if the
+			// repo is 404, no reason to try to list existing collaborators
+			log.Printf("[INFO] Removing repository collaborator %s/%s %s from state because it no longer exists in GitHub",
+				owner, repoName, username)
+			d.SetId("")
+			return nil
 		}
 		return err
 	}
