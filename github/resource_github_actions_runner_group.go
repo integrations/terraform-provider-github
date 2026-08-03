@@ -151,7 +151,8 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, m any) error
 		AllowsPublicRepositories: &allowsPublicRepositories,
 	}
 	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
-		createOptions.NetworkConfigurationID = new(networkConfigurationID.(string))
+		networkConfigurationIDValue, _ := networkConfigurationID.(string)
+		createOptions.NetworkConfigurationID = new(networkConfigurationIDValue)
 	}
 
 	runnerGroup, resp, err := client.Actions.CreateOrganizationRunnerGroup(ctx, orgName, createOptions)
@@ -348,7 +349,8 @@ func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, m any) error
 		AllowsPublicRepositories: &allowsPublicRepositories,
 	}
 	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
-		options.NetworkConfigurationID = new(networkConfigurationID.(string))
+		networkConfigurationIDValue, _ := networkConfigurationID.(string)
+		options.NetworkConfigurationID = new(networkConfigurationIDValue)
 	}
 
 	runnerGroupID, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -406,5 +408,8 @@ func resourceGithubActionsRunnerGroupDelete(d *schema.ResourceData, m any) error
 // assignment, which the client library's request type cannot express, so the runner group is
 // replaced instead of leaving the practitioner with a perpetual diff.
 func networkConfigurationRemoved(_ context.Context, oldValue, newValue, _ any) bool {
-	return oldValue.(string) != "" && newValue.(string) == ""
+	oldID, _ := oldValue.(string)
+	newID, _ := newValue.(string)
+
+	return oldID != "" && newID == ""
 }

@@ -70,11 +70,12 @@ func resourceGithubEnterpriseNetworkConfiguration() *schema.Resource {
 	}
 }
 
-func resourceGithubEnterpriseNetworkConfigurationCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	enterpriseSlug := d.Get("enterprise_slug").(string)
-	name := d.Get("name").(string)
-	computeService := github.ComputeService(d.Get("compute_service").(string))
+func resourceGithubEnterpriseNetworkConfigurationCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	enterpriseSlug, _ := d.Get("enterprise_slug").(string)
+	name, _ := d.Get("name").(string)
+	computeServiceName, _ := d.Get("compute_service").(string)
+	computeService := github.ComputeService(computeServiceName)
 	networkSettingsIDs := expandNetworkSettingsIDs(d)
 
 	ctx = tflog.SetField(ctx, "enterprise_slug", enterpriseSlug)
@@ -84,7 +85,7 @@ func resourceGithubEnterpriseNetworkConfigurationCreate(ctx context.Context, d *
 		"network_settings_ids": networkSettingsIDs,
 	})
 
-	configuration, _, err := client.Enterprise.CreateEnterpriseNetworkConfiguration(ctx, enterpriseSlug, github.NetworkConfigurationRequest{
+	configuration, _, err := meta.v3client.Enterprise.CreateEnterpriseNetworkConfiguration(ctx, enterpriseSlug, github.NetworkConfigurationRequest{
 		Name:               new(name),
 		ComputeService:     &computeService,
 		NetworkSettingsIDs: networkSettingsIDs,
@@ -101,13 +102,13 @@ func resourceGithubEnterpriseNetworkConfigurationCreate(ctx context.Context, d *
 	return nil
 }
 
-func resourceGithubEnterpriseNetworkConfigurationRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	enterpriseSlug := d.Get("enterprise_slug").(string)
+func resourceGithubEnterpriseNetworkConfigurationRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	enterpriseSlug, _ := d.Get("enterprise_slug").(string)
 
 	ctx = tflog.SetField(ctx, "enterprise_slug", enterpriseSlug)
 
-	configuration, _, err := client.Enterprise.GetEnterpriseNetworkConfiguration(ctx, enterpriseSlug, d.Id())
+	configuration, _, err := meta.v3client.Enterprise.GetEnterpriseNetworkConfiguration(ctx, enterpriseSlug, d.Id())
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
@@ -130,11 +131,12 @@ func resourceGithubEnterpriseNetworkConfigurationRead(ctx context.Context, d *sc
 	return nil
 }
 
-func resourceGithubEnterpriseNetworkConfigurationUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	enterpriseSlug := d.Get("enterprise_slug").(string)
-	name := d.Get("name").(string)
-	computeService := github.ComputeService(d.Get("compute_service").(string))
+func resourceGithubEnterpriseNetworkConfigurationUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	enterpriseSlug, _ := d.Get("enterprise_slug").(string)
+	name, _ := d.Get("name").(string)
+	computeServiceName, _ := d.Get("compute_service").(string)
+	computeService := github.ComputeService(computeServiceName)
 	networkSettingsIDs := expandNetworkSettingsIDs(d)
 
 	ctx = tflog.SetField(ctx, "enterprise_slug", enterpriseSlug)
@@ -144,7 +146,7 @@ func resourceGithubEnterpriseNetworkConfigurationUpdate(ctx context.Context, d *
 		"network_settings_ids": networkSettingsIDs,
 	})
 
-	configuration, _, err := client.Enterprise.UpdateEnterpriseNetworkConfiguration(ctx, enterpriseSlug, d.Id(), github.NetworkConfigurationRequest{
+	configuration, _, err := meta.v3client.Enterprise.UpdateEnterpriseNetworkConfiguration(ctx, enterpriseSlug, d.Id(), github.NetworkConfigurationRequest{
 		Name:               new(name),
 		ComputeService:     &computeService,
 		NetworkSettingsIDs: networkSettingsIDs,
@@ -160,14 +162,14 @@ func resourceGithubEnterpriseNetworkConfigurationUpdate(ctx context.Context, d *
 	return nil
 }
 
-func resourceGithubEnterpriseNetworkConfigurationDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	enterpriseSlug := d.Get("enterprise_slug").(string)
+func resourceGithubEnterpriseNetworkConfigurationDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	enterpriseSlug, _ := d.Get("enterprise_slug").(string)
 
 	ctx = tflog.SetField(ctx, "enterprise_slug", enterpriseSlug)
 	tflog.Debug(ctx, "Deleting enterprise network configuration")
 
-	if _, err := client.Enterprise.DeleteEnterpriseNetworkConfiguration(ctx, enterpriseSlug, d.Id()); err != nil {
+	if _, err := meta.v3client.Enterprise.DeleteEnterpriseNetworkConfiguration(ctx, enterpriseSlug, d.Id()); err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
 			return nil
 		}
