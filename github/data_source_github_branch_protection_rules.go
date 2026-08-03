@@ -33,9 +33,10 @@ func dataSourceGithubBranchProtectionRules() *schema.Resource {
 	}
 }
 
-func dataSourceGithubBranchProtectionRulesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v4client
-	orgName := meta.(*Owner).name
+func dataSourceGithubBranchProtectionRulesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v4client
+	orgName := meta.name
 	repoName := d.Get("repository").(string)
 
 	var query struct {
@@ -50,7 +51,7 @@ func dataSourceGithubBranchProtectionRulesRead(ctx context.Context, d *schema.Re
 		} `graphql:"repository(name: $name, owner: $owner)"`
 	}
 	variables := map[string]any{
-		"first":  githubv4.Int(100),
+		"first":  githubv4.Int(meta.maxPerPage),
 		"name":   githubv4.String(repoName),
 		"owner":  githubv4.String(orgName),
 		"cursor": (*githubv4.String)(nil),
