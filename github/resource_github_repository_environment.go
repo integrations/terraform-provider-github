@@ -270,11 +270,7 @@ func resourceGithubRepositoryEnvironmentRead(ctx context.Context, d *schema.Reso
 				return diag.FromErr(err)
 			}
 
-			preventSelfReview := false
-			if pr.PreventSelfReview != nil {
-				preventSelfReview = *pr.PreventSelfReview
-			}
-			if err = d.Set("prevent_self_review", preventSelfReview); err != nil {
+			if err = d.Set("prevent_self_review", pr.GetPreventSelfReview()); err != nil {
 				return diag.FromErr(err)
 			}
 		}
