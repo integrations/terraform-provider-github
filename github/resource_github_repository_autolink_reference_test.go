@@ -10,13 +10,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 	t.Parallel()
 
-	t.Run("creates repository autolink reference without error", func(t *testing.T) {
+	t.Run("creates_repository_autolink_reference_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		repo := mustCreateTestRepository(t)
@@ -66,7 +67,7 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 		})
 	})
 
-	t.Run("imports repository autolink reference without error", func(t *testing.T) {
+	t.Run("imports_repository_autolink_reference_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		repo := mustCreateTestRepository(t)
@@ -118,7 +119,7 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 					ImportState:             true,
 					ImportStateVerify:       true,
 					ImportStateVerifyIgnore: []string{"etag"},
-					ImportStateIdPrefix:     fmt.Sprintf("%s/", repo.GetName()),
+					ImportStateIdPrefix:     fmt.Sprintf("%s"+idSeparator, repo.GetName()),
 				},
 				// autolink_alphanumeric
 				{
@@ -126,7 +127,7 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 					ImportState:             true,
 					ImportStateVerify:       true,
 					ImportStateVerifyIgnore: []string{"etag"},
-					ImportStateIdPrefix:     fmt.Sprintf("%s/", repo.GetName()),
+					ImportStateIdPrefix:     fmt.Sprintf("%s"+idSeparator, repo.GetName()),
 				},
 				// autolink_numeric
 				{
@@ -134,7 +135,7 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 					ImportState:             true,
 					ImportStateVerify:       true,
 					ImportStateVerifyIgnore: []string{"etag"},
-					ImportStateIdPrefix:     fmt.Sprintf("%s/", repo.GetName()),
+					ImportStateIdPrefix:     fmt.Sprintf("%s"+idSeparator, repo.GetName()),
 				},
 				// autolink_with_port
 				{
@@ -142,13 +143,13 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 					ImportState:             true,
 					ImportStateVerify:       true,
 					ImportStateVerifyIgnore: []string{"etag"},
-					ImportStateIdPrefix:     fmt.Sprintf("%s/", repo.GetName()),
+					ImportStateIdPrefix:     fmt.Sprintf("%s"+idSeparator, repo.GetName()),
 				},
 			},
 		})
 	})
 
-	t.Run("imports repository autolink reference by key prefix without error", func(t *testing.T) {
+	t.Run("imports_repository_autolink_reference_by_key_prefix_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		repo := mustCreateTestRepository(t)
@@ -173,12 +174,16 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 					ImportState:             true,
 					ImportStateVerify:       true,
 					ImportStateVerifyIgnore: []string{"etag"},
-					ImportStateId:           fmt.Sprintf("%s/OOF-", repo.GetName()),
+					ImportStateIdFunc: func(*terraform.State) (string, error) {
+						return buildID(repo.GetName(), "OOF-")
+					},
 				},
 				{
-					ResourceName:            "github_repository_autolink_reference.autolink",
-					ImportState:             true,
-					ImportStateId:           fmt.Sprintf("%s/OCTOCAT-", repo.GetName()),
+					ResourceName: "github_repository_autolink_reference.autolink",
+					ImportState:  true,
+					ImportStateIdFunc: func(*terraform.State) (string, error) {
+						return buildID(repo.GetName(), "OCTOCAT-")
+					},
 					ImportStateVerify:       true,
 					ImportStateVerifyIgnore: []string{"etag"},
 					ExpectError:             regexp.MustCompile(`cannot find autolink reference`),
@@ -212,7 +217,7 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 		})
 	})
 
-	t.Run("rejects key_prefix ending with a digit at plan time", func(t *testing.T) {
+	t.Run("rejects_key_prefix_ending_with_a_digit_at_plan_time", func(t *testing.T) {
 		t.Parallel()
 
 		config := `
@@ -233,7 +238,7 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 			},
 		})
 	})
-	t.Run("should not recreate autolink reference when repository is renamed", func(t *testing.T) {
+	t.Run("should_not_recreate_autolink_reference_when_repository_is_renamed", func(t *testing.T) {
 		repo := mustCreateTestRepository(t)
 		repoNameRenamed := fmt.Sprintf("%s-renamed", repo.GetName())
 		mustRenameTestRepository(t, repo, repoNameRenamed)

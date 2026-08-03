@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
-	"strings"
 
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -194,13 +193,10 @@ func resourceGithubRepositoryAutolinkReferenceDelete(ctx context.Context, d *sch
 
 func resourceGithubRepositoryAutolinkReferenceImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
 	importID := d.Id()
-	parts := strings.Split(importID, "/")
-	if len(parts) != 2 {
-		return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository>/<autolink_reference_id>")
+	repository, autolinkRefIDString, err := parseID2(importID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository>:<autolink_reference_id>")
 	}
-
-	repository := parts[0]
-	id := parts[1]
 
 	meta, _ := m.(*Owner)
 	client := meta.v3client
@@ -210,25 +206,25 @@ func resourceGithubRepositoryAutolinkReferenceImport(ctx context.Context, d *sch
 	// caller provided the key prefix for the autolink reference, and look up
 	// the autolink by the key prefix.
 
-	autolinkID, diags := idStringToInt64(id)
+	autolinkRefID, diags := idStringToInt64(autolinkRefIDString)
 	var autolink *github.Autolink
 	if diags.HasError() {
 		var err error
-		autolink, err = getAutolinkByKeyPrefix(ctx, client, owner, repository, id)
+		autolink, err = getAutolinkByKeyPrefix(ctx, client, owner, repository, autolinkRefIDString)
 		if err != nil {
 			return nil, err
 		}
 
-		id = strconv.FormatInt(autolink.GetID(), 10)
+		autolinkRefIDString = strconv.FormatInt(autolink.GetID(), 10)
 	} else {
 		var err error
-		autolink, _, err = client.Repositories.GetAutolink(ctx, owner, repository, autolinkID)
+		autolink, _, err = client.Repositories.GetAutolink(ctx, owner, repository, autolinkRefID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to fetch autolink with ID: %d for repository %s/%s. Error: %w", autolinkID, owner, repository, err)
+			return nil, fmt.Errorf("failed to fetch autolink with ID: %d for repository %s/%s. Error: %w", autolinkRefID, owner, repository, err)
 		}
 	}
 
-	d.SetId(id)
+	d.SetId(autolinkRefIDString)
 
 	repo, _, err := client.Repositories.Get(ctx, owner, repository)
 	if err != nil {
