@@ -105,7 +105,6 @@ func resourceGithubEnterpriseNetworkConfigurationRead(ctx context.Context, d *sc
 	client := meta.(*Owner).v3client
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 
-	ctx = context.WithValue(ctx, ctxId, d.Id())
 	ctx = tflog.SetField(ctx, "enterprise_slug", enterpriseSlug)
 
 	configuration, _, err := client.Enterprise.GetEnterpriseNetworkConfiguration(ctx, enterpriseSlug, d.Id())
@@ -138,7 +137,6 @@ func resourceGithubEnterpriseNetworkConfigurationUpdate(ctx context.Context, d *
 	computeService := github.ComputeService(d.Get("compute_service").(string))
 	networkSettingsIDs := expandNetworkSettingsIDs(d)
 
-	ctx = context.WithValue(ctx, ctxId, d.Id())
 	ctx = tflog.SetField(ctx, "enterprise_slug", enterpriseSlug)
 	tflog.Debug(ctx, "Updating enterprise network configuration", map[string]any{
 		"name":                 name,
@@ -166,7 +164,6 @@ func resourceGithubEnterpriseNetworkConfigurationDelete(ctx context.Context, d *
 	client := meta.(*Owner).v3client
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 
-	ctx = context.WithValue(ctx, ctxId, d.Id())
 	ctx = tflog.SetField(ctx, "enterprise_slug", enterpriseSlug)
 	tflog.Debug(ctx, "Deleting enterprise network configuration")
 
@@ -183,8 +180,8 @@ func resourceGithubEnterpriseNetworkConfigurationDelete(ctx context.Context, d *
 
 func resourceGithubEnterpriseNetworkConfigurationImport(_ context.Context, d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
 	enterpriseSlug, networkConfigurationID, ok := strings.Cut(d.Id(), "/")
-	if !ok || enterpriseSlug == "" || networkConfigurationID == "" {
-		return nil, fmt.Errorf("invalid import format %q, expected <enterprise_slug>/<network_configuration_id>", d.Id())
+	if !ok || enterpriseSlug == "" || networkConfigurationID == "" || strings.Contains(networkConfigurationID, "/") {
+		return nil, fmt.Errorf("invalid import specified: supplied import must be written as <enterprise_slug>/<network_configuration_id>")
 	}
 
 	d.SetId(networkConfigurationID)

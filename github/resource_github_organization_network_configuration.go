@@ -112,7 +112,6 @@ func resourceGithubOrganizationNetworkConfigurationRead(ctx context.Context, d *
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 
-	ctx = context.WithValue(ctx, ctxId, d.Id())
 	ctx = tflog.SetField(ctx, "organization", orgName)
 
 	configuration, _, err := client.Organizations.GetNetworkConfiguration(ctx, orgName, d.Id())
@@ -149,7 +148,6 @@ func resourceGithubOrganizationNetworkConfigurationUpdate(ctx context.Context, d
 	computeService := github.ComputeService(d.Get("compute_service").(string))
 	networkSettingsIDs := expandNetworkSettingsIDs(d)
 
-	ctx = context.WithValue(ctx, ctxId, d.Id())
 	ctx = tflog.SetField(ctx, "organization", orgName)
 	tflog.Debug(ctx, "Updating organization network configuration", map[string]any{
 		"name":                 name,
@@ -181,7 +179,6 @@ func resourceGithubOrganizationNetworkConfigurationDelete(ctx context.Context, d
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 
-	ctx = context.WithValue(ctx, ctxId, d.Id())
 	ctx = tflog.SetField(ctx, "organization", orgName)
 	tflog.Debug(ctx, "Deleting organization network configuration")
 
