@@ -9,8 +9,10 @@ import (
 	"testing"
 
 	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/shurcooL/githubv4"
 )
 
 func TestIsSAMLEnforcementError(t *testing.T) {
@@ -110,6 +112,9 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 			"before": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttrSet(
 					"github_enterprise_organization.org", "enterprise_id",
+				),
+				resource.TestCheckResourceAttrSet(
+					"github_enterprise_organization.org", "database_id",
 				),
 				resource.TestCheckResourceAttr(
 					"github_enterprise_organization.org", "name",
@@ -564,4 +569,57 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 			},
 		})
 	})
+}
+
+func TestResourceGithubEnterpriseOrganizationCreateSetsDatabaseID(t *testing.T) {
+	// IMPORTANT: This test is not parallelized because it uses a shared HTTP handler.
+
+	const createResponse = `{
+  "data": {
+    "createEnterpriseOrganization": {
+      "organization": {
+        "id": "O_kgDOCg7Zxw",
+        "databaseId": 168828871
+      }
+    }
+  }
+}`
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/graphql", func(w http.ResponseWriter, req *http.Request) {
+		body := mustRead(req.Body)
+		if !strings.Contains(body, "createEnterpriseOrganization") {
+			t.Errorf("unexpected GraphQL call: %s", body)
+		}
+		if !strings.Contains(body, "databaseId") {
+			t.Errorf("mutation does not select databaseId: %s", body)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		mustWrite(w, createResponse)
+	})
+
+	meta := &Owner{
+		v4client: githubv4.NewClient(&http.Client{Transport: localRoundTripper{handler: mux}}),
+	}
+
+	data := schema.TestResourceDataRaw(t, resourceGithubEnterpriseOrganization().Schema, map[string]any{
+		"enterprise_id": "E_kgDNAbc",
+		"name":          "some-awesome-org",
+		"billing_email": "octocat@octo.cat",
+		"admin_logins":  []any{"octocat"},
+	})
+
+	if err := resourceGithubEnterpriseOrganizationCreate(data, meta); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	if got, want := data.Id(), "O_kgDOCg7Zxw"; got != want {
+		t.Errorf("id = %q, want %q", got, want)
+	}
+
+	// database_id must be populated during create because the provider does not read after write,
+	// and other resources reference it within the same apply.
+	if got, want := data.Get("database_id").(int), 168828871; got != want {
+		t.Errorf("database_id = %d, want %d", got, want)
+	}
 }
