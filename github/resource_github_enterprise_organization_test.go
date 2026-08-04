@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/shurcooL/githubv4"
 )
 
 func TestIsSAMLEnforcementError(t *testing.T) {
@@ -572,7 +571,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 }
 
 func TestResourceGithubEnterpriseOrganizationCreateSetsDatabaseID(t *testing.T) {
-	// IMPORTANT: This test is not parallelized because it uses a shared HTTP handler.
+	t.Parallel()
 
 	const createResponse = `{
   "data": {
@@ -599,7 +598,7 @@ func TestResourceGithubEnterpriseOrganizationCreateSetsDatabaseID(t *testing.T) 
 	})
 
 	meta := &Owner{
-		v4client: githubv4.NewClient(&http.Client{Transport: localRoundTripper{handler: mux}}),
+		v4client: newTestGraphQLClient(mux),
 	}
 
 	data := schema.TestResourceDataRaw(t, resourceGithubEnterpriseOrganization().Schema, map[string]any{
