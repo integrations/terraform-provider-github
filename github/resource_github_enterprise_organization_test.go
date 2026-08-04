@@ -619,7 +619,11 @@ func TestResourceGithubEnterpriseOrganizationCreateSetsDatabaseID(t *testing.T) 
 
 	// database_id must be populated during create because the provider does not read after write,
 	// and other resources reference it within the same apply.
-	if got, want := data.Get("database_id").(int), 168828871; got != want {
+	got, ok := data.Get("database_id").(int)
+	if !ok {
+		t.Fatalf("database_id is %T, want int", data.Get("database_id"))
+	}
+	if want := 168828871; got != want {
 		t.Errorf("database_id = %d, want %d", got, want)
 	}
 }
