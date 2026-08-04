@@ -2,9 +2,12 @@ package github
 
 import (
 	"fmt"
+	"net/http"
 	"regexp"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
@@ -14,6 +17,93 @@ import (
 
 func TestAccGithubRepositoryEnvironment(t *testing.T) {
 	t.Parallel()
+
+	t.Run("read_sets_prevent_self_review", func(t *testing.T) {
+		t.Parallel()
+
+		tests := []struct {
+			name          string
+			responseBody  string
+			expectedValue string
+		}{
+			{
+				name:          "without required reviewers",
+				responseBody:  `{"name":"test","protection_rules":[]}`,
+				expectedValue: "false",
+			},
+			{
+				name:          "required reviewers without prevent self review",
+				responseBody:  `{"name":"test","protection_rules":[{"type":"required_reviewers","reviewers":[]}]}`,
+				expectedValue: "false",
+			},
+			{
+				name:          "prevent self review enabled",
+				responseBody:  `{"name":"test","protection_rules":[{"type":"required_reviewers","prevent_self_review":true,"reviewers":[]}]}`,
+				expectedValue: "true",
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				t.Parallel()
+
+				ts := githubApiMock([]*mockResponse{
+					{
+						ExpectedUri:    "/repos/test-org/test-repo/environments/test",
+						ExpectedMethod: http.MethodGet,
+						StatusCode:     http.StatusOK,
+						ResponseBody:   test.responseBody,
+					},
+				})
+				t.Cleanup(ts.Close)
+
+				// Decode an import-like state where prevent_self_review is absent.
+				// TestResourceDataRaw would apply the schema default and mask the read regression.
+				d, err := schema.InternalMap(resourceGithubRepositoryEnvironment().Schema).Data(&terraform.InstanceState{
+					ID: "test-repo:test",
+					Attributes: map[string]string{
+						"id":          "test-repo:test",
+						"repository":  "test-repo",
+						"environment": "test",
+					},
+				}, nil)
+				if err != nil {
+					t.Fatalf("failed to create resource data: %v", err)
+				}
+
+				initialState := d.State()
+				if initialState == nil {
+					t.Fatal("expected initial resource state, got nil")
+				}
+				if _, ok := initialState.Attributes["prevent_self_review"]; ok {
+					t.Fatal("test setup unexpectedly populated prevent_self_review")
+				}
+
+				meta := &Owner{
+					name:     "test-org",
+					v3client: mustCreateTestGitHubClient(t, ts.URL),
+				}
+
+				diags := resourceGithubRepositoryEnvironmentRead(t.Context(), d, meta)
+				if diags.HasError() {
+					t.Fatalf("unexpected read diagnostics: %v", diags)
+				}
+
+				state := d.State()
+				if state == nil {
+					t.Fatal("expected resource state after read, got nil")
+				}
+
+				actualValue, ok := state.Attributes["prevent_self_review"]
+				if !ok {
+					t.Fatalf("prevent_self_review was not written to state: %#v", state.Attributes)
+				}
+				if actualValue != test.expectedValue {
+					t.Fatalf("expected prevent_self_review to be %q, got %q", test.expectedValue, actualValue)
+				}
+			})
+		}
+	})
 
 	t.Run("create", func(t *testing.T) {
 		t.Parallel()
@@ -275,34 +365,7 @@ resource "github_repository_environment" "test" {
 					ResourceName:            "github_repository_environment.test",
 					ImportState:             true,
 					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"can_admins_bypass", "prevent_self_review", "reviewers", "wait_timer", "deployment_branch_policy"},
-				},
-			},
-		})
-	})
-
-	t.Run("prevent_self_review_defaults_false_without_reviewers", func(t *testing.T) {
-		t.Parallel()
-
-		skipUnlessHasOrgs(t)
-
-		repo := mustCreateTestRepository(t)
-
-		config := fmt.Sprintf(`
-resource "github_repository_environment" "test" {
-	repository  = "%s"
-	environment = "test"
-}
-`, repo.GetName())
-
-		resource.Test(t, resource.TestCase{
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_repository_environment.test", tfjsonpath.New("prevent_self_review"), knownvalue.Bool(false)),
-					},
+					ImportStateVerifyIgnore: []string{"can_admins_bypass", "reviewers", "wait_timer", "deployment_branch_policy"},
 				},
 			},
 		})
