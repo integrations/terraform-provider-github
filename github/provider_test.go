@@ -1,6 +1,7 @@
 package github
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -17,6 +18,33 @@ func TestProvider(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 	})
+}
+
+func Test_getTestMeta_anonymousDoesNotRequireCredentials(t *testing.T) {
+	t.Parallel()
+
+	baseURL, _, err := getBaseURL(DotComAPIURL)
+	if err != nil {
+		t.Fatalf("parsing base URL: %v", err)
+	}
+
+	for _, legacyClient := range []bool{false, true} {
+		t.Run(fmt.Sprintf("legacy_client_%t", legacyClient), func(t *testing.T) {
+			t.Parallel()
+
+			meta, err := getTestMeta(&testAccConfig{
+				authMode:     anonymous,
+				legacyClient: legacyClient,
+				baseURL:      baseURL,
+			})
+			if err != nil {
+				t.Fatalf("configuring anonymous provider meta: %v", err)
+			}
+			if meta == nil {
+				t.Fatal("anonymous provider meta is nil")
+			}
+		})
+	}
 }
 
 func Test_configureProviderMeta(t *testing.T) {
