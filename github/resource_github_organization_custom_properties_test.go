@@ -7,9 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
-	"github.com/hashicorp/terraform-plugin-testing/statecheck"
-	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 )
 
 func TestAccGithubOrganizationCustomProperties(t *testing.T) {
@@ -289,16 +287,14 @@ resource "github_organization_custom_properties" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_organization_custom_properties.test", tfjsonpath.New("default_value"), knownvalue.StringExact("true")),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						// Read must round-trip the true_false default_value so the
+						// plan after refresh is empty (regression guard for
+						// perpetual drift).
+						PostApplyPostRefresh: []plancheck.PlanCheck{
+							plancheck.ExpectEmptyPlan(),
+						},
 					},
-				},
-				{
-					// Read must round-trip the true_false default_value so the
-					// second plan is empty (regression guard for perpetual drift).
-					Config:             config,
-					PlanOnly:           true,
-					ExpectNonEmptyPlan: false,
 				},
 			},
 		})
