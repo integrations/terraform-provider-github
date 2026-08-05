@@ -88,7 +88,8 @@ func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, m any
 	var mutate struct {
 		CreateEnterpriseOrganization struct {
 			Organization struct {
-				ID githubv4.ID
+				ID         githubv4.ID
+				DatabaseId githubv4.Int
 			}
 		} `graphql:"createEnterpriseOrganization(input:$input)"`
 	}
@@ -114,6 +115,13 @@ func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, m any
 		return err
 	}
 	data.SetId(fmt.Sprintf("%s", mutate.CreateEnterpriseOrganization.Organization.ID))
+
+	// The provider does not read after write, so database_id has to be populated here or it stays
+	// unset until the next refresh, which breaks same-apply references such as
+	// github_enterprise_actions_runner_group.selected_organization_ids.
+	if err := data.Set("database_id", mutate.CreateEnterpriseOrganization.Organization.DatabaseId); err != nil {
+		return err
+	}
 
 	// We use the V3 api to set the description of the org, because there is no mutator in the V4 API to edit the org's
 	// description and display name
