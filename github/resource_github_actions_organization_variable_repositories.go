@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -44,7 +44,7 @@ func resourceGithubActionsOrganizationVariableRepositoriesCreateOrUpdate(ctx con
 		return diag.FromErr(err)
 	}
 
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -71,7 +71,7 @@ func resourceGithubActionsOrganizationVariableRepositoriesRead(ctx context.Conte
 		return diag.FromErr(err)
 	}
 
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -79,7 +79,7 @@ func resourceGithubActionsOrganizationVariableRepositoriesRead(ctx context.Conte
 
 	repoIDs := []int64{}
 	opt := &github.ListOptions{
-		PerPage: maxPerPage,
+		PerPage: meta.maxPerPage,
 	}
 	for {
 		results, resp, err := client.Actions.ListSelectedReposForOrgVariable(ctx, owner, variableName, opt)
@@ -109,7 +109,7 @@ func resourceGithubActionsOrganizationVariableRepositoriesDelete(ctx context.Con
 		return diag.FromErr(err)
 	}
 
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -122,7 +122,7 @@ func resourceGithubActionsOrganizationVariableRepositoriesDelete(ctx context.Con
 }
 
 func resourceGithubActionsOrganizationVariableRepositoriesImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -134,7 +134,7 @@ func resourceGithubActionsOrganizationVariableRepositoriesImport(ctx context.Con
 
 	repoIDs := []int64{}
 	opt := &github.ListOptions{
-		PerPage: maxPerPage,
+		PerPage: meta.maxPerPage,
 	}
 	for {
 		results, resp, err := client.Actions.ListSelectedReposForOrgVariable(ctx, owner, variableName, opt)

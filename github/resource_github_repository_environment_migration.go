@@ -89,7 +89,7 @@ func resourceGithubRepositoryEnvironmentV0() *schema.Resource {
 }
 
 func resourceGithubRepositoryEnvironmentStateUpgradeV0(ctx context.Context, rawState map[string]any, m any) (map[string]any, error) {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 

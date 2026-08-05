@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -46,14 +46,15 @@ func dataSourceGithubRepositoryDeployKeys() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryDeployKeysRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	repository := d.Get("repository").(string)
-	owner := meta.(*Owner).name
+func dataSourceGithubRepositoryDeployKeysRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	owner := meta.name
+	client := meta.v3client
 
-	client := meta.(*Owner).v3client
+	repository, _ := d.Get("repository").(string)
 
 	options := &github.ListOptions{
-		PerPage: 100,
+		PerPage: meta.maxPerPage,
 	}
 
 	results := make([]map[string]any, 0)

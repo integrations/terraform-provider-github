@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 )
 
 // teamIdentity represents a GitHub team.
@@ -22,7 +23,7 @@ func newLegacyTeamIdentity(teamID string) teamIdentity {
 	if id, ok := parseTeamID(teamID); ok {
 		t.id = &id
 	} else {
-		t.slug = &teamID
+		t.slug = new(strings.ToLower(teamID))
 	}
 
 	return t
@@ -131,6 +132,15 @@ func lookupTeamID(ctx context.Context, client *github.Client, orgName, slug stri
 		return 0, err
 	}
 	return team.GetID(), nil
+}
+
+// lookupTeamSlug looks up the slug of a team by its ID.
+func lookupTeamSlug(ctx context.Context, client *github.Client, orgID, id int64) (string, error) {
+	team, _, err := client.Teams.GetTeamByID(ctx, orgID, id)
+	if err != nil {
+		return "", err
+	}
+	return team.GetSlug(), nil
 }
 
 // Given a string that is either a team id or team slug, return the

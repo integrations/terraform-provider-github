@@ -8,11 +8,11 @@ import (
 )
 
 func TestAccGithubCopilotOrganizationSeatAssignment(t *testing.T) {
-	if testAccConf.testOrgUser == "" {
-		t.Skip("GH_TEST_ORG_USER not set")
+	if testAccConf.testOrgUser1 == "" {
+		t.Skip("GH_TEST_ORG_USER1 not set")
 	}
 
-	username := testAccConf.testOrgUser
+	username := testAccConf.testOrgUser1
 
 	t.Run("assigns and removes a Copilot seat for a user", func(t *testing.T) {
 		config := fmt.Sprintf(`

@@ -21,21 +21,23 @@ func TestNewAppSource(t *testing.T) {
 
 	for _, tt := range []struct {
 		name string
-		opts Options
+		opts SourceOptions
 	}{
 		{
 			name: "default",
-			opts: Options{
-				RESTAPIURL: "https://api.github.com/",
-				GraphQLURL: "https://api.github.com/graphql",
+			opts: SourceOptions{},
+		},
+		{
+			name: "with_cache_base_path",
+			opts: SourceOptions{
+				Cache:         true,
+				CacheBasePath: mustMkdirTemp(t, cacheBasePath, "*"),
 			},
 		},
 		{
-			name: "with_cache_path",
-			opts: Options{
-				RESTAPIURL: "https://api.github.com/",
-				GraphQLURL: "https://api.github.com/graphql",
-				CachePath:  mustMkdirTemp(t, cacheBasePath, "*"),
+			name: "with_cache_no_base_path",
+			opts: SourceOptions{
+				Cache: true,
 			},
 		},
 	} {
@@ -79,18 +81,7 @@ func Test_appSource(t *testing.T) {
 	ts := httptest.NewServer(handler)
 	t.Cleanup(ts.Close)
 
-	cacheBasePath := mustMkdirTemp(t, "", "*")
-	t.Cleanup(func() {
-		_ = os.RemoveAll(cacheBasePath)
-	})
-
-	opts := Options{
-		RESTAPIURL: ts.URL,
-		GraphQLURL: ts.URL,
-		CachePath:  mustMkdirTemp(t, cacheBasePath, "*"),
-	}
-
-	source, err := NewAppSource("123456789", mustReadAppPrivateKey(t), opts)
+	source, err := NewAppSource("123456789", mustReadAppPrivateKey(t), SourceOptions{BaseURL: ts.URL})
 	if err != nil {
 		t.Fatalf("failed to create app source: %v", err)
 	}

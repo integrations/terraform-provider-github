@@ -4,53 +4,41 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubActionsSecretsDataSource(t *testing.T) {
-	t.Run("queries actions secrets from a repository", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%srepo-actions-secrets-%s", testResourcePrefix, randomID)
+	t.Parallel()
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+		secretName := mustCreateTestRepositorySecret(t, repo)
 
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name      = "%s"
-				auto_init = true
-			}
-
-			resource "github_actions_secret" "test" {
-				secret_name = "secret_1"
-				repository  = github_repository.test.name
-				value       = "foo"
-			}
-		`, repoName)
-
-		config2 := config + `
-			data "github_actions_secrets" "test" {
-				name = github_repository.test.name
-			}
-		`
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("data.github_actions_secrets.test", "name", repoName),
-			resource.TestCheckResourceAttr("data.github_actions_secrets.test", "secrets.#", "1"),
-			resource.TestCheckResourceAttr("data.github_actions_secrets.test", "secrets.0.name", "SECRET_1"),
-			resource.TestCheckResourceAttrSet("data.github_actions_secrets.test", "secrets.0.created_at"),
-			resource.TestCheckResourceAttrSet("data.github_actions_secrets.test", "secrets.0.updated_at"),
-		)
-
+data "github_actions_secrets" "test" {
+  name = "%s"
+}
+`, repo.GetName())
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  resource.ComposeTestCheckFunc(),
-				},
-				{
-					Config: config2,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_actions_secrets.test", tfjsonpath.New("secrets"), knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"name":       knownvalue.StringExact(secretName),
+								"created_at": knownvalue.NotNull(),
+								"updated_at": knownvalue.NotNull(),
+							}),
+						})),
+					},
 				},
 			},
 		})

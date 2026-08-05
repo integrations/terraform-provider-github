@@ -31,6 +31,8 @@ import (
 // 		},
 // 	} {
 // 		t.Run(d.testName, func(t *testing.T) {
+// 		t.Parallel()
+
 // 			t.Parallel()
 
 // 			got, err := resourceGithubRepositoryCollaboratorsStateUpgradeV0(context.Background(), d.rawState, nil)

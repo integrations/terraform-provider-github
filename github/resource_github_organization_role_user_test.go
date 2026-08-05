@@ -9,24 +9,28 @@ import (
 )
 
 func TestAccGithubOrganizationRoleUser(t *testing.T) {
+	t.Parallel()
+
 	t.Run("adds user to an organization org role", func(t *testing.T) {
+		t.Parallel()
+
 		roleId := 8134
 		config := fmt.Sprintf(`
 			resource "github_organization_role_user" "test" {
 				role_id  = %d
 				login = "%s"
 			}
-		`, roleId, testAccConf.testOrgUser)
+		`, roleId, testAccConf.testOrgUser1)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			PreCheck:          func() { skipUnlessHasOrgs(t); skipUnlessHasOrgUser1(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_organization_role_user.test", "role_id", strconv.Itoa(roleId)),
-						resource.TestCheckResourceAttr("github_organization_role_user.test", "login", testAccConf.testOrgUser),
+						resource.TestCheckResourceAttr("github_organization_role_user.test", "login", testAccConf.testOrgUser1),
 					),
 				},
 			},

@@ -10,7 +10,11 @@ import (
 )
 
 func TestAccGithubOrganizationRoleTeam(t *testing.T) {
+	t.Parallel()
+
 	t.Run("adds team to an organization org role", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-org-role-%s", testResourcePrefix, randomID)
 		roleId := 8134

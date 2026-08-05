@@ -11,15 +11,19 @@ import (
 )
 
 func TestAccGithubUserInvitationAccepter(t *testing.T) {
-	if len(testAccConf.testExternalUser) == 0 {
+	t.Parallel()
+
+	if len(testAccConf.testExternalUser1) == 0 {
 		t.Skip("No external user provided")
 	}
 
-	if len(testAccConf.testExternalUserToken) == 0 {
+	if len(testAccConf.testExternalUser1Token) == 0 {
 		t.Skip("No external user token provided")
 	}
 
 	t.Run("accepts an invitation", func(t *testing.T) {
+		// IMPORTANT: Do not run this sub test in parallel is it uses shared state.
+
 		rn := "github_repository_collaborator.test"
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-invitation-%s", testResourcePrefix, randomID)
@@ -30,7 +34,7 @@ func TestAccGithubUserInvitationAccepter(t *testing.T) {
 			CheckDestroy:      testAccCheckGithubUserInvitationAccepterDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: testAccGithubUserInvitationAccepterConfig(testAccConf.testExternalUserToken, repoName, testAccConf.testExternalUser),
+					Config: testAccGithubUserInvitationAccepterConfig(testAccConf.testExternalUser1Token, repoName, testAccConf.testExternalUser1),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr(rn, "permission", "push"),
 						resource.TestMatchResourceAttr(rn, "invitation_id", regexp.MustCompile(`^[0-9]+$`)),
@@ -41,6 +45,8 @@ func TestAccGithubUserInvitationAccepter(t *testing.T) {
 	})
 
 	t.Run("accepts an invitation with an empty invitation_id", func(t *testing.T) {
+		// IMPORTANT: Do not run this sub test in parallel is it uses shared state.
+
 		rn := "github_user_invitation_accepter.test"
 
 		resource.Test(t, resource.TestCase{

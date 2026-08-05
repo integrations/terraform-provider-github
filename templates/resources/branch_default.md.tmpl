@@ -1,39 +1,48 @@
 ---
 page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
 description: |-
-  Provides a GitHub branch default for a given repository.
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
 ---
 
 # {{.Name}} ({{.Type}})
 
-Provides a GitHub branch default resource.
+{{ .Description | trimspace }}
 
-This resource allows you to set the default branch for a given repository.
+~> This resource is incompatible with the `default_branch` option of the [`github_repository`](repository) resource. Using both will result in plans always showing a diff.
 
-Note that use of this resource is incompatible with the `default_branch` option of the `github_repository` resource. Using both will result in plans always showing a diff.
-
+{{ if .HasExamples -}}
 ## Example Usage
 
-Basic usage:
+{{- range .ExampleFiles }}
 
-{{ tffile "examples/resources/branch_default/example_1.tf" }}
+{{ tffile . }}
+{{- end }}
+{{- end }}
 
-Renaming to a branch that doesn't exist:
-
-{{ tffile "examples/resources/branch_default/example_2.tf" }}
-
-## Argument Reference
-
-The following arguments are supported:
-
-- `repository` - (Required) The GitHub repository
-- `branch` - (Required) The branch (e.g. `main`)
-- `rename` - (Optional) Indicate if it should rename the branch rather than use an existing branch. Defaults to `false`.
+{{ .SchemaMarkdown | trimspace }}
+{{- if or .HasImport .HasImportIDConfig .HasImportIdentityConfig }}
 
 ## Import
 
-GitHub Branch Defaults can be imported using an ID made up of `repository`, e.g.
+Import is supported using the following syntax:
+{{- end }}
+{{- if .HasImportIdentityConfig }}
 
-```shell
-terraform import github_branch_default.branch_default my-repo
-```
+In Terraform v1.12.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `identity` attribute, for example:
+
+{{tffile .ImportIdentityConfigFile }}
+
+{{ .IdentitySchemaMarkdown | trimspace }}
+{{- end }}
+{{- if .HasImportIDConfig }}
+
+In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `id` attribute, for example:
+
+{{tffile .ImportIDConfigFile }}
+{{- end }}
+{{- if .HasImport }}
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+{{codefile "shell" .ImportFile }}
+{{- end }}

@@ -5,10 +5,12 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 )
 
 func Test_migrateRepositoryWithID(t *testing.T) {
+	// IMPORTANT: This test is not parallelized because it uses global state.
+
 	for _, tt := range []struct {
 		testName   string
 		statusCode int

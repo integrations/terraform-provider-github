@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
-	"log"
 	"net/http"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -16,6 +16,19 @@ import (
 
 func resourceGithubDependabotSecret() *schema.Resource {
 	return &schema.Resource{
+		CreateContext: resourceGithubDependabotSecretCreate,
+		ReadContext:   resourceGithubDependabotSecretRead,
+		UpdateContext: resourceGithubDependabotSecretUpdate,
+		DeleteContext: resourceGithubDependabotSecretDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: resourceGithubDependabotSecretImport,
+		},
+
+		CustomizeDiff: customdiff.All(
+			diffRepository,
+			diffSecret,
+		),
+
 		SchemaVersion: 1,
 		StateUpgraders: []schema.StateUpgrader{
 			{
@@ -24,6 +37,8 @@ func resourceGithubDependabotSecret() *schema.Resource {
 				Version: 0,
 			},
 		},
+
+		Description: "Resource to manage a GitHub Dependabot secret for a repository.",
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -86,37 +101,24 @@ func resourceGithubDependabotSecret() *schema.Resource {
 			"created_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Date of secret creation.",
+				Description: "Timestamp for when the secret was created.",
 			},
 			"updated_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Date of secret update.",
+				Description: "Timestamp for when the secret was last updated by the provider.",
 			},
 			"remote_updated_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Date of secret update at the remote.",
+				Description: "Timestamp for when the secret was last updated.",
 			},
-		},
-
-		CustomizeDiff: customdiff.All(
-			diffRepository,
-			diffSecret,
-		),
-
-		CreateContext: resourceGithubDependabotSecretCreate,
-		ReadContext:   resourceGithubDependabotSecretRead,
-		UpdateContext: resourceGithubDependabotSecretUpdate,
-		DeleteContext: resourceGithubDependabotSecretDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: resourceGithubDependabotSecretImport,
 		},
 	}
 }
 
 func resourceGithubDependabotSecretCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -176,8 +178,11 @@ func resourceGithubDependabotSecretCreate(ctx context.Context, d *schema.Resourc
 		return diag.FromErr(err)
 	}
 
-	// GitHub API does not return on create so we have to lookup the secret to get timestamps
-	if secret, _, err := client.Dependabot.GetRepoSecret(ctx, owner, repoName, secretName); err == nil {
+	// GitHub API does not return on create so we have to lookup the secret to get timestamps.
+	if secret, err := retryUntilResourceFound(ctx, func() (*github.Secret, error) {
+		val, _, err := client.Dependabot.GetRepoSecret(ctx, owner, repoName, secretName)
+		return val, err
+	}, nil); err == nil {
 		if err := d.Set("created_at", secret.CreatedAt.String()); err != nil {
 			return diag.FromErr(err)
 		}
@@ -193,7 +198,7 @@ func resourceGithubDependabotSecretCreate(ctx context.Context, d *schema.Resourc
 }
 
 func resourceGithubDependabotSecretRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -202,13 +207,10 @@ func resourceGithubDependabotSecretRead(ctx context.Context, d *schema.ResourceD
 
 	secret, _, err := client.Dependabot.GetRepoSecret(ctx, owner, repoName, secretName)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing Dependabot secret %s from state because it no longer exists in GitHub", d.Id())
-				d.SetId("")
-				return nil
-			}
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Removing Dependabot secret from state because it no longer exists in GitHub.", map[string]any{"secret_name": secretName, "repository": repoName})
+			d.SetId("")
+			return nil
 		}
 		return diag.FromErr(err)
 	}
@@ -239,7 +241,7 @@ func resourceGithubDependabotSecretRead(ctx context.Context, d *schema.ResourceD
 }
 
 func resourceGithubDependabotSecretUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -290,8 +292,11 @@ func resourceGithubDependabotSecretUpdate(ctx context.Context, d *schema.Resourc
 		return diag.FromErr(err)
 	}
 
-	// GitHub API does not return on update so we have to lookup the secret to get timestamps
-	if secret, _, err := client.Dependabot.GetRepoSecret(ctx, owner, repoName, secretName); err == nil {
+	// GitHub API does not return on update so we have to lookup the secret to get timestamps.
+	if secret, err := retryUntilResourceFound(ctx, func() (*github.Secret, error) {
+		val, _, err := client.Dependabot.GetRepoSecret(ctx, owner, repoName, secretName)
+		return val, err
+	}, nil); err == nil {
 		if err := d.Set("created_at", secret.CreatedAt.String()); err != nil {
 			return diag.FromErr(err)
 		}
@@ -301,27 +306,20 @@ func resourceGithubDependabotSecretUpdate(ctx context.Context, d *schema.Resourc
 		if err := d.Set("remote_updated_at", secret.UpdatedAt.String()); err != nil {
 			return diag.FromErr(err)
 		}
-	} else {
-		if err := d.Set("updated_at", nil); err != nil {
-			return diag.FromErr(err)
-		}
-		if err := d.Set("remote_updated_at", nil); err != nil {
-			return diag.FromErr(err)
-		}
 	}
 
 	return nil
 }
 
 func resourceGithubDependabotSecretDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
 	repoName := d.Get("repository").(string)
 	secretName := d.Get("secret_name").(string)
 
-	log.Printf("[INFO] Deleting Dependabot repo secret: %s", d.Id())
+	tflog.Info(ctx, "Deleting Dependabot repo secret.", map[string]any{"secret_name": secretName, "repository": repoName})
 	_, err := client.Dependabot.DeleteRepoSecret(ctx, owner, repoName, secretName)
 	if err != nil {
 		return diag.FromErr(err)
@@ -331,7 +329,7 @@ func resourceGithubDependabotSecretDelete(ctx context.Context, d *schema.Resourc
 }
 
 func resourceGithubDependabotSecretImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 

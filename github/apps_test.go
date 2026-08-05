@@ -29,6 +29,8 @@ var (
 )
 
 func TestGenerateAppJWT(t *testing.T) {
+	t.Parallel()
+
 	appJWT, err := generateAppJWT(testGitHubAppID, testEpochTime, testGitHubAppPrivateKeyPemData)
 	t.Log(appJWT)
 	if err != nil {
@@ -138,6 +140,8 @@ func TestGenerateAppJWT(t *testing.T) {
 }
 
 func TestGetInstallationAccessToken(t *testing.T) {
+	t.Parallel()
+
 	fakeJWT := "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9" +
 		".eyJpc3MiOiIxMjM0NTY3ODkiLCJhdWQiOiIiLCJleHAiOjMwMCwiaWF0IjotNjB9" +
 		".jpx6AFGoZzHzre79JveY_nyKop11v-bLxLEMvEDrn2wDF9S1FeX-zfTiA6Xi00Akn0Wklj7OYx0wHCvi37aiD4zjp0qPz5i5V7aMrRsWsO6eCzNfY0VLuV6pX8jlAHFfo71SvpdAMWH4in8ty5bNVUMv0NmwWdlHAQ0LLIPSxE4"

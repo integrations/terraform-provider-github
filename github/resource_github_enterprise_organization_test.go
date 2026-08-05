@@ -8,12 +8,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestIsSAMLEnforcementError(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		err      error
@@ -62,6 +65,8 @@ func TestIsSAMLEnforcementError(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := isSAMLEnforcementError(tc.err)
 			if result != tc.expected {
 				t.Errorf("isSAMLEnforcementError(%v) = %v, want %v", tc.err, result, tc.expected)
@@ -71,7 +76,11 @@ func TestIsSAMLEnforcementError(t *testing.T) {
 }
 
 func TestAccGithubEnterpriseOrganization(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates and updates an enterprise organization without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		orgName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
@@ -102,6 +111,9 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 			"before": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttrSet(
 					"github_enterprise_organization.org", "enterprise_id",
+				),
+				resource.TestCheckResourceAttrSet(
+					"github_enterprise_organization.org", "database_id",
 				),
 				resource.TestCheckResourceAttr(
 					"github_enterprise_organization.org", "name",
@@ -146,6 +158,8 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 	})
 
 	t.Run("deletes an enterprise organization without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		orgName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
@@ -181,6 +195,8 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 	})
 
 	t.Run("creates and updates org with display name", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		orgName := fmt.Sprintf("tf-acc-test-displayname%s", randomID)
 
@@ -270,6 +286,8 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 	})
 
 	t.Run("creates org without display name, set and update display name", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		orgName := fmt.Sprintf("tf-acc-test-adddisplayname%s", randomID)
 
@@ -415,6 +433,8 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 	})
 
 	t.Run("imports enterprise organization without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		orgName := fmt.Sprintf("tf-acc-test-import%s", randomID)
 
@@ -458,6 +478,8 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 	})
 
 	t.Run("imports enterprise organization invalid enterprise name", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		orgName := fmt.Sprintf("tf-acc-test-adddisplayname%s", randomID)
 
@@ -502,6 +524,8 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 	})
 
 	t.Run("imports enterprise organization invalid organization name", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		orgName := fmt.Sprintf("tf-acc-test-adddisplayname%s", randomID)
 
@@ -544,4 +568,61 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 			},
 		})
 	})
+}
+
+func TestResourceGithubEnterpriseOrganizationCreateSetsDatabaseID(t *testing.T) {
+	t.Parallel()
+
+	const createResponse = `{
+  "data": {
+    "createEnterpriseOrganization": {
+      "organization": {
+        "id": "O_kgDOCg7Zxw",
+        "databaseId": 168828871
+      }
+    }
+  }
+}`
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/graphql", func(w http.ResponseWriter, req *http.Request) {
+		body := mustRead(req.Body)
+		if !strings.Contains(body, "createEnterpriseOrganization") {
+			t.Errorf("unexpected GraphQL call: %s", body)
+		}
+		if !strings.Contains(body, "databaseId") {
+			t.Errorf("mutation does not select databaseId: %s", body)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		mustWrite(w, createResponse)
+	})
+
+	meta := &Owner{
+		v4client: newTestGraphQLClient(mux),
+	}
+
+	data := schema.TestResourceDataRaw(t, resourceGithubEnterpriseOrganization().Schema, map[string]any{
+		"enterprise_id": "E_kgDNAbc",
+		"name":          "some-awesome-org",
+		"billing_email": "octocat@octo.cat",
+		"admin_logins":  []any{"octocat"},
+	})
+
+	if err := resourceGithubEnterpriseOrganizationCreate(data, meta); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	if got, want := data.Id(), "O_kgDOCg7Zxw"; got != want {
+		t.Errorf("id = %q, want %q", got, want)
+	}
+
+	// database_id must be populated during create because the provider does not read after write,
+	// and other resources reference it within the same apply.
+	got, ok := data.Get("database_id").(int)
+	if !ok {
+		t.Fatalf("database_id is %T, want int", data.Get("database_id"))
+	}
+	if want := 168828871; got != want {
+		t.Errorf("database_id = %d, want %d", got, want)
+	}
 }

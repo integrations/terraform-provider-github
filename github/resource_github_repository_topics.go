@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -19,7 +19,7 @@ func resourceGithubRepositoryTopics() *schema.Resource {
 		Update: resourceGithubRepositoryTopicsCreateOrUpdate,
 		Delete: resourceGithubRepositoryTopicsDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+			State: func(d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
 				_ = d.Set("repository", d.Id())
 				return []*schema.ResourceData{d}, nil
 			},
@@ -44,11 +44,12 @@ func resourceGithubRepositoryTopics() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryTopicsCreateOrUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryTopicsCreateOrUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	ctx := context.Background()
 
-	owner := meta.(*Owner).name
+	owner := meta.name
 	repoName := d.Get("repository").(string)
 	topics := expandStringList(d.Get("topics").(*schema.Set).List())
 
@@ -63,15 +64,16 @@ func resourceGithubRepositoryTopicsCreateOrUpdate(d *schema.ResourceData, meta a
 	return resourceGithubRepositoryTopicsRead(d, meta)
 }
 
-func resourceGithubRepositoryTopicsRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryTopicsRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	owner := meta.(*Owner).name
+	owner := meta.name
 	repoName := d.Get("repository").(string)
 
 	results := make([]string, 0)
-	listOptions := &github.ListOptions{PerPage: maxPerPage}
+	listOptions := &github.ListOptions{PerPage: meta.maxPerPage}
 	for {
 		topics, resp, err := client.Repositories.ListAllTopics(ctx, owner, repoName, listOptions)
 		if err != nil {
@@ -106,11 +108,12 @@ func resourceGithubRepositoryTopicsRead(d *schema.ResourceData, meta any) error 
 	return nil
 }
 
-func resourceGithubRepositoryTopicsDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryTopicsDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	owner := meta.(*Owner).name
+	owner := meta.name
 	repoName := d.Get("repository").(string)
 
 	_, _, err := client.Repositories.ReplaceAllTopics(ctx, owner, repoName, []string{})
