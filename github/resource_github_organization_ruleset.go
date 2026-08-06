@@ -16,7 +16,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-var supportedOrgRulesetTargetTypes = []string{string(github.RulesetTargetBranch), string(github.RulesetTargetTag), string(github.RulesetTargetPush)}
+var supportedOrgRulesetTargetTypes = []string{
+	string(github.RulesetTargetBranch),
+	string(github.RulesetTargetTag),
+	string(github.RulesetTargetPush),
+	string(github.RulesetTargetRepository),
+}
 
 func resourceGithubOrganizationRuleset() *schema.Resource {
 	return &schema.Resource{
@@ -40,9 +45,8 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Description:      "The name of the ruleset.",
 			},
 			"target": {
-				Type:     schema.TypeString,
-				Required: true,
-				// The API accepts an `repository` target, but we don't support it yet.
+				Type:             schema.TypeString,
+				Required:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice(supportedOrgRulesetTargetTypes, false)),
 				Description:      "The target of the ruleset. Possible values are " + strings.Join(supportedOrgRulesetTargetTypes[:len(supportedOrgRulesetTargetTypes)-1], ", ") + " and " + supportedOrgRulesetTargetTypes[len(supportedOrgRulesetTargetTypes)-1] + ".",
 			},
@@ -740,6 +744,62 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Elem: &schema.Schema{
 											Type: schema.TypeString,
 										},
+									},
+								},
+							},
+						},
+						"repository_create": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "Only allow users with bypass permission to create matching repositories. Only valid for the `repository` target.",
+						},
+						"repository_delete": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "Only allow users with bypass permission to delete matching repositories. Only valid for the `repository` target.",
+						},
+						"repository_transfer": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "Only allow users with bypass permission to transfer matching repositories out of the organization. Only valid for the `repository` target.",
+						},
+						"repository_name": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Restrict the names matching repositories may have. Only valid for the `repository` target.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"pattern": {
+										Type:             schema.TypeString,
+										Required:         true,
+										ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsNotEmpty),
+										Description:      "The pattern to match against the repository name.",
+									},
+									"negate": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Description: "If true, the rule will fail if the pattern matches.",
+									},
+								},
+							},
+						},
+						"repository_visibility": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Restrict the visibilities matching repositories may have. Only valid for the `repository` target.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"internal": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Description: "Allow matching repositories to be internal.",
+									},
+									"private": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Description: "Allow matching repositories to be private.",
 									},
 								},
 							},

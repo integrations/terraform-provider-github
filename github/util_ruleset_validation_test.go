@@ -200,11 +200,80 @@ func Test_validateConditionsFieldForBranchAndTagTargets(t *testing.T) {
 func Test_ruleListsDoNotOverlap(t *testing.T) {
 	t.Parallel()
 
-	for _, pushRule := range pushOnlyRules {
-		for _, branchTagRule := range branchTagOnlyRules {
-			if pushRule == branchTagRule {
-				t.Errorf("rule %q appears in both pushOnlyRules and branchTagOnlyRules", pushRule)
+	lists := map[string][]github.RepositoryRuleType{
+		"pushOnlyRules":       pushOnlyRules,
+		"branchTagOnlyRules":  branchTagOnlyRules,
+		"repositoryOnlyRules": repositoryOnlyRules,
+	}
+
+	for nameA, listA := range lists {
+		for nameB, listB := range lists {
+			if nameA >= nameB {
+				continue
+			}
+			for _, ruleA := range listA {
+				for _, ruleB := range listB {
+					if ruleA == ruleB {
+						t.Errorf("rule %q appears in both %s and %s", ruleA, nameA, nameB)
+					}
+				}
 			}
 		}
+	}
+}
+
+func Test_validateConditionsFieldForRepositoryTarget(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		conditions  map[string]any
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name: "valid repository target without ref_name",
+			conditions: map[string]any{
+				"repository_name": []any{map[string]any{"include": []any{"~ALL"}, "exclude": []any{}}},
+			},
+			expectError: false,
+		},
+		{
+			name:        "valid repository target with nil ref_name",
+			conditions:  map[string]any{"ref_name": nil},
+			expectError: false,
+		},
+		{
+			name:        "valid repository target with empty ref_name slice",
+			conditions:  map[string]any{"ref_name": []any{}},
+			expectError: false,
+		},
+		{
+			name: "invalid repository target with ref_name set",
+			conditions: map[string]any{
+				"ref_name": []any{map[string]any{"include": []any{"~ALL"}, "exclude": []any{}}},
+			},
+			expectError: true,
+			errorMsg:    "ref_name must not be set for repository target",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := validateConditionsFieldForRepositoryTarget(t.Context(), tt.conditions)
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("expected error but got nil")
+				} else if err.Error() != tt.errorMsg {
+					t.Errorf("expected error %q, got %q", tt.errorMsg, err.Error())
+				}
+			} else {
+				if err != nil {
+					t.Errorf("expected no error but got: %v", err)
+				}
+			}
+		})
 	}
 }

@@ -66,6 +66,25 @@ var pushOnlyRules = []github.RepositoryRuleType{
 	github.RulesetRuleTypeMaxFileSize,
 }
 
+// repositoryOnlyRules contains rules that are only valid for the repository target.
+//
+// These rules govern the lifecycle, naming and visibility of the repositories
+// themselves rather than their contents, so they are not supported for branch,
+// tag or push rulesets.
+//
+// To verify/maintain this list:
+//  1. Check the GitHub API documentation for organization rulesets:
+//     https://docs.github.com/en/rest/orgs/rules?apiVersion=2022-11-28#create-an-organization-repository-ruleset
+//  2. Rules accepted for a `repository` target are rejected for every other
+//     target and vice versa.
+var repositoryOnlyRules = []github.RepositoryRuleType{
+	github.RulesetRuleTypeRepositoryCreate,
+	github.RulesetRuleTypeRepositoryDelete,
+	github.RulesetRuleTypeRepositoryName,
+	github.RulesetRuleTypeRepositoryTransfer,
+	github.RulesetRuleTypeRepositoryVisibility,
+}
+
 func validateRulesForTarget(ctx context.Context, d *schema.ResourceDiff) error {
 	target := github.RulesetTarget(d.Get("target").(string))
 	tflog.Debug(ctx, "Validating rules for target", map[string]any{"target": target})
@@ -75,6 +94,8 @@ func validateRulesForTarget(ctx context.Context, d *schema.ResourceDiff) error {
 		return validateRulesForPushTarget(ctx, d)
 	case github.RulesetTargetBranch, github.RulesetTargetTag:
 		return validateRulesForBranchTagTarget(ctx, d)
+	case github.RulesetTargetRepository:
+		return validateRulesForRepositoryTarget(ctx, d)
 	}
 
 	tflog.Debug(ctx, "Rules validation passed", map[string]any{"target": target})
@@ -87,6 +108,10 @@ func validateRulesForPushTarget(ctx context.Context, d *schema.ResourceDiff) err
 
 func validateRulesForBranchTagTarget(ctx context.Context, d *schema.ResourceDiff) error {
 	return validateRules(ctx, d, branchTagOnlyRules)
+}
+
+func validateRulesForRepositoryTarget(ctx context.Context, d *schema.ResourceDiff) error {
+	return validateRules(ctx, d, repositoryOnlyRules)
 }
 
 func validateRules(ctx context.Context, d *schema.ResourceDiff, allowedRules []github.RepositoryRuleType) error {
@@ -146,6 +171,8 @@ func validateRulesetConditions(ctx context.Context, d *schema.ResourceDiff, isOr
 		return validateConditionsFieldForBranchAndTagTargets(ctx, target, conditions, isOrg)
 	case github.RulesetTargetPush:
 		return validateConditionsFieldForPushTarget(ctx, conditions)
+	case github.RulesetTargetRepository:
+		return validateConditionsFieldForRepositoryTarget(ctx, conditions)
 	}
 	return nil
 }
@@ -183,5 +210,16 @@ func validateConditionsFieldForPushTarget(ctx context.Context, conditions map[st
 		return fmt.Errorf("ref_name must not be set for push target")
 	}
 	tflog.Debug(ctx, "Conditions validation passed for push target")
+	return nil
+}
+
+func validateConditionsFieldForRepositoryTarget(ctx context.Context, conditions map[string]any) error {
+	tflog.Debug(ctx, "Validating conditions field for repository target", map[string]any{"target": "repository", "conditions": conditions})
+
+	if conditions["ref_name"] != nil && len(conditions["ref_name"].([]any)) > 0 {
+		tflog.Debug(ctx, "Invalid ref_name for repository target", map[string]any{"ref_name": conditions["ref_name"]})
+		return fmt.Errorf("ref_name must not be set for repository target")
+	}
+	tflog.Debug(ctx, "Conditions validation passed for repository target")
 	return nil
 }
