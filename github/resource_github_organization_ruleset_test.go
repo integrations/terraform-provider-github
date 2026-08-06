@@ -566,6 +566,66 @@ resource "github_organization_ruleset" "test" {
 		})
 	})
 
+	t.Run("create_repository_ruleset", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		rulesetName := fmt.Sprintf("%s-repository-ruleset-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_organization_ruleset" "test" {
+	name        = "%s"
+	target      = "repository"
+	enforcement = "active"
+
+	conditions {
+		repository_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	rules {
+		repository_create   = true
+		repository_delete   = true
+		repository_transfer = true
+
+		repository_name {
+			pattern = "^tf-acc-"
+			negate  = false
+		}
+
+		repository_visibility {
+			internal = true
+			private  = true
+		}
+	}
+}
+`, rulesetName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "target", "repository"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "enforcement", "active"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.repository_create", "true"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.repository_delete", "true"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.repository_transfer", "true"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.repository_name.0.pattern", "^tf-acc-"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.repository_name.0.negate", "false"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.repository_visibility.0.internal", "true"),
+						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.repository_visibility.0.private", "true"),
+					),
+				},
+			},
+		})
+	})
+
 	t.Run("update_ruleset_name", func(t *testing.T) {
 		t.Parallel()
 
@@ -956,6 +1016,125 @@ resource "github_organization_ruleset" "test" {
 				{
 					Config:      config,
 					ExpectError: regexp.MustCompile("rule .* is not valid for push target"),
+				},
+			},
+		})
+	})
+
+	t.Run("validates_repository_target_rejects_ref_name_condition", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		resourceName := "test-repository-reject-ref-name"
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "%s" {
+				name        = "test-repository-with-ref-%s"
+				target      = "repository"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					# Repository rulesets only support repository-specific rules
+					repository_delete = true
+				}
+			}
+		`, resourceName, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("ref_name must not be set for repository target"),
+				},
+			},
+		})
+	})
+
+	t.Run("validates_repository_target_rejects_branch_or_tag_rules", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		resourceName := "test-repository-reject-branch-rules"
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "%s" {
+				name        = "test-repository-branch-rule-%s"
+				target      = "repository"
+				enforcement = "active"
+
+				conditions {
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					# 'creation' is a branch/tag rule, not valid for repository target
+					creation = true
+				}
+			}
+		`, resourceName, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("rule .* is not valid for repository target"),
+				},
+			},
+		})
+	})
+
+	t.Run("validates_branch_target_rejects_repository-only_rules", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		resourceName := "test-branch-reject-repository-rules"
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "%s" {
+				name        = "test-branch-repository-rule-%s"
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					# 'repository_delete' is a repository-only rule, not valid for branch target
+					repository_delete = true
+				}
+			}
+		`, resourceName, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("rule .* is not valid for branch target"),
 				},
 			},
 		})
