@@ -47,7 +47,7 @@ Read-Only:
 
 - `description` (String) Description of the team.
 - `id` (Number) ID of the team.
-- `members` (List of String) List of members in the team.
+- `members` (List of String, Deprecated) List of members in the team.
 - `name` (String) Name of the team.
 - `node_id` (String) Node ID of the team.
 - `notification_setting` (String) Notification setting for the team; one of `notifications_enabled`, or `notifications_disabled`.
@@ -57,7 +57,7 @@ Read-Only:
 - `parent_team_slug` (String, Deprecated) Slug of the parent team; only set if this team is not a root team.
 - `permission` (String) Legacy default repository permission for the team (typically pull, push, or admin), used when adding a repository without specifying an explicit permission. This does not represent effective access for all repositories or custom repository roles.
 - `privacy` (String) Privacy level of the team; one of `secret` or `closed`.
-- `repositories` (List of String) List of repositories the team has access to.
+- `repositories` (List of String, Deprecated) List of repositories the team has access to.
 - `slug` (String) Slug of the team name.
 - `type` (String) Ownership type of the team; one of `enterprise` or `organization`.
 

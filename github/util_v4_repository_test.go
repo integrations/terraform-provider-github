@@ -171,7 +171,7 @@ func TestGetRepositoryIDPositiveMatches(t *testing.T) {
 	})
 
 	meta := Owner{
-		v4client: githubv4.NewClient(&http.Client{Transport: localRoundTripper{handler: mux}}),
+		v4client: newTestGraphQLClient(mux),
 		name:     "care-dot-com",
 	}
 
@@ -218,4 +218,10 @@ func mustWrite(w io.Writer, s string) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+// newTestGraphQLClient returns a githubv4 client whose requests are served directly by handler,
+// without going over an HTTP connection.
+func newTestGraphQLClient(handler http.Handler) *githubv4.Client {
+	return githubv4.NewClient(&http.Client{Transport: localRoundTripper{handler: handler}})
 }
