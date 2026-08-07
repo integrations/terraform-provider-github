@@ -22,6 +22,7 @@ func resourceGithubRepository() *schema.Resource {
 		ReadContext:   resourceGithubRepositoryRead,
 		UpdateContext: resourceGithubRepositoryUpdate,
 		DeleteContext: resourceGithubRepositoryDelete,
+		Description:   "This resource allows you to create and manage repositories within your GitHub organization or personal account.\n\n~> **Note** When used with GitHub App authentication, even GET requests must have the `contents:write` permission. Without it, the following arguments will be ignored, leading to unexpected behavior and confusing diffs: `allow_merge_commit`, `allow_squash_merge`, `allow_rebase_merge`, `merge_commit_title`, `merge_commit_message`, `squash_merge_commit_title` and `squash_merge_commit_message`.",
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceGithubRepositoryImport,
 		},
@@ -57,6 +58,7 @@ func resourceGithubRepository() *schema.Resource {
 				Computed:      true, // is affected by "visibility"
 				Optional:      true,
 				ConflictsWith: []string{"visibility"},
+				Description:   "Set to 'true' to create a private repository. Repositories are created as public (e.g. open source) by default. Deprecated: use visibility instead.",
 				Deprecated:    "use visibility instead",
 			},
 			"visibility": {
@@ -64,7 +66,7 @@ func resourceGithubRepository() *schema.Resource {
 				Optional:         true,
 				Computed:         true, // is affected by "private"
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"public", "private", "internal"}, false)),
-				Description:      "Can be 'public' or 'private'. If your organization is associated with an enterprise account using GitHub Enterprise Cloud or GitHub Enterprise Server 2.20+, visibility can also be 'internal'.",
+				Description:      "Can be 'public' or 'private'. If your organization is associated with an enterprise account using GitHub Enterprise Cloud or GitHub Enterprise Server 2.20+, visibility can also be 'internal'. The visibility parameter overrides the private parameter.",
 			},
 			// terraform-sdk-provider doesn't properly support tristate booleans: https://github.com/hashicorp/terraform-plugin-sdk/issues/817
 			// Using TypeString as the best alternative for now.
@@ -72,26 +74,26 @@ func resourceGithubRepository() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: "Set to 'true' to fork an existing repository.",
+				Description: "Set to 'true' to create a fork of an existing repository. When set to 'true', both 'source_owner' and 'source_repo' must also be specified.",
 			},
 			"source_owner": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: "The owner of the source repository to fork from.",
+				Description: "The GitHub username or organization that owns the repository being forked. Required when 'fork' is 'true'.",
 			},
 			"source_repo": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: "The name of the source repository to fork from.",
+				Description: "The name of the repository to fork. Required when 'fork' is 'true'.",
 			},
 			"security_and_analysis": {
 				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
 				MaxItems:    1,
-				Description: "Security and analysis settings for the repository. To use this parameter you must have admin permissions for the repository or be an owner or security manager for the organization that owns the repository.",
+				Description: "The repository's [security and analysis](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-security-and-analysis-settings-for-your-repository) configuration. To use this parameter you must have admin permissions for the repository or be an owner or security manager for the organization that owns the repository.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"advanced_security": {
@@ -105,7 +107,7 @@ func resourceGithubRepository() *schema.Resource {
 										Type:             schema.TypeString,
 										Required:         true,
 										ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false)),
-										Description:      "Set to 'enabled' to enable advanced security features on the repository. Can be 'enabled' or 'disabled', This value being present when split licensing is enabled will error out.",
+										Description:      "Set to 'enabled' to enable advanced security features on the repository. Can be 'enabled' or 'disabled'.",
 									},
 								},
 							},
@@ -121,7 +123,7 @@ func resourceGithubRepository() *schema.Resource {
 										Type:             schema.TypeString,
 										Required:         true,
 										ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false)),
-										Description:      "Set to 'enabled' to enable code security on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.",
+										Description:      "Set to 'enabled' to enable GitHub Code Security on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.",
 									},
 								},
 							},
@@ -196,7 +198,7 @@ func resourceGithubRepository() *schema.Resource {
 			"has_issues": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "Set to 'true' to enable the GitHub Issues features on the repository",
+				Description: "Set to 'true' to enable the GitHub Issues features on the repository.",
 			},
 			"has_discussions": {
 				Type:        schema.TypeBool,
@@ -206,7 +208,7 @@ func resourceGithubRepository() *schema.Resource {
 			"has_projects": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "Set to 'true' to enable the GitHub Projects features on the repository. Per the GitHub documentation when in an organization that has disabled repository projects it will default to 'false' and will otherwise default to 'true'. If you specify 'true' when it has been disabled it will return an error.",
+				Description: "Set to 'true' to enable the GitHub Projects features on the repository. Per the GitHub [documentation](https://developer.github.com/v3/repos/#create) when in an organization that has disabled repository projects it will default to 'false' and will otherwise default to 'true'. If you specify 'true' when it has been disabled it will return an error.",
 			},
 			"has_downloads": {
 				Type:        schema.TypeBool,
@@ -252,31 +254,31 @@ func resourceGithubRepository() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Computed:    true,
-				Description: "Set to 'true' to allow private forking on the repository; this is only relevant if the repository is owned by an organization and is private or internal.",
+				Description: "Configure private forking for organization owned private and internal repositories; set to 'true' to enable, 'false' to disable, and leave unset for the default behaviour. Configuring this requires that private forking is not being explicitly configured at the organization level.",
 			},
 			"squash_merge_commit_title": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "COMMIT_OR_PR_TITLE",
-				Description: "Can be 'PR_TITLE' or 'COMMIT_OR_PR_TITLE' for a default squash merge commit title.",
+				Description: "Can be 'PR_TITLE' or 'COMMIT_OR_PR_TITLE' for a default squash merge commit title. Applicable only if 'allow_squash_merge' is 'true'.",
 			},
 			"squash_merge_commit_message": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "COMMIT_MESSAGES",
-				Description: "Can be 'PR_BODY', 'COMMIT_MESSAGES', or 'BLANK' for a default squash merge commit message.",
+				Description: "Can be 'PR_BODY', 'COMMIT_MESSAGES', or 'BLANK' for a default squash merge commit message. Applicable only if 'allow_squash_merge' is 'true'.",
 			},
 			"merge_commit_title": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "MERGE_MESSAGE",
-				Description: "Can be 'PR_TITLE' or 'MERGE_MESSAGE' for a default merge commit title.",
+				Description: "Can be 'PR_TITLE' or 'MERGE_MESSAGE' for a default merge commit title. Applicable only if 'allow_merge_commit' is 'true'.",
 			},
 			"merge_commit_message": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "PR_TITLE",
-				Description: "Can be 'PR_BODY', 'PR_TITLE', or 'BLANK' for a default merge commit message.",
+				Description: "Can be 'PR_BODY', 'PR_TITLE', or 'BLANK' for a default merge commit message. Applicable only if 'allow_merge_commit' is 'true'.",
 			},
 			"delete_branch_on_merge": {
 				Type:        schema.TypeBool,
@@ -288,7 +290,7 @@ func resourceGithubRepository() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Computed:    true,
-				Description: "Require contributors to sign off on web-based commits.",
+				Description: "Require contributors to sign off on web-based commits. See more in the [GitHub documentation](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/managing-the-commit-signoff-policy-for-your-repository).",
 			},
 			"auto_init": {
 				Type:        schema.TypeBool,
@@ -299,7 +301,7 @@ func resourceGithubRepository() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: "Can only be set after initial repository creation, and only if the target branch exists",
+				Description: "The name of the default branch of the repository. NOTE: This can only be set after a repository has already been created, and after a correct reference has been created for the target branch inside the repository. This means a user will have to omit this parameter from the initial repository creation and create the target branch inside of the repository prior to setting this attribute.",
 				Deprecated:  "Use the github_branch_default resource instead",
 			},
 			"license_template": {
@@ -327,7 +329,7 @@ func resourceGithubRepository() *schema.Resource {
 				Type:        schema.TypeList,
 				MaxItems:    1,
 				Optional:    true,
-				Description: "The repository's GitHub Pages configuration",
+				Description: "The repository's GitHub Pages configuration.",
 				Deprecated:  "Use the github_repository_pages resource instead. This field will be removed in a future version.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -341,7 +343,7 @@ func resourceGithubRepository() *schema.Resource {
 									"branch": {
 										Type:        schema.TypeString,
 										Required:    true,
-										Description: "The repository branch used to publish the site's source files. (i.e. 'main' or 'gh-pages')",
+										Description: "The repository branch used to publish the site's source files. (i.e. 'main' or 'gh-pages').",
 									},
 									"path": {
 										Type:        schema.TypeString,
@@ -356,7 +358,7 @@ func resourceGithubRepository() *schema.Resource {
 							Type:             schema.TypeString,
 							Optional:         true,
 							Default:          "legacy",
-							Description:      "The type the page should be sourced.",
+							Description:      "The type of GitHub Pages site to build. Can be 'legacy' or 'workflow'. If you use 'legacy' as build type you need to set the option 'source'.",
 							ValidateDiagFunc: validateValueFunc([]string{"legacy", "workflow"}),
 						},
 						"cname": {
@@ -372,7 +374,7 @@ func resourceGithubRepository() *schema.Resource {
 						"html_url": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: "URL to the repository on the web.",
+							Description: "The absolute URL (including scheme) of the rendered GitHub Pages site e.g. 'https://username.github.io'.",
 						},
 						"status": {
 							Type:        schema.TypeString,
@@ -380,8 +382,9 @@ func resourceGithubRepository() *schema.Resource {
 							Description: "The GitHub Pages site's build status e.g. building or built.",
 						},
 						"url": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The API URL of the rendered GitHub Pages site.",
 						},
 					},
 				},
@@ -390,7 +393,7 @@ func resourceGithubRepository() *schema.Resource {
 				Type:        schema.TypeSet,
 				Optional:    true,
 				Computed:    true,
-				Description: "The list of topics of the repository.",
+				Description: "The list of topics of the repository. Note: This attribute is not compatible with the 'github_repository_topics' resource. Use one of them. 'github_repository_topics' is only meant to be used if the repository itself is not handled via terraform, for example if it's only read as a datasource.",
 				Elem: &schema.Schema{
 					Type:             schema.TypeString,
 					ValidateDiagFunc: validation.ToDiagFunc(validation.StringMatch(regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,49}$`), "must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 50 characters or less")),
@@ -400,14 +403,15 @@ func resourceGithubRepository() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Computed:    true,
-				Description: "Set to 'true' to enable security alerts for vulnerable dependencies. Enabling requires alerts to be enabled on the owner level. (Note for importing: GitHub enables the alerts on all repos by default). Note that vulnerability alerts have not been successfully tested on any GitHub Enterprise instance and may be unavailable in those settings.",
+				Description: "Configure [Dependabot security alerts](https://help.github.com/en/github/managing-security-vulnerabilities/about-security-alerts-for-vulnerable-dependencies) for vulnerable dependencies; set to 'true' to enable, set to 'false' to disable, and leave unset for the default behavior. Configuring this requires that alerts are not being explicitly configured at the organization level. This field will be removed in a future version. Use the 'github_repository_vulnerability_alerts' resource instead.",
 				Deprecated:  "Use the github_repository_vulnerability_alerts resource instead. This field will be removed in a future version.",
 			},
 			"ignore_vulnerability_alerts_during_read": {
-				Type:       schema.TypeBool,
-				Optional:   true,
-				Default:    false,
-				Deprecated: "This is ignored as the provider now handles lack of permissions automatically. This field will be removed in a future version.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "This is ignored as the provider now handles lack of permissions automatically. This field will be removed in a future version.",
+				Deprecated:  "This is ignored as the provider now handles lack of permissions automatically. This field will be removed in a future version.",
 			},
 			"full_name": {
 				Type:        schema.TypeString,
@@ -440,23 +444,25 @@ func resourceGithubRepository() *schema.Resource {
 				Description: "URL that can be provided to 'git clone' to clone the repository via HTTPS.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "An etag representing the repository object.",
 				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
 					return true
 				},
 				DiffSuppressOnRefresh: true,
 			},
 			"primary_language": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The primary language used in the repository.",
 			},
 			"template": {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Use a template repository to create this resource.",
+				Description: "Use a template repository to create this resource. Note on 'internal' visibility with templates: When creating a repository from a template with visibility = 'internal', the provider uses a two-step process due to GitHub API limitations. The template creation API only supports a private boolean parameter. Therefore, repositories with visibility = 'internal' are initially created as private and then immediately updated to internal visibility. This ensures internal repositories are never exposed publicly during creation.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"include_all_branches": {
@@ -491,7 +497,7 @@ func resourceGithubRepository() *schema.Resource {
 			"allow_update_branch": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: " Set to 'true' to always suggest updating pull request branches.",
+				Description: "Set to 'true' to always suggest updating pull request branches.",
 			},
 		},
 		CustomizeDiff: customdiff.All(
