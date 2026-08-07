@@ -66,27 +66,46 @@ var pushOnlyRules = []github.RepositoryRuleType{
 	github.RulesetRuleTypeMaxFileSize,
 }
 
+// repositoryOnlyRules contains rules that are only valid for the repository target.
+//
+// The repository target only exists for enterprise rulesets. These rules govern the
+// lifecycle and naming of the repositories themselves rather than their contents.
+//
+// To verify/maintain this list:
+//  1. Check the GitHub API documentation for enterprise rulesets:
+//     https://docs.github.com/en/enterprise-cloud@latest/rest/enterprise-admin/rules
+//  2. Rules accepted for a `repository` target are rejected for every other target
+//     and vice versa.
+var repositoryOnlyRules = []github.RepositoryRuleType{
+	github.RulesetRuleTypeRepositoryCreate,
+	github.RulesetRuleTypeRepositoryDelete,
+	github.RulesetRuleTypeRepositoryTransfer,
+	github.RulesetRuleTypeRepositoryName,
+	github.RulesetRuleTypeRepositoryVisibility,
+}
+
+// rulesAllowedByTarget maps each ruleset target to the rules GitHub accepts for it.
+// Keeping the target/rule relationship in one declarative place means adding a target
+// (or splitting `rules` per target, see integrations/terraform-provider-github#3584)
+// does not require touching the validation logic itself.
+var rulesAllowedByTarget = map[github.RulesetTarget][]github.RepositoryRuleType{
+	github.RulesetTargetBranch:     branchTagOnlyRules,
+	github.RulesetTargetTag:        branchTagOnlyRules,
+	github.RulesetTargetPush:       pushOnlyRules,
+	github.RulesetTargetRepository: repositoryOnlyRules,
+}
+
 func validateRulesForTarget(ctx context.Context, d *schema.ResourceDiff) error {
 	target := github.RulesetTarget(d.Get("target").(string))
 	tflog.Debug(ctx, "Validating rules for target", map[string]any{"target": target})
 
-	switch target {
-	case github.RulesetTargetPush:
-		return validateRulesForPushTarget(ctx, d)
-	case github.RulesetTargetBranch, github.RulesetTargetTag:
-		return validateRulesForBranchTagTarget(ctx, d)
+	allowedRules, ok := rulesAllowedByTarget[target]
+	if !ok {
+		tflog.Debug(ctx, "Unknown target, skipping rules validation", map[string]any{"target": target})
+		return nil
 	}
 
-	tflog.Debug(ctx, "Rules validation passed", map[string]any{"target": target})
-	return nil
-}
-
-func validateRulesForPushTarget(ctx context.Context, d *schema.ResourceDiff) error {
-	return validateRules(ctx, d, pushOnlyRules)
-}
-
-func validateRulesForBranchTagTarget(ctx context.Context, d *schema.ResourceDiff) error {
-	return validateRules(ctx, d, branchTagOnlyRules)
+	return validateRules(ctx, d, allowedRules)
 }
 
 func validateRules(ctx context.Context, d *schema.ResourceDiff, allowedRules []github.RepositoryRuleType) error {
@@ -121,15 +140,15 @@ func validateRules(ctx context.Context, d *schema.ResourceDiff, allowedRules []g
 		if slices.Contains(allowedRules, github.RepositoryRuleType(ruleName)) {
 			continue
 		} else {
-			tflog.Debug(ctx, fmt.Sprintf("Invalid rule for %s target", target), map[string]any{"rule": ruleName, "value": ruleValue})
+			tflog.Debug(ctx, "Invalid rule for target", map[string]any{"target": target, "rule": ruleName, "value": ruleValue})
 			return fmt.Errorf("rule %q is not valid for %[2]s target; %[2]s targets only support: %v", ruleName, target, allowedRules)
 		}
 	}
-	tflog.Debug(ctx, fmt.Sprintf("Rules validation passed for %s target", target))
+	tflog.Debug(ctx, "Rules validation passed for target", map[string]any{"target": target})
 	return nil
 }
 
-func validateRulesetConditions(ctx context.Context, d *schema.ResourceDiff, isOrg bool) error {
+func validateRulesetConditions(ctx context.Context, d *schema.ResourceDiff) error {
 	target := github.RulesetTarget(d.Get("target").(string))
 	tflog.Debug(ctx, "Validating conditions field based on target", map[string]any{"target": target})
 	conditionsRaw := d.Get("conditions").([]any)
@@ -143,9 +162,9 @@ func validateRulesetConditions(ctx context.Context, d *schema.ResourceDiff, isOr
 
 	switch target {
 	case github.RulesetTargetBranch, github.RulesetTargetTag:
-		return validateConditionsFieldForBranchAndTagTargets(ctx, target, conditions, isOrg)
-	case github.RulesetTargetPush:
-		return validateConditionsFieldForPushTarget(ctx, conditions)
+		return validateConditionsFieldForBranchAndTagTargets(ctx, target, conditions)
+	case github.RulesetTargetPush, github.RulesetTargetRepository:
+		return validateConditionsFieldForRefLessTargets(ctx, target, conditions)
 	}
 	return nil
 }
@@ -163,25 +182,28 @@ func validateRulesetRules(ctx context.Context, d *schema.ResourceDiff) error {
 	return validateRulesForTarget(ctx, d)
 }
 
-func validateConditionsFieldForBranchAndTagTargets(ctx context.Context, target github.RulesetTarget, conditions map[string]any, isOrg bool) error {
-	tflog.Debug(ctx, fmt.Sprintf("Validating conditions field for %s target", target), map[string]any{"target": target, "conditions": conditions, "isOrg": isOrg})
+func validateConditionsFieldForBranchAndTagTargets(ctx context.Context, target github.RulesetTarget, conditions map[string]any) error {
+	tflog.Debug(ctx, "Validating conditions field for target", map[string]any{"target": target, "conditions": conditions})
 
 	if conditions["ref_name"] == nil || len(conditions["ref_name"].([]any)) == 0 {
-		tflog.Debug(ctx, fmt.Sprintf("Missing ref_name for %s target", target), map[string]any{"target": target})
+		tflog.Debug(ctx, "Missing ref_name for target", map[string]any{"target": target})
 		return fmt.Errorf("ref_name must be set for %s target", target)
 	}
 
-	tflog.Debug(ctx, fmt.Sprintf("Conditions validation passed for %s target", target))
+	tflog.Debug(ctx, "Conditions validation passed for target", map[string]any{"target": target})
 	return nil
 }
 
-func validateConditionsFieldForPushTarget(ctx context.Context, conditions map[string]any) error {
-	tflog.Debug(ctx, "Validating conditions field for push target", map[string]any{"target": "push", "conditions": conditions})
+// validateConditionsFieldForRefLessTargets rejects `ref_name` for targets that do not
+// operate on refs: `push` rulesets match file content and `repository` rulesets match
+// repository lifecycle events.
+func validateConditionsFieldForRefLessTargets(ctx context.Context, target github.RulesetTarget, conditions map[string]any) error {
+	tflog.Debug(ctx, "Validating conditions field for target", map[string]any{"target": target, "conditions": conditions})
 
 	if conditions["ref_name"] != nil && len(conditions["ref_name"].([]any)) > 0 {
-		tflog.Debug(ctx, "Invalid ref_name for push target", map[string]any{"ref_name": conditions["ref_name"]})
-		return fmt.Errorf("ref_name must not be set for push target")
+		tflog.Debug(ctx, "Invalid ref_name for target", map[string]any{"target": target, "ref_name": conditions["ref_name"]})
+		return fmt.Errorf("ref_name must not be set for %s target", target)
 	}
-	tflog.Debug(ctx, "Conditions validation passed for push target")
+	tflog.Debug(ctx, "Conditions validation passed for target", map[string]any{"target": target})
 	return nil
 }

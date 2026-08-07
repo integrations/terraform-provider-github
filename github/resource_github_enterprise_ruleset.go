@@ -16,23 +16,35 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-var supportedOrgRulesetTargetTypes = []string{string(github.RulesetTargetBranch), string(github.RulesetTargetTag), string(github.RulesetTargetPush)}
+var supportedEnterpriseRulesetTargetTypes = []string{
+	string(github.RulesetTargetBranch),
+	string(github.RulesetTargetTag),
+	string(github.RulesetTargetPush),
+	string(github.RulesetTargetRepository),
+}
 
-func resourceGithubOrganizationRuleset() *schema.Resource {
+func resourceGithubEnterpriseRuleset() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceGithubOrganizationRulesetCreate,
-		ReadContext:   resourceGithubOrganizationRulesetRead,
-		UpdateContext: resourceGithubOrganizationRulesetUpdate,
-		DeleteContext: resourceGithubOrganizationRulesetDelete,
+		CreateContext: resourceGithubEnterpriseRulesetCreate,
+		ReadContext:   resourceGithubEnterpriseRulesetRead,
+		UpdateContext: resourceGithubEnterpriseRulesetUpdate,
+		DeleteContext: resourceGithubEnterpriseRulesetDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: resourceGithubOrganizationRulesetImport,
+			StateContext: resourceGithubEnterpriseRulesetImport,
 		},
 
-		SchemaVersion: 1,
+		CustomizeDiff: resourceGithubEnterpriseRulesetDiff,
 
-		CustomizeDiff: resourceGithubOrganizationRulesetDiff,
+		Description: "Creates a GitHub enterprise ruleset. Enterprise rulesets apply to every repository in the organizations they target, and require an enterprise plan.",
 
 		Schema: map[string]*schema.Schema{
+			"enterprise_slug": {
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsNotEmpty),
+				Description:      "The slug of the enterprise the ruleset belongs to.",
+			},
 			"name": {
 				Type:             schema.TypeString,
 				Required:         true,
@@ -42,18 +54,21 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 			"target": {
 				Type:     schema.TypeString,
 				Required: true,
-				// The API accepts an `repository` target, but we don't support it yet.
-				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice(supportedOrgRulesetTargetTypes, false)),
-				Description:      "The target of the ruleset. Possible values are " + strings.Join(supportedOrgRulesetTargetTypes[:len(supportedOrgRulesetTargetTypes)-1], ", ") + " and " + supportedOrgRulesetTargetTypes[len(supportedOrgRulesetTargetTypes)-1] + ".",
+				// Updatable in place: the API accepts `target` in the body of
+				// PUT /enterprises/{enterprise}/rulesets/{ruleset_id}, same as the org and
+				// repository rulesets. CustomizeDiff validates that the conditions and rules
+				// in the new configuration are legal for the new target.
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice(supportedEnterpriseRulesetTargetTypes, false)),
+				Description:      "The target of the ruleset. Possible values are " + strings.Join(supportedEnterpriseRulesetTargetTypes[:len(supportedEnterpriseRulesetTargetTypes)-1], ", ") + " and " + supportedEnterpriseRulesetTargetTypes[len(supportedEnterpriseRulesetTargetTypes)-1] + ". The `repository` target is only available for enterprise rulesets.",
 			},
 			"enforcement": {
 				Type:             schema.TypeString,
 				Required:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"disabled", "active", "evaluate"}, false)),
-				Description:      "The enforcement level of the ruleset. `evaluate` allows admins to test rules before enforcing them. Possible values are `disabled`, `active`, and `evaluate`. Note: `evaluate` is only available for Enterprise plans.",
+				Description:      "The enforcement level of the ruleset. `evaluate` allows admins to test rules before enforcing them. Possible values are `disabled`, `active`, and `evaluate`.",
 			},
 			"bypass_actors": {
-				Type:             schema.TypeList, // TODO: These are returned from GH API sorted by actor_id, we might want to investigate if we want to include sorting
+				Type:             schema.TypeList, // The GitHub API returns these sorted by actor_id, so order is suppressed rather than enforced.
 				Optional:         true,
 				DiffSuppressFunc: suppressUnorderedListDiff("bypass_actors", bypassActorCompareIdentity),
 				Description:      "The actors that can bypass the rules in this ruleset.",
@@ -75,7 +90,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Type:             schema.TypeString,
 							Required:         true,
 							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"always", "pull_request", "exempt"}, false)),
-							Description:      "When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`, `exempt`.",
+							Description:      "When the specified actor can bypass the ruleset. `pull_request` means that an actor can only bypass rules on pull requests. `pull_request` is not applicable for the `DeployKey` actor type. Also, `pull_request` is only applicable to branch rulesets. When `bypass_mode` is `exempt`, rules will not be run for that actor and a bypass audit entry will not be created. Can be one of: `always`, `pull_request`, `exempt`.",
 						},
 					},
 				},
@@ -94,9 +109,70 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Parameters for an organization ruleset condition.The branch and tag rulesets conditions object should contain both repository_name and ref_name properties, or both repository_id and ref_name properties, or both repository_property and ref_name properties. The push rulesets conditions object does not require the ref_name property.",
+				Description: "Parameters for an enterprise ruleset condition. Enterprise rulesets select the organizations they apply to with exactly one of `organization_name`, `organization_id` or `organization_property`, and the repositories within them with exactly one of `repository_name` or `repository_property`. The `branch` and `tag` targets additionally require `ref_name`; the `push` and `repository` targets must not set it.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"organization_name": {
+							Type:         schema.TypeList,
+							Optional:     true,
+							MaxItems:     1,
+							ExactlyOneOf: enterpriseRulesetOrganizationSelectors,
+							Description:  "Targets organizations that match the specified name patterns.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"include": {
+										Type:        schema.TypeList,
+										Required:    true,
+										Description: "Array of organization names or patterns to include. One of these patterns must match for the condition to pass. Also accepts `~ALL` to include all organizations and `~EMUS` to include the Enterprise Managed Users organization.",
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
+									"exclude": {
+										Type:        schema.TypeList,
+										Required:    true,
+										Description: "Array of organization names or patterns to exclude. The condition will not pass if any of these patterns match.",
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
+								},
+							},
+						},
+						"organization_id": {
+							Type:         schema.TypeList,
+							Optional:     true,
+							ExactlyOneOf: enterpriseRulesetOrganizationSelectors,
+							Description:  "The organization IDs that the ruleset applies to. One of these IDs must match for the condition to pass.",
+							Elem: &schema.Schema{
+								Type: schema.TypeInt,
+							},
+						},
+						"organization_property": {
+							Type:         schema.TypeList,
+							Optional:     true,
+							MaxItems:     1,
+							ExactlyOneOf: enterpriseRulesetOrganizationSelectors,
+							Description:  "Conditions to target organizations by custom properties.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"include": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										ConfigMode:  schema.SchemaConfigModeAttr,
+										Description: "The organization properties and values to include. All of these properties must match for the condition to pass.",
+										Elem:        enterpriseRulesetOrganizationPropertyElem(),
+									},
+									"exclude": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										ConfigMode:  schema.SchemaConfigModeAttr,
+										Description: "The organization properties and values to exclude. The ruleset will not apply if any of these properties match.",
+										Elem:        enterpriseRulesetOrganizationPropertyElem(),
+									},
+								},
+							},
+						},
 						"ref_name": {
 							Type:        schema.TypeList,
 							Optional:    true,
@@ -124,12 +200,11 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							},
 						},
 						"repository_property": {
-							Type:          schema.TypeList,
-							Optional:      true,
-							MaxItems:      1,
-							ConflictsWith: []string{"conditions.0.repository_id", "conditions.0.repository_name"},
-							AtLeastOneOf:  []string{"conditions.0.repository_name", "conditions.0.repository_id", "conditions.0.repository_property"},
-							Description:   "Conditions to target repositories by custom or system properties.",
+							Type:         schema.TypeList,
+							Optional:     true,
+							MaxItems:     1,
+							ExactlyOneOf: enterpriseRulesetRepositorySelectors,
+							Description:  "Conditions to target repositories by custom or system properties.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -155,9 +230,9 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 												"source": {
 													Type:             schema.TypeString,
 													Optional:         true,
-													Description:      "The source of the repository property. Defaults to 'custom' if not specified. Can be one of: custom, system",
 													Default:          "custom",
 													ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"custom", "system"}, false)),
+													Description:      "The source of the repository property. Defaults to 'custom' if not specified. Can be one of: custom, system",
 												},
 											},
 										},
@@ -185,9 +260,9 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 												"source": {
 													Type:             schema.TypeString,
 													Optional:         true,
-													Description:      "The source of the repository property. Defaults to 'custom' if not specified. Can be one of: custom, system",
 													Default:          "custom",
 													ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"custom", "system"}, false)),
+													Description:      "The source of the repository property. Defaults to 'custom' if not specified. Can be one of: custom, system",
 												},
 											},
 										},
@@ -196,12 +271,11 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							},
 						},
 						"repository_name": {
-							Type:          schema.TypeList,
-							Optional:      true,
-							MaxItems:      1,
-							ConflictsWith: []string{"conditions.0.repository_id", "conditions.0.repository_property"},
-							AtLeastOneOf:  []string{"conditions.0.repository_name", "conditions.0.repository_id", "conditions.0.repository_property"},
-							Description:   "Targets repositories that match the specified name patterns.",
+							Type:         schema.TypeList,
+							Optional:     true,
+							MaxItems:     1,
+							ExactlyOneOf: enterpriseRulesetRepositorySelectors,
+							Description:  "Targets repositories that match the specified name patterns.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -229,16 +303,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 								},
 							},
 						},
-						"repository_id": {
-							Type:          schema.TypeList,
-							Optional:      true,
-							ConflictsWith: []string{"conditions.0.repository_name", "conditions.0.repository_property"},
-							AtLeastOneOf:  []string{"conditions.0.repository_name", "conditions.0.repository_id", "conditions.0.repository_property"},
-							Description:   "The repository IDs that the ruleset applies to. One of these IDs must match for the ruleset to apply.",
-							Elem: &schema.Schema{
-								Type: schema.TypeInt,
-							},
-						},
 					},
 				},
 			},
@@ -246,7 +310,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Type:        schema.TypeList,
 				Required:    true,
 				MaxItems:    1,
-				Description: "Rules within the ruleset.",
+				Description: "Rules within the ruleset. Rules are target specific: `branch` and `tag` targets accept the ref lifecycle and merge requirement rules, `push` targets accept the file content rules, and `repository` targets accept the `repository_*` rules. Using a rule that the target does not support fails at plan time.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"creation": {
@@ -427,8 +491,8 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 									"do_not_enforce_on_create": {
 										Type:        schema.TypeBool,
 										Optional:    true,
-										Description: "Allow repositories and branches to be created if a check would otherwise prohibit it.",
 										Default:     false,
+										Description: "Allow repositories and branches to be created if a check would otherwise prohibit it.",
 									},
 								},
 							},
@@ -443,157 +507,37 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							MaxItems:    1,
 							Optional:    true,
 							Description: "Parameters to be used for the commit_message_pattern rule.",
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"name": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Description: "How this rule will appear to users.",
-									},
-									"negate": {
-										Type:        schema.TypeBool,
-										Optional:    true,
-										Description: "If true, the rule will fail if the pattern matches.",
-									},
-									"operator": {
-										Type:             schema.TypeString,
-										ValidateDiagFunc: operatorValidation,
-										Required:         true,
-										Description:      "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
-									},
-									"pattern": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The pattern to match with.",
-									},
-								},
-							},
+							Elem:        rulesetPatternRuleElem(),
 						},
 						"commit_author_email_pattern": {
 							Type:        schema.TypeList,
 							MaxItems:    1,
 							Optional:    true,
 							Description: "Parameters to be used for the commit_author_email_pattern rule.",
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"name": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Description: "How this rule will appear to users.",
-									},
-									"negate": {
-										Type:        schema.TypeBool,
-										Optional:    true,
-										Description: "If true, the rule will fail if the pattern matches.",
-									},
-									"operator": {
-										Type:             schema.TypeString,
-										ValidateDiagFunc: operatorValidation,
-										Required:         true,
-										Description:      "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
-									},
-									"pattern": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The pattern to match with.",
-									},
-								},
-							},
+							Elem:        rulesetPatternRuleElem(),
 						},
 						"committer_email_pattern": {
 							Type:        schema.TypeList,
 							MaxItems:    1,
 							Optional:    true,
 							Description: "Parameters to be used for the committer_email_pattern rule.",
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"name": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Description: "How this rule will appear to users.",
-									},
-									"negate": {
-										Type:        schema.TypeBool,
-										Optional:    true,
-										Description: "If true, the rule will fail if the pattern matches.",
-									},
-									"operator": {
-										Type:             schema.TypeString,
-										ValidateDiagFunc: operatorValidation,
-										Required:         true,
-										Description:      "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
-									},
-									"pattern": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The pattern to match with.",
-									},
-								},
-							},
+							Elem:        rulesetPatternRuleElem(),
 						},
 						"branch_name_pattern": {
 							Type:          schema.TypeList,
 							MaxItems:      1,
 							Optional:      true,
 							ConflictsWith: []string{"rules.0.tag_name_pattern"},
-							Description:   "Parameters to be used for the branch_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `tag_name_pattern` as it only applies to rulesets with target `branch`.",
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"name": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Description: "How this rule will appear to users.",
-									},
-									"negate": {
-										Type:        schema.TypeBool,
-										Optional:    true,
-										Description: "If true, the rule will fail if the pattern matches.",
-									},
-									"operator": {
-										Type:             schema.TypeString,
-										ValidateDiagFunc: operatorValidation,
-										Required:         true,
-										Description:      "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
-									},
-									"pattern": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The pattern to match with.",
-									},
-								},
-							},
+							Description:   "Parameters to be used for the branch_name_pattern rule. Conflicts with `tag_name_pattern` as it only applies to rulesets with target `branch`.",
+							Elem:          rulesetPatternRuleElem(),
 						},
 						"tag_name_pattern": {
 							Type:          schema.TypeList,
 							MaxItems:      1,
 							Optional:      true,
 							ConflictsWith: []string{"rules.0.branch_name_pattern"},
-							Description:   "Parameters to be used for the tag_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `branch_name_pattern` as it only applies to rulesets with target `tag`.",
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"name": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Description: "How this rule will appear to users.",
-									},
-									"negate": {
-										Type:        schema.TypeBool,
-										Optional:    true,
-										Description: "If true, the rule will fail if the pattern matches.",
-									},
-									"operator": {
-										Type:             schema.TypeString,
-										ValidateDiagFunc: operatorValidation,
-										Required:         true,
-										Description:      "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
-									},
-									"pattern": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The pattern to match with.",
-									},
-								},
-							},
+							Description:   "Parameters to be used for the tag_name_pattern rule. Conflicts with `branch_name_pattern` as it only applies to rulesets with target `tag`.",
+							Elem:          rulesetPatternRuleElem(),
 						},
 						"required_workflows": {
 							Type:        schema.TypeList,
@@ -652,16 +596,16 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
 												"alerts_threshold": {
-													Description:      "The severity level at which code scanning results that raise alerts block a reference update. Can be one of: `none`, `errors`, `errors_and_warnings`, `all`.",
-													Required:         true,
 													Type:             schema.TypeString,
+													Required:         true,
 													ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"none", "errors", "errors_and_warnings", "all"}, false)),
+													Description:      "The severity level at which code scanning results that raise alerts block a reference update. Can be one of: `none`, `errors`, `errors_and_warnings`, `all`.",
 												},
 												"security_alerts_threshold": {
-													Description:      "The severity level at which code scanning results that raise security alerts block a reference update. Can be one of: `none`, `critical`, `high_or_higher`, `medium_or_higher`, `all`.",
-													Required:         true,
 													Type:             schema.TypeString,
+													Required:         true,
 													ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"none", "critical", "high_or_higher", "medium_or_higher", "all"}, false)),
+													Description:      "The severity level at which code scanning results that raise security alerts block a reference update. Can be one of: `none`, `critical`, `high_or_higher`, `medium_or_higher`, `all`.",
 												},
 												"tool": {
 													Type:        schema.TypeString,
@@ -703,8 +647,8 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 									"max_file_size": {
 										Type:             schema.TypeInt,
 										Required:         true,
-										Description:      "The maximum allowed size of a file in megabytes (MB). Valid range is 1-100 MB.",
 										ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(1, 100)),
+										Description:      "The maximum allowed size of a file in megabytes (MB). Valid range is 1-100 MB.",
 									},
 								},
 							},
@@ -719,8 +663,8 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 									"max_file_path_length": {
 										Type:             schema.TypeInt,
 										Required:         true,
-										Description:      "The maximum allowed length of a file path.",
 										ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(1, 32767)),
+										Description:      "The maximum allowed length of a file path.",
 									},
 								},
 							},
@@ -744,6 +688,65 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 								},
 							},
 						},
+						"repository_create": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "Only allow users with bypass permission to create matching repositories. Only valid for the `repository` target.",
+						},
+						"repository_delete": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "Only allow users with bypass permission to delete matching repositories. Only valid for the `repository` target.",
+						},
+						"repository_transfer": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "Only allow users with bypass permission to transfer matching repositories. Only valid for the `repository` target.",
+						},
+						"repository_name": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Restrict repository names to the specified pattern. Only valid for the `repository` target.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"negate": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Default:     false,
+										Description: "If true, the rule will fail if the pattern matches.",
+									},
+									"pattern": {
+										Type:             schema.TypeString,
+										Required:         true,
+										ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsNotEmpty),
+										Description:      "The pattern to match repository names against.",
+									},
+								},
+							},
+						},
+						"repository_visibility": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Restrict the visibilities a matching repository may have. Only valid for the `repository` target.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"internal": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Default:     false,
+										Description: "Allow internal visibility for repositories.",
+									},
+									"private": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Default:     false,
+										Description: "Allow private visibility for repositories.",
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -756,30 +759,63 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 	}
 }
 
-func resourceGithubOrganizationRulesetCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+// rulesetPatternRuleElem returns the element schema shared by every
+// `*_pattern` rule of an enterprise ruleset.
+func rulesetPatternRuleElem() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "How this rule will appear to users.",
+			},
+			"negate": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "If true, the rule will fail if the pattern matches.",
+			},
+			"operator": {
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: operatorValidation,
+				Description:      "The operator to use for matching. Can be one of: `starts_with`, `ends_with`, `contains`, `regex`.",
+			},
+			"pattern": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The pattern to match with.",
+			},
+		},
+	}
+}
+
+func resourceGithubEnterpriseRulesetCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+	enterpriseSlug := d.Get("enterprise_slug").(string)
 	name := d.Get("name").(string)
 
-	tflog.Debug(ctx, fmt.Sprintf("Creating organization ruleset: %s/%s", owner, name), map[string]any{
-		"owner": owner,
-		"name":  name,
+	tflog.Debug(ctx, "Creating enterprise ruleset", map[string]any{
+		"enterprise_slug": enterpriseSlug,
+		"name":            name,
 	})
 
-	rulesetReq := resourceGithubRulesetObject(d, owner)
-
-	ruleset, resp, err := client.Organizations.CreateRepositoryRuleset(ctx, owner, rulesetReq)
+	ruleset, resp, err := client.Enterprise.CreateRepositoryRuleset(ctx, enterpriseSlug, resourceGithubEnterpriseRulesetObject(d))
 	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Failed to create organization ruleset: %s/%s", owner, name), map[string]any{
-			"owner": owner,
-			"name":  name,
-			"error": err.Error(),
+		tflog.Error(ctx, "Failed to create enterprise ruleset", map[string]any{
+			"enterprise_slug": enterpriseSlug,
+			"name":            name,
+			"error":           err.Error(),
 		})
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
-	if err := d.Set("ruleset_id", ruleset.ID); err != nil {
+	id, err := buildID(escapeIDPart(enterpriseSlug), strconv.FormatInt(ruleset.GetID(), 10))
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	d.SetId(id)
+
+	if err := d.Set("ruleset_id", ruleset.GetID()); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
@@ -788,73 +824,60 @@ func resourceGithubOrganizationRulesetCreate(ctx context.Context, d *schema.Reso
 	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("rules", flattenRules(ctx, ruleset.Rules, rulesetLevelOrganization)); err != nil {
+	if err := d.Set("rules", flattenRules(ctx, ruleset.Rules, rulesetLevelEnterprise)); err != nil {
 		return diag.FromErr(err)
 	}
 
-	tflog.Info(ctx, fmt.Sprintf("Created organization ruleset: %s/%s (ID: %d)", owner, name, ruleset.GetID()), map[string]any{
-		"owner":      owner,
-		"name":       name,
-		"ruleset_id": ruleset.GetID(),
+	tflog.Info(ctx, "Created enterprise ruleset", map[string]any{
+		"enterprise_slug": enterpriseSlug,
+		"name":            name,
+		"ruleset_id":      ruleset.GetID(),
 	})
 
 	return nil
 }
 
-func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubEnterpriseRulesetRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+	enterpriseSlug := d.Get("enterprise_slug").(string)
+	rulesetID := int64(d.Get("ruleset_id").(int))
 
-	tflog.Trace(ctx, fmt.Sprintf("Reading organization ruleset: %s", d.Id()), map[string]any{
-		"owner":      owner,
-		"ruleset_id": d.Id(),
+	tflog.Trace(ctx, "Reading enterprise ruleset", map[string]any{
+		"enterprise_slug": enterpriseSlug,
+		"ruleset_id":      rulesetID,
 	})
-
-	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Could not convert ruleset ID '%s' to int64", d.Id()), map[string]any{
-			"owner":      owner,
-			"ruleset_id": d.Id(),
-			"error":      err.Error(),
-		})
-		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
-	}
 
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	ruleset, resp, err := client.Organizations.GetRepositoryRuleset(ctx, owner, rulesetID)
+	ruleset, resp, err := client.Enterprise.GetRepositoryRuleset(ctx, enterpriseSlug, rulesetID)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				tflog.Debug(ctx, "API responded with StatusNotModified, not refreshing state", map[string]any{
-					"owner":      owner,
-					"ruleset_id": rulesetID,
+					"enterprise_slug": enterpriseSlug,
+					"ruleset_id":      rulesetID,
 				})
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, fmt.Sprintf("Removing ruleset %s/%d from state because it no longer exists in GitHub", owner, rulesetID), map[string]any{
-					"owner":      owner,
-					"ruleset_id": rulesetID,
+				tflog.Info(ctx, "Removing enterprise ruleset from state because it no longer exists in GitHub", map[string]any{
+					"enterprise_slug": enterpriseSlug,
+					"ruleset_id":      rulesetID,
 				})
 				d.SetId("")
 				return nil
 			}
 		}
-		tflog.Error(ctx, fmt.Sprintf("Failed to read organization ruleset: %s/%d", owner, rulesetID), map[string]any{
-			"owner":      owner,
-			"ruleset_id": rulesetID,
-			"error":      err.Error(),
+		tflog.Error(ctx, "Failed to read enterprise ruleset", map[string]any{
+			"enterprise_slug": enterpriseSlug,
+			"ruleset_id":      rulesetID,
+			"error":           err.Error(),
 		})
 		return diag.FromErr(err)
 	}
 
-	if err := d.Set("ruleset_id", ruleset.ID); err != nil {
-		return diag.FromErr(err)
-	}
 	if err := d.Set("name", ruleset.Name); err != nil {
 		return diag.FromErr(err)
 	}
@@ -867,10 +890,10 @@ func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.Resour
 	if err := d.Set("bypass_actors", flattenBypassActors(ctx, ruleset.BypassActors)); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("conditions", flattenConditions(ctx, ruleset.GetConditions(), rulesetLevelOrganization)); err != nil {
+	if err := d.Set("conditions", flattenConditions(ctx, ruleset.GetConditions(), rulesetLevelEnterprise)); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("rules", flattenRules(ctx, ruleset.Rules, rulesetLevelOrganization)); err != nil {
+	if err := d.Set("rules", flattenRules(ctx, ruleset.Rules, rulesetLevelEnterprise)); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
@@ -880,50 +903,41 @@ func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.Resour
 		return diag.FromErr(err)
 	}
 
-	tflog.Trace(ctx, fmt.Sprintf("Successfully read organization ruleset: %s/%d", owner, rulesetID), map[string]any{
-		"owner":      owner,
-		"ruleset_id": rulesetID,
-		"name":       ruleset.Name,
+	tflog.Trace(ctx, "Successfully read enterprise ruleset", map[string]any{
+		"enterprise_slug": enterpriseSlug,
+		"ruleset_id":      rulesetID,
+		"name":            ruleset.Name,
 	})
 
 	return nil
 }
 
-func resourceGithubOrganizationRulesetUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubEnterpriseRulesetUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+	enterpriseSlug := d.Get("enterprise_slug").(string)
+	rulesetID := int64(d.Get("ruleset_id").(int))
 	name := d.Get("name").(string)
 
-	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Could not convert ruleset ID '%s' to int64", d.Id()), map[string]any{
-			"owner":      owner,
-			"ruleset_id": d.Id(),
-			"error":      err.Error(),
-		})
-		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
-	}
-
-	tflog.Debug(ctx, fmt.Sprintf("Updating organization ruleset: %s/%d", owner, rulesetID), map[string]any{
-		"owner":      owner,
-		"ruleset_id": rulesetID,
-		"name":       name,
+	tflog.Debug(ctx, "Updating enterprise ruleset", map[string]any{
+		"enterprise_slug": enterpriseSlug,
+		"ruleset_id":      rulesetID,
+		"name":            name,
 	})
 
-	rulesetReq := resourceGithubRulesetObject(d, owner)
-
-	ruleset, resp, err := client.Organizations.UpdateRepositoryRuleset(ctx, owner, rulesetID, rulesetReq)
+	ruleset, resp, err := client.Enterprise.UpdateRepositoryRuleset(ctx, enterpriseSlug, rulesetID, resourceGithubEnterpriseRulesetObject(d))
 	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Failed to update organization ruleset: %s/%d", owner, rulesetID), map[string]any{
-			"owner":      owner,
-			"ruleset_id": rulesetID,
-			"error":      err.Error(),
+		tflog.Error(ctx, "Failed to update enterprise ruleset", map[string]any{
+			"enterprise_slug": enterpriseSlug,
+			"ruleset_id":      rulesetID,
+			"error":           err.Error(),
 		})
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
-	if err := d.Set("ruleset_id", ruleset.ID); err != nil {
+	if err := d.Set("rules", flattenRules(ctx, ruleset.Rules, rulesetLevelEnterprise)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("ruleset_id", ruleset.GetID()); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
@@ -933,108 +947,157 @@ func resourceGithubOrganizationRulesetUpdate(ctx context.Context, d *schema.Reso
 		return diag.FromErr(err)
 	}
 
-	tflog.Info(ctx, fmt.Sprintf("Updated organization ruleset: %s/%d", owner, rulesetID), map[string]any{
-		"owner":      owner,
-		"ruleset_id": rulesetID,
-		"name":       name,
+	tflog.Info(ctx, "Updated enterprise ruleset", map[string]any{
+		"enterprise_slug": enterpriseSlug,
+		"ruleset_id":      rulesetID,
+		"name":            name,
 	})
 
 	return nil
 }
 
-func resourceGithubOrganizationRulesetDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubEnterpriseRulesetDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+	enterpriseSlug := d.Get("enterprise_slug").(string)
+	rulesetID := int64(d.Get("ruleset_id").(int))
 
-	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Could not convert ruleset ID '%s' to int64", d.Id()), map[string]any{
-			"owner":      owner,
-			"ruleset_id": d.Id(),
-			"error":      err.Error(),
-		})
-		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
-	}
-
-	tflog.Debug(ctx, fmt.Sprintf("Deleting organization ruleset: %s/%d", owner, rulesetID), map[string]any{
-		"owner":      owner,
-		"ruleset_id": rulesetID,
+	tflog.Debug(ctx, "Deleting enterprise ruleset", map[string]any{
+		"enterprise_slug": enterpriseSlug,
+		"ruleset_id":      rulesetID,
 	})
 
-	_, err = client.Organizations.DeleteRepositoryRuleset(ctx, owner, rulesetID)
-	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Failed to delete organization ruleset: %s/%d", owner, rulesetID), map[string]any{
-			"owner":      owner,
-			"ruleset_id": rulesetID,
-			"error":      err.Error(),
+	if _, err := client.Enterprise.DeleteRepositoryRuleset(ctx, enterpriseSlug, rulesetID); err != nil {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Enterprise ruleset is already gone", map[string]any{
+				"enterprise_slug": enterpriseSlug,
+				"ruleset_id":      rulesetID,
+			})
+			return nil
+		}
+		tflog.Error(ctx, "Failed to delete enterprise ruleset", map[string]any{
+			"enterprise_slug": enterpriseSlug,
+			"ruleset_id":      rulesetID,
+			"error":           err.Error(),
 		})
 		return diag.FromErr(err)
 	}
 
-	tflog.Info(ctx, fmt.Sprintf("Deleted organization ruleset: %s/%d", owner, rulesetID), map[string]any{
-		"owner":      owner,
-		"ruleset_id": rulesetID,
+	tflog.Info(ctx, "Deleted enterprise ruleset", map[string]any{
+		"enterprise_slug": enterpriseSlug,
+		"ruleset_id":      rulesetID,
 	})
 
 	return nil
 }
 
-func resourceGithubOrganizationRulesetImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-
-	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
+// resourceGithubEnterpriseRulesetImport seeds the two attributes that every other CRUD
+// function reads from state — `enterprise_slug` and `ruleset_id` — from the composite
+// import ID. Terraform calls Read straight afterwards to populate the rest.
+func resourceGithubEnterpriseRulesetImport(ctx context.Context, d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
+	enterpriseSlug, rulesetID, err := parseEnterpriseRulesetID(d.Id())
 	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Could not convert ruleset ID '%s' to int64", d.Id()), map[string]any{
-			"owner":      owner,
-			"ruleset_id": d.Id(),
-			"error":      err.Error(),
-		})
-		return []*schema.ResourceData{d}, unconvertibleIdErr(d.Id(), err)
-	}
-	if rulesetID == 0 {
-		tflog.Error(ctx, "ruleset_id must be present and non-zero", map[string]any{
-			"owner":      owner,
-			"ruleset_id": rulesetID,
-		})
-		return []*schema.ResourceData{d}, fmt.Errorf("`ruleset_id` must be present")
+		return nil, err
 	}
 
-	tflog.Debug(ctx, fmt.Sprintf("Importing organization ruleset: %s/%d", owner, rulesetID), map[string]any{
-		"owner":      owner,
-		"ruleset_id": rulesetID,
+	tflog.Debug(ctx, "Importing enterprise ruleset", map[string]any{
+		"enterprise_slug": enterpriseSlug,
+		"ruleset_id":      rulesetID,
 	})
 
-	ruleset, _, err := client.Organizations.GetRepositoryRuleset(ctx, owner, rulesetID)
-	if ruleset == nil || err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Failed to import organization ruleset: %s/%d", owner, rulesetID), map[string]any{
-			"owner":      owner,
-			"ruleset_id": rulesetID,
-			"error":      err.Error(),
-		})
-		return []*schema.ResourceData{d}, err
+	if err := d.Set("enterprise_slug", enterpriseSlug); err != nil {
+		return nil, err
 	}
-	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
-
-	tflog.Info(ctx, fmt.Sprintf("Imported organization ruleset: %s/%d (name: %s)", owner, rulesetID, ruleset.Name), map[string]any{
-		"owner":      owner,
-		"ruleset_id": rulesetID,
-		"name":       ruleset.Name,
-	})
+	if err := d.Set("ruleset_id", rulesetID); err != nil {
+		return nil, err
+	}
 
 	return []*schema.ResourceData{d}, nil
 }
 
-func resourceGithubOrganizationRulesetDiff(ctx context.Context, d *schema.ResourceDiff, _ any) error {
-	err := validateRulesetConditions(ctx, d)
-	if err != nil {
+func resourceGithubEnterpriseRulesetDiff(ctx context.Context, d *schema.ResourceDiff, _ any) error {
+	if err := validateRulesetConditions(ctx, d); err != nil {
 		return err
 	}
 
-	err = validateRulesetRules(ctx, d)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return validateRulesetRules(ctx, d)
 }
+
+// resourceGithubEnterpriseRulesetObject builds the API payload for an enterprise ruleset.
+func resourceGithubEnterpriseRulesetObject(d *schema.ResourceData) github.RepositoryRuleset {
+	target := github.RulesetTarget(d.Get("target").(string))
+	sourceType := github.RulesetSourceTypeEnterprise
+
+	return github.RepositoryRuleset{
+		Name:         d.Get("name").(string),
+		Target:       &target,
+		Source:       d.Get("enterprise_slug").(string),
+		SourceType:   &sourceType,
+		Enforcement:  github.RulesetEnforcement(d.Get("enforcement").(string)),
+		BypassActors: expandBypassActors(d.Get("bypass_actors").([]any)),
+		Conditions:   expandConditions(d.Get("conditions").([]any), rulesetLevelEnterprise),
+		Rules:        expandRules(d.Get("rules").([]any), rulesetLevelEnterprise),
+	}
+}
+
+// parseEnterpriseRulesetID splits the `<enterprise_slug>:<ruleset_id>` resource ID.
+//
+// The ID has to be composite: unlike organization rulesets, whose owner comes from the
+// provider configuration, an enterprise slug has no provider-level source, so it can only
+// be recovered from the ID itself when importing.
+func parseEnterpriseRulesetID(id string) (string, int64, error) {
+	enterpriseSlug, rulesetIDStr, err := parseID2(id)
+	if err != nil {
+		return "", 0, fmt.Errorf("invalid enterprise ruleset ID %q (expected format: <enterprise_slug>:<ruleset_id>): %w", id, err)
+	}
+
+	rulesetID, err := strconv.ParseInt(rulesetIDStr, 10, 64)
+	if err != nil {
+		return "", 0, fmt.Errorf("invalid enterprise ruleset ID %q (expected format: <enterprise_slug>:<ruleset_id>): %w", id, unconvertibleIdErr(rulesetIDStr, err))
+	}
+	if rulesetID == 0 {
+		return "", 0, fmt.Errorf("invalid enterprise ruleset ID %q: `ruleset_id` must be present and non-zero", id)
+	}
+
+	return unescapeIDPart(enterpriseSlug), rulesetID, nil
+}
+
+// enterpriseRulesetOrganizationPropertyElem returns the element schema for a single
+// `organization_property` entry.
+//
+// It deliberately has no `source` field: the enterprise API accepts a source only for
+// repository properties.
+func enterpriseRulesetOrganizationPropertyElem() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"name": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The name of the organization property to target.",
+			},
+			"property_values": {
+				Type:        schema.TypeList,
+				Required:    true,
+				Description: "The values to match for the organization property.",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+		},
+	}
+}
+
+// enterpriseRulesetOrganizationSelectors and enterpriseRulesetRepositorySelectors encode
+// the condition combinations the enterprise ruleset API accepts: exactly one organization
+// selector combined with exactly one repository selector, for six legal combinations.
+// https://docs.github.com/en/rest/enterprise-admin/rules?apiVersion=2022-11-28
+var (
+	enterpriseRulesetOrganizationSelectors = []string{
+		"conditions.0.organization_name",
+		"conditions.0.organization_id",
+		"conditions.0.organization_property",
+	}
+	enterpriseRulesetRepositorySelectors = []string{
+		"conditions.0.repository_name",
+		"conditions.0.repository_property",
+	}
+)

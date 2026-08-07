@@ -11,6 +11,46 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
+// rulesetLevel is the scope a ruleset is defined at. Conditions and rules differ
+// per level — organization targeting only exists at the enterprise level, repository
+// targeting only at the organization and enterprise levels — so the shared
+// expand/flatten helpers need to know which level they are working for.
+type rulesetLevel int
+
+const (
+	rulesetLevelRepository rulesetLevel = iota
+	rulesetLevelOrganization
+	rulesetLevelEnterprise
+)
+
+// targetsRepositories reports whether rulesets at this level select the repositories
+// they apply to. Repository-level rulesets always apply to their own repository.
+//
+// The same set of levels — organization and enterprise — is also the set that supports
+// repository-scoped rules such as `required_workflows`, so this predicate doubles as the
+// gate for those rules.
+func (l rulesetLevel) targetsRepositories() bool {
+	return l == rulesetLevelOrganization || l == rulesetLevelEnterprise
+}
+
+// targetsOrganizations reports whether rulesets at this level select the organizations
+// they apply to. Only enterprise-level rulesets span more than one organization.
+func (l rulesetLevel) targetsOrganizations() bool {
+	return l == rulesetLevelEnterprise
+}
+
+// targetsRepositoriesByID reports whether rulesets at this level can select repositories
+// by numeric ID.
+//
+// Only organization rulesets can. The enterprise ruleset API documents `repository_name`
+// and `repository_property` as the only repository selectors — `repository_id` exists on
+// go-github's RepositoryRulesetConditions purely because that struct is shared with the
+// organization endpoints.
+// https://docs.github.com/en/rest/enterprise-admin/rules?apiVersion=2022-11-28
+func (l rulesetLevel) targetsRepositoriesByID() bool {
+	return l == rulesetLevelOrganization
+}
+
 func toPullRequestMergeMethods(input any) []github.PullRequestMergeMethod {
 	value, ok := input.([]any)
 	if !ok || len(value) == 0 {
@@ -93,10 +133,11 @@ func flattenRequiredReviewers(reviewers []*github.RulesetRequiredReviewer) []map
 }
 
 func resourceGithubRulesetObject(d *schema.ResourceData, org string) github.RepositoryRuleset {
-	isOrgLevel := len(org) > 0
+	level := rulesetLevelRepository
 
 	var source, sourceType string
-	if isOrgLevel {
+	if len(org) > 0 {
+		level = rulesetLevelOrganization
 		source = org
 		sourceType = "Organization"
 	} else {
@@ -115,8 +156,8 @@ func resourceGithubRulesetObject(d *schema.ResourceData, org string) github.Repo
 		SourceType:   &sourceTypeEnum,
 		Enforcement:  enforcement,
 		BypassActors: expandBypassActors(d.Get("bypass_actors").([]any)),
-		Conditions:   expandConditions(d.Get("conditions").([]any), isOrgLevel),
-		Rules:        expandRules(d.Get("rules").([]any), isOrgLevel),
+		Conditions:   expandConditions(d.Get("conditions").([]any), level),
+		Rules:        expandRules(d.Get("rules").([]any), level),
 	}
 }
 
@@ -187,7 +228,7 @@ func flattenBypassActors(ctx context.Context, bypassActors []*github.BypassActor
 	return actorsSlice
 }
 
-func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions {
+func expandConditions(input []any, level rulesetLevel) *github.RepositoryRulesetConditions {
 	if len(input) == 0 || input[0] == nil {
 		return nil
 	}
@@ -218,9 +259,54 @@ func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions
 		}
 	}
 
-	// org-only fields
-	if org {
-		// repository_name and repository_id
+	// enterprise-only fields
+	if level.targetsOrganizations() {
+		if v, ok := inputConditions["organization_name"].([]any); ok && len(v) != 0 {
+			inputOrganizationName := v[0].(map[string]any)
+			include := make([]string, 0)
+			exclude := make([]string, 0)
+
+			for _, v := range inputOrganizationName["include"].([]any) {
+				if v != nil {
+					include = append(include, v.(string))
+				}
+			}
+
+			for _, v := range inputOrganizationName["exclude"].([]any) {
+				if v != nil {
+					exclude = append(exclude, v.(string))
+				}
+			}
+
+			rulesetConditions.OrganizationName = &github.RepositoryRulesetOrganizationNamesConditionParameters{
+				Include: include,
+				Exclude: exclude,
+			}
+		} else if v, ok := inputConditions["organization_id"].([]any); ok && len(v) != 0 {
+			organizationIDs := make([]int64, 0)
+
+			for _, v := range v {
+				if v != nil {
+					organizationIDs = append(organizationIDs, toInt64(v))
+				}
+			}
+
+			rulesetConditions.OrganizationID = &github.RepositoryRulesetOrganizationIDsConditionParameters{OrganizationIDs: organizationIDs}
+		} else if v, ok := inputConditions["organization_property"].([]any); ok && len(v) != 0 && v[0] != nil {
+			organizationProperties := v[0].(map[string]any)
+
+			rulesetConditions.OrganizationProperty = &github.RepositoryRulesetOrganizationPropertyConditionParameters{
+				// The enterprise API does not accept a `source` for organization properties,
+				// unlike repository properties, so the schema does not expose one either.
+				Include: expandRulesetPropertyTargets(organizationProperties["include"].([]any), false),
+				Exclude: expandRulesetPropertyTargets(organizationProperties["exclude"].([]any), false),
+			}
+		}
+	}
+
+	// org and enterprise fields
+	if level.targetsRepositories() {
+		// repository_name, repository_id (organization rulesets only) and repository_property
 		if v, ok := inputConditions["repository_name"].([]any); ok && v != nil && len(v) != 0 {
 			inputRepositoryName := v[0].(map[string]any)
 			include := make([]string, 0)
@@ -245,7 +331,7 @@ func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions
 				Exclude:   exclude,
 				Protected: &protected,
 			}
-		} else if v, ok := inputConditions["repository_id"].([]any); ok && v != nil && len(v) != 0 {
+		} else if v, ok := inputConditions["repository_id"].([]any); ok && v != nil && len(v) != 0 && level.targetsRepositoriesByID() {
 			repositoryIDs := make([]int64, 0)
 
 			for _, v := range v {
@@ -265,52 +351,50 @@ func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions
 
 func expandRepositoryPropertyConditions(v []any) *github.RepositoryRulesetRepositoryPropertyConditionParameters {
 	repositoryProperties := v[0].(map[string]any)
-	include := make([]*github.RepositoryRulesetRepositoryPropertyTargetParameters, 0)
-	exclude := make([]*github.RepositoryRulesetRepositoryPropertyTargetParameters, 0)
-
-	for _, v := range repositoryProperties["include"].([]any) {
-		if v != nil {
-			propertyMap := v.(map[string]any)
-			propertyValues := make([]string, 0)
-			for _, pv := range propertyMap["property_values"].([]any) {
-				if pv != nil {
-					propertyValues = append(propertyValues, pv.(string))
-				}
-			}
-			property := &github.RepositoryRulesetRepositoryPropertyTargetParameters{
-				Name:           propertyMap["name"].(string),
-				Source:         new(propertyMap["source"].(string)),
-				PropertyValues: propertyValues,
-			}
-			include = append(include, property)
-		}
-	}
-
-	for _, v := range repositoryProperties["exclude"].([]any) {
-		if v != nil {
-			propertyMap := v.(map[string]any)
-			propertyValues := make([]string, 0)
-			for _, pv := range propertyMap["property_values"].([]any) {
-				if pv != nil {
-					propertyValues = append(propertyValues, pv.(string))
-				}
-			}
-			property := &github.RepositoryRulesetRepositoryPropertyTargetParameters{
-				Name:           propertyMap["name"].(string),
-				Source:         new(propertyMap["source"].(string)),
-				PropertyValues: propertyValues,
-			}
-			exclude = append(exclude, property)
-		}
-	}
 
 	return &github.RepositoryRulesetRepositoryPropertyConditionParameters{
-		Include: include,
-		Exclude: exclude,
+		Include: expandRulesetPropertyTargets(repositoryProperties["include"].([]any), true),
+		Exclude: expandRulesetPropertyTargets(repositoryProperties["exclude"].([]any), true),
 	}
 }
 
-func flattenConditions(ctx context.Context, conditions *github.RepositoryRulesetConditions, org bool) []any {
+// expandRulesetPropertyTargets converts a schema `include`/`exclude` property list into
+// the API representation shared by the `repository_property` and `organization_property`
+// conditions.
+//
+// withSource controls whether the `source` field participates: repository properties carry
+// an optional `custom`/`system` source, organization properties do not have one at all.
+func expandRulesetPropertyTargets(input []any, withSource bool) []*github.RepositoryRulesetRepositoryPropertyTargetParameters {
+	targets := make([]*github.RepositoryRulesetRepositoryPropertyTargetParameters, 0, len(input))
+
+	for _, v := range input {
+		if v == nil {
+			continue
+		}
+
+		propertyMap := v.(map[string]any)
+		propertyValues := make([]string, 0)
+		for _, pv := range propertyMap["property_values"].([]any) {
+			if pv != nil {
+				propertyValues = append(propertyValues, pv.(string))
+			}
+		}
+
+		target := &github.RepositoryRulesetRepositoryPropertyTargetParameters{
+			Name:           propertyMap["name"].(string),
+			PropertyValues: propertyValues,
+		}
+		if withSource {
+			target.Source = new(propertyMap["source"].(string))
+		}
+
+		targets = append(targets, target)
+	}
+
+	return targets
+}
+
+func flattenConditions(ctx context.Context, conditions *github.RepositoryRulesetConditions, level rulesetLevel) []any {
 	if conditions == nil || reflect.DeepEqual(conditions, &github.RepositoryRulesetConditions{}) {
 		tflog.Debug(ctx, "Conditions are empty, returning empty list")
 		return []any{}
@@ -328,8 +412,29 @@ func flattenConditions(ctx context.Context, conditions *github.RepositoryRuleset
 		conditionsMap["ref_name"] = refNameSlice
 	}
 
-	// org-only fields
-	if org {
+	// enterprise-only fields
+	if level.targetsOrganizations() {
+		if conditions.OrganizationName != nil {
+			conditionsMap["organization_name"] = []map[string]any{{
+				"include": conditions.OrganizationName.Include,
+				"exclude": conditions.OrganizationName.Exclude,
+			}}
+		}
+
+		if conditions.OrganizationID != nil {
+			conditionsMap["organization_id"] = conditions.OrganizationID.OrganizationIDs
+		}
+
+		if conditions.OrganizationProperty != nil {
+			conditionsMap["organization_property"] = []map[string]any{{
+				"include": flattenRulesetPropertyTargets(conditions.OrganizationProperty.Include, false),
+				"exclude": flattenRulesetPropertyTargets(conditions.OrganizationProperty.Exclude, false),
+			}}
+		}
+	}
+
+	// org and enterprise fields
+	if level.targetsRepositories() {
 		repositoryNameSlice := make([]map[string]any, 0)
 
 		if conditions.RepositoryName != nil {
@@ -347,7 +452,7 @@ func flattenConditions(ctx context.Context, conditions *github.RepositoryRuleset
 			conditionsMap["repository_name"] = repositoryNameSlice
 		}
 
-		if conditions.RepositoryID != nil {
+		if conditions.RepositoryID != nil && level.targetsRepositoriesByID() {
 			conditionsMap["repository_id"] = conditions.RepositoryID.RepositoryIDs
 		}
 
@@ -355,8 +460,8 @@ func flattenConditions(ctx context.Context, conditions *github.RepositoryRuleset
 			repositoryPropertySlice := make([]map[string]any, 0)
 
 			repositoryPropertySlice = append(repositoryPropertySlice, map[string]any{
-				"include": flattenRulesetRepositoryPropertyTargetParameters(conditions.RepositoryProperty.Include),
-				"exclude": flattenRulesetRepositoryPropertyTargetParameters(conditions.RepositoryProperty.Exclude),
+				"include": flattenRulesetPropertyTargets(conditions.RepositoryProperty.Include, true),
+				"exclude": flattenRulesetPropertyTargets(conditions.RepositoryProperty.Exclude, true),
 			})
 			conditionsMap["repository_property"] = repositoryPropertySlice
 		}
@@ -365,25 +470,33 @@ func flattenConditions(ctx context.Context, conditions *github.RepositoryRuleset
 	return []any{conditionsMap}
 }
 
-func flattenRulesetRepositoryPropertyTargetParameters(input []*github.RepositoryRulesetRepositoryPropertyTargetParameters) []map[string]any {
-	result := make([]map[string]any, 0)
+// flattenRulesetPropertyTargets converts the API representation of a property
+// `include`/`exclude` list back into the schema shape.
+//
+// withSource mirrors expandRulesetPropertyTargets: repository properties expose a
+// `source` (defaulted to `custom` when the API omits it), organization properties do not.
+func flattenRulesetPropertyTargets(input []*github.RepositoryRulesetRepositoryPropertyTargetParameters, withSource bool) []map[string]any {
+	result := make([]map[string]any, 0, len(input))
 
 	for _, v := range input {
-		propertyMap := make(map[string]any)
-		propertyMap["name"] = v.Name
-		source := v.GetSource()
-		if source == "" {
-			source = "custom"
+		propertyMap := map[string]any{
+			"name":            v.Name,
+			"property_values": v.PropertyValues,
 		}
-		propertyMap["source"] = source
-		propertyMap["property_values"] = v.PropertyValues
+		if withSource {
+			source := v.GetSource()
+			if source == "" {
+				source = "custom"
+			}
+			propertyMap["source"] = source
+		}
 		result = append(result, propertyMap)
 	}
 
 	return result
 }
 
-func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
+func expandRules(input []any, level rulesetLevel) *github.RepositoryRulesetRules {
 	if len(input) == 0 || input[0] == nil {
 		return &github.RepositoryRulesetRules{}
 	}
@@ -540,8 +653,8 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 		}
 	}
 
-	// Required workflows rule (org-only)
-	if org {
+	// Required workflows rule (org and enterprise only)
+	if level.targetsRepositories() {
 		if v, ok := rulesMap["required_workflows"].([]any); ok && len(v) != 0 {
 			requiredWorkflowsMap := v[0].(map[string]any)
 			requiredWorkflows := make([]*github.RuleWorkflow, 0)
@@ -655,10 +768,41 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 		rulesetRules.CopilotCodeReview = params
 	}
 
+	// Repository target rules (enterprise only)
+	if level == rulesetLevelEnterprise {
+		if v, ok := rulesMap["repository_create"].(bool); ok && v {
+			rulesetRules.RepositoryCreate = &github.EmptyRuleParameters{}
+		}
+
+		if v, ok := rulesMap["repository_delete"].(bool); ok && v {
+			rulesetRules.RepositoryDelete = &github.EmptyRuleParameters{}
+		}
+
+		if v, ok := rulesMap["repository_transfer"].(bool); ok && v {
+			rulesetRules.RepositoryTransfer = &github.EmptyRuleParameters{}
+		}
+
+		if v, ok := rulesMap["repository_name"].([]any); ok && len(v) != 0 {
+			repositoryNameMap := v[0].(map[string]any)
+			rulesetRules.RepositoryName = &github.SimplePatternRuleParameters{
+				Negate:  repositoryNameMap["negate"].(bool),
+				Pattern: repositoryNameMap["pattern"].(string),
+			}
+		}
+
+		if v, ok := rulesMap["repository_visibility"].([]any); ok && len(v) != 0 {
+			repositoryVisibilityMap := v[0].(map[string]any)
+			rulesetRules.RepositoryVisibility = &github.RepositoryVisibilityRuleParameters{
+				Internal: repositoryVisibilityMap["internal"].(bool),
+				Private:  repositoryVisibilityMap["private"].(bool),
+			}
+		}
+	}
+
 	return rulesetRules
 }
 
-func flattenRules(ctx context.Context, rules *github.RepositoryRulesetRules, org bool) []any {
+func flattenRules(ctx context.Context, rules *github.RepositoryRulesetRules, level rulesetLevel) []any {
 	if rules == nil {
 		return []any{}
 	}
@@ -675,12 +819,12 @@ func flattenRules(ctx context.Context, rules *github.RepositoryRulesetRules, org
 	// Update rule with parameters
 	if rules.Update != nil {
 		rulesMap["update"] = true
-		if !org {
+		if level == rulesetLevelRepository {
 			rulesMap["update_allows_fetch_and_merge"] = rules.Update.UpdateAllowsFetchAndMerge
 		}
 	} else {
 		rulesMap["update"] = false
-		if !org {
+		if level == rulesetLevelRepository {
 			rulesMap["update_allows_fetch_and_merge"] = false
 		}
 	} // Required deployments rule
@@ -782,8 +926,8 @@ func flattenRules(ctx context.Context, rules *github.RepositoryRulesetRules, org
 		}
 	}
 
-	// Required workflows rule (org-only)
-	if org && rules.Workflows != nil {
+	// Required workflows rule (org and enterprise only)
+	if level.targetsRepositories() && rules.Workflows != nil {
 		requiredWorkflowsSlice := make([]map[string]any, 0)
 		requiredWorkflows := make([]map[string]any, 0)
 
@@ -880,6 +1024,27 @@ func flattenRules(ctx context.Context, rules *github.RepositoryRulesetRules, org
 			"review_draft_pull_requests": rules.CopilotCodeReview.ReviewDraftPullRequests,
 		})
 		rulesMap["copilot_code_review"] = copilotCodeReviewSlice
+	}
+
+	// Repository target rules (enterprise only)
+	if level == rulesetLevelEnterprise {
+		rulesMap["repository_create"] = rules.RepositoryCreate != nil
+		rulesMap["repository_delete"] = rules.RepositoryDelete != nil
+		rulesMap["repository_transfer"] = rules.RepositoryTransfer != nil
+
+		if rules.RepositoryName != nil {
+			rulesMap["repository_name"] = []map[string]any{{
+				"negate":  rules.RepositoryName.Negate,
+				"pattern": rules.RepositoryName.Pattern,
+			}}
+		}
+
+		if rules.RepositoryVisibility != nil {
+			rulesMap["repository_visibility"] = []map[string]any{{
+				"internal": rules.RepositoryVisibility.Internal,
+				"private":  rules.RepositoryVisibility.Private,
+			}}
+		}
 	}
 
 	return []any{rulesMap}
