@@ -1457,3 +1457,109 @@ func Test_bypassActorCompareIdentity(t *testing.T) {
 		})
 	}
 }
+
+func TestRoundTripRepositoryTargetRules(t *testing.T) {
+	t.Parallel()
+
+	rulesMap := map[string]any{
+		"repository_create":   true,
+		"repository_delete":   true,
+		"repository_transfer": true,
+		"repository_name": []any{
+			map[string]any{
+				"pattern": "^team-",
+				"negate":  false,
+			},
+		},
+		"repository_visibility": []any{
+			map[string]any{
+				"internal": true,
+				"private":  true,
+			},
+		},
+	}
+
+	expandedRules := expandRules([]any{rulesMap}, true)
+
+	if expandedRules.RepositoryCreate == nil {
+		t.Error("Expected RepositoryCreate rule to be set")
+	}
+
+	if expandedRules.RepositoryDelete == nil {
+		t.Error("Expected RepositoryDelete rule to be set")
+	}
+
+	if expandedRules.RepositoryTransfer == nil {
+		t.Error("Expected RepositoryTransfer rule to be set")
+	}
+
+	if expandedRules.RepositoryName == nil {
+		t.Fatal("Expected RepositoryName rule to be set")
+	}
+
+	if expandedRules.RepositoryName.Pattern != "^team-" {
+		t.Errorf("Expected Pattern to be %q, got %q", "^team-", expandedRules.RepositoryName.Pattern)
+	}
+
+	if expandedRules.RepositoryName.Negate != false {
+		t.Errorf("Expected Negate to be false, got %v", expandedRules.RepositoryName.Negate)
+	}
+
+	if expandedRules.RepositoryVisibility == nil {
+		t.Fatal("Expected RepositoryVisibility rule to be set")
+	}
+
+	if expandedRules.RepositoryVisibility.Internal != true {
+		t.Errorf("Expected Internal to be true, got %v", expandedRules.RepositoryVisibility.Internal)
+	}
+
+	if expandedRules.RepositoryVisibility.Private != true {
+		t.Errorf("Expected Private to be true, got %v", expandedRules.RepositoryVisibility.Private)
+	}
+
+	flattenedRulesMap := flattenRules(t.Context(), expandedRules, true)[0].(map[string]any)
+
+	for _, name := range []string{"repository_create", "repository_delete", "repository_transfer"} {
+		if flattenedRulesMap[name] != true {
+			t.Errorf("Expected %s to be true after round trip, got %v", name, flattenedRulesMap[name])
+		}
+	}
+
+	repositoryName := flattenedRulesMap["repository_name"].([]map[string]any)
+	if len(repositoryName) != 1 {
+		t.Fatalf("Expected 1 repository_name rule after round trip, got %d", len(repositoryName))
+	}
+
+	if repositoryName[0]["pattern"] != "^team-" {
+		t.Errorf("Expected pattern to be %q, got %v", "^team-", repositoryName[0]["pattern"])
+	}
+
+	repositoryVisibility := flattenedRulesMap["repository_visibility"].([]map[string]any)
+	if len(repositoryVisibility) != 1 {
+		t.Fatalf("Expected 1 repository_visibility rule after round trip, got %d", len(repositoryVisibility))
+	}
+
+	if repositoryVisibility[0]["internal"] != true {
+		t.Errorf("Expected internal to be true, got %v", repositoryVisibility[0]["internal"])
+	}
+
+	if repositoryVisibility[0]["private"] != true {
+		t.Errorf("Expected private to be true, got %v", repositoryVisibility[0]["private"])
+	}
+}
+
+func TestFlattenRulesRepositoryTargetRulesAreRepositoryRulesetOmitted(t *testing.T) {
+	t.Parallel()
+
+	// Repository target rules only exist for organization rulesets. Flattening a
+	// repository ruleset must not emit keys that its schema does not declare.
+	flattenedRulesMap := flattenRules(t.Context(), &github.RepositoryRulesetRules{
+		RepositoryDelete: &github.EmptyRuleParameters{},
+	}, false)[0].(map[string]any)
+
+	for _, name := range []string{"repository_create", "repository_delete", "repository_transfer", "repository_name", "repository_visibility"} {
+		if _, ok := flattenedRulesMap[name]; ok {
+			t.Errorf("Expected %s to be absent for a repository ruleset, got %v", name, flattenedRulesMap[name])
+		}
+	}
+}

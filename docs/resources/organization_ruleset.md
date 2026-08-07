@@ -98,6 +98,39 @@ resource "github_organization_ruleset" "example_push" {
     }
   }
 }
+
+# Example with repository ruleset
+# Note: Repository targets must NOT have ref_name in conditions, only repository_name or repository_id
+resource "github_organization_ruleset" "example_repository" {
+  name        = "example_repository"
+  target      = "repository"
+  enforcement = "active"
+
+  conditions {
+    repository_name {
+      include = ["~ALL"]
+      exclude = []
+    }
+  }
+
+  rules {
+    # Repository targets only support these rules:
+    # repository_create, repository_delete, repository_name, repository_transfer, repository_visibility
+    repository_create   = true
+    repository_delete   = true
+    repository_transfer = true
+
+    repository_name {
+      pattern = "^team-"
+      negate  = false
+    }
+
+    repository_visibility {
+      internal = true
+      private  = true
+    }
+  }
+}
 ```
 
 ## Argument Reference
@@ -108,17 +141,17 @@ resource "github_organization_ruleset" "example_push" {
 
 - `rules` - (Required) (Block List, Min: 1, Max: 1) Rules within the ruleset. (see [below for nested schema](#rules))
 
-- `target` - (Required) (String) Possible values are `branch`, `tag` and `push`.
+- `target` - (Required) (String) Possible values are `branch`, `tag`, `push` and `repository`.
 
 - `bypass_actors` - (Optional) (Block List) The actors that can bypass the rules in this ruleset. (see [below for nested schema](#bypass_actors))
 
-- `conditions` - (Optional) (Block List, Max: 1) Parameters for an organization ruleset condition. For `branch` and `tag` targets, `ref_name` is required alongside one of `repository_name` or `repository_id`. For `push` targets, `ref_name` must NOT be set - only `repository_name` or `repository_id` should be used. (see [below for nested schema](#conditions))
+- `conditions` - (Optional) (Block List, Max: 1) Parameters for an organization ruleset condition. For `branch` and `tag` targets, `ref_name` is required alongside one of `repository_name` or `repository_id`. For `push` and `repository` targets, `ref_name` must NOT be set - only `repository_name` or `repository_id` should be used. (see [below for nested schema](#conditions))
 
 ### Rules
 
 The `rules` block supports the following:
 
-~> **Note:** Rules are target-specific. `branch` and `tag` targets support rules like `creation`, `deletion`, `pull_request`, `required_status_checks`, etc. `push` targets only support `file_path_restriction`, `max_file_size`, `max_file_path_length`, and `file_extension_restriction`. Using the wrong rules for a target will result in a validation error.
+~> **Note:** Rules are target-specific. `branch` and `tag` targets support rules like `creation`, `deletion`, `pull_request`, `required_status_checks`, etc. `push` targets only support `file_path_restriction`, `max_file_size`, `max_file_path_length`, and `file_extension_restriction`. `repository` targets only support `repository_create`, `repository_delete`, `repository_name`, `repository_transfer`, and `repository_visibility`. Using the wrong rules for a target will result in a validation error.
 
 - `branch_name_pattern` - (Optional) (Block List, Max: 1) Parameters to be used for the branch_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `tag_name_pattern` as it only applies to rulesets with target `branch`. (see [below for nested schema](#rulesbranch_name_pattern))
 
@@ -157,6 +190,16 @@ The `rules` block supports the following:
 - `max_file_path_length` - (Optional) (Block List, Max: 1) Prevent commits that include file paths that exceed a specified character limit from being pushed to the commit graph. This rule only applies to rulesets with target `push`. (see [below for nested schema](#rulesmax_file_path_length))
 
 - `file_extension_restriction` - (Optional) (Block List, Max: 1) Prevent commits that include files with specified file extensions from being pushed to the commit graph. This rule only applies to rulesets with target `push`. (see [below for nested schema](#rulesfile_extension_restriction))
+
+- `repository_create` - (Optional) (Boolean) Only allow users with bypass permission to create matching repositories. This rule only applies to rulesets with target `repository`.
+
+- `repository_delete` - (Optional) (Boolean) Only allow users with bypass permission to delete matching repositories. This rule only applies to rulesets with target `repository`.
+
+- `repository_transfer` - (Optional) (Boolean) Only allow users with bypass permission to transfer matching repositories out of the organization. This rule only applies to rulesets with target `repository`.
+
+- `repository_name` - (Optional) (Block List, Max: 1) Restrict the names matching repositories may have. This rule only applies to rulesets with target `repository`. (see [below for nested schema](#rulesrepository_name))
+
+- `repository_visibility` - (Optional) (Block List, Max: 1) Restrict the visibilities matching repositories may have. This rule only applies to rulesets with target `repository`. (see [below for nested schema](#rulesrepository_visibility))
 
 - `update` - (Optional) (Boolean) Only allow users with bypass permission to update matching refs.
 
@@ -306,6 +349,18 @@ The `rules` block supports the following:
 
 - `restricted_file_extensions` - (Required) (Block Set, Min: 1) The file extensions that are restricted from being pushed to the commit graph.
 
+#### rules.repository_name
+
+- `pattern` - (Required) (String) The pattern to match against the repository name.
+
+- `negate` - (Optional) (Boolean) If true, the rule will fail if the pattern matches.
+
+#### rules.repository_visibility
+
+- `internal` - (Optional) (Boolean) Allow matching repositories to be internal.
+
+- `private` - (Optional) (Boolean) Allow matching repositories to be private.
+
 #### bypass_actors
 
 - `actor_id` - (Optional) (Number) The ID of the actor that can bypass a ruleset. Must be omitted for ID-less actor types: `OrganizationAdmin`, `EnterpriseOwner`, and `DeployKey` — the GitHub API does not use an ID for these types and will ignore any value set.
@@ -323,7 +378,7 @@ The `rules` block supports the following:
 
 #### conditions
 
-- `ref_name` - (Optional) (Block List, Max: 1) Required for `branch` and `tag` targets. Must NOT be set for `push` targets. (see [below for nested schema](#conditionsref_name))
+- `ref_name` - (Optional) (Block List, Max: 1) Required for `branch` and `tag` targets. Must NOT be set for `push` or `repository` targets. (see [below for nested schema](#conditionsref_name))
 - `repository_id` (Optional) (List of Number) The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass.
 - `repository_name` (Optional) (Block List, Max: 1) Targets repositories that match the specified name patterns. (see [below for nested schema](#conditionsrepository_name))
 - `repository_property` (Optional) (Block List, Max: 1) Targets repositories by custom or system properties. (see [below for nested schema](#conditionsrepository_property))
@@ -331,6 +386,8 @@ The `rules` block supports the following:
 Exactly one of `repository_id`, `repository_name`, or `repository_property` must be set for the rule to target repositories.
 
 ~> **Note:** For `push` targets, do not include `ref_name` in conditions. Push rulesets operate on file content, not on refs.
+
+~> **Note:** For `repository` targets, do not include `ref_name` in conditions. Repository rulesets operate on the repositories themselves, not on refs.
 
 #### conditions.ref_name
 
