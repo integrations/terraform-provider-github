@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-github/v88/github"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -1095,6 +1096,47 @@ resource "github_repository" "test" {
 		})
 	})
 
+	t.Run("manages code_security for a public repository", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%scode-security-public-%s", testResourcePrefix, randomID)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name        = "%s"
+				description = "A repository created by Terraform to test code_security"
+				visibility  = "public"
+				security_and_analysis {
+					code_security {
+						status = "enabled"
+					}
+					secret_scanning {
+						status = "enabled"
+					}
+					secret_scanning_push_protection {
+						status = "disabled"
+					}
+				}
+			}
+			`, testRepoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck: func() {
+				skipUnauthenticated(t)
+				skipIfEMUEnterprise(t)
+			},
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "security_and_analysis.0.code_security.0.status", "enabled"),
+					),
+				},
+			},
+		})
+	})
+
 	t.Run("creates repos with private visibility", func(t *testing.T) {
 		t.Parallel()
 
@@ -1678,6 +1720,94 @@ func Test_expandPages(t *testing.T) {
 			t.Errorf("got %q; want %q", pages.GetSource().GetPath(), "/docs")
 		}
 	})
+}
+
+func TestCalculateSecurityAndAnalysisIncludesCodeSecurity(t *testing.T) {
+	t.Parallel()
+
+	resource := resourceGithubRepository()
+	data := schema.TestResourceDataRaw(t, resource.Schema, map[string]any{
+		"security_and_analysis": []any{map[string]any{
+			"code_security": []any{map[string]any{
+				"status": "enabled",
+			}},
+		}},
+	})
+
+	securityAndAnalysis := calculateSecurityAndAnalysis(data)
+	if securityAndAnalysis == nil {
+		t.Fatal("securityAndAnalysis is nil")
+	}
+	if securityAndAnalysis.GetCodeSecurity() == nil {
+		t.Fatal("code_security is nil")
+	}
+	if securityAndAnalysis.GetCodeSecurity().GetStatus() != "enabled" {
+		t.Errorf("got %q; want %q", securityAndAnalysis.GetCodeSecurity().GetStatus(), "enabled")
+	}
+}
+
+func TestFlattenSecurityAndAnalysisIncludesCodeSecurity(t *testing.T) {
+	t.Parallel()
+
+	status := "enabled"
+	securityAndAnalysis := &github.SecurityAndAnalysis{
+		CodeSecurity: &github.CodeSecurity{
+			Status: &status,
+		},
+	}
+
+	flattened := flattenSecurityAndAnalysis(securityAndAnalysis)
+	if len(flattened) != 1 {
+		t.Fatalf("got %d security_and_analysis blocks; want 1", len(flattened))
+	}
+	securityAndAnalysisMap := flattened[0].(map[string]any)
+	codeSecurity := securityAndAnalysisMap["code_security"].([]any)
+	if len(codeSecurity) != 1 {
+		t.Fatalf("got %d code_security blocks; want 1", len(codeSecurity))
+	}
+	codeSecurityMap := codeSecurity[0].(map[string]any)
+	if codeSecurityMap["status"] != "enabled" {
+		t.Errorf("got %q; want %q", codeSecurityMap["status"], "enabled")
+	}
+}
+
+func TestSecurityAndAnalysisRoundTripIncludesCodeSecurity(t *testing.T) {
+	t.Parallel()
+
+	resource := resourceGithubRepository()
+	data := schema.TestResourceDataRaw(t, resource.Schema, map[string]any{
+		"security_and_analysis": []any{map[string]any{
+			"advanced_security": []any{map[string]any{
+				"status": "enabled",
+			}},
+			"code_security": []any{map[string]any{
+				"status": "enabled",
+			}},
+			"secret_scanning": []any{map[string]any{
+				"status": "enabled",
+			}},
+			"secret_scanning_push_protection": []any{map[string]any{
+				"status": "enabled",
+			}},
+		}},
+	})
+
+	flattened := flattenSecurityAndAnalysis(calculateSecurityAndAnalysis(data))
+	if len(flattened) != 1 {
+		t.Fatalf("got %d security_and_analysis blocks; want 1", len(flattened))
+	}
+	securityAndAnalysisMap := flattened[0].(map[string]any)
+
+	for _, setting := range []string{"advanced_security", "code_security", "secret_scanning", "secret_scanning_push_protection"} {
+		blocks := securityAndAnalysisMap[setting].([]any)
+		if len(blocks) != 1 {
+			t.Fatalf("got %d %s blocks; want 1", len(blocks), setting)
+		}
+		status := blocks[0].(map[string]any)["status"]
+		if status != "enabled" {
+			t.Errorf("%s status got %q; want %q", setting, status, "enabled")
+		}
+	}
 }
 
 func TestGithubRepositoryTopicPassesValidation(t *testing.T) {
