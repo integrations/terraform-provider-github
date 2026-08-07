@@ -69,6 +69,9 @@ The overall status of each resource or data source is captured in this document 
 | `github_dependabot_public_key` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_dependabot_secrets` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_enterprise` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
+| `github_enterprise_app_accessible_organization_repositories` | ✅ | ✅ | ✅ | ✅ | ❓ | ✅ |
+| `github_enterprise_app_installable_organizations` | ✅ | ✅ | ✅ | ✅ | ❓ | ✅ |
+| `github_enterprise_app_installations` | ✅ | ✅ | ✅ | ✅ | ❓ | ✅ |
 | `github_external_groups` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_ip_ranges` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_issue_labels` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
@@ -160,6 +163,7 @@ The overall status of each resource or data source is captured in this document 
 | `github_enterprise_actions_permissions` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_enterprise_actions_runner_group` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_enterprise_actions_workflow_permissions` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
+| `github_enterprise_app_installation` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_enterprise_ip_allow_list_entry` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_enterprise_organization` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_enterprise_security_analysis_settings` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
