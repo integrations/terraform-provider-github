@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -22,6 +23,7 @@ func resourceGithubActionsRunnerGroup() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
+		CustomizeDiff: customdiff.ForceNewIfChange("network_configuration_id", networkConfigurationRemoved),
 
 		Schema: map[string]*schema.Schema{
 			"id": {
@@ -54,6 +56,11 @@ func resourceGithubActionsRunnerGroup() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Name of the runner group.",
+			},
+			"network_configuration_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The identifier of a hosted compute network configuration to assign to the runner group. Removing this attribute replaces the runner group, because the API cannot unset an existing assignment.",
 			},
 			"runners_url": {
 				Type:        schema.TypeString,
@@ -135,18 +142,20 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, m any) error
 
 	ctx := context.Background()
 
-	runnerGroup, resp, err := client.Actions.CreateOrganizationRunnerGroup(
-		ctx,
-		orgName,
-		github.CreateRunnerGroupRequest{
-			Name:                     &name,
-			Visibility:               &visibility,
-			RestrictedToWorkflows:    &restrictedToWorkflows,
-			SelectedRepositoryIDs:    selectedRepositoryIDs,
-			SelectedWorkflows:        selectedWorkflows,
-			AllowsPublicRepositories: &allowsPublicRepositories,
-		},
-	)
+	createOptions := github.CreateRunnerGroupRequest{
+		Name:                     &name,
+		Visibility:               &visibility,
+		RestrictedToWorkflows:    &restrictedToWorkflows,
+		SelectedRepositoryIDs:    selectedRepositoryIDs,
+		SelectedWorkflows:        selectedWorkflows,
+		AllowsPublicRepositories: &allowsPublicRepositories,
+	}
+	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
+		networkConfigurationIDValue, _ := networkConfigurationID.(string)
+		createOptions.NetworkConfigurationID = new(networkConfigurationIDValue)
+	}
+
+	runnerGroup, resp, err := client.Actions.CreateOrganizationRunnerGroup(ctx, orgName, createOptions)
 	if err != nil {
 		return err
 	}
@@ -168,6 +177,9 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, m any) error
 		return err
 	}
 	if err = d.Set("name", runnerGroup.GetName()); err != nil {
+		return err
+	}
+	if err = d.Set("network_configuration_id", runnerGroup.GetNetworkConfigurationID()); err != nil {
 		return err
 	}
 	if err = d.Set("runners_url", runnerGroup.GetRunnersURL()); err != nil {
@@ -260,6 +272,9 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, m any) error {
 	if err = d.Set("name", runnerGroup.GetName()); err != nil {
 		return err
 	}
+	if err = d.Set("network_configuration_id", runnerGroup.GetNetworkConfigurationID()); err != nil {
+		return err
+	}
 	if err = d.Set("runners_url", runnerGroup.GetRunnersURL()); err != nil {
 		return err
 	}
@@ -333,6 +348,10 @@ func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, m any) error
 		SelectedWorkflows:        selectedWorkflows,
 		AllowsPublicRepositories: &allowsPublicRepositories,
 	}
+	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
+		networkConfigurationIDValue, _ := networkConfigurationID.(string)
+		options.NetworkConfigurationID = new(networkConfigurationIDValue)
+	}
 
 	runnerGroupID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -382,4 +401,15 @@ func resourceGithubActionsRunnerGroupDelete(d *schema.ResourceData, m any) error
 	log.Printf("[INFO] Deleting organization runner group: %s (%s)", d.Id(), orgName)
 	_, err = client.Actions.DeleteOrganizationRunnerGroup(ctx, orgName, runnerGroupID)
 	return err
+}
+
+// networkConfigurationRemoved reports whether a hosted compute network configuration was
+// removed from a runner group. The REST API only accepts an explicit null to clear the
+// assignment, which the client library's request type cannot express, so the runner group is
+// replaced instead of leaving the practitioner with a perpetual diff.
+func networkConfigurationRemoved(_ context.Context, oldValue, newValue, _ any) bool {
+	oldID, _ := oldValue.(string)
+	newID, _ := newValue.(string)
+
+	return oldID != "" && newID == ""
 }

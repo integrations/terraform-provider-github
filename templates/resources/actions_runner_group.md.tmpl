@@ -22,6 +22,7 @@ The following arguments are supported:
 - `selected_workflows` - (Optional) List of workflows the runner group should be allowed to run. This setting will be ignored unless restricted_to_workflows is set to true.
 - `visibility` - (Optional) Visibility of a runner group. Whether the runner group can include `all`, `selected`, or `private` repositories. A value of `private` is not currently supported due to limitations in the GitHub API.
 - `allows_public_repositories` - (Optional) Whether public repositories can be added to the runner group. Defaults to false.
+- `network_configuration_id` - (Optional) The ID of a `github_organization_network_configuration` to assign to the runner group, so GitHub-hosted runners in the group run inside your private network. Removing this attribute replaces the runner group, because the API cannot unset an existing assignment.
 
 ## Attributes Reference
 
@@ -29,6 +30,7 @@ The following arguments are supported:
 - `default` - Whether this is the default runner group
 - `etag` - An etag representing the runner group object
 - `inherited` - Whether the runner group is inherited from the enterprise level
+- `network_configuration_id` - The ID of the hosted compute network configuration assigned to the runner group
 - `runners_url` - The GitHub API URL for the runner group's runners
 - `selected_repository_ids` - List of repository IDs that can access the runner group
 - `selected_repositories_url` - GitHub API URL for the runner group's repositories
