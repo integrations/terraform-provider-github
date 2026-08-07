@@ -33,6 +33,11 @@ func checkRepositoryBranchExists(ctx context.Context, client *github.Client, own
 	return nil
 }
 
+// errFileCommitNotFound reports that no commit reachable from the requested ref
+// still contains the file, so callers can remove the resource from state rather
+// than surfacing a hard error.
+var errFileCommitNotFound = errors.New("no commit contains the file")
+
 func getFileCommit(ctx context.Context, client *github.Client, owner, repo, file, branch string) (*github.RepositoryCommit, error) {
 	opts := &github.CommitsListOptions{
 		SHA:  branch,
@@ -89,7 +94,7 @@ func getFileCommit(ctx context.Context, client *github.Client, owner, repo, file
 		}
 	}
 
-	return nil, fmt.Errorf("cannot find file %s in repo %s/%s", file, owner, repo)
+	return nil, fmt.Errorf("cannot find file %s in repo %s/%s: %w", file, owner, repo, errFileCommitNotFound)
 }
 
 // getAutolinkByKeyPrefix returns a single autolink reference by key prefix that was configured for the given repository.
