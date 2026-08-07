@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/google/go-github/v86/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -14,8 +15,18 @@ func dataSourceGithubUser() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"username": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ExactlyOneOf: []string{"username", "user_id"},
+				Description:  "The username (login) to lookup. Exactly one of `username` or `user_id` must be set.",
+			},
+			"user_id": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Computed:     true,
+				ExactlyOneOf: []string{"username", "user_id"},
+				Description:  "The GitHub numeric user ID to lookup. Stable across username changes. Exactly one of `username` or `user_id` must be set.",
 			},
 			"login": {
 				Type:     schema.TypeString,
@@ -104,11 +115,20 @@ func dataSourceGithubUser() *schema.Resource {
 }
 
 func dataSourceGithubUserRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	username := d.Get("username").(string)
-
 	client := meta.(*Owner).v3client
 
-	user, _, err := client.Users.Get(ctx, username)
+	var (
+		user *github.User
+		err  error
+	)
+
+	if v, ok := d.GetOk("user_id"); ok {
+		userID := int64(v.(int))
+		user, _, err = client.Users.GetByID(ctx, userID)
+	} else {
+		username := d.Get("username").(string)
+		user, _, err = client.Users.Get(ctx, username)
+	}
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -133,6 +153,12 @@ func dataSourceGithubUserRead(ctx context.Context, d *schema.ResourceData, meta 
 	}
 
 	d.SetId(strconv.FormatInt(user.GetID(), 10))
+	if err = d.Set("username", user.GetLogin()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err = d.Set("user_id", user.GetID()); err != nil {
+		return diag.FromErr(err)
+	}
 	if err = d.Set("login", user.GetLogin()); err != nil {
 		return diag.FromErr(err)
 	}
