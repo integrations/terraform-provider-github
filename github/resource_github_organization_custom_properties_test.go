@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 )
 
 func TestAccGithubOrganizationCustomProperties(t *testing.T) {
@@ -260,6 +261,40 @@ resource "github_organization_custom_properties" "test" {
 				{
 					Config: configAfter,
 					Check:  checkAfter,
+				},
+			},
+		})
+	})
+
+	t.Run("true_false property with default_value produces no drift", func(t *testing.T) {
+		t.Parallel()
+
+		name := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(5))
+
+		config := fmt.Sprintf(`
+resource "github_organization_custom_properties" "test" {
+  property_name = "%s"
+  value_type    = "true_false"
+  required      = false
+  description   = "Test true_false default_value"
+  default_value = "true"
+}
+`, name)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						// Read must round-trip the true_false default_value so the
+						// plan after refresh is empty (regression guard for
+						// perpetual drift).
+						PostApplyPostRefresh: []plancheck.PlanCheck{
+							plancheck.ExpectEmptyPlan(),
+						},
+					},
 				},
 			},
 		})

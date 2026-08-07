@@ -76,7 +76,7 @@ The following arguments are supported:
 
 - `description` - (Optional) The description of the custom property.
 
-- `default_value` - (Optional) The default value of the custom property.
+- `default_value` - (Optional) The default value of the custom property. Not supported for `multi_select` properties.
 
 - `allowed_values` - (Optional) List of allowed values for the custom property. Only applicable when `value_type` is `single_select` or `multi_select`.
 
