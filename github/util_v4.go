@@ -67,3 +67,22 @@ func getEnterpriseID(ctx context.Context, client *githubv4.Client, enterpriseSlu
 
 	return query.Enterprise.ID.(string), nil
 }
+
+func getOrganizationID(ctx context.Context, client *githubv4.Client, orgName string) (string, error) {
+	var query struct {
+		Organization struct {
+			ID githubv4.ID
+		} `graphql:"organization(login: $login)"`
+	}
+
+	variables := map[string]any{
+		"login": githubv4.String(orgName),
+	}
+
+	err := client.Query(ctx, &query, variables)
+	if err != nil {
+		return "", err
+	}
+
+	return query.Organization.ID.(string), nil
+}
