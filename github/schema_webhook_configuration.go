@@ -27,7 +27,7 @@ func webhookConfigurationSchema() *schema.Schema {
 					Type:        schema.TypeString,
 					Optional:    true,
 					Sensitive:   true,
-					Description: "The shared secret for the webhook",
+					Description: "The shared secret for the webhook. [See API documentation](https://developer.github.com/v3/repos/hooks/#create-a-hook).",
 				},
 				"insecure_ssl": {
 					Type:        schema.TypeBool,
