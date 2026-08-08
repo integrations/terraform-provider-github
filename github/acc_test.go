@@ -393,6 +393,19 @@ func skipUnlessMode(t *testing.T, testModes ...testMode) {
 	}
 }
 
+func skipUnlessCopilotSeatManagementEnabled(t *testing.T) {
+	t.Helper()
+	skipUnlessHasOrgs(t)
+	meta := testAccConf.meta
+	billing, _, err := meta.v3client.Copilot.GetCopilotBilling(context.Background(), meta.name)
+	if err != nil {
+		t.Skipf("Skipping: Copilot billing not available for org %s: %s", meta.name, err)
+	}
+	if billing.GetSeatManagementSetting() != "assign_selected" {
+		t.Skipf("Skipping: Copilot seat management is %q, must be %q", billing.GetSeatManagementSetting(), "assign_selected")
+	}
+}
+
 func skipUnlessHasOrgUser1(t *testing.T) {
 	if testAccConf.testOrgUser1 == "" {
 		t.Skip("Skipping as no test org user is configured")
