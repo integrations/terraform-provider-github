@@ -75,8 +75,9 @@ resource "github_release" "example" {
 ### Optional
 
 - `body` (String) Text describing the contents of the tag.
-- `discussion_category_name` (String) If specified, a discussion of the specified category is created and linked to the release. The value must be a category that already exists in the repository. If there is already a discussion linked to the release, this parameter is ignored.
+- `discussion_category_name` (String) If specified, a discussion of the specified category is created and linked to the release. The value must be a category that already exists in the repository.
 - `draft` (Boolean) Set to `false` to create a published release.
+- `etag` (String) The ETag of the release.
 - `generate_release_notes` (Boolean) Set to `true` to automatically generate the name and body for this release when it is created. If `name` is specified, the specified name will be used; otherwise, a name will be automatically generated. If `body` is specified, the body will be pre-pended to the automatically generated notes.
 - `name` (String) The name of the release.
 - `prerelease` (Boolean) Set to `false` to identify the release as a full release.
@@ -86,7 +87,6 @@ resource "github_release" "example" {
 
 - `assets_url` (String) The URL for the release assets.
 - `created_at` (String) The date and time the release was created.
-- `etag` (String) The ETag of the release.
 - `html_url` (String) The HTML URL for the release.
 - `id` (String) The ID of this resource.
 - `node_id` (String) The node ID of the release.
