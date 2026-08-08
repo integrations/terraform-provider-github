@@ -496,11 +496,65 @@ func resourceGithubRepository() *schema.Resource {
 		},
 		CustomizeDiff: customdiff.All(
 			customDiffFunction,
+			validateMergeCommitSettings,
 			customdiff.ForceNewIfChange("fork", valueChangedButNotEmpty),
 			customdiff.ForceNewIfChange("source_repo", valueChangedButNotEmpty),
 			customdiff.ForceNewIfChange("source_owner", valueChangedButNotEmpty),
 		),
 	}
+}
+
+// validateMergeCommitSettings fails the plan when the user has explicitly
+// configured merge_commit_* or squash_merge_commit_* values while the
+// corresponding merge strategy is disabled. GitHub rejects any attempt to set
+// these values while the strategy is off (HTTP 422 "no_merge_strategy"), so
+// such a configuration can never be applied. Erroring at plan time tells the
+// user exactly what to fix instead of producing a plan that never converges.
+// See issue #3554.
+//
+// "Configured" means the value is explicitly present in the configuration
+// (checked via the raw config), not merely equal to the schema default, so a
+// config that only sets allow_merge_commit = false without touching the
+// title/message is not affected.
+func validateMergeCommitSettings(_ context.Context, diff *schema.ResourceDiff, _ any) error {
+	rawConfig := diff.GetRawConfig()
+	if rawConfig.IsNull() {
+		return nil
+	}
+
+	configured := func(attr string) bool {
+		v := rawConfig.GetAttr(attr)
+		return !v.IsNull() && v.IsKnown()
+	}
+
+	var errs []string
+
+	if !diff.Get("allow_merge_commit").(bool) {
+		for _, attr := range []string{"merge_commit_title", "merge_commit_message"} {
+			if configured(attr) {
+				errs = append(errs, fmt.Sprintf("%q cannot be set while allow_merge_commit is false", attr))
+			}
+		}
+	}
+
+	if !diff.Get("allow_squash_merge").(bool) {
+		for _, attr := range []string{"squash_merge_commit_title", "squash_merge_commit_message"} {
+			if configured(attr) {
+				errs = append(errs, fmt.Sprintf("%q cannot be set while allow_squash_merge is false", attr))
+			}
+		}
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf(
+			"invalid github_repository configuration: %s. GitHub does not allow "+
+				"changing these values while the corresponding merge strategy is "+
+				"disabled; remove them or enable the strategy",
+			strings.Join(errs, "; "),
+		)
+	}
+
+	return nil
 }
 
 // valueChangedButNotEmpty is a customdiff function that triggers recreation of the resource
