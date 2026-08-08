@@ -676,7 +676,7 @@ func flattenRules(ctx context.Context, rules *github.RepositoryRulesetRules, org
 	if rules.Update != nil {
 		rulesMap["update"] = true
 		if !org {
-			rulesMap["update_allows_fetch_and_merge"] = rules.Update.UpdateAllowsFetchAndMerge
+			rulesMap["update_allows_fetch_and_merge"] = rules.GetUpdate().GetUpdateAllowsFetchAndMerge()
 		}
 	} else {
 		rulesMap["update"] = false
