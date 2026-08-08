@@ -38,6 +38,8 @@ resource "github_organization_settings" "test" {
   dependency_graph_enabled_for_new_repositories                = false
   secret_scanning_enabled_for_new_repositories                 = false
   secret_scanning_push_protection_enabled_for_new_repositories = false
+  secret_scanning_push_protection_custom_link_enabled          = true
+  secret_scanning_push_protection_custom_link                  = "https://example.com/secret-scanning-help"
 }
 ```
 
@@ -71,6 +73,8 @@ The following arguments are supported:
 - `dependency_graph_enabled_for_new_repositories` - (Optional) Whether or not dependency graph is enabled for new repositories. Defaults to `false`.
 - `secret_scanning_enabled_for_new_repositories` - (Optional) Whether or not secret scanning is enabled for new repositories. Defaults to `false`.
 - `secret_scanning_push_protection_enabled_for_new_repositories` - (Optional) Whether or not secret scanning push protection is enabled for new repositories. Defaults to `false`.
+- `secret_scanning_push_protection_custom_link_enabled` - (Optional) Whether a custom link is shown to contributors blocked by secret scanning push protection. Setting this to `true` requires `secret_scanning_push_protection_custom_link` to be a non-empty URL. If managed at the enterprise level via `github_enterprise_security_analysis_settings`, this resource overrides that value for this organization.
+- `secret_scanning_push_protection_custom_link` - (Optional) URL displayed to contributors blocked by secret scanning push protection. Requires `secret_scanning_push_protection_custom_link_enabled` to be `true`.
 
 ## Attributes Reference
 
