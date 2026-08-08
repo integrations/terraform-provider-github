@@ -169,6 +169,18 @@ func resourceGithubOrganizationSettings() *schema.Resource {
 				Default:     false,
 				Description: "Whether or not secret scanning push protection is enabled for new repositories.",
 			},
+			"secret_scanning_validity_checks_enabled": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether or not secret scanning automatic validity checks on supported partner tokens are enabled for the organization.",
+			},
+			"default_repository_branch": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "The default branch name applied to new repositories created in the organization (for example, 'main').",
+			},
 		},
 	}
 }
@@ -290,6 +302,14 @@ func buildOrganizationSettings(d *schema.ResourceData, isEnterprise bool) *githu
 	if shouldInclude("secret_scanning_push_protection_enabled_for_new_repositories") {
 		settings.SecretScanningPushProtectionEnabledForNewRepos = new(d.Get("secret_scanning_push_protection_enabled_for_new_repositories").(bool))
 	}
+	if shouldInclude("secret_scanning_validity_checks_enabled") {
+		settings.SecretScanningValidityChecksEnabled = new(d.Get("secret_scanning_validity_checks_enabled").(bool))
+	}
+	if shouldInclude("default_repository_branch") {
+		if v, ok := d.GetOk("default_repository_branch"); ok {
+			settings.DefaultRepositoryBranch = new(v.(string))
+		}
+	}
 
 	// Enterprise-specific field
 	if isEnterprise {
@@ -398,6 +418,12 @@ func resourceGithubOrganizationSettingsCreateOrUpdate(d *schema.ResourceData, me
 	}
 	if settings.SecretScanningPushProtectionEnabledForNewRepos != nil {
 		log.Printf("[DEBUG]   SecretScanningPushProtectionEnabledForNewRepos: %v", *settings.SecretScanningPushProtectionEnabledForNewRepos)
+	}
+	if settings.SecretScanningValidityChecksEnabled != nil {
+		log.Printf("[DEBUG]   SecretScanningValidityChecksEnabled: %v", *settings.SecretScanningValidityChecksEnabled)
+	}
+	if settings.DefaultRepositoryBranch != nil {
+		log.Printf("[DEBUG]   DefaultRepositoryBranch: %s", *settings.DefaultRepositoryBranch)
 	}
 
 	orgSettings, _, err := client.Organizations.Edit(ctx, org, settings)
@@ -511,6 +537,12 @@ func resourceGithubOrganizationSettingsRead(d *schema.ResourceData, meta any) er
 		return err
 	}
 	if err = d.Set("secret_scanning_push_protection_enabled_for_new_repositories", orgSettings.GetSecretScanningPushProtectionEnabledForNewRepos()); err != nil {
+		return err
+	}
+	if err = d.Set("secret_scanning_validity_checks_enabled", orgSettings.GetSecretScanningValidityChecksEnabled()); err != nil {
+		return err
+	}
+	if err = d.Set("default_repository_branch", orgSettings.GetDefaultRepositoryBranch()); err != nil {
 		return err
 	}
 	return nil
