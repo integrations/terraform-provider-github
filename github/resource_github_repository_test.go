@@ -848,6 +848,117 @@ resource "github_repository" "test" {
 		})
 	})
 
+	t.Run("does not drift merge commit settings when merge commits are disabled", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%sno-drift-co-str-%s", testResourcePrefix, randomID)
+
+		// See https://github.com/integrations/terraform-provider-github/issues/3554
+		// GitHub rejects any change to merge_commit_title/message while merge
+		// commits are disabled (HTTP 422 "no_merge_strategy"), so the provider
+		// does not send them. Without a diff suppression, a config that both
+		// disables merge commits and specifies different merge_commit_* values
+		// produces a plan that can never converge. The DiffSuppressFunc must
+		// suppress that diff so the plan stays empty.
+		config := `
+resource "github_repository" "test" {
+		name                 = "%[1]s"
+		allow_merge_commit   = %[2]t
+		merge_commit_title   = "%[3]s"
+		merge_commit_message = "%[4]s"
+		visibility           = "%[5]s"
+}
+`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					// Start with merge commits enabled and a valid combination.
+					Config: fmt.Sprintf(config, testRepoName, true, "PR_TITLE", "PR_BODY", testAccConf.testRepositoryVisibility),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "merge_commit_title", "PR_TITLE"),
+						resource.TestCheckResourceAttr("github_repository.test", "merge_commit_message", "PR_BODY"),
+					),
+				},
+				{
+					// Disable merge commits AND change the merge_commit_* values.
+					// GitHub will not apply the change, but the diff must be
+					// suppressed so the apply converges without perpetual drift.
+					Config: fmt.Sprintf(config, testRepoName, false, "MERGE_MESSAGE", "PR_TITLE", testAccConf.testRepositoryVisibility),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "allow_merge_commit", "false"),
+					),
+				},
+				{
+					// A follow-up plan with the same (disabled) config must be
+					// empty: no drift on merge_commit_title/message.
+					Config:             fmt.Sprintf(config, testRepoName, false, "MERGE_MESSAGE", "PR_TITLE", testAccConf.testRepositoryVisibility),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
+				},
+			},
+		})
+	})
+
+	t.Run("does not drift squash merge commit settings when squash merges are disabled", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%sno-drift-sq-str-%s", testResourcePrefix, randomID)
+
+		// See https://github.com/integrations/terraform-provider-github/issues/3554
+		// GitHub rejects any change to squash_merge_commit_title/message while
+		// squash merges are disabled (HTTP 422 "no_merge_strategy"), so the
+		// provider does not send them. The DiffSuppressFunc must suppress the
+		// resulting diff so a config that both disables squash merges and
+		// specifies different values still converges.
+		// allow_merge_commit defaults to true, so the repo still has a valid
+		// merge strategy while squash merges are disabled.
+		config := `
+resource "github_repository" "test" {
+		name                        = "%[1]s"
+		allow_squash_merge          = %[2]t
+		squash_merge_commit_title   = "%[3]s"
+		squash_merge_commit_message = "%[4]s"
+		visibility                  = "%[5]s"
+}
+`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					// Start with squash merges enabled and a valid combination.
+					Config: fmt.Sprintf(config, testRepoName, true, "PR_TITLE", "PR_BODY", testAccConf.testRepositoryVisibility),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "squash_merge_commit_title", "PR_TITLE"),
+						resource.TestCheckResourceAttr("github_repository.test", "squash_merge_commit_message", "PR_BODY"),
+					),
+				},
+				{
+					// Disable squash merges AND change the squash_merge_commit_*
+					// values. GitHub will not apply the change, but the diff must
+					// be suppressed so the apply converges without perpetual drift.
+					Config: fmt.Sprintf(config, testRepoName, false, "COMMIT_OR_PR_TITLE", "COMMIT_MESSAGES", testAccConf.testRepositoryVisibility),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "allow_squash_merge", "false"),
+					),
+				},
+				{
+					// A follow-up plan with the same (disabled) config must be
+					// empty: no drift on squash_merge_commit_title/message.
+					Config:             fmt.Sprintf(config, testRepoName, false, "COMMIT_OR_PR_TITLE", "COMMIT_MESSAGES", testAccConf.testRepositoryVisibility),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
+				},
+			},
+		})
+	})
+
 	t.Run("create and modify squash merge commit strategy without error", func(t *testing.T) {
 		t.Parallel()
 
