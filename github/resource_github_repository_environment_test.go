@@ -243,7 +243,7 @@ resource "github_repository_environment" "test" {
 		})
 	})
 
-	t.Run("import", func(t *testing.T) {
+	t.Run("import_without_reviewers", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -272,10 +272,12 @@ resource "github_repository_environment" "test" {
 					},
 				},
 				{
+					// The API omits required_reviewers when none are configured, but
+					// prevent_self_review must still be populated during import.
 					ResourceName:            "github_repository_environment.test",
 					ImportState:             true,
 					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"can_admins_bypass", "prevent_self_review", "reviewers", "wait_timer", "deployment_branch_policy"},
+					ImportStateVerifyIgnore: []string{"can_admins_bypass", "reviewers", "wait_timer", "deployment_branch_policy"},
 				},
 			},
 		})

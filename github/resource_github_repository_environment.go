@@ -232,6 +232,12 @@ func resourceGithubRepositoryEnvironmentRead(ctx context.Context, d *schema.Reso
 		return diag.FromErr(err)
 	}
 
+	// Default prevent_self_review to false; it will be overwritten if the
+	// required_reviewers protection rule is present in the API response.
+	if err := d.Set("prevent_self_review", false); err != nil {
+		return diag.FromErr(err)
+	}
+
 	for _, pr := range env.ProtectionRules {
 		switch pr.GetType() {
 		case "wait_timer":
@@ -264,7 +270,7 @@ func resourceGithubRepositoryEnvironmentRead(ctx context.Context, d *schema.Reso
 				return diag.FromErr(err)
 			}
 
-			if err = d.Set("prevent_self_review", pr.PreventSelfReview); err != nil {
+			if err = d.Set("prevent_self_review", pr.GetPreventSelfReview()); err != nil {
 				return diag.FromErr(err)
 			}
 		}
