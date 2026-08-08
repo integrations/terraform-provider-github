@@ -31,6 +31,7 @@ resource "github_organization_settings" "test" {
   members_can_create_public_pages                              = true
   members_can_create_private_pages                             = true
   members_can_fork_private_repositories                        = true
+  deploy_keys_enabled_for_repositories                         = true
   web_commit_signoff_required                                  = true
   advanced_security_enabled_for_new_repositories               = false
   dependabot_alerts_enabled_for_new_repositories               = false
@@ -64,6 +65,7 @@ The following arguments are supported:
 - `members_can_create_public_pages` - (Optional) Whether or not organization members can create new public pages. Defaults to `true`.
 - `members_can_create_private_pages` - (Optional) Whether or not organization members can create new private pages. Defaults to `true`.
 - `members_can_fork_private_repositories` - (Optional) Whether or not organization members can fork private repositories. Defaults to `false`.
+- `deploy_keys_enabled_for_repositories` - (Optional) Whether deploy keys may be added and used for repositories in the organization. If unset, the current setting on the organization is preserved.
 - `web_commit_signoff_required` - (Optional) Whether or not commit signatures are required for commits to the organization. Defaults to `false`.
 - `advanced_security_enabled_for_new_repositories` - (Optional) Whether or not advanced security is enabled for new repositories. Defaults to `false`.
 - `dependabot_alerts_enabled_for_new_repositories` - (Optional) Whether or not dependabot alerts are enabled for new repositories. Defaults to `false`.
