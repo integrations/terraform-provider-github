@@ -173,23 +173,33 @@ func resourceGithubOrganizationSettings() *schema.Resource {
 	}
 }
 
-// buildOrganizationSettings creates a github.Organization struct with only the fields that are explicitly configured.
-// For updates, it only includes fields that have actually changed to avoid API validation errors.
+// buildOrganizationSettings creates a github.Organization struct.
+// On create, boolean fields are always included (their schema default is a
+// definite value and d.GetOk cannot distinguish an explicit false from unset),
+// while non-boolean fields are included only when explicitly configured.
+// On update, it only includes fields that have actually changed to avoid API
+// validation errors.
 func buildOrganizationSettings(d *schema.ResourceData, isEnterprise bool) *github.Organization {
 	settings := &github.Organization{}
 
 	// Check if this is an update (has ID) or create (no ID)
 	isUpdate := d.Id() != ""
 
-	// Helper function to check if field should be included
+	// Non-boolean fields are included only when explicitly configured on create,
+	// and only when changed on update.
 	shouldInclude := func(fieldName string) bool {
-		if !isUpdate {
-			// For creates, include if explicitly configured
-			_, ok := d.GetOk(fieldName)
-			return ok
+		if isUpdate {
+			return d.HasChange(fieldName)
 		}
-		// For updates, only include if the field has changed
-		return d.HasChange(fieldName)
+		_, ok := d.GetOk(fieldName)
+		return ok
+	}
+
+	// Boolean attributes always carry a definite value from their schema
+	// default, and d.GetOk cannot tell an explicit false from an unset field,
+	// so on create they are included unconditionally.
+	includeBool := func(fieldName string) bool {
+		return !isUpdate || d.HasChange(fieldName)
 	}
 
 	// Required field - always include if configured (API requires it even if unchanged)
@@ -235,12 +245,12 @@ func buildOrganizationSettings(d *schema.ResourceData, isEnterprise bool) *githu
 	}
 
 	// Boolean fields - only set if should be included
-	// Use d.Get() instead of d.GetOk() when shouldInclude() returns true,
+	// Use d.Get() instead of d.GetOk() when includeBool() returns true,
 	// because we already know the field should be included, and d.Get() correctly handles false values
-	if shouldInclude("has_organization_projects") {
+	if includeBool("has_organization_projects") {
 		settings.HasOrganizationProjects = new(d.Get("has_organization_projects").(bool))
 	}
-	if shouldInclude("has_repository_projects") {
+	if includeBool("has_repository_projects") {
 		settings.HasRepositoryProjects = new(d.Get("has_repository_projects").(bool))
 	}
 	if shouldInclude("default_repository_permission") {
@@ -248,52 +258,52 @@ func buildOrganizationSettings(d *schema.ResourceData, isEnterprise bool) *githu
 			settings.DefaultRepoPermission = new(defaultRepoPermission.(string))
 		}
 	}
-	if shouldInclude("members_can_create_repositories") {
+	if includeBool("members_can_create_repositories") {
 		settings.MembersCanCreateRepos = new(d.Get("members_can_create_repositories").(bool))
 	}
-	if shouldInclude("members_can_create_private_repositories") {
+	if includeBool("members_can_create_private_repositories") {
 		settings.MembersCanCreatePrivateRepos = new(d.Get("members_can_create_private_repositories").(bool))
 	}
-	if shouldInclude("members_can_create_public_repositories") {
+	if includeBool("members_can_create_public_repositories") {
 		settings.MembersCanCreatePublicRepos = new(d.Get("members_can_create_public_repositories").(bool))
 	}
-	if shouldInclude("members_can_create_pages") {
+	if includeBool("members_can_create_pages") {
 		settings.MembersCanCreatePages = new(d.Get("members_can_create_pages").(bool))
 	}
-	if shouldInclude("members_can_create_public_pages") {
+	if includeBool("members_can_create_public_pages") {
 		settings.MembersCanCreatePublicPages = new(d.Get("members_can_create_public_pages").(bool))
 	}
-	if shouldInclude("members_can_create_private_pages") {
+	if includeBool("members_can_create_private_pages") {
 		settings.MembersCanCreatePrivatePages = new(d.Get("members_can_create_private_pages").(bool))
 	}
-	if shouldInclude("members_can_fork_private_repositories") {
+	if includeBool("members_can_fork_private_repositories") {
 		settings.MembersCanForkPrivateRepos = new(d.Get("members_can_fork_private_repositories").(bool))
 	}
-	if shouldInclude("web_commit_signoff_required") {
+	if includeBool("web_commit_signoff_required") {
 		settings.WebCommitSignoffRequired = new(d.Get("web_commit_signoff_required").(bool))
 	}
-	if shouldInclude("advanced_security_enabled_for_new_repositories") {
+	if includeBool("advanced_security_enabled_for_new_repositories") {
 		settings.AdvancedSecurityEnabledForNewRepos = new(d.Get("advanced_security_enabled_for_new_repositories").(bool))
 	}
-	if shouldInclude("dependabot_alerts_enabled_for_new_repositories") {
+	if includeBool("dependabot_alerts_enabled_for_new_repositories") {
 		settings.DependabotAlertsEnabledForNewRepos = new(d.Get("dependabot_alerts_enabled_for_new_repositories").(bool))
 	}
-	if shouldInclude("dependabot_security_updates_enabled_for_new_repositories") {
+	if includeBool("dependabot_security_updates_enabled_for_new_repositories") {
 		settings.DependabotSecurityUpdatesEnabledForNewRepos = new(d.Get("dependabot_security_updates_enabled_for_new_repositories").(bool))
 	}
-	if shouldInclude("dependency_graph_enabled_for_new_repositories") {
+	if includeBool("dependency_graph_enabled_for_new_repositories") {
 		settings.DependencyGraphEnabledForNewRepos = new(d.Get("dependency_graph_enabled_for_new_repositories").(bool))
 	}
-	if shouldInclude("secret_scanning_enabled_for_new_repositories") {
+	if includeBool("secret_scanning_enabled_for_new_repositories") {
 		settings.SecretScanningEnabledForNewRepos = new(d.Get("secret_scanning_enabled_for_new_repositories").(bool))
 	}
-	if shouldInclude("secret_scanning_push_protection_enabled_for_new_repositories") {
+	if includeBool("secret_scanning_push_protection_enabled_for_new_repositories") {
 		settings.SecretScanningPushProtectionEnabledForNewRepos = new(d.Get("secret_scanning_push_protection_enabled_for_new_repositories").(bool))
 	}
 
 	// Enterprise-specific field
 	if isEnterprise {
-		if shouldInclude("members_can_create_internal_repositories") {
+		if includeBool("members_can_create_internal_repositories") {
 			settings.MembersCanCreateInternalRepos = new(d.Get("members_can_create_internal_repositories").(bool))
 		}
 	}

@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
@@ -612,4 +615,202 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 			})
 		})
 	})
+}
+
+func Test_buildOrganizationSettings(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name         string
+		raw          map[string]any
+		id           string // a non-empty ID exercises the update path
+		isEnterprise bool
+		want         *github.Organization
+	}{
+		{
+			// Regression test for the create path dropping booleans configured as
+			// false, which only corrected itself on a second apply through the
+			// update/HasChange path. Every boolean carries a definite value on
+			// create, so the full payload is asserted here.
+			name: "create_includes_explicitly_false_booleans",
+			raw: map[string]any{
+				"billing_email":               "org@example.com",
+				"has_organization_projects":   false,
+				"web_commit_signoff_required": false,
+			},
+			want: &github.Organization{
+				BillingEmail:                                   new("org@example.com"),
+				HasOrganizationProjects:                        new(false),
+				HasRepositoryProjects:                          new(true),
+				DefaultRepoPermission:                          new("read"),
+				MembersCanCreateRepos:                          new(true),
+				MembersCanCreatePrivateRepos:                   new(true),
+				MembersCanCreatePublicRepos:                    new(true),
+				MembersCanCreatePages:                          new(true),
+				MembersCanCreatePublicPages:                    new(true),
+				MembersCanCreatePrivatePages:                   new(true),
+				MembersCanForkPrivateRepos:                     new(false),
+				WebCommitSignoffRequired:                       new(false),
+				AdvancedSecurityEnabledForNewRepos:             new(false),
+				DependabotAlertsEnabledForNewRepos:             new(false),
+				DependabotSecurityUpdatesEnabledForNewRepos:    new(false),
+				DependencyGraphEnabledForNewRepos:              new(false),
+				SecretScanningEnabledForNewRepos:               new(false),
+				SecretScanningPushProtectionEnabledForNewRepos: new(false),
+			},
+		},
+		{
+			name: "create_includes_true_booleans",
+			raw: map[string]any{
+				"billing_email":               "org@example.com",
+				"web_commit_signoff_required": true,
+			},
+			want: &github.Organization{
+				BillingEmail:                                   new("org@example.com"),
+				HasOrganizationProjects:                        new(true),
+				HasRepositoryProjects:                          new(true),
+				DefaultRepoPermission:                          new("read"),
+				MembersCanCreateRepos:                          new(true),
+				MembersCanCreatePrivateRepos:                   new(true),
+				MembersCanCreatePublicRepos:                    new(true),
+				MembersCanCreatePages:                          new(true),
+				MembersCanCreatePublicPages:                    new(true),
+				MembersCanCreatePrivatePages:                   new(true),
+				MembersCanForkPrivateRepos:                     new(false),
+				WebCommitSignoffRequired:                       new(true),
+				AdvancedSecurityEnabledForNewRepos:             new(false),
+				DependabotAlertsEnabledForNewRepos:             new(false),
+				DependabotSecurityUpdatesEnabledForNewRepos:    new(false),
+				DependencyGraphEnabledForNewRepos:              new(false),
+				SecretScanningEnabledForNewRepos:               new(false),
+				SecretScanningPushProtectionEnabledForNewRepos: new(false),
+			},
+		},
+		{
+			// Only booleans are included unconditionally on create; an
+			// unconfigured optional string stays absent from the payload.
+			name: "create_omits_unconfigured_optional_string",
+			raw: map[string]any{
+				"billing_email": "org@example.com",
+			},
+			want: &github.Organization{
+				BillingEmail:                                   new("org@example.com"),
+				HasOrganizationProjects:                        new(true),
+				HasRepositoryProjects:                          new(true),
+				DefaultRepoPermission:                          new("read"),
+				MembersCanCreateRepos:                          new(true),
+				MembersCanCreatePrivateRepos:                   new(true),
+				MembersCanCreatePublicRepos:                    new(true),
+				MembersCanCreatePages:                          new(true),
+				MembersCanCreatePublicPages:                    new(true),
+				MembersCanCreatePrivatePages:                   new(true),
+				MembersCanForkPrivateRepos:                     new(false),
+				WebCommitSignoffRequired:                       new(false),
+				AdvancedSecurityEnabledForNewRepos:             new(false),
+				DependabotAlertsEnabledForNewRepos:             new(false),
+				DependabotSecurityUpdatesEnabledForNewRepos:    new(false),
+				DependencyGraphEnabledForNewRepos:              new(false),
+				SecretScanningEnabledForNewRepos:               new(false),
+				SecretScanningPushProtectionEnabledForNewRepos: new(false),
+			},
+		},
+		{
+			// On update a field is only sent when it has changed, so the
+			// explicitly configured has_organization_projects is dropped. The
+			// attributes that do survive are an artifact of TestResourceDataRaw:
+			// one left out of raw reads as the zero value from state but as its
+			// schema default from d.Get, so every attribute defaulting to a
+			// non-zero value (true, "read") looks changed here.
+			name: "update_omits_unchanged_booleans",
+			raw: map[string]any{
+				"billing_email":             "org@example.com",
+				"has_organization_projects": false,
+			},
+			id: "example-org",
+			want: &github.Organization{
+				BillingEmail:                 new("org@example.com"),
+				HasRepositoryProjects:        new(true),
+				DefaultRepoPermission:        new("read"),
+				MembersCanCreateRepos:        new(true),
+				MembersCanCreatePrivateRepos: new(true),
+				MembersCanCreatePublicRepos:  new(true),
+				MembersCanCreatePages:        new(true),
+				MembersCanCreatePublicPages:  new(true),
+				MembersCanCreatePrivatePages: new(true),
+			},
+		},
+		{
+			name: "enterprise_create_includes_internal_repositories_boolean",
+			raw: map[string]any{
+				"billing_email": "org@example.com",
+				"members_can_create_internal_repositories": false,
+			},
+			isEnterprise: true,
+			want: &github.Organization{
+				BillingEmail:                                   new("org@example.com"),
+				HasOrganizationProjects:                        new(true),
+				HasRepositoryProjects:                          new(true),
+				DefaultRepoPermission:                          new("read"),
+				MembersCanCreateRepos:                          new(true),
+				MembersCanCreateInternalRepos:                  new(false),
+				MembersCanCreatePrivateRepos:                   new(true),
+				MembersCanCreatePublicRepos:                    new(true),
+				MembersCanCreatePages:                          new(true),
+				MembersCanCreatePublicPages:                    new(true),
+				MembersCanCreatePrivatePages:                   new(true),
+				MembersCanForkPrivateRepos:                     new(false),
+				WebCommitSignoffRequired:                       new(false),
+				AdvancedSecurityEnabledForNewRepos:             new(false),
+				DependabotAlertsEnabledForNewRepos:             new(false),
+				DependabotSecurityUpdatesEnabledForNewRepos:    new(false),
+				DependencyGraphEnabledForNewRepos:              new(false),
+				SecretScanningEnabledForNewRepos:               new(false),
+				SecretScanningPushProtectionEnabledForNewRepos: new(false),
+			},
+		},
+		{
+			// The enterprise-only attribute must never reach the payload for a
+			// non-enterprise organization, even when it is configured.
+			name: "non_enterprise_create_omits_internal_repositories_boolean",
+			raw: map[string]any{
+				"billing_email": "org@example.com",
+				"members_can_create_internal_repositories": false,
+			},
+			want: &github.Organization{
+				BillingEmail:                                   new("org@example.com"),
+				HasOrganizationProjects:                        new(true),
+				HasRepositoryProjects:                          new(true),
+				DefaultRepoPermission:                          new("read"),
+				MembersCanCreateRepos:                          new(true),
+				MembersCanCreatePrivateRepos:                   new(true),
+				MembersCanCreatePublicRepos:                    new(true),
+				MembersCanCreatePages:                          new(true),
+				MembersCanCreatePublicPages:                    new(true),
+				MembersCanCreatePrivatePages:                   new(true),
+				MembersCanForkPrivateRepos:                     new(false),
+				WebCommitSignoffRequired:                       new(false),
+				AdvancedSecurityEnabledForNewRepos:             new(false),
+				DependabotAlertsEnabledForNewRepos:             new(false),
+				DependabotSecurityUpdatesEnabledForNewRepos:    new(false),
+				DependencyGraphEnabledForNewRepos:              new(false),
+				SecretScanningEnabledForNewRepos:               new(false),
+				SecretScanningPushProtectionEnabledForNewRepos: new(false),
+			},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			d := schema.TestResourceDataRaw(t, resourceGithubOrganizationSettings().Schema, tt.raw)
+			if tt.id != "" {
+				d.SetId(tt.id)
+			}
+
+			got := buildOrganizationSettings(d, tt.isEnterprise)
+
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("buildOrganizationSettings() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
 }
