@@ -38,9 +38,10 @@ func resourceGithubMembership() *schema.Resource {
 				Description:      "The role of the user within the organization. Must be one of 'member' or 'admin'.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "An etag representing the membership.",
 				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
 					return true
 				},
