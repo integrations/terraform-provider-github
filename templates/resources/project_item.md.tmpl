@@ -1,0 +1,23 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Adds content to a GitHub Projects V2 project.
+---
+
+# {{.Name}} ({{.Type}})
+
+This resource adds an issue or pull request to a GitHub Projects V2 project.
+
+## Example Usage
+
+{{ tffile "examples/resources/project_item/example_1.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+Project items can be imported using their GraphQL node ID:
+
+```shell
+terraform import github_project_item.example PVTI_lADOExample
+```
