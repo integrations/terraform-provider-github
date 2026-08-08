@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"testing"
 
 	"github.com/google/go-github/v89/github"
@@ -54,7 +55,19 @@ func mustCreateTestRepository(t *testing.T, f ...createTestRepositoryOptionsFunc
 func mustRenameTestRepository(t *testing.T, repo *github.Repository, newName string) {
 	t.Helper()
 
-	_, _, err := testAccConf.meta.v3client.Repositories.Edit(t.Context(), testAccConf.meta.name, repo.GetName(), &github.Repository{Name: &newName})
+	_, err := retryUntilOK(t.Context(), func() (*github.Repository, bool, error) {
+		repoToRename, _, err := testAccConf.meta.v3client.Repositories.Edit(t.Context(), testAccConf.meta.name, repo.GetName(), &github.Repository{Name: &newName})
+		if err != nil {
+			if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == http.StatusUnprocessableEntity {
+				return repoToRename, false, nil
+			}
+			if repoToRename != nil && repoToRename.GetName() == newName {
+				return repoToRename, true, nil
+			}
+			return nil, false, err
+		}
+		return repoToRename, true, nil
+	}, nil)
 	if err != nil {
 		t.Fatalf("failed to rename test repository %s to %s: %v", repo.GetName(), newName, err)
 	}

@@ -100,7 +100,7 @@ func getAutolinkByKeyPrefix(ctx context.Context, client *github.Client, owner, r
 	}
 
 	for _, autolink := range autolinks {
-		if *autolink.KeyPrefix == keyPrefix {
+		if autolink.GetKeyPrefix() == keyPrefix {
 			return autolink, nil
 		}
 	}
