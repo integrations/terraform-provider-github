@@ -125,18 +125,10 @@ func resourceGithubUserSshKeyDelete(ctx context.Context, d *schema.ResourceData,
 	client := meta.(*Owner).v3client
 
 	keyID := int64(d.Get("key_id").(int))
-	// fallback to d.Id() for backward compatibility when key_id is not set
-	if keyID == 0 {
-		var err error
-		keyID, err = strconv.ParseInt(d.Id(), 10, 64)
-		if err != nil {
-			return diag.FromErr(fmt.Errorf("invalid SSH key ID format: %w", err))
-		}
-	}
 
-	resp, err := client.Users.DeleteKey(ctx, keyID)
+	_, err := client.Users.DeleteKey(ctx, keyID)
 	if err != nil {
-		if resp != nil && resp.StatusCode == http.StatusNotFound {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
 			return nil
 		}
 		return diag.FromErr(err)
@@ -154,11 +146,8 @@ func resourceGithubUserSshKeyImport(ctx context.Context, d *schema.ResourceData,
 
 	key, _, err := client.Users.GetKey(ctx, keyID)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				return nil, fmt.Errorf("SSH key with ID %d not found", keyID)
-			}
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			return nil, fmt.Errorf("SSH key with ID %d not found", keyID)
 		}
 		return nil, err
 	}

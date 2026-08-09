@@ -22,7 +22,7 @@ func TestAccGithubUserSshKey(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		name := fmt.Sprintf(`%s-%s`, testResourcePrefix, randomID)
+		name := fmt.Sprintf(`%s%s`, testResourcePrefix, randomID)
 		testKey := newTestKey()
 
 		config := fmt.Sprintf(`
@@ -51,7 +51,7 @@ func TestAccGithubUserSshKey(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		name := fmt.Sprintf(`%s-%s`, testResourcePrefix, randomID)
+		name := fmt.Sprintf(`%s%s`, testResourcePrefix, randomID)
 		testKey := newTestKey()
 
 		config := fmt.Sprintf(`
