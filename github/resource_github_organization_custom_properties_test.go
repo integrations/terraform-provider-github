@@ -5,10 +5,67 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 )
+
+func Test_multiSelectDefaultValueWarning(t *testing.T) {
+	t.Parallel()
+
+	for _, d := range []struct {
+		testName     string
+		valueType    github.PropertyValueType
+		defaultValue string
+		expectWarn   bool
+	}{
+		{
+			testName:     "multi_select_with_default_value",
+			valueType:    github.PropertyValueTypeMultiSelect,
+			defaultValue: "Test",
+			expectWarn:   true,
+		},
+		{
+			testName:  "multi_select_without_default_value",
+			valueType: github.PropertyValueTypeMultiSelect,
+		},
+		{
+			testName:     "single_select_with_default_value",
+			valueType:    github.PropertyValueTypeSingleSelect,
+			defaultValue: "Test",
+		},
+		{
+			testName:     "true_false_with_default_value",
+			valueType:    github.PropertyValueTypeTrueFalse,
+			defaultValue: "true",
+		},
+	} {
+		t.Run(d.testName, func(t *testing.T) {
+			t.Parallel()
+
+			got := multiSelectDefaultValueWarning(d.valueType, d.defaultValue)
+
+			if !d.expectWarn {
+				if len(got) != 0 {
+					t.Fatalf("expected no diagnostics but got %v", got)
+				}
+				return
+			}
+
+			if len(got) != 1 {
+				t.Fatalf("expected a single diagnostic but got %v", got)
+			}
+			if got[0].Severity != diag.Warning {
+				t.Errorf("expected a warning but got severity %v", got[0].Severity)
+			}
+			if got.HasError() {
+				t.Error("expected the diagnostics to not contain an error")
+			}
+		})
+	}
+}
 
 func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 	t.Parallel()

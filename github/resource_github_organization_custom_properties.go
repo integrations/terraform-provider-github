@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -103,13 +104,35 @@ func resourceGithubCustomPropertiesCreate(ctx context.Context, d *schema.Resourc
 		customProperty.ValuesEditableBy = &str
 	}
 
+	diags := multiSelectDefaultValueWarning(valueType, defaultValue)
+
 	customProperty, _, err := client.Organizations.CreateOrUpdateCustomProperty(ctx, ownerName, d.Get("property_name").(string), customProperty)
 	if err != nil {
-		return diag.FromErr(err)
+		return append(diags, diag.FromErr(err)...)
 	}
 
 	d.SetId(*customProperty.PropertyName)
-	return resourceGithubCustomPropertiesRead(ctx, d, meta)
+	return append(diags, resourceGithubCustomPropertiesRead(ctx, d, meta)...)
+}
+
+// multiSelectDefaultValueWarning warns when a default value is configured for a
+// multi_select property. GitHub returns those defaults as a list of strings,
+// which cannot be represented by the string default_value attribute, so the
+// configured value is not reflected in state and shows up as a change on every
+// plan.
+func multiSelectDefaultValueWarning(valueType github.PropertyValueType, defaultValue string) diag.Diagnostics {
+	if valueType != github.PropertyValueTypeMultiSelect || defaultValue == "" {
+		return nil
+	}
+
+	return diag.Diagnostics{
+		{
+			Severity:      diag.Warning,
+			Summary:       "default_value is not supported for multi_select properties",
+			Detail:        "The default value of a multi_select property cannot be read back by this provider, so it is not stored in state and every plan will show a change for default_value. Remove default_value to avoid this.",
+			AttributePath: cty.GetAttrPath("default_value"),
+		},
+	}
 }
 
 func resourceGithubCustomPropertiesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
