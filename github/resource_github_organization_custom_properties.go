@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -12,12 +13,12 @@ import (
 
 func resourceGithubOrganizationCustomProperties() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubCustomPropertiesCreate,
-		Read:   resourceGithubCustomPropertiesRead,
-		Update: resourceGithubCustomPropertiesUpdate,
-		Delete: resourceGithubCustomPropertiesDelete,
+		CreateContext: resourceGithubCustomPropertiesCreate,
+		ReadContext:   resourceGithubCustomPropertiesRead,
+		UpdateContext: resourceGithubCustomPropertiesUpdate,
+		DeleteContext: resourceGithubCustomPropertiesDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourceGithubCustomPropertiesImport,
+			StateContext: resourceGithubCustomPropertiesImport,
 		},
 
 		CustomizeDiff: customdiff.Sequence(
@@ -73,8 +74,7 @@ func resourceGithubOrganizationCustomProperties() *schema.Resource {
 	}
 }
 
-func resourceGithubCustomPropertiesCreate(d *schema.ResourceData, meta any) error {
-	ctx := context.Background()
+func resourceGithubCustomPropertiesCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	ownerName := meta.(*Owner).name
 
@@ -105,21 +105,20 @@ func resourceGithubCustomPropertiesCreate(d *schema.ResourceData, meta any) erro
 
 	customProperty, _, err := client.Organizations.CreateOrUpdateCustomProperty(ctx, ownerName, d.Get("property_name").(string), customProperty)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(*customProperty.PropertyName)
-	return resourceGithubCustomPropertiesRead(d, meta)
+	return resourceGithubCustomPropertiesRead(ctx, d, meta)
 }
 
-func resourceGithubCustomPropertiesRead(d *schema.ResourceData, meta any) error {
-	ctx := context.Background()
+func resourceGithubCustomPropertiesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	ownerName := meta.(*Owner).name
 
 	customProperty, _, err := client.Organizations.GetCustomProperty(ctx, ownerName, d.Get("property_name").(string))
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// multi_select is not supported: its default value is a []string, which
@@ -148,26 +147,25 @@ func resourceGithubCustomPropertiesRead(d *schema.ResourceData, meta any) error 
 	return nil
 }
 
-func resourceGithubCustomPropertiesUpdate(d *schema.ResourceData, meta any) error {
-	if err := resourceGithubCustomPropertiesCreate(d, meta); err != nil {
-		return err
-	}
-	return resourceGithubCustomPropertiesRead(d, meta)
+func resourceGithubCustomPropertiesUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	// Create issues a PUT, which the API treats as an upsert, and reads the
+	// property back afterwards.
+	return resourceGithubCustomPropertiesCreate(ctx, d, meta)
 }
 
-func resourceGithubCustomPropertiesDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubCustomPropertiesDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	ownerName := meta.(*Owner).name
 
-	_, err := client.Organizations.RemoveCustomProperty(context.Background(), ownerName, d.Get("property_name").(string))
+	_, err := client.Organizations.RemoveCustomProperty(ctx, ownerName, d.Get("property_name").(string))
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubCustomPropertiesImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubCustomPropertiesImport(_ context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	if err := d.Set("property_name", d.Id()); err != nil {
 		return nil, err
 	}
