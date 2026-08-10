@@ -83,6 +83,12 @@ func resourceGithubEnterpriseAppInstallation() *schema.Resource {
 				return oldValue.(string) == "none" || newValue.(string) == "none"
 			}),
 			func(ctx context.Context, d *schema.ResourceDiff, meta any) error {
+				// Unknown values read back as their zero value, which would
+				// fail this check for configurations that are still valid.
+				if !d.NewValueKnown("repository_selection") || !d.NewValueKnown("selected_repositories") {
+					return nil
+				}
+
 				selection := d.Get("repository_selection").(string)
 				repoCount := d.Get("selected_repositories").(*schema.Set).Len()
 				if selection == "selected" && repoCount == 0 {
@@ -131,20 +137,27 @@ func resourceGithubEnterpriseAppInstallationCreate(ctx context.Context, d *schem
 		return diag.FromErr(err)
 	}
 
-	// Record the resource in state as soon as the app is installed, so a
+	// Record the installation in state as soon as the app is installed, so a
 	// failure while granting the remaining repositories leaves a recoverable
-	// resource rather than an orphaned installation.
+	// resource rather than an orphaned installation. Delete resolves the
+	// installation through 'installation_id', so it has to be set here too.
 	id, err := buildID(enterpriseSlug, org, clientID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	d.SetId(id)
+	if err := d.Set("installation_id", strconv.FormatInt(installation.GetID(), 10)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("app_slug", installation.GetAppSlug()); err != nil {
+		return diag.FromErr(err)
+	}
 
 	if err := addEnterpriseAppInstallationRepositories(ctx, client, enterpriseSlug, org, installation.GetID(), remainder); err != nil {
 		return diag.FromErr(err)
 	}
 
-	return resourceGithubEnterpriseAppInstallationRead(ctx, d, meta)
+	return nil
 }
 
 func resourceGithubEnterpriseAppInstallationRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
@@ -290,7 +303,7 @@ func resourceGithubEnterpriseAppInstallationUpdate(ctx context.Context, d *schem
 		}
 	}
 
-	return resourceGithubEnterpriseAppInstallationRead(ctx, d, meta)
+	return nil
 }
 
 func resourceGithubEnterpriseAppInstallationDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
