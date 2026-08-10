@@ -98,7 +98,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Parameters for an organization ruleset condition.The branch and tag rulesets conditions object should contain both repository_name and ref_name properties, or both repository_id and ref_name properties, or both repository_property and ref_name properties. The push rulesets conditions object does not require the ref_name property.",
+				Description: "Parameters for an organization ruleset condition. Exactly one of `repository_name`, `repository_id` or `repository_property` must be set. For `branch` and `tag` targets, `ref_name` is required alongside it. For `push` and `repository` targets, `ref_name` must not be set.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ref_name": {
@@ -682,7 +682,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Type:        schema.TypeList,
 							Optional:    true,
 							MaxItems:    1,
-							Description: "Prevent commits that include changes in specified file paths from being pushed to the commit graph.",
+							Description: "Prevent commits that include changes in specified file paths from being pushed to the commit graph. Only valid for the `push` target.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"restricted_file_paths": {
@@ -701,7 +701,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Type:        schema.TypeList,
 							Optional:    true,
 							MaxItems:    1,
-							Description: "Prevent pushes based on file size.",
+							Description: "Prevent pushes based on file size. Only valid for the `push` target.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"max_file_size": {
@@ -717,7 +717,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Type:        schema.TypeList,
 							Optional:    true,
 							MaxItems:    1,
-							Description: "Prevent pushes based on file path length.",
+							Description: "Prevent pushes based on file path length. Only valid for the `push` target.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"max_file_path_length": {
@@ -733,7 +733,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Type:        schema.TypeList,
 							Optional:    true,
 							MaxItems:    1,
-							Description: "Prevent pushes based on file extensions.",
+							Description: "Prevent pushes based on file extensions. Only valid for the `push` target.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"restricted_file_extensions": {
