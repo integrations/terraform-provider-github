@@ -1,5 +1,6 @@
 ---
 page_title: "github_organization_ruleset (Resource) - GitHub"
+subcategory: ""
 description: |-
   Creates a GitHub organization ruleset.
 ---
@@ -502,6 +503,21 @@ Optional:
 
 ## Import
 
-GitHub Organization Rulesets can be imported using the GitHub ruleset ID e.g.
+GitHub organization rulesets can be imported using the GitHub ruleset ID.
 
-`$ terraform import github_organization_ruleset.example 12345`
+Import is supported using the following syntax:
+
+In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `id` attribute, for example:
+
+```terraform
+import {
+  to = github_organization_ruleset.example
+  id = "12345"
+}
+```
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+terraform import github_organization_ruleset.example 12345
+```

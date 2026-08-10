@@ -25,6 +25,7 @@ var supportedOrgRulesetTargetTypes = []string{
 
 func resourceGithubOrganizationRuleset() *schema.Resource {
 	return &schema.Resource{
+		Description:   "Creates a GitHub organization ruleset.",
 		CreateContext: resourceGithubOrganizationRulesetCreate,
 		ReadContext:   resourceGithubOrganizationRulesetRead,
 		UpdateContext: resourceGithubOrganizationRulesetUpdate,

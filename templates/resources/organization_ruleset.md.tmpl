@@ -1,12 +1,13 @@
 ---
 page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+subcategory: ""
 description: |-
-  Creates a GitHub organization ruleset.
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
 ---
 
 # {{.Name}} ({{.Type}})
 
-Creates a GitHub organization ruleset.
+{{ .Description | trimspace }}
 
 This resource allows you to create and manage rulesets on the organization level. When applied, a new ruleset will be created. When destroyed, that ruleset will be removed.
 
@@ -24,9 +25,31 @@ This resource allows you to create and manage rulesets on the organization level
 ~> **Note:** at the time of writing this, the `RepositoryRole` bypass actor type corresponds to the following base repository roles and IDs: `maintain` -> `2`, `write` -> `4`, `admin` -> `5`.
 
 {{ .SchemaMarkdown | trimspace }}
+{{- if or .HasImport .HasImportIDConfig .HasImportIdentityConfig }}
 
 ## Import
 
-GitHub Organization Rulesets can be imported using the GitHub ruleset ID e.g.
+GitHub organization rulesets can be imported using the GitHub ruleset ID.
 
-`$ terraform import github_organization_ruleset.example 12345`
+Import is supported using the following syntax:
+{{- end }}
+{{- if .HasImportIdentityConfig }}
+
+In Terraform v1.12.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `identity` attribute, for example:
+
+{{tffile .ImportIdentityConfigFile }}
+
+{{ .IdentitySchemaMarkdown | trimspace }}
+{{- end }}
+{{- if .HasImportIDConfig }}
+
+In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `id` attribute, for example:
+
+{{tffile .ImportIDConfigFile }}
+{{- end }}
+{{- if .HasImport }}
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+{{codefile "shell" .ImportFile }}
+{{- end }}
