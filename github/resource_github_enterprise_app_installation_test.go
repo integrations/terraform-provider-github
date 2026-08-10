@@ -7,6 +7,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubEnterpriseAppInstallation(t *testing.T) {
@@ -28,15 +31,6 @@ func TestAccGithubEnterpriseAppInstallation(t *testing.T) {
 			}
 		`, testAccConf.enterpriseSlug, testAccConf.owner, appClientID)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_enterprise_app_installation.test", "enterprise_slug", testAccConf.enterpriseSlug),
-			resource.TestCheckResourceAttr("github_enterprise_app_installation.test", "organization", testAccConf.owner),
-			resource.TestCheckResourceAttr("github_enterprise_app_installation.test", "client_id", appClientID),
-			resource.TestCheckResourceAttr("github_enterprise_app_installation.test", "repository_selection", "all"),
-			resource.TestCheckResourceAttrSet("github_enterprise_app_installation.test", "installation_id"),
-			resource.TestCheckResourceAttrSet("github_enterprise_app_installation.test", "app_slug"),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() {
 				skipUnlessEnterprise(t)
@@ -46,7 +40,14 @@ func TestAccGithubEnterpriseAppInstallation(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_enterprise_app_installation.test", tfjsonpath.New("enterprise_slug"), knownvalue.StringExact(testAccConf.enterpriseSlug)),
+						statecheck.ExpectKnownValue("github_enterprise_app_installation.test", tfjsonpath.New("organization"), knownvalue.StringExact(testAccConf.owner)),
+						statecheck.ExpectKnownValue("github_enterprise_app_installation.test", tfjsonpath.New("client_id"), knownvalue.StringExact(appClientID)),
+						statecheck.ExpectKnownValue("github_enterprise_app_installation.test", tfjsonpath.New("repository_selection"), knownvalue.StringExact("all")),
+						statecheck.ExpectKnownValue("github_enterprise_app_installation.test", tfjsonpath.New("installation_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_enterprise_app_installation.test", tfjsonpath.New("app_slug"), knownvalue.NotNull()),
+					},
 				},
 				{
 					ResourceName:      "github_enterprise_app_installation.test",
@@ -98,17 +99,17 @@ func TestAccGithubEnterpriseAppInstallation(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: configSelected,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_enterprise_app_installation.test", "repository_selection", "selected"),
-						resource.TestCheckResourceAttr("github_enterprise_app_installation.test", "selected_repositories.#", "1"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_enterprise_app_installation.test", tfjsonpath.New("repository_selection"), knownvalue.StringExact("selected")),
+						statecheck.ExpectKnownValue("github_enterprise_app_installation.test", tfjsonpath.New("selected_repositories"), knownvalue.SetSizeExact(1)),
+					},
 				},
 				{
 					Config: configAll,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_enterprise_app_installation.test", "repository_selection", "all"),
-						resource.TestCheckResourceAttr("github_enterprise_app_installation.test", "selected_repositories.#", "0"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_enterprise_app_installation.test", tfjsonpath.New("repository_selection"), knownvalue.StringExact("all")),
+						statecheck.ExpectKnownValue("github_enterprise_app_installation.test", tfjsonpath.New("selected_repositories"), knownvalue.SetSizeExact(0)),
+					},
 				},
 			},
 		})
