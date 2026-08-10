@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
-func TestAccGithubEnterpriseAppInstallation(t *testing.T) {
+func TestAccGithubEnterpriseOrganizationAppInstallation(t *testing.T) {
 	appClientID := os.Getenv("GH_TEST_ENTERPRISE_APP_CLIENT_ID")
 	skipUnlessEnterpriseAppClientID := func(t *testing.T) {
 		t.Helper()
@@ -23,7 +23,7 @@ func TestAccGithubEnterpriseAppInstallation(t *testing.T) {
 
 	t.Run("installs an app on all repositories", func(t *testing.T) {
 		config := fmt.Sprintf(`
-			resource "github_enterprise_app_installation" "test" {
+			resource "github_enterprise_organization_app_installation" "test" {
 				enterprise_slug      = "%s"
 				organization         = "%s"
 				client_id            = "%s"
@@ -41,16 +41,16 @@ func TestAccGithubEnterpriseAppInstallation(t *testing.T) {
 				{
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_enterprise_app_installation.test", tfjsonpath.New("enterprise_slug"), knownvalue.StringExact(testAccConf.enterpriseSlug)),
-						statecheck.ExpectKnownValue("github_enterprise_app_installation.test", tfjsonpath.New("organization"), knownvalue.StringExact(testAccConf.owner)),
-						statecheck.ExpectKnownValue("github_enterprise_app_installation.test", tfjsonpath.New("client_id"), knownvalue.StringExact(appClientID)),
-						statecheck.ExpectKnownValue("github_enterprise_app_installation.test", tfjsonpath.New("repository_selection"), knownvalue.StringExact("all")),
-						statecheck.ExpectKnownValue("github_enterprise_app_installation.test", tfjsonpath.New("installation_id"), knownvalue.NotNull()),
-						statecheck.ExpectKnownValue("github_enterprise_app_installation.test", tfjsonpath.New("app_slug"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_enterprise_organization_app_installation.test", tfjsonpath.New("enterprise_slug"), knownvalue.StringExact(testAccConf.enterpriseSlug)),
+						statecheck.ExpectKnownValue("github_enterprise_organization_app_installation.test", tfjsonpath.New("organization"), knownvalue.StringExact(testAccConf.owner)),
+						statecheck.ExpectKnownValue("github_enterprise_organization_app_installation.test", tfjsonpath.New("client_id"), knownvalue.StringExact(appClientID)),
+						statecheck.ExpectKnownValue("github_enterprise_organization_app_installation.test", tfjsonpath.New("repository_selection"), knownvalue.StringExact("all")),
+						statecheck.ExpectKnownValue("github_enterprise_organization_app_installation.test", tfjsonpath.New("installation_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_enterprise_organization_app_installation.test", tfjsonpath.New("app_slug"), knownvalue.NotNull()),
 					},
 				},
 				{
-					ResourceName:      "github_enterprise_app_installation.test",
+					ResourceName:      "github_enterprise_organization_app_installation.test",
 					ImportState:       true,
 					ImportStateVerify: true,
 				},
@@ -67,7 +67,7 @@ func TestAccGithubEnterpriseAppInstallation(t *testing.T) {
 				auto_init = true
 			}
 
-			resource "github_enterprise_app_installation" "test" {
+			resource "github_enterprise_organization_app_installation" "test" {
 				enterprise_slug       = "%[1]s"
 				organization          = "%[2]s"
 				client_id             = "%[3]s"
@@ -82,7 +82,7 @@ func TestAccGithubEnterpriseAppInstallation(t *testing.T) {
 				auto_init = true
 			}
 
-			resource "github_enterprise_app_installation" "test" {
+			resource "github_enterprise_organization_app_installation" "test" {
 				enterprise_slug      = "%[1]s"
 				organization         = "%[2]s"
 				client_id            = "%[3]s"
@@ -100,15 +100,15 @@ func TestAccGithubEnterpriseAppInstallation(t *testing.T) {
 				{
 					Config: configSelected,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_enterprise_app_installation.test", tfjsonpath.New("repository_selection"), knownvalue.StringExact("selected")),
-						statecheck.ExpectKnownValue("github_enterprise_app_installation.test", tfjsonpath.New("selected_repositories"), knownvalue.SetSizeExact(1)),
+						statecheck.ExpectKnownValue("github_enterprise_organization_app_installation.test", tfjsonpath.New("repository_selection"), knownvalue.StringExact("selected")),
+						statecheck.ExpectKnownValue("github_enterprise_organization_app_installation.test", tfjsonpath.New("selected_repositories"), knownvalue.SetSizeExact(1)),
 					},
 				},
 				{
 					Config: configAll,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_enterprise_app_installation.test", tfjsonpath.New("repository_selection"), knownvalue.StringExact("all")),
-						statecheck.ExpectKnownValue("github_enterprise_app_installation.test", tfjsonpath.New("selected_repositories"), knownvalue.SetSizeExact(0)),
+						statecheck.ExpectKnownValue("github_enterprise_organization_app_installation.test", tfjsonpath.New("repository_selection"), knownvalue.StringExact("all")),
+						statecheck.ExpectKnownValue("github_enterprise_organization_app_installation.test", tfjsonpath.New("selected_repositories"), knownvalue.SetSizeExact(0)),
 					},
 				},
 			},

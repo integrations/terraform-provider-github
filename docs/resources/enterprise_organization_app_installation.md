@@ -1,25 +1,25 @@
 ---
-page_title: "github_enterprise_app_installation (Resource) - GitHub"
+page_title: "github_enterprise_organization_app_installation (Resource) - GitHub"
 subcategory: ""
 description: |-
-  Manage a GitHub App installation on an enterprise-owned organization. This resource requires GitHub Enterprise Cloud or GitHub Enterprise Server 3.19+ and an authenticated user that is an enterprise owner.
+  Manage the installation of a GitHub App on an organization owned by an enterprise. The app is installed on the organization, not on the enterprise account itself; GitHub offers no API for the latter. This resource requires GitHub Enterprise Cloud or GitHub Enterprise Server 3.19+ and an authenticated user that is an enterprise owner.
 ---
 
-# github_enterprise_app_installation (Resource)
+# github_enterprise_organization_app_installation (Resource)
 
-Manage a GitHub App installation on an enterprise-owned organization. This resource requires GitHub Enterprise Cloud or GitHub Enterprise Server 3.19+ and an authenticated user that is an enterprise owner.
+Manage the installation of a GitHub App on an organization owned by an enterprise. The app is installed on the organization, not on the enterprise account itself; GitHub offers no API for the latter. This resource requires GitHub Enterprise Cloud or GitHub Enterprise Server 3.19+ and an authenticated user that is an enterprise owner.
 
 ## Example Usage
 
 ```terraform
-resource "github_enterprise_app_installation" "all_repos" {
+resource "github_enterprise_organization_app_installation" "all_repos" {
   enterprise_slug      = "my-enterprise"
   organization         = "my-org"
   client_id            = "Iv1.abc123def456"
   repository_selection = "all"
 }
 
-resource "github_enterprise_app_installation" "selected_repos" {
+resource "github_enterprise_organization_app_installation" "selected_repos" {
   enterprise_slug       = "my-enterprise"
   organization          = "my-org"
   client_id             = "Iv1.789ghi012jkl"
@@ -55,5 +55,5 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-terraform import github_enterprise_app_installation.all_repos my-enterprise:my-org:Iv1.abc123def456
+terraform import github_enterprise_organization_app_installation.all_repos my-enterprise:my-org:Iv1.abc123def456
 ```

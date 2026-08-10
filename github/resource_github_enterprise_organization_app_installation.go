@@ -19,14 +19,15 @@ import (
 // the enterprise organization-installations endpoints accept per request.
 const maxInstallationRepositoriesPerRequest = 50
 
-func resourceGithubEnterpriseAppInstallation() *schema.Resource {
+func resourceGithubEnterpriseOrganizationAppInstallation() *schema.Resource {
 	return &schema.Resource{
-		Description: "Manage a GitHub App installation on an enterprise-owned organization. " +
+		Description: "Manage the installation of a GitHub App on an organization owned by an enterprise. " +
+			"The app is installed on the organization, not on the enterprise account itself; GitHub offers no API for the latter. " +
 			"This resource requires GitHub Enterprise Cloud or GitHub Enterprise Server 3.19+ and an authenticated user that is an enterprise owner.",
-		CreateContext: resourceGithubEnterpriseAppInstallationCreate,
-		ReadContext:   resourceGithubEnterpriseAppInstallationRead,
-		UpdateContext: resourceGithubEnterpriseAppInstallationUpdate,
-		DeleteContext: resourceGithubEnterpriseAppInstallationDelete,
+		CreateContext: resourceGithubEnterpriseOrganizationAppInstallationCreate,
+		ReadContext:   resourceGithubEnterpriseOrganizationAppInstallationRead,
+		UpdateContext: resourceGithubEnterpriseOrganizationAppInstallationUpdate,
+		DeleteContext: resourceGithubEnterpriseOrganizationAppInstallationDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -103,7 +104,7 @@ func resourceGithubEnterpriseAppInstallation() *schema.Resource {
 	}
 }
 
-func resourceGithubEnterpriseAppInstallationCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubEnterpriseOrganizationAppInstallationCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	enterpriseSlug := d.Get("enterprise_slug").(string)
@@ -153,14 +154,14 @@ func resourceGithubEnterpriseAppInstallationCreate(ctx context.Context, d *schem
 		return diag.FromErr(err)
 	}
 
-	if err := addEnterpriseAppInstallationRepositories(ctx, client, enterpriseSlug, org, installation.GetID(), remainder); err != nil {
+	if err := addEnterpriseOrganizationAppInstallationRepositories(ctx, client, enterpriseSlug, org, installation.GetID(), remainder); err != nil {
 		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubEnterpriseAppInstallationRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubEnterpriseOrganizationAppInstallationRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	owner := meta.(*Owner)
 	client := owner.v3client
 
@@ -169,7 +170,7 @@ func resourceGithubEnterpriseAppInstallationRead(ctx context.Context, d *schema.
 		return diag.FromErr(err)
 	}
 
-	installation, err := findEnterpriseAppInstallation(ctx, owner, enterpriseSlug, org, clientID)
+	installation, err := findEnterpriseOrganizationAppInstallation(ctx, owner, enterpriseSlug, org, clientID)
 	if err != nil {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
@@ -232,7 +233,7 @@ func resourceGithubEnterpriseAppInstallationRead(ctx context.Context, d *schema.
 	return nil
 }
 
-func resourceGithubEnterpriseAppInstallationUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubEnterpriseOrganizationAppInstallationUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	enterpriseSlug, org, _, err := parseID3(d.Id())
@@ -274,7 +275,7 @@ func resourceGithubEnterpriseAppInstallationUpdate(ctx context.Context, d *schem
 			return diag.FromErr(err)
 		}
 
-		if err := addEnterpriseAppInstallationRepositories(ctx, client, enterpriseSlug, org, installationID, remainder); err != nil {
+		if err := addEnterpriseOrganizationAppInstallationRepositories(ctx, client, enterpriseSlug, org, installationID, remainder); err != nil {
 			return diag.FromErr(err)
 		}
 	} else if d.HasChange("selected_repositories") {
@@ -284,7 +285,7 @@ func resourceGithubEnterpriseAppInstallationUpdate(ctx context.Context, d *schem
 
 		// Add before removing so the installation never has an empty selection.
 		toAdd := expandStringList(newSet.Difference(oldSet).List())
-		if err := addEnterpriseAppInstallationRepositories(ctx, client, enterpriseSlug, org, installationID, toAdd); err != nil {
+		if err := addEnterpriseOrganizationAppInstallationRepositories(ctx, client, enterpriseSlug, org, installationID, toAdd); err != nil {
 			return diag.FromErr(err)
 		}
 
@@ -306,7 +307,7 @@ func resourceGithubEnterpriseAppInstallationUpdate(ctx context.Context, d *schem
 	return nil
 }
 
-func resourceGithubEnterpriseAppInstallationDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubEnterpriseOrganizationAppInstallationDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	enterpriseSlug, org, clientID, err := parseID3(d.Id())
@@ -337,9 +338,9 @@ func resourceGithubEnterpriseAppInstallationDelete(ctx context.Context, d *schem
 	return nil
 }
 
-// addEnterpriseAppInstallationRepositories grants an installation access to
-// the given repositories, in chunks the API accepts.
-func addEnterpriseAppInstallationRepositories(ctx context.Context, client *github.Client, enterpriseSlug, org string, installationID int64, repositories []string) error {
+// addEnterpriseOrganizationAppInstallationRepositories grants an installation
+// access to the given repositories, in chunks the API accepts.
+func addEnterpriseOrganizationAppInstallationRepositories(ctx context.Context, client *github.Client, enterpriseSlug, org string, installationID int64, repositories []string) error {
 	for chunk := range slices.Chunk(repositories, maxInstallationRepositoriesPerRequest) {
 		tflog.Debug(ctx, "Granting enterprise app installation access to repositories", map[string]any{
 			"installation_id": installationID,
@@ -356,10 +357,10 @@ func addEnterpriseAppInstallationRepositories(ctx context.Context, client *githu
 	return nil
 }
 
-// findEnterpriseAppInstallation returns the installation of the app with the
-// given client ID on an enterprise-owned organization, or nil if the app is
-// not installed.
-func findEnterpriseAppInstallation(ctx context.Context, owner *Owner, enterpriseSlug, org, clientID string) (*github.Installation, error) {
+// findEnterpriseOrganizationAppInstallation returns the installation of the app
+// with the given client ID on an enterprise-owned organization, or nil if the
+// app is not installed.
+func findEnterpriseOrganizationAppInstallation(ctx context.Context, owner *Owner, enterpriseSlug, org, clientID string) (*github.Installation, error) {
 	opts := &github.ListOptions{PerPage: owner.maxPerPage}
 	for {
 		installations, resp, err := owner.v3client.Enterprise.ListAppInstallations(ctx, enterpriseSlug, org, opts)

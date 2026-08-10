@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
-func TestAccDataSourceGithubEnterpriseAppAccessibleOrganizationRepositories(t *testing.T) {
+func TestAccDataSourceGithubEnterpriseOrganizationAppAccessibleRepositories(t *testing.T) {
 	t.Parallel()
 
 	skipUnlessEnterprise(t)
@@ -28,7 +28,7 @@ resource "github_repository" "test" {
   auto_init = true
 }
 
-data "github_enterprise_app_accessible_organization_repositories" "test" {
+data "github_enterprise_organization_app_accessible_repositories" "test" {
   enterprise_slug = "%s"
   organization    = "%s"
 
@@ -42,7 +42,7 @@ data "github_enterprise_app_accessible_organization_repositories" "test" {
 				{
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("data.github_enterprise_app_accessible_organization_repositories.test", tfjsonpath.New("repositories"), knownvalue.SetPartial([]knownvalue.Check{
+						statecheck.ExpectKnownValue("data.github_enterprise_organization_app_accessible_repositories.test", tfjsonpath.New("repositories"), knownvalue.SetPartial([]knownvalue.Check{
 							knownvalue.MapPartial(map[string]knownvalue.Check{
 								"name": knownvalue.StringExact(repoName),
 							}),

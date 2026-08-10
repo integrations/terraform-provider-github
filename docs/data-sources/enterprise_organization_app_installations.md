@@ -1,18 +1,18 @@
 ---
-page_title: "github_enterprise_app_installations (Data Source) - GitHub"
+page_title: "github_enterprise_organization_app_installations (Data Source) - GitHub"
 subcategory: ""
 description: |-
   Use this data source to retrieve the GitHub App installations on an enterprise-owned organization. This data source requires GitHub Enterprise Cloud or GitHub Enterprise Server 3.19+ and an authenticated user that is an enterprise owner.
 ---
 
-# github_enterprise_app_installations (Data Source)
+# github_enterprise_organization_app_installations (Data Source)
 
 Use this data source to retrieve the GitHub App installations on an enterprise-owned organization. This data source requires GitHub Enterprise Cloud or GitHub Enterprise Server 3.19+ and an authenticated user that is an enterprise owner.
 
 ## Example Usage
 
 ```terraform
-data "github_enterprise_app_installations" "example" {
+data "github_enterprise_organization_app_installations" "example" {
   enterprise_slug = "my-enterprise"
   organization    = "my-org"
 }

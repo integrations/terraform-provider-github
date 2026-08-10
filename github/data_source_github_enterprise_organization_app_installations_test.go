@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
-func TestAccDataSourceGithubEnterpriseAppInstallations(t *testing.T) {
+func TestAccDataSourceGithubEnterpriseOrganizationAppInstallations(t *testing.T) {
 	t.Parallel()
 
 	skipUnlessEnterprise(t)
@@ -19,7 +19,7 @@ func TestAccDataSourceGithubEnterpriseAppInstallations(t *testing.T) {
 		t.Parallel()
 
 		config := fmt.Sprintf(`
-data "github_enterprise_app_installations" "test" {
+data "github_enterprise_organization_app_installations" "test" {
   enterprise_slug = "%s"
   organization    = "%s"
 }
@@ -31,7 +31,7 @@ data "github_enterprise_app_installations" "test" {
 				{
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("data.github_enterprise_app_installations.test", tfjsonpath.New("installations"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("data.github_enterprise_organization_app_installations.test", tfjsonpath.New("installations"), knownvalue.NotNull()),
 					},
 				},
 			},

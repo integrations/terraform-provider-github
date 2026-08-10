@@ -8,9 +8,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func dataSourceGithubEnterpriseAppInstallations() *schema.Resource {
+func dataSourceGithubEnterpriseOrganizationAppInstallations() *schema.Resource {
 	return &schema.Resource{
-		ReadContext: dataSourceGithubEnterpriseAppInstallationsRead,
+		ReadContext: dataSourceGithubEnterpriseOrganizationAppInstallationsRead,
 		Description: "Use this data source to retrieve the GitHub App installations on an enterprise-owned organization. " +
 			"This data source requires GitHub Enterprise Cloud or GitHub Enterprise Server 3.19+ and an authenticated user that is an enterprise owner.",
 
@@ -106,7 +106,7 @@ func dataSourceGithubEnterpriseAppInstallations() *schema.Resource {
 	}
 }
 
-func dataSourceGithubEnterpriseAppInstallationsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+func dataSourceGithubEnterpriseOrganizationAppInstallationsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 

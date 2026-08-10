@@ -8,9 +8,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func dataSourceGithubEnterpriseAppAccessibleOrganizationRepositories() *schema.Resource {
+func dataSourceGithubEnterpriseOrganizationAppAccessibleRepositories() *schema.Resource {
 	return &schema.Resource{
-		ReadContext: dataSourceGithubEnterpriseAppAccessibleOrganizationRepositoriesRead,
+		ReadContext: dataSourceGithubEnterpriseOrganizationAppAccessibleRepositoriesRead,
 		Description: "Use this data source to retrieve the repositories of an enterprise-owned organization that GitHub Apps can be granted access to. " +
 			"This data source requires GitHub Enterprise Cloud or GitHub Enterprise Server 3.19+ and an authenticated user that is an enterprise owner.",
 
@@ -53,7 +53,7 @@ func dataSourceGithubEnterpriseAppAccessibleOrganizationRepositories() *schema.R
 	}
 }
 
-func dataSourceGithubEnterpriseAppAccessibleOrganizationRepositoriesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+func dataSourceGithubEnterpriseOrganizationAppAccessibleRepositoriesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 

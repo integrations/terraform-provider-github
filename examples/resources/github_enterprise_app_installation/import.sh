@@ -1,1 +1,0 @@
-terraform import github_enterprise_app_installation.all_repos my-enterprise:my-org:Iv1.abc123def456
