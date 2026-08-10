@@ -3,20 +3,22 @@ package github
 import (
 	"context"
 	"errors"
-	"log"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubUserSshKey() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubUserSshKeyCreate,
-		Read:   resourceGithubUserSshKeyRead,
-		Delete: resourceGithubUserSshKeyDelete,
+		CreateContext: resourceGithubUserSshKeyCreate,
+		ReadContext:   resourceGithubUserSshKeyRead,
+		DeleteContext: resourceGithubUserSshKeyDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -51,34 +53,33 @@ func resourceGithubUserSshKey() *schema.Resource {
 	}
 }
 
-func resourceGithubUserSshKeyCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubUserSshKeyCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	title := d.Get("title").(string)
 	key := d.Get("key").(string)
-	ctx := context.Background()
 
 	userKey, _, err := client.Users.CreateKey(ctx, &github.Key{
 		Title: new(title),
 		Key:   new(key),
 	})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(*userKey.ID, 10))
 
-	return resourceGithubUserSshKeyRead(d, meta)
+	return resourceGithubUserSshKeyRead(ctx, d, meta)
 }
 
-func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta any) error {
+func resourceGithubUserSshKeyRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
+		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
@@ -91,40 +92,41 @@ func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta any) error {
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing user SSH key %s from state because it no longer exists in GitHub",
-					d.Id())
+				tflog.Info(ctx, fmt.Sprintf("Removing user SSH key %s from state because it no longer exists in GitHub", d.Id()), map[string]any{
+					"ssh_key_id": d.Id(),
+				})
 				d.SetId("")
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("title", key.GetTitle()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("key", key.GetKey()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("url", key.GetURL()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubUserSshKeyDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubUserSshKeyDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
+		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	_, err = client.Users.DeleteKey(ctx, id)
-	return err
+	return diag.FromErr(err)
 }
