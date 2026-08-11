@@ -1,13 +1,13 @@
-resource "github_repository" "repo" {
-  name         = "foo"
+resource "github_repository" "example_repo" {
+  name         = "example-repo"
   description  = "Terraform acceptance tests"
   homepage_url = "http://example.com/"
 
   visibility = "public"
 }
 
-resource "github_repository_webhook" "foo" {
-  repository = github_repository.repo.name
+resource "github_repository_webhook" "example_webhook" {
+  repository = github_repository.example_repo.name
 
   configuration {
     url          = "https://google.de/"

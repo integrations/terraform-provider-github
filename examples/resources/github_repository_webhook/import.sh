@@ -1,0 +1,1 @@
+terraform import github_repository_webhook.example_webhook example-repo/123456789
