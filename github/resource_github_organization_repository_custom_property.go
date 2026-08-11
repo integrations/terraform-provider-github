@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -137,124 +136,160 @@ func buildOrganizationRepositoryCustomProperty(d *schema.ResourceData) *github.C
 	return cp
 }
 
-func setOrganizationRepositoryCustomPropertyState(d *schema.ResourceData, cp *github.CustomProperty) error {
-	defaultValue, _ := cp.DefaultValueString()
-
-	d.SetId(cp.GetPropertyName())
-
-	for _, set := range []struct {
-		key   string
-		value any
-	}{
-		{"property_name", cp.GetPropertyName()},
-		{"value_type", string(cp.ValueType)},
-		{"required", cp.GetRequired()},
-		{"description", cp.GetDescription()},
-		{"default_value", defaultValue},
-		{"allowed_values", cp.AllowedValues},
-		{"values_editable_by", cp.GetValuesEditableBy()},
-	} {
-		if err := d.Set(set.key, set.value); err != nil {
-			return err
-		}
+func resourceGithubOrganizationRepositoryCustomPropertyCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
 	}
 
-	return nil
-}
-
-func resourceGithubOrganizationRepositoryCustomPropertyCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	if err := checkOrganization(meta); err != nil {
-		return diag.FromErr(err)
-	}
-
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	owner := meta.name
 	propertyName := d.Get("property_name").(string)
 
-	tflog.Debug(ctx, "Creating organization custom property", map[string]any{"org": orgName, "property": propertyName})
+	tflog.Debug(ctx, "Creating organization custom property", map[string]any{"org": owner, "property": propertyName})
 
-	cp, _, err := client.Organizations.CreateOrUpdateCustomProperty(ctx, orgName, propertyName, buildOrganizationRepositoryCustomProperty(d))
+	cp, _, err := client.Organizations.CreateOrUpdateCustomProperty(ctx, owner, propertyName, buildOrganizationRepositoryCustomProperty(d))
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("error creating organization custom property %q: %w", propertyName, err))
 	}
 
-	if err := setOrganizationRepositoryCustomPropertyState(d, cp); err != nil {
+	defaultValue, _ := cp.DefaultValueString()
+	d.SetId(cp.GetPropertyName())
+	if err := d.Set("property_name", cp.GetPropertyName()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("value_type", string(cp.ValueType)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("required", cp.GetRequired()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("default_value", defaultValue); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("description", cp.GetDescription()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("allowed_values", cp.AllowedValues); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("values_editable_by", cp.GetValuesEditableBy()); err != nil {
 		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubOrganizationRepositoryCustomPropertyRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	if err := checkOrganization(meta); err != nil {
-		return diag.FromErr(err)
+func resourceGithubOrganizationRepositoryCustomPropertyRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	owner := meta.name
 	propertyName := d.Id()
 
-	cp, _, err := client.Organizations.GetCustomProperty(ctx, orgName, propertyName)
+	cp, _, err := client.Organizations.GetCustomProperty(ctx, owner, propertyName)
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == 404 {
-			tflog.Info(ctx, "Removing organization custom property from state because it no longer exists", map[string]any{"org": orgName, "property": propertyName})
+			tflog.Info(ctx, "Removing organization custom property from state because it no longer exists", map[string]any{"org": owner, "property": propertyName})
 			d.SetId("")
 			return nil
 		}
 		return diag.FromErr(fmt.Errorf("error reading organization custom property %q: %w", propertyName, err))
 	}
 
-	// Sentinel: the API ignores allowed_values for non-select types, so don't
-	// import a phantom empty list into state. Only persist it when meaningful.
-	if !slices.Contains([]github.PropertyValueType{
-		github.PropertyValueTypeSingleSelect,
-		github.PropertyValueTypeMultiSelect,
-	}, cp.ValueType) {
+	switch cp.ValueType {
+	case github.PropertyValueTypeSingleSelect, github.PropertyValueTypeMultiSelect:
+	default:
 		cp.AllowedValues = nil
 	}
 
-	if err := setOrganizationRepositoryCustomPropertyState(d, cp); err != nil {
+	defaultValue, _ := cp.DefaultValueString()
+	d.SetId(cp.GetPropertyName())
+	if err := d.Set("property_name", cp.GetPropertyName()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("value_type", string(cp.ValueType)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("required", cp.GetRequired()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("default_value", defaultValue); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("description", cp.GetDescription()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("allowed_values", cp.AllowedValues); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("values_editable_by", cp.GetValuesEditableBy()); err != nil {
 		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubOrganizationRepositoryCustomPropertyUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	if err := checkOrganization(meta); err != nil {
-		return diag.FromErr(err)
+func resourceGithubOrganizationRepositoryCustomPropertyUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	owner := meta.name
 	propertyName := d.Get("property_name").(string)
 
-	tflog.Debug(ctx, "Updating organization custom property", map[string]any{"org": orgName, "property": propertyName})
+	tflog.Debug(ctx, "Updating organization custom property", map[string]any{"org": owner, "property": propertyName})
 
-	cp, _, err := client.Organizations.CreateOrUpdateCustomProperty(ctx, orgName, propertyName, buildOrganizationRepositoryCustomProperty(d))
+	cp, _, err := client.Organizations.CreateOrUpdateCustomProperty(ctx, owner, propertyName, buildOrganizationRepositoryCustomProperty(d))
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("error updating organization custom property %q: %w", propertyName, err))
 	}
 
-	if err := setOrganizationRepositoryCustomPropertyState(d, cp); err != nil {
+	defaultValue, _ := cp.DefaultValueString()
+	d.SetId(cp.GetPropertyName())
+	if err := d.Set("property_name", cp.GetPropertyName()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("value_type", string(cp.ValueType)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("required", cp.GetRequired()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("default_value", defaultValue); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("description", cp.GetDescription()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("allowed_values", cp.AllowedValues); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("values_editable_by", cp.GetValuesEditableBy()); err != nil {
 		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubOrganizationRepositoryCustomPropertyDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	if err := checkOrganization(meta); err != nil {
-		return diag.FromErr(err)
+func resourceGithubOrganizationRepositoryCustomPropertyDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	owner := meta.name
 	propertyName := d.Get("property_name").(string)
 
-	tflog.Debug(ctx, "Deleting organization custom property", map[string]any{"org": orgName, "property": propertyName})
+	tflog.Debug(ctx, "Deleting organization custom property", map[string]any{"org": owner, "property": propertyName})
 
-	if _, err := client.Organizations.RemoveCustomProperty(ctx, orgName, propertyName); err != nil {
+	if _, err := client.Organizations.RemoveCustomProperty(ctx, owner, propertyName); err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == 404 {
 			return nil
 		}
