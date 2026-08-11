@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -58,33 +57,53 @@ func dataSourceGithubOrganizationRepositoryCustomProperty() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationRepositoryCustomPropertyRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	if err := checkOrganization(meta); err != nil {
-		return diag.FromErr(err)
+func dataSourceGithubOrganizationRepositoryCustomPropertyRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	owner := meta.name
 	propertyName := d.Get("property_name").(string)
 
-	tflog.Debug(ctx, "Reading organization custom property", map[string]any{"org": orgName, "property": propertyName})
+	tflog.Debug(ctx, "Reading organization custom property", map[string]any{"org": owner, "property": propertyName})
 
-	cp, _, err := client.Organizations.GetCustomProperty(ctx, orgName, propertyName)
+	cp, _, err := client.Organizations.GetCustomProperty(ctx, owner, propertyName)
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == 404 {
-			return diag.FromErr(fmt.Errorf("organization custom property %q not found in %q", propertyName, orgName))
+			return diag.FromErr(fmt.Errorf("organization custom property %q not found in %q", propertyName, owner))
 		}
 		return diag.FromErr(fmt.Errorf("error reading organization custom property %q: %w", propertyName, err))
 	}
 
-	if !slices.Contains([]github.PropertyValueType{
-		github.PropertyValueTypeSingleSelect,
-		github.PropertyValueTypeMultiSelect,
-	}, cp.ValueType) {
+	switch cp.ValueType {
+	case github.PropertyValueTypeSingleSelect, github.PropertyValueTypeMultiSelect:
+	default:
 		cp.AllowedValues = nil
 	}
 
-	if err := setOrganizationRepositoryCustomPropertyState(d, cp); err != nil {
+	defaultValue, _ := cp.DefaultValueString()
+	d.SetId(cp.GetPropertyName())
+	if err := d.Set("property_name", cp.GetPropertyName()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("value_type", string(cp.ValueType)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("required", cp.GetRequired()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("default_value", defaultValue); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("description", cp.GetDescription()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("allowed_values", cp.AllowedValues); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("values_editable_by", cp.GetValuesEditableBy()); err != nil {
 		return diag.FromErr(err)
 	}
 
