@@ -580,6 +580,7 @@ The following resources are deprecated and will be removed in future versions:
 | `github_project_card`                        | None (Classic Projects API removed)               |
 | `github_project_column`                      | None (Classic Projects API removed)               |
 | `github_repository_project`                  | None (Classic Projects API removed)               |
+| `github_organization_custom_properties`      | `github_organization_repository_custom_property`  |
 
 ### Deprecated Data Sources
 
@@ -587,6 +588,7 @@ The following resources are deprecated and will be removed in future versions:
 | ---------------------------------------------- | --------------------------------------------------- |
 | `github_organization_custom_role`              | `github_organization_repository_role`               |
 | `github_organization_security_managers`        | `github_organization_role_teams`                    |
+| `github_organization_custom_properties`        | `github_organization_repository_custom_property`    |
 | `github_repository_deployment_branch_policies` | `github_repository_environment_deployment_policies` |
 
 ### Known Limitations
