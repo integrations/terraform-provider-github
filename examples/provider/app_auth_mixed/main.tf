@@ -1,5 +1,8 @@
 provider "github" {
   owner = var.github_organization
+
+  auth_mode = "app"
+
   app_auth {
     id              = "123456"   # the App ID and installation ID are not secret,
     installation_id = "78901234" # so they can be set directly in configuration

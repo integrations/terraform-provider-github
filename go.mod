@@ -3,8 +3,8 @@ module github.com/integrations/terraform-provider-github/v6
 go 1.26
 
 require (
-	github.com/bored-engineer/github-conditional-http-transport v0.0.2
-	github.com/bored-engineer/github-conditional-http-transport/bbolt v0.0.1
+	github.com/bored-engineer/github-conditional-http-transport v0.0.7
+	github.com/bored-engineer/github-conditional-http-transport/bbolt v0.0.2
 	github.com/go-jose/go-jose/v4 v4.1.4
 	github.com/gofri/go-github-ratelimit/v2 v2.0.2
 	github.com/google/go-cmp v0.7.0
@@ -13,7 +13,7 @@ require (
 	github.com/hashicorp/go-cty v1.5.0
 	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/hashicorp/golang-lru/v2 v2.0.7
-	github.com/hashicorp/terraform-plugin-log v0.10.0
+	github.com/hashicorp/terraform-plugin-log v0.11.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.40.1
 	github.com/hashicorp/terraform-plugin-testing v1.16.0
 	github.com/jferrl/go-githubauth v1.7.0
@@ -63,7 +63,7 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/zclconf/go-cty v1.18.1 // indirect
-	go.etcd.io/bbolt v1.4.3 // indirect
+	go.etcd.io/bbolt v1.5.0 // indirect
 	golang.org/x/mod v0.37.0 // indirect
 	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
