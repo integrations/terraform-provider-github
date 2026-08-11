@@ -1,32 +1,51 @@
 ---
 page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+subcategory: ""
 description: |-
-  Manages a GitHub organization custom property definition.
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
 ---
 
 # {{.Name}} ({{.Type}})
 
-Manages a single GitHub organization custom property definition. Repositories
-in the organization can subsequently be tagged with values for this property
-via the `github_repository_custom_property` resource or directly through the
-GitHub UI / API.
+{{ .Description | trimspace }}
+Repositories in the organization can subsequently be tagged with values for
+this property via the [`github_repository_custom_property`](repository_custom_property)
+resource or directly through the GitHub UI / API. For more information, see
+the [GitHub API documentation](https://docs.github.com/rest/orgs/custom-properties).
 
+{{ if .HasExamples -}}
 ## Example Usage
 
-{{ tffile "examples/resources/organization_repository_custom_property/example_1.tf" }}
+{{- range .ExampleFiles }}
 
-## Example Usage - Allow Repository Actors to Edit
-
-{{ tffile "examples/resources/organization_repository_custom_property/example_2.tf" }}
-
-## Example Usage - Boolean Property
-
-{{ tffile "examples/resources/organization_repository_custom_property/example_3.tf" }}
+{{ tffile . }}
+{{- end }}
+{{- end }}
 
 {{ .SchemaMarkdown | trimspace }}
+{{- if or .HasImport .HasImportIDConfig .HasImportIdentityConfig }}
 
 ## Import
 
-Organization custom properties can be imported using the property name:
+Import is supported using the following syntax:
+{{- end }}
+{{- if .HasImportIdentityConfig }}
 
-{{ codefile "shell" "examples/resources/organization_repository_custom_property/import.sh" }}
+In Terraform v1.12.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `identity` attribute, for example:
+
+{{tffile .ImportIdentityConfigFile }}
+
+{{ .IdentitySchemaMarkdown | trimspace }}
+{{- end }}
+{{- if .HasImportIDConfig }}
+
+In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `id` attribute, for example:
+
+{{tffile .ImportIDConfigFile }}
+{{- end }}
+{{- if .HasImport }}
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+{{codefile "shell" .ImportFile }}
+{{- end }}
