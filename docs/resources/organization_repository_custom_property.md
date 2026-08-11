@@ -1,19 +1,22 @@
 ---
 page_title: "github_organization_repository_custom_property (Resource) - GitHub"
+subcategory: ""
 description: |-
-  Manages a GitHub organization custom property definition.
+  Manages a GitHub organization custom property definition. Custom properties defined here can later be assigned values on individual repositories.
 ---
 
 # github_organization_repository_custom_property (Resource)
 
-Manages a single GitHub organization custom property definition. Repositories
-in the organization can subsequently be tagged with values for this property
-via the `github_repository_custom_property` resource or directly through the
-GitHub UI / API.
+Manages a GitHub organization custom property definition. Custom properties defined here can later be assigned values on individual repositories.
+Repositories in the organization can subsequently be tagged with values for
+this property via the [`github_repository_custom_property`](repository_custom_property)
+resource or directly through the GitHub UI / API. For more information, see
+the [GitHub API documentation](https://docs.github.com/rest/orgs/custom-properties).
 
 ## Example Usage
 
 ```terraform
+# single_select property with a default value
 resource "github_organization_repository_custom_property" "environment" {
   property_name = "environment"
   value_type    = "single_select"
@@ -26,22 +29,16 @@ resource "github_organization_repository_custom_property" "environment" {
     "production",
   ]
 }
-```
 
-## Example Usage - Allow Repository Actors to Edit
-
-```terraform
+# string property that repository actors (not just org owners) can edit
 resource "github_organization_repository_custom_property" "team_contact" {
   property_name      = "team_contact"
   value_type         = "string"
   description        = "Contact information for the team managing this repository"
   values_editable_by = "org_and_repo_actors"
 }
-```
 
-## Example Usage - Boolean Property
-
-```terraform
+# true_false property
 resource "github_organization_repository_custom_property" "archived" {
   property_name = "archived"
   value_type    = "true_false"
@@ -72,7 +69,18 @@ resource "github_organization_repository_custom_property" "archived" {
 
 ## Import
 
-Organization custom properties can be imported using the property name:
+Import is supported using the following syntax:
+
+In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `id` attribute, for example:
+
+```terraform
+import {
+  to = github_organization_repository_custom_property.environment
+  id = "environment"
+}
+```
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
 terraform import github_organization_repository_custom_property.environment environment

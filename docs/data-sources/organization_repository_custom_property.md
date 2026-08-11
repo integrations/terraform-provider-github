@@ -1,7 +1,8 @@
 ---
 page_title: "github_organization_repository_custom_property (Data Source) - GitHub"
+subcategory: ""
 description: |-
-  Looks up a GitHub organization custom property definition.
+  Looks up a single GitHub organization custom property definition by name.
 ---
 
 # github_organization_repository_custom_property (Data Source)
