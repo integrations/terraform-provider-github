@@ -75,7 +75,7 @@ resource "github_release" "example" {
 ### Optional
 
 - `body` (String) Text describing the contents of the tag.
-- `discussion_category_name` (String) If specified, a discussion of the specified category is created and linked to the release. The value must be a category that already exists in the repository.
+- `discussion_category_name` (String) If specified, a discussion of the specified category is created and linked to the release. The value must be a category that already exists in the repository. If there is already a discussion linked to the release, this parameter is ignored.
 - `draft` (Boolean) Set to `false` to create a published release.
 - `etag` (String) The ETag of the release.
 - `generate_release_notes` (Boolean) Set to `true` to automatically generate the name and body for this release when it is created. If `name` is specified, the specified name will be used; otherwise, a name will be automatically generated. If `body` is specified, the body will be pre-pended to the automatically generated notes.

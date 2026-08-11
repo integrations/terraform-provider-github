@@ -91,8 +91,7 @@ func resourceGithubRelease() *schema.Resource {
 			"discussion_category_name": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				ForceNew:    true,
-				Description: "If specified, a discussion of the specified category is created and linked to the release. The value must be a category that already exists in the repository.",
+				Description: "If specified, a discussion of the specified category is created and linked to the release. The value must be a category that already exists in the repository. If there is already a discussion linked to the release, this parameter is ignored.",
 			},
 			"etag": {
 				Type:        schema.TypeString,
