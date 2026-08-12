@@ -19,6 +19,24 @@ func TestProvider(t *testing.T) {
 	})
 }
 
+func Test_getTestMeta_anonymousDoesNotRequireCredentials(t *testing.T) {
+	baseURL, _, err := getBaseURL(DotComAPIURL)
+	if err != nil {
+		t.Fatalf("parsing base URL: %v", err)
+	}
+
+	meta, err := getTestMeta(&testAccConfig{
+		authMode: anonymous,
+		baseURL:  baseURL,
+	})
+	if err != nil {
+		t.Fatalf("configuring anonymous provider meta: %v", err)
+	}
+	if meta == nil {
+		t.Fatal("anonymous provider meta is nil")
+	}
+}
+
 func Test_configureProviderMeta(t *testing.T) {
 	t.Parallel()
 
