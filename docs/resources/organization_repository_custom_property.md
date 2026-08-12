@@ -8,14 +8,14 @@ description: |-
 # github_organization_repository_custom_property (Resource)
 
 Manages a GitHub organization custom property definition. Custom properties defined here can later be assigned values on individual repositories.
-Repositories in the organization can subsequently be tagged with values for
-this property via the [`github_repository_custom_property`](repository_custom_property)
-resource or directly through the GitHub UI / API. For more information, see
-the [GitHub API documentation](https://docs.github.com/rest/orgs/custom-properties).
 
 ## Example Usage
 
 ```terraform
+# This resource defines the property itself at the organization level. To set a
+# value for it on an individual repository, use `github_repository_custom_property`.
+# See https://docs.github.com/rest/orgs/custom-properties for the underlying API.
+
 # single_select property with a default value
 resource "github_organization_repository_custom_property" "environment" {
   property_name = "environment"
