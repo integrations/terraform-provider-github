@@ -1,3 +1,7 @@
+# This resource defines the property itself at the organization level. To set a
+# value for it on an individual repository, use `github_repository_custom_property`.
+# See https://docs.github.com/rest/orgs/custom-properties for the underlying API.
+
 # single_select property with a default value
 resource "github_organization_repository_custom_property" "environment" {
   property_name = "environment"
