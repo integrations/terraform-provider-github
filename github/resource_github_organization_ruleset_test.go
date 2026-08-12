@@ -924,6 +924,42 @@ resource "github_organization_ruleset" "test" {
 		})
 	})
 
+	t.Run("validates_push_target_allows_omitted_ref_name_condition", func(t *testing.T) {
+		t.Parallel()
+
+		config := `
+			resource "github_organization_ruleset" "test" {
+				name        = "test-push-without-ref-name"
+				target      = "push"
+				enforcement = "active"
+
+				conditions {
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					max_file_size {
+						max_file_size = 100
+					}
+				}
+			}
+		`
+
+		resource.UnitTest(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:             config,
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: true,
+				},
+			},
+		})
+	})
+
 	t.Run("validates_push_target_rejects_branch_or_tag_rules", func(t *testing.T) {
 		t.Parallel()
 

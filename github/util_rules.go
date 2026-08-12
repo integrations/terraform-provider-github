@@ -195,7 +195,7 @@ func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions
 	inputConditions := input[0].(map[string]any)
 
 	// ref_name is available for both repo and org rulesets
-	if v, ok := inputConditions["ref_name"].([]any); ok && v != nil && len(v) != 0 {
+	if v, ok := inputConditions["ref_name"].([]any); ok && v != nil && len(v) != 0 && v[0] != nil {
 		inputRefName := v[0].(map[string]any)
 		include := make([]string, 0)
 		exclude := make([]string, 0)
@@ -221,7 +221,7 @@ func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions
 	// org-only fields
 	if org {
 		// repository_name and repository_id
-		if v, ok := inputConditions["repository_name"].([]any); ok && v != nil && len(v) != 0 {
+		if v, ok := inputConditions["repository_name"].([]any); ok && v != nil && len(v) != 0 && v[0] != nil {
 			inputRepositoryName := v[0].(map[string]any)
 			include := make([]string, 0)
 			exclude := make([]string, 0)
@@ -255,7 +255,7 @@ func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions
 			}
 
 			rulesetConditions.RepositoryID = &github.RepositoryRulesetRepositoryIDsConditionParameters{RepositoryIDs: repositoryIDs}
-		} else if v, ok := inputConditions["repository_property"].([]any); ok && v != nil && len(v) != 0 {
+		} else if v, ok := inputConditions["repository_property"].([]any); ok && v != nil && len(v) != 0 && v[0] != nil {
 			rulesetConditions.RepositoryProperty = expandRepositoryPropertyConditions(v)
 		}
 	}

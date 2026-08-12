@@ -3,6 +3,7 @@ package github
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -1113,6 +1114,41 @@ func TestExpandRepositoryPropertyConditions_NilPropertyValues(t *testing.T) {
 	}
 	if prop.PropertyValues[1] != "staging" {
 		t.Errorf("Expected second value to be 'staging', got '%s'", prop.PropertyValues[1])
+	}
+}
+
+func TestExpandConditions_NilConditionEntries(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name  string
+		input []any
+		org   bool
+	}{
+		{
+			name:  "ref_name",
+			input: []any{map[string]any{"ref_name": []any{nil}}},
+		},
+		{
+			name:  "repository_name",
+			input: []any{map[string]any{"repository_name": []any{nil}}},
+			org:   true,
+		},
+		{
+			name:  "repository_property",
+			input: []any{map[string]any{"repository_property": []any{nil}}},
+			org:   true,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := expandConditions(tt.input, tt.org)
+			want := &github.RepositoryRulesetConditions{}
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Fatalf("unexpected conditions (-want +got):\n%s", diff)
+			}
+		})
 	}
 }
 
