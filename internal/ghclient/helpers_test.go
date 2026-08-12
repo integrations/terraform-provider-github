@@ -6,16 +6,23 @@ import (
 	"path/filepath"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 type testRoundTripper struct {
+	delay  time.Duration
 	called atomic.Int32
 	resp   *http.Response
 	err    error
 }
 
 func (r *testRoundTripper) RoundTrip(_ *http.Request) (*http.Response, error) {
+	if r.delay > 0 {
+		time.Sleep(r.delay)
+	}
+
 	r.called.Add(1)
+
 	if r.err != nil {
 		return nil, r.err
 	}
@@ -43,4 +50,15 @@ func mustReadAppPrivateKey(t *testing.T) []byte {
 	}
 
 	return privateKeyData
+}
+
+func mustCreateRequest(t *testing.T, method, url string) *http.Request {
+	t.Helper()
+
+	req, err := http.NewRequestWithContext(t.Context(), method, url, nil)
+	if err != nil {
+		t.Fatalf("failed to create request: %v", err)
+	}
+
+	return req
 }
