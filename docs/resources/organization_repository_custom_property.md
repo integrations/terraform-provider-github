@@ -22,7 +22,7 @@ resource "github_organization_repository_custom_property" "environment" {
   value_type    = "single_select"
   required      = true
   description   = "The deployment environment for this repository"
-  default_value = "development"
+  default_value = ["development"]
   allowed_values = [
     "development",
     "staging",
@@ -43,7 +43,16 @@ resource "github_organization_repository_custom_property" "archived" {
   property_name = "archived"
   value_type    = "true_false"
   description   = "Whether this repository is archived"
-  default_value = "false"
+  default_value = ["false"]
+}
+
+# multi_select property; only this type accepts more than one default value
+resource "github_organization_repository_custom_property" "compliance" {
+  property_name  = "compliance"
+  value_type     = "multi_select"
+  description    = "Compliance regimes this repository is in scope for"
+  allowed_values = ["pci", "sox", "hipaa"]
+  default_value  = ["pci", "sox"]
 }
 ```
 
@@ -58,14 +67,25 @@ resource "github_organization_repository_custom_property" "archived" {
 ### Optional
 
 - `allowed_values` (List of String) Allowed values for `single_select` and `multi_select` property types. Must be omitted for other types.
-- `default_value` (String) Default value applied to repositories that do not explicitly set the property.
+- `default_value` (List of String) Default value applied to repositories that do not explicitly set the property. Exactly one element for the `string`, `single_select`, `true_false` and `url` types; one or more for `multi_select`.
 - `description` (String) Short description of the custom property.
-- `required` (Boolean) Whether the custom property must be set on every repository. When true, `default_value` must be provided.
+- `required` (Boolean) Whether the custom property must be set on every repository. GitHub may reject `required = true` unless a `default_value` is also provided.
+- `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 - `values_editable_by` (String) Who can edit values of this property on repositories. One of: [org_actors org_and_repo_actors]. Defaults to `org_actors` server-side.
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+<a id="nestedblock--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- `create` (String)
+- `delete` (String)
+- `read` (String)
+- `update` (String)
 
 ## Import
 

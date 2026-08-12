@@ -27,7 +27,7 @@ data "github_organization_repository_custom_property" "environment" {
 ### Read-Only
 
 - `allowed_values` (List of String) Allowed values when `value_type` is `single_select` or `multi_select`.
-- `default_value` (String) Default value applied to repositories that do not explicitly set the property.
+- `default_value` (List of String) Default value applied to repositories that do not explicitly set the property. Holds multiple elements only when `value_type` is `multi_select`.
 - `description` (String) Short description of the custom property.
 - `id` (String) The ID of this resource.
 - `required` (Boolean) Whether the custom property must be set on every repository.

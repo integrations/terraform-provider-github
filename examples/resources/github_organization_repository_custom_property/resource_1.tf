@@ -4,7 +4,7 @@ resource "github_organization_repository_custom_property" "environment" {
   value_type    = "single_select"
   required      = true
   description   = "The deployment environment for this repository"
-  default_value = "development"
+  default_value = ["development"]
   allowed_values = [
     "development",
     "staging",
@@ -25,5 +25,14 @@ resource "github_organization_repository_custom_property" "archived" {
   property_name = "archived"
   value_type    = "true_false"
   description   = "Whether this repository is archived"
-  default_value = "false"
+  default_value = ["false"]
+}
+
+# multi_select property; only this type accepts more than one default value
+resource "github_organization_repository_custom_property" "compliance" {
+  property_name  = "compliance"
+  value_type     = "multi_select"
+  description    = "Compliance regimes this repository is in scope for"
+  allowed_values = ["pci", "sox", "hipaa"]
+  default_value  = ["pci", "sox"]
 }
