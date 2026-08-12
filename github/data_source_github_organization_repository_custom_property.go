@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -33,9 +32,10 @@ func dataSourceGithubOrganizationRepositoryCustomProperty() *schema.Resource {
 				Description: "Whether the custom property must be set on every repository.",
 			},
 			"default_value": {
-				Type:        schema.TypeString,
+				Type:        schema.TypeList,
 				Computed:    true,
-				Description: "Default value applied to repositories that do not explicitly set the property.",
+				Description: "Default value applied to repositories that do not explicitly set the property. Holds multiple elements only when `value_type` is `multi_select`.",
+				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"description": {
 				Type:        schema.TypeString,
@@ -72,9 +72,13 @@ func dataSourceGithubOrganizationRepositoryCustomPropertyRead(ctx context.Contex
 	cp, _, err := client.Organizations.GetCustomProperty(ctx, owner, propertyName)
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == 404 {
-			return diag.FromErr(fmt.Errorf("organization custom property %q not found in %q", propertyName, owner))
+			return diag.Errorf("organization custom property %q not found in %q", propertyName, owner)
 		}
-		return diag.FromErr(fmt.Errorf("error reading organization custom property %q: %w", propertyName, err))
+		return diag.Errorf("error reading organization custom property %q: %v", propertyName, err)
+	}
+
+	if cp.GetPropertyName() == "" {
+		return diag.Errorf("organization %q returned a custom property with an empty name when reading %q", owner, propertyName)
 	}
 
 	switch cp.ValueType {
@@ -83,7 +87,11 @@ func dataSourceGithubOrganizationRepositoryCustomPropertyRead(ctx context.Contex
 		cp.AllowedValues = nil
 	}
 
-	defaultValue, _ := cp.DefaultValueString()
+	defaultValue, err := flattenOrganizationRepositoryCustomPropertyDefaultValue(cp)
+	if err != nil {
+		return diag.Errorf("error reading organization custom property %q: %v", propertyName, err)
+	}
+
 	d.SetId(cp.GetPropertyName())
 	if err := d.Set("property_name", cp.GetPropertyName()); err != nil {
 		return diag.FromErr(err)
