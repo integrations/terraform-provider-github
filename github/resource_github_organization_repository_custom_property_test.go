@@ -23,11 +23,13 @@ func TestAccGithubOrganizationRepositoryCustomProperty(t *testing.T) {
 
 		name := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
 		config := fmt.Sprintf(`
-		resource "github_organization_repository_custom_property" "test" {
-			property_name = %[1]q
-			value_type    = "string"
-			description   = "tf-acc-test string property"
-		}`, name)
+resource "github_organization_repository_custom_property" "test" {
+  property_name = %[1]q
+  value_type    = "string"
+  description   = "tf-acc-test string property"
+  default_value = ["dev"]
+}
+`, name)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -39,7 +41,106 @@ func TestAccGithubOrganizationRepositoryCustomProperty(t *testing.T) {
 						statecheck.ExpectKnownValue(resourceAddr, tfjsonpath.New("property_name"), knownvalue.StringExact(name)),
 						statecheck.ExpectKnownValue(resourceAddr, tfjsonpath.New("value_type"), knownvalue.StringExact("string")),
 						statecheck.ExpectKnownValue(resourceAddr, tfjsonpath.New("values_editable_by"), knownvalue.StringExact("org_actors")),
+						statecheck.ExpectKnownValue(resourceAddr, tfjsonpath.New("default_value"), knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.StringExact("dev"),
+						})),
 					},
+				},
+			},
+		})
+	})
+
+	t.Run("creates a true_false property with a default value", func(t *testing.T) {
+		t.Parallel()
+
+		name := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
+		config := fmt.Sprintf(`
+resource "github_organization_repository_custom_property" "test" {
+  property_name = %[1]q
+  value_type    = "true_false"
+  description   = "tf-acc-test true_false property"
+  default_value = [%%q]
+}
+`, name)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, "false"),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue(resourceAddr, tfjsonpath.New("default_value"), knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.StringExact("false"),
+						})),
+					},
+				},
+				{
+					Config: fmt.Sprintf(config, "true"),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction(resourceAddr, plancheck.ResourceActionUpdate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue(resourceAddr, tfjsonpath.New("default_value"), knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.StringExact("true"),
+						})),
+					},
+				},
+				{
+					ResourceName:      resourceAddr,
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
+		})
+	})
+
+	t.Run("creates a multi_select property with multiple default values", func(t *testing.T) {
+		t.Parallel()
+
+		name := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
+		config := fmt.Sprintf(`
+resource "github_organization_repository_custom_property" "test" {
+  property_name  = %[1]q
+  value_type     = "multi_select"
+  description    = "tf-acc-test multi_select property"
+  allowed_values = ["one", "two", "three"]
+  default_value  = %%s
+}
+`, name)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, `["one", "two"]`),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue(resourceAddr, tfjsonpath.New("default_value"), knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.StringExact("one"),
+							knownvalue.StringExact("two"),
+						})),
+					},
+				},
+				{
+					Config: fmt.Sprintf(config, `["three"]`),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction(resourceAddr, plancheck.ResourceActionUpdate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue(resourceAddr, tfjsonpath.New("default_value"), knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.StringExact("three"),
+						})),
+					},
+				},
+				{
+					ResourceName:      resourceAddr,
+					ImportState:       true,
+					ImportStateVerify: true,
 				},
 			},
 		})
@@ -49,27 +150,21 @@ func TestAccGithubOrganizationRepositoryCustomProperty(t *testing.T) {
 		t.Parallel()
 
 		name := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
-		configBefore := fmt.Sprintf(`
-		resource "github_organization_repository_custom_property" "test" {
-			property_name  = %[1]q
-			value_type     = "single_select"
-			description    = "tf-acc-test single_select property"
-			allowed_values = ["one"]
-		}`, name)
-		configAfter := fmt.Sprintf(`
-		resource "github_organization_repository_custom_property" "test" {
-			property_name  = %[1]q
-			value_type     = "single_select"
-			description    = "tf-acc-test single_select property updated"
-			allowed_values = ["one", "two"]
-		}`, name)
+		config := fmt.Sprintf(`
+resource "github_organization_repository_custom_property" "test" {
+  property_name  = %[1]q
+  value_type     = "single_select"
+  description    = "tf-acc-test single_select property %%[1]s"
+  allowed_values = %%[2]s
+}
+`, name)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: configBefore,
+					Config: fmt.Sprintf(config, "initial", `["one"]`),
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue(resourceAddr, tfjsonpath.New("allowed_values"), knownvalue.ListExact([]knownvalue.Check{
 							knownvalue.StringExact("one"),
@@ -77,7 +172,12 @@ func TestAccGithubOrganizationRepositoryCustomProperty(t *testing.T) {
 					},
 				},
 				{
-					Config: configAfter,
+					Config: fmt.Sprintf(config, "updated", `["one", "two"]`),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction(resourceAddr, plancheck.ResourceActionUpdate),
+						},
+					},
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue(resourceAddr, tfjsonpath.New("allowed_values"), knownvalue.ListExact([]knownvalue.Check{
 							knownvalue.StringExact("one"),
@@ -95,11 +195,12 @@ func TestAccGithubOrganizationRepositoryCustomProperty(t *testing.T) {
 
 		name := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
 		config := fmt.Sprintf(`
-		resource "github_organization_repository_custom_property" "test" {
-			property_name = %[1]q
-			value_type    = "string"
-			description   = "tf-acc-test import"
-		}`, name)
+resource "github_organization_repository_custom_property" "test" {
+  property_name = %[1]q
+  value_type    = "string"
+  description   = "tf-acc-test import"
+}
+`, name)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -115,29 +216,62 @@ func TestAccGithubOrganizationRepositoryCustomProperty(t *testing.T) {
 		})
 	})
 
-	t.Run("forces new when property_name changes", func(t *testing.T) {
+	t.Run("recreates a property deleted outside of terraform", func(t *testing.T) {
 		t.Parallel()
 
-		nameBefore := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
-		nameAfter := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
-		before := fmt.Sprintf(`
-		resource "github_organization_repository_custom_property" "test" {
-			property_name = %[1]q
-			value_type    = "string"
-		}`, nameBefore)
-		after := fmt.Sprintf(`
-		resource "github_organization_repository_custom_property" "test" {
-			property_name = %[1]q
-			value_type    = "string"
-		}`, nameAfter)
+		name := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
+		config := fmt.Sprintf(`
+resource "github_organization_repository_custom_property" "test" {
+  property_name = %[1]q
+  value_type    = "string"
+  description   = "tf-acc-test out-of-band delete"
+}
+`, name)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
-				{Config: before},
+				{Config: config},
 				{
-					Config: after,
+					// Read must classify the resulting 404 as "gone" and drop the
+					// resource from state, so the next plan recreates it rather
+					// than erroring.
+					PreConfig: func() {
+						if _, err := testAccConf.meta.v3client.Organizations.RemoveCustomProperty(t.Context(), testAccConf.meta.name, name); err != nil {
+							t.Fatalf("failed to delete organization custom property %s out of band: %v", name, err)
+						}
+					},
+					Config: config,
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction(resourceAddr, plancheck.ResourceActionCreate),
+						},
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("forces new when property_name changes", func(t *testing.T) {
+		t.Parallel()
+
+		nameBefore := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
+		nameAfter := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
+		config := `
+resource "github_organization_repository_custom_property" "test" {
+  property_name = %[1]q
+  value_type    = "string"
+}
+`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: fmt.Sprintf(config, nameBefore)},
+				{
+					Config: fmt.Sprintf(config, nameAfter),
 					ConfigPlanChecks: resource.ConfigPlanChecks{
 						PreApply: []plancheck.PlanCheck{
 							plancheck.ExpectResourceAction(resourceAddr, plancheck.ResourceActionDestroyBeforeCreate),
@@ -152,25 +286,20 @@ func TestAccGithubOrganizationRepositoryCustomProperty(t *testing.T) {
 		t.Parallel()
 
 		name := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
-		before := fmt.Sprintf(`
-		resource "github_organization_repository_custom_property" "test" {
-			property_name = %[1]q
-			value_type    = "string"
-		}`, name)
-		after := fmt.Sprintf(`
-		resource "github_organization_repository_custom_property" "test" {
-			property_name  = %[1]q
-			value_type     = "single_select"
-			allowed_values = ["x"]
-		}`, name)
+		config := fmt.Sprintf(`
+resource "github_organization_repository_custom_property" "test" {
+  property_name = %[1]q
+  %%s
+}
+`, name)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
-				{Config: before},
+				{Config: fmt.Sprintf(config, `value_type = "string"`)},
 				{
-					Config: after,
+					Config: fmt.Sprintf(config, "value_type    = \"single_select\"\n  allowed_values = [\"x\"]"),
 					ConfigPlanChecks: resource.ConfigPlanChecks{
 						PreApply: []plancheck.PlanCheck{
 							plancheck.ExpectResourceAction(resourceAddr, plancheck.ResourceActionDestroyBeforeCreate),
@@ -186,11 +315,12 @@ func TestAccGithubOrganizationRepositoryCustomProperty(t *testing.T) {
 
 		name := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
 		config := fmt.Sprintf(`
-		resource "github_organization_repository_custom_property" "test" {
-			property_name  = %[1]q
-			value_type     = "string"
-			allowed_values = ["nope"]
-		}`, name)
+resource "github_organization_repository_custom_property" "test" {
+  property_name  = %[1]q
+  value_type     = "string"
+  allowed_values = ["nope"]
+}
+`, name)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -209,10 +339,11 @@ func TestAccGithubOrganizationRepositoryCustomProperty(t *testing.T) {
 
 		name := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
 		config := fmt.Sprintf(`
-		resource "github_organization_repository_custom_property" "test" {
-			property_name = %[1]q
-			value_type    = "single_select"
-		}`, name)
+resource "github_organization_repository_custom_property" "test" {
+  property_name = %[1]q
+  value_type    = "single_select"
+}
+`, name)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -226,16 +357,41 @@ func TestAccGithubOrganizationRepositoryCustomProperty(t *testing.T) {
 		})
 	})
 
+	t.Run("rejects multiple default_value entries on a scalar type", func(t *testing.T) {
+		t.Parallel()
+
+		name := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
+		config := fmt.Sprintf(`
+resource "github_organization_repository_custom_property" "test" {
+  property_name = %[1]q
+  value_type    = "string"
+  default_value = ["one", "two"]
+}
+`, name)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("default_value must contain at most one element"),
+				},
+			},
+		})
+	})
+
 	t.Run("rejects invalid values_editable_by", func(t *testing.T) {
 		t.Parallel()
 
 		name := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
 		config := fmt.Sprintf(`
-		resource "github_organization_repository_custom_property" "test" {
-			property_name      = %[1]q
-			value_type         = "string"
-			values_editable_by = "nope"
-		}`, name)
+resource "github_organization_repository_custom_property" "test" {
+  property_name      = %[1]q
+  value_type         = "string"
+  values_editable_by = "nope"
+}
+`, name)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -253,31 +409,31 @@ func TestAccGithubOrganizationRepositoryCustomProperty(t *testing.T) {
 		t.Parallel()
 
 		name := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
-		before := fmt.Sprintf(`
-		resource "github_organization_repository_custom_property" "test" {
-			property_name      = %[1]q
-			value_type         = "string"
-			values_editable_by = "org_actors"
-		}`, name)
-		after := fmt.Sprintf(`
-		resource "github_organization_repository_custom_property" "test" {
-			property_name      = %[1]q
-			value_type         = "string"
-			values_editable_by = "org_and_repo_actors"
-		}`, name)
+		config := fmt.Sprintf(`
+resource "github_organization_repository_custom_property" "test" {
+  property_name      = %[1]q
+  value_type         = "string"
+  values_editable_by = %%q
+}
+`, name)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: before,
+					Config: fmt.Sprintf(config, "org_actors"),
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue(resourceAddr, tfjsonpath.New("values_editable_by"), knownvalue.StringExact("org_actors")),
 					},
 				},
 				{
-					Config: after,
+					Config: fmt.Sprintf(config, "org_and_repo_actors"),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction(resourceAddr, plancheck.ResourceActionUpdate),
+						},
+					},
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue(resourceAddr, tfjsonpath.New("values_editable_by"), knownvalue.StringExact("org_and_repo_actors")),
 					},
@@ -292,31 +448,27 @@ func TestAccGithubOrganizationRepositoryCustomProperty(t *testing.T) {
 		// Mirrors the upstream behaviour where a value set via the UI before
 		// Terraform managed the property is reflected back into state via the
 		// Computed attribute even when the config omits it.
-		propertyName := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
-		configWithField := fmt.Sprintf(`
-		resource "github_organization_repository_custom_property" "test" {
-			property_name      = %[1]q
-			value_type         = "string"
-			values_editable_by = "org_and_repo_actors"
-		}`, propertyName)
-		configWithoutField := fmt.Sprintf(`
-		resource "github_organization_repository_custom_property" "test" {
-			property_name = %[1]q
-			value_type    = "string"
-		}`, propertyName)
+		name := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
+		config := fmt.Sprintf(`
+resource "github_organization_repository_custom_property" "test" {
+  property_name = %[1]q
+  value_type    = "string"
+  %%s
+}
+`, name)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: configWithField,
+					Config: fmt.Sprintf(config, `values_editable_by = "org_and_repo_actors"`),
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue(resourceAddr, tfjsonpath.New("values_editable_by"), knownvalue.StringExact("org_and_repo_actors")),
 					},
 				},
 				{
-					Config: configWithoutField,
+					Config: fmt.Sprintf(config, ""),
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue(resourceAddr, tfjsonpath.New("values_editable_by"), knownvalue.StringExact("org_and_repo_actors")),
 					},
