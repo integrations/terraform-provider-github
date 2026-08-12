@@ -90,7 +90,7 @@ func dataSourceGithubRepositoryPages() *schema.Resource {
 }
 
 func dataSourceGithubRepositoryPagesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 
 	owner := meta.name // TODO: Add owner support // d.Get("owner").(string)

@@ -9,7 +9,11 @@ import (
 )
 
 func TestAccGithubBranchProtectionRulesDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("queries branch protection rules without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-bp-rules-%s", testResourcePrefix, randomID)
 
@@ -41,6 +45,8 @@ func TestAccGithubBranchProtectionRulesDataSource(t *testing.T) {
 	})
 
 	t.Run("queries branch protection", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-bp-rules2-%s", testResourcePrefix, randomID)
 

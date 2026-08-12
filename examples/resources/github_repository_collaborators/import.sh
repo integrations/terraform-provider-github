@@ -1,0 +1,1 @@
+terraform import github_repository_collaborators.collaborators example-repo

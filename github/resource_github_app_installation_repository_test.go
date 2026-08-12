@@ -9,12 +9,16 @@ import (
 )
 
 func TestAccGithubAppInstallationRepository(t *testing.T) {
+	t.Parallel()
+
 	t.Skip("TODO: Broken test")
 	if testAccConf.testOrgAppInstallationId == 0 {
 		t.Skip("No org app installation id provided")
 	}
 
 	t.Run("installs an app to a repository", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-app-install-%s", testResourcePrefix, randomID)
 

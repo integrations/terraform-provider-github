@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v85/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -212,8 +212,14 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 				Description: "Setting this to 'true' requires all conversations on code must be resolved before a pull request can be merged.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "An etag representing the branch protection object.",
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -268,7 +274,7 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta any) erro
 
 	client := meta.(*Owner).v3client
 
-	repoName, branch, err := parseTwoPartID(d.Id(), "repository", "branch")
+	repoName, branch, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
@@ -345,7 +351,7 @@ func resourceGithubBranchProtectionV3Update(d *schema.ResourceData, meta any) er
 	}
 
 	client := meta.(*Owner).v3client
-	repoName, branch, err := parseTwoPartID(d.Id(), "repository", "branch")
+	repoName, branch, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
@@ -399,7 +405,7 @@ func resourceGithubBranchProtectionV3Delete(d *schema.ResourceData, meta any) er
 	}
 
 	client := meta.(*Owner).v3client
-	repoName, branch, err := parseTwoPartID(d.Id(), "repository", "branch")
+	repoName, branch, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}

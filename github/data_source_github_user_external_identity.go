@@ -59,7 +59,7 @@ func dataSourceGithubUserExternalIdentityRead(ctx context.Context, d *schema.Res
 		"username": githubv4.String(username),
 	}
 
-	err := client.Query(meta.(*Owner).StopContext, &query, variables)
+	err := client.Query(ctx, &query, variables)
 	if err != nil {
 		return diag.FromErr(err)
 	}

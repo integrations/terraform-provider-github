@@ -44,12 +44,12 @@ func dataSourceGithubRestApiRead(ctx context.Context, d *schema.ResourceData, me
 
 	client := meta.(*Owner).v3client
 
-	req, err := client.NewRequest("GET", u, nil)
+	req, err := client.NewRequest(ctx, "GET", u, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	resp, err := client.Do(ctx, req, nil)
+	resp, err := client.Do(req, nil)
 	if err != nil && resp.StatusCode != 404 {
 		return diag.FromErr(err)
 	}

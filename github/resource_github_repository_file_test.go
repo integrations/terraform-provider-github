@@ -8,10 +8,17 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubRepositoryFile(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates and manages files", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -57,6 +64,8 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 		})
 	})
 	t.Run("validates_commit_email_must_be_specified_if_commit_author_is_specified", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -90,6 +99,8 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 	})
 
 	t.Run("validates_commit_author_must_be_specified_if_commit_email_is_specified", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -123,6 +134,8 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 	})
 
 	t.Run("can be configured to overwrite files on create", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -190,6 +203,8 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 	})
 
 	t.Run("creates and manages files on default branch if branch is omitted", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -253,6 +268,8 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 	})
 
 	t.Run("creates and manages files on auto created branch if branch does not exist", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := `
@@ -303,6 +320,8 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 	})
 
 	t.Run("can delete files from archived repositories without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-file-arch-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -358,6 +377,8 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 		})
 	})
 	t.Run("imports_files_without_error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%sfile-import-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -407,6 +428,8 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 		})
 	})
 	t.Run("imports_files_with_branch_in_id_without_error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		repoName := fmt.Sprintf("%sfile-import-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -451,6 +474,51 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 					ImportState:             true,
 					ImportStateVerify:       true,
 					ImportStateVerifyIgnore: []string{"commit_author", "commit_email"}, // For some reason `d` doesn't contain the commit author and email when importing.
+				},
+			},
+		})
+	})
+
+	t.Run("verify_that_id_can_contain_colon_in_file_path", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandString(5)
+		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
+		filePathWithColon := "repro/example:one.yaml"
+		config := fmt.Sprintf(`
+
+			resource "github_repository" "test" {
+				name                 = "%s"
+				auto_init            = true
+				vulnerability_alerts = true
+			}
+
+			resource "github_repository_file" "test" {
+				repository     = github_repository.test.name
+				branch         = "main"
+				file           = "%s"
+				content        = "bar"
+				commit_message = "Managed by Terraform"
+				commit_author  = "Terraform User"
+				commit_email   = "terraform@example.com"
+			}
+		`, repoName, filePathWithColon)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_file.test", tfjsonpath.New("id"), knownvalue.StringFunc(func(v string) error {
+							if strings.Contains(v, escapeIDPart(filePathWithColon)) {
+								return nil
+							}
+							return fmt.Errorf("expected id to contain escaped file path, got: %s", v)
+						})),
+						statecheck.ExpectKnownValue("github_repository_file.test", tfjsonpath.New("file"), knownvalue.StringExact(filePathWithColon)),
+					},
 				},
 			},
 		})

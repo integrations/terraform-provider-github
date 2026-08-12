@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v85/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -51,8 +51,14 @@ func resourceGithubRepositoryDeployKey() *schema.Resource {
 				Description: "A title.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "An etag representing the deploy key.",
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -88,7 +94,7 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta any) err
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
-	repoName, idString, err := parseTwoPartID(d.Id(), "repository", "ID")
+	repoName, idString, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
@@ -142,7 +148,7 @@ func resourceGithubRepositoryDeployKeyDelete(d *schema.ResourceData, meta any) e
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
-	repoName, idString, err := parseTwoPartID(d.Id(), "repository", "ID")
+	repoName, idString, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}

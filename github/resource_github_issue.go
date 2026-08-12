@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v85/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -68,8 +68,14 @@ func resourceGithubIssue() *schema.Resource {
 				Description: "The issue id.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "An etag representing the issue.",
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -133,7 +139,7 @@ func resourceGithubIssueCreateOrUpdate(d *schema.ResourceData, meta any) error {
 
 func resourceGithubIssueRead(d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
-	repoName, idNumber, err := parseTwoPartID(d.Id(), "repository", "issue_number")
+	repoName, idNumber, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}

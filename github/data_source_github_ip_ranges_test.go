@@ -10,7 +10,11 @@ import (
 )
 
 func TestAccGithubIpRangesDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("reads IP ranges without error", func(t *testing.T) {
+		t.Parallel()
+
 		config := `data "github_ip_ranges" "test" {}`
 
 		resource.Test(t, resource.TestCase{

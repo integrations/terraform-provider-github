@@ -9,7 +9,11 @@ import (
 )
 
 func TestAccGithubRepositoryTopics(t *testing.T) {
+	t.Parallel()
+
 	t.Run("create repository topics and import them", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-topics-%s", testResourcePrefix, randomID)
 
@@ -49,6 +53,8 @@ func TestAccGithubRepositoryTopics(t *testing.T) {
 	})
 
 	t.Run("create repository topics and update them", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-topics-%s", testResourcePrefix, randomID)
 

@@ -1,0 +1,55 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+~> This resource is not compatible with [`github_team_membership`](team_membership); use either `github_team_members` or `github_team_membership`.
+
+{{ .Description | trimspace }}
+
+This resource allows you to manage members of teams in your organization; it sets the requested team members for the team and removes all users not managed by Terraform. If an organization owner is given the `member` role they will be granted `maintainer` instead which will result in a perpetual diff. If a user who hasn't accepted their invitation to the organization is added to the team, they will not be a team member until they've accepted the invitation. When this resource is deleted all users will be removed from the team.
+
+!> If you don't have a member with the `maintainer` set then this resource may end up with a perpetual diff as the GitHub API will automatically promote a member to `maintainer` if there are no maintainers in the team. To avoid this, ensure that at least one member has the `maintainer` role.
+
+{{ if .HasExamples -}}
+## Example Usage
+
+{{- range .ExampleFiles }}
+
+{{ tffile . }}
+{{- end }}
+{{- end }}
+
+{{ .SchemaMarkdown | trimspace }}
+{{- if or .HasImport .HasImportIDConfig .HasImportIdentityConfig }}
+
+## Import
+
+This resource can be imported either by the team slug or team ID; it is recommended to use the team slug in combination with the `team_slug` resource attribute.
+
+Import is supported using the following syntax:
+{{- end }}
+{{- if .HasImportIdentityConfig }}
+
+In Terraform v1.12.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `identity` attribute, for example:
+
+{{tffile .ImportIdentityConfigFile }}
+
+{{ .IdentitySchemaMarkdown | trimspace }}
+{{- end }}
+{{- if .HasImportIDConfig }}
+
+In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `id` attribute, for example:
+
+{{tffile .ImportIDConfigFile }}
+{{- end }}
+{{- if .HasImport }}
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+{{codefile "shell" .ImportFile }}
+{{- end }}

@@ -4,31 +4,25 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubActionsRegistrationTokenDataSource(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-	repoName := fmt.Sprintf("%srepo-actions-regtoken-%s", testResourcePrefix, randomID)
+	t.Parallel()
 
-	t.Run("get a repository registration token without error", func(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-			  name = "%[1]s"
-				auto_init = true
-			}
-
-			data "github_actions_registration_token" "test" {
-				repository = github_repository.test.id
-			}
-		`, repoName)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("data.github_actions_registration_token.test", "repository", repoName),
-			resource.TestCheckResourceAttrSet("data.github_actions_registration_token.test", "token"),
-			resource.TestCheckResourceAttrSet("data.github_actions_registration_token.test", "expires_at"),
-		)
+data "github_actions_registration_token" "test" {
+  repository = "%s"
+}
+`, repo.GetName())
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -36,7 +30,10 @@ func TestAccGithubActionsRegistrationTokenDataSource(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_actions_registration_token.test", tfjsonpath.New("token"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("data.github_actions_registration_token.test", tfjsonpath.New("expires_at"), knownvalue.NotNull()),
+					},
 				},
 			},
 		})

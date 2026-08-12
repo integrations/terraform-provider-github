@@ -1,7 +1,6 @@
 package github
 
 import (
-	"context"
 	"reflect"
 	"testing"
 )
@@ -62,7 +61,7 @@ func Test_resourceGithubActionsOrganizationSecretStateUpgradeV0(t *testing.T) {
 		t.Run(d.testName, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := resourceGithubActionsOrganizationSecretStateUpgradeV0(context.Background(), d.rawState, nil)
+			got, err := resourceGithubActionsOrganizationSecretStateUpgradeV0(t.Context(), d.rawState, nil)
 			if (err != nil) != d.shouldError {
 				t.Fatalf("unexpected error state")
 			}

@@ -9,16 +9,20 @@ import (
 )
 
 func TestAccGithubUserDataSource(t *testing.T) {
-	if len(testAccConf.testExternalUser) == 0 {
+	t.Parallel()
+
+	if len(testAccConf.testExternalUser1) == 0 {
 		t.Skip("No external user provided")
 	}
 
 	t.Run("queries an existing individual account without error", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 			data "github_user" "test" {
 				username = "%s"
 			}
-		`, testAccConf.testExternalUser)
+		`, testAccConf.testExternalUser1)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttrSet("data.github_user.test", "login"),
@@ -38,11 +42,13 @@ func TestAccGithubUserDataSource(t *testing.T) {
 	})
 
 	t.Run("errors when querying a non-existing individual account", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 				data "github_user" "test" {
 					username = "!%s"
 				}
-			`, testAccConf.testExternalUser)
+			`, testAccConf.testExternalUser1)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },

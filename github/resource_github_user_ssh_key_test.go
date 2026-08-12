@@ -14,7 +14,11 @@ import (
 )
 
 func TestAccGithubUserSshKey(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates and destroys a user SSH key without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testKey := newTestKey()
 		config := fmt.Sprintf(`
@@ -40,7 +44,7 @@ func TestAccGithubUserSshKey(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
+			PreCheck:          func() { skipUnlessMode(t, individual) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -52,6 +56,8 @@ func TestAccGithubUserSshKey(t *testing.T) {
 	})
 
 	t.Run("imports an individual account SSH key without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testKey := newTestKey()
 		config := fmt.Sprintf(`
@@ -67,7 +73,7 @@ func TestAccGithubUserSshKey(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
+			PreCheck:          func() { skipUnlessMode(t, individual) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
