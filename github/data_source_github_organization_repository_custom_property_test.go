@@ -37,6 +37,9 @@ data "github_organization_repository_custom_property" "test" {
 							knownvalue.StringExact("a"),
 							knownvalue.StringExact("b"),
 						})),
+						// The fixture sets no default, so the list must come back empty
+						// rather than as a phantom single empty string.
+						statecheck.ExpectKnownValue(dataAddr, tfjsonpath.New("default_value"), knownvalue.ListSizeExact(0)),
 					},
 				},
 			},
