@@ -253,6 +253,122 @@ resource "github_organization_repository_custom_property" "test" {
 		})
 	})
 
+	t.Run("destroys cleanly when the property is already gone", func(t *testing.T) {
+		t.Parallel()
+
+		name := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
+		config := fmt.Sprintf(`
+resource "github_organization_repository_custom_property" "test" {
+  property_name = %[1]q
+  value_type    = "string"
+  description   = "tf-acc-test delete of a missing property"
+}
+`, name)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config},
+				{
+					// Delete must treat a 404 as success. Removing the property
+					// out of band immediately before destroy exercises that branch,
+					// which the recreate test above never reaches.
+					PreConfig: func() {
+						if _, err := testAccConf.meta.v3client.Organizations.RemoveCustomProperty(t.Context(), testAccConf.meta.name, name); err != nil {
+							t.Fatalf("failed to delete organization custom property %s out of band: %v", name, err)
+						}
+					},
+					Config:  config,
+					Destroy: true,
+				},
+			},
+		})
+	})
+
+	t.Run("creates a url property with a default value", func(t *testing.T) {
+		t.Parallel()
+
+		name := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
+		config := fmt.Sprintf(`
+resource "github_organization_repository_custom_property" "test" {
+  property_name = %[1]q
+  value_type    = "url"
+  description   = "tf-acc-test url property"
+  default_value = ["https://example.com/runbook"]
+}
+`, name)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue(resourceAddr, tfjsonpath.New("value_type"), knownvalue.StringExact("url")),
+						statecheck.ExpectKnownValue(resourceAddr, tfjsonpath.New("default_value"), knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.StringExact("https://example.com/runbook"),
+						})),
+					},
+				},
+				{
+					ResourceName:      resourceAddr,
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
+		})
+	})
+
+	t.Run("rejects a non-boolean default_value on true_false", func(t *testing.T) {
+		t.Parallel()
+
+		name := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
+		config := fmt.Sprintf(`
+resource "github_organization_repository_custom_property" "test" {
+  property_name = %[1]q
+  value_type    = "true_false"
+  default_value = ["True"]
+}
+`, name)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile(`default_value must be "true" or "false"`),
+				},
+			},
+		})
+	})
+
+	t.Run("rejects an empty string in allowed_values", func(t *testing.T) {
+		t.Parallel()
+
+		name := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
+		config := fmt.Sprintf(`
+resource "github_organization_repository_custom_property" "test" {
+  property_name  = %[1]q
+  value_type     = "single_select"
+  allowed_values = [""]
+}
+`, name)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("expected .* to not be an empty string"),
+				},
+			},
+		})
+	})
+
 	t.Run("forces new when property_name changes", func(t *testing.T) {
 		t.Parallel()
 
