@@ -106,6 +106,28 @@ func Test_throttler_RoundTrip(t *testing.T) {
 		}
 	})
 
+	t.Run("success_after_no_body_close", func(t *testing.T) {
+		t.Parallel()
+
+		inner := &testRoundTripper{err: errors.New("boom")}
+		sema := semaphore.NewWeighted(1)
+		tr := &throttler{
+			sema:  sema,
+			inner: inner,
+		}
+
+		req := mustCreateRequest(t, http.MethodGet, "https://example.com")
+
+		_, err := tr.RoundTrip(req)
+		if err == nil || !errors.Is(err, inner.err) {
+			t.Fatalf("expected round trip to error with %v, got %v", inner.err, err)
+		}
+
+		if !sema.TryAcquire(1) {
+			t.Fatal("semaphore permit leaked after body not closed")
+		}
+	})
+
 	t.Run("throttles_concurrent_requests", func(t *testing.T) {
 		t.Parallel()
 

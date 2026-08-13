@@ -16,18 +16,22 @@ type testRoundTripper struct {
 	err    error
 }
 
-func (r *testRoundTripper) RoundTrip(_ *http.Request) (*http.Response, error) {
-	if r.delay > 0 {
-		time.Sleep(r.delay)
+func (tr *testRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	if tr.delay > 0 {
+		ctx := req.Context()
+		select {
+		case <-time.After(tr.delay):
+		case <-ctx.Done():
+		}
 	}
 
-	r.called.Add(1)
+	tr.called.Add(1)
 
-	if r.err != nil {
-		return nil, r.err
+	if tr.err != nil {
+		return nil, tr.err
 	}
 
-	return r.resp, nil
+	return tr.resp, nil
 }
 
 func mustMkdirTemp(t *testing.T, dir, pattern string) string {
