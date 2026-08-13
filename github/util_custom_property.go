@@ -33,3 +33,16 @@ func flattenOrganizationRepositoryCustomPropertyDefaultValue(cp *github.CustomPr
 
 	return nil, fmt.Errorf("default_value %#v could not be parsed for value_type %q", cp.DefaultValue, cp.ValueType)
 }
+
+// parseRepositoryCustomPropertyValueToStringSlice normalises the polymorphic
+// value of a custom property set on a repository into a list of strings.
+func parseRepositoryCustomPropertyValueToStringSlice(prop *github.CustomPropertyValue) ([]string, error) {
+	switch value := prop.Value.(type) {
+	case string:
+		return []string{value}, nil
+	case []string:
+		return value, nil
+	default:
+		return nil, fmt.Errorf("custom property value couldn't be parsed as a string or a list of strings: %s", value)
+	}
+}
