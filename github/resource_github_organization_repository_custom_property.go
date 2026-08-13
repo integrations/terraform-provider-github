@@ -47,10 +47,11 @@ func resourceGithubOrganizationRepositoryCustomProperty() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"property_name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "Name of the custom property.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				Description:      "Name of the custom property.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsNotEmpty),
 			},
 			"value_type": {
 				Type:             schema.TypeString,
@@ -68,8 +69,11 @@ func resourceGithubOrganizationRepositoryCustomProperty() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
-				Description: "Default value applied to repositories that do not explicitly set the property. Exactly one element for the `string`, `single_select`, `true_false` and `url` types; one or more for `multi_select`.",
-				Elem:        &schema.Schema{Type: schema.TypeString},
+				Description: "Default value applied to repositories that do not explicitly set the property. Exactly one element for the `string`, `single_select`, `true_false` and `url` types; one or more for `multi_select`. Once set, a default cannot be removed via the API, only changed.",
+				Elem: &schema.Schema{
+					Type:             schema.TypeString,
+					ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsNotEmpty),
+				},
 			},
 			"description": {
 				Type:        schema.TypeString,
@@ -77,12 +81,19 @@ func resourceGithubOrganizationRepositoryCustomProperty() *schema.Resource {
 				Computed:    true,
 				Description: "Short description of the custom property.",
 			},
+			// Deliberately not Computed: an omitted Optional+Computed list is
+			// unknown at plan time, which would make the cross-field validation
+			// in CustomizeDiff silently skip itself. Nothing needs to be read
+			// back here either -- select types always set it in config, and Read
+			// clears it for the other types.
 			"allowed_values": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Computed:    true,
 				Description: "Allowed values for `single_select` and `multi_select` property types. Must be omitted for other types.",
-				Elem:        &schema.Schema{Type: schema.TypeString},
+				Elem: &schema.Schema{
+					Type:             schema.TypeString,
+					ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsNotEmpty),
+				},
 			},
 			"values_editable_by": {
 				Type:             schema.TypeString,
@@ -114,10 +125,24 @@ func resourceGithubOrganizationRepositoryCustomPropertyDiff(ctx context.Context,
 		}
 	}
 
-	// Only multi_select accepts a list-valued default; every other type is scalar.
-	if d.NewValueKnown("default_value") && valueType != github.PropertyValueTypeMultiSelect {
-		if defaultValue, _ := d.Get("default_value").([]any); len(defaultValue) > 1 {
+	if d.NewValueKnown("default_value") {
+		defaultValue, _ := d.Get("default_value").([]any)
+
+		// Only multi_select accepts a list-valued default; every other type is scalar.
+		if valueType != github.PropertyValueTypeMultiSelect && len(defaultValue) > 1 {
 			return fmt.Errorf("default_value must contain at most one element when value_type is %q, got %d", valueType, len(defaultValue))
+		}
+
+		// GitHub stores true_false defaults as the strings "true"/"false". Reject
+		// anything else here: strconv.ParseBool would accept "True" or "1" and the
+		// read path would then normalise it to a different string than the config,
+		// failing the apply with an inconsistent-result error.
+		if valueType == github.PropertyValueTypeTrueFalse {
+			for _, v := range defaultValue {
+				if s, _ := v.(string); s != "true" && s != "false" {
+					return fmt.Errorf("default_value must be %q or %q when value_type is %q, got %q", "true", "false", valueType, s)
+				}
+			}
 		}
 	}
 
