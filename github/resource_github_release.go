@@ -93,6 +93,16 @@ func resourceGithubRelease() *schema.Resource {
 				Optional:    true,
 				Description: "If specified, a discussion of the specified category is created and linked to the release. The value must be a category that already exists in the repository. If there is already a discussion linked to the release, this parameter is ignored.",
 			},
+			"etag": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "The ETag of the release.",
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
+			},
 			"release_id": {
 				Type:        schema.TypeInt,
 				Computed:    true,
@@ -142,11 +152,6 @@ func resourceGithubRelease() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The URL for the tarball of the release.",
-			},
-			"etag": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The ETag of the release.",
 			},
 		},
 	}

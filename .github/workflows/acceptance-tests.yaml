@@ -209,6 +209,7 @@ jobs:
           TF_ACC_TERRAFORM_PATH: ${{ steps.tf.outputs.path }}
           TF_ACC: "1"
           TF_LOG: WARN
+          GITHUB_AUTH_MODE: ${{ case(matrix.mode == 'anonymous', 'none', matrix.mode == 'individual', 'token', 'app') }}
           GITHUB_APP_ID: ${{ steps.credentials.outputs.app_id }}
           GITHUB_APP_INSTALLATION_ID: ${{ steps.credentials.outputs.app_installation_id }}
           GITHUB_APP_PEM_FILE: ${{ steps.credentials.outputs.app_pem }}
