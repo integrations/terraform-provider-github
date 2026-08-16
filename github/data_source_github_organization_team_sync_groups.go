@@ -54,7 +54,8 @@ func dataSourceGithubOrganizationTeamSyncGroupsRead(ctx context.Context, d *sche
 	}
 
 	if v, ok := d.GetOk("prefix_filter"); ok {
-		options.Query = v.(string)
+		q, _ := v.(string)
+		options.Query = q
 	}
 
 	groups := make([]any, 0)
@@ -74,7 +75,11 @@ func dataSourceGithubOrganizationTeamSyncGroupsRead(ctx context.Context, d *sche
 		options.Page = resp.NextPageToken
 	}
 
-	id, err := buildID(orgName, options.Query)
+	query := options.Query
+	if query == "" {
+		query = "*"
+	}
+	id, err := buildID(orgName, query)
 	if err != nil {
 		return diag.FromErr(err)
 	}
