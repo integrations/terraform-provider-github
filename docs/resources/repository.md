@@ -12,7 +12,6 @@ This resource allows you to create and manage repositories within your GitHub or
 
 ~> **Note** When used with GitHub App authentication, even GET requests must have the `contents:write` permission. Without it, the following arguments will be ignored, leading to unexpected behavior and confusing diffs: `allow_merge_commit`, `allow_squash_merge`, `allow_rebase_merge`, `merge_commit_title`, `merge_commit_message`, `squash_merge_commit_title` and `squash_merge_commit_message`.
 
-
 ## Example Usage
 
 ```terraform
@@ -204,6 +203,8 @@ Optional:
 - `include_all_branches` (Boolean) Whether the new repository should include all the branches from the template repository (defaults to 'false', which includes only the default branch from the template).
 
 ## Import
+
+Import is supported using the following syntax:
 
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
