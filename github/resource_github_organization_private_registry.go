@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -61,12 +61,12 @@ func resourceGithubOrganizationPrivateRegistry() *schema.Resource {
 				Description:   "The plaintext secret to be encrypted and sent to GitHub. This is used for a token when auth_type is token, and for a password when auth_type is username_password. Required when auth_type is token or username_password.",
 			},
 			"value_encrypted": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				Sensitive:     true,
-				ConflictsWith: []string{"value"},
+				Type:             schema.TypeString,
+				Optional:         true,
+				Sensitive:        true,
+				ConflictsWith:    []string{"value"},
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsBase64),
-				Description:   "The encrypted value of the secret using the GitHub public key in Base64 format.",
+				Description:      "The encrypted value of the secret using the GitHub public key in Base64 format.",
 			},
 			"key_id": {
 				Type:          schema.TypeString,
