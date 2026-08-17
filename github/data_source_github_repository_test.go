@@ -381,6 +381,38 @@ data "github_repository" "test" {
 			},
 		})
 	})
+
+	t.Run("tolerates a license the API cannot serve", func(t *testing.T) {
+		t.Parallel()
+
+		// Removing a LICENSE file leaves the repository classified as `other` with a null license
+		// URL, while the license endpoint starts answering 404. Reading such a repository used to
+		// fail the whole data source. See #2092.
+		repo := mustCreateTestRepository(t, func(repo *github.Repository) {
+			repo.LicenseTemplate = new("mit")
+		})
+		mustDeleteTestRepositoryLicense(t, repo)
+
+		config := fmt.Sprintf(`
+data "github_repository" "test" {
+  name = "%s"
+}
+`, repo.GetName())
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_repository.test", tfjsonpath.New("repo_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("data.github_repository.test", tfjsonpath.New("repository_license"), knownvalue.ListSizeExact(0)),
+					},
+				},
+			},
+		})
+	})
 }
 
 func Test_dataSourceGithubRepositoryReadLicense(t *testing.T) {
