@@ -1,12 +1,13 @@
 ---
 page_title: "github_organization_team_sync_groups (Data Source) - GitHub"
+subcategory: ""
 description: |-
   Get the external identity provider (IdP) groups for an organization.
 ---
 
 # github_organization_team_sync_groups (Data Source)
 
-Use this data source to retrieve the identity provider (IdP) groups for an organization.
+Get the external identity provider (IdP) groups for an organization.
 
 ## Example Usage
 

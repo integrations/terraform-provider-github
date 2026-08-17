@@ -11,6 +11,7 @@ import (
 func dataSourceGithubOrganizationTeamSyncGroups() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceGithubOrganizationTeamSyncGroupsRead,
+		Description: "Get the external identity provider (IdP) groups for an organization.",
 
 		Schema: map[string]*schema.Schema{
 			"prefix_filter": {
