@@ -438,8 +438,7 @@ func dataSourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData,
 			// repository classified as `other` with a null license URL. Treat that like a
 			// repository without a license instead of failing the whole read, matching how a
 			// missing repository is handled above.
-			var ghErr *github.ErrorResponse
-			if !errors.As(err, &ghErr) || ghErr.Response.StatusCode != http.StatusNotFound {
+			if ghErr, ok := errors.AsType[*github.ErrorResponse](err); !ok || ghErr.Response.StatusCode != http.StatusNotFound {
 				return diag.FromErr(err)
 			}
 			tflog.Debug(ctx, "Missing GitHub repository license", map[string]any{"owner": owner, "repo": repoName})
