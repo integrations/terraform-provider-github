@@ -2,8 +2,13 @@ package github
 
 import (
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"regexp"
 	"testing"
 
+	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
@@ -376,4 +381,93 @@ data "github_repository" "test" {
 			},
 		})
 	})
+}
+
+func Test_dataSourceGithubRepositoryReadLicense(t *testing.T) {
+	t.Parallel()
+
+	const (
+		owner    = "test-org"
+		repoName = "test-repo"
+	)
+
+	repoResponse := fmt.Sprintf(`{
+		"id": 123456,
+		"name": %q,
+		"full_name": "%s/%s",
+		"license": {"key": "other", "name": "Other", "spdx_id": "NOASSERTION", "url": null}
+	}`, repoName, owner, repoName)
+
+	for _, tt := range []struct {
+		name              string
+		licenseStatus     int
+		licenseResponse   string
+		wantErr           bool
+		wantLicenseBlocks int
+	}{
+		{
+			name:              "tolerates a license the API cannot serve",
+			licenseStatus:     http.StatusNotFound,
+			wantLicenseBlocks: 0,
+		},
+		{
+			name:              "sets the license when the API serves it",
+			licenseStatus:     http.StatusOK,
+			licenseResponse:   `{"name": "LICENSE", "path": "LICENSE", "license": {"key": "mit", "spdx_id": "MIT"}}`,
+			wantLicenseBlocks: 1,
+		},
+		{
+			name:          "returns other license errors",
+			licenseStatus: http.StatusInternalServerError,
+			wantErr:       true,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if regexp.MustCompile(`/license$`).MatchString(r.URL.Path) {
+					w.WriteHeader(tt.licenseStatus)
+					_, _ = w.Write([]byte(tt.licenseResponse))
+					return
+				}
+
+				if regexp.MustCompile(`/repos/[^/]+/[^/]+$`).MatchString(r.URL.Path) {
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(repoResponse))
+					return
+				}
+
+				w.WriteHeader(http.StatusNotFound)
+			}))
+			t.Cleanup(ts.Close)
+
+			client, err := github.NewClient(github.WithURLs(new(ts.URL+"/"), nil))
+			if err != nil {
+				t.Fatalf("failed to create test client: %s", err)
+			}
+
+			d := schema.TestResourceDataRaw(t, dataSourceGithubRepository().Schema, map[string]any{
+				"full_name": fmt.Sprintf("%s/%s", owner, repoName),
+			})
+
+			diags := dataSourceGithubRepositoryRead(t.Context(), d, &Owner{name: owner, v3client: client})
+
+			if diags.HasError() != tt.wantErr {
+				t.Fatalf("expected error to be %v, got %v", tt.wantErr, diags)
+			}
+
+			if tt.wantErr {
+				return
+			}
+
+			if got := d.Get("repo_id").(int); got != 123456 {
+				t.Errorf("expected repo_id to be 123456, got %d", got)
+			}
+
+			if got := len(d.Get("repository_license").([]any)); got != tt.wantLicenseBlocks {
+				t.Errorf("expected %d repository_license blocks, got %d", tt.wantLicenseBlocks, got)
+			}
+		})
+	}
 }
