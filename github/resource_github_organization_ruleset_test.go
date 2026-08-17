@@ -609,18 +609,24 @@ resource "github_organization_ruleset" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "name", rulesetName),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "target", "repository"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "enforcement", "active"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.repository_create", "true"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.repository_delete", "true"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.repository_transfer", "true"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.repository_name.0.pattern", "^tf-acc-"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.repository_name.0.negate", "false"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.repository_visibility.0.internal", "true"),
-						resource.TestCheckResourceAttr("github_organization_ruleset.test", "rules.0.repository_visibility.0.private", "true"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(rulesetName)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("target"), knownvalue.StringExact("repository")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("enforcement"), knownvalue.StringExact("active")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_create"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_delete"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_transfer"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_name").AtSliceIndex(0).AtMapKey("pattern"), knownvalue.StringExact("^tf-acc-")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_name").AtSliceIndex(0).AtMapKey("negate"), knownvalue.Bool(false)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_visibility").AtSliceIndex(0).AtMapKey("internal"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_visibility").AtSliceIndex(0).AtMapKey("private"), knownvalue.Bool(true)),
+					},
+				},
+				{
+					ResourceName:            "github_organization_ruleset.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"etag"},
 				},
 			},
 		})
