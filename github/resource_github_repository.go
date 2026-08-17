@@ -440,9 +440,10 @@ func resourceGithubRepository() *schema.Resource {
 				Description: "URL that can be provided to 'git clone' to clone the repository via HTTPS.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "An etag representing the repository object.",
 				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
 					return true
 				},
