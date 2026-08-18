@@ -493,12 +493,20 @@ func Test_dataSourceGithubRepositoryReadLicense(t *testing.T) {
 				return
 			}
 
-			if got := d.Get("repo_id").(int); got != 123456 {
-				t.Errorf("expected repo_id to be 123456, got %d", got)
+			repoID, ok := d.Get("repo_id").(int)
+			if !ok {
+				t.Fatalf("expected repo_id to be an int, got %T", d.Get("repo_id"))
+			}
+			if repoID != 123456 {
+				t.Errorf("expected repo_id to be 123456, got %d", repoID)
 			}
 
-			if got := len(d.Get("repository_license").([]any)); got != tt.wantLicenseBlocks {
-				t.Errorf("expected %d repository_license blocks, got %d", tt.wantLicenseBlocks, got)
+			licenses, ok := d.Get("repository_license").([]any)
+			if !ok {
+				t.Fatalf("expected repository_license to be a list, got %T", d.Get("repository_license"))
+			}
+			if len(licenses) != tt.wantLicenseBlocks {
+				t.Errorf("expected %d repository_license blocks, got %d", tt.wantLicenseBlocks, len(licenses))
 			}
 		})
 	}
