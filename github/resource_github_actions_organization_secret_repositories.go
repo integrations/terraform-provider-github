@@ -79,7 +79,7 @@ func resourceGithubActionsOrganizationSecretRepositoriesRead(ctx context.Context
 
 	repoIDs := []int64{}
 	opt := &github.ListOptions{
-		PerPage: maxPerPage,
+		PerPage: meta.maxPerPage,
 	}
 	for {
 		results, resp, err := client.Actions.ListSelectedReposForOrgSecret(ctx, owner, secretName, opt)
@@ -134,7 +134,7 @@ func resourceGithubActionsOrganizationSecretRepositoriesImport(ctx context.Conte
 
 	repoIDs := []int64{}
 	opt := &github.ListOptions{
-		PerPage: maxPerPage,
+		PerPage: meta.maxPerPage,
 	}
 	for {
 		results, resp, err := client.Actions.ListSelectedReposForOrgSecret(ctx, owner, secretName, opt)

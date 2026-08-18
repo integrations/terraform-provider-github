@@ -20,17 +20,17 @@ func TestAccDataSourceGithubOrganizationRoleUsers(t *testing.T) {
 	t.Run("queries_users", func(t *testing.T) {
 		t.Parallel()
 
-		role := mustGetOrganizationRole(t, 138)
-		mustAddOrganizationRoleUser(t, role, testAccConf.testOrgUser1)
-		team := mustCreateTestTeam(t, nil)
+		roleID := int64(138)
+		mustAssignOrganizationRoleToUser(t, testAccConf.testOrgUser1, roleID)
+		team := mustCreateTestTeam(t)
 		mustAddTeamMember(t, team, testAccConf.testOrgUser2)
-		mustAddOrganizationRoleTeam(t, role, team)
+		mustAssignOrganizationRoleToTeam(t, team, roleID)
 
 		config := fmt.Sprintf(`
 data "github_organization_role_users" "test" {
   role_id = %v
 }
-`, role.GetID())
+`, roleID)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,

@@ -80,7 +80,7 @@ func resourceGithubActionsOrganizationVariableRepositoryRead(ctx context.Context
 	repoID := int64(d.Get("repository_id").(int))
 
 	opt := &github.ListOptions{
-		PerPage: maxPerPage,
+		PerPage: meta.maxPerPage,
 	}
 
 	for {

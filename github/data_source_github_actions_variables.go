@@ -54,9 +54,10 @@ func dataSourceGithubActionsVariables() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsVariablesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func dataSourceGithubActionsVariablesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 	var repoName string
 
 	if fullName, ok := d.GetOk("full_name"); ok {
@@ -76,7 +77,7 @@ func dataSourceGithubActionsVariablesRead(ctx context.Context, d *schema.Resourc
 	}
 
 	options := github.ListOptions{
-		PerPage: 100,
+		PerPage: meta.maxPerPage,
 	}
 
 	var all_variables []map[string]string

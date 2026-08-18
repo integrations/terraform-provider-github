@@ -121,8 +121,9 @@ func dataSourceGithubCollaborators() *schema.Resource {
 	}
 }
 
-func dataSourceGithubCollaboratorsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func dataSourceGithubCollaboratorsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
 	owner := d.Get("owner").(string)
 	repo := d.Get("repository").(string)
@@ -133,7 +134,7 @@ func dataSourceGithubCollaboratorsRead(ctx context.Context, d *schema.ResourceDa
 		Affiliation: affiliation,
 		Permission:  permission,
 		ListOptions: github.ListOptions{
-			PerPage: maxPerPage,
+			PerPage: meta.maxPerPage,
 		},
 	}
 

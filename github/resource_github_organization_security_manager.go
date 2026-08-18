@@ -47,16 +47,17 @@ func getSecurityManagerRole(client *github.Client, ctx context.Context, orgName 
 	return nil, errors.New("security manager role not found")
 }
 
-func resourceGithubOrganizationSecurityManagerCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationSecurityManagerCreate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	orgName := meta.(*Owner).name
+	orgName := meta.name
 	teamSlug := d.Get("team_slug").(string)
 
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 	ctx := context.Background()
 
 	team, _, err := client.Teams.GetTeamBySlug(ctx, orgName, teamSlug)
@@ -79,19 +80,21 @@ func resourceGithubOrganizationSecurityManagerCreate(d *schema.ResourceData, met
 	return resourceGithubOrganizationSecurityManagerRead(d, meta)
 }
 
-func resourceGithubOrganizationSecurityManagerRead(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationSecurityManagerRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	orgName := meta.name
+	client := meta.v3client
+
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	orgName := meta.(*Owner).name
 	teamId, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return err
 	}
 
-	client := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	smRole, err := getSecurityManagerRole(client, ctx, orgName)
@@ -100,7 +103,7 @@ func resourceGithubOrganizationSecurityManagerRead(d *schema.ResourceData, meta 
 	}
 
 	// There is no endpoint for getting a single security manager team, so get the list and filter.
-	options := &github.ListOptions{PerPage: 100}
+	options := &github.ListOptions{PerPage: meta.maxPerPage}
 	var smTeam *github.Team = nil
 	for {
 		smTeams, resp, err := client.Organizations.ListTeamsAssignedToOrgRole(ctx, orgName, smRole.GetID(), options)
@@ -136,20 +139,21 @@ func resourceGithubOrganizationSecurityManagerRead(d *schema.ResourceData, meta 
 	return nil
 }
 
-func resourceGithubOrganizationSecurityManagerUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationSecurityManagerUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	orgId := meta.(*Owner).id
-	orgName := meta.(*Owner).name
+	orgId := meta.id
+	orgName := meta.name
 	teamId, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return err
 	}
 
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	team, _, err := client.Teams.GetTeamByID(ctx, orgId, teamId)
@@ -171,16 +175,17 @@ func resourceGithubOrganizationSecurityManagerUpdate(d *schema.ResourceData, met
 	return resourceGithubOrganizationSecurityManagerRead(d, meta)
 }
 
-func resourceGithubOrganizationSecurityManagerDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationSecurityManagerDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	orgName := meta.(*Owner).name
+	orgName := meta.name
 	teamSlug := d.Get("team_slug").(string)
 
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	smRole, err := getSecurityManagerRole(client, ctx, orgName)

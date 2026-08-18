@@ -149,7 +149,7 @@ func resourceGithubActionsOrganizationVariableRead(ctx context.Context, d *schem
 	if variable.GetVisibility() == "selected" {
 		if _, ok := d.GetOk("selected_repository_ids"); ok {
 			var repoIDs []int64
-			for repo, err := range client.Actions.ListSelectedReposForOrgVariableIter(ctx, owner, varName, &github.ListOptions{PerPage: maxPerPage}) {
+			for repo, err := range client.Actions.ListSelectedReposForOrgVariableIter(ctx, owner, varName, &github.ListOptions{PerPage: meta.maxPerPage}) {
 				if err != nil {
 					return diag.FromErr(err)
 				}

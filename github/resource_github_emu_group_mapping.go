@@ -46,8 +46,14 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 				Description: "Name of the external group.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "An etag representing the EMU group mapping.",
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 		},
 		SchemaVersion: 2,

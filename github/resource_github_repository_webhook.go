@@ -70,9 +70,10 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 				Description: "Indicate if the webhook should receive events. Defaults to 'true'.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "An etag representing the webhook.",
 				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
 					return true
 				},

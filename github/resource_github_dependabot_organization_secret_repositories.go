@@ -79,7 +79,7 @@ func resourceGithubDependabotOrganizationSecretRepositoriesRead(ctx context.Cont
 
 	repoIDs := []int64{}
 	opt := &github.ListOptions{
-		PerPage: maxPerPage,
+		PerPage: meta.maxPerPage,
 	}
 	for {
 		results, resp, err := client.Dependabot.ListSelectedReposForOrgSecret(ctx, owner, secretName, opt)
@@ -134,7 +134,7 @@ func resourceGithubDependabotOrganizationSecretRepositoriesImport(ctx context.Co
 
 	repoIDs := []int64{}
 	opt := &github.ListOptions{
-		PerPage: maxPerPage,
+		PerPage: meta.maxPerPage,
 	}
 	for {
 		results, resp, err := client.Dependabot.ListSelectedReposForOrgSecret(ctx, owner, secretName, opt)

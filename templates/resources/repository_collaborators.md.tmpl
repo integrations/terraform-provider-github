@@ -21,7 +21,7 @@ For repositories owned by an organization, collaborators can have explicit (and 
 
 ### Teams
 
-Teams will be added to the repository on apply, and removed if removed from the configuration or on destroy. Teams added to the repository outside of Terraform can be managed by adding them to the configuration, or ignored by using the `ignore_team` argument. This is particularly important for organization/enterprise teams, which either need to be added to the configuration or ignored, as otherwise they will cause perpetual drift.
+Teams will be added to the repository on apply, and removed if removed from the configuration or on destroy. Teams added to the repository outside of Terraform can be managed by adding them to the configuration.
 
 ## Personal Repositories
 

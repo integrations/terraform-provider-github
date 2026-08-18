@@ -1,2 +1,1 @@
-data "github_organization_roles" "example" {
-}
+data "github_organization_roles" "example" {}
