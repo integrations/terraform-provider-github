@@ -219,18 +219,11 @@ func resourceGithubEnterpriseOrganizationAppInstallationRead(ctx context.Context
 	selectedRepositories := []string{}
 	if installation.GetRepositorySelection() == "selected" {
 		opts := &github.ListOptions{PerPage: owner.maxPerPage}
-		for {
-			repos, resp, err := client.Enterprise.ListRepositoriesForOrgAppInstallation(ctx, enterpriseSlug, org, installation.GetID(), opts)
+		for repo, err := range client.Enterprise.ListRepositoriesForOrgAppInstallationIter(ctx, enterpriseSlug, org, installation.GetID(), opts) {
 			if err != nil {
 				return diag.FromErr(err)
 			}
-			for _, repo := range repos {
-				selectedRepositories = append(selectedRepositories, repo.GetName())
-			}
-			if resp.NextPage == 0 {
-				break
-			}
-			opts.Page = resp.NextPage
+			selectedRepositories = append(selectedRepositories, repo.GetName())
 		}
 	}
 	if err := d.Set("selected_repositories", flattenStringList(selectedRepositories)); err != nil {
@@ -369,20 +362,13 @@ func addEnterpriseOrganizationAppInstallationRepositories(ctx context.Context, c
 // app is not installed.
 func findEnterpriseOrganizationAppInstallation(ctx context.Context, owner *Owner, enterpriseSlug, org, clientID string) (*github.Installation, error) {
 	opts := &github.ListOptions{PerPage: owner.maxPerPage}
-	for {
-		installations, resp, err := owner.v3client.Enterprise.ListAppInstallations(ctx, enterpriseSlug, org, opts)
+	for installation, err := range owner.v3client.Enterprise.ListAppInstallationsIter(ctx, enterpriseSlug, org, opts) {
 		if err != nil {
 			return nil, err
 		}
-		for _, installation := range installations {
-			if installation.GetClientID() == clientID {
-				return installation, nil
-			}
+		if installation.GetClientID() == clientID {
+			return installation, nil
 		}
-		if resp.NextPage == 0 {
-			break
-		}
-		opts.Page = resp.NextPage
 	}
 
 	return nil, nil

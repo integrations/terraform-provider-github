@@ -65,24 +65,16 @@ func dataSourceGithubEnterpriseOrganizationAppAccessibleRepositoriesRead(ctx con
 	}
 
 	results := make([]map[string]any, 0)
-	for {
-		repositories, resp, err := client.Enterprise.ListAppAccessibleOrganizationRepositories(ctx, enterpriseSlug, org, opts)
+	for repository, err := range client.Enterprise.ListAppAccessibleOrganizationRepositoriesIter(ctx, enterpriseSlug, org, opts) {
 		if err != nil {
 			return diag.FromErr(err)
 		}
 
-		for _, repository := range repositories {
-			results = append(results, map[string]any{
-				"id":        repository.ID,
-				"name":      repository.Name,
-				"full_name": repository.FullName,
-			})
-		}
-		if resp.NextPage == 0 {
-			break
-		}
-
-		opts.Page = resp.NextPage
+		results = append(results, map[string]any{
+			"id":        repository.ID,
+			"name":      repository.Name,
+			"full_name": repository.FullName,
+		})
 	}
 
 	d.SetId(buildTwoPartID(enterpriseSlug, org))

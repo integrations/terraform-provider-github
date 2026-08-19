@@ -59,24 +59,16 @@ func dataSourceGithubEnterpriseAppInstallableOrganizationsRead(ctx context.Conte
 	}
 
 	results := make([]map[string]any, 0)
-	for {
-		organizations, resp, err := client.Enterprise.ListAppInstallableOrganizations(ctx, enterpriseSlug, opts)
+	for organization, err := range client.Enterprise.ListAppInstallableOrganizationsIter(ctx, enterpriseSlug, opts) {
 		if err != nil {
 			return diag.FromErr(err)
 		}
 
-		for _, organization := range organizations {
-			results = append(results, map[string]any{
-				"id":                          organization.ID,
-				"login":                       organization.Login,
-				"accessible_repositories_url": organization.GetAccessibleRepositoriesURL(),
-			})
-		}
-		if resp.NextPage == 0 {
-			break
-		}
-
-		opts.Page = resp.NextPage
+		results = append(results, map[string]any{
+			"id":                          organization.ID,
+			"login":                       organization.Login,
+			"accessible_repositories_url": organization.GetAccessibleRepositoriesURL(),
+		})
 	}
 
 	d.SetId(enterpriseSlug)

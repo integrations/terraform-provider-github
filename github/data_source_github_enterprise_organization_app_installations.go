@@ -117,20 +117,15 @@ func dataSourceGithubEnterpriseOrganizationAppInstallationsRead(ctx context.Cont
 		PerPage: meta.maxPerPage,
 	}
 
-	results := make([]map[string]any, 0)
-	for {
-		installations, resp, err := client.Enterprise.ListAppInstallations(ctx, enterpriseSlug, org, opts)
+	installations := make([]*github.Installation, 0)
+	for installation, err := range client.Enterprise.ListAppInstallationsIter(ctx, enterpriseSlug, org, opts) {
 		if err != nil {
 			return diag.FromErr(err)
 		}
 
-		results = append(results, flattenGitHubAppInstallations(installations)...)
-		if resp.NextPage == 0 {
-			break
-		}
-
-		opts.Page = resp.NextPage
+		installations = append(installations, installation)
 	}
+	results := flattenGitHubAppInstallations(installations)
 
 	d.SetId(buildTwoPartID(enterpriseSlug, org))
 	if err := d.Set("installations", results); err != nil {
