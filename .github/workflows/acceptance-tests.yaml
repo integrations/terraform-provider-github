@@ -216,6 +216,7 @@ jobs:
           GITHUB_BASE_URL: https://api.github.com/
           GITHUB_OWNER: ${{ case(matrix.mode == 'anonymous', '', matrix.mode == 'individual', vars.GH_TEST_LOGIN, vars.GH_TEST_ORG_NAME) }}
           GITHUB_ENTERPRISE_SLUG: ${{ case(matrix.mode == 'enterprise', vars.GH_TEST_ENTERPRISE_SLUG, '') }}
+        GH_TEST_ENTERPRISE_APP_CLIENT_ID: ${{ vars.GH_TEST_ENTERPRISE_APP_CLIENT_ID }}
           GITHUB_LEGACY_CLIENT: "false"
           GH_TEST_AUTH_MODE: ${{ matrix.mode }}
           GH_TEST_ORG_USER1: ${{ vars.GH_TEST_ORG_USER1 }}
