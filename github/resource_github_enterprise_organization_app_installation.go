@@ -79,8 +79,15 @@ func resourceGithubEnterpriseOrganizationAppInstallation() *schema.Resource {
 
 		CustomizeDiff: customdiff.All(
 			// The API can only toggle an existing installation between 'all' and
-			// 'selected'; transitions involving 'none' require a reinstall.
-			customdiff.ForceNewIfChange("repository_selection", func(ctx context.Context, oldValue, newValue, meta any) bool {
+			// 'selected'; transitions involving 'none' require a reinstall. An
+			// unknown new value could resolve to 'none' during apply, so it must
+			// also force replacement, or the expanded plan would disagree with
+			// the initial one and Terraform would abort the apply.
+			customdiff.ForceNewIf("repository_selection", func(ctx context.Context, d *schema.ResourceDiff, meta any) bool {
+				if !d.NewValueKnown("repository_selection") {
+					return true
+				}
+				oldValue, newValue := d.GetChange("repository_selection")
 				return oldValue.(string) == "none" || newValue.(string) == "none"
 			}),
 			func(ctx context.Context, d *schema.ResourceDiff, meta any) error {
