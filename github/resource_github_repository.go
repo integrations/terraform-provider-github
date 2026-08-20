@@ -22,7 +22,6 @@ func resourceGithubRepository() *schema.Resource {
 		ReadContext:   resourceGithubRepositoryRead,
 		UpdateContext: resourceGithubRepositoryUpdate,
 		DeleteContext: resourceGithubRepositoryDelete,
-		Description:   "This resource allows you to create and manage repositories within your GitHub organization or personal account.\n\n~> **Note** When used with GitHub App authentication, even GET requests must have the `contents:write` permission. Without it, the following arguments will be ignored, leading to unexpected behavior and confusing diffs: `allow_merge_commit`, `allow_squash_merge`, `allow_rebase_merge`, `merge_commit_title`, `merge_commit_message`, `squash_merge_commit_title` and `squash_merge_commit_message`.",
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceGithubRepositoryImport,
 		},
@@ -35,6 +34,8 @@ func resourceGithubRepository() *schema.Resource {
 				Version: 0,
 			},
 		},
+
+		Description: "Resource to create and manage a GitHub repository.",
 
 		Schema: map[string]*schema.Schema{
 			"name": {

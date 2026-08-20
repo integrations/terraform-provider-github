@@ -2,19 +2,20 @@
 page_title: "github_repository (Resource) - GitHub"
 subcategory: ""
 description: |-
-  This resource allows you to create and manage repositories within your GitHub organization or personal account.
-  ~> Note When used with GitHub App authentication, even GET requests must have the contents:write permission. Without it, the following arguments will be ignored, leading to unexpected behavior and confusing diffs: allow_merge_commit, allow_squash_merge, allow_rebase_merge, merge_commit_title, merge_commit_message, squash_merge_commit_title and squash_merge_commit_message.
+  Resource to create and manage a GitHub repository.
 ---
 
 # github_repository (Resource)
 
-This resource allows you to create and manage repositories within your GitHub organization or personal account.
+Resource to create and manage a GitHub repository.
 
 ~> **Note** When used with GitHub App authentication, even GET requests must have the `contents:write` permission. Without it, the following arguments will be ignored, leading to unexpected behavior and confusing diffs: `allow_merge_commit`, `allow_squash_merge`, `allow_rebase_merge`, `merge_commit_title`, `merge_commit_message`, `squash_merge_commit_title` and `squash_merge_commit_message`.
 
 ## Example Usage
 
 ```terraform
+# Repository From A Template Example
+
 resource "github_repository" "example" {
   name        = "example"
   description = "My awesome codebase"
@@ -30,6 +31,8 @@ resource "github_repository" "example" {
 ```
 
 ```terraform
+# Forked Repository Example
+
 resource "github_repository" "forked_repo" {
   name         = "forked-repository"
   description  = "This is a fork of another repository"
@@ -205,6 +208,15 @@ Optional:
 ## Import
 
 Import is supported using the following syntax:
+
+In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `id` attribute, for example:
+
+```terraform
+import {
+  to = github_repository.example
+  id = "myrepo"
+}
+```
 
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
