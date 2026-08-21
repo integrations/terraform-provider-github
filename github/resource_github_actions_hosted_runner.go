@@ -318,8 +318,7 @@ func resourceGithubActionsHostedRunnerCreate(d *schema.ResourceData, meta any) e
 	var runner map[string]any
 	_, err = client.Do(req, &runner)
 	if err != nil {
-		var acceptedErr *github.AcceptedError
-		if !errors.As(err, &acceptedErr) {
+		if _, ok := errors.AsType[*github.AcceptedError](err); !ok {
 			return err
 		}
 	}
@@ -358,8 +357,7 @@ func resourceGithubActionsHostedRunnerRead(d *schema.ResourceData, meta any) err
 	var runner map[string]any
 	_, err = client.Do(req, &runner)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] Removing hosted runner %s from state because it no longer exists in GitHub", runnerID)
 				d.SetId("")
@@ -486,8 +484,7 @@ func resourceGithubActionsHostedRunnerUpdate(d *schema.ResourceData, meta any) e
 	var runner map[string]any
 	_, err = client.Do(req, &runner)
 	if err != nil {
-		var acceptedErr *github.AcceptedError
-		if !errors.As(err, &acceptedErr) {
+		if _, ok := errors.AsType[*github.AcceptedError](err); !ok {
 			return err
 		}
 	}
@@ -518,8 +515,7 @@ func resourceGithubActionsHostedRunnerDelete(d *schema.ResourceData, meta any) e
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			return nil
 		}
-		var acceptedErr *github.AcceptedError
-		if errors.As(err, &acceptedErr) {
+		if _, ok := errors.AsType[*github.AcceptedError](err); ok {
 			return waitForRunnerDeletion(ctx, client, orgName, runnerID, d.Timeout(schema.TimeoutDelete))
 		}
 		return err

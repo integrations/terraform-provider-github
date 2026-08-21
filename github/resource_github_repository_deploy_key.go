@@ -110,8 +110,7 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta any) err
 
 	key, resp, err := client.Repositories.GetKey(ctx, owner, repoName, id)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
