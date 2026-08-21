@@ -6,21 +6,32 @@ import (
 	"path/filepath"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 type testRoundTripper struct {
+	delay  time.Duration
 	called atomic.Int32
 	resp   *http.Response
 	err    error
 }
 
-func (r *testRoundTripper) RoundTrip(_ *http.Request) (*http.Response, error) {
-	r.called.Add(1)
-	if r.err != nil {
-		return nil, r.err
+func (tr *testRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	if tr.delay > 0 {
+		ctx := req.Context()
+		select {
+		case <-time.After(tr.delay):
+		case <-ctx.Done():
+		}
 	}
 
-	return r.resp, nil
+	tr.called.Add(1)
+
+	if tr.err != nil {
+		return nil, tr.err
+	}
+
+	return tr.resp, nil
 }
 
 func mustMkdirTemp(t *testing.T, dir, pattern string) string {
@@ -43,4 +54,15 @@ func mustReadAppPrivateKey(t *testing.T) []byte {
 	}
 
 	return privateKeyData
+}
+
+func mustCreateRequest(t *testing.T, method, url string) *http.Request {
+	t.Helper()
+
+	req, err := http.NewRequestWithContext(t.Context(), method, url, nil)
+	if err != nil {
+		t.Fatalf("failed to create request: %v", err)
+	}
+
+	return req
 }
