@@ -9,7 +9,7 @@ description: |-
 
 Resource to create and manage a GitHub repository.
 
-~> **Note** When used with GitHub App authentication, even GET requests must have the `contents:write` permission. Without it, the following arguments will be ignored, leading to unexpected behavior and confusing diffs: `allow_merge_commit`, `allow_squash_merge`, `allow_rebase_merge`, `merge_commit_title`, `merge_commit_message`, `squash_merge_commit_title` and `squash_merge_commit_message`.
+~> When used with GitHub App authentication, even GET requests must have the `contents:write` permission. Without it, the following arguments will be ignored, leading to unexpected behavior and confusing diffs: `allow_merge_commit`, `allow_squash_merge`, `allow_rebase_merge`, `merge_commit_title`, `merge_commit_message`, `squash_merge_commit_title` and `squash_merge_commit_message`.
 
 ## Example Usage
 
