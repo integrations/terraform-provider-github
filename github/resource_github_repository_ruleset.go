@@ -32,7 +32,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 
 		CustomizeDiff: resourceGithubRepositoryRulesetDiff,
 
-		Description: "This resource allows you to create and manage rulesets on the repository level. When applied, a new ruleset will be created. When destroyed, that ruleset will be removed.",
+		Description: "Resource to manage GitHub repository rulesets.",
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -711,7 +711,7 @@ func resourceGithubRepositoryRulesetCreate(ctx context.Context, d *schema.Resour
 		return diag.Errorf("cannot create ruleset on archived repository %s/%s", owner, repoName)
 	}
 
-	if v, _ := d.Get("rules.0.update_allows_fetch_and_merge").(bool); v && !repo.GetFork() { //nolint:staticcheck // SA1019: d.GetOkExists is deprecated but necessary for bool fields
+	if v, _ := d.Get("rules.0.update_allows_fetch_and_merge").(bool); v && !repo.GetFork() {
 		return diag.Errorf("cannot set update_allows_fetch_and_merge when repository is not a forked repository %s/%s", owner, repoName)
 	}
 
@@ -826,7 +826,7 @@ func resourceGithubRepositoryRulesetUpdate(ctx context.Context, d *schema.Resour
 		tflog.Info(ctx, "Repository is archived, skipping ruleset update", map[string]any{"owner": owner, "repo_name": repoName})
 		return nil
 	}
-	if v, _ := d.Get("rules.0.update_allows_fetch_and_merge").(bool); v && !repo.GetFork() { //nolint:staticcheck // SA1019: d.GetOkExists is deprecated but necessary for bool fields
+	if v, _ := d.Get("rules.0.update_allows_fetch_and_merge").(bool); v && !repo.GetFork() {
 		return diag.Errorf("cannot set update_allows_fetch_and_merge when repository is not a forked repository %s/%s", owner, repoName)
 	}
 
