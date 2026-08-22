@@ -259,6 +259,7 @@ func NewProvider(version, commit string) func() *schema.Provider {
 				"github_enterprise_actions_workflow_permissions":                        resourceGithubEnterpriseActionsWorkflowPermissions(),
 				"github_actions_organization_workflow_permissions":                      resourceGithubActionsOrganizationWorkflowPermissions(),
 				"github_enterprise_security_analysis_settings":                          resourceGithubEnterpriseSecurityAnalysisSettings(),
+				"github_enterprise_custom_property":                                     resourceGithubEnterpriseCustomProperties(),
 				"github_workflow_repository_permissions":                                resourceGithubWorkflowRepositoryPermissions(),
 			},
 
@@ -341,6 +342,7 @@ func NewProvider(version, commit string) func() *schema.Provider {
 				"github_user_external_identity":                                         dataSourceGithubUserExternalIdentity(),
 				"github_users":                                                          dataSourceGithubUsers(),
 				"github_enterprise":                                                     dataSourceGithubEnterprise(),
+				"github_enterprise_custom_property":                                     dataSourceGithubEnterpriseCustomProperty(),
 				"github_repository_environment_deployment_policies":                     dataSourceGithubRepositoryEnvironmentDeploymentPolicies(),
 			},
 
