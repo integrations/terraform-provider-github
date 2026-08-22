@@ -370,7 +370,8 @@ data "github_repository" "test" {
 				{
 					Config: config,
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("data.github_repository.test", "repository_license.0")),
+						resource.TestCheckResourceAttrSet("data.github_repository.test", "repository_license.0"),
+					),
 				},
 			},
 		})

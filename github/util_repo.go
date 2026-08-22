@@ -21,8 +21,7 @@ func checkRepositoryBranchExists(ctx context.Context, client *github.Client, own
 	})
 	_, _, err := client.Repositories.GetBranch(ctx, owner, repo, branch, 2)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				return fmt.Errorf("branch %s not found in repository %s/%s or repository is not readable", branch, owner, repo)
 			}
@@ -121,8 +120,7 @@ func listAutolinks(ctx context.Context, client *github.Client, owner, repo strin
 // isArchivedRepositoryError checks if an error is a 403 "repository archived" error.
 // Returns true if the repository is archived.
 func isArchivedRepositoryError(err error) bool {
-	var ghErr *github.ErrorResponse
-	if errors.As(err, &ghErr) {
+	if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 		if ghErr.Response.StatusCode == http.StatusForbidden {
 			return strings.Contains(strings.ToLower(ghErr.Message), "archived")
 		}
