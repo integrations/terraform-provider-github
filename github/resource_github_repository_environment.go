@@ -227,6 +227,12 @@ func resourceGithubRepositoryEnvironmentRead(ctx context.Context, d *schema.Reso
 	if err := d.Set("wait_timer", nil); err != nil {
 		return diag.FromErr(err)
 	}
+	if err := d.Set("reviewers", []any{}); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("prevent_self_review", false); err != nil {
+		return diag.FromErr(err)
+	}
 	if err := d.Set("can_admins_bypass", env.CanAdminsBypass); err != nil {
 		return diag.FromErr(err)
 	}
