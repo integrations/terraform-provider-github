@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -69,27 +69,27 @@ func resourceGithubEnterpriseSecurityAnalysisSettingsCreateOrUpdate(d *schema.Re
 	settings := &github.EnterpriseSecurityAnalysisSettings{}
 
 	if v, ok := d.GetOk("advanced_security_enabled_for_new_repositories"); ok {
-		settings.AdvancedSecurityEnabledForNewRepositories = github.Bool(v.(bool))
+		settings.AdvancedSecurityEnabledForNewRepositories = new(v.(bool))
 	}
 
 	if v, ok := d.GetOk("secret_scanning_enabled_for_new_repositories"); ok {
-		settings.SecretScanningEnabledForNewRepositories = github.Bool(v.(bool))
+		settings.SecretScanningEnabledForNewRepositories = new(v.(bool))
 	}
 
 	if v, ok := d.GetOk("secret_scanning_push_protection_enabled_for_new_repositories"); ok {
-		settings.SecretScanningPushProtectionEnabledForNewRepositories = github.Bool(v.(bool))
+		settings.SecretScanningPushProtectionEnabledForNewRepositories = new(v.(bool))
 	}
 
 	if v, ok := d.GetOk("secret_scanning_push_protection_custom_link"); ok {
-		settings.SecretScanningPushProtectionCustomLink = github.String(v.(string))
+		settings.SecretScanningPushProtectionCustomLink = new(v.(string))
 	}
 
 	if v, ok := d.GetOk("secret_scanning_validity_checks_enabled"); ok {
-		settings.SecretScanningValidityChecksEnabled = github.Bool(v.(bool))
+		settings.SecretScanningValidityChecksEnabled = new(v.(bool))
 	}
 
 	log.Printf("[DEBUG] Updating security analysis settings for enterprise: %s", enterpriseSlug)
-	_, err := client.Enterprise.UpdateCodeSecurityAndAnalysis(ctx, enterpriseSlug, settings)
+	_, err := client.Enterprise.UpdateCodeSecurityAndAnalysis(ctx, enterpriseSlug, settings) //nolint:staticcheck // SA1019: UpdateCodeSecurityAndAnalysis is deprecated but still needed for legacy compatibility
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func resourceGithubEnterpriseSecurityAnalysisSettingsRead(d *schema.ResourceData
 	enterpriseSlug := d.Id()
 	log.Printf("[DEBUG] Reading security analysis settings for enterprise: %s", enterpriseSlug)
 
-	settings, _, err := client.Enterprise.GetCodeSecurityAndAnalysis(ctx, enterpriseSlug)
+	settings, _, err := client.Enterprise.GetCodeSecurityAndAnalysis(ctx, enterpriseSlug) //nolint:staticcheck // SA1019: GetCodeSecurityAndAnalysis is deprecated but still needed for legacy compatibility
 	if err != nil {
 		return err
 	}
@@ -140,14 +140,14 @@ func resourceGithubEnterpriseSecurityAnalysisSettingsDelete(d *schema.ResourceDa
 
 	// Reset to safe defaults (all disabled)
 	settings := &github.EnterpriseSecurityAnalysisSettings{
-		AdvancedSecurityEnabledForNewRepositories:             github.Bool(false),
-		SecretScanningEnabledForNewRepositories:               github.Bool(false),
-		SecretScanningPushProtectionEnabledForNewRepositories: github.Bool(false),
-		SecretScanningPushProtectionCustomLink:                github.String(""),
-		SecretScanningValidityChecksEnabled:                   github.Bool(false),
+		AdvancedSecurityEnabledForNewRepositories:             new(false),
+		SecretScanningEnabledForNewRepositories:               new(false),
+		SecretScanningPushProtectionEnabledForNewRepositories: new(false),
+		SecretScanningPushProtectionCustomLink:                new(""),
+		SecretScanningValidityChecksEnabled:                   new(false),
 	}
 
-	_, err := client.Enterprise.UpdateCodeSecurityAndAnalysis(ctx, enterpriseSlug, settings)
+	_, err := client.Enterprise.UpdateCodeSecurityAndAnalysis(ctx, enterpriseSlug, settings) //nolint:staticcheck // SA1019: UpdateCodeSecurityAndAnalysis is deprecated but still needed for legacy compatibility
 	if err != nil {
 		return err
 	}

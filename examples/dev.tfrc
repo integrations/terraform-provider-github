@@ -1,7 +1,9 @@
 provider_installation {
   dev_overrides {
-    "integrations/github" = "~/go/bin/"
+    "integrations/github" = "$HOME/go/bin/"
   }
 
-  direct {}
+  direct {
+    exclude = ["registry.terraform.io/hashicorp/github"]
+  }
 }

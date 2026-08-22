@@ -3,44 +3,34 @@ package github
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubActionsOrganizationRegistrationTokenDataSource(t *testing.T) {
-	t.Run("get an organization registration token without error", func(t *testing.T) {
+	t.Parallel()
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
 		config := `
-			data "github_actions_organization_registration_token" "test" {
-			}
-		`
+data "github_actions_organization_registration_token" "test" {}
+`
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet("data.github_actions_organization_registration_token.test", "token"),
-			resource.TestCheckResourceAttrSet("data.github_actions_organization_registration_token.test", "expires_at"),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_actions_organization_registration_token.test", tfjsonpath.New("token"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("data.github_actions_organization_registration_token.test", tfjsonpath.New("expires_at"), knownvalue.NotNull()),
 					},
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 }

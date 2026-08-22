@@ -3,622 +3,335 @@ package github
 import (
 	"encoding/base64"
 	"fmt"
-	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubActionsSecret(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	t.Parallel()
 
-	t.Run("reads a repository public key without error", func(t *testing.T) {
-		config := fmt.Sprintf(`
+	skipUnauthenticated(t)
 
-			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
-			}
+	t.Run("with_value", func(t *testing.T) {
+		t.Parallel()
 
-			data "github_actions_public_key" "test_pk" {
-			  repository = github_repository.test.name
-			}
-
-		`, randomID)
-
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttrSet(
-				"data.github_actions_public_key.test_pk", "key_id",
-			),
-			resource.TestCheckResourceAttrSet(
-				"data.github_actions_public_key.test_pk", "key",
-			),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-	})
-
-	t.Run("creates and updates secrets without error", func(t *testing.T) {
-		secretValue := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
-		updatedSecretValue := base64.StdEncoding.EncodeToString([]byte("updated_super_secret_value"))
+		repo := mustCreateTestRepository(t)
 
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
-			}
-
-			resource "github_actions_secret" "plaintext_secret" {
-			  repository       = github_repository.test.name
-			  secret_name      = "test_plaintext_secret"
-			  plaintext_value  = "%s"
-			}
-
-			resource "github_actions_secret" "encrypted_secret" {
-			  repository       = github_repository.test.name
-			  secret_name      = "test_encrypted_secret"
-			  encrypted_value  = "%s"
-			}
-			`, randomID, secretValue, secretValue)
-
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_actions_secret.plaintext_secret", "plaintext_value",
-					secretValue,
-				),
-				resource.TestCheckResourceAttr(
-					"github_actions_secret.encrypted_secret", "encrypted_value",
-					secretValue,
-				),
-				resource.TestCheckResourceAttrSet(
-					"github_actions_secret.plaintext_secret", "created_at",
-				),
-				resource.TestCheckResourceAttrSet(
-					"github_actions_secret.plaintext_secret", "updated_at",
-				),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_actions_secret.plaintext_secret", "plaintext_value",
-					updatedSecretValue,
-				),
-				resource.TestCheckResourceAttr(
-					"github_actions_secret.encrypted_secret", "encrypted_value",
-					updatedSecretValue,
-				),
-				resource.TestCheckResourceAttrSet(
-					"github_actions_secret.plaintext_secret", "created_at",
-				),
-				resource.TestCheckResourceAttrSet(
-					"github_actions_secret.plaintext_secret", "updated_at",
-				),
-			),
-		}
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["before"],
-					},
-					{
-						Config: strings.Replace(config,
-							secretValue,
-							updatedSecretValue, 2),
-						Check: checks["after"],
-					},
-				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-	})
-
-	t.Run("creates and updates repository name without error", func(t *testing.T) {
-		repoName := fmt.Sprintf("tf-acc-test-%s", randomID)
-		updatedRepoName := fmt.Sprintf("tf-acc-test-%s-updated", randomID)
-		secretValue := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
-
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-			  name = "%s"
-			}
-
-			resource "github_actions_secret" "plaintext_secret" {
-			  repository       = github_repository.test.name
-			  secret_name      = "test_plaintext_secret"
-			  plaintext_value  = "%s"
-			}
-
-			resource "github_actions_secret" "encrypted_secret" {
-			  repository       = github_repository.test.name
-			  secret_name      = "test_encrypted_secret"
-			  encrypted_value  = "%s"
-			}
-			`, repoName, secretValue, secretValue)
-
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_actions_secret.plaintext_secret", "repository",
-					repoName,
-				),
-				resource.TestCheckResourceAttr(
-					"github_actions_secret.plaintext_secret", "plaintext_value",
-					secretValue,
-				),
-				resource.TestCheckResourceAttr(
-					"github_actions_secret.encrypted_secret", "encrypted_value",
-					secretValue,
-				),
-				resource.TestCheckResourceAttrSet(
-					"github_actions_secret.plaintext_secret", "created_at",
-				),
-				resource.TestCheckResourceAttrSet(
-					"github_actions_secret.plaintext_secret", "updated_at",
-				),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_actions_secret.plaintext_secret", "repository",
-					updatedRepoName,
-				),
-				resource.TestCheckResourceAttr(
-					"github_actions_secret.plaintext_secret", "plaintext_value",
-					secretValue,
-				),
-				resource.TestCheckResourceAttr(
-					"github_actions_secret.encrypted_secret", "encrypted_value",
-					secretValue,
-				),
-				resource.TestCheckResourceAttrSet(
-					"github_actions_secret.plaintext_secret", "created_at",
-				),
-				resource.TestCheckResourceAttrSet(
-					"github_actions_secret.plaintext_secret", "updated_at",
-				),
-			),
-		}
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["before"],
-					},
-					{
-						Config: strings.Replace(config,
-							repoName,
-							updatedRepoName, 2),
-						Check: checks["after"],
-					},
-				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-	})
-
-	t.Run("deletes secrets without error", func(t *testing.T) {
-		config := fmt.Sprintf(`
-				resource "github_repository" "test" {
-					name = "tf-acc-test-%s"
-				}
-
-				resource "github_actions_secret" "plaintext_secret" {
-					repository 	= github_repository.test.name
-					secret_name	= "test_plaintext_secret"
-				}
-
-				resource "github_actions_secret" "encrypted_secret" {
-					repository 	= github_repository.test.name
-					secret_name	= "test_encrypted_secret"
-				}
-			`, randomID)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:  config,
-						Destroy: true,
-					},
-				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-	})
-
-	t.Run("respects destroy_on_drift setting", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
-			}
-
-			resource "github_actions_secret" "with_drift_true" {
-				repository        = github_repository.test.name
-				secret_name       = "test_drift_true"
-				plaintext_value   = "initial_value"
-				destroy_on_drift  = true
-			}
-
-			resource "github_actions_secret" "with_drift_false" {
-				repository        = github_repository.test.name
-				secret_name       = "test_drift_false"
-				plaintext_value   = "initial_value"
-				destroy_on_drift  = false
-			}
-
-			resource "github_actions_secret" "default_behavior" {
-				repository        = github_repository.test.name
-				secret_name       = "test_default"
-				plaintext_value   = "initial_value"
-				# destroy_on_drift defaults to true
-			}
-		`, randomID)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr(
-								"github_actions_secret.with_drift_true", "destroy_on_drift", "true"),
-							resource.TestCheckResourceAttr(
-								"github_actions_secret.with_drift_false", "destroy_on_drift", "false"),
-							resource.TestCheckResourceAttr(
-								"github_actions_secret.default_behavior", "destroy_on_drift", "true"),
-							resource.TestCheckResourceAttr(
-								"github_actions_secret.with_drift_true", "plaintext_value", "initial_value"),
-							resource.TestCheckResourceAttr(
-								"github_actions_secret.with_drift_false", "plaintext_value", "initial_value"),
-							resource.TestCheckResourceAttr(
-								"github_actions_secret.default_behavior", "plaintext_value", "initial_value"),
-						),
-					},
-				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-	})
+resource "github_actions_secret" "test" {
+  repository  = "%s"
+  secret_name = "TEST"
+  value       = "%%s"
 }
+`, repo.GetName())
 
-// Unit tests for drift detection behavior.
-func TestGithubActionsSecretDriftDetection(t *testing.T) {
-	t.Run("destroyOnDrift true causes recreation on timestamp mismatch", func(t *testing.T) {
-		originalTimestamp := "2023-01-01T00:00:00Z"
-		newTimestamp := "2023-01-02T00:00:00Z"
-
-		d := schema.TestResourceDataRaw(t, resourceGithubActionsSecret().Schema, map[string]any{
-			"repository":       "test-repo",
-			"secret_name":      "test-secret",
-			"plaintext_value":  "test-value",
-			"destroy_on_drift": true,
-			"updated_at":       originalTimestamp,
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, "super_secret_value"),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_secret.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_secret.test", tfjsonpath.New("key_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_secret.test", tfjsonpath.New("created_at"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_secret.test", tfjsonpath.New("updated_at"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_secret.test", tfjsonpath.New("remote_updated_at"), knownvalue.NotNull()),
+					},
+				},
+				{
+					Config: fmt.Sprintf(config, "super_secret_value_2"),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_secret.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+				{
+					ResourceName:            "github_actions_secret.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"key_id", "value"},
+				},
+			},
 		})
-		d.SetId("test-secret")
-
-		// Test the drift detection logic - simulate what happens in the read function
-		destroyOnDrift := d.Get("destroy_on_drift").(bool)
-		if updatedAt, ok := d.GetOk("updated_at"); ok && destroyOnDrift && updatedAt != newTimestamp {
-			d.SetId("") // This simulates the drift detection
-		}
-
-		// Should have cleared the ID (marking for recreation)
-		if d.Id() != "" {
-			t.Error("Expected ID to be cleared due to drift detection, but it wasn't")
-		}
 	})
 
-	t.Run("destroyOnDrift false clears sensitive values instead of recreating", func(t *testing.T) {
-		originalTimestamp := "2023-01-01T00:00:00Z"
-		newTimestamp := "2023-01-02T00:00:00Z"
+	t.Run("with_value_encrypted", func(t *testing.T) {
+		t.Parallel()
 
-		d := schema.TestResourceDataRaw(t, resourceGithubActionsSecret().Schema, map[string]any{
-			"repository":       "test-repo",
-			"secret_name":      "test-secret",
-			"plaintext_value":  "original-value",
-			"encrypted_value":  "original-encrypted",
-			"destroy_on_drift": false,
-			"updated_at":       originalTimestamp,
-		})
-		d.SetId("test-secret")
+		repo := mustCreateTestRepository(t)
+		key := mustGetTestRepositoryPublicKey(t, repo)
 
-		// Simulate drift detection logic when destroy_on_drift is false
-		destroyOnDrift := d.Get("destroy_on_drift").(bool)
-		storedUpdatedAt, hasStoredUpdatedAt := d.GetOk("updated_at")
-
-		if hasStoredUpdatedAt && storedUpdatedAt != newTimestamp {
-			if destroyOnDrift {
-				// Would clear ID for recreation
-				d.SetId("")
-			} else {
-				// Should clear sensitive values to trigger update
-				_ = d.Set("encrypted_value", "")
-				_ = d.Set("plaintext_value", "")
-			}
-			_ = d.Set("updated_at", newTimestamp)
-		}
-
-		// Should NOT have cleared the ID when destroy_on_drift=false
-		if d.Id() == "" {
-			t.Error("Expected ID to be preserved when destroy_on_drift=false, but it was cleared")
-		}
-
-		// Should have cleared sensitive values to trigger update plan
-		if plaintextValue := d.Get("plaintext_value").(string); plaintextValue != "" {
-			t.Errorf("Expected plaintext_value to be cleared for update plan, got %s", plaintextValue)
-		}
-
-		if encryptedValue := d.Get("encrypted_value").(string); encryptedValue != "" {
-			t.Errorf("Expected encrypted_value to be cleared for update plan, got %s", encryptedValue)
-		}
-
-		// Should have updated the timestamp
-		if updatedAt := d.Get("updated_at").(string); updatedAt != newTimestamp {
-			t.Errorf("Expected timestamp to be updated to %s, got %s", newTimestamp, updatedAt)
-		}
-	})
-
-	t.Run("destroyOnDrift true still recreates resource on drift", func(t *testing.T) {
-		originalTimestamp := "2023-01-01T00:00:00Z"
-		newTimestamp := "2023-01-02T00:00:00Z"
-
-		d := schema.TestResourceDataRaw(t, resourceGithubActionsSecret().Schema, map[string]any{
-			"repository":       "test-repo",
-			"secret_name":      "test-secret",
-			"plaintext_value":  "original-value",
-			"destroy_on_drift": true, // Explicitly set to true
-			"updated_at":       originalTimestamp,
-		})
-		d.SetId("test-secret")
-
-		// Simulate drift detection logic when destroy_on_drift is true
-		destroyOnDrift := d.Get("destroy_on_drift").(bool)
-		storedUpdatedAt, hasStoredUpdatedAt := d.GetOk("updated_at")
-
-		if hasStoredUpdatedAt && storedUpdatedAt != newTimestamp {
-			if destroyOnDrift {
-				// Should clear ID for recreation (original behavior)
-				d.SetId("")
-				return // Exit early like the real function would
-			}
-		}
-
-		// Should have cleared the ID for recreation when destroy_on_drift=true
-		if d.Id() != "" {
-			t.Error("Expected ID to be cleared for recreation when destroy_on_drift=true, but it was preserved")
-		}
-	})
-
-	t.Run("destroyOnDrift true still recreates resource on drift", func(t *testing.T) {
-		originalTimestamp := "2023-01-01T00:00:00Z"
-		newTimestamp := "2023-01-02T00:00:00Z"
-
-		d := schema.TestResourceDataRaw(t, resourceGithubActionsSecret().Schema, map[string]any{
-			"repository":       "test-repo",
-			"secret_name":      "test-secret",
-			"plaintext_value":  "original-value",
-			"destroy_on_drift": true, // Explicitly set to true
-			"updated_at":       originalTimestamp,
-		})
-		d.SetId("test-secret")
-
-		// Simulate drift detection logic when destroy_on_drift is true
-		destroyOnDrift := d.Get("destroy_on_drift").(bool)
-		storedUpdatedAt, hasStoredUpdatedAt := d.GetOk("updated_at")
-
-		if hasStoredUpdatedAt && storedUpdatedAt != newTimestamp {
-			if destroyOnDrift {
-				// Should clear ID for recreation (original behavior)
-				d.SetId("")
-				return // Exit early like the real function would
-			}
-		}
-
-		// Should have cleared the ID for recreation when destroy_on_drift=true
-		if d.Id() != "" {
-			t.Error("Expected ID to be cleared for recreation when destroy_on_drift=true, but it was preserved")
-		}
-	})
-
-	t.Run("default destroy_on_drift is true", func(t *testing.T) {
-		d := schema.TestResourceDataRaw(t, resourceGithubActionsSecret().Schema, map[string]any{
-			"repository":      "test-repo",
-			"secret_name":     "test-secret",
-			"plaintext_value": "test-value",
-			// destroy_on_drift not set, should default to true
-		})
-
-		destroyOnDrift := d.Get("destroy_on_drift").(bool)
-		if !destroyOnDrift {
-			t.Error("Expected destroy_on_drift to default to true")
-		}
-	})
-
-	t.Run("no drift when timestamps match", func(t *testing.T) {
-		timestamp := "2023-01-01T00:00:00Z"
-
-		d := schema.TestResourceDataRaw(t, resourceGithubActionsSecret().Schema, map[string]any{
-			"repository":       "test-repo",
-			"secret_name":      "test-secret",
-			"plaintext_value":  "test-value",
-			"destroy_on_drift": true,
-			"updated_at":       timestamp,
-		})
-		d.SetId("test-secret")
-
-		// Simulate same timestamp (no external change)
-		destroyOnDrift := d.Get("destroy_on_drift").(bool)
-		if updatedAt, ok := d.GetOk("updated_at"); ok && destroyOnDrift && updatedAt != timestamp {
-			d.SetId("") // This should NOT happen
-		}
-
-		// Should NOT have cleared the ID
-		if d.Id() == "" {
-			t.Error("Expected ID to be preserved when no drift detected, but it was cleared")
-		}
-	})
-
-	t.Run("destroy_on_drift field defaults", func(t *testing.T) {
-		// Test that destroy_on_drift defaults to true for backward compatibility
-		schema := resourceGithubActionsSecret().Schema["destroy_on_drift"]
-		if schema.Default != true {
-			t.Error("destroy_on_drift should default to true for backward compatibility")
-		}
-	})
-
-	t.Run("destroy_on_drift field properties", func(t *testing.T) {
-		resource := resourceGithubActionsSecret()
-		driftField := resource.Schema["destroy_on_drift"]
-
-		// Should be optional
-		if driftField.Required {
-			t.Error("Expected destroy_on_drift to be optional, but it's required")
-		}
-
-		if !driftField.Optional {
-			t.Error("Expected destroy_on_drift to be optional")
-		}
-
-		// Should be boolean type
-		if driftField.Type.String() != "TypeBool" {
-			t.Errorf("Expected destroy_on_drift to be TypeBool, got %s", driftField.Type.String())
-		}
-
-		// Should have default value of true
-		if driftField.Default != true {
-			t.Errorf("Expected destroy_on_drift default to be true, got %v", driftField.Default)
-		}
-
-		// Should have description
-		if driftField.Description == "" {
-			t.Error("Expected destroy_on_drift to have a description")
-		}
-	})
+		config := fmt.Sprintf(`
+resource "github_actions_secret" "test" {
+  repository      = "%s"
+  secret_name     = "TEST"
+	key_id          = "%s"
+  value_encrypted = "%%s"
 }
+`, repo.GetName(), key.GetKeyID())
 
-// Test demonstrating the solution to GitHub issue #964.
-func TestGithubActionsSecretIssue964Solution(t *testing.T) {
-	t.Run("solve issue 964 - prevent recreation when GUI changes secret", func(t *testing.T) {
-		// This test demonstrates the fix for:
-		// https://github.com/integrations/terraform-provider-github/issues/964
-
-		// Scenario: User creates secret with Terraform, then updates value via GitHub GUI
-		// Expected: With destroy_on_drift=false, Terraform should not recreate the secret
-
-		d := schema.TestResourceDataRaw(t, resourceGithubActionsSecret().Schema, map[string]any{
-			"repository":       "my-repo",
-			"secret_name":      "WORKFLOW_PAT",
-			"plaintext_value":  "CHANGE_ME", // Initial placeholder value
-			"destroy_on_drift": false,       // KEY FIX: Prevents recreation
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, base64.StdEncoding.EncodeToString([]byte("super_secret_value"))),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_secret.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_secret.test", tfjsonpath.New("created_at"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_secret.test", tfjsonpath.New("updated_at"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_secret.test", tfjsonpath.New("remote_updated_at"), knownvalue.NotNull()),
+					},
+				},
+				{
+					Config: fmt.Sprintf(config, base64.StdEncoding.EncodeToString([]byte("super_secret_value_2"))),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_secret.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+				{
+					ResourceName:            "github_actions_secret.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"key_id", "value_encrypted"},
+				},
+			},
 		})
-		d.SetId("WORKFLOW_PAT")
+	})
 
-		// Set initial timestamp
-		originalTime := "2023-01-01T00:00:00Z"
-		_ = d.Set("updated_at", originalTime)
+	t.Run("with_plaintext_value", func(t *testing.T) {
+		t.Parallel()
 
-		// Simulate: User changes secret value via GitHub GUI
-		// This changes the updated_at timestamp
-		newTime := "2023-01-01T12:00:00Z" // Later timestamp = external change
+		repo := mustCreateTestRepository(t)
 
-		// Test the read function behavior - this is what happens during terraform plan/apply
-		destroyOnDrift := d.Get("destroy_on_drift").(bool) // false
-		if updatedAt, ok := d.GetOk("updated_at"); ok && !destroyOnDrift && updatedAt != newTime {
-			// With destroy_on_drift=false, we update timestamp but don't clear ID
-			_ = d.Set("updated_at", newTime)
-		}
+		config := fmt.Sprintf(`
+resource "github_actions_secret" "test" {
+  repository      = "%s"
+  secret_name     = "TEST"
+  plaintext_value = "%%s"
+}
+`, repo.GetName())
 
-		// RESULT: Secret should NOT be marked for recreation
-		if d.Id() == "" {
-			t.Error("ISSUE #964 NOT FIXED: Secret was marked for recreation despite destroy_on_drift=false")
-		}
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, "super_secret_value"),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_secret.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_secret.test", tfjsonpath.New("key_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_secret.test", tfjsonpath.New("created_at"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_secret.test", tfjsonpath.New("updated_at"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_secret.test", tfjsonpath.New("remote_updated_at"), knownvalue.NotNull()),
+					},
+				},
+				{
+					Config: fmt.Sprintf(config, "super_secret_value_2"),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_secret.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+				{
+					ResourceName:            "github_actions_secret.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"key_id", "plaintext_value"},
+				},
+			},
+		})
+	})
 
-		// RESULT: Timestamp should be updated to acknowledge the change
-		if d.Get("updated_at").(string) != newTime {
-			t.Error("Expected timestamp to be updated to acknowledge external change")
-		}
+	t.Run("with_encrypted_value", func(t *testing.T) {
+		t.Parallel()
 
-		t.Logf("SUCCESS: Issue #964 solved - secret with destroy_on_drift=false does not get recreated on external changes")
+		repo := mustCreateTestRepository(t)
+
+		config := fmt.Sprintf(`
+resource "github_actions_secret" "test" {
+  repository      = "%s"
+  secret_name     = "TEST"
+  encrypted_value = "%%s"
+}
+`, repo.GetName())
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, base64.StdEncoding.EncodeToString([]byte("super_secret_value"))),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_secret.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_secret.test", tfjsonpath.New("key_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_secret.test", tfjsonpath.New("created_at"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_secret.test", tfjsonpath.New("updated_at"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_secret.test", tfjsonpath.New("remote_updated_at"), knownvalue.NotNull()),
+					},
+				},
+				{
+					Config: fmt.Sprintf(config, base64.StdEncoding.EncodeToString([]byte("super_secret_value_2"))),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_secret.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+				{
+					ResourceName:            "github_actions_secret.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"key_id", "encrypted_value"},
+				},
+			},
+		})
+	})
+
+	t.Run("updates_on_drift", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+		secretName := "TEST"
+
+		config := fmt.Sprintf(`
+resource "github_actions_secret" "test" {
+  repository  = "%s"
+  secret_name = "%s"
+  value       = "super_secret_value"
+}
+`, repo.GetName(), secretName)
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+				},
+				{
+					PreConfig: func() {
+						mustUpdateTestRepositorySecret(t, repo, secretName, "super_secret_value_2")
+					},
+					Config: config,
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_secret.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("lifecycle_ignore_suppresses_drift", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+		secretName := "TEST"
+
+		config := fmt.Sprintf(`
+resource "github_actions_secret" "test" {
+  repository  = "%s"
+  secret_name = "%s"
+  value       = "super_secret_value"
+
+  lifecycle {
+    ignore_changes = [updated_at]
+  }
+}
+`, repo.GetName(), secretName)
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+				},
+				{
+					PreConfig: func() {
+						mustUpdateTestRepositorySecret(t, repo, secretName, "super_secret_value_2")
+					},
+					Config: config,
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_secret.test", plancheck.ResourceActionNoop),
+						},
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("updates_renamed_repo", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+		newRepoName := fmt.Sprintf("%s-updated", repo.GetName())
+
+		config := `
+resource "github_actions_secret" "test" {
+  repository  = "%s"
+  secret_name = "TEST"
+  value       = "super_secret_value"
+}
+`
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, repo.GetName()),
+				},
+				{
+					PreConfig: func() {
+						mustRenameTestRepository(t, repo, newRepoName)
+					},
+					Config: fmt.Sprintf(config, newRepoName),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_secret.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("recreates_changed_repo", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+		repo2 := mustCreateTestRepository(t)
+
+		config := `
+resource "github_actions_secret" "test" {
+  repository  = "%s"
+  secret_name = "TEST"
+  value       = "super_secret_value"
+}
+`
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, repo.GetName()),
+				},
+				{
+					Config: fmt.Sprintf(config, repo2.GetName()),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_secret.test", plancheck.ResourceActionReplace),
+						},
+					},
+				},
+			},
+		})
 	})
 }

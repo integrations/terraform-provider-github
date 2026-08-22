@@ -1,298 +1,318 @@
 package github
 
 import (
-	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"regexp"
 	"testing"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
-
-var (
-	testAccProviders         map[string]*schema.Provider
-	testAccProviderFactories func(providers *[]*schema.Provider) map[string]func() (*schema.Provider, error)
-	testAccProvider          *schema.Provider
-)
-
-func init() {
-	testAccProvider = Provider()
-	testAccProviders = map[string]*schema.Provider{
-		"github": testAccProvider,
-	}
-	testAccProviderFactories = func(providers *[]*schema.Provider) map[string]func() (*schema.Provider, error) {
-		return map[string]func() (*schema.Provider, error){
-			//nolint:unparam
-			"github": func() (*schema.Provider, error) {
-				p := Provider()
-				*providers = append(*providers, p)
-				return p, nil
-			},
-		}
-	}
-}
 
 func TestProvider(t *testing.T) {
-	t.Run("runs internal validation without error", func(t *testing.T) {
-		if err := Provider().InternalValidate(); err != nil {
+	t.Parallel()
+
+	t.Run("validate", func(t *testing.T) {
+		t.Parallel()
+
+		if err := NewProvider("test", "none")().InternalValidate(); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	})
-
-	t.Run("has an implementation", func(t *testing.T) {
-		// FIXME: unsure if this is useful; refactored from:
-		// func TestProvider_impl(t *testing.T) {
-		// 	var _ terraform.ResourceProvider = Provider()
-		// }
-
-		_ = *Provider()
-	})
 }
 
-// TODO: this is failing.
-func TestAccProviderConfigure(t *testing.T) {
-	t.Run("can be configured to run anonymously", func(t *testing.T) {
-		config := `
-			provider "github" {}
-		`
+func Test_configureProviderMeta(t *testing.T) {
+	t.Parallel()
 
-		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, anonymous) },
-			Providers: testAccProviders,
-			Steps: []resource.TestStep{
-				{
-					Config:             config,
-					ExpectNonEmptyPlan: false,
-				},
-			},
-		})
-	})
-
-	t.Run("can be configured to run insecurely", func(t *testing.T) {
-		config := fmt.Sprintf(`
-				provider "github" {
-					token = "%s"
-					insecure = true
-				}`,
-			testToken,
-		)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, anonymous) },
-			Providers: testAccProviders,
-			Steps: []resource.TestStep{
-				{
-					Config:             config,
-					ExpectNonEmptyPlan: false,
-				},
-			},
-		})
-	})
-
-	t.Run("can be configured with an individual account", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			provider "github" {
-				token = "%s"
-				owner = "%s"
-			}`,
-			testToken, testOwnerFunc(),
-		)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, individual) },
-			Providers: testAccProviders,
-			Steps: []resource.TestStep{
-				{
-					Config:             config,
-					ExpectNonEmptyPlan: false,
-				},
-			},
-		})
-	})
-
-	t.Run("can be configured with an organization account", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			provider "github" {
-				token = "%s"
-				organization = "%s"
-			}`,
-			testToken, testOrganizationFunc(),
-		)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, organization) },
-			Providers: testAccProviders,
-			Steps: []resource.TestStep{
-				{
-					Config:             config,
-					ExpectNonEmptyPlan: false,
-				},
-			},
-		})
-	})
-
-	t.Run("can be configured with a GHES deployment", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			provider "github" {
-				token = "%s"
-				base_url = "%s"
-			}`,
-			testToken, testBaseURLGHES,
-		)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, individual) },
-			Providers: testAccProviders,
-			Steps: []resource.TestStep{
-				{
-					Config:             config,
-					ExpectNonEmptyPlan: false,
-				},
-			},
-		})
-	})
-
-	t.Run("can be configured with max retries", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			provider "github" {
-				token = "%s"
-				owner = "%s"
-				max_retries = 3
-			}`,
-			testToken, testOwnerFunc(),
-		)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, individual) },
-			Providers: testAccProviders,
-			Steps: []resource.TestStep{
-				{
-					Config:             config,
-					ExpectNonEmptyPlan: false,
-				},
-			},
-		})
-	})
-
-	t.Run("can be configured with max per page", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			provider "github" {
-				token = "%s"
-				owner = "%s"
-				max_per_page = 999
-			}`,
-			testToken, testOwnerFunc(),
-		)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, individual) },
-			Providers: testAccProviders,
-			Steps: []resource.TestStep{
-				{
-					Config:             config,
-					ExpectNonEmptyPlan: false,
-					Check: func(_ *terraform.State) error {
-						if maxPerPage != 999 {
-							return fmt.Errorf("max_per_page should be set to 999, got %d", maxPerPage)
-						}
-						return nil
-					},
-				},
-			},
-		})
-	})
-}
-
-func Test_validateBaseURL(t *testing.T) {
-	testCases := []struct {
-		name  string
-		url   string
-		valid bool
+	for _, tt := range []struct {
+		name          string
+		installResp   *string
+		tokenUserResp *string
+		userResp      *string
+		conf          *Config
+		wantName      string
+		wantIsOrg     bool
+		wantOrgId     int64
+		wantErr       string
 	}{
 		{
-			name:  "dotcom",
-			url:   "https://api.github.com/",
-			valid: true,
+			name: "anonymous",
+			conf: &Config{},
 		},
 		{
-			name:  "dotcom_no_slash",
-			url:   "https://api.github.com",
-			valid: true,
+			name:        "app_auth_organization",
+			installResp: new(`{"id": 999999}`),
+			userResp:    new(`{"id": 123456, "type": "Organization"}`),
+			conf: &Config{
+				AppID:             new("111111"),
+				AppInstallationID: new("999999"),
+				AppPEM:            mustNewPEM(t),
+				Owner:             "test-org",
+			},
+			wantName:  "test-org",
+			wantIsOrg: true,
+			wantOrgId: 123456,
 		},
 		{
-			name:  "dotcom_with_path",
-			url:   "http://api.github.com/test/",
-			valid: false,
+			name:        "app_auth_user",
+			installResp: new(`{"id": 999999}`),
+			userResp:    new(`{"id": 123456, "type": "User"}`),
+			conf: &Config{
+				AppID:             new("111111"),
+				AppInstallationID: new("999999"),
+				AppPEM:            mustNewPEM(t),
+				Owner:             "test-user",
+			},
+			wantName: "test-user",
 		},
 		{
-			name:  "dotcom_http",
-			url:   "http://api.github.com/",
-			valid: false,
+			name:     "token_auth_organization",
+			userResp: new(`{"id": 123456, "type": "Organization"}`),
+			conf: &Config{
+				Owner: "test-org",
+				Token: "test-token",
+			},
+			wantName:  "test-org",
+			wantIsOrg: true,
+			wantOrgId: 123456,
 		},
 		{
-			name:  "dotcom_no_scheme",
-			url:   "api.github.com/",
-			valid: false,
+			name:     "token_auth_user",
+			userResp: new(`{"id": 123456, "type": "User"}`),
+			conf: &Config{
+				Owner: "test-user",
+				Token: "test-token",
+			},
+			wantName: "test-user",
 		},
 		{
-			name:  "ghec",
-			url:   "https://customer.ghe.com/",
-			valid: true,
+			name: "errors_on_missing_owner",
+			conf: &Config{
+				Token: "test-token",
+			},
+			wantErr: "owner must be set when authenticating using the new client implementation",
 		},
 		{
-			name:  "ghec_no_slash",
-			url:   "https://customer.ghe.com",
-			valid: true,
+			name: "errors_on_non_existent_owner",
+			conf: &Config{
+				Owner: "test-user",
+				Token: "test-token",
+			},
+			wantErr: "failed to lookup owner",
 		},
 		{
-			name:  "ghec_with_path",
-			url:   "https://customer.ghe.com/test/",
-			valid: false,
+			name: "legacy_client_anonymous",
+			conf: &Config{
+				LegacyClient: true,
+			},
 		},
 		{
-			name:  "ghec_http",
-			url:   "http://customer.ghe.com/",
-			valid: false,
+			name:        "legacy_client_app_auth_organization",
+			installResp: new(`{"id": 999999}`),
+			userResp:    new(`{"id": 123456, "type": "Organization"}`),
+			conf: &Config{
+				LegacyClient:      true,
+				AppID:             new("111111"),
+				AppInstallationID: new("999999"),
+				AppPEM:            mustNewPEM(t),
+				Owner:             "test-org",
+			},
+			wantName:  "test-org",
+			wantIsOrg: true,
+			wantOrgId: 123456,
 		},
 		{
-			name:  "ghec_no_scheme",
-			url:   "customer.ghe.com/",
-			valid: false,
+			name:        "legacy_client_app_auth_user",
+			installResp: new(`{"id": 999999}`),
+			userResp:    new(`{"id": 123456, "type": "User"}`),
+			conf: &Config{
+				LegacyClient:      true,
+				AppID:             new("111111"),
+				AppInstallationID: new("999999"),
+				AppPEM:            mustNewPEM(t),
+				Owner:             "test-user",
+			},
+			wantName: "test-user",
 		},
 		{
-			name:  "ghes",
-			url:   "https://example.com/",
-			valid: true,
+			name:     "legacy_client_token_auth_organization",
+			userResp: new(`{"id": 123456, "type": "Organization"}`),
+			conf: &Config{
+				LegacyClient: true,
+				Owner:        "test-org",
+				Token:        "test-token",
+			},
+			wantName:  "test-org",
+			wantIsOrg: true,
+			wantOrgId: 123456,
 		},
 		{
-			name:  "ghes_no_slash",
-			url:   "https://example.com",
-			valid: true,
+			name:     "legacy_client_token_auth_user",
+			userResp: new(`{"id": 123456, "type": "User"}`),
+			conf: &Config{
+				LegacyClient: true,
+				Owner:        "test-user",
+				Token:        "test-token",
+			},
+			wantName: "test-user",
 		},
 		{
-			name:  "ghes_with_path",
-			url:   "https://example.com/test/",
-			valid: true,
+			name:          "legacy_client_token_auth_no_owner",
+			tokenUserResp: new(`{"login": "test-user"}`),
+			userResp:      new(`{"id": 123456, "type": "User"}`),
+			conf: &Config{
+				LegacyClient: true,
+				Token:        "test-token",
+			},
+			wantName: "test-user",
 		},
 		{
-			name:  "ghes_http",
-			url:   "http://example.com/",
-			valid: true,
+			name: "legacy_client_token_auth_errors_if_no_owner_found",
+			conf: &Config{
+				LegacyClient: true,
+				Token:        "test-token",
+			},
+			wantErr: "owner cannot be found by token",
 		},
 		{
-			name:  "ghes_no_scheme/",
-			url:   "example.com",
-			valid: false,
+			name: "legacy_client_errors_on_non_existent_owner",
+			conf: &Config{
+				LegacyClient: true,
+				Owner:        "test-user",
+				Token:        "test-token",
+			},
+			wantErr: "failed to lookup owner",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if regexp.MustCompile(`/access_tokens$`).MatchString(r.URL.Path) {
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(`{"token": "test-token", "expires_at": "2024-12-31T23:59:59Z"}`))
+					return
+				}
+
+				if regexp.MustCompile(`/installation$`).MatchString(r.URL.Path) {
+					if tt.installResp == nil {
+						w.WriteHeader(http.StatusNotFound)
+						return
+					}
+
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(*tt.installResp))
+					return
+				}
+
+				if regexp.MustCompile(`/user$`).MatchString(r.URL.Path) {
+					if tt.tokenUserResp == nil {
+						w.WriteHeader(http.StatusNotFound)
+						return
+					}
+
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(*tt.tokenUserResp))
+					return
+				}
+
+				if regexp.MustCompile(`/users/[^/]+$`).MatchString(r.URL.Path) {
+					if tt.userResp == nil {
+						w.WriteHeader(http.StatusNotFound)
+						return
+					}
+
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(*tt.userResp))
+					return
+				}
+
+				w.WriteHeader(http.StatusNotFound)
+			}))
+			t.Cleanup(ts.Close)
+
+			tt.conf.BaseURL = mustNewURL(t, ts.URL)
+
+			meta, err := configureProviderMeta(t.Context(), "test", tt.conf)
+			if err != nil {
+				if tt.wantErr == "" {
+					t.Fatalf("unexpected error: %v", err)
+				}
+
+				if !regexp.MustCompile(regexp.QuoteMeta(tt.wantErr)).MatchString(err.Error()) {
+					t.Fatalf("expected error to match %q, got %v", tt.wantErr, err)
+				}
+
+				return
+			}
+
+			if tt.wantErr != "" {
+				t.Fatalf("expected error %q, got nil", tt.wantErr)
+			}
+
+			if meta.name != tt.wantName {
+				t.Errorf("expected owner name to be %q, got %q", tt.wantName, meta.name)
+			}
+
+			if meta.IsOrganization != tt.wantIsOrg {
+				t.Errorf("expected IsOrganization to be %v, got %v", tt.wantIsOrg, meta.IsOrganization)
+			}
+
+			if meta.id != tt.wantOrgId {
+				t.Errorf("expected owner id to be %d, got %d", tt.wantOrgId, meta.id)
+			}
+
+			if meta.v3client == nil {
+				t.Errorf("expected rest client to be non-nil")
+			}
+
+			if tt.conf.Owner != "" && meta.v4client == nil {
+				t.Errorf("expected graphql client to be non-nil")
+			}
+		})
+	}
+}
+
+func Test_ghCLIHostFromAPIHost(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name         string
+		host         string
+		expectedHost string
+	}{
+		{
+			name:         "dotcom API host is mapped to dotcom host",
+			host:         "api.github.com",
+			expectedHost: "github.com",
+		},
+		{
+			name:         "ghec API host has api. prefix stripped",
+			host:         "api.my-enterprise.ghe.com",
+			expectedHost: "my-enterprise.ghe.com",
+		},
+		{
+			name:         "ghec API host with numbers has api. prefix stripped",
+			host:         "api.customer-123.ghe.com",
+			expectedHost: "customer-123.ghe.com",
+		},
+		{
+			name:         "ghes host is passed through unchanged",
+			host:         "github.example.com",
+			expectedHost: "github.example.com",
+		},
+		{
+			name:         "ghes host with port is passed through unchanged",
+			host:         "github.example.com:8443",
+			expectedHost: "github.example.com:8443",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := validateBaseURL(tc.url)
-			if err != nil && tc.valid {
-				t.Errorf("URL %q: expected valid URL, got error: %s", tc.url, err)
-			} else if err == nil && !tc.valid {
-				t.Errorf("URL %q: expected invalid URL, got no error", tc.url)
+			t.Parallel()
+
+			got := ghCLIHostFromAPIHost(tc.host)
+			if got != tc.expectedHost {
+				t.Errorf("ghCLIHostFromAPIHost(%q) = %q, want %q", tc.host, got, tc.expectedHost)
 			}
 		})
 	}

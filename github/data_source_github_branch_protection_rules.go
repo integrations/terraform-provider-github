@@ -1,13 +1,16 @@
 package github
 
 import (
+	"context"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
 
 func dataSourceGithubBranchProtectionRules() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubBranchProtectionRulesRead,
+		ReadContext: dataSourceGithubBranchProtectionRulesRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -30,9 +33,10 @@ func dataSourceGithubBranchProtectionRules() *schema.Resource {
 	}
 }
 
-func dataSourceGithubBranchProtectionRulesRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v4client
-	orgName := meta.(*Owner).name
+func dataSourceGithubBranchProtectionRulesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v4client
+	orgName := meta.name
 	repoName := d.Get("repository").(string)
 
 	var query struct {
@@ -47,7 +51,7 @@ func dataSourceGithubBranchProtectionRulesRead(d *schema.ResourceData, meta any)
 		} `graphql:"repository(name: $name, owner: $owner)"`
 	}
 	variables := map[string]any{
-		"first":  githubv4.Int(100),
+		"first":  githubv4.Int(meta.maxPerPage),
 		"name":   githubv4.String(repoName),
 		"owner":  githubv4.String(orgName),
 		"cursor": (*githubv4.String)(nil),
@@ -55,9 +59,9 @@ func dataSourceGithubBranchProtectionRulesRead(d *schema.ResourceData, meta any)
 
 	var rules []any
 	for {
-		err := client.Query(meta.(*Owner).StopContext, &query, variables)
+		err := client.Query(ctx, &query, variables)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		additionalRules := make([]any, len(query.Repository.BranchProtectionRules.Nodes))
@@ -71,13 +75,13 @@ func dataSourceGithubBranchProtectionRulesRead(d *schema.ResourceData, meta any)
 		if !query.Repository.BranchProtectionRules.PageInfo.HasNextPage {
 			break
 		}
-		variables["cursor"] = githubv4.NewString(query.Repository.BranchProtectionRules.PageInfo.EndCursor)
+		variables["cursor"] = new(query.Repository.BranchProtectionRules.PageInfo.EndCursor)
 	}
 
 	d.SetId(string(query.Repository.ID))
 	err := d.Set("rules", rules)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

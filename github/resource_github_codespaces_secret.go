@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -112,15 +112,14 @@ func resourceGithubCodespacesSecretRead(d *schema.ResourceData, meta any) error 
 	owner := meta.(*Owner).name
 	ctx := context.Background()
 
-	repoName, secretName, err := parseTwoPartID(d.Id(), "repository", "secret_name")
+	repoName, secretName, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
 
 	secret, _, err := client.Codespaces.GetRepoSecret(ctx, owner, repoName, secretName)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] Removing actions secret %s from state because it no longer exists in GitHub",
 					d.Id())
@@ -173,7 +172,7 @@ func resourceGithubCodespacesSecretDelete(d *schema.ResourceData, meta any) erro
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	repoName, secretName, err := parseTwoPartID(d.Id(), "repository", "secret_name")
+	repoName, secretName, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
@@ -196,7 +195,7 @@ func resourceGithubCodespacesSecretImport(d *schema.ResourceData, meta any) ([]*
 
 	d.SetId(buildTwoPartID(parts[0], parts[1]))
 
-	repoName, secretName, err := parseTwoPartID(d.Id(), "repository", "secret_name")
+	repoName, secretName, err := parseID2(d.Id())
 	if err != nil {
 		return nil, err
 	}

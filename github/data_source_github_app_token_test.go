@@ -2,28 +2,31 @@ package github
 
 import (
 	"fmt"
-	"net/http"
-	"net/url"
 	"os"
 	"testing"
 
-	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/stretchr/testify/assert"
 )
 
-func TestAccGithubAppTokenDataSource(t *testing.T) {
-	expectedAccessToken := "W+2e/zjiMTweDAr2b35toCF+h29l7NW92rJIPvFrCJQK"
-
-	owner := "test-owner"
-
-	pemData, err := os.ReadFile(testGitHubAppPrivateKeyFile)
-	assert.Nil(t, err)
+func TestGithubAppTokenDataSource(t *testing.T) {
+	t.Parallel()
 
 	t.Run("creates a application token without error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedAccessToken := "W+2e/zjiMTweDAr2b35toCF+h29l7NW92rJIPvFrCJQK"
+
+		owner := "test-owner"
+
+		pemData, err := os.ReadFile(testGitHubAppPrivateKeyFile)
+		if err != nil {
+			t.Logf("Unexpected error: %s", err)
+			t.Fail()
+		}
+
 		ts := githubApiMock([]*mockResponse{
 			{
-				ExpectedUri: fmt.Sprintf("/api/v3/app/installations/%s/access_tokens", testGitHubAppInstallationID),
+				ExpectedUri: fmt.Sprintf("/app/installations/%s/access_tokens", testGitHubAppInstallationID),
 				ExpectedHeaders: map[string]string{
 					"Accept": "application/vnd.github.v3+json",
 				},
@@ -33,12 +36,7 @@ func TestAccGithubAppTokenDataSource(t *testing.T) {
 		})
 		defer ts.Close()
 
-		httpCl := http.DefaultClient
-		httpCl.Transport = http.DefaultTransport
-
-		client := github.NewClient(httpCl)
-		u, _ := url.Parse(ts.URL + "/")
-		client.BaseURL = u
+		client := mustCreateTestGitHubClient(t, ts.URL)
 
 		meta := &Owner{
 			name:     owner,
@@ -59,8 +57,15 @@ func TestAccGithubAppTokenDataSource(t *testing.T) {
 			"token":           "",
 		})
 
-		err := dataSourceGithubAppTokenRead(schema, meta)
-		assert.Nil(t, err)
-		assert.Equal(t, expectedAccessToken, schema.Get("token"))
+		diags := dataSourceGithubAppTokenRead(t.Context(), schema, meta)
+		if diags.HasError() {
+			t.Logf("Unexpected error: %v", diags)
+			t.Fail()
+		}
+
+		if schema.Get("token") != expectedAccessToken {
+			t.Logf("Expected %s, got %s", expectedAccessToken, schema.Get("token"))
+			t.Fail()
+		}
 	})
 }

@@ -1,4 +1,4 @@
-name: GitHub Actions CI
+name: CI
 
 on:
   push:
@@ -14,28 +14,103 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-permissions:
-  contents: read # for actions/checkout
+permissions: read-all
 
 jobs:
   ci:
     name: Continuous Integration
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         shell: bash
-    env:
-      GITHUB_TEST_ORGANIZATION: kfcampbell-terraform-provider
     steps:
       - name: Checkout
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set-up Go
-        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           cache: true
-      - run: make tools
-      - run: make lint
-      - run: make website-lint
-      - run: make build
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: latest
+      - run: make build -o lintcheck # Stop running `make lintcheck` before build. Linting is handled separately
       - run: make test
+
+  lint-new:
+    name: Strict linting of new code
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'pull_request_target'
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set-up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: make .golangci.new.yml
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: latest
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          only-new-issues: true
+          args: --config=.golangci.new.yml
+
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set-up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Set-up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: latest
+          terraform_wrapper: false
+      - run: make checkdocs
+      - run: make validatedocs
+      - uses: rvben/rumdl@4e70093543c2d1ea39eab81e5f86cdfe75966b91 # v0.2.49
+        with:
+          path: ./docs
+          report-type: annotations
+
+  check:
+    name: Check
+    needs:
+      - ci
+      - docs
+      - lint-new
+    if: always()
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check
+        run: |
+          set -euo pipefail
+          results=( ${{ join(needs.*.result, ' ') }} )
+          for result in "${results[@]}"; do
+            if [[ "${result}" == "failure" ]] || [[ "${result}" == "cancelled" ]]; then
+              echo "::error::Workflow failed!"
+              exit 1
+            fi
+          done

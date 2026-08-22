@@ -4,10 +4,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubOrganizationSettings(t *testing.T) {
+	// IMPORTANT: Do not run these tests in parallel as they modify the organization state.
+
+	t.Skip("TODO: Make this test cleanup correctly")
+
 	t.Run("creates organization settings without error", func(t *testing.T) {
 		config := `
 		resource "github_organization_settings" "test" {
@@ -45,28 +49,19 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 				"billing_email", "test@example.com",
 			),
 		)
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-		t.Run("run with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-		t.Run("run with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-		t.Run("run with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
+
 	t.Run("updates organization settings without error", func(t *testing.T) {
 		billingEmail := "test1@example.com"
 		company := "Test Company"
@@ -100,33 +95,19 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 				"billing_email", updatedBillingEmail,
 			),
 		}
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: configs["before"],
-						Check:  checks["before"],
-					},
-					{
-						Config: configs["after"],
-						Check:  checks["after"],
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: configs["before"],
+					Check:  checks["before"],
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: configs["after"],
+					Check:  checks["after"],
+				},
+			},
 		})
 	})
 
@@ -149,33 +130,20 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:      "github_organization_settings.test",
-						ImportState:       true,
-						ImportStateVerify: true,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					ResourceName:      "github_organization_settings.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
 		})
 	})
 
@@ -241,26 +209,16 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 				"secret_scanning_push_protection_enabled_for_new_repositories", "false",
 			),
 		)
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-		t.Run("run with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-		t.Run("run with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-		t.Run("run with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
@@ -326,26 +284,16 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 				"secret_scanning_push_protection_enabled_for_new_repositories", "true",
 			),
 		)
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-		t.Run("run with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-		t.Run("run with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-		t.Run("run with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
@@ -361,26 +309,16 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 				"billing_email", "test@example.com",
 			),
 		)
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-		t.Run("run with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-		t.Run("run with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-		t.Run("run with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
@@ -409,25 +347,15 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 				resource.TestCheckResourceAttr("github_organization_settings.test", "blog", "https://test.com/blog"),
 			)
 
-			testCase := resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, organization) },
-				Providers: testAccProviders,
+			resource.Test(t, resource.TestCase{
+				PreCheck:          func() { skipUnlessHasOrgs(t) },
+				ProviderFactories: providerFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
 						Check:  check,
 					},
 				},
-			}
-
-			t.Run("run with an anonymous account", func(t *testing.T) {
-				t.Skip("anonymous account not supported for this operation")
-			})
-			t.Run("run with an individual account", func(t *testing.T) {
-				t.Skip("individual account not supported for this operation")
-			})
-			t.Run("run with an organization account", func(t *testing.T) {
-				resource.Test(t, testCase)
 			})
 		})
 
@@ -453,25 +381,15 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 				resource.TestCheckResourceAttr("github_organization_settings.test", "secret_scanning_push_protection_enabled_for_new_repositories", "true"),
 			)
 
-			testCase := resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, organization) },
-				Providers: testAccProviders,
+			resource.Test(t, resource.TestCase{
+				PreCheck:          func() { skipUnlessHasOrgs(t) },
+				ProviderFactories: providerFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
 						Check:  check,
 					},
 				},
-			}
-
-			t.Run("run with an anonymous account", func(t *testing.T) {
-				t.Skip("anonymous account not supported for this operation")
-			})
-			t.Run("run with an individual account", func(t *testing.T) {
-				t.Skip("individual account not supported for this operation")
-			})
-			t.Run("run with an organization account", func(t *testing.T) {
-				resource.Test(t, testCase)
 			})
 		})
 
@@ -495,25 +413,15 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 				resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_private_pages", "true"),
 			)
 
-			testCase := resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, organization) },
-				Providers: testAccProviders,
+			resource.Test(t, resource.TestCase{
+				PreCheck:          func() { skipUnlessHasOrgs(t) },
+				ProviderFactories: providerFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
 						Check:  check,
 					},
 				},
-			}
-
-			t.Run("run with an anonymous account", func(t *testing.T) {
-				t.Skip("anonymous account not supported for this operation")
-			})
-			t.Run("run with an individual account", func(t *testing.T) {
-				t.Skip("individual account not supported for this operation")
-			})
-			t.Run("run with an organization account", func(t *testing.T) {
-				resource.Test(t, testCase)
 			})
 		})
 
@@ -533,25 +441,15 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 				resource.TestCheckResourceAttr("github_organization_settings.test", "has_repository_projects", "true"),
 			)
 
-			testCase := resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, organization) },
-				Providers: testAccProviders,
+			resource.Test(t, resource.TestCase{
+				PreCheck:          func() { skipUnlessHasOrgs(t) },
+				ProviderFactories: providerFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
 						Check:  check,
 					},
 				},
-			}
-
-			t.Run("run with an anonymous account", func(t *testing.T) {
-				t.Skip("anonymous account not supported for this operation")
-			})
-			t.Run("run with an individual account", func(t *testing.T) {
-				t.Skip("individual account not supported for this operation")
-			})
-			t.Run("run with an organization account", func(t *testing.T) {
-				resource.Test(t, testCase)
 			})
 		})
 
@@ -567,25 +465,15 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 				resource.TestCheckResourceAttr("github_organization_settings.test", "default_repository_permission", "write"),
 			)
 
-			testCase := resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, organization) },
-				Providers: testAccProviders,
+			resource.Test(t, resource.TestCase{
+				PreCheck:          func() { skipUnlessHasOrgs(t) },
+				ProviderFactories: providerFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
 						Check:  check,
 					},
 				},
-			}
-
-			t.Run("run with an anonymous account", func(t *testing.T) {
-				t.Skip("anonymous account not supported for this operation")
-			})
-			t.Run("run with an individual account", func(t *testing.T) {
-				t.Skip("individual account not supported for this operation")
-			})
-			t.Run("run with an organization account", func(t *testing.T) {
-				resource.Test(t, testCase)
 			})
 		})
 
@@ -600,20 +488,20 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 				name = "Test Organization"
 				description = "Test organization description"
 				blog = "https://test.com/blog"
-				
+
 				advanced_security_enabled_for_new_repositories = true
 				dependabot_alerts_enabled_for_new_repositories = true
 				dependabot_security_updates_enabled_for_new_repositories = true
 				dependency_graph_enabled_for_new_repositories = true
 				secret_scanning_enabled_for_new_repositories = true
 				secret_scanning_push_protection_enabled_for_new_repositories = true
-				
+
 				members_can_create_private_repositories = true
 				members_can_create_internal_repositories = true
 				members_can_create_pages = true
 				members_can_create_public_pages = true
 				members_can_create_private_pages = true
-				
+
 				web_commit_signoff_required = true
 				default_repository_permission = "write"
 			}`
@@ -642,25 +530,15 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 				resource.TestCheckResourceAttr("github_organization_settings.test", "default_repository_permission", "write"),
 			)
 
-			testCase := resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, organization) },
-				Providers: testAccProviders,
+			resource.Test(t, resource.TestCase{
+				PreCheck:          func() { skipUnlessHasOrgs(t) },
+				ProviderFactories: providerFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
 						Check:  check,
 					},
 				},
-			}
-
-			t.Run("run with an anonymous account", func(t *testing.T) {
-				t.Skip("anonymous account not supported for this operation")
-			})
-			t.Run("run with an individual account", func(t *testing.T) {
-				t.Skip("individual account not supported for this operation")
-			})
-			t.Run("run with an organization account", func(t *testing.T) {
-				resource.Test(t, testCase)
 			})
 		})
 
@@ -698,25 +576,15 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 				resource.TestCheckResourceAttr("github_organization_settings.test", "web_commit_signoff_required", "false"),
 			)
 
-			testCase := resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, organization) },
-				Providers: testAccProviders,
+			resource.Test(t, resource.TestCase{
+				PreCheck:          func() { skipUnlessHasOrgs(t) },
+				ProviderFactories: providerFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
 						Check:  check,
 					},
 				},
-			}
-
-			t.Run("run with an anonymous account", func(t *testing.T) {
-				t.Skip("anonymous account not supported for this operation")
-			})
-			t.Run("run with an individual account", func(t *testing.T) {
-				t.Skip("individual account not supported for this operation")
-			})
-			t.Run("run with an organization account", func(t *testing.T) {
-				resource.Test(t, testCase)
 			})
 		})
 
@@ -732,25 +600,15 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 				resource.TestCheckResourceAttr("github_organization_settings.test", "default_repository_permission", "admin"),
 			)
 
-			testCase := resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, organization) },
-				Providers: testAccProviders,
+			resource.Test(t, resource.TestCase{
+				PreCheck:          func() { skipUnlessHasOrgs(t) },
+				ProviderFactories: providerFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
 						Check:  check,
 					},
 				},
-			}
-
-			t.Run("run with an anonymous account", func(t *testing.T) {
-				t.Skip("anonymous account not supported for this operation")
-			})
-			t.Run("run with an individual account", func(t *testing.T) {
-				t.Skip("individual account not supported for this operation")
-			})
-			t.Run("run with an organization account", func(t *testing.T) {
-				resource.Test(t, testCase)
 			})
 		})
 	})

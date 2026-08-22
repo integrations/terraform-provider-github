@@ -4,7 +4,8 @@ import (
 	"context"
 	"strings"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -12,7 +13,7 @@ import (
 // Docs: https://docs.github.com/en/rest/reference/pulls#list-pull-requests
 func dataSourceGithubRepositoryPullRequests() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoryPullRequestsRead,
+		ReadContext: dataSourceGithubRepositoryPullRequestsRead,
 		Schema: map[string]*schema.Schema{
 			"owner": {
 				Type:     schema.TypeString,
@@ -34,19 +35,19 @@ func dataSourceGithubRepositoryPullRequests() *schema.Resource {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Default:          "created",
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"created", "updated", "popularity", "long-running"}, false), "sort_by"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"created", "updated", "popularity", "long-running"}, false)),
 			},
 			"sort_direction": {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Default:          "asc",
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"asc", "desc"}, false), "sort_direction"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"asc", "desc"}, false)),
 			},
 			"state": {
 				Type:             schema.TypeString,
 				Default:          "open",
 				Optional:         true,
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"open", "closed", "all"}, false), "state"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"open", "closed", "all"}, false)),
 			},
 			"results": {
 				Type:     schema.TypeList,
@@ -128,11 +129,11 @@ func dataSourceGithubRepositoryPullRequests() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryPullRequestsRead(d *schema.ResourceData, meta any) error {
-	ctx := context.TODO()
-	client := meta.(*Owner).v3client
+func dataSourceGithubRepositoryPullRequestsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
-	owner := meta.(*Owner).name
 	if explicitOwner, ok := d.GetOk("owner"); ok {
 		owner = explicitOwner.(string)
 	}
@@ -145,7 +146,7 @@ func dataSourceGithubRepositoryPullRequestsRead(d *schema.ResourceData, meta any
 	direction := d.Get("sort_direction").(string)
 
 	options := &github.PullRequestListOptions{
-		ListOptions: github.ListOptions{PerPage: 100},
+		ListOptions: github.ListOptions{PerPage: meta.maxPerPage},
 		State:       state,
 		Head:        head,
 		Base:        base,
@@ -158,7 +159,7 @@ func dataSourceGithubRepositoryPullRequestsRead(d *schema.ResourceData, meta any
 	for {
 		pullRequests, resp, err := client.PullRequests.List(ctx, owner, baseRepository, options)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		for _, pullRequest := range pullRequests {
@@ -222,7 +223,7 @@ func dataSourceGithubRepositoryPullRequestsRead(d *schema.ResourceData, meta any
 	}, "/"))
 
 	if err := d.Set("results", results); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -130,7 +130,7 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 							Optional:         true,
 							Default:          1,
 							Description:      "Require 'x' number of approvals to satisfy branch protection requirements. If this is specified it must be a number between 0-6.",
-							ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 6), "required_approving_review_count"),
+							ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 6)),
 						},
 						"require_last_push_approval": {
 							Type:        schema.TypeBool,
@@ -212,8 +212,14 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 				Description: "Setting this to 'true' requires all conversations on code must be resolved before a pull request can be merged.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "An etag representing the branch protection object.",
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -268,7 +274,7 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta any) erro
 
 	client := meta.(*Owner).v3client
 
-	repoName, branch, err := parseTwoPartID(d.Id(), "repository", "branch")
+	repoName, branch, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
@@ -282,8 +288,7 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta any) erro
 	githubProtection, resp, err := client.Repositories.GetBranchProtection(ctx,
 		orgName, repoName, branch)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				if err := requireSignedCommitsRead(d, meta); err != nil {
 					return fmt.Errorf("error setting signed commit restriction: %w", err)
@@ -345,7 +350,7 @@ func resourceGithubBranchProtectionV3Update(d *schema.ResourceData, meta any) er
 	}
 
 	client := meta.(*Owner).v3client
-	repoName, branch, err := parseTwoPartID(d.Id(), "repository", "branch")
+	repoName, branch, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
@@ -399,7 +404,7 @@ func resourceGithubBranchProtectionV3Delete(d *schema.ResourceData, meta any) er
 	}
 
 	client := meta.(*Owner).v3client
-	repoName, branch, err := parseTwoPartID(d.Id(), "repository", "branch")
+	repoName, branch, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}

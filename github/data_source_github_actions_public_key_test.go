@@ -4,54 +4,38 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubActionsPublicKeyDataSource(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	t.Parallel()
 
-	t.Run("queries a repository public key without error", func(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-			  name = "tf-acc-test-%[1]s"
-				auto_init = true
-			}
+data "github_actions_public_key" "test" {
+  repository = "%s"
+}
+`, repo.GetName())
 
-			data "github_actions_public_key" "test" {
-				repository = github_repository.test.name
-			}
-		`, randomID)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet(
-				"data.github_actions_public_key.test", "key",
-			),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_actions_public_key.test", tfjsonpath.New("key_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("data.github_actions_public_key.test", tfjsonpath.New("key"), knownvalue.NotNull()),
 					},
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 }

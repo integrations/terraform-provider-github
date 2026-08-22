@@ -1,162 +1,255 @@
 package github
 
 import (
+	"strconv"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
-	t.Run("queries without error", func(t *testing.T) {
+	t.Parallel()
+
+	skipUnlessHasOrgs(t)
+
+	t.Run("queries_all_teams_summary", func(t *testing.T) {
+		t.Parallel()
+
+		team1 := mustCreateTestTeam(t)
+		team2 := mustCreateTestTeam(t, withNewTeamParent(team1.GetID()))
+
 		config := `
-			data "github_organization_teams" "all" {}
-		`
+data "github_organization_teams" "test" {
+  root_teams_only = false
+  summary_only    = true
+}
+`
 
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttrSet("data.github_organization_teams.all", "teams.0.id"),
-			resource.TestCheckResourceAttrSet("data.github_organization_teams.all", "teams.0.node_id"),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_organization_teams.test", tfjsonpath.New("teams"), knownvalue.SetPartial([]knownvalue.Check{
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"id":                   knownvalue.Int32Exact(int32(team1.GetID())),
+								"node_id":              knownvalue.StringExact(team1.GetNodeID()),
+								"slug":                 knownvalue.StringExact(team1.GetSlug()),
+								"name":                 knownvalue.StringExact(team1.GetName()),
+								"description":          knownvalue.StringExact(team1.GetDescription()),
+								"type":                 knownvalue.StringExact(team1.GetType()),
+								"privacy":              knownvalue.StringExact(team1.GetPrivacy()),
+								"notification_setting": knownvalue.StringExact(team1.GetNotificationSetting()),
+								"permission":           knownvalue.StringExact(team1.GetPermission()),
+								"parent_team":          knownvalue.ListSizeExact(0),
+								"members":              knownvalue.ListSizeExact(0),
+								"repositories":         knownvalue.ListSizeExact(0),
+								"parent": knownvalue.MapExact(map[string]knownvalue.Check{
+									"id":   knownvalue.StringExact(""),
+									"slug": knownvalue.StringExact(""),
+									"name": knownvalue.StringExact(""),
+								}),
+								"parent_team_id":   knownvalue.StringExact(""),
+								"parent_team_slug": knownvalue.StringExact(""),
+							}),
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"id":                   knownvalue.Int32Exact(int32(team2.GetID())),
+								"node_id":              knownvalue.StringExact(team2.GetNodeID()),
+								"slug":                 knownvalue.StringExact(team2.GetSlug()),
+								"name":                 knownvalue.StringExact(team2.GetName()),
+								"description":          knownvalue.StringExact(team2.GetDescription()),
+								"type":                 knownvalue.StringExact(team2.GetType()),
+								"privacy":              knownvalue.StringExact(team2.GetPrivacy()),
+								"notification_setting": knownvalue.StringExact(team2.GetNotificationSetting()),
+								"permission":           knownvalue.StringExact(team2.GetPermission()),
+								"parent_team": knownvalue.ListExact([]knownvalue.Check{
+									knownvalue.MapExact(map[string]knownvalue.Check{
+										"id":   knownvalue.Int32Exact(int32(team1.GetID())),
+										"slug": knownvalue.StringExact(team1.GetSlug()),
+									}),
+								}),
+								"members":      knownvalue.ListSizeExact(0),
+								"repositories": knownvalue.ListSizeExact(0),
+								"parent": knownvalue.MapExact(map[string]knownvalue.Check{
+									"id":   knownvalue.StringExact(team1.GetNodeID()),
+									"slug": knownvalue.StringExact(team1.GetSlug()),
+									"name": knownvalue.StringExact(team1.GetName()),
+								}),
+								"parent_team_id":   knownvalue.StringExact(strconv.FormatInt(team1.GetID(), 10)),
+								"parent_team_slug": knownvalue.StringExact(team1.GetSlug()),
+							}),
+						})),
 					},
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
-	t.Run("queries root teams only without error", func(t *testing.T) {
+	t.Run("queries_root_teams_summary", func(t *testing.T) {
+		t.Parallel()
+
+		team1 := mustCreateTestTeam(t)
+		team2 := mustCreateTestTeam(t, withNewTeamParent(team1.GetID()))
+
 		config := `
-			data "github_organization_teams" "root_teams" {
-				root_teams_only = true
-			}
-		`
+data "github_organization_teams" "test" {
+  root_teams_only = true
+  summary_only    = true
+}
+`
 
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttrSet("data.github_organization_teams.root_teams", "teams.0.id"),
-			resource.TestCheckResourceAttrSet("data.github_organization_teams.root_teams", "teams.0.node_id"),
-			resource.TestCheckResourceAttr("data.github_organization_teams.root_teams", "teams.0.parent.id", ""),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_organization_teams.test", tfjsonpath.New("teams"), knownvalue.SetPartial([]knownvalue.Check{
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"id":                   knownvalue.Int32Exact(int32(team1.GetID())),
+								"node_id":              knownvalue.StringExact(team1.GetNodeID()),
+								"slug":                 knownvalue.StringExact(team1.GetSlug()),
+								"name":                 knownvalue.StringExact(team1.GetName()),
+								"description":          knownvalue.StringExact(team1.GetDescription()),
+								"type":                 knownvalue.StringExact(team1.GetType()),
+								"privacy":              knownvalue.StringExact(team1.GetPrivacy()),
+								"notification_setting": knownvalue.StringExact(team1.GetNotificationSetting()),
+								"permission":           knownvalue.StringExact(team1.GetPermission()),
+								"parent_team":          knownvalue.ListSizeExact(0),
+								"members":              knownvalue.ListSizeExact(0),
+								"repositories":         knownvalue.ListSizeExact(0),
+								"parent": knownvalue.MapExact(map[string]knownvalue.Check{
+									"id":   knownvalue.StringExact(""),
+									"slug": knownvalue.StringExact(""),
+									"name": knownvalue.StringExact(""),
+								}),
+								"parent_team_id":   knownvalue.StringExact(""),
+								"parent_team_slug": knownvalue.StringExact(""),
+							}),
+						})),
+						statecheck.ExpectKnownValue("data.github_organization_teams.test", tfjsonpath.New("teams"), SetAbsent([]knownvalue.Check{
+							knownvalue.MapPartial(map[string]knownvalue.Check{
+								"slug": knownvalue.StringExact(team2.GetSlug()),
+							}),
+						})),
 					},
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
-	t.Run("queries summary only without error", func(t *testing.T) {
+	t.Run("queries_all_teams_details", func(t *testing.T) {
+		t.Parallel()
+
+		skipUnlessHasOrgUser1(t)
+		skipUnlessHasOrgUser2(t)
+
+		repo := mustCreateTestRepository(t)
+		team1 := mustCreateTestTeam(t)
+		mustAddTeamMember(t, team1, testAccConf.testOrgUser1)
+		mustAddRepositoryToTeam(t, team1, repo)
+		team2 := mustCreateTestTeam(t)
+		team3 := mustCreateTestTeam(t, withNewTeamParent(team1.GetID()))
+		mustAddTeamMember(t, team3, testAccConf.testOrgUser2)
+
 		config := `
-			data "github_organization_teams" "all" {
-				summary_only = true
-			}
-		`
+data "github_organization_teams" "test" {
+  root_teams_only = false
+  summary_only    = false
+}
+`
 
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttrSet("data.github_organization_teams.all", "teams.0.id"),
-			resource.TestCheckResourceAttrSet("data.github_organization_teams.all", "teams.0.node_id"),
-			resource.TestCheckNoResourceAttr("data.github_organization_teams.all", "teams.0.members.0"),
-			resource.TestCheckNoResourceAttr("data.github_organization_teams.all", "teams.0.repositories.0"),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_organization_teams.test", tfjsonpath.New("teams"), knownvalue.SetPartial([]knownvalue.Check{
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"id":                   knownvalue.Int32Exact(int32(team1.GetID())),
+								"node_id":              knownvalue.StringExact(team1.GetNodeID()),
+								"slug":                 knownvalue.StringExact(team1.GetSlug()),
+								"name":                 knownvalue.StringExact(team1.GetName()),
+								"description":          knownvalue.StringExact(team1.GetDescription()),
+								"type":                 knownvalue.StringExact(team1.GetType()),
+								"privacy":              knownvalue.StringExact(team1.GetPrivacy()),
+								"notification_setting": knownvalue.StringExact(team1.GetNotificationSetting()),
+								"permission":           knownvalue.StringExact(team1.GetPermission()),
+								"parent_team":          knownvalue.ListSizeExact(0),
+								"members": knownvalue.ListExact([]knownvalue.Check{
+									knownvalue.StringExact(testAccConf.testOrgUser1),
+								}),
+								"repositories": knownvalue.ListExact([]knownvalue.Check{
+									knownvalue.StringExact(repo.GetName()),
+								}),
+								"parent": knownvalue.MapExact(map[string]knownvalue.Check{
+									"id":   knownvalue.StringExact(""),
+									"slug": knownvalue.StringExact(""),
+									"name": knownvalue.StringExact(""),
+								}),
+								"parent_team_id":   knownvalue.StringExact(""),
+								"parent_team_slug": knownvalue.StringExact(""),
+							}),
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"id":                   knownvalue.Int32Exact(int32(team2.GetID())),
+								"node_id":              knownvalue.StringExact(team2.GetNodeID()),
+								"slug":                 knownvalue.StringExact(team2.GetSlug()),
+								"name":                 knownvalue.StringExact(team2.GetName()),
+								"description":          knownvalue.StringExact(team2.GetDescription()),
+								"type":                 knownvalue.StringExact(team2.GetType()),
+								"privacy":              knownvalue.StringExact(team2.GetPrivacy()),
+								"notification_setting": knownvalue.StringExact(team2.GetNotificationSetting()),
+								"permission":           knownvalue.StringExact(team2.GetPermission()),
+								"parent_team":          knownvalue.ListSizeExact(0),
+								"members":              knownvalue.ListSizeExact(0),
+								"repositories":         knownvalue.ListSizeExact(0),
+								"parent": knownvalue.MapExact(map[string]knownvalue.Check{
+									"id":   knownvalue.StringExact(""),
+									"slug": knownvalue.StringExact(""),
+									"name": knownvalue.StringExact(""),
+								}),
+								"parent_team_id":   knownvalue.StringExact(""),
+								"parent_team_slug": knownvalue.StringExact(""),
+							}),
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"id":                   knownvalue.Int32Exact(int32(team3.GetID())),
+								"node_id":              knownvalue.StringExact(team3.GetNodeID()),
+								"slug":                 knownvalue.StringExact(team3.GetSlug()),
+								"name":                 knownvalue.StringExact(team3.GetName()),
+								"description":          knownvalue.StringExact(team3.GetDescription()),
+								"type":                 knownvalue.StringExact(team3.GetType()),
+								"privacy":              knownvalue.StringExact(team3.GetPrivacy()),
+								"notification_setting": knownvalue.StringExact(team3.GetNotificationSetting()),
+								"permission":           knownvalue.StringExact(team3.GetPermission()),
+								"parent_team": knownvalue.ListExact([]knownvalue.Check{
+									knownvalue.MapExact(map[string]knownvalue.Check{
+										"id":   knownvalue.Int32Exact(int32(team1.GetID())),
+										"slug": knownvalue.StringExact(team1.GetSlug()),
+									}),
+								}),
+								"members": knownvalue.ListExact([]knownvalue.Check{
+									knownvalue.StringExact(testAccConf.testOrgUser2),
+								}),
+								"repositories": knownvalue.ListExact([]knownvalue.Check{
+									knownvalue.StringExact(repo.GetName()),
+								}),
+								"parent": knownvalue.MapExact(map[string]knownvalue.Check{
+									"id":   knownvalue.StringExact(team1.GetNodeID()),
+									"slug": knownvalue.StringExact(team1.GetSlug()),
+									"name": knownvalue.StringExact(team1.GetName()),
+								}),
+								"parent_team_id":   knownvalue.StringExact(strconv.FormatInt(team1.GetID(), 10)),
+								"parent_team_slug": knownvalue.StringExact(team1.GetSlug()),
+							}),
+						})),
 					},
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-	})
-
-	t.Run("queries results_per_page only without error", func(t *testing.T) {
-		config := `
-			data "github_organization_teams" "all" {
-				results_per_page = 50
-			}
-		`
-
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttrSet("data.github_organization_teams.all", "teams.0.id"),
-			resource.TestCheckResourceAttrSet("data.github_organization_teams.all", "teams.0.node_id"),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 }

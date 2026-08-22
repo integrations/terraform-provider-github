@@ -1,9 +1,19 @@
 version: 2
+
 updates:
   - package-ecosystem: github-actions
-    directory: /
+    directories:
+      - /
     groups:
       github-actions:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+      github-actions-security:
+        applies-to: security-updates
         patterns:
           - "*"
         update-types:
@@ -13,9 +23,19 @@ updates:
       interval: weekly
 
   - package-ecosystem: gomod
-    directory: /
+    directories:
+      - /
+      - /tools
     groups:
       gomod:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+      gomod-security:
+        applies-to: security-updates
         patterns:
           - "*"
         update-types:

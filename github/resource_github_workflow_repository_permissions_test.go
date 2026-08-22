@@ -4,18 +4,23 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubWorkflowRepositoryPermissions(t *testing.T) {
+	t.Parallel()
+
 	t.Run("test setting of basic workflow repository permissions", func(t *testing.T) {
+		t.Parallel()
+
 		defaultWorkflowPermissions := "read"
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-workflow-perms-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name        = "tf-acc-test-topic-%[1]s"
+				name        = "%[1]s"
 				description = "Terraform acceptance tests %[1]s"
 				topics		= ["terraform", "testing"]
 			}
@@ -24,7 +29,7 @@ func TestAccGithubWorkflowRepositoryPermissions(t *testing.T) {
 				default_workflow_permissions = "%s"
 				repository = github_repository.test.name
 			}
-		`, randomID, defaultWorkflowPermissions)
+		`, repoName, defaultWorkflowPermissions)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -32,41 +37,30 @@ func TestAccGithubWorkflowRepositoryPermissions(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
 	t.Run("imports entire set of github workflow repository permissions without error", func(t *testing.T) {
+		t.Parallel()
+
 		defaultWorkflowPermissions := "read"
 		canApprovePullRequestReviews := "true"
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-workflow-perms-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name        = "tf-acc-test-topic-%[1]s"
+				name        = "%[1]s"
 				description = "Terraform acceptance tests %[1]s"
 				topics		= ["terraform", "testing"]
 			}
@@ -76,7 +70,7 @@ func TestAccGithubWorkflowRepositoryPermissions(t *testing.T) {
 				can_approve_pull_request_reviews = %s
 				repository = github_repository.test.name
 			}
-		`, randomID, defaultWorkflowPermissions, canApprovePullRequestReviews)
+		`, repoName, defaultWorkflowPermissions, canApprovePullRequestReviews)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -87,34 +81,20 @@ func TestAccGithubWorkflowRepositoryPermissions(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:      "github_workflow_repository_permissions.test",
-						ImportState:       true,
-						ImportStateVerify: true,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					ResourceName:      "github_workflow_repository_permissions.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
 		})
 	})
 }

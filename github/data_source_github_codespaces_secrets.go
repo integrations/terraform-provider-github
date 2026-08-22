@@ -2,16 +2,16 @@ package github
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v89/github"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubCodespacesSecrets() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubCodespacesSecretsRead,
+		ReadContext: dataSourceGithubCodespacesSecretsRead,
 
 		Schema: map[string]*schema.Schema{
 			"full_name": {
@@ -52,10 +52,10 @@ func dataSourceGithubCodespacesSecrets() *schema.Resource {
 	}
 }
 
-func dataSourceGithubCodespacesSecretsRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	ctx := context.Background()
+func dataSourceGithubCodespacesSecretsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
 	var repoName string
 
@@ -63,7 +63,7 @@ func dataSourceGithubCodespacesSecretsRead(d *schema.ResourceData, meta any) err
 		var err error
 		owner, repoName, err = splitRepoFullName(fullName.(string))
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
@@ -72,18 +72,18 @@ func dataSourceGithubCodespacesSecretsRead(d *schema.ResourceData, meta any) err
 	}
 
 	if repoName == "" {
-		return fmt.Errorf("one of %q or %q has to be provided", "full_name", "name")
+		return diag.Errorf("one of %q or %q has to be provided", "full_name", "name")
 	}
 
 	options := github.ListOptions{
-		PerPage: 100,
+		PerPage: meta.maxPerPage,
 	}
 
 	var all_secrets []map[string]string
 	for {
 		secrets, resp, err := client.Codespaces.ListRepoSecrets(ctx, owner, repoName, &options)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		for _, secret := range secrets.Secrets {
 			new_secret := map[string]string{
@@ -102,7 +102,7 @@ func dataSourceGithubCodespacesSecretsRead(d *schema.ResourceData, meta any) err
 	d.SetId(repoName)
 	err := d.Set("secrets", all_secrets)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

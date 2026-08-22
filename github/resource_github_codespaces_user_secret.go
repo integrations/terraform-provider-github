@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -41,7 +41,7 @@ func resourceGithubCodespacesUserSecret() *schema.Resource {
 				Sensitive:        true,
 				ConflictsWith:    []string{"plaintext_value"},
 				Description:      "Encrypted value of the secret using the GitHub public key in Base64 format.",
-				ValidateDiagFunc: toDiagFunc(validation.StringIsBase64, "encrypted_value"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsBase64),
 			},
 			"plaintext_value": {
 				Type:          schema.TypeString,
@@ -133,8 +133,7 @@ func resourceGithubCodespacesUserSecretRead(d *schema.ResourceData, meta any) er
 
 	secret, _, err := client.Codespaces.GetUserSecret(ctx, d.Id())
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] Removing actions secret %s from state because it no longer exists in GitHub",
 					d.Id())

@@ -1,32 +1,30 @@
 package github
 
 import (
-	"context"
-	"errors"
 	"fmt"
-	"log"
-	"regexp"
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v67/github"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/stretchr/testify/assert"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccGithubRepositories(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+func TestAccGithubRepository(t *testing.T) {
+	t.Parallel()
 
 	t.Run("creates and updates repositories without error", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%screate-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 
-				name                        = "tf-acc-test-create-%[1]s"
+				name                        = "%s"
 				description                 = "Terraform acceptance tests %[1]s"
 				has_discussions             = true
 				has_issues                  = true
@@ -40,8 +38,9 @@ func TestAccGithubRepositories(t *testing.T) {
 				merge_commit_message        = "PR_TITLE"
 				auto_init                   = false
 				web_commit_signoff_required = true
+				visibility                  = "%s"
 			}
-		`, randomID)
+		`, testRepoName, testAccConf.testRepositoryVisibility)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -66,42 +65,32 @@ func TestAccGithubRepositories(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
-	t.Run("updates a repository's name without error", func(t *testing.T) {
-		oldName := fmt.Sprintf(`tf-acc-test-rename-%[1]s`, randomID)
-		newName := fmt.Sprintf(`%[1]s-renamed`, oldName)
+	t.Run("updates a repositories name without error", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		oldName := fmt.Sprintf(`%srename-%s`, testResourcePrefix, randomID)
+		newName := fmt.Sprintf(`%s-renamed`, oldName)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name         = "%[1]s"
-			  description  = "Terraform acceptance tests %[2]s"
+				name         = "%[1]s"
+				description  = "Terraform acceptance tests %[2]s"
+				visibility   = "%s"
 			}
-		`, oldName, randomID)
+		`, oldName, randomID, testAccConf.testRepositoryVisibility)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
@@ -126,148 +115,110 @@ func TestAccGithubRepositories(t *testing.T) {
 			),
 		}
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["before"],
-					},
-					{
-						// Rename the repo to something else
-						Config: strings.Replace(
-							config,
-							oldName,
-							newName, 1),
-						Check: checks["after"],
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  checks["before"],
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					// Rename the repo to something else
+					Config: strings.Replace(
+						config,
+						oldName,
+						newName, 1,
+					),
+					Check: checks["after"],
+				},
+			},
 		})
 	})
 
 	t.Run("imports repositories without error", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name         = "tf-acc-test-import-%[1]s"
-			  description  = "Terraform acceptance tests %[1]s"
+				name         = "%s"
+				description  = "Terraform acceptance tests %[1]s"
 				auto_init 	 = false
+				visibility   = "%s"
 			}
-		`, randomID)
+		`, testRepoName, testAccConf.testRepositoryVisibility)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet("github_repository.test", "name"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:      "github_repository.test",
-						ImportState:       true,
-						ImportStateVerify: true,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					ResourceName:            "github_repository.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"auto_init", "vulnerability_alerts", "ignore_vulnerability_alerts_during_read"},
+				},
+			},
 		})
 	})
 
 	t.Run("archives repositories without error", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-			  name         = "tf-acc-test-archive-%[1]s"
-			  description  = "Terraform acceptance tests %[1]s"
-				archived     = false
-			}
-		`, randomID)
+		t.Parallel()
 
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "archived",
-					"false",
-				),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "archived",
-					"true",
-				),
-			),
-		}
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["before"],
-					},
-					{
-						Config: strings.Replace(config,
-							`archived     = false`,
-							`archived     = true`, 1),
-						Check: checks["after"],
-					},
+		config := `
+resource "github_repository" "test" {
+	name         = "%s"
+	archived     = %s
+	visibility   = "%s"
+}
+`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, testRepoName, "false", testAccConf.testRepositoryVisibility),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "archived", "false"),
+					),
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: fmt.Sprintf(config, testRepoName, "true", testAccConf.testRepositoryVisibility),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "archived", "true"),
+					),
+				},
+			},
 		})
 	})
 
 	t.Run("manages the project feature for a repository", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%sproject-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name         = "tf-acc-test-project-%[1]s"
-			  description  = "Terraform acceptance tests %[1]s"
+				name         = "%s"
+				description  = "Terraform acceptance tests %[1]s"
 				has_projects = false
+				visibility   = "%s"
 			}
-		`, randomID)
+		`, testRepoName, testAccConf.testRepositoryVisibility)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
@@ -284,52 +235,43 @@ func TestAccGithubRepositories(t *testing.T) {
 			),
 		}
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["before"],
-					},
-					{
-						Config: strings.Replace(config,
-							`has_projects = false`,
-							`has_projects = true`, 1),
-						Check: checks["after"],
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  checks["before"],
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: strings.Replace(config,
+						`has_projects = false`,
+						`has_projects = true`, 1),
+					Check: checks["after"],
+				},
+			},
 		})
 	})
 
 	t.Run("manages the default branch feature for a repository", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%sbranch-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name           = "tf-acc-test-branch-%[1]s"
-			  description    = "Terraform acceptance tests %[1]s"
-			  default_branch = "main"
-			  auto_init      = true
+				name           = "%s"
+				description    = "Terraform acceptance tests %[1]s"
+				default_branch = "main"
+				auto_init      = true
+				visibility     = "%s"
 			}
 
 			resource "github_branch" "default" {
-			  repository = github_repository.test.name
-			  branch     = "default"
+				repository = github_repository.test.name
+				branch     = "default"
 			}
-		`, randomID)
+		`, testRepoName, testAccConf.testRepositoryVisibility)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
@@ -346,55 +288,46 @@ func TestAccGithubRepositories(t *testing.T) {
 			),
 		}
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["before"],
-					},
-					// Test changing default_branch
-					{
-						Config: strings.Replace(config,
-							`default_branch = "main"`,
-							`default_branch = "default"`, 1),
-						Check: checks["after"],
-					},
-					// Test changing default_branch back to main again
-					{
-						Config: config,
-						Check:  checks["before"],
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  checks["before"],
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				// Test changing default_branch
+				{
+					Config: strings.Replace(config,
+						`default_branch = "main"`,
+						`default_branch = "default"`, 1),
+					Check: checks["after"],
+				},
+				// Test changing default_branch back to main again
+				{
+					Config: config,
+					Check:  checks["before"],
+				},
+			},
 		})
 	})
 
 	t.Run("allows setting default_branch on an empty repository", func(t *testing.T) {
+		t.Parallel()
+
 		// Although default_branch is deprecated, for backwards compatibility
 		// we allow setting it to "main".
 
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%sempty-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name           = "tf-acc-test-empty-%[1]s"
-			  description    = "Terraform acceptance tests %[1]s"
-			  default_branch = "main"
+				name           = "%s"
+				description    = "Terraform acceptance tests %[1]s"
+				default_branch = "main"
+				visibility     = "%s"
 			}
-		`, randomID)
+		`, testRepoName, testAccConf.testRepositoryVisibility)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -403,50 +336,41 @@ func TestAccGithubRepositories(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					// Test creation with default_branch set
-					{
-						Config: config,
-						Check:  check,
-					},
-					// Test that changing another property does not try to set
-					// default_branch (which would crash).
-					{
-						Config: strings.Replace(config,
-							`acceptance tests`,
-							`acceptance test`, 1),
-						Check: check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				// Test creation with default_branch set
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				// Test that changing another property does not try to set
+				// default_branch (which would crash).
+				{
+					Config: strings.Replace(config,
+						`acceptance tests`,
+						`acceptance test`, 1),
+					Check: check,
+				},
+			},
 		})
 	})
 
 	t.Run("manages the license and gitignore feature for a repository", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%slicense-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name           = "tf-acc-test-license-%[1]s"
+				name           = "%s"
 				description    = "Terraform acceptance tests %[1]s"
 				license_template   = "ms-pl"
 				gitignore_template = "C++"
+				visibility         = "%s"
 			}
-		`, randomID)
+		`, testRepoName, testAccConf.testRepositoryVisibility)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -459,1055 +383,891 @@ func TestAccGithubRepositories(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
-	t.Run("configures topics for a repository", func(t *testing.T) {
-		config := fmt.Sprintf(`
+	t.Run("configures_topics_for_a_repository", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%stopic-%s", testResourcePrefix, randomID)
+		topicsBefore := `["terraform", "testing"]`
+		topicsAfter := `["terraform", "testing", "extra-topic"]`
+		config := `
 			resource "github_repository" "test" {
-				name        = "tf-acc-test-topic-%[1]s"
+				name        = "%s"
 				description = "Terraform acceptance tests %[1]s"
-				topics			= ["terraform", "testing"]
+				topics			= %s
+				visibility     = "%s"
 			}
-		`, randomID)
+		`
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "topics.#",
-				"2",
-			),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, testRepoName, topicsBefore, testAccConf.testRepositoryVisibility),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "topics.#", "2"),
+					),
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: fmt.Sprintf(config, testRepoName, topicsAfter, testAccConf.testRepositoryVisibility),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "topics.#", "3"),
+					),
+				},
+			},
 		})
 	})
 
-	t.Run("creates a repository using a template", func(t *testing.T) {
+	t.Run("creates a repository using a public template", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%stemplate-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name        = "tf-acc-test-template-%s"
+				name        = "%s"
 				description = "Terraform acceptance tests %[1]s"
-
+				visibility  = "%s"
 				template {
 					owner = "%s"
 					repository = "%s"
 				}
 
 			}
-		`, randomID, testOrganization, "terraform-template-module")
+		`, testRepoName, testAccConf.testRepositoryVisibility, testAccConf.testPublicTemplateRepositoryOwner, testAccConf.testPublicTemplateRepository)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "is_template",
-				"false",
-			),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t); skipIfEMUEnterprise(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "is_template", "false"),
+					),
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+			},
 		})
+	})
 
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
+	t.Run("creates a repository using an org template", func(t *testing.T) {
+		t.Parallel()
 
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testTemplateRepoName := fmt.Sprintf("%stemplate-%s", testResourcePrefix, randomID)
+		testRepoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_repository" "test" {
+  name         = "%s"
+  visibility   = "%s"
+  auto_init    = true
+  is_template = true
+}
+
+resource "github_repository" "test" {
+  name        = "%s"
+  description = "Terraform acceptance tests %[1]s"
+  visibility  = "%s"
+  template {
+    owner      = "%s"
+    repository = github_repository.test.name
+  }
+}
+`, testTemplateRepoName, testAccConf.testRepositoryVisibility, testRepoName, testAccConf.testRepositoryVisibility, testAccConf.owner)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "is_template", "false"),
+					),
+				},
+			},
 		})
 	})
 
 	t.Run("archives repositories on destroy", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name               = "tf-acc-test-destroy-%[1]s"
-				auto_init          = true
-				archive_on_destroy = true
-				archived           = false
-			}
-		`, randomID)
+		t.Parallel()
 
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "archived",
-					"false",
-				),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "archived",
-					"true",
-				),
-			),
-		}
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["before"],
-					},
-					{
-						Config: strings.Replace(config,
-							`archived           = false`,
-							`archived           = true`, 1),
-						Check: checks["after"],
-					},
+		config := `
+resource "github_repository" "test" {
+	name               = "%s"
+	auto_init          = true
+	archive_on_destroy = true
+	archived           = %s
+	visibility         = "%s"
+}
+`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, testRepoName, "false", testAccConf.testRepositoryVisibility),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "archived", "false"),
+					),
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: fmt.Sprintf(config, testRepoName, "true", testAccConf.testRepositoryVisibility),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "archived", "true"),
+					),
+				},
+			},
 		})
 	})
 
-	t.Run("configures vulnerability alerts", func(t *testing.T) {
-		t.Run("for a public repository", func(t *testing.T) {
-			config := fmt.Sprintf(`
-				resource "github_repository" "test" {
-					name       = "tf-acc-test-pub-vuln-%s"
-					visibility = "public"
-				}
-			`, randomID)
+	t.Run("create_private_with_forking", func(t *testing.T) {
+		t.Parallel()
 
-			checks := map[string]resource.TestCheckFunc{
-				"before": resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"github_repository.test", "vulnerability_alerts",
-						"false",
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name       = "%s"
+	visibility = "private"
+
+	allow_forking = true
+}
+`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "visibility", "private"),
+						resource.TestCheckResourceAttr("github_repository.test", "allow_forking", "true"),
 					),
-				),
-				"after": resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"github_repository.test", "vulnerability_alerts",
-						"true",
-					),
-					resource.TestCheckResourceAttr(
-						"github_repository.test", "visibility",
-						"public",
-					),
-				),
-			}
-
-			testCase := func(t *testing.T, mode string) {
-				resource.Test(t, resource.TestCase{
-					PreCheck:  func() { skipUnlessMode(t, mode) },
-					Providers: testAccProviders,
-					Steps: []resource.TestStep{
-						{
-							Config: config,
-							Check:  checks["before"],
-						},
-						{
-							Config: strings.Replace(config,
-								`}`,
-								"vulnerability_alerts = true\n}", 1),
-							Check: checks["after"],
-						},
-					},
-				})
-			}
-
-			t.Run("with an anonymous account", func(t *testing.T) {
-				t.Skip("anonymous account not supported for this operation")
-			})
-
-			t.Run("with an individual account", func(t *testing.T) {
-				testCase(t, individual)
-			})
-
-			t.Run("with an organization account", func(t *testing.T) {
-				testCase(t, organization)
-			})
+				},
+			},
 		})
+	})
 
-		t.Run("for a private repository", func(t *testing.T) {
-			config := fmt.Sprintf(`
-				resource "github_repository" "test" {
-					name       = "tf-acc-test-prv-vuln-%s"
-					visibility = "private"
-				}
-			`, randomID)
+	t.Run("create_private_without_forking", func(t *testing.T) {
+		t.Parallel()
 
-			checks := map[string]resource.TestCheckFunc{
-				"before": resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"github_repository.test", "vulnerability_alerts",
-						"false",
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+		resource "github_repository" "test" {
+			name       = "%s"
+			visibility = "private"
+
+			allow_forking = false
+		}
+		`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "visibility", "private"),
+						resource.TestCheckResourceAttr("github_repository.test", "allow_forking", "false"),
 					),
-				),
-				"after": resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"github_repository.test", "vulnerability_alerts",
-						"true",
+				},
+			},
+		})
+	})
+
+	t.Run("create_private_with_forking_unset", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name       = "%s"
+	visibility = "private"
+}
+`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "visibility", "private"),
+						resource.TestCheckResourceAttrSet("github_repository.test", "allow_forking"),
 					),
-					resource.TestCheckResourceAttr(
-						"github_repository.test", "visibility",
-						"private",
-					),
-				),
+				},
+			},
+		})
+	})
+
+	t.Run("update_public_to_private_allow_forking", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%svisibility-%s", testResourcePrefix, randomID)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name       = "%s"
+				visibility = "public"
 			}
+		`, testRepoName)
 
-			testCase := func(t *testing.T, mode string) {
-				resource.Test(t, resource.TestCase{
-					PreCheck:  func() { skipUnlessMode(t, mode) },
-					Providers: testAccProviders,
-					Steps: []resource.TestStep{
-						{
-							Config: config,
-							Check:  checks["before"],
-						},
-						{
-							Config: strings.Replace(config,
-								`}`,
-								"vulnerability_alerts = true\n}", 1),
-							Check: checks["after"],
-						},
-					},
-				})
+		configPrivate := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name          = "%s"
+				visibility    = "private"
+				allow_forking = false
 			}
+		`, testRepoName)
 
-			t.Run("with an anonymous account", func(t *testing.T) {
-				t.Skip("anonymous account not supported for this operation")
-			})
+		configPrivateForking := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name          = "%s"
+				visibility    = "private"
+				allow_forking = true
+			}
+		`, testRepoName)
 
-			t.Run("with an individual account", func(t *testing.T) {
-				testCase(t, individual)
-			})
+		resource.Test(t, resource.TestCase{
+			PreCheck: func() {
+				skipUnauthenticated(t)
+				skipIfEMUEnterprise(t)
+			},
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "visibility", "public"),
+						resource.TestCheckResourceAttr("github_repository.test", "allow_forking", "true"),
+					),
+				},
+				{
+					Config: configPrivate,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "visibility", "private"),
+						resource.TestCheckResourceAttr("github_repository.test", "allow_forking", "false"),
+					),
+				},
+				{
+					Config: configPrivateForking,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "visibility", "private"),
+						resource.TestCheckResourceAttr("github_repository.test", "allow_forking", "true"),
+					),
+				},
+			},
+		})
+	})
 
-			t.Run("with an organization account", func(t *testing.T) {
-				testCase(t, organization)
-			})
+	t.Run("create_with_vulnerability_alerts", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+		resource "github_repository" "test" {
+			name       = "%s"
+			visibility = "%s"
+
+			vulnerability_alerts = true
+		}
+		`, repoName, testAccConf.testRepositoryVisibility)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "vulnerability_alerts", "true"),
+					),
+				},
+			},
+		})
+	})
+
+	t.Run("create_without_vulnerability_alerts", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+		resource "github_repository" "test" {
+			name       = "%s"
+			visibility = "%s"
+
+			vulnerability_alerts = false
+		}
+		`, repoName, testAccConf.testRepositoryVisibility)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "vulnerability_alerts", "false"),
+					),
+				},
+			},
+		})
+	})
+
+	t.Run("create_with_vulnerability_alerts_unset", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+		resource "github_repository" "test" {
+			name       = "%s"
+			visibility = "%s"
+		}
+		`, repoName, testAccConf.testRepositoryVisibility)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckNoResourceAttr("github_repository.test", "vulnerability_alerts"), // This will error if it's run as an unprivileged user but that shouldn't ever happen
+					),
+				},
+			},
+		})
+	})
+
+	t.Run("update_vulnerability_alerts", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+
+		config := `
+		resource "github_repository" "test" {
+			name       = "%s"
+			visibility = "%s"
+
+			vulnerability_alerts = %t
+		}
+		`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, repoName, testAccConf.testRepositoryVisibility, false),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "vulnerability_alerts", "false"),
+					),
+				},
+				{
+					Config: fmt.Sprintf(config, repoName, testAccConf.testRepositoryVisibility, true),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "vulnerability_alerts", "true"),
+					),
+				},
+			},
 		})
 	})
 
 	t.Run("create and modify merge commit strategy without error", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%smodify-co-str-%s", testResourcePrefix, randomID)
 		mergeCommitTitle := "PR_TITLE"
 		mergeCommitMessage := "BLANK"
 		updatedMergeCommitTitle := "MERGE_MESSAGE"
 		updatedMergeCommitMessage := "PR_TITLE"
+		config := `
+resource "github_repository" "test" {
 
-		configs := map[string]string{
-			"before": fmt.Sprintf(`
-                		resource "github_repository" "test" {
+		name                 = "%[1]s"
+		allow_merge_commit   = true
+		merge_commit_title   = "%s"
+		merge_commit_message = "%s"
+		visibility           = "%s"
+}
+`
 
-		                	name                 = "tf-acc-test-modify-co-str-%[1]s"
-		                  	allow_merge_commit   = true
-		                  	merge_commit_title   = "%s"
-		                  	merge_commit_message = "%s"
-		                }
-		        `, randomID, mergeCommitTitle, mergeCommitMessage),
-			"after": fmt.Sprintf(`
-		                resource "github_repository" "test" {
-		                  	name                 = "tf-acc-test-modify-co-str-%[1]s"
-		                  	allow_merge_commit   = true
-		                  	merge_commit_title   = "%s"
-		                  	merge_commit_message = "%s"
-		                }
-		        `, randomID, updatedMergeCommitTitle, updatedMergeCommitMessage),
-		}
-
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "merge_commit_title",
-					mergeCommitTitle,
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "merge_commit_message",
-					mergeCommitMessage,
-				),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "merge_commit_title",
-					updatedMergeCommitTitle,
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "merge_commit_message",
-					updatedMergeCommitMessage,
-				),
-			),
-		}
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: configs["before"],
-						Check:  checks["before"],
-					},
-					{
-						Config: configs["after"],
-						Check:  checks["after"],
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, testRepoName, mergeCommitTitle, mergeCommitMessage, testAccConf.testRepositoryVisibility),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "merge_commit_title", mergeCommitTitle),
+						resource.TestCheckResourceAttr("github_repository.test", "merge_commit_message", mergeCommitMessage),
+					),
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: fmt.Sprintf(config, testRepoName, updatedMergeCommitTitle, updatedMergeCommitMessage, testAccConf.testRepositoryVisibility),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "merge_commit_title", updatedMergeCommitTitle),
+						resource.TestCheckResourceAttr("github_repository.test", "merge_commit_message", updatedMergeCommitMessage),
+					),
+				},
+			},
 		})
 	})
 
 	t.Run("create and modify squash merge commit strategy without error", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%smodify-sq-str-%s", testResourcePrefix, randomID)
+		testRepoNameAfter := fmt.Sprintf("%s-modified", testRepoName)
 		squashMergeCommitTitle := "PR_TITLE"
 		squashMergeCommitMessage := "PR_BODY"
 		updatedSquashMergeCommitTitle := "COMMIT_OR_PR_TITLE"
 		updatedSquashMergeCommitMessage := "COMMIT_MESSAGES"
 
-		configs := map[string]string{
-			"before": fmt.Sprintf(`
-	                	resource "github_repository" "test" {
-	                  		name                        = "tf-acc-test-modify-sq-str-%[1]s"
-	                  		allow_squash_merge          = true
-	                  		squash_merge_commit_title   = "%s"
-	                  		squash_merge_commit_message = "%s"
-	                	}
-	            	`, randomID, squashMergeCommitTitle, squashMergeCommitMessage),
-			"after": fmt.Sprintf(`
-	                	resource "github_repository" "test" {
-	                  		name                        = "tf-acc-test-modify-sq-str-%[1]s"
-	                  		allow_squash_merge          = true
-	                  		squash_merge_commit_title   = "%s"
-	                  		squash_merge_commit_message = "%s"
-	                	}
-	            	`, randomID, updatedSquashMergeCommitTitle, updatedSquashMergeCommitMessage),
+		config := `
+		resource "github_repository" "test" {
+				name                        = "%s"
+				allow_squash_merge          = true
+				squash_merge_commit_title   = "%s"
+				squash_merge_commit_message = "%s"
+				visibility                  = "%s"
 		}
+`
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "squash_merge_commit_title",
-					squashMergeCommitTitle,
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "squash_merge_commit_message",
-					squashMergeCommitMessage,
-				),
+				resource.TestCheckResourceAttr("github_repository.test", "squash_merge_commit_title", squashMergeCommitTitle),
+				resource.TestCheckResourceAttr("github_repository.test", "squash_merge_commit_message", squashMergeCommitMessage),
 			),
 			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "squash_merge_commit_title",
-					updatedSquashMergeCommitTitle,
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "squash_merge_commit_message",
-					updatedSquashMergeCommitMessage,
-				),
+				resource.TestCheckResourceAttr("github_repository.test", "squash_merge_commit_title", updatedSquashMergeCommitTitle),
+				resource.TestCheckResourceAttr("github_repository.test", "squash_merge_commit_message", updatedSquashMergeCommitMessage),
 			),
 		}
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: configs["before"],
-						Check:  checks["before"],
-					},
-					{
-						Config: configs["after"],
-						Check:  checks["after"],
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, testRepoName, squashMergeCommitTitle, squashMergeCommitMessage, testAccConf.testRepositoryVisibility),
+					Check:  checks["before"],
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: fmt.Sprintf(config, testRepoNameAfter, updatedSquashMergeCommitTitle, updatedSquashMergeCommitMessage, testAccConf.testRepositoryVisibility),
+					Check:  checks["after"],
+				},
+			},
 		})
 	})
 
-	t.Run("create a repository with go as primary_language", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name = "tf-acc-%s"
-				auto_init = true
-			}
-			resource "github_repository_file" "test" {
-				repository     = github_repository.test.name
-				file           = "test.go"
-				content        = "package main"
-			}
-		`, randomID)
+	// t.Run("create a repository with go as primary_language", func(t *testing.T) {
+	// 	t.Parallel()
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "primary_language",
-				"Go",
-			),
-		)
+	// 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	// 	testResourceName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
+	// 	config := fmt.Sprintf(`
+	// 		resource "github_repository" "test" {
+	// 			name = "%s"
+	// 			auto_init = true
+	// 		}
+	// 		resource "github_repository_file" "test" {
+	// 			repository     = github_repository.test.name
+	// 			file           = "test.go"
+	// 			content        = "package main"
+	// 		}
+	// 	`, testResourceName)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						// Not doing any checks since the file needs to be created before the language can be updated
-						Config: config,
-					},
-					{
-						// Re-running the terraform will refresh the language since the go-file has been created
-						Config: config,
-						Check:  check,
-					},
-				},
-			})
-		}
+	// 	check := resource.ComposeTestCheckFunc(
+	// 		resource.TestCheckResourceAttr("github_repository.test", "primary_language", "Go"),
+	// 	)
 
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-	})
-}
-
-func TestAccGithubRepositoryPages(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	// 	resource.Test(t, resource.TestCase{
+	// 		PreCheck:          func() { skipUnauthenticated(t) },
+	// 		ProviderFactories: providerFactories,
+	// 		Steps: []resource.TestStep{
+	// 			{
+	// 				// Not doing any checks since the file needs to be created before the language can be updated
+	// 				Config: config,
+	// 			},
+	// 			{
+	// 				// Re-running the terraform will refresh the language since the go-file has been created
+	// 				Config: config,
+	// 				Check:  check,
+	// 			},
+	// 		},
+	// 	})
+	// })
 
 	t.Run("manages the legacy pages feature for a repository", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%slegacy-pages-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name         = "tf-acc-%s"
+				name         = "%s"
 				auto_init    = true
+				visibility   = "%s"
 				pages {
+					build_type = "legacy"
+
 					source {
 						branch = "main"
 					}
 				}
 			}
-		`, randomID)
+			`, testRepoName, testAccConf.testRepositoryVisibility)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "pages.0.source.0.branch",
-				"main",
-			),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "pages.0.source.0.branch", "main"),
+						resource.TestCheckResourceAttr("github_repository.test", "pages.0.source.0.path", "/"),
+					),
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
 	t.Run("manages the pages from workflow feature for a repository", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%sworkflow-pages-%s", testResourcePrefix, randomID)
+		config := fmt.Sprintf(`
+		resource "github_repository" "test" {
+			name         = "%s"
+			auto_init    = true
+			visibility   = "%s"
+			pages {
+				build_type = "workflow"
+			}
+		}
+		`, testRepoName, testAccConf.testRepositoryVisibility)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckNoResourceAttr("github_repository.test", "pages.0.source.#"),
+					),
+				},
+			},
+		})
+	})
+
+	t.Run("manages the security feature for a private repository", func(t *testing.T) {
+		t.Parallel()
+
+		if !testAccConf.testAdvancedSecurity {
+			t.Skip("Advanced Security is not enabled for this account")
+		}
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%ssecurity-private-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name         = "tf-acc-%s"
-				auto_init    = true
-				pages {
-					build_type = "workflow"
+				name        = "%s"
+				description = "A repository created by Terraform to test security features"
+				visibility  = "private"
+				security_and_analysis {
+					advanced_security {
+						status = "enabled"
+					}
+					code_security {
+						status = "enabled"
+					}
+					secret_scanning {
+						status = "enabled"
+					}
+					secret_scanning_push_protection {
+						status = "enabled"
+					}
+					secret_scanning_ai_detection {
+						status = "enabled"
+					}
+					secret_scanning_non_provider_patterns {
+						status = "enabled"
+					}
 				}
 			}
-		`, randomID)
+			`, testRepoName)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "pages.0.source.0.branch",
-				"main",
-			),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "security_and_analysis.0.advanced_security.0.status", "enabled"),
+						resource.TestCheckResourceAttr("github_repository.test", "security_and_analysis.0.code_security.0.status", "enabled"),
+						resource.TestCheckResourceAttr("github_repository.test", "security_and_analysis.0.secret_scanning.0.status", "enabled"),
+						resource.TestCheckResourceAttr("github_repository.test", "security_and_analysis.0.secret_scanning_push_protection.0.status", "enabled"),
+						resource.TestCheckResourceAttr("github_repository.test", "security_and_analysis.0.secret_scanning_ai_detection.0.status", "enabled"),
+						resource.TestCheckResourceAttr("github_repository.test", "security_and_analysis.0.secret_scanning_non_provider_patterns.0.status", "enabled"),
+					),
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
-	t.Run("expand Pages configuration with workflow", func(t *testing.T) {
-		input := []any{map[string]any{
-			"build_type": "workflow",
-			"source":     []any{map[string]any{}},
-		}}
+	t.Run("manages the security feature for a public repository", func(t *testing.T) {
+		t.Parallel()
 
-		pages := expandPages(input)
-		if pages == nil {
-			t.Fatal("pages is nil")
-		}
-		if pages.GetBuildType() != "workflow" {
-			t.Errorf("got %q; want %q", pages.GetBuildType(), "workflow")
-		}
-		if pages.GetSource().GetBranch() != "main" {
-			t.Errorf("got %q; want %q", pages.GetSource().GetBranch(), "main")
-		}
-	})
-
-	t.Run("expand Pages configuration with source", func(t *testing.T) {
-		input := []any{map[string]any{
-			"build_type": "legacy",
-			"source": []any{map[string]any{
-				"branch": "main",
-				"path":   "/docs",
-			}},
-		}}
-
-		pages := expandPages(input)
-		if pages == nil {
-			t.Fatal("pages is nil")
-		}
-		if pages.GetBuildType() != "legacy" {
-			t.Errorf("got %q; want %q", pages.GetBuildType(), "legacy")
-		}
-		if pages.GetSource().GetBranch() != "main" {
-			t.Errorf("got %q; want %q", pages.GetSource().GetBranch(), "main")
-		}
-		if pages.GetSource().GetPath() != "/docs" {
-			t.Errorf("got %q; want %q", pages.GetSource().GetPath(), "/docs")
-		}
-	})
-}
-
-func TestAccGithubRepositorySecurity(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
-	t.Run("manages the security feature for a repository", func(t *testing.T) {
-		t.Run("for a private repository", func(t *testing.T) {
-			t.Skip("organization/individual must have purchased Advanced Security in order to enable it")
-
-			config := fmt.Sprintf(`
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%ssecurity-public-%s", testResourcePrefix, randomID)
+		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name        = "tf-acc-%s"
-			  description = "A repository created by Terraform to test security features"
-			  visibility  = "private"
-			  security_and_analysis {
-			    advanced_security {
-			      status = "enabled"
-			    }
-			    code_security {
-					status = "enabled"
+				name        = "%s"
+				description = "A repository created by Terraform to test security features"
+				visibility  = "public"
+				security_and_analysis {
+					secret_scanning {
+						status = "enabled"
+					}
+					# seems like it can only be "enabled" for an organization that has purchased GHAS
+					secret_scanning_push_protection {
+						 status = "disabled"
+					}
 				}
-				secret_scanning {
-			      status = "enabled"
-			    }
-			    secret_scanning_push_protection {
-			       status = "enabled"
-			    }
-				secret_scanning_ai_detection {
-					status = "enabled"
-				}
-				secret_scanning_non_provider_patterns {
-					status = "enabled"
-				}
-			  }
 			}
-			`, randomID)
+			`, testRepoName)
 
-			check := resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "security_and_analysis.0.advanced_security.0.status",
-					"enabled",
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "security_and_analysis.0.code_security.0.status",
-					"enabled",
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "security_and_analysis.0.secret_scanning.0.status",
-					"enabled",
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "security_and_analysis.0.secret_scanning_push_protection.0.status",
-					"enabled",
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "security_and_analysis.0.secret_scanning_ai_detection.0.status",
-					"enabled",
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "security_and_analysis.0.secret_scanning_non_provider_patterns.0.status",
-					"enabled",
-				),
-			)
-			testCase := func(t *testing.T, mode string) {
-				resource.Test(t, resource.TestCase{
-					PreCheck:  func() { skipUnlessMode(t, mode) },
-					Providers: testAccProviders,
-					Steps: []resource.TestStep{
-						{
-							Config: config,
-							Check:  check,
-						},
-					},
-				})
-			}
-			t.Run("with an anonymous account", func(t *testing.T) {
-				t.Skip("anonymous account not supported for this operation")
-			})
-
-			t.Run("with an individual account", func(t *testing.T) {
-				testCase(t, individual)
-			})
-
-			t.Run("with an organization account", func(t *testing.T) {
-				testCase(t, organization)
-			})
-		})
-
-		t.Run("for a public repository", func(t *testing.T) {
-			config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-			  name        = "tf-acc-%s"
-			  description = "A repository created by Terraform to test security features"
-			  visibility  = "public"
-			  security_and_analysis {
-			    secret_scanning {
-			      status = "enabled"
-			    }
-			    # seems like it can only be "enabled" for an organization that has purchased GHAS
-			    secret_scanning_push_protection {
-			       status = "disabled"
-			    }
-			  }
-			}
-			`, randomID)
-
-			check := resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "security_and_analysis.0.secret_scanning.0.status",
-					"enabled",
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "security_and_analysis.0.secret_scanning_push_protection.0.status",
-					"disabled",
-				),
-			)
-			testCase := func(t *testing.T, mode string) {
-				resource.Test(t, resource.TestCase{
-					PreCheck:  func() { skipUnlessMode(t, mode) },
-					Providers: testAccProviders,
-					Steps: []resource.TestStep{
-						{
-							Config: config,
-							Check:  check,
-						},
-					},
-				})
-			}
-
-			t.Run("with an anonymous account", func(t *testing.T) {
-				t.Skip("anonymous account not supported for this operation")
-			})
-
-			t.Run("with an individual account", func(t *testing.T) {
-				testCase(t, individual)
-			})
-
-			t.Run("with an organization account", func(t *testing.T) {
-				testCase(t, organization)
-			})
+		resource.Test(t, resource.TestCase{
+			PreCheck: func() {
+				skipUnauthenticated(t)
+				skipIfEMUEnterprise(t)
+			},
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "security_and_analysis.0.secret_scanning.0.status", "enabled"),
+						resource.TestCheckResourceAttr("github_repository.test", "security_and_analysis.0.secret_scanning_push_protection.0.status", "disabled"),
+					),
+				},
+			},
 		})
 	})
-}
-
-func TestAccGithubRepositoryVisibility(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates repos with private visibility", func(t *testing.T) {
-		config := fmt.Sprintf(`
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%svisibility-private-%s", testResourcePrefix, randomID)
+		config := `
 			resource "github_repository" "private" {
-				name       = "tf-acc-test-visibility-private-%s"
+				name       = "%s"
 				visibility = "private"
 			}
-		`, randomID)
+		`
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository.private", "visibility",
-				"private",
-			),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, testRepoName),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.private", "visibility", "private"),
+					),
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
 	t.Run("creates repos with internal visibility", func(t *testing.T) {
-		t.Skip("organization used in automated tests does not support internal repositories")
+		t.Parallel()
 
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%svisibility-internal-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
-			resource "github_repository" "internal" {
-				name       = "tf-acc-test-visibility-internal-%s"
+			resource "github_repository" "test" {
+				name       = "%s"
 				visibility = "internal"
 			}
-		`, randomID)
+		`, testRepoName)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository.internal", "visibility",
-				"internal",
-			),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "visibility", "internal"),
+					),
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
 	t.Run("updates repos to private visibility", func(t *testing.T) {
-		config := fmt.Sprintf(`
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%svisibility-public-%s", testResourcePrefix, randomID)
+		config := `
 			resource "github_repository" "public" {
-				name       = "tf-acc-test-visibility-public-%s"
-				visibility = "public"
+				name       = "%s"
+				visibility = "%s"
 				vulnerability_alerts = false
 			}
-		`, randomID)
+		`
 
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.public", "visibility",
-					"public",
-				),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.public", "visibility",
-					"private",
-				),
-			),
-		}
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["before"],
-					},
-					{
-						Config: reconfigureVisibility(config, "private"),
-						Check:  checks["after"],
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t); skipIfEMUEnterprise(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, testRepoName, "public"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.public", "visibility", "public"),
+					),
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: fmt.Sprintf(config, testRepoName, "private"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.public", "visibility", "private"),
+					),
+				},
+			},
 		})
 	})
 
-	t.Run("updates repos to public visibility", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name       = "tf-acc-test-prv-vuln-%s"
-				visibility = "private"
+	t.Run("updates_repos_to_public_visibility", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%spublic-vuln-%s", testResourcePrefix, randomID)
+		config := `
+				resource "github_repository" "test" {
+				name       = "%s"
+				visibility = "%s"
 			}
-		`, randomID)
+		`
 
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "vulnerability_alerts",
-					"false",
-				),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "vulnerability_alerts",
-					"true",
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "visibility",
-					"private",
-				),
-			),
-		}
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["before"],
-					},
-					{
-						Config: strings.Replace(config,
-							`}`,
-							"vulnerability_alerts = true\n}", 1),
-						Check: checks["after"],
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, testRepoName, "private"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "visibility", "private"),
+					),
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: fmt.Sprintf(config, testRepoName, "public"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "visibility", "public"),
+					),
+				},
+			},
 		})
 	})
 
 	t.Run("updates repos to internal visibility", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%sinternal-vuln-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name       = "tf-acc-test-prv-vuln-%s"
+				name       = "%s"
 				visibility = "private"
 			}
-		`, randomID)
+		`, testRepoName)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "vulnerability_alerts",
-					"false",
-				),
+				resource.TestCheckNoResourceAttr("github_repository.test", "vulnerability_alerts"),
 			),
 			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "vulnerability_alerts",
-					"true",
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "visibility",
-					"private",
-				),
+				resource.TestCheckResourceAttr("github_repository.test", "vulnerability_alerts", "true"),
+				resource.TestCheckResourceAttr("github_repository.test", "visibility", "private"),
 			),
 		}
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["before"],
-					},
-					{
-						Config: strings.Replace(config,
-							`}`,
-							"vulnerability_alerts = true\n}", 1),
-						Check: checks["after"],
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  checks["before"],
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: strings.Replace(config,
+						`}`,
+						"vulnerability_alerts = true\n}", 1),
+					Check: checks["after"],
+				},
+			},
 		})
 	})
 
 	t.Run("sets private visibility for repositories created by a template", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%stemplate-visibility-private-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
 			resource "github_repository" "private" {
-				name       = "tf-acc-test-visibility-private-%s"
+				name       = "%s"
 				visibility = "private"
 				template {
 					owner      = "%s"
 					repository = "%s"
 				}
 			}
-		`, randomID, testOrganization, "terraform-template-module")
+		`, testRepoName, testAccConf.testPublicTemplateRepositoryOwner, testAccConf.testPublicTemplateRepository)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -1520,284 +1280,242 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t); skipIfEMUEnterprise(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
-}
 
-func TestAccGithubRepositoryWebCommitSignoffRequired(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	t.Run("create_internal_repo_from_template", func(t *testing.T) {
+		t.Parallel()
 
-	t.Run("changes the web_commit_signoff_required attribute for a repository", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name                        = "tf-acc-%s"
-				auto_init                   = true
-				web_commit_signoff_required = true
+            resource "github_repository" "test" {
+				name       = "%s"
+				visibility = "internal"
+				template {
+					owner      = "%s"
+					repository = "%s"
+				}
 			}
-		`, randomID)
+		`, testRepoName, testAccConf.testPublicTemplateRepositoryOwner, testAccConf.testPublicTemplateRepository)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "web_commit_signoff_required",
-				"true",
-			),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessEnterprise(t); skipIfEMUEnterprise(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "visibility", "internal"),
+						resource.TestCheckResourceAttr("github_repository.test", "private", "true"),
+					),
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
-	// Test that setting any other setting than web_commit_signoff_required
-	// being set, doesn't set the value of web_commit_signoff_required to true
-	// or false in the GitHub API call.
-	t.Run("changes a non web_commit_signoff_required attribute for a repository", func(t *testing.T) {
-		config := fmt.Sprintf(`
+	t.Run("check_web_commit_signoff_required_enabled", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%scommit-signoff-%s", testResourcePrefix, randomID)
+		config := `
 			resource "github_repository" "test" {
-				name                        = "tf-acc-%s"
+				name                        = "%s"
 				auto_init                   = true
-				allow_merge_commit          = true
-				web_commit_signoff_required = true
+				web_commit_signoff_required = %s
 			}
-		`, randomID)
+		`
 
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "web_commit_signoff_required",
-					"true",
-				),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "web_commit_signoff_required",
-					"true",
-				),
-			),
-		}
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["before"],
-					},
-					{
-						Config: config,
-						Check:  checks["after"],
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, testRepoName, "true"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "web_commit_signoff_required", "true"),
+					),
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
-}
 
-func TestGithubRepositoryTopicPassesValidation(t *testing.T) {
-	resource := resourceGithubRepository()
-	schema := resource.Schema["topics"].Elem.(*schema.Schema)
-	diags := schema.ValidateDiagFunc("ef69e1a3-66be-40ca-bb62-4f36186aa292", cty.Path{cty.GetAttrStep{Name: "topic"}})
-	if diags.HasError() {
-		t.Error(fmt.Errorf("unexpected topic validation failure: %s", diags[0].Summary))
-	}
-}
+	t.Run("check_web_commit_signoff_required_disabled", func(t *testing.T) {
+		t.Parallel()
 
-func TestGithubRepositoryTopicFailsValidationWhenOverMaxCharacters(t *testing.T) {
-	resource := resourceGithubRepository()
-	schema := resource.Schema["topics"].Elem.(*schema.Schema)
-
-	diags := schema.ValidateDiagFunc(strings.Repeat("a", 51), cty.Path{cty.GetAttrStep{Name: "topic"}})
-	if len(diags) != 1 {
-		t.Error(fmt.Errorf("unexpected number of topic validation failures; expected=1; actual=%d", len(diags)))
-	}
-	expectedFailure := "invalid value for topics (must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 50 characters or less)"
-	actualFailure := diags[0].Summary
-	if expectedFailure != actualFailure {
-		t.Error(fmt.Errorf("unexpected topic validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
-	}
-}
-
-func testSweepRepositories(region string) error {
-	meta, err := sharedConfigForRegion()
-	if err != nil {
-		return err
-	}
-
-	client := meta.(*Owner).v3client
-
-	repos, _, err := client.Repositories.ListByUser(context.TODO(), meta.(*Owner).name, nil)
-	if err != nil {
-		return err
-	}
-
-	for _, r := range repos {
-		if name := r.GetName(); strings.HasPrefix(name, "tf-acc-") || strings.HasPrefix(name, "foo-") {
-			log.Printf("[DEBUG] Destroying Repository %s", name)
-
-			if _, err := client.Repositories.Delete(context.TODO(), meta.(*Owner).name, name); err != nil {
-				return err
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%scommit-signoff-%s", testResourcePrefix, randomID)
+		config := `
+			resource "github_repository" "test" {
+				name                        = "%s"
+				auto_init                   = true
+				web_commit_signoff_required = %s
 			}
-		}
-	}
+		`
 
-	return nil
-}
-
-func init() {
-	resource.AddTestSweepers("github_repository", &resource.Sweeper{
-		Name: "github_repository",
-		F:    testSweepRepositories,
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, testRepoName, "false"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "web_commit_signoff_required", "false"),
+					),
+				},
+			},
+		})
 	})
+
+	t.Run("check_web_commit_signoff_required_not_set", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%scommit-signoff-%s", testResourcePrefix, randomID)
+		config := `
+			resource "github_repository" "test" {
+				name                        = "%s"
+				auto_init                   = true
+			}
+		`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, testRepoName),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "web_commit_signoff_required", "false"),
+					),
+				},
+			},
+		})
+	})
+
+	t.Run("check_web_commit_signoff_required_organization_enabled_but_not_set", func(t *testing.T) {
+		t.Parallel()
+
+		t.Skip("This test should be run manually after confirming that the test organization has 'Require contributors to sign off on web-based commits' enabled under Organizations -> Settings -> Repository -> Repository defaults.")
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%scommit-signoff-%s", testResourcePrefix, randomID)
+
+		config := `
+			resource "github_repository" "test" {
+				name        = "%s"
+				description = "%s"
+				visibility  = "private"
+			}
+		`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, testRepoName, "foo"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "web_commit_signoff_required", "true"),
+					),
+				},
+				{
+					Config: fmt.Sprintf(config, testRepoName, "bar"),
+				},
+			},
+		})
+	})
+
+	t.Run("check_allow_forking_not_set", func(t *testing.T) {
+		t.Parallel()
+
+		t.Skip("This test should be run manually after confirming that the test organization has been correctly configured to disable setting forking at the repo level.")
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+
+		config := `
+resource "github_repository" "private" {
+	name        = "%s"
+	description = "%s"
+	visibility  = "private"
 }
+`
 
-func reconfigureVisibility(config, visibility string) string {
-	re := regexp.MustCompile(`visibility = "(.*)"`)
-	newConfig := re.ReplaceAllString(
-		config,
-		fmt.Sprintf(`visibility = "%s"`, visibility),
-	)
-	return newConfig
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, testRepoName, "foo"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.private", "allow_forking", "false"),
+					),
+				},
+				{
+					Config: fmt.Sprintf(config, testRepoName, "bar"),
+				},
+			},
+		})
+	})
+
+	t.Run("check_vulnerability_alerts_not_set", func(t *testing.T) {
+		t.Parallel()
+
+		t.Skip("This test should be run manually after confirming that the test organization has been correctly configured to disable setting vulnerability alerts at the repo level.")
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+
+		config := `
+resource "github_repository" "private" {
+	name        = "%s"
+	description = "%s"
+	visibility  = "public"
 }
+`
 
-type resourceDataLike map[string]any
-
-func (d resourceDataLike) GetOk(key string) (any, bool) {
-	v, ok := d[key]
-	return v, ok
-}
-
-func TestResourceGithubParseFullName(t *testing.T) {
-	repo, org, ok := resourceGithubParseFullName(resourceDataLike(map[string]any{"full_name": "myrepo/myorg"}))
-	assert.True(t, ok)
-	assert.Equal(t, "myrepo", repo)
-	assert.Equal(t, "myorg", org)
-	_, _, ok = resourceGithubParseFullName(resourceDataLike(map[string]any{}))
-	assert.False(t, ok)
-	_, _, ok = resourceGithubParseFullName(resourceDataLike(map[string]any{"full_name": "malformed"}))
-	assert.False(t, ok)
-}
-
-func testCheckResourceAttrContains(resourceName, attributeName, substring string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[resourceName]
-		if !ok {
-			return fmt.Errorf("Resource not found: %s", resourceName)
-		}
-
-		value, ok := rs.Primary.Attributes[attributeName]
-		if !ok {
-			return fmt.Errorf("Attribute not found: %s", attributeName)
-		}
-
-		if !strings.Contains(value, substring) {
-			return fmt.Errorf("Attribute '%s' does not contain '%s'", value, substring)
-		}
-
-		return nil
-	}
-}
-
-func TestGithubRepositoryNameFailsValidationWhenOverMaxCharacters(t *testing.T) {
-	resource := resourceGithubRepository()
-	schema := resource.Schema["name"]
-
-	diags := schema.ValidateDiagFunc(strings.Repeat("a", 101), cty.GetAttrPath("name"))
-	if len(diags) != 1 {
-		t.Error(fmt.Errorf("unexpected number of name validation failures; expected=1; actual=%d", len(diags)))
-	}
-	expectedFailure := "invalid value for name (must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less)"
-	actualFailure := diags[0].Summary
-	if expectedFailure != actualFailure {
-		t.Error(fmt.Errorf("unexpected name validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
-	}
-}
-
-func TestGithubRepositoryNameFailsValidationWithSpace(t *testing.T) {
-	resource := resourceGithubRepository()
-	schema := resource.Schema["name"]
-
-	diags := schema.ValidateDiagFunc("test space", cty.GetAttrPath("name"))
-	if len(diags) != 1 {
-		t.Error(fmt.Errorf("unexpected number of name validation failures; expected=1; actual=%d", len(diags)))
-	}
-	expectedFailure := "invalid value for name (must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less)"
-	actualFailure := diags[0].Summary
-	if expectedFailure != actualFailure {
-		t.Error(fmt.Errorf("unexpected name validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
-	}
-}
-
-func TestAccGithubRepository_fork(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, testRepoName, "foo"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.private", "vulnerability_alerts", "true"),
+					),
+				},
+				{
+					Config: fmt.Sprintf(config, testRepoName, "bar"),
+				},
+			},
+		})
+	})
 
 	t.Run("forks a repository without error", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%sfork-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
-			  resource "github_repository" "forked" {
-					name         = "terraform-provider-github-%s"
+				resource "github_repository" "forked" {
+					name         = "%s"
 					description  = "Terraform acceptance test - forked repository %[1]s"
 					fork         = true
 					source_owner = "integrations"
 					source_repo  = "terraform-provider-github"
-			  }
-		 `, randomID)
+				}
+		 	`, testRepoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -1818,56 +1536,46 @@ func TestAccGithubRepository_fork(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+			},
 		})
 	})
 
 	t.Run("can update forked repository properties", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%sfork-update-%s", testResourcePrefix, randomID)
 		initialConfig := fmt.Sprintf(`
-			  resource "github_repository" "forked_update" {
-					name         = "terraform-provider-github-update-%s"
+				resource "github_repository" "forked_update" {
+					name         = "%s"
 					description  = "Initial description for forked repo"
 					fork         = true
 					source_owner = "integrations"
 					source_repo  = "terraform-provider-github"
 					has_wiki     = true
 					has_issues   = false
-			  }
-		 `, randomID)
+				}
+		 `, testRepoName)
 
 		updatedConfig := fmt.Sprintf(`
-			  resource "github_repository" "forked_update" {
-					name         = "terraform-provider-github-update-%s"
+				resource "github_repository" "forked_update" {
+					name         = "%s"
 					description  = "Updated description for forked repo"
 					fork         = true
 					source_owner = "integrations"
 					source_repo  = "terraform-provider-github"
 					has_wiki     = false
 					has_issues   = true
-			  }
-		 `, randomID)
+				}
+		 `, testRepoName)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
@@ -1900,152 +1608,204 @@ func TestAccGithubRepository_fork(t *testing.T) {
 			),
 		}
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: initialConfig,
-						Check:  checks["before"],
-					},
-					{
-						Config: updatedConfig,
-						Check:  checks["after"],
-					},
-					{
-						ResourceName:            "github_repository.forked_update",
-						ImportState:             true,
-						ImportStateVerify:       true,
-						ImportStateVerifyIgnore: []string{"auto_init"},
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: initialConfig,
+					Check:  checks["before"],
 				},
-			})
-		}
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-	})
-
-	t.Run("can migrate a forked repository from a previous framework version", func(t *testing.T) {
-		rName := fmt.Sprintf("terraform-provider-github-%s", randomID)
-		olderConfig := fmt.Sprintf(`
-			  import {
-				to = github_repository.forked
-				id = "%[1]s"
-			  }
-			  resource "github_repository" "forked" {
-					name         = "%[1]s"
-					description  = "Terraform acceptance test - forked repository %[1]s"
-			  }
-		 `, rName)
-		newerConfig := fmt.Sprintf(`
-			  resource "github_repository" "forked" {
-					name         = "%[1]s"
-					description  = "Terraform acceptance test - forked repository %[1]s"
-					fork         = true
-					source_owner = "integrations"
-					source_repo  = "terraform-provider-github"
-			  }
-		 `, rName)
-
-		testCase := func(t *testing.T, mode string) {
-			providers := []*schema.Provider{testAccProvider}
-			resource.Test(t, resource.TestCase{
-				PreCheck: func() { skipUnlessMode(t, mode) },
-				Steps: []resource.TestStep{
-					{
-						ExternalProviders: map[string]resource.ExternalProvider{
-							"github": {
-								VersionConstraint: "~> 6.7.0",
-								Source:            "integrations/github",
-							},
-						},
-						PreConfig: func() {
-							err := createForkedRepository(rName)
-							if err != nil {
-								t.Fatalf("failed to create fork of %s: %v", rName, err)
-							}
-						},
-						Config: olderConfig,
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckNoResourceAttr(
-								"github_repository.forked", "fork",
-							),
-							resource.TestCheckNoResourceAttr(
-								"github_repository.forked", "source_owner",
-							),
-							resource.TestCheckNoResourceAttr(
-								"github_repository.forked", "source_repo",
-							),
-						),
-					},
-					{
-						ProviderFactories: testAccProviderFactories(&providers),
-						Config:            newerConfig,
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr(
-								"github_repository.forked", "fork",
-								"true",
-							),
-							resource.TestCheckResourceAttr(
-								"github_repository.forked", "source_owner",
-								"integrations",
-							),
-							resource.TestCheckResourceAttr(
-								"github_repository.forked", "source_repo",
-								"terraform-provider-github",
-							),
-						),
-					},
+				{
+					Config: updatedConfig,
+					Check:  checks["after"],
 				},
-			})
-		}
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+				{
+					ResourceName:            "github_repository.forked_update",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"auto_init", "vulnerability_alerts", "ignore_vulnerability_alerts_during_read"},
+				},
+			},
 		})
 	})
 }
 
-func createForkedRepository(repositoryName string) error {
-	config := Config{BaseURL: "https://api.github.com/", Owner: testOrganizationFunc(), Token: testToken}
-	meta, err := config.Meta()
-	if err != nil {
-		return fmt.Errorf("failed to create client: %w", err)
-	}
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
-	ctx := context.TODO()
+func Test_expandPages(t *testing.T) {
+	t.Parallel()
 
-	_, _, err = client.Repositories.CreateFork(ctx, "integrations", "snappydoo", &github.RepositoryCreateForkOptions{
-		Organization: orgName,
-		Name:         repositoryName,
+	t.Run("expand Pages configuration with workflow", func(t *testing.T) {
+		t.Parallel()
+
+		input := []any{map[string]any{
+			"build_type": "workflow",
+			"source":     []any{map[string]any{}},
+		}}
+
+		pages := expandPages(input)
+		if pages == nil {
+			t.Fatal("pages is nil")
+		}
+		if pages.GetBuildType() != "workflow" {
+			t.Errorf("got %q; want %q", pages.GetBuildType(), "workflow")
+		}
+		if pages.GetSource().GetBranch() != "main" {
+			t.Errorf("got %q; want %q", pages.GetSource().GetBranch(), "main")
+		}
 	})
 
-	acceptedError := &github.AcceptedError{}
-	if err != nil {
-		if errors.As(err, &acceptedError) {
-			return nil
+	t.Run("expand Pages configuration with source", func(t *testing.T) {
+		t.Parallel()
+
+		input := []any{map[string]any{
+			"build_type": "legacy",
+			"source": []any{map[string]any{
+				"branch": "main",
+				"path":   "/docs",
+			}},
+		}}
+
+		pages := expandPages(input)
+		if pages == nil {
+			t.Fatal("pages is nil")
 		}
-		return fmt.Errorf("failed to create fork: %w", err)
+		if pages.GetBuildType() != "legacy" {
+			t.Errorf("got %q; want %q", pages.GetBuildType(), "legacy")
+		}
+		if pages.GetSource().GetBranch() != "main" {
+			t.Errorf("got %q; want %q", pages.GetSource().GetBranch(), "main")
+		}
+		if pages.GetSource().GetPath() != "/docs" {
+			t.Errorf("got %q; want %q", pages.GetSource().GetPath(), "/docs")
+		}
+	})
+}
+
+func TestGithubRepositoryTopicPassesValidation(t *testing.T) {
+	t.Parallel()
+
+	resource := resourceGithubRepository()
+	schema := resource.Schema["topics"].Elem.(*schema.Schema)
+	diags := schema.ValidateDiagFunc("ef69e1a3-66be-40ca-bb62-4f36186aa292", cty.Path{cty.GetAttrStep{Name: "topics"}})
+	if diags.HasError() {
+		t.Error(fmt.Errorf("unexpected topics validation failure: %s", diags[0].Summary))
 	}
-	return nil
+}
+
+func TestGithubRepositoryTopicFailsValidationWhenOverMaxCharacters(t *testing.T) {
+	t.Parallel()
+
+	resource := resourceGithubRepository()
+	schema := resource.Schema["topics"].Elem.(*schema.Schema)
+
+	diags := schema.ValidateDiagFunc(strings.Repeat("a", 51), cty.Path{cty.GetAttrStep{Name: "topics"}})
+	if len(diags) != 1 {
+		t.Error(fmt.Errorf("unexpected number of topic validation failures; expected=1; actual=%d", len(diags)))
+	}
+	expectedFailure := "invalid value for topics (must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 50 characters or less)"
+	actualFailure := diags[0].Summary
+	if expectedFailure != actualFailure {
+		t.Error(fmt.Errorf("unexpected topic validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
+	}
+}
+
+type resourceDataLike map[string]any
+
+func (d resourceDataLike) GetOk(key string) (any, bool) {
+	v, ok := d[key]
+	return v, ok
+}
+
+func TestResourceGithubParseFullName(t *testing.T) {
+	t.Parallel()
+
+	t.Run("parses valid full name", func(t *testing.T) {
+		t.Parallel()
+
+		o := "moyorg"
+		r := "myrepo"
+
+		org, repo, ok := resourceGithubParseFullName(resourceDataLike(map[string]any{"full_name": fmt.Sprintf("%s/%s", o, r)}))
+		if !ok {
+			t.Error("expected ok to be true, got false")
+		}
+		if org != o {
+			t.Errorf("unexpected org (wanted %s, got %s)", o, org)
+		}
+		if repo != r {
+			t.Errorf("unexpected repo (wanted %s, got %s)", r, repo)
+		}
+	})
+
+	t.Run("handles missing full name", func(t *testing.T) {
+		t.Parallel()
+
+		_, _, ok := resourceGithubParseFullName(resourceDataLike(map[string]any{}))
+		if ok {
+			t.Fatal("expected ok to be false, got true")
+		}
+	})
+
+	t.Run("handles malformed full name", func(t *testing.T) {
+		t.Parallel()
+
+		_, _, ok := resourceGithubParseFullName(resourceDataLike(map[string]any{"full_name": "malformed"}))
+		if ok {
+			t.Fatal("expected ok to be false, got true")
+		}
+	})
+}
+
+func testCheckResourceAttrContains(resourceName, attributeName, substring string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("Resource not found: %s", resourceName)
+		}
+
+		value, ok := rs.Primary.Attributes[attributeName]
+		if !ok {
+			return fmt.Errorf("Attribute not found: %s", attributeName)
+		}
+
+		if !strings.Contains(value, substring) {
+			return fmt.Errorf("Attribute '%s' does not contain '%s'", value, substring)
+		}
+
+		return nil
+	}
+}
+
+func TestGithubRepositoryNameFailsValidationWhenOverMaxCharacters(t *testing.T) {
+	t.Parallel()
+
+	resource := resourceGithubRepository()
+	schema := resource.Schema["name"]
+
+	diags := schema.ValidateDiagFunc(strings.Repeat("a", 101), cty.GetAttrPath("name"))
+	if len(diags) != 1 {
+		t.Error(fmt.Errorf("unexpected number of name validation failures; expected=1; actual=%d", len(diags)))
+	}
+	expectedFailure := "invalid value for name (must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less)"
+	actualFailure := diags[0].Summary
+	if expectedFailure != actualFailure {
+		t.Error(fmt.Errorf("unexpected name validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
+	}
+}
+
+func TestGithubRepositoryNameFailsValidationWithSpace(t *testing.T) {
+	t.Parallel()
+
+	resource := resourceGithubRepository()
+	schema := resource.Schema["name"]
+
+	diags := schema.ValidateDiagFunc("test space", cty.GetAttrPath("name"))
+	if len(diags) != 1 {
+		t.Error(fmt.Errorf("unexpected number of name validation failures; expected=1; actual=%d", len(diags)))
+	}
+	expectedFailure := "invalid value for name (must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less)"
+	actualFailure := diags[0].Summary
+	if expectedFailure != actualFailure {
+		t.Error(fmt.Errorf("unexpected name validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
+	}
 }

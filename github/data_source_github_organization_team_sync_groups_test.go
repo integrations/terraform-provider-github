@@ -3,32 +3,28 @@ package github
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubOrganizationTeamSyncGroupsDataSource_existing(t *testing.T) {
-	if isEnterprise != "true" {
-		t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
-	}
+	t.Parallel()
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccCheckGithubOrganizationTeamSyncGroupsDataSourceConfig(),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet("data.github_organization_team_sync_groups.test", "groups.#"),
-					resource.TestCheckResourceAttrSet("data.github_organization_team_sync_groups.test", "groups.0.group_id"),
-					resource.TestCheckResourceAttrSet("data.github_organization_team_sync_groups.test", "groups.0.group_name"),
-				),
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: `data "github_organization_team_sync_groups" "test" {}`,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrSet("data.github_organization_team_sync_groups.test", "groups.#"),
+						resource.TestCheckResourceAttrSet("data.github_organization_team_sync_groups.test", "groups.0.group_id"),
+						resource.TestCheckResourceAttrSet("data.github_organization_team_sync_groups.test", "groups.0.group_name"),
+					),
+				},
 			},
-		},
+		})
 	})
-}
-
-func testAccCheckGithubOrganizationTeamSyncGroupsDataSourceConfig() string {
-	return `data "github_organization_team_sync_groups" "test" {}`
 }

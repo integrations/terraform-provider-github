@@ -4,1139 +4,1150 @@ import (
 	"fmt"
 	"log"
 	"regexp"
-	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-log/tflogtest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
-func TestGithubRepositoryRulesets(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+func TestAccGithubRepositoryRuleset(t *testing.T) {
+	t.Parallel()
 
-	t.Run("Creates and updates repository rulesets without errors", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
-				auto_init = true
-				default_branch = "main"
-                vulnerability_alerts = true
-			}
+	t.Run("create_branch_ruleset", func(t *testing.T) {
+		t.Parallel()
 
-			resource "github_repository_environment" "example" {
-				environment  = "test"
-				repository   = github_repository.test.name
-			}
-
-			resource "github_repository_ruleset" "test" {
-				name        = "test"
-				repository  = github_repository.test.id
-				target      = "branch"
-				enforcement = "active"
-
-				conditions {
-					ref_name {
-						include = ["refs/heads/main"]
-						exclude = []
-					}
-				}
-
-				rules {
-					creation = true
-
-					update = true
-
-					deletion                = true
-					required_linear_history = true
-
-					required_deployments {
-						required_deployment_environments = ["test"]
-					}
-
-					required_signatures = false
-
-					merge_queue {
-						check_response_timeout_minutes    = 10
-						grouping_strategy                 = "ALLGREEN"
-						max_entries_to_build              = 5
-						max_entries_to_merge              = 5
-						merge_method                      = "MERGE"
-						min_entries_to_merge              = 1
-						min_entries_to_merge_wait_minutes = 60
-					}
-
-					pull_request {
-						required_approving_review_count   = 2
-						required_review_thread_resolution = true
-						require_code_owner_review         = true
-						dismiss_stale_reviews_on_push     = true
-						require_last_push_approval        = true
-					}
-
-					required_status_checks {
-
-						required_check {
-							context = "ci"
-						}
-
-						strict_required_status_checks_policy = true
-						do_not_enforce_on_create             = true
-					}
-
-					required_code_scanning {
-					  required_code_scanning_tool {
-						alerts_threshold = "errors"
-						security_alerts_threshold = "high_or_higher"
-						tool = "CodeQL"
-					  }
-					}
-
-					non_fast_forward = true
-				}
-			}
-		`, randomID)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test",
-				"name",
-				"test",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test",
-				"enforcement",
-				"active",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test",
-				"rules.0.required_code_scanning.0.required_code_scanning_tool.0.alerts_threshold",
-				"errors",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test",
-				"rules.0.required_code_scanning.0.required_code_scanning_tool.0.security_alerts_threshold",
-				"high_or_higher",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test",
-				"rules.0.required_code_scanning.0.required_code_scanning_tool.0.tool",
-				"CodeQL",
-			),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-	})
-
-	t.Run("Creates and updates repository rulesets with enterprise features without errors", func(t *testing.T) {
-		if isEnterprise != "true" {
-			t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
-		}
-
-		if testEnterprise == "" {
-			t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
-		}
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
-				auto_init = false
-				vulnerability_alerts = true
-			}
-
-			resource "github_repository_environment" "example" {
-				environment  = "test"
-				repository   = github_repository.test.name
-			}
-
-			resource "github_repository_ruleset" "test" {
-				name        = "test"
-				repository  = github_repository.test.id
-				target      = "branch"
-				enforcement = "active"
-
-				conditions {
-					ref_name {
-						include = ["~ALL"]
-						exclude = []
-					}
-				}
-
-				rules {
-					branch_name_pattern {
-						name     = "test"
-						negate   = false
-						operator = "starts_with"
-						pattern  = "test"
-					}
-				}
-			}
-		`, randomID)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test", "name",
-				"test",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test", "enforcement",
-				"active",
-			),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-				},
-			})
-		}
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			testCase(t, enterprise)
-		})
-	})
-
-	t.Run("Updates a ruleset name without error", func(t *testing.T) {
-		repoName := fmt.Sprintf(`tf-acc-test-rename-%[1]s`, randomID)
-		oldRSName := fmt.Sprintf(`ruleset-%[1]s`, randomID)
-		newRSName := fmt.Sprintf(`%[1]s-renamed`, randomID)
-
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-			  name         = "%[1]s"
-			  description  = "Terraform acceptance tests %[2]s"
-			  vulnerability_alerts = true
-			}
-
-			resource "github_repository_ruleset" "test" {
-				name        = "%[3]s"
-				repository  = github_repository.test.id
-				target      = "branch"
-				enforcement = "active"
-
-				rules {
-					creation = true
-				}
-			}
-		`, repoName, randomID, oldRSName)
-
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository_ruleset.test", "name",
-					oldRSName,
-				),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository_ruleset.test", "name",
-					newRSName,
-				),
-			),
-		}
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["before"],
-					},
-					{
-						// Rename the ruleset to something else
-						Config: strings.Replace(
-							config,
-							oldRSName,
-							newRSName, 1),
-						Check: checks["after"],
-					},
-				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-	})
-
-	t.Run("Imports rulesets without error", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-			  name         = "tf-acc-test-import-%[1]s"
-			  description  = "Terraform acceptance tests %[1]s"
-			  auto_init    = true
-			  default_branch = "main"
-                          vulnerability_alerts = true
-			}
-
-			resource "github_repository_environment" "example" {
-				environment  = "test"
-				repository   = github_repository.test.name
-			}
-
-			resource "github_repository_ruleset" "test" {
-				name        = "test"
-				repository  = github_repository.test.id
-				target      = "branch"
-				enforcement = "active"
-
-				conditions {
-					ref_name {
-						include = ["refs/heads/main"]
-						exclude = []
-					}
-				}
-
-				rules {
-					creation = true
-
-					update = true
-
-					deletion                = true
-					required_linear_history = true
-
-					required_deployments {
-						required_deployment_environments = ["test"]
-					}
-
-					required_signatures = false
-
-					pull_request {
-						required_approving_review_count   = 2
-						required_review_thread_resolution = true
-						require_code_owner_review         = true
-						dismiss_stale_reviews_on_push     = true
-						require_last_push_approval        = true
-					}
-
-					merge_queue {
-						check_response_timeout_minutes    = 30
-						grouping_strategy                 = "HEADGREEN"
-						max_entries_to_build              = 4
-						max_entries_to_merge              = 4
-						merge_method                      = "SQUASH"
-						min_entries_to_merge              = 2
-						min_entries_to_merge_wait_minutes = 10
-					}
-
-					required_status_checks {
-
-						required_check {
-							context = "ci"
-						}
-
-						strict_required_status_checks_policy = true
-						do_not_enforce_on_create             = true
-					}
-
-					non_fast_forward = true
-				}
-			}
-		`, randomID)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet("github_repository_ruleset.test", "name"),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:      "github_repository_ruleset.test",
-						ImportState:       true,
-						ImportStateVerify: true,
-						ImportStateIdFunc: importRepositoryRulesetByResourcePaths(
-							"github_repository.test", "github_repository_ruleset.test"),
-					},
-				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-	})
-	t.Run("Creates a push repository ruleset without errors", func(t *testing.T) {
-		if isPaidPlan != "true" {
-			t.Skip("Skipping because `GITHUB_PAID_FEATURES` is not set to true")
-		}
-		config := fmt.Sprintf(`
-			 resource "github_repository" "test" {
-				 name                 = "tf-acc-test-%s"
-				 auto_init            = false
-				 visibility           = "internal"
-				 vulnerability_alerts = true
-			 }
-
-			 resource "github_repository_ruleset" "test_push" {
-				 name        = "test-push"
-				 repository  = github_repository.test.id
-				 target      = "push"
-				 enforcement = "active"
-
-				 rules {
-					file_path_restriction {
-					  restricted_file_paths = ["test.txt"]
-					 }
-					max_file_size {
-					  max_file_size = 1048576
-					}
-					file_extension_restriction {
-					   restricted_file_extensions = ["*.zip"]
-					}
-				 }
-			 }
-
-		`, randomID)
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test_push", "name",
-				"test-push",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test_push", "target",
-				"push",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test_push", "rules.0.file_path_restriction.0.restricted_file_paths.0",
-				"test.txt",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test_push", "rules.0.max_file_size.0.max_file_size",
-				"1048576",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test_push", "rules.0.file_extension_restriction.0.restricted_file_extensions.0",
-				"*.zip",
-			),
-		)
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-				},
-			})
-		}
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-		t.Run("with a paid plan in an organization", func(t *testing.T) {
-			testCase(t, organization)
-		})
-	})
-
-	t.Run("Creates repository ruleset with merge queue SQUASH method", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name = "tf-acc-test-merge-queue-%s"
-				auto_init = true
-				default_branch = "main"
-			}
-
-			resource "github_repository_ruleset" "test" {
-				name        = "merge-queue-test"
-				repository  = github_repository.test.id
-				target      = "branch"
-				enforcement = "active"
-
-				conditions {
-					ref_name {
-						include = ["refs/heads/main"]
-						exclude = []
-					}
-				}
-
-				rules {
-					merge_queue {
-						check_response_timeout_minutes    = 30
-						grouping_strategy                 = "HEADGREEN"
-						max_entries_to_build              = 4
-						max_entries_to_merge              = 4
-						merge_method                      = "SQUASH"
-						min_entries_to_merge              = 2
-						min_entries_to_merge_wait_minutes = 10
-					}
-				}
-			}
-		`, randomID)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test", "name",
-				"merge-queue-test",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test", "rules.0.merge_queue.0.merge_method",
-				"SQUASH",
-			),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-	})
-
-	t.Run("Removes bypass actors when removed from configuration", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name         = "tf-acc-test-bypass-%s"
-				description  = "Terraform acceptance tests %[1]s"
-				auto_init    = true
-			}
-
-			resource "github_team" "test" {
-				name        = "tf-acc-test-team-%[1]s"
-				description = "Terraform acc test team"
-			}
-
-			resource "github_repository_ruleset" "test" {
-				name        = "test-bypass"
-				repository  = github_repository.test.id
-				target      = "branch"
-				enforcement = "active"
-
-				bypass_actors {
-					actor_id    = github_team.test.id
-					actor_type  = "Team"
-					bypass_mode = "pull_request"
-				}
-
-				conditions {
-					ref_name {
-						include = ["~ALL"]
-						exclude = []
-					}
-				}
-
-				rules {
-					pull_request {
-						dismiss_stale_reviews_on_push     = false
-						require_code_owner_review         = true
-						require_last_push_approval        = false
-						required_approving_review_count   = 1
-						required_review_thread_resolution = false
-					}
-				}
-			}
-		`, randomID)
-
-		configWithoutBypass := strings.Replace(
-			config,
-			`bypass_actors {
-					actor_id    = github_team.test.id
-					actor_type  = "Team"
-					bypass_mode = "pull_request"
-				}
-
-				`,
-			"",
-			1,
-		)
-
-		checks := map[string]resource.TestCheckFunc{
-			"with_bypass": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository_ruleset.test", "bypass_actors.#",
-					"1",
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository_ruleset.test", "bypass_actors.0.actor_type",
-					"Team",
-				),
-			),
-			"without_bypass": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository_ruleset.test", "bypass_actors.#",
-					"0",
-				),
-			),
-		}
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["with_bypass"],
-					},
-					{
-						Config: configWithoutBypass,
-						Check:  checks["without_bypass"],
-					},
-				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("bypass actors require organization resources")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-	})
-
-	t.Run("Updates ruleset without bypass actors defined", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name         = "tf-acc-test-no-bypass-%s"
-				description  = "Terraform acceptance tests %[1]s"
-				auto_init    = true
-			}
-
-			resource "github_repository_ruleset" "test" {
-				name        = "test-no-bypass"
-				repository  = github_repository.test.id
-				target      = "branch"
-				enforcement = "active"
-
-				conditions {
-					ref_name {
-						include = ["~ALL"]
-						exclude = []
-					}
-				}
-
-				rules {
-					deletion = true
-				}
-			}
-		`, randomID)
-
-		configUpdated := strings.Replace(
-			config,
-			"deletion = true",
-			"deletion = false",
-			1,
-		)
-
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository_ruleset.test", "rules.0.deletion",
-					"true",
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository_ruleset.test", "bypass_actors.#",
-					"0",
-				),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository_ruleset.test", "rules.0.deletion",
-					"false",
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository_ruleset.test", "bypass_actors.#",
-					"0",
-				),
-			),
-		}
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["before"],
-					},
-					{
-						Config: configUpdated,
-						Check:  checks["after"],
-					},
-				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-	})
-
-	t.Run("Creates repository ruleset with all bypass_modes", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name         = "tf-acc-test-bypass-modes-%s"
-				description  = "Terraform acceptance tests %[1]s"
-				auto_init    = true
-			}
-
-			resource "github_team" "test_always" {
-				name        = "tf-acc-test-team-always-%[1]s"
-				description = "Terraform acc test team for always bypass"
-			}
-
-			resource "github_team" "test_pull_request" {
-				name        = "tf-acc-test-team-pr-%[1]s"
-				description = "Terraform acc test team for pull_request bypass"
-			}
-
-			resource "github_team" "test_exempt" {
-				name        = "tf-acc-test-team-exempt-%[1]s"
-				description = "Terraform acc test team for exempt bypass"
-			}
-
-			resource "github_repository_ruleset" "test" {
-				name        = "test-bypass-modes"
-				repository  = github_repository.test.id
-				target      = "branch"
-				enforcement = "active"
-
-				bypass_actors {
-					actor_id    = github_team.test_always.id
-					actor_type  = "Team"
-					bypass_mode = "always"
-				}
-
-				bypass_actors {
-					actor_id    = github_team.test_pull_request.id
-					actor_type  = "Team"
-					bypass_mode = "pull_request"
-				}
-
-				bypass_actors {
-					actor_id    = github_team.test_exempt.id
-					actor_type  = "Team"
-					bypass_mode = "exempt"
-				}
-
-				conditions {
-					ref_name {
-						include = ["~ALL"]
-						exclude = []
-					}
-				}
-
-				rules {
-					creation = true
-				}
-			}
-		`, randomID)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test", "bypass_actors.#",
-				"3",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_repository_ruleset.test", "bypass_actors.0.actor_id",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test", "bypass_actors.0.bypass_mode",
-				"always",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test", "bypass_actors.0.actor_type",
-				"Team",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_repository_ruleset.test", "bypass_actors.1.actor_id",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test", "bypass_actors.1.bypass_mode",
-				"pull_request",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test", "bypass_actors.1.actor_type",
-				"Team",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_repository_ruleset.test", "bypass_actors.2.actor_id",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test", "bypass_actors.2.bypass_mode",
-				"exempt",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test", "bypass_actors.2.actor_type",
-				"Team",
-			),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("bypass actors require organization resources")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-	})
-
-	t.Run("Updates bypass_mode without error", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name         = "tf-acc-test-bypass-update-%s"
-				description  = "Terraform acceptance tests %[1]s"
-				auto_init    = true
-			}
-
-			resource "github_team" "test" {
-				name        = "tf-acc-test-team-update-%[1]s"
-				description = "Terraform acc test team"
-			}
-
-			resource "github_repository_ruleset" "test" {
-				name        = "test-bypass-update"
-				repository  = github_repository.test.id
-				target      = "branch"
-				enforcement = "active"
-
-				bypass_actors {
-					actor_id    = github_team.test.id
-					actor_type  = "Team"
-					bypass_mode = "always"
-				}
-
-				conditions {
-					ref_name {
-						include = ["~ALL"]
-						exclude = []
-					}
-				}
-
-				rules {
-					creation = true
-				}
-			}
-		`, randomID)
-
-		configUpdated := strings.Replace(
-			config,
-			`bypass_mode = "always"`,
-			`bypass_mode = "exempt"`,
-			1,
-		)
-
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository_ruleset.test", "bypass_actors.0.bypass_mode",
-					"always",
-				),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository_ruleset.test", "bypass_actors.0.bypass_mode",
-					"exempt",
-				),
-			),
-		}
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["before"],
-					},
-					{
-						Config: configUpdated,
-						Check:  checks["after"],
-					},
-				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("bypass actors require organization resources")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-	})
-
-	t.Run("Creates repository ruleset with different actor types and bypass modes", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name         = "tf-acc-test-actor-types-%s"
-				description  = "Terraform acceptance tests %[1]s"
-				auto_init    = true
-			}
-
-			resource "github_team" "test" {
-				name        = "tf-acc-test-team-actor-%[1]s"
-				description = "Terraform acc test team"
-			}
-
-			resource "github_repository_ruleset" "test" {
-				name        = "test-actor-types"
-				repository  = github_repository.test.id
-				target      = "branch"
-				enforcement = "active"
-
-				bypass_actors {
-					actor_id    = github_team.test.id
-					actor_type  = "Team"
-					bypass_mode = "always"
-				}
-
-				bypass_actors {
-					actor_id    = 5
-					actor_type  = "RepositoryRole"
-					bypass_mode = "pull_request"
-				}
-
-				bypass_actors {
-					actor_id    = 1
-					actor_type  = "OrganizationAdmin"
-					bypass_mode = "exempt"
-				}
-
-				conditions {
-					ref_name {
-						include = ["~ALL"]
-						exclude = []
-					}
-				}
-
-				rules {
-					creation = true
-				}
-			}
-		`, randomID)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test", "bypass_actors.#",
-				"3",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_repository_ruleset.test", "bypass_actors.0.actor_id",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test", "bypass_actors.0.actor_type",
-				"Team",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test", "bypass_actors.0.bypass_mode",
-				"always",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test", "bypass_actors.1.actor_id",
-				"5",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test", "bypass_actors.1.actor_type",
-				"RepositoryRole",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test", "bypass_actors.1.bypass_mode",
-				"pull_request",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test", "bypass_actors.2.actor_id",
-				"1",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test", "bypass_actors.2.actor_type",
-				"OrganizationAdmin",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test", "bypass_actors.2.bypass_mode",
-				"exempt",
-			),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("bypass actors require organization resources")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-	})
+resource "github_repository" "test" {
+	name = "%s"
+	auto_init = true
+	vulnerability_alerts = true
+	visibility = "%s"
 }
 
-func TestGithubRepositoryRulesetArchived(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+resource "github_repository_environment" "example" {
+	environment  = "test"
+	repository   = github_repository.test.name
+}
 
-	t.Run("skips update and delete on archived repository", func(t *testing.T) {
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name      = "tf-acc-test-archive-%s"
-				auto_init = true
-				archived  = false
+resource "github_repository_ruleset" "test" {
+	name        = "test"
+	repository  = github_repository.test.id
+	target      = "branch"
+	enforcement = "active"
+
+	bypass_actors {
+		actor_type = "DeployKey"
+		bypass_mode = "always"
+	}
+
+	bypass_actors {
+		actor_id    = 5
+		actor_type  = "RepositoryRole"
+		bypass_mode = "always"
+	}
+
+	conditions {
+		ref_name {
+			include = ["refs/heads/main"]
+			exclude = []
+		}
+	}
+
+	rules {
+		creation = true
+
+		update = true
+
+		deletion = true
+
+		required_linear_history = true
+
+		merge_queue {
+			check_response_timeout_minutes    = 10
+			grouping_strategy                 = "ALLGREEN"
+			max_entries_to_build              = 5
+			max_entries_to_merge              = 5
+			merge_method                      = "SQUASH"
+			min_entries_to_merge              = 1
+			min_entries_to_merge_wait_minutes = 60
+		}
+
+		copilot_code_review {
+			review_on_push             = true
+			review_draft_pull_requests = false
+		}
+
+		required_deployments {
+			required_deployment_environments = [github_repository_environment.example.environment]
+		}
+
+		required_signatures = false
+
+		pull_request {
+			allowed_merge_methods             = ["merge", "squash"]
+			required_approving_review_count   = 2
+			required_review_thread_resolution = true
+			require_code_owner_review         = true
+			dismiss_stale_reviews_on_push     = true
+			require_last_push_approval        = true
+		}
+
+		required_status_checks {
+
+			required_check {
+				context = "ci"
 			}
-			resource "github_repository_ruleset" "test" {
-				name        = "test"
-				repository  = github_repository.test.name
-				target      = "branch"
-				enforcement = "active"
-				rules { creation = true }
+
+			strict_required_status_checks_policy = true
+			do_not_enforce_on_create             = true
+		}
+
+		required_code_scanning {
+			required_code_scanning_tool {
+				alerts_threshold = "errors"
+				security_alerts_threshold = "high_or_higher"
+				tool = "CodeQL"
 			}
-		`, randomID)
+		}
+
+		non_fast_forward = true
+	}
+}
+`, repoName, testAccConf.testRepositoryVisibility)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, individual) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
-				{Config: config},
-				{Config: strings.Replace(config, "archived  = false", "archived  = true", 1)},
-				{Config: strings.Replace(strings.Replace(config, "archived  = false", "archived  = true", 1), `enforcement = "active"`, `enforcement = "disabled"`, 1)},
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", "test"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "target", "branch"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "enforcement", "active"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.#", "2"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.0.actor_type", "DeployKey"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.0.bypass_mode", "always"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.1.actor_id", "5"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.1.actor_type", "RepositoryRole"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.1.bypass_mode", "always"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.allowed_merge_methods.#", "2"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.alerts_threshold", "errors"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.security_alerts_threshold", "high_or_higher"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.required_code_scanning.0.required_code_scanning_tool.0.tool", "CodeQL"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.copilot_code_review.0.review_on_push", "true"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.copilot_code_review.0.review_draft_pull_requests", "false"),
+					),
+				},
+			},
+		})
+	})
+
+	t.Run("create_branch_ruleset_with_user_bypass_actor", func(t *testing.T) {
+		t.Parallel()
+
+		var username string
+		if testAccConf.authMode == individual {
+			username = testAccConf.owner
+		} else {
+			skipUnlessHasOrgUser1(t)
+			username = testAccConf.testOrgUser1
+		}
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-user-bypass-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name = "%s"
+	auto_init = true
+	vulnerability_alerts = true
+	visibility = "%s"
+}
+
+data "github_user" "current" {
+	username = "%[3]s"
+}
+
+resource "github_repository_ruleset" "test" {
+	name        = "test-user-bypass"
+	repository  = github_repository.test.id
+	target      = "branch"
+	enforcement = "active"
+
+	bypass_actors {
+		actor_id    = tonumber(data.github_user.current.id)
+		actor_type  = "User"
+		bypass_mode = "always"
+	}
+
+	conditions {
+		ref_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	rules {
+		creation = true
+	}
+}
+`, repoName, testAccConf.testRepositoryVisibility, username)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("actor_type"), knownvalue.StringExact("User")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("bypass_mode"), knownvalue.StringExact("always")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("actor_id"), knownvalue.NotNull()),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("create_branch_ruleset_with_enterprise_features", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+	resource "github_repository" "test" {
+		name = "%s"
+		auto_init = false
+		vulnerability_alerts = true
+		visibility = "%s"
+	}
+
+	resource "github_repository_environment" "example" {
+		environment  = "test"
+		repository   = github_repository.test.name
+	}
+
+	resource "github_repository_ruleset" "test" {
+		name        = "test"
+		repository  = github_repository.test.id
+		target      = "branch"
+		enforcement = "active"
+
+		conditions {
+			ref_name {
+				include = ["~ALL"]
+				exclude = []
+			}
+		}
+
+		rules {
+			branch_name_pattern {
+				name     = "test"
+				negate   = false
+				operator = "starts_with"
+				pattern  = "test"
+			}
+		}
+	}
+`, repoName, testAccConf.testRepositoryVisibility)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", "test"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "enforcement", "active"),
+					),
+				},
+			},
+		})
+	})
+
+	t.Run("creates_push_ruleset", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name                 = "%s"
+	auto_init            = false
+	visibility           = "internal"
+	vulnerability_alerts = true
+}
+
+resource "github_repository_ruleset" "test" {
+	name        = "test-push"
+	repository  = github_repository.test.id
+	target      = "push"
+	enforcement = "active"
+
+	bypass_actors {
+		actor_type = "DeployKey"
+		bypass_mode = "always"
+	}
+
+	bypass_actors {
+		actor_id    = 5
+		actor_type  = "RepositoryRole"
+		bypass_mode = "always"
+	}
+
+	rules {
+		file_path_restriction {
+			restricted_file_paths = ["test.txt"]
+		}
+
+		max_file_size {
+			max_file_size = 99
+		}
+
+		file_extension_restriction {
+			restricted_file_extensions = ["*.zip"]
+		}
+	}
+}
+
+`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", "test-push"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "target", "push"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "enforcement", "active"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.#", "2"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.0.actor_type", "DeployKey"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.0.bypass_mode", "always"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.1.actor_id", "5"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.1.actor_type", "RepositoryRole"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.1.bypass_mode", "always"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.file_path_restriction.0.restricted_file_paths.0", "test.txt"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.max_file_size.0.max_file_size", "99"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.file_extension_restriction.0.restricted_file_extensions.0", "*.zip"),
+					),
+				},
+			},
+		})
+	})
+
+	t.Run("update_ruleset_name", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-rename-%s", testResourcePrefix, randomID)
+		name := fmt.Sprintf("ruleset-%s", randomID)
+		nameUpdated := fmt.Sprintf("%s-renamed", name)
+
+		config := `
+resource "github_repository" "test" {
+	name         = "%s"
+	description  = "Terraform acceptance tests %s"
+	vulnerability_alerts = true
+	visibility = "%s"
+}
+
+resource "github_repository_ruleset" "test" {
+	name        = "%s"
+	repository  = github_repository.test.id
+	target      = "branch"
+	enforcement = "active"
+
+	rules {
+		creation = true
+	}
+}
+`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, repoName, randomID, testAccConf.testRepositoryVisibility, name),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", name),
+					),
+				},
+				{
+					Config: fmt.Sprintf(config, repoName, randomID, testAccConf.testRepositoryVisibility, nameUpdated),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", nameUpdated),
+					),
+				},
+			},
+		})
+	})
+
+	t.Run("update_clear_bypass_actors", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-bypass-%s", testResourcePrefix, randomID)
+
+		bypassActorsConfig := `
+bypass_actors {
+  actor_type = "DeployKey"
+  bypass_mode = "always"
+}
+
+bypass_actors {
+  actor_id    = 5
+  actor_type  = "RepositoryRole"
+  bypass_mode = "always"
+}
+`
+		baseConfig := `
+resource "github_repository" "test" {
+	name         = "%s"
+	description  = "Terraform acceptance tests %[1]s"
+	auto_init    = true
+	visibility = "%s"
+}
+
+resource "github_repository_ruleset" "test" {
+	name        = "test-bypass"
+	repository  = github_repository.test.id
+	target      = "branch"
+	enforcement = "active"
+
+	conditions {
+		ref_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	%s
+
+	rules {
+		creation = true
+	}
+}
+`
+		config := fmt.Sprintf(baseConfig, repoName, testAccConf.testRepositoryVisibility, bypassActorsConfig)
+
+		configUpdated := fmt.Sprintf(baseConfig, repoName, testAccConf.testRepositoryVisibility, "")
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.#", "2"),
+					),
+				},
+				{
+					Config: configUpdated,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.#", "0"),
+					),
+				},
+			},
+		})
+	})
+
+	t.Run("update_bypass_mode", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-bypass-update-%s", testResourcePrefix, randomID)
+
+		bypassMode := "always"
+		bypassModeUpdated := "exempt"
+
+		config := `
+resource "github_repository" "test" {
+	name         = "%s"
+	description  = "Terraform acceptance tests %s"
+	auto_init    = true
+	visibility = "%s"
+}
+
+resource "github_repository_ruleset" "test" {
+	name        = "test-bypass-update"
+	repository  = github_repository.test.id
+	target      = "branch"
+	enforcement = "active"
+
+	bypass_actors {
+		actor_id    = 5
+		actor_type  = "RepositoryRole"
+		bypass_mode = "%s"
+	}
+
+	conditions {
+		ref_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	rules {
+		creation = true
+	}
+}
+`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, repoName, randomID, testAccConf.testRepositoryVisibility, bypassMode),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.0.bypass_mode", bypassMode),
+					),
+				},
+				{
+					Config: fmt.Sprintf(config, repoName, randomID, testAccConf.testRepositoryVisibility, bypassModeUpdated),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "bypass_actors.0.bypass_mode", bypassModeUpdated),
+					),
+				},
+			},
+		})
+	})
+
+	t.Run("import", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-bpmod-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+        name         = "%s"
+			  description  = "Terraform acceptance tests %s"
+			  auto_init    = true
+			  default_branch = "main"
+				vulnerability_alerts = true
+				visibility = "%s"
+			}
+
+			resource "github_repository_environment" "example" {
+				environment  = "test"
+				repository   = github_repository.test.name
+			}
+
+			resource "github_repository_ruleset" "test" {
+				name        = "test"
+				repository  = github_repository.test.id
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["refs/heads/main"]
+						exclude = []
+					}
+				}
+
+				rules {
+					creation = true
+				}
+			}
+		`, repoName, randomID, testAccConf.testRepositoryVisibility)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+				},
+				{
+					ResourceName:            "github_repository_ruleset.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateIdFunc:       importRepositoryRulesetByResourcePaths("github_repository.test", "github_repository_ruleset.test"),
+					ImportStateVerifyIgnore: []string{"etag"},
+				},
+			},
+		})
+	})
+
+	t.Run("create_branch_ruleset_with_enterprise_owner_bypass", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name       = "%s"
+	auto_init  = false
+	visibility = "%s"
+}
+
+resource "github_repository_ruleset" "test" {
+	name        = "test"
+	repository  = github_repository.test.id
+	target      = "branch"
+	enforcement = "active"
+
+	conditions {
+		ref_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	bypass_actors {
+		actor_type  = "EnterpriseOwner"
+		bypass_mode = "always"
+	}
+
+	rules {
+		branch_name_pattern {
+			name     = "test"
+			negate   = false
+			operator = "starts_with"
+			pattern  = "test"
+		}
+	}
+}
+`, repoName, testAccConf.testRepositoryVisibility)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact("test")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("enforcement"), knownvalue.StringExact("active")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("actor_type"), knownvalue.StringExact("EnterpriseOwner")),
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("bypass_mode"), knownvalue.StringExact("always")),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("skips update and delete on archived repository", func(t *testing.T) {
+		t.Parallel()
+
+		t.Skip("TODO: Fix the archived behavior as if update is skipping read needs to do so too.")
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-arch-%s", testResourcePrefix, randomID)
+		archivedBefore := false
+		archivedAfter := true
+		enforcementBefore := "active"
+		enforcementAfter := "disabled"
+
+		config := `
+resource "github_repository" "test" {
+	name      = "%s"
+	auto_init = true
+	archived  = %t
+	visibility = "%s"
+}
+
+resource "github_repository_ruleset" "test" {
+	name        = "test"
+	repository  = github_repository.test.name
+	target      = "branch"
+	enforcement = "%s"
+	rules { creation = true }
+}
+`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, repoName, archivedBefore, testAccConf.testRepositoryVisibility, enforcementBefore),
+				},
+				{
+					Config: fmt.Sprintf(config, repoName, archivedAfter, testAccConf.testRepositoryVisibility, enforcementBefore),
+				},
+				{
+					Config: fmt.Sprintf(config, repoName, archivedAfter, testAccConf.testRepositoryVisibility, enforcementAfter),
+				},
 			},
 		})
 	})
 
 	t.Run("prevents creating ruleset on archived repository", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ruleset-arch-cr-%s", testResourcePrefix, randomID)
+		repoConfig := `
+	resource "github_repository" "test" {
+		name      = "%s"
+		auto_init = true
+		archived  = %t
+		visibility = "%s"
+	}
+	%s
+`
+		rulesetConfig := `
+resource "github_repository_ruleset" "test" {
+	name       = "test"
+	repository = github_repository.test.name
+	target     = "branch"
+	enforcement = "active"
+	rules { creation = true }
+}
+`
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(repoConfig, repoName, false, testAccConf.testRepositoryVisibility, ""),
+				},
+				{
+					Config:      fmt.Sprintf(repoConfig, repoName, true, testAccConf.testRepositoryVisibility, rulesetConfig),
+					ExpectError: regexp.MustCompile("cannot create ruleset on archived repository"),
+				},
+			},
+		})
+	})
+
+	t.Run("Validates push target rejects ref_name condition", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-archive-create-%s"
-				auto_init = true
-				archived  = true
+				name         = "tf-acc-test-push-ref-%s"
+				auto_init    = true
+				visibility   = "private"
+				vulnerability_alerts = true
 			}
+
 			resource "github_repository_ruleset" "test" {
-				name       = "test"
-				repository = github_repository.test.name
-				target     = "branch"
+				name        = "test-push-with-ref"
+				repository  = github_repository.test.id
+				target      = "push"
 				enforcement = "active"
-				rules { creation = true }
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					max_file_size {
+						max_file_size = 100
+					}
+				}
 			}
 		`, randomID)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, individual) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
-				{Config: config, ExpectError: regexp.MustCompile("cannot create ruleset on archived repository")},
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("ref_name must not be set for push target"),
+				},
+			},
+		})
+	})
+
+	t.Run("Validates push target rejects branch/tag rules", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name         = "tf-acc-test-push-rules-%s"
+				auto_init    = true
+				visibility   = "private"
+				vulnerability_alerts = true
+			}
+
+			resource "github_repository_ruleset" "test" {
+				name        = "test-push-branch-rule"
+				repository  = github_repository.test.id
+				target      = "push"
+				enforcement = "active"
+
+				rules {
+					# 'creation' is a branch/tag rule, not valid for push target
+					creation = true
+				}
+			}
+		`, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("rule .* is not valid for push target"),
+				},
+			},
+		})
+	})
+
+	t.Run("Validates branch target rejects push-only rules", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name         = "tf-acc-test-branch-push-%s"
+				auto_init    = true
+				vulnerability_alerts = true
+
+				visibility = "private"
+			}
+
+			resource "github_repository_ruleset" "test" {
+				name        = "test-branch-push-rule"
+				repository  = github_repository.test.id
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					# 'max_file_size' is a push-only rule, not valid for branch target
+					max_file_size {
+						max_file_size = 100
+					}
+				}
+			}
+		`, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("rule .* is not valid for branch target"),
+				},
+			},
+		})
+	})
+
+	t.Run("Validates tag target rejects push-only rules", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name         = "tf-acc-test-tag-push-%s"
+				auto_init    = true
+				vulnerability_alerts = true
+
+				visibility = "private"
+			}
+
+			resource "github_repository_ruleset" "test" {
+				name        = "test-tag-push-rule"
+				repository  = github_repository.test.id
+				target      = "tag"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					# 'file_path_restriction' is a push-only rule, not valid for tag target
+					file_path_restriction {
+						restricted_file_paths = ["secrets/"]
+					}
+				}
+			}
+		`, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("rule .* is not valid for tag target"),
+				},
+			},
+		})
+	})
+
+	t.Run("updates_required_reviewers_successfully", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandString(5)
+		repoName := fmt.Sprintf("%srepo-ruleset-req-rev-%s", testResourcePrefix, randomID)
+		teamName := fmt.Sprintf("%steam-req-rev-%s", testResourcePrefix, randomID)
+		rulesetName := fmt.Sprintf("%s-ruleset-req-rev-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name      = "%s"
+	auto_init = true
+	visibility = "%s"
+
+  ignore_vulnerability_alerts_during_read = true
+}
+
+resource "github_team" "test" {
+	name = "%s"
+}
+
+resource "github_team_repository" "test" {
+	team_id    = github_team.test.id
+	repository = github_repository.test.name
+	permission = "push"
+}
+
+resource "github_repository_ruleset" "test" {
+	name        = "%s"
+	repository  = github_repository.test.name
+	target      = "branch"
+	enforcement = "active"
+
+
+	conditions {
+		ref_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	rules {
+		pull_request {
+			allowed_merge_methods = ["merge", "squash"]
+			required_approving_review_count = 1
+
+			required_reviewers {
+				reviewer {
+					id   = github_team.test.id
+					type = "Team"
+				}
+				file_patterns     = ["*.go"]
+				minimum_approvals = 1
+			}
+		}
+	}
+
+	depends_on = [github_team_repository.test]
+}
+`, repoName, testAccConf.testRepositoryVisibility, teamName, rulesetName)
+
+		// Updated config: change minimum_approvals from 1 to 2
+		configUpdated := fmt.Sprintf(`
+resource "github_repository" "test" {
+	name      = "%s"
+	auto_init = true
+	visibility = "%s"
+
+  ignore_vulnerability_alerts_during_read = true
+}
+
+resource "github_team" "test" {
+	name = "%s"
+}
+
+resource "github_team_repository" "test" {
+	team_id    = github_team.test.id
+	repository = github_repository.test.name
+	permission = "push"
+}
+
+resource "github_repository_ruleset" "test" {
+	name        = "%s"
+	repository  = github_repository.test.name
+	target      = "branch"
+	enforcement = "active"
+
+
+	conditions {
+		ref_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	rules {
+		pull_request {
+			allowed_merge_methods = ["merge", "squash"]
+			required_approving_review_count = 1
+
+			required_reviewers {
+				reviewer {
+					id   = github_team.test.id
+					type = "Team"
+				}
+				file_patterns     = ["*.go"]
+				minimum_approvals = 2
+			}
+		}
+	}
+
+	depends_on = [github_team_repository.test]
+}
+`, repoName, testAccConf.testRepositoryVisibility, teamName, rulesetName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", rulesetName),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "target", "branch"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "enforcement", "active"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.#", "1"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.minimum_approvals", "1"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.#", "1"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.0", "*.go"),
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.reviewer.0.type", "Team"),
+					),
+				},
+				{
+					Config: configUpdated,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.minimum_approvals", "2"),
+					),
+				},
+				{
+					ResourceName:            "github_repository_ruleset.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateIdFunc:       importRepositoryRulesetByResourcePaths("github_repository.test", "github_repository_ruleset.test"),
+					ImportStateVerifyIgnore: []string{"etag"},
+				},
+			},
+		})
+	})
+
+	// Verify possible regression found by https://github.com/integrations/terraform-provider-github/issues/3509
+	t.Run("regression_shows_drift_when_bypass_actors_change_upstream", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+
+		config := fmt.Sprintf(`
+resource "github_repository_ruleset" "test" {
+	name        = "test_regression_bypass_actors_drift"
+	repository  = "%s"
+	target      = "branch"
+	enforcement = "active"
+
+
+	bypass_actors {
+		actor_id    = 946600 # Copilot code review
+		actor_type  = "Integration"
+		bypass_mode = "always"
+	}
+
+	bypass_actors {
+		actor_id    = 1143301 # Copilot cloud agent
+		actor_type  = "Integration"
+		bypass_mode = "always"
+	}
+
+	conditions {
+		ref_name {
+			include = ["~DEFAULT_BRANCH"]
+			exclude = []
+		}
+	}
+
+	rules {
+		creation = true
+		update = true
+		deletion = true
+	}
+}
+`, repo.GetName())
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors"), knownvalue.ListSizeExact(2)),
+					},
+				},
+				{
+					Config: config,
+					PreConfig: func() {
+						client := testAccConf.meta.v3client
+						ctx := tflogtest.RootLogger(t.Context(), log.Writer()) // This pattern can be used to capture logs during testing if needed
+						// Update the ruleset to remove one of the bypass actors, simulating a change upstream
+						rulesets, _, err := client.Repositories.GetAllRulesets(ctx, testAccConf.meta.name, repo.GetName(), &github.RepositoryListRulesetsOptions{})
+						if err != nil {
+							t.Fatalf("failed to list all repository rulesets: %v", err)
+						}
+						firstRuleset := rulesets[0]
+
+						integrationActorType := github.BypassActorTypeIntegration
+						bypassMode := github.BypassModeAlways
+
+						firstRuleset.BypassActors = []*github.BypassActor{
+							{
+								ActorID:    new(int64(946600)),
+								ActorType:  &integrationActorType,
+								BypassMode: &bypassMode,
+							},
+						}
+						tflog.Debug(ctx, "Removing 1 bypass actor from Repo Ruleset")
+						ruleset, resp, err := client.Repositories.UpdateRuleset(ctx, testAccConf.meta.name, repo.GetName(), firstRuleset.GetID(), *firstRuleset)
+						if err != nil {
+							t.Fatalf("failed to remove 2nd bypass actor: %v", err)
+						}
+						tflog.Debug(ctx, "Successfully removed 1 bypass actor from Repo Ruleset", map[string]any{"bypass_actors": ruleset.GetBypassActors(), "etag": resp.Header.Get("ETag")})
+					},
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_ruleset.test", plancheck.ResourceActionUpdate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_ruleset.test", tfjsonpath.New("bypass_actors"), knownvalue.ListSizeExact(2)),
+					},
+				},
 			},
 		})
 	})

@@ -2,14 +2,16 @@ package github
 
 import (
 	"context"
-	"fmt"
+	"net/url"
 
+	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubRepositoryEnvironmentDeploymentPolicies() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoryEnvironmentDeploymentPoliciesRead,
+		ReadContext: dataSourceGithubRepositoryEnvironmentDeploymentPoliciesRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -44,26 +46,44 @@ func dataSourceGithubRepositoryEnvironmentDeploymentPolicies() *schema.Resource 
 	}
 }
 
-func dataSourceGithubRepositoryEnvironmentDeploymentPoliciesRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func dataSourceGithubRepositoryEnvironmentDeploymentPoliciesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 	repoName := d.Get("repository").(string)
-	environmentName := d.Get("environment_name").(string)
-
-	policies, _, err := client.Repositories.ListDeploymentBranchPolicies(context.Background(), owner, repoName, environmentName)
-	if err != nil {
-		return err
-	}
+	envName := d.Get("environment").(string)
 
 	results := make([]map[string]any, 0)
+	listOptions := &github.ListOptions{PerPage: meta.maxPerPage}
+	for {
+		policies, resp, err := client.Repositories.ListDeploymentBranchPolicies(ctx, owner, repoName, url.PathEscape(envName), listOptions)
+		if err != nil {
+			return diag.FromErr(err)
+		}
 
-	for _, policy := range policies.BranchPolicies {
-		policyMap := make(map[string]any)
-		policyMap["type"] = policy.Type
-		policyMap["pattern"] = policy.GetName()
-		results = append(results, policyMap)
+		for _, policy := range policies.BranchPolicies {
+			policyMap := make(map[string]any)
+			policyMap["type"] = policy.GetType()
+			policyMap["pattern"] = policy.GetName()
+			results = append(results, policyMap)
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+
+		listOptions.Page = resp.NextPage
 	}
 
-	d.SetId(fmt.Sprintf("%s:%s", repoName, environmentName))
-	return d.Set("policies", results)
+	id, err := buildID(repoName, escapeIDPart(envName))
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	d.SetId(id)
+
+	if err = d.Set("policies", results); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
 }

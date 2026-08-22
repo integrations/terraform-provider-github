@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -51,8 +51,14 @@ func resourceGithubRepositoryDeployKey() *schema.Resource {
 				Description: "A title.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "An etag representing the deploy key.",
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -69,9 +75,9 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta any) e
 	ctx := context.Background()
 
 	resultKey, _, err := client.Repositories.CreateKey(ctx, owner, repoName, &github.Key{
-		Key:      github.String(key),
-		Title:    github.String(title),
-		ReadOnly: github.Bool(readOnly),
+		Key:      new(key),
+		Title:    new(title),
+		ReadOnly: new(readOnly),
 	})
 	if err != nil {
 		return err
@@ -88,7 +94,7 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta any) err
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
-	repoName, idString, err := parseTwoPartID(d.Id(), "repository", "ID")
+	repoName, idString, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
@@ -104,8 +110,7 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta any) err
 
 	key, resp, err := client.Repositories.GetKey(ctx, owner, repoName, id)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -142,7 +147,7 @@ func resourceGithubRepositoryDeployKeyDelete(d *schema.ResourceData, meta any) e
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
-	repoName, idString, err := parseTwoPartID(d.Id(), "repository", "ID")
+	repoName, idString, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}

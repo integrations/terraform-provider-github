@@ -4,17 +4,22 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubRepositoryAutolinkReferencesDataSource(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	t.Parallel()
 
 	t.Run("queries autolink references", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-autolink-refs-%s", testResourcePrefix, randomID)
+
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%[1]s"
+			  name = "%[1]s"
 				auto_init = true
 			}
 
@@ -24,7 +29,7 @@ func TestAccGithubRepositoryAutolinkReferencesDataSource(t *testing.T) {
 				key_prefix          = "TEST1-"
 				target_url_template = "https://example.com/TEST-<num>"
 			}
-		`, randomID)
+		`, repoName)
 
 		config2 := config + `
 			data "github_repository_autolink_references" "all" {
@@ -38,32 +43,18 @@ func TestAccGithubRepositoryAutolinkReferencesDataSource(t *testing.T) {
 			resource.TestCheckResourceAttr("data.github_repository_autolink_references.all", "autolink_references.0.is_alphanumeric", "true"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-					},
-					{
-						Config: config2,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: config2,
+					Check:  check,
+				},
+			},
 		})
 	})
 }

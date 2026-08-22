@@ -5,28 +5,34 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"path"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
 )
 
 type Config struct {
-	Token            string
-	Owner            string
-	BaseURL          string
-	Insecure         bool
-	WriteDelay       time.Duration
-	ReadDelay        time.Duration
-	RetryDelay       time.Duration
-	RetryableErrors  map[int]bool
-	MaxRetries       int
-	ParallelRequests bool
+	AppID             *string
+	AppInstallationID *string
+	AppPEM            []byte
+	BaseURL           *url.URL
+	IsGHES            bool
+	CachePath         string
+	Insecure          bool
+	LegacyClient      bool
+	MaxRetries        int
+	Owner             string
+	ParallelRequests  bool
+	ReadDelay         time.Duration
+	RetryableErrors   map[int]bool
+	RetryDelay        time.Duration
+	Token             string
+	WriteDelay        time.Duration
+	MaxPerPage        int
 }
 
 type Owner struct {
@@ -36,19 +42,37 @@ type Owner struct {
 	v4client       *githubv4.Client
 	StopContext    context.Context
 	IsOrganization bool
+	maxPerPage     int
 }
 
-// DotComHost is the hostname for GitHub.com API.
-const DotComHost = "api.github.com"
+const (
+	// DotComAPIURL is the base API URL for github.com.
+	DotComAPIURL = "https://api.github.com/"
+	// DotComHost is the hostname for github.com.
+	DotComHost = "github.com"
+	// DotComAPIHost is the API hostname for github.com.
+	DotComAPIHost = "api.github.com"
+	// RESTAPIPath is the rest api path for api.github.com & ghe.com.
+	RESTAPIPath = "/"
+	// GraphQLAPIPath is the graphql api path for api.github.com & ghe.com.
+	GraphQLAPIPath = "/graphql"
+	// GHESRESTAPISuffix is the rest api suffix for GitHub Enterprise Server.
+	GHESRESTAPIPath = "api/v3/"
+	// GHESGraphQLAPISuffix is the GraphQL api suffix for GitHub Enterprise Server.
+	GHESGraphQLAPIPath = "api/graphql"
+)
 
-// GHECDataResidencyHostMatch is a regex to match a GitHub Enterprise Cloud data residency host:
-// https://[hostname].ghe.com/ instances expect paths that behave similar to GitHub.com, not GitHub Enterprise Server.
-var GHECDataResidencyHostMatch = regexp.MustCompile(`^[a-zA-Z0-9.\-]+\.ghe\.com\/?$`)
+var (
+	// GHECHostMatch is a regex to match GitHub Enterprise Cloud hosts.
+	GHECHostMatch = regexp.MustCompile(`\.ghe\.com$`)
+	// GHECAPIHostMatch is a regex to match GitHub Enterprise Cloud API hosts.
+	GHECAPIHostMatch = regexp.MustCompile(`^api\.[a-zA-Z0-9-]+\.ghe\.com$`)
+)
 
 func RateLimitedHTTPClient(client *http.Client, writeDelay, readDelay, retryDelay time.Duration, parallelRequests bool, retryableErrors map[int]bool, maxRetries int) *http.Client {
 	client.Transport = NewEtagTransport(client.Transport)
 	client.Transport = NewRateLimitTransport(client.Transport, WithWriteDelay(writeDelay), WithReadDelay(readDelay), WithParallelRequests(parallelRequests))
-	client.Transport = logging.NewSubsystemLoggingHTTPTransport("GitHub", client.Transport)
+	client.Transport = logging.NewLoggingHTTPTransport(client.Transport)
 	client.Transport = newPreviewHeaderInjectorTransport(map[string]string{
 		// TODO: remove when Stone Crop preview is moved to general availability in the GraphQL API
 		"Accept": "application/vnd.github.stone-crop-preview+json",
@@ -72,51 +96,33 @@ func (c *Config) AuthenticatedHTTPClient() *http.Client {
 }
 
 func (c *Config) Anonymous() bool {
-	return c.Token == ""
+	return c.AppID == nil && c.Token == ""
 }
 
 func (c *Config) AnonymousHTTPClient() *http.Client {
-	client := &http.Client{Transport: &http.Transport{}}
+	client := &http.Client{Transport: http.DefaultTransport.(*http.Transport).Clone()}
 	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay, c.RetryDelay, c.ParallelRequests, c.RetryableErrors, c.MaxRetries)
 }
 
 func (c *Config) NewGraphQLClient(client *http.Client) (*githubv4.Client, error) {
-	uv4, err := url.Parse(c.BaseURL)
-	if err != nil {
-		return nil, err
+	pathSuffix := GraphQLAPIPath
+	if c.IsGHES {
+		pathSuffix = GHESGraphQLAPIPath
 	}
 
-	hostname := uv4.Hostname()
-	if hostname != DotComHost && !GHECDataResidencyHostMatch.MatchString(hostname) {
-		uv4.Path = path.Join(uv4.Path, "api/graphql/")
-	} else {
-		uv4.Path = path.Join(uv4.Path, "graphql")
-	}
-
-	return githubv4.NewEnterpriseClient(uv4.String(), client), nil
+	return githubv4.NewEnterpriseClient(c.BaseURL.JoinPath(pathSuffix).String(), client), nil
 }
 
 func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
-	uv3, err := url.Parse(c.BaseURL)
-	if err != nil {
-		return nil, err
+	pathSuffix := RESTAPIPath
+	if c.IsGHES {
+		pathSuffix = GHESRESTAPIPath
 	}
 
-	hostname := uv3.Hostname()
-	if hostname != DotComHost && !GHECDataResidencyHostMatch.MatchString(hostname) {
-		uv3.Path = fmt.Sprintf("%s/", path.Join(uv3.Path, "api/v3"))
-	}
-
-	v3client, err := github.NewClient(client).WithEnterpriseURLs(uv3.String(), "")
-	if err != nil {
-		return nil, err
-	}
-
-	v3client.BaseURL = uv3
-
-	return v3client, nil
+	return github.NewClient(github.WithHTTPClient(client), github.WithURLs(new(c.BaseURL.JoinPath(pathSuffix).String()), nil))
 }
 
+// Deprecated: This is no longer required as [configureProviderMeta] is now used to configure the provider meta parameter with the necessary clients and owner information. Use [configureProviderMeta] instead.
 func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 	ctx := context.Background()
 	owner.name = c.Owner
@@ -145,34 +151,9 @@ func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 
 // Meta returns the meta parameter that is passed into subsequent resources
 // https://godoc.org/github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema#ConfigureFunc
+// Deprecated: Use [configureProviderMeta] instead.
 func (c *Config) Meta() (any, error) {
-	var client *http.Client
-	if c.Anonymous() {
-		client = c.AnonymousHTTPClient()
-	} else {
-		client = c.AuthenticatedHTTPClient()
-	}
-
-	v3client, err := c.NewRESTClient(client)
-	if err != nil {
-		return nil, err
-	}
-
-	v4client, err := c.NewGraphQLClient(client)
-	if err != nil {
-		return nil, err
-	}
-
-	var owner Owner
-	owner.v4client = v4client
-	owner.v3client = v3client
-	owner.StopContext = context.Background()
-
-	_, err = c.ConfigureOwner(&owner)
-	if err != nil {
-		return &owner, err
-	}
-	return &owner, nil
+	return configureProviderMeta(context.Background(), "", c)
 }
 
 type previewHeaderInjectorTransport struct {
@@ -192,10 +173,56 @@ func (injector *previewHeaderInjectorTransport) RoundTrip(req *http.Request) (*h
 		header := req.Header.Get(name)
 		if header == "" {
 			header = value
-		} else {
+			// NOTE: Some API endpoints expect a single Accept: application/octet-stream header.
+			// If one has been set, it's necessary to preserve it as-is, without
+			// appending previewHeaders value.
+			// See https://github.com/google/go-github/pull/3392
+		} else if strings.ToLower(name) != "accept" || header != "application/octet-stream" {
 			header = strings.Join([]string{header, value}, ",")
 		}
 		req.Header.Set(name, header)
 	}
 	return injector.rt.RoundTrip(req)
+}
+
+// getBaseURL returns a correctly configured base URL and a bool as to if this is GitHub Enterprise Server.
+func getBaseURL(s string) (*url.URL, bool, error) {
+	if s == "" {
+		return nil, false, fmt.Errorf("base url must not be empty")
+	}
+
+	u, err := url.Parse(s)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !u.IsAbs() {
+		return nil, false, fmt.Errorf("base url must be absolute")
+	}
+
+	u = u.JoinPath("/")
+
+	switch {
+	case u.Host == DotComAPIHost:
+	case u.Host == DotComHost:
+		u.Host = DotComAPIHost
+	case GHECAPIHostMatch.MatchString(u.Host):
+	case GHECHostMatch.MatchString(u.Host):
+		u.Host = fmt.Sprintf("api.%s", u.Host)
+	default:
+		u.Path = strings.TrimSuffix(u.Path, GHESRESTAPIPath)
+		return u, true, nil
+	}
+
+	if u.Scheme != "https" {
+		return nil, false, fmt.Errorf("base url for github.com or ghe.com must use the https scheme")
+	}
+
+	if len(u.Path) > 1 {
+		return nil, false, fmt.Errorf("base url for github.com or ghe.com must not contain a path, got %s", u.Path)
+	}
+
+	u.Path = "/"
+
+	return u, false, nil
 }

@@ -5,40 +5,48 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccOrganizationBlock_basic(t *testing.T) {
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
+	t.Parallel()
 
-	rn := "github_organization_block.test"
+	t.Run("creates organization block", func(t *testing.T) {
+		t.Parallel()
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccOrganizationBlockDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccOrganizationBlockConfig,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckOrganizationBlockExists(rn),
-				),
+		config := `
+resource "github_organization_block" "test" {
+  username = "cgriggs01"
+}
+`
+
+		rn := "github_organization_block.test"
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccOrganizationBlockDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						testAccCheckOrganizationBlockExists(rn),
+					),
+				},
+				{
+					ResourceName:      rn,
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
 			},
-			{
-				ResourceName:      rn,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
+		})
 	})
 }
 
 func testAccOrganizationBlockDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Owner).v3client
-	orgName := testAccProvider.Meta().(*Owner).name
+	conn := testAccConf.meta.v3client
+	orgName := testAccConf.meta.name
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_organization_block" {
@@ -47,7 +55,7 @@ func testAccOrganizationBlockDestroy(s *terraform.State) error {
 
 		username := rs.Primary.ID
 
-		res, err := conn.Organizations.UnblockUser(context.TODO(), orgName, username)
+		res, err := conn.Organizations.UnblockUser(context.Background(), orgName, username)
 		if res.StatusCode != 404 {
 			return err
 		}
@@ -64,10 +72,10 @@ func testAccCheckOrganizationBlockExists(n string) resource.TestCheckFunc {
 		}
 
 		username := rs.Primary.ID
-		conn := testAccProvider.Meta().(*Owner).v3client
-		orgName := testAccProvider.Meta().(*Owner).name
+		conn := testAccConf.meta.v3client
+		orgName := testAccConf.meta.name
 
-		blocked, _, err := conn.Organizations.IsBlocked(context.TODO(), orgName, username)
+		blocked, _, err := conn.Organizations.IsBlocked(context.Background(), orgName, username)
 		if err != nil {
 			return err
 		}
@@ -77,9 +85,3 @@ func testAccCheckOrganizationBlockExists(n string) resource.TestCheckFunc {
 		return nil
 	}
 }
-
-const testAccOrganizationBlockConfig = `
-resource "github_organization_block" "test" {
-  username = "cgriggs01"
-}
-`

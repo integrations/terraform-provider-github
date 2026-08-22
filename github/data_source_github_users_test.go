@@ -4,53 +4,49 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 // TODO: this is failing.
 func TestAccGithubUsersDataSource(t *testing.T) {
+	t.Parallel()
+
+	if len(testAccConf.testExternalUser1) == 0 {
+		t.Skip("No external user provided")
+	}
+
 	t.Run("queries multiple accounts", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 			data "github_users" "test" {
 				usernames = ["%[1]s", "!%[1]s"]
 			}
-		`, testOwnerFunc())
+		`, testAccConf.testExternalUser1)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr("data.github_users.test", "logins.#", "1"),
-			resource.TestCheckResourceAttr("data.github_users.test", "logins.0", testOwnerFunc()),
+			resource.TestCheckResourceAttr("data.github_users.test", "logins.0", testAccConf.testExternalUser1),
 			resource.TestCheckResourceAttr("data.github_users.test", "node_ids.#", "1"),
 			resource.TestCheckResourceAttr("data.github_users.test", "unknown_logins.#", "1"),
-			resource.TestCheckResourceAttr("data.github_users.test", "unknown_logins.0", fmt.Sprintf("!%s", testOwnerFunc())),
+			resource.TestCheckResourceAttr("data.github_users.test", "unknown_logins.0", fmt.Sprintf("!%s", testAccConf.testExternalUser1)),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
 	t.Run("does not fail if called with empty list of usernames", func(t *testing.T) {
+		t.Parallel()
+
 		config := `
 			data "github_users" "test" {
 				usernames = []
@@ -63,29 +59,15 @@ func TestAccGithubUsersDataSource(t *testing.T) {
 			resource.TestCheckResourceAttr("data.github_users.test", "unknown_logins.#", "0"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 }

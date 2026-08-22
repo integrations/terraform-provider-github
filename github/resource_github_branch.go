@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -98,9 +98,9 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta any) error {
 	}
 	sourceBranchSHA := d.Get("source_sha").(string)
 
-	_, _, err := client.Git.CreateRef(ctx, orgName, repoName, &github.Reference{
-		Ref:    &branchRefName,
-		Object: &github.GitObject{SHA: &sourceBranchSHA},
+	_, _, err := client.Git.CreateRef(ctx, orgName, repoName, github.CreateRef{
+		Ref: branchRefName,
+		SHA: sourceBranchSHA,
 	})
 	// If the branch already exists, rather than erroring out just continue on to importing the branch
 	//   This avoids the case where a repo with gitignore_template and branch are being created at the same time crashing terraform
@@ -122,7 +122,7 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta any) error {
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	repoName, branchName, err := parseTwoPartID(d.Id(), "repository", "branch")
+	repoName, branchName, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
@@ -130,8 +130,7 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta any) error {
 
 	ref, resp, err := client.Git.GetRef(ctx, orgName, repoName, branchRefName)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -171,7 +170,7 @@ func resourceGithubBranchDelete(d *schema.ResourceData, meta any) error {
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	repoName, branchName, err := parseTwoPartID(d.Id(), "repository", "branch")
+	repoName, branchName, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
@@ -194,7 +193,7 @@ func resourceGithubBranchUpdate(d *schema.ResourceData, meta any) error {
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	repoName, oldBranchName, err := parseTwoPartID(d.Id(), "repository", "branch")
+	repoName, oldBranchName, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
@@ -210,14 +209,14 @@ func resourceGithubBranchUpdate(d *schema.ResourceData, meta any) error {
 }
 
 func resourceGithubBranchImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	repoName, branchName, err := parseTwoPartID(d.Id(), "repository", "branch")
+	repoName, branchName, err := parseID2(d.Id())
 	if err != nil {
 		return nil, err
 	}
 
 	sourceBranch := "main"
 	if strings.Contains(branchName, ":") {
-		branchName, sourceBranch, err = parseTwoPartID(branchName, "branch", "source_branch")
+		branchName, sourceBranch, err = parseID2(branchName)
 		if err != nil {
 			return nil, err
 		}

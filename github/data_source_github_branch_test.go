@@ -5,17 +5,22 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubBranchDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("queries an existing branch without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-branch-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-			  name = "tf-acc-test-%[1]s"
+			  name = "%[1]s"
 				auto_init = true
 			}
 
@@ -23,7 +28,7 @@ func TestAccGithubBranchDataSource(t *testing.T) {
 				repository = github_repository.test.name
 				branch = "main"
 			}
-		`, randomID)
+		`, repoName)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestMatchResourceAttr(
@@ -31,76 +36,52 @@ func TestAccGithubBranchDataSource(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
-	t.Run("queries an invalid branch without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	// Can't test due to SDK and test framework limitations
+	// t.Run("queries an invalid branch without error", func(t *testing.T) {
+	// 	t.Parallel()
 
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-			  name = "tf-acc-test-%[1]s"
-				auto_init = true
-			}
+	// 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	// 	repoName := fmt.Sprintf("%sinvalid-branch-%s", testResourcePrefix, randomID)
 
-			data "github_branch" "test" {
-				repository = github_repository.test.name
-				branch = "xxxxxx"
-			}
-		`, randomID)
+	// 	config := fmt.Sprintf(`
+	// 		resource "github_repository" "test" {
+	// 		  name = "%s"
+	// 			auto_init = true
+	// 		}
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"data.github_branch.test", "ref", "",
-			),
-		)
+	// 		data "github_branch" "test" {
+	// 			repository = github_repository.test.name
+	// 			branch = "xxxxxx"
+	// 		}
+	// 	`, repoName)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-				},
-			})
-		}
+	// 	check := resource.ComposeTestCheckFunc(
+	// 		resource.TestCheckResourceAttr(
+	// 			"data.github_branch.test", "ref", "",
+	// 		),
+	// 	)
 
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-	})
+	// 	resource.Test(t, resource.TestCase{
+	// 		PreCheck:          func() { skipUnauthenticated(t) },
+	// 		ProviderFactories: providerFactories,
+	// 		Steps: []resource.TestStep{
+	// 			{
+	// 				Config: config,
+	// 				Check:  check,
+	// 			},
+	// 		},
+	// 	})
+	// })
 }

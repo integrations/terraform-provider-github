@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -73,17 +73,26 @@ func resourceGithubOrganizationRoleCreate(ctx context.Context, d *schema.Resourc
 		permissionsStr[i] = v.(string)
 	}
 
-	role, _, err := client.Organizations.CreateCustomOrgRole(ctx, orgName, &github.CreateOrUpdateOrgRoleOptions{
-		Name:        github.String(d.Get("name").(string)),
-		Description: github.String(d.Get("description").(string)),
-		BaseRole:    github.String(d.Get("base_role").(string)),
+	create := github.CreateCustomOrgRoleRequest{
+		Name:        d.Get("name").(string),
+		Description: new(d.Get("description").(string)),
 		Permissions: permissionsStr,
-	})
+	}
+
+	baseRole := d.Get("base_role").(string)
+	if baseRole != "none" {
+		create.BaseRole = new(baseRole)
+	}
+
+	role, _, err := client.Organizations.CreateCustomOrgRole(ctx, orgName, create)
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("error creating organization role (%s/%s): %w", orgName, d.Get("name").(string), err))
 	}
 
 	d.SetId(fmt.Sprint(role.GetID()))
+	if err = d.Set("role_id", role.GetID()); err != nil {
+		return diag.FromErr(err)
+	}
 	return nil
 }
 
@@ -103,8 +112,7 @@ func resourceGithubOrganizationRoleRead(ctx context.Context, d *schema.ResourceD
 
 	role, _, err := client.Organizations.GetOrgRole(ctx, orgName, roleId)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] organization role (%s/%d) not found, removing from state", orgName, roleId)
 				d.SetId("")
@@ -123,8 +131,14 @@ func resourceGithubOrganizationRoleRead(ctx context.Context, d *schema.ResourceD
 	if err = d.Set("description", role.Description); err != nil {
 		return diag.FromErr(err)
 	}
-	if err = d.Set("base_role", role.BaseRole); err != nil {
-		return diag.FromErr(err)
+	if role.BaseRole != nil {
+		if err = d.Set("base_role", role.BaseRole); err != nil {
+			return diag.FromErr(err)
+		}
+	} else {
+		if err = d.Set("base_role", "none"); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if err = d.Set("permissions", role.Permissions); err != nil {
 		return diag.FromErr(err)
@@ -153,10 +167,10 @@ func resourceGithubOrganizationRoleUpdate(ctx context.Context, d *schema.Resourc
 		permissionsStr[i] = v.(string)
 	}
 
-	update := &github.CreateOrUpdateOrgRoleOptions{
-		Name:        github.String(d.Get("name").(string)),
-		Description: github.String(d.Get("description").(string)),
-		BaseRole:    github.String(d.Get("base_role").(string)),
+	update := github.UpdateCustomOrgRoleRequest{
+		Name:        new(d.Get("name").(string)),
+		Description: new(d.Get("description").(string)),
+		BaseRole:    new(d.Get("base_role").(string)),
 		Permissions: permissionsStr,
 	}
 

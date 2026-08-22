@@ -4,33 +4,41 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
-	"fmt"
-	"log"
 	"net/http"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubActionsOrganizationSecret() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsOrganizationSecretCreateOrUpdate,
-		Read:   resourceGithubActionsOrganizationSecretRead,
-		Delete: resourceGithubActionsOrganizationSecretDelete,
+		CreateContext: resourceGithubActionsOrganizationSecretCreate,
+		ReadContext:   resourceGithubActionsOrganizationSecretRead,
+		UpdateContext: resourceGithubActionsOrganizationSecretUpdate,
+		DeleteContext: resourceGithubActionsOrganizationSecretDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-				if err := d.Set("secret_name", d.Id()); err != nil {
-					return nil, err
-				}
-				return []*schema.ResourceData{d}, nil
+			StateContext: resourceGithubActionsOrganizationSecretImport,
+		},
+
+		CustomizeDiff: customdiff.All(
+			diffSecret,
+			diffSecretVariableVisibility,
+		),
+
+		SchemaVersion: 1,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceGithubActionsOrganizationSecretV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceGithubActionsOrganizationSecretStateUpgradeV0,
+				Version: 0,
 			},
 		},
 
-		// Schema migration added in v6.7.1 to handle the addition of destroy_on_drift field
-		// Resources created before v6.7.0 need the field populated with default value
-		SchemaVersion: 1,
-		MigrateState:  resourceGithubActionsOrganizationSecretMigrateState,
+		Description: "Resource to manage a GitHub Actions secret for an organization.",
 
 		Schema: map[string]*schema.Schema{
 			"secret_name": {
@@ -40,240 +48,352 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 				Description:      "Name of the secret.",
 				ValidateDiagFunc: validateSecretNameFunc,
 			},
-			"encrypted_value": {
+			"key_id": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				RequiredWith:  []string{"value_encrypted"},
+				ConflictsWith: []string{"value", "plaintext_value"},
+				Description:   "ID of the public key used to encrypt the secret.",
+			},
+			"value": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Sensitive:    true,
+				ExactlyOneOf: []string{"value", "value_encrypted", "encrypted_value", "plaintext_value"},
+				Description:  "Plaintext value to be encrypted.",
+			},
+			"value_encrypted": {
 				Type:             schema.TypeString,
-				ForceNew:         true,
 				Optional:         true,
 				Sensitive:        true,
-				ConflictsWith:    []string{"plaintext_value"},
+				ExactlyOneOf:     []string{"value", "value_encrypted", "encrypted_value", "plaintext_value"},
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsBase64),
+				Description:      "Value encrypted with the GitHub public key, defined by key_id, in Base64 format.",
+			},
+			"encrypted_value": {
+				Type:             schema.TypeString,
+				Optional:         true,
+				Sensitive:        true,
+				ExactlyOneOf:     []string{"value", "value_encrypted", "encrypted_value", "plaintext_value"},
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsBase64),
 				Description:      "Encrypted value of the secret using the GitHub public key in Base64 format.",
-				ValidateDiagFunc: toDiagFunc(validation.StringIsBase64, "encrypted_value"),
+				Deprecated:       "Use value_encrypted and key_id.",
 			},
 			"plaintext_value": {
-				Type:          schema.TypeString,
-				ForceNew:      true,
-				Optional:      true,
-				Sensitive:     true,
-				ConflictsWith: []string{"encrypted_value"},
-				Description:   "Plaintext value of the secret to be encrypted.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Sensitive:    true,
+				ExactlyOneOf: []string{"value", "value_encrypted", "encrypted_value", "plaintext_value"},
+				Description:  "Plaintext value of the secret to be encrypted.",
+				Deprecated:   "Use value.",
 			},
 			"visibility": {
 				Type:             schema.TypeString,
 				Required:         true,
-				ForceNew:         true,
-				ValidateDiagFunc: validateValueFunc([]string{"all", "private", "selected"}),
-				Description:      "Configures the access that repositories have to the organization secret. Must be one of 'all', 'private', or 'selected'. 'selected_repository_ids' is required if set to 'selected'.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"all", "private", "selected"}, false)),
+				Description:      "Configures the access that repositories have to the organization secret. Must be one of 'all', 'private', or 'selected'.",
 			},
 			"selected_repository_ids": {
 				Type: schema.TypeSet,
+				Set:  schema.HashInt,
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
 				},
-				Set:         schema.HashInt,
 				Optional:    true,
-				ForceNew:    true,
-				Description: "An array of repository ids that can access the organization secret.",
+				Description: "An array of repository IDs that can access the organization secret.",
+				Deprecated:  "This field is deprecated and will be removed in a future release. Please use the `github_actions_organization_secret_repositories` or `github_actions_organization_secret_repository` resources to manage repository access to organization secrets.",
 			},
 			"created_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Date of 'actions_secret' creation.",
+				Description: "Timestamp for when the secret was created.",
 			},
 			"updated_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Date of 'actions_secret' update.",
+				Description: "Timestamp for when the secret was last updated by the provider.",
+			},
+			"remote_updated_at": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Timestamp for when the secret was last updated.",
 			},
 			"destroy_on_drift": {
-				Type:        schema.TypeBool,
-				Default:     true,
-				Optional:    true,
-				ForceNew:    true,
-				Description: "Boolean indicating whether to recreate the secret if it's modified outside of Terraform. When `true` (default), Terraform will delete and recreate the secret if it detects external changes. When `false`, Terraform will acknowledge external changes but not recreate the secret.",
+				Type:       schema.TypeBool,
+				Optional:   true,
+				Deprecated: "This is no longer required and will be removed in a future release. Drift detection is now always performed, and external changes will result in the secret being updated to match the Terraform configuration. If you want to ignore external changes, you can use the `lifecycle` block with `ignore_changes` on the `updated_at` field.",
 			},
 		},
 	}
 }
 
-func resourceGithubActionsOrganizationSecretCreateOrUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	ctx := context.Background()
+func resourceGithubActionsOrganizationSecretCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
 	secretName := d.Get("secret_name").(string)
-	plaintextValue := d.Get("plaintext_value").(string)
-	var encryptedValue string
-
+	keyID := d.Get("key_id").(string)
+	encryptedValue, _ := resourceKeysGetOk[string](d, "value_encrypted", "encrypted_value")
 	visibility := d.Get("visibility").(string)
-	selectedRepositories, hasSelectedRepositories := d.GetOk("selected_repository_ids")
 
-	if visibility != "selected" && hasSelectedRepositories {
-		return fmt.Errorf("cannot use selected_repository_ids without visibility being set to selected")
-	}
+	var repoIDs []int64
 
-	selectedRepositoryIDs := []int64{}
-
-	if hasSelectedRepositories {
-		ids := selectedRepositories.(*schema.Set).List()
+	if v, ok := d.GetOk("selected_repository_ids"); ok {
+		ids := v.(*schema.Set).List()
 
 		for _, id := range ids {
-			selectedRepositoryIDs = append(selectedRepositoryIDs, int64(id.(int)))
+			repoIDs = append(repoIDs, int64(id.(int)))
 		}
 	}
 
-	keyId, publicKey, err := getOrganizationPublicKeyDetails(owner, meta)
-	if err != nil {
-		return err
+	var publicKey string
+	if len(keyID) == 0 || len(encryptedValue) == 0 {
+		ki, pk, err := getOrganizationPublicKeyDetails(ctx, meta)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		keyID = ki
+		publicKey = pk
 	}
 
-	if encryptedText, ok := d.GetOk("encrypted_value"); ok {
-		encryptedValue = encryptedText.(string)
-	} else {
+	if len(encryptedValue) == 0 {
+		plaintextValue, _ := resourceKeysGetOk[string](d, "value", "plaintext_value")
+
 		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		encryptedValue = base64.StdEncoding.EncodeToString(encryptedBytes)
 	}
 
-	// Create an EncryptedSecret and encrypt the plaintext value into it
-	eSecret := &github.EncryptedSecret{
-		Name:                  secretName,
-		KeyID:                 keyId,
-		Visibility:            visibility,
-		SelectedRepositoryIDs: selectedRepositoryIDs,
+	secretReq := github.OrgSecretRequest{
+		KeyID:                 keyID,
 		EncryptedValue:        encryptedValue,
+		Visibility:            visibility,
+		SelectedRepositoryIDs: repoIDs,
 	}
 
-	_, err = client.Actions.CreateOrUpdateOrgSecret(ctx, owner, eSecret)
-	if err != nil {
-		return err
+	if _, err := client.Actions.CreateOrUpdateOrgSecret(ctx, owner, secretName, secretReq); err != nil {
+		return diag.FromErr(err)
 	}
 
 	d.SetId(secretName)
-	return resourceGithubActionsOrganizationSecretRead(d, meta)
-}
 
-func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	ctx := context.Background()
-
-	secret, _, err := client.Actions.GetOrgSecret(ctx, owner, d.Id())
-	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing actions secret %s from state because it no longer exists in GitHub",
-					d.Id())
-				d.SetId("")
-				return nil
-			}
-		}
-		return err
+	if err := d.Set("key_id", keyID); err != nil {
+		return diag.FromErr(err)
 	}
 
-	if err = d.Set("created_at", secret.CreatedAt.String()); err != nil {
-		return err
-	}
-	if err = d.Set("visibility", secret.Visibility); err != nil {
-		return err
-	}
-
-	selectedRepositoryIDs := []int64{}
-
-	if secret.Visibility == "selected" {
-		opt := &github.ListOptions{
-			PerPage: 30,
+	// GitHub API does not return on create so we have to lookup the secret to get timestamps.
+	if secret, err := retryUntilResourceFound(ctx, func() (*github.Secret, error) {
+		val, _, err := client.Actions.GetOrgSecret(ctx, owner, secretName)
+		return val, err
+	}, nil); err == nil {
+		if err := d.Set("created_at", secret.CreatedAt.String()); err != nil {
+			return diag.FromErr(err)
 		}
-		for {
-			results, resp, err := client.Actions.ListSelectedReposForOrgSecret(ctx, owner, d.Id(), opt)
-			if err != nil {
-				return err
-			}
-
-			for _, repo := range results.Repositories {
-				selectedRepositoryIDs = append(selectedRepositoryIDs, repo.GetID())
-			}
-
-			if resp.NextPage == 0 {
-				break
-			}
-			opt.Page = resp.NextPage
+		if err := d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
+			return diag.FromErr(err)
 		}
-	}
-
-	if err = d.Set("selected_repository_ids", selectedRepositoryIDs); err != nil {
-		return err
-	}
-
-	// This is a drift detection mechanism based on timestamps.
-	//
-	// If we do not currently store the "updated_at" field, it means we've only
-	// just created the resource and the value is most likely what we want it to
-	// be.
-	//
-	// If the resource is changed externally in the meantime then reading back
-	// the last update timestamp will return a result different than the
-	// timestamp we've persisted in the state. In that case, we can no longer
-	// trust that the value (which we don't see) is equal to what we've declared
-	// previously.
-	destroyOnDrift := d.Get("destroy_on_drift").(bool)
-	storedUpdatedAt, hasStoredUpdatedAt := d.GetOk("updated_at")
-
-	if hasStoredUpdatedAt && storedUpdatedAt != secret.UpdatedAt.String() {
-		log.Printf("[INFO] The secret %s has been externally updated in GitHub", d.Id())
-
-		if destroyOnDrift {
-			// Original behavior: mark for recreation
-			d.SetId("")
-			return nil
-		} else {
-			// Alternative approach: set sensitive values to empty to trigger update plan
-			// This tells Terraform that the current state is unknown and needs reconciliation
-			if err = d.Set("encrypted_value", ""); err != nil {
-				return err
-			}
-			if err = d.Set("plaintext_value", ""); err != nil {
-				return err
-			}
-			log.Printf("[INFO] Detected drift but destroy_on_drift=false, clearing sensitive values to trigger update")
+		if err := d.Set("remote_updated_at", secret.UpdatedAt.String()); err != nil {
+			return diag.FromErr(err)
 		}
-	} else {
-		// No drift detected, preserve the configured values in state
-		if err = d.Set("encrypted_value", d.Get("encrypted_value")); err != nil {
-			return err
-		}
-		if err = d.Set("plaintext_value", d.Get("plaintext_value")); err != nil {
-			return err
-		}
-	}
-
-	// Always update the timestamp to prevent repeated drift detection
-	if err = d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
-		return err
 	}
 
 	return nil
 }
 
-func resourceGithubActionsOrganizationSecretDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+func resourceGithubActionsOrganizationSecretRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
-	log.Printf("[INFO] Deleting secret: %s", d.Id())
-	_, err := client.Actions.DeleteOrgSecret(ctx, orgName, d.Id())
-	return err
+	secretName, _ := d.Get("secret_name").(string)
+
+	secret, _, err := client.Actions.GetOrgSecret(ctx, owner, secretName)
+	if err != nil {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Removing actions organization secret from state because it no longer exists in GitHub", map[string]any{"secret_name": secretName})
+			d.SetId("")
+			return nil
+		}
+		return diag.FromErr(err)
+	}
+
+	// Due to the eventually consistent behavior of this API we may not get created_at/updated_at
+	// values on the first read after creation, so we only set them here if they are not already set.
+	if len(d.Get("created_at").(string)) == 0 {
+		if err = d.Set("created_at", secret.CreatedAt.String()); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+	if len(d.Get("updated_at").(string)) == 0 {
+		if err = d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+	if err = d.Set("remote_updated_at", secret.UpdatedAt.String()); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err = d.Set("created_at", secret.CreatedAt.String()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err = d.Set("visibility", secret.Visibility); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if secret.Visibility == "selected" {
+		if _, ok := d.GetOk("selected_repository_ids"); ok {
+			var repoIDs []int64
+			for repo, err := range client.Actions.ListSelectedReposForOrgSecretIter(ctx, owner, secretName, &github.ListOptions{PerPage: meta.maxPerPage}) {
+				if err != nil {
+					return diag.FromErr(err)
+				}
+
+				repoIDs = append(repoIDs, repo.GetID())
+			}
+
+			if err := d.Set("selected_repository_ids", repoIDs); err != nil {
+				return diag.FromErr(err)
+			}
+		}
+	}
+
+	return nil
 }
 
-func getOrganizationPublicKeyDetails(owner string, meta any) (keyId, pkValue string, err error) {
-	client := meta.(*Owner).v3client
-	ctx := context.Background()
+func resourceGithubActionsOrganizationSecretUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
+	secretName, _ := d.Get("secret_name").(string)
+	keyID, _ := d.Get("key_id").(string)
+	encryptedValue, _ := resourceKeysGetOk[string](d, "value_encrypted", "encrypted_value")
+	visibility, _ := d.Get("visibility").(string)
+
+	var repoIDs []int64
+
+	if v, ok := d.GetOk("selected_repository_ids"); ok {
+		ids := v.(*schema.Set).List()
+
+		for _, id := range ids {
+			repoIDs = append(repoIDs, int64(id.(int)))
+		}
+	}
+
+	var publicKey string
+	if len(keyID) == 0 || len(encryptedValue) == 0 {
+		ki, pk, err := getOrganizationPublicKeyDetails(ctx, meta)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		keyID = ki
+		publicKey = pk
+	}
+
+	if len(encryptedValue) == 0 {
+		plaintextValue, _ := resourceKeysGetOk[string](d, "value", "plaintext_value")
+
+		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		encryptedValue = base64.StdEncoding.EncodeToString(encryptedBytes)
+	}
+
+	secretReq := github.OrgSecretRequest{
+		KeyID:                 keyID,
+		EncryptedValue:        encryptedValue,
+		Visibility:            visibility,
+		SelectedRepositoryIDs: repoIDs,
+	}
+
+	if _, err := client.Actions.CreateOrUpdateOrgSecret(ctx, owner, secretName, secretReq); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := d.Set("key_id", keyID); err != nil {
+		return diag.FromErr(err)
+	}
+
+	// GitHub API does not return on update so we have to lookup the secret to get timestamps.
+	if secret, err := retryUntilResourceFound(ctx, func() (*github.Secret, error) {
+		val, _, err := client.Actions.GetOrgSecret(ctx, owner, secretName)
+		return val, err
+	}, nil); err == nil {
+		if err := d.Set("created_at", secret.CreatedAt.String()); err != nil {
+			return diag.FromErr(err)
+		}
+		if err := d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
+			return diag.FromErr(err)
+		}
+		if err := d.Set("remote_updated_at", secret.UpdatedAt.String()); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	return nil
+}
+
+func resourceGithubActionsOrganizationSecretDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
+	secretName, _ := d.Get("secret_name").(string)
+
+	tflog.Info(ctx, "Deleting actions organization secret", map[string]any{"secret_name": secretName})
+
+	if _, err := client.Actions.DeleteOrgSecret(ctx, owner, secretName); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
+}
+
+func resourceGithubActionsOrganizationSecretImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
+	secretName := d.Id()
+
+	secret, _, err := client.Actions.GetOrgSecret(ctx, owner, secretName)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := d.Set("secret_name", secretName); err != nil {
+		return nil, err
+	}
+	if err := d.Set("visibility", secret.Visibility); err != nil {
+		return nil, err
+	}
+	if err := d.Set("created_at", secret.CreatedAt.String()); err != nil {
+		return nil, err
+	}
+	if err := d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
+		return nil, err
+	}
+	if err := d.Set("remote_updated_at", secret.UpdatedAt.String()); err != nil {
+		return nil, err
+	}
+
+	return []*schema.ResourceData{d}, nil
+}
+
+func getOrganizationPublicKeyDetails(ctx context.Context, meta *Owner) (string, string, error) {
+	client := meta.v3client
+	owner := meta.name
 
 	publicKey, _, err := client.Actions.GetOrgPublicKey(ctx, owner)
 	if err != nil {
-		return keyId, pkValue, err
+		return "", "", err
 	}
 
 	return publicKey.GetKeyID(), publicKey.GetKey(), err

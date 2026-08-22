@@ -6,11 +6,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubCodespacesUserSecret(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates and updates secrets without error", func(t *testing.T) {
+		t.Parallel()
+
 		secretValue := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
 		updatedSecretValue := base64.StdEncoding.EncodeToString([]byte("updated_super_secret_value"))
 
@@ -61,35 +65,27 @@ func TestAccGithubCodespacesUserSecret(t *testing.T) {
 			),
 		}
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["before"],
-					},
-					{
-						Config: strings.Replace(config,
-							secretValue,
-							updatedSecretValue, 2),
-						Check: checks["after"],
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, individual) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  checks["before"],
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
+				{
+					Config: strings.Replace(config,
+						secretValue,
+						updatedSecretValue, 2),
+					Check: checks["after"],
+				},
+			},
 		})
 	})
 
 	t.Run("deletes secrets without error", func(t *testing.T) {
+		t.Parallel()
+
 		config := `
 				resource "github_codespaces_user_secret" "plaintext_secret" {
 					secret_name      = "test_plaintext_secret"
@@ -100,29 +96,21 @@ func TestAccGithubCodespacesUserSecret(t *testing.T) {
 				}
 			`
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:  config,
-						Destroy: true,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, individual) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:  config,
+					Destroy: true,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
+			},
 		})
 	})
 
 	t.Run("imports secrets without error", func(t *testing.T) {
+		t.Parallel()
+
 		secretValue := "super_secret_value"
 
 		config := fmt.Sprintf(`
@@ -139,31 +127,21 @@ func TestAccGithubCodespacesUserSecret(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:            "github_codespaces_user_secret.test_secret",
-						ImportState:             true,
-						ImportStateVerify:       true,
-						ImportStateVerifyIgnore: []string{"plaintext_value"},
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, individual) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
+				{
+					ResourceName:            "github_codespaces_user_secret.test_secret",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"plaintext_value"},
+				},
+			},
 		})
 	})
 }

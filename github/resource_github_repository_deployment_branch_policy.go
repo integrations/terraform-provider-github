@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -88,7 +88,7 @@ func resourceGithubRepositoryDeploymentBranchPolicyCreate(d *schema.ResourceData
 	environmentName := d.Get("environment_name").(string)
 	name := d.Get("name").(string)
 
-	policy, _, err := client.Repositories.CreateDeploymentBranchPolicy(ctx, owner, repoName, environmentName, &github.DeploymentBranchPolicyRequest{Name: &name, Type: github.String("branch")})
+	policy, _, err := client.Repositories.CreateDeploymentBranchPolicy(ctx, owner, repoName, environmentName, &github.DeploymentBranchPolicyRequest{Name: &name, Type: new("branch")})
 	if err != nil {
 		return err
 	}
@@ -116,8 +116,7 @@ func resourceGithubRepositoryDeploymentBranchPolicyRead(d *schema.ResourceData, 
 
 	policy, resp, err := client.Repositories.GetDeploymentBranchPolicy(ctx, owner, repoName, environmentName, int64(id))
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -168,7 +167,7 @@ func resourceGithubRepositoryDeploymentBranchPolicyDelete(d *schema.ResourceData
 }
 
 func resourceGithubRepositoryDeploymentBranchPolicyImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	repoName, environmentName, id, err := parseThreePartID(d.Id(), "repository", "environment_name", "id")
+	repoName, environmentName, id, err := parseID3(d.Id())
 	if err != nil {
 		return nil, err
 	}

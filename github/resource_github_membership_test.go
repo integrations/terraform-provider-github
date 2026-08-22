@@ -6,134 +6,130 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-github/v67/github"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
-func TestAccGithubMembership_basic(t *testing.T) {
-	if testCollaborator == "" {
-		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
-	}
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
+func TestAccGithubMembership(t *testing.T) {
+	t.Parallel()
+
+	if len(testAccConf.testExternalUser1) == 0 {
+		t.Skip("No external user provided")
 	}
 
-	var membership github.Membership
-	rn := "github_membership.test_org_membership"
+	t.Run("creates organization membership", func(t *testing.T) {
+		// IMPORTANT: Do not run this sub test in parallel is it uses shared state.
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubMembershipDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubMembershipConfig(testCollaborator),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubMembershipExists(rn, &membership),
-					testAccCheckGithubMembershipRoleState(rn, &membership),
-				),
+		ctx := t.Context()
+
+		var membership github.Membership
+		rn := "github_membership.test_org_membership"
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubMembershipDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccGithubMembershipConfig(testAccConf.testExternalUser1),
+					Check: resource.ComposeTestCheckFunc(
+						testAccCheckGithubMembershipExists(ctx, rn, &membership),
+						testAccCheckGithubMembershipRoleState(ctx, rn, &membership),
+					),
+				},
+				{
+					ResourceName:      rn,
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
 			},
-			{
-				ResourceName:      rn,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
+		})
 	})
-}
 
-func TestAccGithubMembership_downgrade(t *testing.T) {
-	if testCollaborator == "" {
-		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
-	}
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
+	t.Run("creates organization membership with downgrade", func(t *testing.T) {
+		// IMPORTANT: Do not run this sub test in parallel is it uses shared state.
 
-	var membership github.Membership
-	rn := "github_membership.test_org_membership"
+		ctx := t.Context()
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubMembershipDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubMembershipConfigDowngradable(testCollaborator),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubMembershipExists(rn, &membership),
-					testAccCheckGithubMembershipRoleState(rn, &membership),
-				),
+		var membership github.Membership
+		rn := "github_membership.test_org_membership"
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubMembershipDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccGithubMembershipConfigDowngradable(testAccConf.testExternalUser1),
+					Check: resource.ComposeTestCheckFunc(
+						testAccCheckGithubMembershipExists(ctx, rn, &membership),
+						testAccCheckGithubMembershipRoleState(ctx, rn, &membership),
+					),
+				},
+				{
+					ResourceName: rn,
+					ImportState:  true,
+				},
 			},
-			{
-				ResourceName: rn,
-				ImportState:  true,
-			},
-		},
+		})
 	})
-}
 
-func TestAccGithubMembership_caseInsensitive(t *testing.T) {
-	if testCollaborator == "" {
-		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` is not set")
-	}
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
+	t.Run("creates organization membership with case insensitivity", func(t *testing.T) {
+		// IMPORTANT: Do not run this sub test in parallel is it uses shared state.
 
-	var membership github.Membership
-	var otherMembership github.Membership
+		ctx := t.Context()
 
-	rn := "github_membership.test_org_membership"
-	otherCase := flipUsernameCase(testCollaborator)
+		var membership github.Membership
+		var otherMembership github.Membership
 
-	if testCollaborator == otherCase {
-		t.Skip("Skipping because `GITHUB_TEST_COLLABORATOR` has no letters to flip case")
-	}
+		rn := "github_membership.test_org_membership"
+		otherCase := flipUsernameCase(testAccConf.testExternalUser1)
 
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubMembershipDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubMembershipConfig(testCollaborator),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubMembershipExists(rn, &membership),
-				),
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubMembershipDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccGithubMembershipConfig(testAccConf.testExternalUser1),
+					Check: resource.ComposeTestCheckFunc(
+						testAccCheckGithubMembershipExists(ctx, rn, &membership),
+					),
+				},
+				{
+					Config: testAccGithubMembershipConfig(otherCase),
+					Check: resource.ComposeTestCheckFunc(
+						testAccCheckGithubMembershipExists(ctx, rn, &otherMembership),
+						testAccGithubMembershipTheSame(&membership, &otherMembership),
+					),
+				},
+				{
+					ResourceName:      rn,
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
 			},
-			{
-				Config: testAccGithubMembershipConfig(otherCase),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubMembershipExists(rn, &otherMembership),
-					testAccGithubMembershipTheSame(&membership, &otherMembership),
-				),
-			},
-			{
-				ResourceName:      rn,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
+		})
 	})
 }
 
 func testAccCheckGithubMembershipDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Owner).v3client
+	ctx := context.Background()
+	conn := testAccConf.meta.v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_membership" {
 			continue
 		}
 
-		orgName, username, err := parseTwoPartID(rs.Primary.ID, "organization", "username")
+		orgName, username, err := parseID2(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
 
 		downgradedOnDestroy := rs.Primary.Attributes["downgrade_on_destroy"] == "true"
-		membership, resp, err := conn.Organizations.GetOrgMembership(context.TODO(), username, orgName)
+		membership, resp, err := conn.Organizations.GetOrgMembership(ctx, username, orgName)
 		responseIsSuccessful := err == nil && membership != nil && buildTwoPartID(orgName, username) == rs.Primary.ID
 
 		if downgradedOnDestroy {
@@ -146,7 +142,7 @@ func testAccCheckGithubMembershipDestroy(s *terraform.State) error {
 			}
 
 			// Now actually remove them from the org to clean up
-			_, removeErr := conn.Organizations.RemoveOrgMembership(context.TODO(), username, orgName)
+			_, removeErr := conn.Organizations.RemoveOrgMembership(ctx, username, orgName)
 			if removeErr != nil {
 				return fmt.Errorf("organization membership %q could not be removed during membership downgrade test case cleanup: %w", rs.Primary.ID, removeErr)
 			}
@@ -161,7 +157,7 @@ func testAccCheckGithubMembershipDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckGithubMembershipExists(n string, membership *github.Membership) resource.TestCheckFunc {
+func testAccCheckGithubMembershipExists(ctx context.Context, n string, membership *github.Membership) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -172,13 +168,14 @@ func testAccCheckGithubMembershipExists(n string, membership *github.Membership)
 			return fmt.Errorf("no membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Owner).v3client
-		orgName, username, err := parseTwoPartID(rs.Primary.ID, "organization", "username")
+		conn := testAccConf.meta.v3client
+
+		orgName, username, err := parseID2(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
 
-		githubMembership, _, err := conn.Organizations.GetOrgMembership(context.TODO(), username, orgName)
+		githubMembership, _, err := conn.Organizations.GetOrgMembership(ctx, username, orgName)
 		if err != nil {
 			return err
 		}
@@ -187,7 +184,7 @@ func testAccCheckGithubMembershipExists(n string, membership *github.Membership)
 	}
 }
 
-func testAccCheckGithubMembershipRoleState(n string, membership *github.Membership) resource.TestCheckFunc {
+func testAccCheckGithubMembershipRoleState(ctx context.Context, n string, membership *github.Membership) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -198,13 +195,14 @@ func testAccCheckGithubMembershipRoleState(n string, membership *github.Membersh
 			return fmt.Errorf("no membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Owner).v3client
-		orgName, username, err := parseTwoPartID(rs.Primary.ID, "organization", "username")
+		conn := testAccConf.meta.v3client
+
+		orgName, username, err := parseID2(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
 
-		githubMembership, _, err := conn.Organizations.GetOrgMembership(context.TODO(), username, orgName)
+		githubMembership, _, err := conn.Organizations.GetOrgMembership(ctx, username, orgName)
 		if err != nil {
 			return err
 		}

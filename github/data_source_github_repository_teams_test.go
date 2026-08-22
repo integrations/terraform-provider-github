@@ -4,63 +4,65 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubRepositoryTeamsDataSource(t *testing.T) {
-	t.Run("queries teams of an existing repository", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	t.Parallel()
+
+	skipUnlessHasOrgs(t)
+
+	t.Run("queries_all_teams", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+		team1 := mustCreateTestTeam(t)
+		mustAddRepositoryToTeam(t, team1, repo)
+		team2 := mustCreateTestTeam(t)
+		mustAddRepositoryToTeam(t, team2, repo)
 
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
-				auto_init = true
-			}
+data "github_repository_teams" "test" {
+  name = "%v"
+}
+`, repo.GetName())
 
-			resource "github_team" "test" {
-				name      = "tf-acc-test-%s"
-			}
-
-			resource "github_team_repository" "test" {
-				team_id    = github_team.test.id
-				repository = github_repository.test.name
-				permission = "push"
-			}
-		`, randomID, randomID)
-
-		config2 := config + `
-			data "github_repository_teams" "test" {
-				name = github_repository.test.name
-			}
-		`
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("data.github_repository_teams.test", "name", fmt.Sprintf("tf-acc-test-%s", randomID)),
-			resource.TestCheckResourceAttr("data.github_repository_teams.test", "teams.#", "1"),
-			resource.TestCheckResourceAttr("data.github_repository_teams.test", "teams.0.slug", fmt.Sprintf("tf-acc-test-%s", randomID)),
-			resource.TestCheckResourceAttr("data.github_repository_teams.test", "teams.0.permission", "push"),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  resource.ComposeTestCheckFunc(),
-					},
-					{
-						Config: config2,
-						Check:  check,
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_repository_teams.test", tfjsonpath.New("teams"), knownvalue.SetPartial([]knownvalue.Check{
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"id":            knownvalue.Int32Exact(int32(team1.GetID())),
+								"node_id":       knownvalue.StringExact(team1.GetNodeID()),
+								"slug":          knownvalue.StringExact(team1.GetSlug()),
+								"name":          knownvalue.StringExact(team1.GetName()),
+								"description":   knownvalue.StringExact(team1.GetDescription()),
+								"type":          knownvalue.StringExact(team1.GetType()),
+								"privacy":       knownvalue.StringExact(team1.GetPrivacy()),
+								"permission":    knownvalue.StringExact("pull"),
+								"access_source": knownvalue.StringExact("direct"),
+							}),
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"id":            knownvalue.Int32Exact(int32(team2.GetID())),
+								"node_id":       knownvalue.StringExact(team2.GetNodeID()),
+								"slug":          knownvalue.StringExact(team2.GetSlug()),
+								"name":          knownvalue.StringExact(team2.GetName()),
+								"description":   knownvalue.StringExact(team2.GetDescription()),
+								"type":          knownvalue.StringExact(team2.GetType()),
+								"privacy":       knownvalue.StringExact(team2.GetPrivacy()),
+								"permission":    knownvalue.StringExact("pull"),
+								"access_source": knownvalue.StringExact("direct"),
+							}),
+						})),
 					},
 				},
-			})
-		}
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 }

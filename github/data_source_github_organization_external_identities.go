@@ -1,6 +1,9 @@
 package github
 
 import (
+	"context"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
@@ -32,7 +35,7 @@ type ExternalIdentities struct {
 
 func dataSourceGithubOrganizationExternalIdentities() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubOrganizationExternalIdentitiesRead,
+		ReadContext: dataSourceGithubOrganizationExternalIdentitiesRead,
 
 		Schema: map[string]*schema.Schema{
 			"identities": {
@@ -65,21 +68,22 @@ func dataSourceGithubOrganizationExternalIdentities() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationExternalIdentitiesRead(d *schema.ResourceData, meta any) error {
-	name := meta.(*Owner).name
+func dataSourceGithubOrganizationExternalIdentitiesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	name := meta.name
 
-	client4 := meta.(*Owner).v4client
-	ctx := meta.(*Owner).StopContext
+	client4 := meta.v4client
 
 	var query struct {
 		Organization struct {
 			SamlIdentityProvider struct {
-				ExternalIdentities `graphql:"externalIdentities(first: 100, after: $after)"`
+				ExternalIdentities `graphql:"externalIdentities(first: $first, after: $after)"`
 			}
 		} `graphql:"organization(login: $login)"`
 	}
 	variables := map[string]any{
 		"login": githubv4.String(name),
+		"first": githubv4.Int(meta.maxPerPage),
 		"after": (*githubv4.String)(nil),
 	}
 
@@ -88,7 +92,7 @@ func dataSourceGithubOrganizationExternalIdentitiesRead(d *schema.ResourceData, 
 	for {
 		err := client4.Query(ctx, &query, variables)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		for _, edge := range query.Organization.SamlIdentityProvider.Edges {
 			identity := map[string]any{
@@ -119,7 +123,7 @@ func dataSourceGithubOrganizationExternalIdentitiesRead(d *schema.ResourceData, 
 		if !query.Organization.SamlIdentityProvider.PageInfo.HasNextPage {
 			break
 		}
-		variables["after"] = githubv4.NewString(query.Organization.SamlIdentityProvider.PageInfo.EndCursor)
+		variables["after"] = new(query.Organization.SamlIdentityProvider.PageInfo.EndCursor)
 	}
 
 	d.SetId(name)

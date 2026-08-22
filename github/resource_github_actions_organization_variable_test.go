@@ -2,230 +2,228 @@ package github
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubActionsOrganizationVariable(t *testing.T) {
-	t.Run("creates and updates a private organization variable without error", func(t *testing.T) {
-		value := "my_variable_value"
-		updatedValue := "my_updated_variable_value"
+	t.Parallel()
+
+	t.Run("with_visibility_all", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandString(testRandomIDLength)
+		varName := strings.ToUpper(fmt.Sprintf("%s%s", strings.ReplaceAll(testResourcePrefix, "-", "_"), randomID))
 
 		config := fmt.Sprintf(`
-			resource "github_actions_organization_variable" "variable" {
-			  variable_name    = "test_variable"
-			  value  		   = "%s"
-			  visibility       = "private"
-			}
-			`, value)
+resource "github_actions_organization_variable" "test" {
+	variable_name = "%s"
+	value         = "%%s"
+	visibility    = "all"
+}
+`, varName)
 
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_actions_organization_variable.variable", "value",
-					value,
-				),
-				resource.TestCheckResourceAttr(
-					"github_actions_organization_variable.variable", "visibility",
-					"private",
-				),
-				resource.TestCheckResourceAttrSet(
-					"github_actions_organization_variable.variable", "created_at",
-				),
-				resource.TestCheckResourceAttrSet(
-					"github_actions_organization_variable.variable", "updated_at",
-				),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_actions_organization_variable.variable", "value",
-					updatedValue,
-				),
-				resource.TestCheckResourceAttrSet(
-					"github_actions_organization_variable.variable", "created_at",
-				),
-				resource.TestCheckResourceAttrSet(
-					"github_actions_organization_variable.variable", "updated_at",
-				),
-			),
-		}
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["before"],
-					},
-					{
-						Config: strings.Replace(config,
-							value,
-							updatedValue, 1),
-						Check: checks["after"],
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, "my-value"),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_organization_variable.test", tfjsonpath.New("created_at"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_organization_variable.test", tfjsonpath.New("updated_at"), knownvalue.NotNull()),
 					},
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: fmt.Sprintf(config, "my-value-2"),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_organization_variable.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+				{
+					ResourceName:      "github_actions_organization_variable.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
 		})
 	})
 
-	t.Run("creates an organization variable scoped to a repo without error", func(t *testing.T) {
-		value := "my_variable_value"
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	t.Run("with_visibility_private", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandString(testRandomIDLength)
+		varName := strings.ToUpper(fmt.Sprintf("%s%s", strings.ReplaceAll(testResourcePrefix, "-", "_"), randomID))
 
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
-			}
+resource "github_actions_organization_variable" "test" {
+	variable_name = "%s"
+	value         = "%%s"
+	visibility    = "private"
+}
+`, varName)
 
-			resource "github_actions_organization_variable" "variable" {
-			  variable_name    = "test_variable"
-			  value  		   = "%s"
-			  visibility       = "selected"
-			  selected_repository_ids = [github_repository.test.repo_id]
-			}
-			`, randomID, value)
-
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_actions_organization_variable.variable", "value",
-					value,
-				),
-				resource.TestCheckResourceAttr(
-					"github_actions_organization_variable.variable", "visibility",
-					"selected",
-				),
-				resource.TestCheckResourceAttr(
-					"github_actions_organization_variable.variable", "selected_repository_ids.#",
-					"1",
-				),
-				resource.TestCheckResourceAttrSet(
-					"github_actions_organization_variable.variable", "created_at",
-				),
-				resource.TestCheckResourceAttrSet(
-					"github_actions_organization_variable.variable", "updated_at",
-				),
-			),
-		}
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["before"],
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, "my-value"),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_organization_variable.test", tfjsonpath.New("created_at"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_organization_variable.test", tfjsonpath.New("updated_at"), knownvalue.NotNull()),
 					},
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: fmt.Sprintf(config, "my-value-2"),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_organization_variable.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+				{
+					ResourceName:      "github_actions_organization_variable.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
 		})
 	})
 
-	t.Run("deletes organization variables without error", func(t *testing.T) {
-		config := `
-				resource "github_actions_organization_variable" "variable" {
-				variable_name    = "test_variable"
-				value  = "my_variable_value"
-				visibility       = "private"
-				}
-			`
+	t.Run("with_visibility_selected_no_repos", func(t *testing.T) {
+		t.Parallel()
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:  config,
-						Destroy: true,
+		randomID := acctest.RandString(testRandomIDLength)
+		varName := strings.ToUpper(fmt.Sprintf("%s%s", strings.ReplaceAll(testResourcePrefix, "-", "_"), randomID))
+
+		config := fmt.Sprintf(`
+resource "github_actions_organization_variable" "test" {
+	variable_name = "%s"
+	value         = "%%s"
+	visibility    = "selected"
+}
+`, varName)
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, "my-value"),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_organization_variable.test", tfjsonpath.New("created_at"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_organization_variable.test", tfjsonpath.New("updated_at"), knownvalue.NotNull()),
 					},
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: fmt.Sprintf(config, "my-value-2"),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_organization_variable.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+				{
+					ResourceName:      "github_actions_organization_variable.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
 		})
 	})
 
-	t.Run("imports an organization variable without error", func(t *testing.T) {
-		value := "my_variable_value"
-		varName := "test_variable"
+	t.Run("with_visibility_selected_with_repos", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+		repo2 := mustCreateTestRepository(t)
+
+		randomID := acctest.RandString(testRandomIDLength)
+		varName := strings.ToUpper(fmt.Sprintf("%s%s", strings.ReplaceAll(testResourcePrefix, "-", "_"), randomID))
 
 		config := fmt.Sprintf(`
-			resource "github_actions_organization_variable" "variable" {
-			  variable_name    = "%s"
-			  value  		   = "%s"
-			  visibility       = "private"
-			}
-			`, varName, value)
+resource "github_actions_organization_variable" "test" {
+	variable_name = "%s"
+	value         = "my-value"
+	visibility    = "selected"
+  selected_repository_ids = [%%s]
+}
+`, varName)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-					},
-					{
-						ResourceName:      "github_actions_organization_variable.variable",
-						ImportStateId:     varName,
-						ImportState:       true,
-						ImportStateVerify: true,
-					},
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, fmt.Sprintf(`"%v"`, repo.GetID())),
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+				{
+					Config: fmt.Sprintf(config, fmt.Sprintf(`"%v", "%v"`, repo.GetID(), repo2.GetID())),
+				},
+				{
+					Config: fmt.Sprintf(config, ""),
+				},
+			},
 		})
+	})
 
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
+	t.Run("errors_with_visibility_not_selected_and_selected_repository_ids", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandString(testRandomIDLength)
+		varName := strings.ToUpper(fmt.Sprintf("%s%s", strings.ReplaceAll(testResourcePrefix, "-", "_"), randomID))
+
+		config := fmt.Sprintf(`
+resource "github_actions_organization_variable" "test" {
+  variable_name = "%s"
+  value         = "foo"
+  visibility    = "all"
+  selected_repository_ids = [123456]
+}
+`, varName)
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("cannot use selected_repository_ids without visibility being set to selected"),
+				},
+			},
 		})
+	})
 
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+	t.Run("errors_if_variable_already_exists", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandString(testRandomIDLength)
+		varName := strings.ToUpper(fmt.Sprintf("%s%s", strings.ReplaceAll(testResourcePrefix, "-", "_"), randomID))
+
+		mustCreateTestOrganizationVariable(t, &varName, nil)
+
+		config := fmt.Sprintf(`
+resource "github_actions_organization_variable" "test" {
+  variable_name = "%s"
+  value         = "my-value"
+  visibility    = "all"
+}
+`, varName)
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile(`Variable already exists`),
+				},
+			},
 		})
 	})
 }

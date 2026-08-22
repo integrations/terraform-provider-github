@@ -3,13 +3,14 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubOrganizationWebhooks() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubOrganizationWebhooksRead,
+		ReadContext: dataSourceGithubOrganizationWebhooksRead,
 
 		Schema: map[string]*schema.Schema{
 			"webhooks": {
@@ -44,21 +45,20 @@ func dataSourceGithubOrganizationWebhooks() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationWebhooksRead(d *schema.ResourceData, meta any) error {
-	owner := meta.(*Owner).name
-
-	client := meta.(*Owner).v3client
-	ctx := context.Background()
+func dataSourceGithubOrganizationWebhooksRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	owner := meta.name
+	client := meta.v3client
 
 	options := &github.ListOptions{
-		PerPage: 100,
+		PerPage: meta.maxPerPage,
 	}
 
 	results := make([]map[string]any, 0)
 	for {
 		hooks, resp, err := client.Organizations.ListHooks(ctx, owner, options)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		results = append(results, flattenGitHubWebhooks(hooks)...)
@@ -72,7 +72,7 @@ func dataSourceGithubOrganizationWebhooksRead(d *schema.ResourceData, meta any) 
 	d.SetId(owner)
 	err := d.Set("webhooks", results)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

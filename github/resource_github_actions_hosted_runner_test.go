@@ -4,14 +4,18 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubActionsHostedRunner(t *testing.T) {
+	t.Parallel()
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates hosted runners without error", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 			resource "github_actions_runner_group" "test" {
 				name       = "tf-acc-test-group-%s"
@@ -20,7 +24,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 
 			resource "github_actions_hosted_runner" "test" {
 				name = "tf-acc-test-%s"
-				
+
 				image {
 					id     = "2306"
 					source = "github"
@@ -74,33 +78,21 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for hosted runners")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
 	t.Run("creates hosted runner with optional parameters", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 			resource "github_actions_runner_group" "test" {
 				name       = "tf-acc-test-group-%s"
@@ -109,7 +101,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 
 			resource "github_actions_hosted_runner" "test" {
 				name = "tf-acc-test-optional-%s"
-				
+
 				image {
 					id     = "2306"
 					source = "github"
@@ -141,25 +133,21 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
 	t.Run("updates hosted runner configuration", func(t *testing.T) {
+		t.Parallel()
+
 		configBefore := fmt.Sprintf(`
 			resource "github_actions_runner_group" "test" {
 				name       = "tf-acc-test-group-%s"
@@ -168,7 +156,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 
 			resource "github_actions_hosted_runner" "test" {
 				name = "tf-acc-test-update-%s"
-				
+
 				image {
 					id     = "2306"
 					source = "github"
@@ -188,7 +176,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 
 			resource "github_actions_hosted_runner" "test" {
 				name = "tf-acc-test-update-%s-updated"
-				
+
 				image {
 					id     = "2306"
 					source = "github"
@@ -230,29 +218,25 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: configBefore,
-						Check:  checkBefore,
-					},
-					{
-						Config: configAfter,
-						Check:  checkAfter,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: configBefore,
+					Check:  checkBefore,
 				},
-			})
-		}
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: configAfter,
+					Check:  checkAfter,
+				},
+			},
 		})
 	})
 
 	t.Run("updates size field", func(t *testing.T) {
+		t.Parallel()
+
 		configBefore := fmt.Sprintf(`
 			resource "github_actions_runner_group" "test" {
 				name       = "tf-acc-test-group-%s"
@@ -261,7 +245,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 
 			resource "github_actions_hosted_runner" "test" {
 				name = "tf-acc-test-size-%s"
-				
+
 				image {
 					id     = "2306"
 					source = "github"
@@ -280,7 +264,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 
 			resource "github_actions_hosted_runner" "test" {
 				name = "tf-acc-test-size-%s"
-				
+
 				image {
 					id     = "2306"
 					source = "github"
@@ -313,29 +297,25 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: configBefore,
-						Check:  checkBefore,
-					},
-					{
-						Config: configAfter,
-						Check:  checkAfter,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: configBefore,
+					Check:  checkBefore,
 				},
-			})
-		}
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: configAfter,
+					Check:  checkAfter,
+				},
+			},
 		})
 	})
 
 	t.Run("imports hosted runner", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 			resource "github_actions_runner_group" "test" {
 				name       = "tf-acc-test-group-%s"
@@ -344,7 +324,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 
 			resource "github_actions_hosted_runner" "test" {
 				name = "tf-acc-test-import-%s"
-				
+
 				image {
 					id     = "2306"
 					source = "github"
@@ -365,31 +345,27 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:            "github_actions_hosted_runner.test",
-						ImportState:             true,
-						ImportStateVerify:       true,
-						ImportStateVerifyIgnore: []string{"image", "image_gen"},
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					ResourceName:            "github_actions_hosted_runner.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"image", "image_gen"},
+				},
+			},
 		})
 	})
 
 	t.Run("deletes hosted runner", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 			resource "github_actions_runner_group" "test" {
 				name       = "tf-acc-test-group-%s"
@@ -398,7 +374,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 
 			resource "github_actions_hosted_runner" "test" {
 				name = "tf-acc-test-delete-%s"
-				
+
 				image {
 					id     = "2306"
 					source = "github"
@@ -409,34 +385,28 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			}
 		`, randomID, randomID)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttrSet(
-								"github_actions_hosted_runner.test", "id",
-							),
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrSet(
+							"github_actions_hosted_runner.test", "id",
 						),
-					},
-					// This step should successfully delete the runner
-					{
-						Config: fmt.Sprintf(`
+					),
+				},
+				// This step should successfully delete the runner
+				{
+					Config: fmt.Sprintf(`
 							resource "github_actions_runner_group" "test" {
 								name       = "tf-acc-test-group-%s"
 								visibility = "all"
 							}
 						`, randomID),
-					},
 				},
-			})
-		}
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 }

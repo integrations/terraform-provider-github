@@ -2,16 +2,16 @@ package github
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v89/github"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubActionsVariables() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubActionsVariablesRead,
+		ReadContext: dataSourceGithubActionsVariablesRead,
 
 		Schema: map[string]*schema.Schema{
 			"full_name": {
@@ -54,16 +54,17 @@ func dataSourceGithubActionsVariables() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsVariablesRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func dataSourceGithubActionsVariablesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 	var repoName string
 
 	if fullName, ok := d.GetOk("full_name"); ok {
 		var err error
 		owner, repoName, err = splitRepoFullName(fullName.(string))
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
@@ -72,18 +73,18 @@ func dataSourceGithubActionsVariablesRead(d *schema.ResourceData, meta any) erro
 	}
 
 	if repoName == "" {
-		return fmt.Errorf("one of %q or %q has to be provided", "full_name", "name")
+		return diag.Errorf("one of %q or %q has to be provided", "full_name", "name")
 	}
 
 	options := github.ListOptions{
-		PerPage: 100,
+		PerPage: meta.maxPerPage,
 	}
 
 	var all_variables []map[string]string
 	for {
-		variables, resp, err := client.Actions.ListRepoVariables(context.TODO(), owner, repoName, &options)
+		variables, resp, err := client.Actions.ListRepoVariables(ctx, owner, repoName, &options)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		for _, variable := range variables.Variables {
 			new_variable := map[string]string{
@@ -103,7 +104,7 @@ func dataSourceGithubActionsVariablesRead(d *schema.ResourceData, meta any) erro
 	d.SetId(repoName)
 	err := d.Set("variables", all_variables)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

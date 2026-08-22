@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -43,8 +43,13 @@ func resourceGithubActionsEnterpriseRunnerGroup() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
+				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the runner group object",
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 			"name": {
 				Type:        schema.TypeString,
@@ -60,7 +65,7 @@ func resourceGithubActionsEnterpriseRunnerGroup() *schema.Resource {
 				Type:             schema.TypeString,
 				Required:         true,
 				Description:      "The visibility of the runner group.",
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"all", "selected"}, false), "visibility"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"all", "selected"}, false)),
 			},
 			"restricted_to_workflows": {
 				Type:        schema.TypeBool,
@@ -125,7 +130,8 @@ func resourceGithubActionsEnterpriseRunnerGroupCreate(d *schema.ResourceData, me
 
 	ctx := context.Background()
 
-	enterpriseRunnerGroup, resp, err := client.Enterprise.CreateEnterpriseRunnerGroup(ctx,
+	enterpriseRunnerGroup, resp, err := client.Enterprise.CreateEnterpriseRunnerGroup(
+		ctx,
 		enterpriseSlug,
 		github.CreateEnterpriseRunnerGroupRequest{
 			Name:                     &name,
@@ -180,8 +186,7 @@ func resourceGithubActionsEnterpriseRunnerGroupCreate(d *schema.ResourceData, me
 func getEnterpriseRunnerGroup(client *github.Client, ctx context.Context, ent string, groupID int64) (*github.EnterpriseRunnerGroup, *github.Response, error) {
 	enterpriseRunnerGroup, resp, err := client.Enterprise.GetEnterpriseRunnerGroup(ctx, ent, groupID)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if _, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			// ignore error StatusNotModified
 			return enterpriseRunnerGroup, resp, nil
 		}
@@ -189,8 +194,9 @@ func getEnterpriseRunnerGroup(client *github.Client, ctx context.Context, ent st
 	return enterpriseRunnerGroup, resp, err
 }
 
-func resourceGithubActionsEnterpriseRunnerGroupRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubActionsEnterpriseRunnerGroupRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 	runnerGroupID, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -204,8 +210,7 @@ func resourceGithubActionsEnterpriseRunnerGroupRead(d *schema.ResourceData, meta
 
 	enterpriseRunnerGroup, resp, err := getEnterpriseRunnerGroup(client, ctx, enterpriseSlug, runnerGroupID)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing enterprise runner group %s/%s from state because it no longer exists in GitHub",
 					enterpriseSlug, d.Id())
@@ -254,7 +259,7 @@ func resourceGithubActionsEnterpriseRunnerGroupRead(d *schema.ResourceData, meta
 
 	selectedOrganizationIDs := []int64{}
 	optionsOrgs := github.ListOptions{
-		PerPage: maxPerPage,
+		PerPage: meta.maxPerPage,
 	}
 
 	for {
@@ -281,8 +286,9 @@ func resourceGithubActionsEnterpriseRunnerGroupRead(d *schema.ResourceData, meta
 	return nil
 }
 
-func resourceGithubActionsEnterpriseRunnerGroupUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubActionsEnterpriseRunnerGroupUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
 	name := d.Get("name").(string)
 	enterpriseSlug := d.Get("enterprise_slug").(string)
@@ -334,8 +340,9 @@ func resourceGithubActionsEnterpriseRunnerGroupUpdate(d *schema.ResourceData, me
 	return resourceGithubActionsEnterpriseRunnerGroupRead(d, meta)
 }
 
-func resourceGithubActionsEnterpriseRunnerGroupDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubActionsEnterpriseRunnerGroupDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 	enterpriseRunnerGroupID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -348,7 +355,7 @@ func resourceGithubActionsEnterpriseRunnerGroupDelete(d *schema.ResourceData, me
 	return err
 }
 
-func resourceGithubActionsEnterpriseRunnerGroupImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubActionsEnterpriseRunnerGroupImport(d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
 	parts := strings.Split(d.Id(), "/")
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("invalid import specified: supplied import must be written as <enterprise_slug>/<runner_group_id>")

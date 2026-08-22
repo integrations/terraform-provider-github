@@ -4,12 +4,16 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubOrganizationRole(t *testing.T) {
+	t.Parallel()
+
 	t.Run("can create an empty organization role", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		name := fmt.Sprintf("tf-acc-org-role-%s", randomID)
 		config := fmt.Sprintf(`
@@ -20,17 +24,17 @@ func TestAccGithubOrganizationRole(t *testing.T) {
 		`, name)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, enterprise) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
+					Check: resource.ComposeAggregateTestCheckFunc(
 						resource.TestCheckResourceAttrSet("github_organization_role.test", "id"),
 						resource.TestCheckResourceAttrSet("github_organization_role.test", "role_id"),
 						resource.TestCheckResourceAttr("github_organization_role.test", "name", name),
 						resource.TestCheckResourceAttr("github_organization_role.test", "base_role", "none"),
-						resource.TestCheckResourceAttrSet("github_organization_role.test", "permissions.#"),
+						resource.TestCheckNoResourceAttr("github_organization_role.test", "permissions"),
 						resource.TestCheckResourceAttr("github_organization_role.test", "permissions.#", "0"),
 					),
 				},
@@ -39,6 +43,8 @@ func TestAccGithubOrganizationRole(t *testing.T) {
 	})
 
 	t.Run("can create an empty organization role with a base role", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		name := fmt.Sprintf("tf-acc-org-role-%s", randomID)
 		baseRole := "read"
@@ -52,16 +58,16 @@ func TestAccGithubOrganizationRole(t *testing.T) {
 		`, name, baseRole)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, enterprise) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
+					Check: resource.ComposeAggregateTestCheckFunc(
 						resource.TestCheckResourceAttrSet("github_organization_role.test", "id"),
 						resource.TestCheckResourceAttr("github_organization_role.test", "name", name),
 						resource.TestCheckResourceAttr("github_organization_role.test", "base_role", baseRole),
-						resource.TestCheckResourceAttrSet("github_organization_role.test", "permissions.#"),
+						resource.TestCheckNoResourceAttr("github_organization_role.test", "permissions"),
 						resource.TestCheckResourceAttr("github_organization_role.test", "permissions.#", "0"),
 					),
 				},
@@ -70,6 +76,8 @@ func TestAccGithubOrganizationRole(t *testing.T) {
 	})
 
 	t.Run("can create an organization role", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		name := fmt.Sprintf("tf-acc-org-role-%s", randomID)
 		baseRole := "none"
@@ -86,8 +94,8 @@ func TestAccGithubOrganizationRole(t *testing.T) {
 		`, name, baseRole, permission0)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, enterprise) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -105,6 +113,8 @@ func TestAccGithubOrganizationRole(t *testing.T) {
 	})
 
 	t.Run("can create an organization role with repo permissions", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		name := fmt.Sprintf("tf-acc-org-role-%s", randomID)
 		description := "This is a test org role."
@@ -122,8 +132,8 @@ func TestAccGithubOrganizationRole(t *testing.T) {
 		`, name, description, baseRole, permission0)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, enterprise) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -143,6 +153,8 @@ func TestAccGithubOrganizationRole(t *testing.T) {
 	})
 
 	t.Run("can create an organization role with org and repo permissions", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		name := fmt.Sprintf("tf-acc-org-role-%s", randomID)
 		description := "This is a test org role."
@@ -162,12 +174,12 @@ func TestAccGithubOrganizationRole(t *testing.T) {
 		`, name, description, baseRole, permission0, permission1)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, enterprise) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
+					Check: resource.ComposeAggregateTestCheckFunc(
 						resource.TestCheckResourceAttrSet("github_organization_role.test", "id"),
 						resource.TestCheckResourceAttrSet("github_organization_role.test", "role_id"),
 						resource.TestCheckResourceAttr("github_organization_role.test", "name", name),
@@ -175,8 +187,8 @@ func TestAccGithubOrganizationRole(t *testing.T) {
 						resource.TestCheckResourceAttr("github_organization_role.test", "base_role", baseRole),
 						resource.TestCheckResourceAttrSet("github_organization_role.test", "permissions.#"),
 						resource.TestCheckResourceAttr("github_organization_role.test", "permissions.#", "2"),
-						resource.TestCheckResourceAttr("github_organization_role.test", "permissions.0", permission0),
-						resource.TestCheckResourceAttr("github_organization_role.test", "permissions.1", permission1),
+						resource.TestCheckTypeSetElemAttr("github_organization_role.test", "permissions.*", permission0),
+						resource.TestCheckTypeSetElemAttr("github_organization_role.test", "permissions.*", permission1),
 					),
 				},
 			},

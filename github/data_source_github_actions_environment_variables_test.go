@@ -2,69 +2,50 @@ package github
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubActionsEnvironmentVariablesDataSource(t *testing.T) {
-	t.Run("queries actions variables from an environment", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	t.Parallel()
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+		env := mustCreateTestRepositoryEnvironment(t, repo)
+		value := "foo"
+		varName := mustCreateTestRepositoryEnvironmentVariable(t, repo, env, nil, &value)
 
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
-			}
+data "github_actions_environment_variables" "test" {
+  name        = "%s"
+  environment = "%s"
+}
+`, repo.GetName(), env.GetName())
 
-			resource "github_repository_environment" "test" {
-			  repository       = github_repository.test.name
-			  environment      = "environment / test"
-			}
-
-			resource "github_actions_environment_variable" "variable" {
-			  repository       = github_repository.test.name
-			  environment      = github_repository_environment.test.environment
-			  variable_name    = "test_variable"
-			  value  		   = "foo"
-			}
-			`, randomID)
-
-		config2 := config + `
-			data "github_actions_environment_variables" "test" {
-				environment      = github_repository_environment.test.environment
-				name 		     = github_repository.test.name
-			}
-		`
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("data.github_actions_environment_variables.test", "variables.#", "1"),
-			resource.TestCheckResourceAttr("data.github_actions_environment_variables.test", "variables.0.name", strings.ToUpper("test_variable")),
-			resource.TestCheckResourceAttr("data.github_actions_environment_variables.test", "variables.0.value", "foo"),
-			resource.TestCheckResourceAttrSet("data.github_actions_environment_variables.test", "variables.0.created_at"),
-			resource.TestCheckResourceAttrSet("data.github_actions_environment_variables.test", "variables.0.updated_at"),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  resource.ComposeTestCheckFunc(),
-					},
-					{
-						Config: config2,
-						Check:  check,
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_actions_environment_variables.test", tfjsonpath.New("variables"), knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"name":       knownvalue.StringExact(varName),
+								"value":      knownvalue.StringExact(value),
+								"created_at": knownvalue.NotNull(),
+								"updated_at": knownvalue.NotNull(),
+							}),
+						})),
 					},
 				},
-			})
-		}
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 }

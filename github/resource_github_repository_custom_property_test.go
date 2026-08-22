@@ -2,203 +2,274 @@ package github
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubRepositoryCustomProperty(t *testing.T) {
-	t.Skip("You need an org with custom properties already setup as described in the variables below") // TODO: at the time of writing org_custom_properties are not supported by this terraform provider, so cant be setup in the test itself for now
-	singleSelectPropertyName := "single-select"                                                        // Needs to be a of type single_select, and have "option1" as an option
-	multiSelectPropertyName := "multi-select"                                                          // Needs to be a of type multi_select, and have "option1" and "option2" as an options
-	trueFlasePropertyName := "true-false"                                                              // Needs to be a of type true_false
-	stringPropertyName := "string"                                                                     // Needs to be a of type string
+	t.Parallel()
 
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	t.Run("single_select", func(t *testing.T) {
+		t.Parallel()
 
-	t.Run("creates custom property of type single_select without error", func(t *testing.T) {
+		prop := mustCreateTestOrganizationRepositoryCustomProperty(t, "single_select", []string{"option1", "option2"})
+		repo := mustCreateTestRepository(t)
+		allowed := prop.GetAllowedValues()
+
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
-				auto_init = true
-			}
-			resource "github_repository_custom_property" "test" {
-				repository    = github_repository.test.name
-				property_name = "%s"
-				property_type = "single_select"
-				property_value = ["option1"]
-			}
-		`, randomID, singleSelectPropertyName)
+resource "github_repository_custom_property" "test" {
+  repository     = "%s"
+  property_name  = "%s"
+  property_type  = "%s"
+  property_value = %%s
+}
+`, repo.GetName(), prop.GetPropertyName(), prop.GetValueType())
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_name", singleSelectPropertyName),
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.#", "1"),
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.0", "option1"),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      fmt.Sprintf(config, `[]`),
+					ExpectError: regexp.MustCompile(`Not enough list items`),
+					PlanOnly:    true,
+				},
+				{
+					Config: fmt.Sprintf(config, fmt.Sprintf(`["%s"]`, allowed[0])),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_custom_property.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
 					},
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config:      fmt.Sprintf(config, `["invalid_option"]`),
+					ExpectError: regexp.MustCompile(`is not allowed for property`),
+				},
+				{
+					Config: fmt.Sprintf(config, fmt.Sprintf(`["%s"]`, allowed[1])),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_custom_property.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+				{
+					ResourceName:      "github_repository_custom_property.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
 		})
 	})
 
-	t.Run("creates custom property of type multi_select without error", func(t *testing.T) {
+	t.Run("multi_select", func(t *testing.T) {
+		t.Parallel()
+
+		prop := mustCreateTestOrganizationRepositoryCustomProperty(t, "multi_select", []string{"option1", "option2", "option3"})
+		repo := mustCreateTestRepository(t)
+		allowed := prop.GetAllowedValues()
+
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
-				auto_init = true
-			}
-			resource "github_repository_custom_property" "test" {
-				repository    = github_repository.test.name
-				property_name = "%s"
-				property_type = "multi_select"
-				property_value = ["option1", "option2"]
-			}
-		`, randomID, multiSelectPropertyName)
+resource "github_repository_custom_property" "test" {
+  repository     = "%s"
+  property_name  = "%s"
+  property_type  = "%s"
+  property_value = %%s
+}
+`, repo.GetName(), prop.GetPropertyName(), prop.GetValueType())
 
-		checkWithOwner := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_name", multiSelectPropertyName),
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.#", "2"),
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.0", "option1"),
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.1", "option2"),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checkWithOwner,
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      fmt.Sprintf(config, `[]`),
+					ExpectError: regexp.MustCompile(`Not enough list items`),
+					PlanOnly:    true,
+				},
+				{
+					Config: fmt.Sprintf(config, fmt.Sprintf(`["%s", "%s"]`, allowed[0], allowed[1])),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_custom_property.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
 					},
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config:      fmt.Sprintf(config, `["invalid_option"]`),
+					ExpectError: regexp.MustCompile(`is not allowed for property`),
+				},
+				{
+					Config: fmt.Sprintf(config, fmt.Sprintf(`["%s"]`, allowed[2])),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_custom_property.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+				{
+					ResourceName:      "github_repository_custom_property.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
 		})
 	})
 
-	t.Run("creates custom property of type true-false without error", func(t *testing.T) {
+	t.Run("true_false", func(t *testing.T) {
+		t.Parallel()
+
+		prop := mustCreateTestOrganizationRepositoryCustomProperty(t, "true_false", nil)
+		repo := mustCreateTestRepository(t)
+
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
-				auto_init = true
-			}
-			resource "github_repository_custom_property" "test" {
-				repository    = github_repository.test.name
-				property_name = "%s"
-				property_type = "true_false"
-				property_value = ["true"]
-			}
-		`, randomID, trueFlasePropertyName)
+resource "github_repository_custom_property" "test" {
+  repository    = "%s"
+  property_name = "%s"
+  property_type = "%s"
+  property_value = %%s
+}
+`, repo.GetName(), prop.GetPropertyName(), prop.GetValueType())
 
-		checkWithOwner := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_name", trueFlasePropertyName),
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.#", "1"),
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.0", "true"),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checkWithOwner,
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      fmt.Sprintf(config, `[]`),
+					ExpectError: regexp.MustCompile(`Not enough list items`),
+					PlanOnly:    true,
+				},
+				{
+					Config: fmt.Sprintf(config, `["true"]`),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_custom_property.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
 					},
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config:      fmt.Sprintf(config, `["invalid_option"]`),
+					ExpectError: regexp.MustCompile(`is not allowed for property`),
+				},
+				{
+					Config: fmt.Sprintf(config, `["false"]`),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_custom_property.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+				{
+					ResourceName:      "github_repository_custom_property.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
 		})
 	})
 
-	t.Run("creates custom property of type string without error", func(t *testing.T) {
+	t.Run("url", func(t *testing.T) {
+		t.Parallel()
+
+		prop := mustCreateTestOrganizationRepositoryCustomProperty(t, "url", nil)
+		repo := mustCreateTestRepository(t)
+
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name = "tf-acc-test-%s"
-				auto_init = true
-			}
-			resource "github_repository_custom_property" "test" {
-				repository    = github_repository.test.name
-				property_name = "%s"
-				property_type = "string"
-				property_value = ["text"]
-			}
-		`, randomID, stringPropertyName)
+resource "github_repository_custom_property" "test" {
+  repository     = "%s"
+  property_name  = "%s"
+  property_type  = "%s"
+  property_value = %%s
+}
+`, repo.GetName(), prop.GetPropertyName(), prop.GetValueType())
 
-		checkWithOwner := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_name", stringPropertyName),
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.#", "1"),
-			resource.TestCheckResourceAttr("github_repository_custom_property.test", "property_value.0", "text"),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checkWithOwner,
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      fmt.Sprintf(config, `[]`),
+					ExpectError: regexp.MustCompile(`Not enough list items`),
+					PlanOnly:    true,
+				},
+				{
+					Config: fmt.Sprintf(config, `["https://example.com"]`),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_custom_property.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
 					},
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+				{
+					Config:      fmt.Sprintf(config, `["xxxx"]`),
+					ExpectError: regexp.MustCompile(`URL must be absolute`),
+				},
+				{
+					Config: fmt.Sprintf(config, `["https://example.com/test"]`),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_custom_property.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+				{
+					ResourceName:      "github_repository_custom_property.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
 		})
+	})
 
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
+	t.Run("string", func(t *testing.T) {
+		t.Parallel()
 
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+		prop := mustCreateTestOrganizationRepositoryCustomProperty(t, "string", nil)
+		repo := mustCreateTestRepository(t)
+
+		config := fmt.Sprintf(`
+resource "github_repository_custom_property" "test" {
+  repository     = "%s"
+  property_name  = "%s"
+  property_type  = "%s"
+  property_value = %%s
+}
+`, repo.GetName(), prop.GetPropertyName(), prop.GetValueType())
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      fmt.Sprintf(config, `[]`),
+					ExpectError: regexp.MustCompile(`Not enough list items`),
+					PlanOnly:    true,
+				},
+				{
+					Config:      fmt.Sprintf(config, `[""]`),
+					ExpectError: regexp.MustCompile(`to not be an empty string`),
+					PlanOnly:    true,
+				},
+				{
+					Config: fmt.Sprintf(config, `["text"]`),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_custom_property.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+					},
+				},
+				{
+					Config: fmt.Sprintf(config, `["new text"]`),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_custom_property.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+				{
+					ResourceName:      "github_repository_custom_property.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
 		})
 	})
 }

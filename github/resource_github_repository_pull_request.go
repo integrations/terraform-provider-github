@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -136,7 +136,7 @@ func resourceGithubRepositoryPullRequest() *schema.Resource {
 }
 
 func resourceGithubRepositoryPullRequestCreate(d *schema.ResourceData, meta any) error {
-	ctx := context.TODO()
+	ctx := context.Background()
 	client := meta.(*Owner).v3client
 
 	// For convenience, by default we expect that the base repository and head
@@ -159,11 +159,11 @@ func resourceGithubRepositoryPullRequestCreate(d *schema.ResourceData, meta any)
 	}
 
 	pullRequest, _, err := client.PullRequests.Create(ctx, baseOwner, baseRepository, &github.NewPullRequest{
-		Title:               github.String(d.Get("title").(string)),
-		Head:                github.String(head),
-		Base:                github.String(d.Get("base_ref").(string)),
-		Body:                github.String(d.Get("body").(string)),
-		MaintainerCanModify: github.Bool(d.Get("maintainer_can_modify").(bool)),
+		Title:               new(d.Get("title").(string)),
+		Head:                new(head),
+		Base:                new(d.Get("base_ref").(string)),
+		Body:                new(d.Get("body").(string)),
+		MaintainerCanModify: new(d.Get("maintainer_can_modify").(bool)),
 	})
 	if err != nil {
 		return err
@@ -175,7 +175,7 @@ func resourceGithubRepositoryPullRequestCreate(d *schema.ResourceData, meta any)
 }
 
 func resourceGithubRepositoryPullRequestRead(d *schema.ResourceData, meta any) error {
-	ctx := context.TODO()
+	ctx := context.Background()
 	client := meta.(*Owner).v3client
 
 	owner, repository, number, err := parsePullRequestID(d)
@@ -264,7 +264,7 @@ func resourceGithubRepositoryPullRequestRead(d *schema.ResourceData, meta any) e
 }
 
 func resourceGithubRepositoryPullRequestUpdate(d *schema.ResourceData, meta any) error {
-	ctx := context.TODO()
+	ctx := context.Background()
 	client := meta.(*Owner).v3client
 
 	owner, repository, number, err := parsePullRequestID(d)
@@ -273,14 +273,14 @@ func resourceGithubRepositoryPullRequestUpdate(d *schema.ResourceData, meta any)
 	}
 
 	update := &github.PullRequest{
-		Title:               github.String(d.Get("title").(string)),
-		Body:                github.String(d.Get("body").(string)),
-		MaintainerCanModify: github.Bool(d.Get("maintainer_can_modify").(bool)),
+		Title:               new(d.Get("title").(string)),
+		Body:                new(d.Get("body").(string)),
+		MaintainerCanModify: new(d.Get("maintainer_can_modify").(bool)),
 	}
 
 	if d.HasChange("base_ref") {
 		update.Base = &github.PullRequestBranch{
-			Ref: github.String(d.Get("base_ref").(string)),
+			Ref: new(d.Get("base_ref").(string)),
 		}
 	}
 
@@ -308,7 +308,7 @@ func resourceGithubRepositoryPullRequestDelete(d *schema.ResourceData, meta any)
 		return nil
 	}
 
-	ctx := context.TODO()
+	ctx := context.Background()
 	client := meta.(*Owner).v3client
 
 	owner, repository, number, err := parsePullRequestID(d)
@@ -316,7 +316,7 @@ func resourceGithubRepositoryPullRequestDelete(d *schema.ResourceData, meta any)
 		return err
 	}
 
-	update := &github.PullRequest{State: github.String("closed")}
+	update := &github.PullRequest{State: new("closed")}
 	if _, _, err = client.PullRequests.Edit(ctx, owner, repository, number, update); err != nil {
 		return err
 	}
@@ -328,7 +328,7 @@ func resourceGithubRepositoryPullRequestDelete(d *schema.ResourceData, meta any)
 func parsePullRequestID(d *schema.ResourceData) (owner, repository string, number int, err error) {
 	var strNumber string
 
-	if owner, repository, strNumber, err = parseThreePartID(d.Id(), "owner", "base_repository", "number"); err != nil {
+	if owner, repository, strNumber, err = parseID3(d.Id()); err != nil {
 		return owner, repository, number, err
 	}
 

@@ -3,14 +3,15 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v89/github"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGithubActionsOrganizationVariables() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubActionsOrganizationVariablesRead,
+		ReadContext: dataSourceGithubActionsOrganizationVariablesRead,
 
 		Schema: map[string]*schema.Schema{
 			"variables": {
@@ -45,19 +46,20 @@ func dataSourceGithubActionsOrganizationVariables() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsOrganizationVariablesRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func dataSourceGithubActionsOrganizationVariablesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
 	options := github.ListOptions{
-		PerPage: 100,
+		PerPage: meta.maxPerPage,
 	}
 
 	var all_variables []map[string]string
 	for {
-		variables, resp, err := client.Actions.ListOrgVariables(context.TODO(), owner, &options)
+		variables, resp, err := client.Actions.ListOrgVariables(ctx, owner, &options)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		for _, variable := range variables.Variables {
 			new_variable := map[string]string{
@@ -78,7 +80,7 @@ func dataSourceGithubActionsOrganizationVariablesRead(d *schema.ResourceData, me
 	d.SetId(owner)
 	err := d.Set("variables", all_variables)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

@@ -1,0 +1,30 @@
+---
+page_title: "github_membership (Data Source) - GitHub"
+description: |-
+  Get information on user membership in an organization.
+---
+
+# github_membership (Data Source)
+
+Use this data source to find out if a user is a member of your organization, as well as what role they have within it. If the user's membership in the organization is pending their acceptance of an invite, the role they would have once they accept will be returned.
+
+## Example Usage
+
+```terraform
+data "github_membership" "membership_for_some_user" {
+  username = "SomeUser"
+}
+```
+
+## Argument Reference
+
+- `username` - (Required) The username to lookup in the organization.
+
+- `organization` - (Optional) The organization to check for the above username.
+
+## Attributes Reference
+
+- `username` - The username.
+- `role` - `admin` or `member` -- the role the user has within the organization.
+- `etag` - An etag representing the membership object.
+- `state` - `active` or `pending` -- the state of membership within the organization. `active` if the member has accepted the invite, or `pending` if the invite is still pending.

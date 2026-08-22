@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -59,8 +59,14 @@ func resourceGithubTeamSyncGroupMapping() *schema.Resource {
 				},
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "An etag representing the team sync group mapping.",
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -105,8 +111,7 @@ func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta any) er
 
 	idpGroupList, resp, err := client.Teams.ListIDPGroupsForTeamBySlug(ctx, orgName, slug)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -201,9 +206,9 @@ func expandTeamSyncGroups(d *schema.ResourceData) *github.IDPGroupList {
 			groupName := m["group_name"].(string)
 			groupDescription := m["group_description"].(string)
 			group := &github.IDPGroup{
-				GroupID:          github.String(groupID),
-				GroupName:        github.String(groupName),
-				GroupDescription: github.String(groupDescription),
+				GroupID:          new(groupID),
+				GroupName:        new(groupName),
+				GroupDescription: new(groupDescription),
 			}
 			groups = append(groups, group)
 		}

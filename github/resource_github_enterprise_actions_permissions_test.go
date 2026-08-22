@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
+	// IMPORTANT: Do not run these tests in parallel as they modify the organization state.
+
 	t.Run("test setting of basic actions enterprise permissions", func(t *testing.T) {
 		allowedActions := "local_only"
 		enabledOrganizations := "all"
@@ -19,7 +21,7 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 				allowed_actions = "%s"
 				enabled_organizations = "%s"
 			}
-		`, testEnterprise, allowedActions, enabledOrganizations)
+		`, testAccConf.enterpriseSlug, allowedActions, enabledOrganizations)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -30,27 +32,15 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			if isEnterprise != "true" {
-				t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
-			}
-			if testEnterprise == "" {
-				t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
-			}
-			testCase(t, enterprise)
+			},
 		})
 	})
 
@@ -67,12 +57,16 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 		desc := "Initial org description"
 
 		config := fmt.Sprintf(`
+			data "github_enterprise" "enterprise" {
+				slug = "%s"
+			}
+
 			data "github_user" "current" {
 				username = ""
 			}
-	
+
 			resource "github_enterprise_organization" "org" {
-				enterprise_slug = "%s"
+				enterprise_id   = data.github_enterprise.enterprise.id
 				name            = "%s"
 				display_name    = "%s"
 				description     = "%s"
@@ -83,7 +77,7 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 			}
 
 			resource "github_enterprise_actions_permissions" "test" {
-				enterprise_slug = "%s"
+				enterprise_slug = data.github_enterprise.enterprise.slug
 				allowed_actions = "%s"
 				enabled_organizations = "%s"
 				allowed_actions_config {
@@ -92,10 +86,10 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 					verified_allowed     = %t
 				}
 				enabled_organizations_config {
-					organization_ids       = [github_enterprise_organization.org.id]
+					organization_ids       = [github_enterprise_organization.org.database_id]
 				}
 			}
-		`, testEnterprise, orgName, displayName, desc, testEnterprise, allowedActions, enabledOrganizations, githubOwnedAllowed, verifiedAllowed)
+		`, testAccConf.enterpriseSlug, orgName, displayName, desc, allowedActions, enabledOrganizations, githubOwnedAllowed, verifiedAllowed)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -112,32 +106,20 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:      "github_enterprise_actions_permissions.test",
-						ImportState:       true,
-						ImportStateVerify: true,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			if isEnterprise != "true" {
-				t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
-			}
-			if testEnterprise == "" {
-				t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
-			}
-			testCase(t, enterprise)
+				{
+					ResourceName:      "github_enterprise_actions_permissions.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
 		})
 	})
 
@@ -158,7 +140,7 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 					verified_allowed     = %t
 				}
 			}
-		`, testEnterprise, allowedActions, enabledOrganizations, githubOwnedAllowed, verifiedAllowed)
+		`, testAccConf.enterpriseSlug, allowedActions, enabledOrganizations, githubOwnedAllowed, verifiedAllowed)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -172,27 +154,15 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			if isEnterprise != "true" {
-				t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
-			}
-			if testEnterprise == "" {
-				t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
-			}
-			testCase(t, enterprise)
+			},
 		})
 	})
 
@@ -211,11 +181,14 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 		desc2 := fmt.Sprintf("Initial org description %s", randomID2)
 
 		config := fmt.Sprintf(`
+			data "github_enterprise" "enterprise" {
+				slug = "%s"
+			}
 			data "github_user" "current" {
 				username = ""
 			}
 			resource "github_enterprise_organization" "org" {
-				enterprise_slug = "%s"
+				enterprise_id   = data.github_enterprise.enterprise.id
 				name            = "%s"
 				display_name    = "%s"
 				description     = "%s"
@@ -225,7 +198,7 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 				]
 			}
 			resource "github_enterprise_organization" "org2" {
-				enterprise_slug = "%s"
+				enterprise_id   = data.github_enterprise.enterprise.id
 				name            = "%s"
 				display_name    = "%s"
 				description     = "%s"
@@ -235,14 +208,14 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 				]
 			}
 			resource "github_enterprise_actions_permissions" "test" {
-				enterprise_slug = "%s"
+				enterprise_slug = data.github_enterprise.enterprise.slug
 				allowed_actions = "%s"
 				enabled_organizations = "%s"
 				enabled_organizations_config {
-					organization_ids       = [github_enterprise_organization.org.id, github_enterprise_organization.org2.id]
+					organization_ids       = [github_enterprise_organization.org.database_id, github_enterprise_organization.org2.database_id]
 				}
 			}
-		`, testEnterprise, orgName, displayName, desc, testEnterprise, orgName2, displayName2, desc2, testEnterprise, allowedActions, enabledOrganizations)
+		`, testAccConf.enterpriseSlug, orgName, displayName, desc, orgName2, displayName2, desc2, allowedActions, enabledOrganizations)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -256,27 +229,15 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			if isEnterprise != "true" {
-				t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
-			}
-			if testEnterprise == "" {
-				t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
-			}
-			testCase(t, enterprise)
+			},
 		})
 	})
 }

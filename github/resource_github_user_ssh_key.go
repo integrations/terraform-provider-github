@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -44,8 +44,14 @@ func resourceGithubUserSshKey() *schema.Resource {
 				Description: "The URL of the SSH key.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "An etag representing the SSH key.",
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -59,8 +65,8 @@ func resourceGithubUserSshKeyCreate(d *schema.ResourceData, meta any) error {
 	ctx := context.Background()
 
 	userKey, _, err := client.Users.CreateKey(ctx, &github.Key{
-		Title: github.String(title),
-		Key:   github.String(key),
+		Title: new(title),
+		Key:   new(key),
 	})
 	if err != nil {
 		return err
@@ -85,8 +91,7 @@ func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta any) error {
 
 	key, resp, err := client.Users.GetKey(ctx, id)
 	if err != nil {
-		ghErr := &github.ErrorResponse{}
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}

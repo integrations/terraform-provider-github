@@ -4,16 +4,20 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubOrganizationRepositoryRole(t *testing.T) {
+	t.Parallel()
+
 	t.Run("can create an organization repository role without erroring", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		name := fmt.Sprintf("tf-acc-org-repo-role-%s", randomID)
 		description := "This is a test org repo role."
-		baseRole := "write"
+		baseRole := "read"
 		permission0 := "reopen_issue"
 		permission1 := "reopen_pull_request"
 
@@ -30,8 +34,8 @@ func TestAccGithubOrganizationRepositoryRole(t *testing.T) {
 		`, name, description, baseRole, permission0, permission1)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, enterprise) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -52,6 +56,8 @@ func TestAccGithubOrganizationRepositoryRole(t *testing.T) {
 	})
 
 	t.Run("can create an minimal organization repository role without erroring", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		name := fmt.Sprintf("tf-acc-org-repo-role-%s", randomID)
 		permission0 := "reopen_issue"
@@ -59,6 +65,7 @@ func TestAccGithubOrganizationRepositoryRole(t *testing.T) {
 		config := fmt.Sprintf(`
 			resource "github_organization_repository_role" "test" {
 				name        = "%s"
+				base_role   = "read"
 				permissions = [
 				"%s"
 				]
@@ -66,8 +73,8 @@ func TestAccGithubOrganizationRepositoryRole(t *testing.T) {
 		`, name, permission0)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, enterprise) },
-			Providers: testAccProviders,
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,

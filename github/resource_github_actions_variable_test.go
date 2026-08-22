@@ -2,175 +2,153 @@ package github
 
 import (
 	"fmt"
-	"strings"
+	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubActionsVariable(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	t.Parallel()
 
-	t.Run("creates and updates repository variables without error", func(t *testing.T) {
-		value := "my_variable_value"
-		updatedValue := "my_updated_variable_value"
+	skipUnauthenticated(t)
+
+	t.Run("default", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
 
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
-			}
+resource "github_actions_variable" "test" {
+  repository    = "%s"
+  variable_name = "TEST"
+  value         = "%%s"
+}
+`, repo.GetName())
 
-			resource "github_actions_variable" "variable" {
-			  repository       = github_repository.test.name
-			  variable_name    = "test_variable"
-			  value  = "%s"
-			}
-			`, randomID, value)
-
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_actions_variable.variable", "value",
-					value,
-				),
-				resource.TestCheckResourceAttrSet(
-					"github_actions_variable.variable", "created_at",
-				),
-				resource.TestCheckResourceAttrSet(
-					"github_actions_variable.variable", "updated_at",
-				),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_actions_variable.variable", "value",
-					updatedValue,
-				),
-				resource.TestCheckResourceAttrSet(
-					"github_actions_variable.variable", "created_at",
-				),
-				resource.TestCheckResourceAttrSet(
-					"github_actions_variable.variable", "updated_at",
-				),
-			),
-		}
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["before"],
-					},
-					{
-						Config: strings.Replace(config,
-							value,
-							updatedValue, 1),
-						Check: checks["after"],
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, "my-value"),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_variable.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_variable.test", tfjsonpath.New("created_at"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_variable.test", tfjsonpath.New("updated_at"), knownvalue.NotNull()),
 					},
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: fmt.Sprintf(config, "my-value-2"),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_variable.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+				{
+					ResourceName:      "github_actions_variable.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
 		})
 	})
 
-	t.Run("deletes repository variables without error", func(t *testing.T) {
-		config := fmt.Sprintf(`
-				resource "github_repository" "test" {
-					name = "tf-acc-test-%s"
-				}
+	t.Run("updates_renamed_repo", func(t *testing.T) {
+		t.Parallel()
 
-				resource "github_actions_variable" "variable" {
-					repository 		= github_repository.test.name
-					variable_name	= "test_variable"
-					value			= "my_variable_value"
-				}
-			`, randomID)
+		repo := mustCreateTestRepository(t)
+		newRepoName := fmt.Sprintf("%s-updated", repo.GetName())
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:  config,
-						Destroy: true,
+		config := `
+resource "github_actions_variable" "test" {
+  repository    = "%s"
+  variable_name = "TEST"
+  value         = "my-value"
+}
+`
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, repo.GetName()),
+				},
+				{
+					PreConfig: func() {
+						mustRenameTestRepository(t, repo, newRepoName)
+					},
+					Config: fmt.Sprintf(config, newRepoName),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_variable.test", plancheck.ResourceActionUpdate),
+						},
 					},
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
-	t.Run("imports repository variables without error", func(t *testing.T) {
-		varName := "test_variable"
-		value := "variable_value"
+	t.Run("recreates_changed_repo", func(t *testing.T) {
+		t.Parallel()
 
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
-			}
+		repo := mustCreateTestRepository(t)
+		repo2 := mustCreateTestRepository(t)
 
-			resource "github_actions_variable" "variable" {
-			  repository       = github_repository.test.name
-			  variable_name    = "%s"
-			  value  = "%s"
-			}
-			`, randomID, varName, value)
+		config := `
+resource "github_actions_variable" "test" {
+  repository    = "%s"
+  variable_name = "TEST"
+  value         = "my-value"
+}
+`
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-					},
-					{
-						ResourceName:      "github_actions_variable.variable",
-						ImportStateId:     fmt.Sprintf(`tf-acc-test-%s:%s`, randomID, varName),
-						ImportState:       true,
-						ImportStateVerify: true,
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, repo.GetName()),
+				},
+				{
+					Config: fmt.Sprintf(config, repo2.GetName()),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_variable.test", plancheck.ResourceActionReplace),
+						},
 					},
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+			},
 		})
+	})
 
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
+	t.Run("errors_if_variable_already_exists", func(t *testing.T) {
+		t.Parallel()
 
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+		repo := mustCreateTestRepository(t)
+		varName := "TEST"
+
+		mustCreateTestRepositoryVariable(t, repo, &varName, nil)
+
+		config := fmt.Sprintf(`
+resource "github_actions_variable" "test" {
+  repository    = "%s"
+  variable_name = "%s"
+  value         = "my-value"
+}
+`, repo.GetName(), varName)
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile(`Variable already exists`),
+				},
+			},
 		})
 	})
 }

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"log"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -25,13 +25,13 @@ func resourceGithubActionsOrganizationPermissions() *schema.Resource {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Description:      "The permissions policy that controls the actions that are allowed to run. Can be one of: 'all', 'local_only', or 'selected'.",
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"all", "local_only", "selected"}, false), "allowed_actions"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"all", "local_only", "selected"}, false)),
 			},
 			"enabled_repositories": {
 				Type:             schema.TypeString,
 				Required:         true,
 				Description:      "The policy that controls the repositories in the organization that are allowed to run GitHub Actions. Can be one of: 'all', 'none', or 'selected'.",
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"all", "none", "selected"}, false), "enabled_repositories"),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"all", "none", "selected"}, false)),
 			},
 			"allowed_actions_config": {
 				Type:        schema.TypeList,
@@ -75,6 +75,12 @@ func resourceGithubActionsOrganizationPermissions() *schema.Resource {
 						},
 					},
 				},
+			},
+			"sha_pinning_required": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether pinning to a specific SHA is required for all actions and reusable workflows in an organization.",
 			},
 		},
 	}
@@ -131,9 +137,10 @@ func resourceGithubActionsEnabledRepositoriesObject(d *schema.ResourceData) ([]i
 	return enabled, nil
 }
 
-func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
 	ctx := context.Background()
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxId, d.Id())
@@ -147,12 +154,18 @@ func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.Resour
 	allowedActions := d.Get("allowed_actions").(string)
 	enabledRepositories := d.Get("enabled_repositories").(string)
 
-	_, _, err = client.Actions.EditActionsPermissions(ctx,
+	actionsPermissions := github.ActionsPermissions{
+		AllowedActions:      &allowedActions,
+		EnabledRepositories: &enabledRepositories,
+	}
+
+	if v, ok := d.GetOk("sha_pinning_required"); ok {
+		actionsPermissions.SHAPinningRequired = new(v.(bool))
+	}
+
+	_, _, err = client.Actions.UpdateActionsPermissions(ctx,
 		orgName,
-		github.ActionsPermissions{
-			AllowedActions:      &allowedActions,
-			EnabledRepositories: &enabledRepositories,
-		})
+		actionsPermissions)
 	if err != nil {
 		return err
 	}
@@ -161,7 +174,7 @@ func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.Resour
 		actionsAllowedData := resourceGithubActionsOrganizationAllowedObject(d)
 		if actionsAllowedData != nil {
 			log.Printf("[DEBUG] Allowed actions config is set")
-			_, _, err = client.Actions.EditActionsAllowed(ctx,
+			_, _, err = client.Actions.UpdateActionsAllowed(ctx,
 				orgName,
 				*actionsAllowedData)
 			if err != nil {
@@ -189,8 +202,9 @@ func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.Resour
 	return resourceGithubActionsOrganizationPermissionsRead(d, meta)
 }
 
-func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	ctx := context.Background()
 
 	err := checkOrganization(meta)
@@ -238,7 +252,7 @@ func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, me
 	}
 
 	if actionsPermissions.GetEnabledRepositories() == "selected" {
-		opts := github.ListOptions{PerPage: 10, Page: 1}
+		opts := github.ListOptions{PerPage: meta.maxPerPage}
 		var repoList []int64
 		var allRepos []*github.Repository
 
@@ -271,6 +285,10 @@ func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, me
 				return err
 			}
 		}
+	} else {
+		if err = d.Set("enabled_repositories_config", []any{}); err != nil {
+			return err
+		}
 	}
 
 	if err = d.Set("allowed_actions", actionsPermissions.GetAllowedActions()); err != nil {
@@ -280,12 +298,17 @@ func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, me
 		return err
 	}
 
+	if err = d.Set("sha_pinning_required", actionsPermissions.GetSHAPinningRequired()); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func resourceGithubActionsOrganizationPermissionsDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+func resourceGithubActionsOrganizationPermissionsDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	err := checkOrganization(meta)
@@ -294,11 +317,11 @@ func resourceGithubActionsOrganizationPermissionsDelete(d *schema.ResourceData, 
 	}
 
 	// This will nullify any allowedActions elements
-	_, _, err = client.Actions.EditActionsPermissions(ctx,
+	_, _, err = client.Actions.UpdateActionsPermissions(ctx,
 		orgName,
 		github.ActionsPermissions{
-			AllowedActions:      github.String("all"),
-			EnabledRepositories: github.String("all"),
+			AllowedActions:      new("all"),
+			EnabledRepositories: new("all"),
 		})
 	if err != nil {
 		return err
