@@ -2,12 +2,12 @@
 page_title: "github_repository_ruleset (Resource) - GitHub"
 subcategory: ""
 description: |-
-  This resource allows you to create and manage rulesets on the repository level. When applied, a new ruleset will be created. When destroyed, that ruleset will be removed.
+  Resource to manage GitHub repository rulesets.
 ---
 
 # github_repository_ruleset (Resource)
 
-This resource allows you to create and manage rulesets on the repository level. When applied, a new ruleset will be created. When destroyed, that ruleset will be removed.
+Resource to manage GitHub repository rulesets.
 
 ## Example Usage
 
@@ -99,10 +99,10 @@ resource "github_repository_ruleset" "example_push" {
 
 - `bypass_actors` (Block List) The actors that can bypass the rules in this ruleset. (see [below for nested schema](#nestedblock--bypass_actors))
 - `conditions` (Block List, Max: 1) Parameters for a repository ruleset ref name condition. (see [below for nested schema](#nestedblock--conditions))
+- `etag` (String) An etag representing the ruleset.
 
 ### Read-Only
 
-- `etag` (String)
 - `id` (String) The ID of this resource.
 - `node_id` (String) GraphQL global node id for use with v4 API.
 - `ruleset_id` (Number) GitHub ID for the ruleset.
@@ -376,6 +376,15 @@ Required:
 ## Import
 
 Import is supported using the following syntax:
+
+In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `id` attribute, for example:
+
+```terraform
+import {
+  id = "example:12345"
+  to = github_repository_ruleset.example
+}
+```
 
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
