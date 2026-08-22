@@ -12,7 +12,6 @@ import (
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/shurcooL/githubv4"
@@ -28,7 +27,7 @@ func resourceGithubTeamMembers() *schema.Resource {
 			StateContext: resourceGithubTeamMembersImport,
 		},
 
-		CustomizeDiff: customdiff.Sequence(resourceGithubTeamMembersDiff, diffLegacyTeamID, diffLegacyTeam),
+		CustomizeDiff: resourceGithubTeamMembersDiff,
 
 		SchemaVersion: 1,
 		StateUpgraders: []schema.StateUpgrader{
@@ -63,12 +62,6 @@ func resourceGithubTeamMembers() *schema.Resource {
 				Type:        schema.TypeSet,
 				Required:    true,
 				Description: "List of users that should be members of the team.",
-				// The Set hash function ensures that the same user cannot be added to the team multiple times with different case.
-				Set: func(v any) int {
-					username, _ := v.(map[string]any)["username"].(string)
-					role, _ := v.(map[string]any)["role"].(string)
-					return schema.HashString("username:" + strings.ToLower(username) + ";role:" + strings.ToLower(role))
-				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"username": {
@@ -94,12 +87,16 @@ func resourceGithubTeamMembers() *schema.Resource {
 func resourceGithubTeamMembersDiff(ctx context.Context, d *schema.ResourceDiff, m any) error {
 	tflog.Debug(ctx, "diffing team members")
 
-	if err := diffNestedUsernameCheck(ctx, d, "members"); err != nil {
+	if err := diffDuplicateUsernameCheck(ctx, d, "members"); err != nil {
 		return fmt.Errorf("error diffing members config: %w", err)
 	}
 
-	if d.Id() == "" {
-		return nil
+	if err := diffLegacyTeamID(ctx, d, m); err != nil {
+		return fmt.Errorf("error diffing legacy team ID: %w", err)
+	}
+
+	if err := diffLegacyTeam(ctx, d, m); err != nil {
+		return fmt.Errorf("error diffing legacy team: %w", err)
 	}
 
 	return nil

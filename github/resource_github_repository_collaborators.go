@@ -137,7 +137,7 @@ func resourceGithubRepositoryCollaboratorsDiff(ctx context.Context, d *schema.Re
 
 	meta, _ := m.(*Owner)
 
-	if err := diffNestedUsernameCheck(ctx, d, "user"); err != nil {
+	if err := diffDuplicateUsernameCheck(ctx, d, "user"); err != nil {
 		return fmt.Errorf("error diffing user config: %w", err)
 	}
 

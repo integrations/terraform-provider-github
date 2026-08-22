@@ -334,7 +334,7 @@ func suppressUnorderedListDiff(fieldKey string, f func(a, b any) int) schema.Sch
 	}
 }
 
-func diffNestedUsernameCheck(ctx context.Context, d *schema.ResourceDiff, fieldKey string) error {
+func diffDuplicateUsernameCheck(ctx context.Context, d *schema.ResourceDiff, fieldKey string) error {
 	tflog.Debug(ctx, "diffing nested username check", map[string]any{"field": fieldKey})
 	if d.HasChange(fieldKey) && d.NewValueKnown(fieldKey) {
 		tflog.Trace(ctx, "field is changed and it's new value is known", map[string]any{"field": fieldKey, "new_value": d.Get(fieldKey)})
