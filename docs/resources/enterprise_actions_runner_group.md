@@ -43,7 +43,7 @@ The following arguments are supported:
 - `selected_organization_ids` - (Optional) IDs of the organizations which should be added to the runner group
 - `allows_public_repositories` - (Optional) Whether public repositories can be added to the runner group. Defaults to false.
 - `restricted_to_workflows` - (Optional) If true, the runner group will be restricted to running only the workflows specified in the selected_workflows array. Defaults to false.
-- `selected_workflows` - (Optional) List of workflows the runner group should be allowed to run. This setting will be ignored unless restricted_to_workflows is set to true.
+- `selected_workflows` - (Optional) Set of workflows the runner group should be allowed to run. The order of items is not significant. This setting will be ignored unless restricted_to_workflows is set to true.
 
 ## Attributes Reference
 
