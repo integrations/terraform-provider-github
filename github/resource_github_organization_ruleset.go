@@ -749,8 +749,13 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
+				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the ruleset for caching purposes.",
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -826,8 +831,7 @@ func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.Resour
 
 	ruleset, resp, err := client.Organizations.GetRepositoryRuleset(ctx, owner, rulesetID)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				tflog.Debug(ctx, "API responded with StatusNotModified, not refreshing state", map[string]any{
 					"owner":      owner,

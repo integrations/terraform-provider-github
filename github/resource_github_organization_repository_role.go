@@ -110,8 +110,7 @@ func resourceGithubOrganizationRepositoryRoleRead(ctx context.Context, d *schema
 
 	role, _, err := client.Organizations.GetCustomRepoRole(ctx, orgName, roleId)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				tflog.Warn(ctx, "GitHub organization repository role not found, removing from state", map[string]any{
 					"orgName": orgName,

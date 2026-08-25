@@ -42,8 +42,13 @@ func resourceGithubActionsRunnerGroup() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
+				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the runner group object",
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 			"inherited": {
 				Type:        schema.TypeBool,
@@ -195,8 +200,7 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, m any) error
 func getOrganizationRunnerGroup(client *github.Client, ctx context.Context, org string, groupID int64) (*github.RunnerGroup, *github.Response, error) {
 	runnerGroup, resp, err := client.Actions.GetOrganizationRunnerGroup(ctx, org, groupID)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if _, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			// ignore error StatusNotModified
 			return runnerGroup, resp, nil
 		}
@@ -225,8 +229,7 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, m any) error {
 
 	runnerGroup, resp, err := getOrganizationRunnerGroup(client, ctx, orgName, runnerGroupID)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing organization runner group %s/%s from state because it no longer exists in GitHub",
 					orgName, d.Id())

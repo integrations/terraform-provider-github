@@ -38,8 +38,14 @@ func resourceGithubMembership() *schema.Resource {
 				Description:      "The role of the user within the organization. Must be one of 'member' or 'admin'.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "An etag representing the membership.",
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 			"downgrade_on_destroy": {
 				Type:        schema.TypeBool,
@@ -107,8 +113,7 @@ func resourceGithubMembershipRead(ctx context.Context, d *schema.ResourceData, m
 	membership, resp, err := client.Organizations.GetOrgMembership(ctx,
 		username, orgName)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -162,8 +167,7 @@ func resourceGithubMembershipDelete(ctx context.Context, d *schema.ResourceData,
 		var membership *github.Membership
 		membership, _, err = client.Organizations.GetOrgMembership(ctx, username, orgName)
 		if err != nil {
-			var ghErr *github.ErrorResponse
-			if errors.As(err, &ghErr) {
+			if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 				if ghErr.Response.StatusCode == http.StatusNotFound {
 					tflog.Info(ctx, fmt.Sprintf("Not downgrading '%s' membership for '%s' because they are not a member of the org anymore", orgName, username), map[string]any{
 						"org_name": orgName,
@@ -195,8 +199,7 @@ func resourceGithubMembershipDelete(ctx context.Context, d *schema.ResourceData,
 		})
 		_, err = client.Organizations.RemoveOrgMembership(ctx, username, orgName)
 		if err != nil {
-			var ghErr *github.ErrorResponse
-			if errors.As(err, &ghErr) {
+			if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 				if ghErr.Response.StatusCode == http.StatusNotFound {
 					tflog.Info(ctx, fmt.Sprintf("Not removing '%s' membership for '%s' because they are not a member of the org anymore", orgName, username), map[string]any{
 						"org_name": orgName,

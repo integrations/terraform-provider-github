@@ -70,9 +70,10 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 				Description: "Indicate if the webhook should receive events. Defaults to 'true'.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "An etag representing the webhook.",
 				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
 					return true
 				},
@@ -148,8 +149,7 @@ func resourceGithubRepositoryWebhookRead(ctx context.Context, d *schema.Resource
 
 	hook, _, err := client.Repositories.GetHook(ctx, owner, repoName, hookID)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
