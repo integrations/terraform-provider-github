@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 	"time"
 
@@ -75,11 +76,11 @@ func TestGithubIpRangesDataSourceRead(t *testing.T) {
 			t.Fatalf("unexpected error: %v", diags)
 		}
 
-		if got, want := d.Get("hooks_ipv4").([]any), "192.0.2.0/24"; len(got) != 1 || got[0] != want {
-			t.Errorf("expected hooks_ipv4 to be [%s], got %v", want, got)
+		if got, want := d.Get("hooks_ipv4"), []any{"192.0.2.0/24"}; !reflect.DeepEqual(got, want) {
+			t.Errorf("expected hooks_ipv4 to be %v, got %v", want, got)
 		}
-		if got, want := d.Get("hooks_ipv6").([]any), "2001:db8::/32"; len(got) != 1 || got[0] != want {
-			t.Errorf("expected hooks_ipv6 to be [%s], got %v", want, got)
+		if got, want := d.Get("hooks_ipv6"), []any{"2001:db8::/32"}; !reflect.DeepEqual(got, want) {
+			t.Errorf("expected hooks_ipv6 to be %v, got %v", want, got)
 		}
 	})
 }
