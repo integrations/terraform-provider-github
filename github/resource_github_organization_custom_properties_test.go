@@ -69,6 +69,40 @@ resource "github_organization_custom_properties" "test" {
 		})
 	})
 
+	t.Run("reads back a true_false default_value without drift", func(t *testing.T) {
+		t.Parallel()
+
+		name := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(5))
+
+		config := fmt.Sprintf(`
+resource "github_organization_custom_properties" "test" {
+  description   = "Test Description"
+  default_value = "false"
+  property_name = "%s"
+  required      = true
+  value_type    = "true_false"
+}
+`, name)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_organization_custom_properties.test", "value_type", "true_false"),
+						resource.TestCheckResourceAttr("github_organization_custom_properties.test", "default_value", "false"),
+					),
+				},
+				{
+					Config:   config,
+					PlanOnly: true,
+				},
+			},
+		})
+	})
+
 	t.Run("create custom property and update them", func(t *testing.T) {
 		t.Parallel()
 

@@ -2,6 +2,8 @@ package github
 
 import (
 	"context"
+	"strconv"
+	"strings"
 
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
@@ -92,9 +94,14 @@ func resourceGithubCustomPropertiesCreate(d *schema.ResourceData, meta any) erro
 		PropertyName:  &propertyName,
 		ValueType:     valueType,
 		Required:      &required,
-		DefaultValue:  &defaultValue,
 		Description:   &description,
 		AllowedValues: allowedValuesString,
+	}
+	// Only send a default when one is configured; an empty string is not a
+	// valid default for any value type and is rejected for non-required
+	// properties.
+	if defaultValue != "" {
+		customProperty.DefaultValue = &defaultValue
 	}
 
 	if val, ok := d.GetOk("values_editable_by"); ok {
@@ -121,8 +128,7 @@ func resourceGithubCustomPropertiesRead(d *schema.ResourceData, meta any) error 
 		return err
 	}
 
-	// TODO: Add support for other types of default values
-	defaultValue, _ := customProperty.DefaultValueString()
+	defaultValue := customPropertyDefaultValueString(customProperty)
 
 	d.SetId(*customProperty.PropertyName)
 	_ = d.Set("allowed_values", customProperty.AllowedValues)
@@ -160,4 +166,34 @@ func resourceGithubCustomPropertiesImport(d *schema.ResourceData, meta any) ([]*
 		return nil, err
 	}
 	return []*schema.ResourceData{d}, nil
+}
+
+// customPropertyDefaultValueString renders a custom property's default value as
+// the string stored in the `default_value` attribute, for every value type the
+// API supports. go-github exposes typed accessors per value type; using only
+// DefaultValueString() left true_false and multi_select defaults reading back as
+// "" and produced a permanent plan diff.
+func customPropertyDefaultValueString(cp *github.CustomProperty) string {
+	if cp == nil || cp.DefaultValue == nil {
+		return ""
+	}
+	switch cp.ValueType {
+	case github.PropertyValueTypeTrueFalse:
+		if b, ok := cp.DefaultValueBool(); ok {
+			return strconv.FormatBool(b)
+		}
+	case github.PropertyValueTypeMultiSelect:
+		if vals, ok := cp.DefaultValueStrings(); ok {
+			return strings.Join(vals, ",")
+		}
+	default:
+		if s, ok := cp.DefaultValueString(); ok {
+			return s
+		}
+	}
+	// Fall back to the raw value when the API returns an unexpected shape.
+	if s, ok := cp.DefaultValue.(string); ok {
+		return s
+	}
+	return ""
 }
