@@ -115,7 +115,7 @@ Optional:
 Read-Only:
 
 - `custom_404` (Boolean) Whether the rendered GitHub Pages site has a custom 404 page
-- `html_url` (String) The absolute URL (including scheme) of the rendered GitHub Pages site e.g. 'https://username.github.io'.
+- `html_url` (String) The absolute URL (including scheme) of the rendered GitHub Pages site e.g. `https://username.github.io`.
 - `status` (String) The GitHub Pages site's build status e.g. building or built.
 - `url` (String) The API URL of the rendered GitHub Pages site.
 
