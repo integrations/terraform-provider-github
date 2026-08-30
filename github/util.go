@@ -221,8 +221,7 @@ func validateSecretNameFunc(v any, path cty.Path) diag.Diagnostics {
 // resourceDescription represents a formatting string that represents the resource
 // args will be passed to resourceDescription in `log.Printf`.
 func deleteResourceOn404AndSwallow304OtherwiseReturnError(err error, d *schema.ResourceData, resourceDescription string, args ...any) error {
-	var ghErr *github.ErrorResponse
-	if errors.As(err, &ghErr) {
+	if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 		if ghErr.Response.StatusCode == http.StatusNotModified {
 			log.Printf("[INFO] Resource %s not modified, skipping", resourceDescription)
 			return nil
