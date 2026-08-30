@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
@@ -379,19 +380,13 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 	})
 	t.Run("does not commit when only the commit details change", func(t *testing.T) {
 		t.Parallel()
+		skipUnauthenticated(t)
 
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
+		repo := mustCreateTestRepository(t)
+
 		config := fmt.Sprintf(`
-
-			resource "github_repository" "test" {
-				name                 = "%s"
-				auto_init            = true
-				vulnerability_alerts = true
-			}
-
 			resource "github_repository_file" "test" {
-				repository     = github_repository.test.name
+				repository     = "%s"
 				branch         = "main"
 				file           = "test"
 				content        = "bar"
@@ -399,7 +394,7 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				commit_author  = "Terraform User"
 				commit_email   = "terraform@example.com"
 			}
-		`, repoName)
+		`, repo.GetName())
 		messageChanged := strings.Replace(config, "Managed by Terraform", "Changed by Terraform", 1)
 		contentChanged := strings.Replace(messageChanged, `"bar"`, `"baz"`, 1)
 
@@ -407,11 +402,15 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 		newCommit := statecheck.CompareValue(compare.ValuesDiffer())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PostApplyPostRefresh: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_file.test", plancheck.ResourceActionNoop),
+						},
+					},
 					ConfigStateChecks: []statecheck.StateCheck{
 						sameCommit.AddStateValue("github_repository_file.test", tfjsonpath.New("commit_sha")),
 						newCommit.AddStateValue("github_repository_file.test", tfjsonpath.New("commit_sha")),
@@ -420,6 +419,14 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				{
 					// The file is untouched, so nothing should be committed
 					Config: messageChanged,
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_file.test", plancheck.ResourceActionUpdate),
+						},
+						PostApplyPostRefresh: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_file.test", plancheck.ResourceActionNoop),
+						},
+					},
 					ConfigStateChecks: []statecheck.StateCheck{
 						sameCommit.AddStateValue("github_repository_file.test", tfjsonpath.New("commit_sha")),
 						statecheck.ExpectKnownValue("github_repository_file.test", tfjsonpath.New("commit_message"), knownvalue.StringExact("Changed by Terraform")),
@@ -428,6 +435,14 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				{
 					// The content changed, so a commit is expected
 					Config: contentChanged,
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_file.test", plancheck.ResourceActionUpdate),
+						},
+						PostApplyPostRefresh: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_file.test", plancheck.ResourceActionNoop),
+						},
+					},
 					ConfigStateChecks: []statecheck.StateCheck{
 						newCommit.AddStateValue("github_repository_file.test", tfjsonpath.New("commit_sha")),
 					},
