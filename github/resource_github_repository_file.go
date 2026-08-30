@@ -255,6 +255,11 @@ func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceD
 	if err = d.Set("commit_sha", create.GetSHA()); err != nil {
 		return diag.FromErr(err)
 	}
+	// commit_message is computed, so it has to be seeded here for configurations
+	// that leave it unset and take the default message built above
+	if err = d.Set("commit_message", *opts.Message); err != nil {
+		return diag.FromErr(err)
+	}
 	if err := d.Set("branch", branch); err != nil {
 		return diag.FromErr(err)
 	}
@@ -339,16 +344,6 @@ func resourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceDat
 
 	if err = d.Set("commit_sha", commit.GetSHA()); err != nil {
 		return diag.FromErr(err)
-	}
-
-	// The commit details describe the next commit rather than the file, so reading
-	// them back drifts away from the config and the next apply commits to realign.
-	// commit_message is computed, so still fill it in when it is unknown, which is
-	// the case after an import.
-	if _, ok := d.GetOk("commit_message"); !ok {
-		if err = d.Set("commit_message", commit.GetCommit().GetMessage()); err != nil {
-			return diag.FromErr(err)
-		}
 	}
 
 	return nil
@@ -483,6 +478,14 @@ func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceD
 		return nil, err
 	}
 	if err = d.Set("overwrite_on_create", false); err != nil {
+		return nil, err
+	}
+
+	commit, err := getFileCommit(ctx, client, owner, repo, filePath, branch)
+	if err != nil {
+		return nil, err
+	}
+	if err := d.Set("commit_message", commit.GetCommit().GetMessage()); err != nil {
 		return nil, err
 	}
 
