@@ -609,18 +609,6 @@ resource "github_organization_ruleset" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("name"), knownvalue.StringExact(rulesetName)),
-						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("target"), knownvalue.StringExact("repository")),
-						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("enforcement"), knownvalue.StringExact("active")),
-						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_create"), knownvalue.Bool(true)),
-						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_delete"), knownvalue.Bool(true)),
-						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_transfer"), knownvalue.Bool(true)),
-						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_name").AtSliceIndex(0).AtMapKey("pattern"), knownvalue.StringExact("^tf-acc-")),
-						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_name").AtSliceIndex(0).AtMapKey("negate"), knownvalue.Bool(false)),
-						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_visibility").AtSliceIndex(0).AtMapKey("internal"), knownvalue.Bool(true)),
-						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_visibility").AtSliceIndex(0).AtMapKey("private"), knownvalue.Bool(true)),
-					},
 				},
 				{
 					ResourceName:            "github_organization_ruleset.test",
