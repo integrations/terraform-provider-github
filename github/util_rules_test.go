@@ -1517,7 +1517,10 @@ func TestRoundTripRepositoryTargetRules(t *testing.T) {
 		t.Errorf("Expected Private to be true, got %v", expandedRules.RepositoryVisibility.Private)
 	}
 
-	flattenedRulesMap := flattenRules(t.Context(), expandedRules, true)[0].(map[string]any)
+	flattenedRulesMap, ok := flattenRules(t.Context(), expandedRules, true)[0].(map[string]any)
+	if !ok {
+		t.Fatal("Expected flattened rules to be a map")
+	}
 
 	for _, name := range []string{"repository_create", "repository_delete", "repository_transfer"} {
 		if flattenedRulesMap[name] != true {
@@ -1525,7 +1528,10 @@ func TestRoundTripRepositoryTargetRules(t *testing.T) {
 		}
 	}
 
-	repositoryName := flattenedRulesMap["repository_name"].([]map[string]any)
+	repositoryName, ok := flattenedRulesMap["repository_name"].([]map[string]any)
+	if !ok {
+		t.Fatal("Expected repository_name to be set after round trip")
+	}
 	if len(repositoryName) != 1 {
 		t.Fatalf("Expected 1 repository_name rule after round trip, got %d", len(repositoryName))
 	}
@@ -1534,7 +1540,10 @@ func TestRoundTripRepositoryTargetRules(t *testing.T) {
 		t.Errorf("Expected pattern to be %q, got %v", "^team-", repositoryName[0]["pattern"])
 	}
 
-	repositoryVisibility := flattenedRulesMap["repository_visibility"].([]map[string]any)
+	repositoryVisibility, ok := flattenedRulesMap["repository_visibility"].([]map[string]any)
+	if !ok {
+		t.Fatal("Expected repository_visibility to be set after round trip")
+	}
 	if len(repositoryVisibility) != 1 {
 		t.Fatalf("Expected 1 repository_visibility rule after round trip, got %d", len(repositoryVisibility))
 	}
@@ -1553,9 +1562,12 @@ func TestFlattenRulesRepositoryTargetRulesAreRepositoryRulesetOmitted(t *testing
 
 	// Repository target rules only exist for organization rulesets. Flattening a
 	// repository ruleset must not emit keys that its schema does not declare.
-	flattenedRulesMap := flattenRules(t.Context(), &github.RepositoryRulesetRules{
+	flattenedRulesMap, ok := flattenRules(t.Context(), &github.RepositoryRulesetRules{
 		RepositoryDelete: &github.EmptyRuleParameters{},
 	}, false)[0].(map[string]any)
+	if !ok {
+		t.Fatal("Expected flattened rules to be a map")
+	}
 
 	for _, name := range []string{"repository_create", "repository_delete", "repository_transfer", "repository_name", "repository_visibility"} {
 		if _, ok := flattenedRulesMap[name]; ok {

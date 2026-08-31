@@ -670,21 +670,27 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 		}
 
 		if v, ok := rulesMap["repository_name"].([]any); ok && len(v) != 0 {
-			repositoryNameMap := v[0].(map[string]any)
-			rulesetRules.RepositoryName = &github.SimplePatternRuleParameters{
-				Negate:  repositoryNameMap["negate"].(bool),
-				Pattern: repositoryNameMap["pattern"].(string),
+			if repositoryNameMap, ok := v[0].(map[string]any); ok {
+				negate, _ := repositoryNameMap["negate"].(bool)
+				pattern, _ := repositoryNameMap["pattern"].(string)
+				rulesetRules.RepositoryName = &github.SimplePatternRuleParameters{
+					Negate:  negate,
+					Pattern: pattern,
+				}
 			}
 		}
 
 		if v, ok := rulesMap["repository_visibility"].([]any); ok && len(v) != 0 {
-			repositoryVisibilityMap := v[0].(map[string]any)
-			rulesetRules.RepositoryVisibility = &github.RepositoryVisibilityRuleParameters{
-				Internal: repositoryVisibilityMap["internal"].(bool),
-				Private:  repositoryVisibilityMap["private"].(bool),
-				// TODO(go-github v91): restore once RepositoryVisibilityRuleParameters
-				// exposes Public (https://github.com/google/go-github/pull/4455).
-				// Public: repositoryVisibilityMap["public"].(bool),
+			if repositoryVisibilityMap, ok := v[0].(map[string]any); ok {
+				internal, _ := repositoryVisibilityMap["internal"].(bool)
+				private, _ := repositoryVisibilityMap["private"].(bool)
+				rulesetRules.RepositoryVisibility = &github.RepositoryVisibilityRuleParameters{
+					Internal: internal,
+					Private:  private,
+					// TODO(go-github v91): restore once RepositoryVisibilityRuleParameters
+					// exposes Public (https://github.com/google/go-github/pull/4455).
+					// Public: public,
+				}
 			}
 		}
 	}
