@@ -271,6 +271,12 @@ export GH_TEST_ADVANCED_SECURITY=
 export GH_TEST_ENTERPRISE_IS_EMU=
 ```
 
+Anonymous acceptance tests do not require `GITHUB_OWNER` or `GITHUB_TOKEN`. For example, the IP ranges data source can be tested without credentials:
+
+```sh
+GH_TEST_AUTH_MODE=anonymous make testacc T=TestAccGithubIpRangesDataSource
+```
+
 ### Example _.vscode/settings.json_ file
 
 To run acceptance tests the `TF_ACC` environment variable must be set. Below is an example `settings.json` file for VSCode that sets this variable and the other necessary environment variables when running tests from the editor.
