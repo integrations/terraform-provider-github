@@ -1,0 +1,19 @@
+* GH/TF Provider Acceptance 1.2.3 [provider: github] [mode: organization]
+ 1 Preflight -  2 Groups 0  3 Run 0  4 Triage 0
+                                    -----------
++------------------------------------------------------------------------------------------------+
+| File issue                                                                                     |
+| Destructive action. Review the snapshot and type the exact phrase.                             |
+|   repo           integrations/terraform-provider-github                                        |
+|   title redacted redacted failure title                                                        |
+|   labels         bug, acceptance-test                                                          |
+|   classification real                                                                          |
+|   fingerprint    cccccccccccccccc                                                              |
+|                                                                                                |
+|   Type FILE cccccccccccccccc to confirm:                                                       |
+|   >                                                                                            |
+|                                                                                                |
+|   enter confirm  esc close                                                                     |
++------------------------------------------------------------------------------------------------+
+issue preview ready
+enter confirm   |   esc close

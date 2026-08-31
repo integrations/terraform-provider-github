@@ -1,0 +1,11 @@
+/bin/
+.pulsar.env
+.pulsar-state.json
+.pulsar-state.json.lock
+.pulsar-state-*.tmp
+.pulsar-failures/
+*.log
+.DS_Store
+
+# Superpowers planning artifacts (agent scratch)
+docs/superpowers/

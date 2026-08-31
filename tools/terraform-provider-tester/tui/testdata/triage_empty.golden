@@ -1,0 +1,18 @@
+* GH/TF Provider Acceptance 1.2.3 [provider: github] [mode: organization]
+ 1 Preflight -  2 Groups 0  3 Run 0  4 Triage 0
+                                    -----------
+Triage
+
+REAL 0  UNSTABLE 0  FLAKES 0  KNOWN 0  ELIGIBLE 0
+  cache unavailable
+
++------------------------------------------------------------------------------------------------+
+| No classified failures                                                                         |
+| Triage is clear until a run reports failures.                                                  |
+| Refresh local triage after a run, or sync known issues.                                        |
+|                                                                                                |
+| t refresh triage                                                                               |
+| K sync known issues                                                                            |
++------------------------------------------------------------------------------------------------+
+
+left/right tabs   |   up/down move   |   t refresh   |   K sync   |   ? help   |   q quit

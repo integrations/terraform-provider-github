@@ -1,0 +1,1 @@
+provider TestMain: selected test requires organization mode; GH_TEST_AUTH_MODE=individual

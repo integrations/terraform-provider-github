@@ -1,0 +1,16 @@
+* GH/TF Provider Acceptance 1.2.3 [provider: github] [mode: organization]
+ 1 Preflight -  2 Groups 0  3 Run 0  4 Triage 0
+---------------
++------------------------------------------------------------------------------------------------+
+| Orphan resources                                                                               |
+|   owner acme-test                                                                              |
+|   count 2                                                                                      |
+|                                                                                                |
+|     KIND            NAME                            URL                                        |
+|   repository      tf-acc-repo-a                   https://github.com/acme/tf-acc-repo-a        |
+|   team            tf-acc-team-b                   https://github.com/orgs/acme/teams/tf-acc... |
+|                                                                                                |
+|   s sweep  esc close                                                                           |
++------------------------------------------------------------------------------------------------+
+
+s sweep   |   esc close

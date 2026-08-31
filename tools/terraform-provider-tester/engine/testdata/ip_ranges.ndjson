@@ -1,0 +1,11 @@
+{"Time":"2026-06-24T17:28:25.341143-04:00","Action":"start","Package":"github.com/integrations/terraform-provider-github/github"}
+{"Time":"2026-06-24T17:28:25.609748-04:00","Action":"run","Package":"github.com/integrations/terraform-provider-github/github","Test":"TestAccGithubIpRangesDataSource"}
+{"Time":"2026-06-24T17:28:25.610153-04:00","Action":"output","Package":"github.com/integrations/terraform-provider-github/github","Test":"TestAccGithubIpRangesDataSource","Output":"=== RUN   TestAccGithubIpRangesDataSource\n"}
+{"Time":"2026-06-24T17:28:25.610187-04:00","Action":"run","Package":"github.com/integrations/terraform-provider-github/github","Test":"TestAccGithubIpRangesDataSource/basic"}
+{"Time":"2026-06-24T17:28:25.610197-04:00","Action":"output","Package":"github.com/integrations/terraform-provider-github/github","Test":"TestAccGithubIpRangesDataSource/basic","Output":"=== RUN   TestAccGithubIpRangesDataSource/basic\n"}
+{"Time":"2026-06-24T17:28:25.610220-04:00","Action":"output","Package":"github.com/integrations/terraform-provider-github/github","Test":"TestAccGithubIpRangesDataSource/basic","Output":"--- PASS: TestAccGithubIpRangesDataSource/basic (0.00s)\n"}
+{"Time":"2026-06-24T17:28:25.610237-04:00","Action":"pass","Package":"github.com/integrations/terraform-provider-github/github","Test":"TestAccGithubIpRangesDataSource/basic","Elapsed":0}
+{"Time":"2026-06-24T17:28:25.610246-04:00","Action":"output","Package":"github.com/integrations/terraform-provider-github/github","Test":"TestAccGithubIpRangesDataSource","Output":"--- PASS: TestAccGithubIpRangesDataSource (0.00s)\n"}
+{"Time":"2026-06-24T17:28:25.610254-04:00","Action":"pass","Package":"github.com/integrations/terraform-provider-github/github","Test":"TestAccGithubIpRangesDataSource","Elapsed":0}
+{"Time":"2026-06-24T17:28:25.610262-04:00","Action":"output","Package":"github.com/integrations/terraform-provider-github/github","Output":"ok \tgithub.com/integrations/terraform-provider-github/github\t0.001s\n"}
+{"Time":"2026-06-24T17:28:25.611093-04:00","Action":"pass","Package":"github.com/integrations/terraform-provider-github/github","Elapsed":0.001}

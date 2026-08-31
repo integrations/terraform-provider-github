@@ -1,0 +1,4 @@
+{"Time":"2026-08-05T12:00:00Z","Action":"start","Package":"github.com/integrations/terraform-provider-github/github"}
+{"Time":"2026-08-05T12:00:00Z","Action":"output","Package":"github.com/integrations/terraform-provider-github/github","Output":"provider TestMain: selected test requires organization mode; GH_TEST_AUTH_MODE=individual\n"}
+{"Time":"2026-08-05T12:00:00Z","Action":"output","Package":"github.com/integrations/terraform-provider-github/github","Output":"FAIL\tgithub.com/integrations/terraform-provider-github/github\t0.100s\n"}
+{"Time":"2026-08-05T12:00:00Z","Action":"fail","Package":"github.com/integrations/terraform-provider-github/github","Elapsed":0.100}

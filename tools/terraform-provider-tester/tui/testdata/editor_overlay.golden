@@ -1,0 +1,13 @@
+* GH/TF Provider Acceptance 1.2.3 [provider: github] [mode: organization]
+ 1 Preflight -  2 Groups 0  3 Run 0  4 Triage 0
+---------------
++------------------------------------------------------------------------------------------------+
+| Config: organization                                                                           |
+| > GITHUB_OWNER                        my-test-org required                                     |
+|   GITHUB_TOKEN                        <set>  secret                                            |
+|   GITHUB_APP_ID                       <unset>                                                  |
+|                                                                                                |
+|   enter edit  esc/q close  p preflight                                                         |
++------------------------------------------------------------------------------------------------+
+
+up/down move   |   enter edit   |   esc/q close   |   p preflight

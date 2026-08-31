@@ -1,0 +1,5 @@
+{"Time":"2026-06-24T17:45:08.956889-04:00","Action":"start","Package":"tjcap"}
+{"Time":"2026-06-24T17:45:09.309482-04:00","Action":"output","Package":"tjcap","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-06-24T17:45:09.309587-04:00","Action":"output","Package":"tjcap","Output":"PASS\n"}
+{"Time":"2026-06-24T17:45:09.310183-04:00","Action":"output","Package":"tjcap","Output":"ok  \ttjcap\t0.353s [no tests to run]\n"}
+{"Time":"2026-06-24T17:45:09.310218-04:00","Action":"pass","Package":"tjcap","Elapsed":0.353}

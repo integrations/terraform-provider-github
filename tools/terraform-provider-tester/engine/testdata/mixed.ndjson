@@ -1,0 +1,17 @@
+{"Time":"2026-06-24T17:28:25.341143-04:00","Action":"start","Package":"github.com/integrations/terraform-provider-github/github"}
+{"Time":"2026-06-24T17:28:25.609748-04:00","Action":"run","Package":"github.com/integrations/terraform-provider-github/github","Test":"TestAccGithubTeamMembership"}
+{"Time":"2026-06-24T17:28:25.610153-04:00","Action":"output","Package":"github.com/integrations/terraform-provider-github/github","Test":"TestAccGithubTeamMembership","Output":"=== RUN   TestAccGithubTeamMembership\n"}
+{"Time":"2026-06-24T17:28:25.610187-04:00","Action":"run","Package":"github.com/integrations/terraform-provider-github/github","Test":"TestAccGithubTeamMembership/member"}
+{"Time":"2026-06-24T17:28:25.610197-04:00","Action":"output","Package":"github.com/integrations/terraform-provider-github/github","Test":"TestAccGithubTeamMembership/member","Output":"=== RUN   TestAccGithubTeamMembership/member\n"}
+{"Time":"2026-06-24T17:28:25.610220-04:00","Action":"output","Package":"github.com/integrations/terraform-provider-github/github","Test":"TestAccGithubTeamMembership/member","Output":"--- PASS: TestAccGithubTeamMembership/member (0.00s)\n"}
+{"Time":"2026-06-24T17:28:25.610237-04:00","Action":"pass","Package":"github.com/integrations/terraform-provider-github/github","Test":"TestAccGithubTeamMembership/member","Elapsed":0}
+{"Time":"2026-06-24T17:28:25.610300-04:00","Action":"run","Package":"github.com/integrations/terraform-provider-github/github","Test":"TestAccGithubTeamMembership/maintainer"}
+{"Time":"2026-06-24T17:28:25.610310-04:00","Action":"output","Package":"github.com/integrations/terraform-provider-github/github","Test":"TestAccGithubTeamMembership/maintainer","Output":"=== RUN   TestAccGithubTeamMembership/maintainer\n"}
+{"Time":"2026-06-24T17:28:25.610320-04:00","Action":"output","Package":"github.com/integrations/terraform-provider-github/github","Test":"TestAccGithubTeamMembership/maintainer","Output":"    resource_test.go:42: error creating team membership: 404\n"}
+{"Time":"2026-06-24T17:28:25.610330-04:00","Action":"output","Package":"github.com/integrations/terraform-provider-github/github","Test":"TestAccGithubTeamMembership/maintainer","Output":"--- FAIL: TestAccGithubTeamMembership/maintainer (0.00s)\n"}
+{"Time":"2026-06-24T17:28:25.610337-04:00","Action":"fail","Package":"github.com/integrations/terraform-provider-github/github","Test":"TestAccGithubTeamMembership/maintainer","Elapsed":0}
+{"Time":"2026-06-24T17:28:25.610340-04:00","Action":"output","Package":"github.com/integrations/terraform-provider-github/github","Test":"TestAccGithubTeamMembership","Output":"--- PASS: TestAccGithubTeamMembership (0.00s)\n"}
+{"Time":"2026-06-24T17:28:25.610350-04:00","Action":"pass","Package":"github.com/integrations/terraform-provider-github/github","Test":"TestAccGithubTeamMembership","Elapsed":0}
+{"Time":"2026-06-24T17:28:25.610360-04:00","Action":"output","Package":"github.com/integrations/terraform-provider-github/github","Output":"FAIL\n"}
+{"Time":"2026-06-24T17:28:25.611093-04:00","Action":"output","Package":"github.com/integrations/terraform-provider-github/github","Output":"FAIL\tgithub.com/integrations/terraform-provider-github/github\t0.001s\n"}
+{"Time":"2026-06-24T17:28:25.611115-04:00","Action":"fail","Package":"github.com/integrations/terraform-provider-github/github","Elapsed":0.001}

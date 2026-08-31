@@ -1,0 +1,6 @@
+{"ImportPath":"github.com/integrations/terraform-provider-github/github [github.com/integrations/terraform-provider-github/github.test]","Action":"build-output","Output":"# github.com/integrations/terraform-provider-github/github [github.com/integrations/terraform-provider-github/github.test]\n"}
+{"ImportPath":"github.com/integrations/terraform-provider-github/github [github.com/integrations/terraform-provider-github/github.test]","Action":"build-output","Output":"./resource_github_repository_test.go:3:27: undefined: undefinedSymbol\n"}
+{"ImportPath":"github.com/integrations/terraform-provider-github/github [github.com/integrations/terraform-provider-github/github.test]","Action":"build-fail"}
+{"Time":"2026-06-24T17:28:25.759298-04:00","Action":"start","Package":"github.com/integrations/terraform-provider-github/github"}
+{"Time":"2026-06-24T17:28:25.759331-04:00","Action":"output","Package":"github.com/integrations/terraform-provider-github/github","Output":"FAIL\tgithub.com/integrations/terraform-provider-github/github [build failed]\n"}
+{"Time":"2026-06-24T17:28:25.759337-04:00","Action":"fail","Package":"github.com/integrations/terraform-provider-github/github","Elapsed":0,"FailedBuild":"github.com/integrations/terraform-provider-github/github [github.com/integrations/terraform-provider-github/github.test]"}

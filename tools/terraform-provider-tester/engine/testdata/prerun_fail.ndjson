@@ -1,0 +1,4 @@
+{"Time":"2026-06-24T17:28:25.936064-04:00","Action":"start","Package":"github.com/integrations/terraform-provider-github/github"}
+{"Time":"2026-06-24T17:28:26.136030-04:00","Action":"output","Package":"github.com/integrations/terraform-provider-github/github","Output":"GITHUB_OWNER environment variable not set\n"}
+{"Time":"2026-06-24T17:28:26.136777-04:00","Action":"output","Package":"github.com/integrations/terraform-provider-github/github","Output":"FAIL\tgithub.com/integrations/terraform-provider-github/github\t0.200s\n"}
+{"Time":"2026-06-24T17:28:26.136802-04:00","Action":"fail","Package":"github.com/integrations/terraform-provider-github/github","Elapsed":0.201}

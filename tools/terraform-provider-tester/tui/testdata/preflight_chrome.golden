@@ -1,0 +1,24 @@
+* GH/TF Provider Acceptance 1.2.3 [provider: github] [mode: organization]
+ 1 Preflight 1 blocked  2 Groups 0  3 Run 0  4 Triage 0
+-----------------------
+READY 1  WARNINGS 1  BLOCKED 1  MODE organization
+
++------------------------------------------------------------------------------------------------+
+| Prerequisite checks                                                                            |
+| 1 ready | 1 warnings | 1 blocked                                                               |
+| + READY   identity     authenticated as test-user-1                                            |
+| ! WARNING token-scopes scopes unverified                                                       |
+|   fix: use classic PAT for scope verification                                                  |
+| X BLOCKED enterprise   GITHUB_ENTERPRISE_SLUG not set                                          |
+|   fix: set GITHUB_ENTERPRISE_SLUG=<slug>                                                       |
++------------------------------------------------------------------------------------------------+
+
++------------------------------------------------------------------------------------------------+
+| Next action                                                                                    |
+| Safe before provider writes.                                                                   |
+| set GITHUB_ENTERPRISE_SLUG=<slug>                                                              |
+|                                                                                                |
+| m mode  v variables  p rerun                                                                   |
++------------------------------------------------------------------------------------------------+
+
+left/right tabs   |   p preflight   |   m mode   |   v vars   |   ? help   |   q quit

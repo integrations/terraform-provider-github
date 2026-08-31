@@ -1,0 +1,10 @@
+2026-06-24T17:28:25.000Z [DEBUG] provider: starting acceptance test run
+{"Time":"2026-06-24T17:28:25.341143-04:00","Action":"start","Package":"github.com/integrations/terraform-provider-github/github"}
+2026-06-24T17:28:25.001Z [DEBUG] provider.github: configuring API client
+{"Time":"2026-06-24T17:28:25.609748-04:00","Action":"run","Package":"github.com/integrations/terraform-provider-github/github","Test":"TestAccGithubIpRanges"}
+{"Time":"2026-06-24T17:28:25.610153-04:00","Action":"output","Package":"github.com/integrations/terraform-provider-github/github","Test":"TestAccGithubIpRanges","Output":"=== RUN   TestAccGithubIpRanges\n"}
+2026-06-24T17:28:25.002Z [DEBUG] provider.github: making API call to /meta
+{"Time":"2026-06-24T17:28:25.610246-04:00","Action":"output","Package":"github.com/integrations/terraform-provider-github/github","Test":"TestAccGithubIpRanges","Output":"--- PASS: TestAccGithubIpRanges (0.00s)\n"}
+{"Time":"2026-06-24T17:28:25.610254-04:00","Action":"pass","Package":"github.com/integrations/terraform-provider-github/github","Test":"TestAccGithubIpRanges","Elapsed":0}
+{"Time":"2026-06-24T17:28:25.610262-04:00","Action":"output","Package":"github.com/integrations/terraform-provider-github/github","Output":"ok \tgithub.com/integrations/terraform-provider-github/github\t0.001s\n"}
+{"Time":"2026-06-24T17:28:25.611093-04:00","Action":"pass","Package":"github.com/integrations/terraform-provider-github/github","Elapsed":0.001}

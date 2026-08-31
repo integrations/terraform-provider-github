@@ -1,0 +1,33 @@
+* GH/TF Provider Acceptance 1.2.3 [provider: github] [mode: organization]
+ 1 Preflight -  2 Groups 1  3 Run 2  4 Triage 0
+               ------------
+  Groups / repositories / TestAccA / log  REDACTED  scroll 100%
++------------------------------------------------------------------------------------------------+
+|=== RUN TestAccA                                                                                |
+|    github_repository.test: creating...                                                         |
+|    token: ••••redacted••••                                                                     |
+|    FAIL: assertion failed                                                                      |
+|--- FAIL: TestAccA (2.50s)                                                                      |
+|                                                                                                |
+|                                                                                                |
+|                                                                                                |
+|                                                                                                |
+|                                                                                                |
+|                                                                                                |
+|                                                                                                |
+|                                                                                                |
+|                                                                                                |
+|                                                                                                |
+|                                                                                                |
+|                                                                                                |
+|                                                                                                |
+|                                                                                                |
+|                                                                                                |
+|                                                                                                |
+|                                                                                                |
+|                                                                                                |
+|                                                                                                |
++------------------------------------------------------------------------------------------------+
+  j/k scroll | esc back
+
+left/right tabs   |   j/k scroll   |   esc back   |   ? help   |   q quit

@@ -1,0 +1,17 @@
+* GH/TF Provider Acceptance 1.2.3 [provider: github] [mode: organization]
+ 1 Preflight -  2 Groups 0  3 Run 0  4 Triage 4
+                                    -----------
+Triage
+
+REAL 2  UNSTABLE 1  FLAKES 1  KNOWN 1  ELIGIBLE 2
+  cache available
+
+    CLASSIFICATION   TEST                             CLASS      ATTEMPTS FINGERPRINT       ISSUE
+> REAL             TestAccKnown                     api        1        aaaaaaaaaaaaaaaa known #42
+  FLAKE            TestAccFlake                     rate-limit 2        bbbbbbbbbbbbbbbb -
+  REAL             TestAccReal                      assertion  1        cccccccccccccccc eligible
+  UNSTABLE         TestAccUnstable                  conflict   2        dddddddddddddddd eligible
+
+  enter detail   |   t refresh triage   |   K sync known issues
+
+left/right tabs   |   enter detail   |   t refresh   |   K sync   |   ? help   |   q quit

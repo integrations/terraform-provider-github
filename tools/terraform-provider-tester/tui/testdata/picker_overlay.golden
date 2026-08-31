@@ -1,0 +1,15 @@
+* GH/TF Provider Acceptance 1.2.3 [provider: github] [mode: organization]
+ 1 Preflight -  2 Groups 0  3 Run 0  4 Triage 0
+---------------
++------------------------------------------------------------------------------------------------+
+| Select mode                                                                                    |
+|   anonymous       No credentials; public endpoints only                                        |
+|   individual      Personal account tests requiring GITHUB_OWNER and credentials                |
+| > organization    Organization tests requiring org owner and credentials                       |
+|   team            Team tests; adds external user fixtures                                      |
+|   enterprise      Enterprise tests; adds GITHUB_ENTERPRISE_SLUG                                |
+|                                                                                                |
+|   enter select  esc/q close                                                                    |
++------------------------------------------------------------------------------------------------+
+
+up/down move   |   enter select   |   esc/q close

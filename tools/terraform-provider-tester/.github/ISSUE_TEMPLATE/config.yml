@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: terraform-provider-github (the provider itself)
+    url: https://github.com/integrations/terraform-provider-github/issues
+    about: For bugs in the provider or its acceptance tests, not the harness.

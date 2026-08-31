@@ -1,0 +1,20 @@
+* GH/TF Provider Acceptance 1.2.3 [provider: github] [mode: organization]
+ 1 Preflight -  2 Groups 0  3 Run 0  4 Triage 0
+---------------
++------------------------------------------------------------------------------------------------+
+| Confirm sweep                                                                                  |
+| Destructive action. Review the snapshot and type the exact phrase.                             |
+|   owner  acme-test                                                                             |
+|   phrase SWEEP acme-test                                                                       |
+|                                                                                                |
+|   Targets:                                                                                     |
+|   - repository tf-acc-repo-a https://github.com/acme/tf-acc-repo-a                             |
+|   - team tf-acc-team-b https://github.com/orgs/acme/teams/tf-acc-team-b                        |
+|                                                                                                |
+|   Type SWEEP acme-test to confirm:                                                             |
+|   >                                                                                            |
+|                                                                                                |
+|   enter confirm  esc close                                                                     |
++------------------------------------------------------------------------------------------------+
+
+enter confirm   |   esc close

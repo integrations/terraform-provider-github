@@ -1,0 +1,75 @@
+# Terraform Provider Tester
+> Internal CLI harness that wraps terraform-provider-github acceptance `go test` runs with preflight checks, grouping, JSON output, persisted state, retry and resume, cleanup helpers, and an optional TUI for humans.
+
+## What it solves
+- Full acceptance runs are long and hard to inspect in raw `go test` output.
+- Failures are hard to triage without persisted status, targeted reruns, and per-test failure artifacts.
+- Copilot and CI need deterministic NDJSON, not an interactive dashboard.
+
+## Layout
+- `module github.com/github/terraform-provider-tester` (`go 1.26`).
+- [`engine/`](./engine/) runs `go test -json`, parses events, groups tests, manages state and lock files, and writes failure artifacts.
+- [`cli/`](./cli/) implements command parsing, usage, subcommands, text output, and NDJSON output.
+- [`provider/`](./provider/) defines provider interfaces and shared types for modes, env vars, preflight checks, resources, and sweep options.
+- [`provider/github/`](./provider/github/) implements GitHub-specific env rules, grouping, token and app validation, preflight probes, orphan listing, and sweep.
+- [`tui/`](./tui/) renders the optional Bubble Tea dashboard and run lifecycle views.
+- [`internal/redact/`](./internal/redact/) masks known secret values in persisted and rendered output.
+- [`.github/skills/terraform-provider-tester/`](./.github/skills/terraform-provider-tester/) teaches Copilot the safe JSON workflow.
+
+## Primary agent workflow
+- Build with `make build`.
+- Run from inside a `terraform-provider-github` checkout, or pass `--repo-root <path>`.
+- Prefer `--env-file .pulsar.env` for credentialed commands.
+- Always preflight before credentialed runs.
+- Prefer `--json` for `e2e`, `preflight`, `groups`, `run`, `retry`, and `resume`.
+- Retry failed runs once with `retry --failed --json`, then report remaining `failure_log_path` values.
+- Never print secrets or `.pulsar.env`.
+- Do not run `sweep --confirm` unless cleanup is explicitly requested.
+
+## Commands
+- `terraform-provider-tester e2e --mode individual --json` runs the guided workflow for a first credentialed check.
+- `terraform-provider-tester preflight --json` checks mode prerequisites and emits NDJSON.
+- `terraform-provider-tester groups --json` lists discovered acceptance-test groups as NDJSON.
+- `terraform-provider-tester run --json` runs selected acceptance tests, emits NDJSON, and updates run state.
+- `terraform-provider-tester retry --failed --json` reruns failed top-level tests from last state.
+- `terraform-provider-tester resume --json` reruns failed and not-yet-run tests from last state.
+- `terraform-provider-tester triage --json` classifies the last run and prints a stable `type: "triage"` JSON object.
+- `terraform-provider-tester known-issues list --known-issues <path> --known-issues-offline --json` reads a local known-issues cache without network calls.
+- `terraform-provider-tester known-issues sync --issues-repo <owner/repo> --out <path>` writes a YAML cache from live known issues.
+- `terraform-provider-tester known-issues add --known-issues <path> --fingerprint sha256:<fp>` adds or replaces one local fingerprint entry.
+- `terraform-provider-tester report` prints or exports summaries from persisted state.
+- `terraform-provider-tester orphans` lists leaked `tf-acc-test-*` resources.
+- `terraform-provider-tester sweep --confirm` deletes leaked `tf-acc-test-*` repositories and teams.
+- `terraform-provider-tester unlock` removes a stale `.pulsar-state.json.lock` file.
+- `terraform-provider-tester discover` lists accessible orgs, enterprises, and template repos.
+- `terraform-provider-tester version` prints Terraform Provider Tester version and ownership metadata.
+
+Guided `e2e` supports `anonymous`, `individual`, and `organization`. `--mode` defaults to `organization`. It runs plan + preflight + tests + one failed-test retry + triage, then a read-only orphan check in the credentialed modes (`individual`, `organization`) only, and does not run `sweep` automatically.
+
+Individual mode is the lowest-setup credentialed mode because it needs no dedicated organization, not because it is setup-free. It needs `GITHUB_OWNER`, `GITHUB_USERNAME`, one auth method, and `GH_TEST_ORG_TEMPLATE_REPOSITORY` naming a template repository owned by `GITHUB_OWNER`. A classic PAT needs `repo`, `delete_repo`, `user`, `admin:public_key`, `admin:gpg_key`, and `codespace`; fine-grained PATs and GitHub Apps need the equivalent permissions, which preflight cannot verify.
+
+## Output and safety
+- `--json` always bypasses the dashboard and writes only NDJSON to stdout.
+- `--tui` requests the dashboard for `run`, `retry`, and `resume`; `--no-tui` forces text.
+- Output precedence is `--json`, then `--no-tui`, then `--tui`, then `PULSAR_NO_TUI` or `PULSAR_FORCE_TTY`, then TTY auto-detect.
+- `.pulsar-state.json` stores last-run metadata and test status, without raw test output fields.
+- `.pulsar-state.json.lock` serializes state updates and can be cleared with `unlock` when stale.
+- `.pulsar-state-*.tmp` files are atomic-write temporaries for state saves in the repo root.
+- `.pulsar-failures/` stores redacted per-test failure logs for failed top-level tests.
+- Secret values are redacted before reports and persisted failure artifacts are written.
+- Triage can optionally file a de-duplicated issue, but only when both `--file-issues` and `--confirm-file-issues` are present. Default to dry-run filing; use `--known-issues-offline` for offline-safe local lookup, not with `--file-issues`.
+- `sweep` requires `--confirm` and only targets names with the hard-coded `tf-acc-test-` prefix.
+- `preflight` is read-only and reports configuration and API reachability checks.
+
+## Build + test
+- `make build` builds `./bin/terraform-provider-tester`.
+- `make test` runs harness tests.
+- `make vet` runs `go vet ./...`.
+- `make checkdocs` verifies docs mention only real env vars and subcommands.
+
+## Key files
+- [`README.md`](./README.md): quickstart, command overview, safety model, and run modes.
+- [`docs/`](./docs/): quickstart, CLI reference, architecture, troubleshooting, and env var docs.
+- [`cli/cli.go`](./cli/cli.go): command dispatch, help, and subcommand implementations.
+- [`engine/state.go`](./engine/state.go): persisted run state, atomic save, lock acquire and reclaim, unlock.
+- [`provider/github/`](./provider/github/): GitHub preflight, grouping, auth validation, orphan listing, and sweep behavior.

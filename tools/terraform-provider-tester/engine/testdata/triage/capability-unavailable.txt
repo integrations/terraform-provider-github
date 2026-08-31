@@ -1,0 +1,1 @@
+GET /user/codespaces/secrets/public-key: 404 feature unavailable or token lacks Codespaces access

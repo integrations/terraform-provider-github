@@ -1,0 +1,16 @@
+* GH/TF Provider Acceptance 1.2.3 [provider: github] [mode: organization]
+ 1 Preflight -  2 Groups 4  3 Run 9  4 Triage 0
+               ------------
+GROUPS 4  TESTS 9  PASSED 4  FAILED 1  RUNNING 1
+
+      GROUP             PASS   TIME   PROGRESS
+> X   repositories       2/4   4.1s   #######.......   1 failed
+  |   teams              1/2   0.5s   #######.......
+  +   actions-secrets    1/1   0.3s   ##############
+  .   webhooks           0/2   0.0s   ..............
+----------------------------------------------------
+      TOTAL              4/9   4.9s   ######........   44%   1 failed
+
+  enter tests   |   r run/retry   |   f failures first   |   a all
+
+left/right tabs   |   enter detail   |   r run/retry   |   f failures   |   ? help   |   q quit

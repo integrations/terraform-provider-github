@@ -1,0 +1,4 @@
+# tjlist/bad [tjlist/bad.test]
+bad/bad_test.go:3:44: cannot use "nope" (untyped string constant) as int value in variable declaration
+FAIL	tjlist/bad [build failed]
+FAIL

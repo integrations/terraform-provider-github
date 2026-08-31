@@ -1,0 +1,33 @@
+* GH/TF Provider Acceptance 1.2.3 [provider: github] [mode: organization]
+ 1 Preflight -  2 Groups 0  3 Run 0  4 Triage 4
+                                    -----------
+Failure dossier
+
++--------------------------------------------------------------------------------------------+
+| Classification                                                                             |
+| REAL                                                                                       |
+| test: TestAccKnown                                                                         |
+| classification: real                                                                       |
+| class: api                                                                                 |
+| attempts: 1                                                                                |
+| retryable: false                                                                           |
++--------------------------------------------------------------------------------------------+
++--------------------------------------------------------------------------------------------+
+| Evidence                                                                                   |
+| canonical signature and fingerprint                                                        |
+| fingerprint: aaaaaaaaaaaaaaaa                                                              |
+| canonical: -                                                                               |
+| reasons: known upstream issue                                                              |
+| log: .pulsar-failures/github_TestAccKnown.log                                              |
++--------------------------------------------------------------------------------------------+
++--------------------------------------------------------------------------------------------+
+| Issue state                                                                                |
+| KNOWN                                                                                      |
+| state: known #42                                                                           |
+| known issue: #42                                                                           |
+| issue action: known                                                                        |
++--------------------------------------------------------------------------------------------+
+
+  esc back
+
+left/right tabs   |   t refresh   |   K sync   |   esc back   |   ? help   |   q quit
