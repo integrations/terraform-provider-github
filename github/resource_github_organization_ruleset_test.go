@@ -566,13 +566,13 @@ resource "github_organization_ruleset" "test" {
 		})
 	})
 
-	t.Run("create_repository_ruleset", func(t *testing.T) {
+	t.Run("create_and_update_repository_ruleset", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		rulesetName := fmt.Sprintf("%s-repository-ruleset-%s", testResourcePrefix, randomID)
 
-		config := fmt.Sprintf(`
+		configTemplate := `
 resource "github_organization_ruleset" "test" {
 	name        = "%s"
 	target      = "repository"
@@ -587,16 +587,16 @@ resource "github_organization_ruleset" "test" {
 
 	rules {
 		repository_create   = true
-		repository_delete   = true
+		repository_delete   = %t
 		repository_transfer = true
 
 		repository_name {
-			pattern = "^tf-acc-"
-			negate  = false
+			pattern = "%s"
+			negate  = %t
 		}
 
 		repository_visibility {
-			internal = true
+			internal = %t
 			private  = true
 			# TODO(go-github v91): cover once RepositoryVisibilityRuleParameters
 			# exposes Public (https://github.com/google/go-github/pull/4455).
@@ -604,7 +604,10 @@ resource "github_organization_ruleset" "test" {
 		}
 	}
 }
-`, rulesetName)
+`
+
+		config := fmt.Sprintf(configTemplate, rulesetName, true, "^tf-acc-", false, true)
+		configUpdated := fmt.Sprintf(configTemplate, rulesetName, false, "^tf-acc-updated-", true, false)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
@@ -612,6 +615,16 @@ resource "github_organization_ruleset" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
+				},
+				{
+					Config: configUpdated,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_delete"), knownvalue.Bool(false)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_name").AtSliceIndex(0).AtMapKey("pattern"), knownvalue.StringExact("^tf-acc-updated-")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_name").AtSliceIndex(0).AtMapKey("negate"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_visibility").AtSliceIndex(0).AtMapKey("internal"), knownvalue.Bool(false)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_visibility").AtSliceIndex(0).AtMapKey("private"), knownvalue.Bool(true)),
+					},
 				},
 				{
 					ResourceName:            "github_organization_ruleset.test",
