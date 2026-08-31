@@ -802,6 +802,16 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Optional:    true,
 										Description: "Allow matching repositories to be private.",
 									},
+									// TODO(go-github v91): restore `public` once
+									// github.RepositoryVisibilityRuleParameters exposes Public
+									// (https://github.com/google/go-github/pull/4455). Until then the
+									// field cannot round-trip: the API accepts `public`, but the read
+									// path cannot put it in state and an update would revoke it.
+									// "public": {
+									// 	Type:        schema.TypeBool,
+									// 	Optional:    true,
+									// 	Description: "Allow matching repositories to be public.",
+									// },
 								},
 							},
 						},

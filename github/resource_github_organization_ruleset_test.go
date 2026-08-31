@@ -598,6 +598,9 @@ resource "github_organization_ruleset" "test" {
 		repository_visibility {
 			internal = true
 			private  = true
+			# TODO(go-github v91): cover once RepositoryVisibilityRuleParameters
+			# exposes Public (https://github.com/google/go-github/pull/4455).
+			# public = true
 		}
 	}
 }
