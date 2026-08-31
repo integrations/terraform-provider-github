@@ -156,10 +156,10 @@ resource "github_organization_ruleset" "example_repository" {
 
 - `bypass_actors` (Block List) The actors that can bypass the rules in this ruleset. (see [below for nested schema](#nestedblock--bypass_actors))
 - `conditions` (Block List, Max: 1) Parameters for an organization ruleset condition. Exactly one of `repository_name`, `repository_id` or `repository_property` must be set. For `branch` and `tag` targets, `ref_name` is required alongside it. For `push` and `repository` targets, `ref_name` must not be set. (see [below for nested schema](#nestedblock--conditions))
+- `etag` (String) An etag representing the ruleset for caching purposes.
 
 ### Read-Only
 
-- `etag` (String) An etag representing the ruleset for caching purposes.
 - `id` (String) The ID of this resource.
 - `node_id` (String) GraphQL global node id for use with v4 API.
 - `ruleset_id` (Number) GitHub ID for the ruleset.
