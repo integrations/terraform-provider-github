@@ -27,6 +27,8 @@ func resourceGithubActionsHostedRunner() *schema.Resource {
 		},
 
 		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(30 * time.Minute),
+			Update: schema.DefaultTimeout(30 * time.Minute),
 			Delete: schema.DefaultTimeout(10 * time.Minute),
 		},
 
@@ -334,6 +336,10 @@ func resourceGithubActionsHostedRunnerCreate(d *schema.ResourceData, meta any) e
 		return fmt.Errorf("failed to get runner ID from response: %+v", runner)
 	}
 
+	if err := waitForRunnerReady(ctx, client, orgName, d.Id(), d.Get("public_ip_enabled").(bool), d.Timeout(schema.TimeoutCreate)); err != nil {
+		return err
+	}
+
 	return resourceGithubActionsHostedRunnerRead(d, meta)
 }
 
@@ -489,7 +495,69 @@ func resourceGithubActionsHostedRunnerUpdate(d *schema.ResourceData, meta any) e
 		}
 	}
 
+	if err := waitForRunnerReady(ctx, client, orgName, runnerID, d.Get("public_ip_enabled").(bool), d.Timeout(schema.TimeoutUpdate)); err != nil {
+		return err
+	}
+
 	return resourceGithubActionsHostedRunnerRead(d, meta)
+}
+
+func waitForRunnerReady(ctx context.Context, client *github.Client, orgName, runnerID string, requirePublicIPs bool, timeout time.Duration) error {
+	conf := &retry.StateChangeConf{
+		Pending: []string{"pending"},
+		Target:  []string{"ready"},
+		Refresh: func() (any, string, error) {
+			req, err := client.NewRequest(ctx, "GET", fmt.Sprintf("orgs/%s/actions/hosted-runners/%s", orgName, runnerID), nil)
+			if err != nil {
+				return nil, "", err
+			}
+
+			var runner map[string]any
+			resp, err := client.Do(req, &runner)
+			if resp != nil && resp.StatusCode == http.StatusNotFound {
+				// Keep the result non-nil to avoid StateChangeConf's not-found retry limit.
+				return runnerID, "pending", nil
+			}
+			if err != nil {
+				return nil, "", err
+			}
+			if runner == nil {
+				return nil, "", fmt.Errorf("no runner data returned from API")
+			}
+
+			state, err := hostedRunnerProvisioningState(runner, requirePublicIPs)
+			return runner, state, err
+		},
+		Timeout:    timeout,
+		Delay:      10 * time.Second,
+		MinTimeout: 5 * time.Second,
+	}
+
+	_, err := conf.WaitForStateContext(ctx)
+	return err
+}
+
+func hostedRunnerProvisioningState(runner map[string]any, requirePublicIPs bool) (string, error) {
+	status, ok := runner["status"].(string)
+	if !ok {
+		return "", fmt.Errorf("failed to get hosted runner status from response: %+v", runner)
+	}
+
+	if status == "Stuck" {
+		return "", fmt.Errorf("hosted runner provisioning is stuck")
+	}
+	if status != "Ready" {
+		return "pending", nil
+	}
+
+	if requirePublicIPs {
+		publicIPs, ok := runner["public_ips"].([]any)
+		if !ok || len(publicIPs) == 0 {
+			return "pending", nil
+		}
+	}
+
+	return "ready", nil
 }
 
 func resourceGithubActionsHostedRunnerDelete(d *schema.ResourceData, meta any) error {

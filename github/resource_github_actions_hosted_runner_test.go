@@ -8,6 +8,67 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
+func TestHostedRunnerProvisioningState(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		runner           map[string]any
+		requirePublicIPs bool
+		wantState        string
+		wantErr          bool
+	}{
+		"provisioning": {
+			runner:    map[string]any{"status": "Provisioning"},
+			wantState: "pending",
+		},
+		"ready without public IP requirement": {
+			runner:    map[string]any{"status": "Ready"},
+			wantState: "ready",
+		},
+		"ready before public IP allocation": {
+			runner:           map[string]any{"status": "Ready", "public_ips": []any{}},
+			requirePublicIPs: true,
+			wantState:        "pending",
+		},
+		"ready with public IP allocation": {
+			runner: map[string]any{
+				"status":     "Ready",
+				"public_ips": []any{map[string]any{"prefix": "192.0.2.1"}},
+			},
+			requirePublicIPs: true,
+			wantState:        "ready",
+		},
+		"stuck": {
+			runner:  map[string]any{"status": "Stuck"},
+			wantErr: true,
+		},
+		"missing status": {
+			runner:  map[string]any{},
+			wantErr: true,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := hostedRunnerProvisioningState(test.runner, test.requirePublicIPs)
+			if test.wantErr {
+				if err == nil {
+					t.Fatal("expected an error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != test.wantState {
+				t.Fatalf("got state %q, want %q", got, test.wantState)
+			}
+		})
+	}
+}
+
 func TestAccGithubActionsHostedRunner(t *testing.T) {
 	t.Parallel()
 
@@ -55,8 +116,9 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			resource.TestCheckResourceAttrSet(
 				"github_actions_hosted_runner.test", "id",
 			),
-			resource.TestCheckResourceAttrSet(
+			resource.TestCheckResourceAttr(
 				"github_actions_hosted_runner.test", "status",
+				"Ready",
 			),
 			resource.TestCheckResourceAttrSet(
 				"github_actions_hosted_runner.test", "platform",
@@ -130,6 +192,13 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			resource.TestCheckResourceAttr(
 				"github_actions_hosted_runner.test", "public_ip_enabled",
 				"true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_actions_hosted_runner.test", "status",
+				"Ready",
+			),
+			resource.TestCheckResourceAttrSet(
+				"github_actions_hosted_runner.test", "public_ips.0.prefix",
 			),
 		)
 
