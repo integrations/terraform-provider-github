@@ -186,8 +186,7 @@ func resourceGithubActionsEnterpriseRunnerGroupCreate(d *schema.ResourceData, me
 func getEnterpriseRunnerGroup(client *github.Client, ctx context.Context, ent string, groupID int64) (*github.EnterpriseRunnerGroup, *github.Response, error) {
 	enterpriseRunnerGroup, resp, err := client.Enterprise.GetEnterpriseRunnerGroup(ctx, ent, groupID)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if _, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			// ignore error StatusNotModified
 			return enterpriseRunnerGroup, resp, nil
 		}
@@ -211,8 +210,7 @@ func resourceGithubActionsEnterpriseRunnerGroupRead(d *schema.ResourceData, m an
 
 	enterpriseRunnerGroup, resp, err := getEnterpriseRunnerGroup(client, ctx, enterpriseSlug, runnerGroupID)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing enterprise runner group %s/%s from state because it no longer exists in GitHub",
 					enterpriseSlug, d.Id())

@@ -130,8 +130,7 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta any) error {
 
 	ref, resp, err := client.Git.GetRef(ctx, orgName, repoName, branchRefName)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}

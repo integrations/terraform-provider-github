@@ -214,8 +214,7 @@ func resourceGithubRepositoryEnvironmentRead(ctx context.Context, d *schema.Reso
 
 	env, _, err := client.Repositories.GetEnvironment(ctx, owner, repoName, url.PathEscape(envName))
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				tflog.Info(ctx, "Repository environment not found, removing from state.", map[string]any{"repository": repoName, "environment": envName})
 				d.SetId("")
