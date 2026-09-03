@@ -20,6 +20,9 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 		ReadContext:   resourceGithubRepositoryWebhookRead,
 		UpdateContext: resourceGithubRepositoryWebhookUpdate,
 		DeleteContext: resourceGithubRepositoryWebhookDelete,
+		ValidateRawResourceConfigFuncs: []schema.ValidateRawResourceConfigFunc{
+			preferWriteOnlyWebhookSecretValidator(),
+		},
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")
@@ -98,9 +101,12 @@ func resourceGithubRepositoryWebhookObject(d *schema.ResourceData) *github.Hook 
 		Active: &active,
 	}
 
-	config := d.Get("configuration").([]any)[0].(map[string]any)
+	config := d.Get("configuration").([]any)
 	if len(config) > 0 {
-		hook.Config = webhookConfigFromInterface(config)
+		hook.Config = webhookConfigFromInterface(config[0].(map[string]any))
+		if secret, configured := d.GetOk("configuration.0.secret"); configured {
+			hook.Config.Secret = new(secret.(string))
+		}
 	}
 
 	return hook
@@ -112,23 +118,22 @@ func resourceGithubRepositoryWebhookCreate(ctx context.Context, d *schema.Resour
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	hk := resourceGithubRepositoryWebhookObject(d)
+	if _, configured := d.GetOk("configuration.0.secret_wo_version"); configured {
+		secret, diags := readRawWriteOnlyString(d, webhookSecretWriteOnlyPath)
+		if diags.HasError() {
+			return diags
+		}
+		if hk.Config == nil {
+			hk.Config = &github.HookConfig{}
+		}
+		hk.Config.Secret = new(secret)
+	}
 
 	hook, _, err := client.Repositories.CreateHook(ctx, owner, repoName, hk)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	d.SetId(strconv.FormatInt(hook.GetID(), 10))
-
-	// GitHub returns the secret as a string of 8 astrisks "********"
-	// We would prefer to store the real secret in state, so we'll
-	// write the configuration secret in state from our request to GitHub
-	if hook.Config.Secret != nil {
-		hook.Config.Secret = hk.Config.Secret
-	}
-
-	if err = d.Set("configuration", interfaceFromWebhookConfig(hook.Config)); err != nil {
-		return diag.FromErr(err)
-	}
 
 	return resourceGithubRepositoryWebhookRead(ctx, d, meta)
 }
@@ -172,19 +177,7 @@ func resourceGithubRepositoryWebhookRead(ctx context.Context, d *schema.Resource
 		return diag.FromErr(err)
 	}
 
-	// GitHub returns the secret as a string of 8 astrisks "********"
-	// We would prefer to store the real secret in state, so we'll
-	// write the configuration secret in state from what we get from
-	// ResourceData
-	if len(d.Get("configuration").([]any)) > 0 {
-		currentSecret := d.Get("configuration").([]any)[0].(map[string]any)["secret"]
-
-		if hook.Config.Secret != nil {
-			hook.Config.Secret = new(currentSecret.(string))
-		}
-	}
-
-	if err = d.Set("configuration", interfaceFromWebhookConfig(hook.Config)); err != nil {
+	if err = d.Set("configuration", interfaceFromWebhookConfigPreservingState(hook.Config, d)); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -197,6 +190,21 @@ func resourceGithubRepositoryWebhookUpdate(ctx context.Context, d *schema.Resour
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	hk := resourceGithubRepositoryWebhookObject(d)
+	if d.HasChange("configuration.0.secret") {
+		if _, configured := d.GetOk("configuration.0.secret"); !configured && hk.Config != nil {
+			hk.Config.Secret = new("")
+		}
+	}
+	if _, configured := d.GetOk("configuration.0.secret_wo_version"); d.HasChange("configuration.0.secret_wo_version") && configured {
+		secret, diags := readRawWriteOnlyString(d, webhookSecretWriteOnlyPath)
+		if diags.HasError() {
+			return diags
+		}
+		if hk.Config == nil {
+			hk.Config = &github.HookConfig{}
+		}
+		hk.Config.Secret = new(secret)
+	}
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(unconvertibleIdErr(d.Id(), err))

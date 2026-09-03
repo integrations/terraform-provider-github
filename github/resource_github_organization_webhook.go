@@ -18,6 +18,9 @@ func resourceGithubOrganizationWebhook() *schema.Resource {
 		ReadContext:   resourceGithubOrganizationWebhookRead,
 		UpdateContext: resourceGithubOrganizationWebhookUpdate,
 		DeleteContext: resourceGithubOrganizationWebhookDelete,
+		ValidateRawResourceConfigFuncs: []schema.ValidateRawResourceConfigFunc{
+			preferWriteOnlyWebhookSecretValidator(),
+		},
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -81,6 +84,9 @@ func resourceGithubOrganizationWebhookObject(d *schema.ResourceData) *github.Hoo
 	config := d.Get("configuration").([]any)
 	if len(config) > 0 {
 		hook.Config = webhookConfigFromInterface(config[0].(map[string]any))
+		if secret, configured := d.GetOk("configuration.0.secret"); configured {
+			hook.Config.Secret = new(secret.(string))
+		}
 	}
 
 	return hook
@@ -96,23 +102,22 @@ func resourceGithubOrganizationWebhookCreate(ctx context.Context, d *schema.Reso
 
 	orgName := meta.(*Owner).name
 	webhookObj := resourceGithubOrganizationWebhookObject(d)
+	if _, configured := d.GetOk("configuration.0.secret_wo_version"); configured {
+		secret, diags := readRawWriteOnlyString(d, webhookSecretWriteOnlyPath)
+		if diags.HasError() {
+			return diags
+		}
+		if webhookObj.Config == nil {
+			webhookObj.Config = &github.HookConfig{}
+		}
+		webhookObj.Config.Secret = new(secret)
+	}
 
 	hook, _, err := client.Organizations.CreateHook(ctx, orgName, webhookObj)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	d.SetId(strconv.FormatInt(hook.GetID(), 10))
-
-	// GitHub returns the secret as a string of 8 astrisks "********"
-	// We would prefer to store the real secret in state, so we'll
-	// write the configuration secret in state from our request to GitHub
-	if hook.Config.Secret != nil {
-		hook.Config.Secret = webhookObj.Config.Secret
-	}
-
-	if err = d.Set("configuration", interfaceFromWebhookConfig(hook.Config)); err != nil {
-		return diag.FromErr(err)
-	}
 
 	return resourceGithubOrganizationWebhookRead(ctx, d, meta)
 }
@@ -164,19 +169,7 @@ func resourceGithubOrganizationWebhookRead(ctx context.Context, d *schema.Resour
 		return diag.FromErr(err)
 	}
 
-	// GitHub returns the secret as a string of 8 astrisks "********"
-	// We would prefer to store the real secret in state, so we'll
-	// write the configuration secret in state from what we get from
-	// ResourceData
-	if len(d.Get("configuration").([]any)) > 0 {
-		currentSecret := d.Get("configuration").([]any)[0].(map[string]any)["secret"]
-
-		if hook.Config.Secret != nil {
-			hook.Config.Secret = new(currentSecret.(string))
-		}
-	}
-
-	if err = d.Set("configuration", interfaceFromWebhookConfig(hook.Config)); err != nil {
+	if err = d.Set("configuration", interfaceFromWebhookConfigPreservingState(hook.Config, d)); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -193,6 +186,21 @@ func resourceGithubOrganizationWebhookUpdate(ctx context.Context, d *schema.Reso
 
 	orgName := meta.(*Owner).name
 	webhookObj := resourceGithubOrganizationWebhookObject(d)
+	if d.HasChange("configuration.0.secret") {
+		if _, configured := d.GetOk("configuration.0.secret"); !configured && webhookObj.Config != nil {
+			webhookObj.Config.Secret = new("")
+		}
+	}
+	if _, configured := d.GetOk("configuration.0.secret_wo_version"); d.HasChange("configuration.0.secret_wo_version") && configured {
+		secret, diags := readRawWriteOnlyString(d, webhookSecretWriteOnlyPath)
+		if diags.HasError() {
+			return diags
+		}
+		if webhookObj.Config == nil {
+			webhookObj.Config = &github.HookConfig{}
+		}
+		webhookObj.Config.Secret = new(secret)
+	}
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
@@ -250,14 +258,14 @@ func webhookConfigFromInterface(config map[string]any) *github.HookConfig {
 			}
 		}
 	}
-	if config["secret"] != nil {
-		hookConfig.Secret = new(config["secret"].(string))
-	}
 	return hookConfig
 }
 
 func interfaceFromWebhookConfig(config *github.HookConfig) []any {
 	cfg := map[string]any{}
+	if config == nil {
+		return []any{cfg}
+	}
 	if config.URL != nil {
 		cfg["url"] = *config.URL
 	}
@@ -271,4 +279,20 @@ func interfaceFromWebhookConfig(config *github.HookConfig) []any {
 		cfg["secret"] = *config.Secret
 	}
 	return []any{cfg}
+}
+
+func interfaceFromWebhookConfigPreservingState(config *github.HookConfig, d *schema.ResourceData) []any {
+	flattened := interfaceFromWebhookConfig(config)
+	cfg := flattened[0].(map[string]any)
+
+	if secret, configured := d.GetOk("configuration.0.secret"); configured {
+		cfg["secret"] = secret.(string)
+	} else {
+		delete(cfg, "secret")
+	}
+	if version, configured := d.GetOk("configuration.0.secret_wo_version"); configured {
+		cfg["secret_wo_version"] = version.(int)
+	}
+
+	return flattened
 }
