@@ -32,9 +32,9 @@ The following arguments are supported:
 
 - `content_type` - (Required) The content type for the payload. Valid values are either `form` or `json`.
 
-- `secret` - (Optional) The shared secret for the webhook. Although sensitive, this legacy argument is stored in Terraform plan and state. It conflicts with `secret_wo`. [See API documentation](https://developer.github.com/v3/repos/hooks/#create-a-hook).
+- `secret` - (Optional) The shared secret for the webhook. It conflicts with `secret_wo`. [See API documentation](https://developer.github.com/v3/repos/hooks/#create-a-hook).
 
-- `secret_wo` - (Optional, Write-only) The shared secret for the webhook. Requires Terraform 1.11 or later and must be paired with `secret_wo_version`. It accepts ephemeral or ordinary values and is omitted from Terraform plan and state. It conflicts with `secret`.
+- `secret_wo` - (Optional, Write-only) The shared secret for the webhook (write-only variant). Requires Terraform 1.11 or later and must be paired with `secret_wo_version`. It accepts ephemeral or ordinary values and is omitted from Terraform plan and state. It conflicts with `secret`.
 
 - `secret_wo_version` - (Optional) Version of `secret_wo`. It must be at least `1` and must be paired with `secret_wo`. Change this value whenever the secret is rotated; changing the secret value alone does not trigger an update.
 
