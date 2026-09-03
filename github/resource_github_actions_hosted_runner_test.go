@@ -13,6 +13,7 @@ func TestHostedRunnerProvisioningState(t *testing.T) {
 
 	tests := map[string]struct {
 		runner           map[string]any
+		expectedUpdate   map[string]any
 		requirePublicIPs bool
 		wantState        string
 		wantErr          bool
@@ -29,6 +30,42 @@ func TestHostedRunnerProvisioningState(t *testing.T) {
 			runner:           map[string]any{"status": "Ready", "public_ips": []any{}},
 			requirePublicIPs: true,
 			wantState:        "pending",
+		},
+		"ready before update is applied": {
+			runner: map[string]any{
+				"status":               "Ready",
+				"machine_size_details": map[string]any{"id": "2-core"},
+				"public_ip_enabled":    true,
+				"public_ips":           []any{map[string]any{"prefix": "192.0.2.1"}},
+			},
+			expectedUpdate: map[string]any{
+				"size":             "4-core",
+				"enable_static_ip": true,
+			},
+			requirePublicIPs: true,
+			wantState:        "pending",
+		},
+		"ready after update is applied": {
+			runner: map[string]any{
+				"status":               "Ready",
+				"name":                 "updated",
+				"machine_size_details": map[string]any{"id": "4-core"},
+				"runner_group_id":      float64(2),
+				"maximum_runners":      float64(5),
+				"public_ip_enabled":    true,
+				"public_ips":           []any{map[string]any{"prefix": "192.0.2.1"}},
+				"image_details":        map[string]any{"version": "2"},
+			},
+			expectedUpdate: map[string]any{
+				"name":             "updated",
+				"size":             "4-core",
+				"runner_group_id":  2,
+				"maximum_runners":  5,
+				"enable_static_ip": true,
+				"image_version":    "2",
+			},
+			requirePublicIPs: true,
+			wantState:        "ready",
 		},
 		"ready with public IP allocation": {
 			runner: map[string]any{
@@ -52,7 +89,7 @@ func TestHostedRunnerProvisioningState(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := hostedRunnerProvisioningState(test.runner, test.requirePublicIPs)
+			got, err := hostedRunnerProvisioningState(test.runner, test.expectedUpdate, test.requirePublicIPs)
 			if test.wantErr {
 				if err == nil {
 					t.Fatal("expected an error")
@@ -152,10 +189,31 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 		})
 	})
 
-	t.Run("creates hosted runner with optional parameters", func(t *testing.T) {
+	t.Run("updates hosted runner to enable public IPs", func(t *testing.T) {
 		t.Parallel()
 
-		config := fmt.Sprintf(`
+		configBefore := fmt.Sprintf(`
+			resource "github_actions_runner_group" "test" {
+				name       = "tf-acc-test-group-%s"
+				visibility = "all"
+			}
+
+			resource "github_actions_hosted_runner" "test" {
+				name = "tf-acc-test-optional-%s"
+
+				image {
+					id     = "2306"
+					source = "github"
+				}
+
+				size              = "2-core"
+				runner_group_id   = github_actions_runner_group.test.id
+				maximum_runners   = 5
+				public_ip_enabled = false
+			}
+		`, randomID, randomID)
+
+		configAfter := fmt.Sprintf(`
 			resource "github_actions_runner_group" "test" {
 				name       = "tf-acc-test-group-%s"
 				visibility = "all"
@@ -176,7 +234,18 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			}
 		`, randomID, randomID)
 
-		check := resource.ComposeTestCheckFunc(
+		checkBefore := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_actions_hosted_runner.test", "public_ip_enabled",
+				"false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_actions_hosted_runner.test", "status",
+				"Ready",
+			),
+		)
+
+		checkAfter := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
 				"github_actions_hosted_runner.test", "name",
 				fmt.Sprintf("tf-acc-test-optional-%s", randomID),
@@ -207,8 +276,12 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: config,
-					Check:  check,
+					Config: configBefore,
+					Check:  checkBefore,
+				},
+				{
+					Config: configAfter,
+					Check:  checkAfter,
 				},
 			},
 		})
