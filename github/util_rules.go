@@ -666,14 +666,14 @@ func flattenRules(ctx context.Context, rules *github.RepositoryRulesetRules, org
 	rulesMap := make(map[string]any)
 
 	// Simple boolean rules - explicitly set all to false first, then override with true if present
-	rulesMap["creation"] = rules.Creation != nil
-	rulesMap["deletion"] = rules.Deletion != nil
-	rulesMap["required_linear_history"] = rules.RequiredLinearHistory != nil
-	rulesMap["required_signatures"] = rules.RequiredSignatures != nil
-	rulesMap["non_fast_forward"] = rules.NonFastForward != nil
+	rulesMap["creation"] = rules.GetCreation() != nil
+	rulesMap["deletion"] = rules.GetDeletion() != nil
+	rulesMap["required_linear_history"] = rules.GetRequiredLinearHistory() != nil
+	rulesMap["required_signatures"] = rules.GetRequiredSignatures() != nil
+	rulesMap["non_fast_forward"] = rules.GetNonFastForward() != nil
 
 	// Update rule with parameters
-	if rules.Update != nil {
+	if rules.GetUpdate() != nil {
 		rulesMap["update"] = true
 		if !org {
 			rulesMap["update_allows_fetch_and_merge"] = rules.GetUpdate().GetUpdateAllowsFetchAndMerge()
@@ -684,71 +684,62 @@ func flattenRules(ctx context.Context, rules *github.RepositoryRulesetRules, org
 			rulesMap["update_allows_fetch_and_merge"] = false
 		}
 	} // Required deployments rule
-	if rules.RequiredDeployments != nil {
+	if rules.GetRequiredDeployments() != nil {
 		requiredDeploymentsSlice := make([]map[string]any, 0)
 		requiredDeploymentsSlice = append(requiredDeploymentsSlice, map[string]any{
-			"required_deployment_environments": rules.RequiredDeployments.RequiredDeploymentEnvironments,
+			"required_deployment_environments": rules.GetRequiredDeployments().GetRequiredDeploymentEnvironments(),
 		})
 		rulesMap["required_deployments"] = requiredDeploymentsSlice
 	}
 
 	// Pull request rule
-	if rules.PullRequest != nil {
+	if rules.GetPullRequest() != nil {
 		pullRequestSlice := make([]map[string]any, 0)
 		pullRequestSlice = append(pullRequestSlice, map[string]any{
-			"dismiss_stale_reviews_on_push":     rules.PullRequest.DismissStaleReviewsOnPush,
-			"require_code_owner_review":         rules.PullRequest.RequireCodeOwnerReview,
-			"require_last_push_approval":        rules.PullRequest.RequireLastPushApproval,
-			"required_approving_review_count":   rules.PullRequest.RequiredApprovingReviewCount,
-			"required_review_thread_resolution": rules.PullRequest.RequiredReviewThreadResolution,
-			"allowed_merge_methods":             rules.PullRequest.AllowedMergeMethods,
-			"required_reviewers":                flattenRequiredReviewers(rules.PullRequest.RequiredReviewers),
+			"dismiss_stale_reviews_on_push":     rules.GetPullRequest().GetDismissStaleReviewsOnPush(),
+			"require_code_owner_review":         rules.GetPullRequest().GetRequireCodeOwnerReview(),
+			"require_last_push_approval":        rules.GetPullRequest().GetRequireLastPushApproval(),
+			"required_approving_review_count":   rules.GetPullRequest().GetRequiredApprovingReviewCount(),
+			"required_review_thread_resolution": rules.GetPullRequest().GetRequiredReviewThreadResolution(),
+			"allowed_merge_methods":             rules.GetPullRequest().GetAllowedMergeMethods(),
+			"required_reviewers":                flattenRequiredReviewers(rules.GetPullRequest().GetRequiredReviewers()),
 		})
 		tflog.Debug(ctx, "Flattened Pull Request rules slice", map[string]any{"pull_request": pullRequestSlice})
 		rulesMap["pull_request"] = pullRequestSlice
 	}
 
 	// Merge queue rule
-	if rules.MergeQueue != nil {
+	if rules.GetMergeQueue() != nil {
 		mergeQueueSlice := make([]map[string]any, 0)
 		mergeQueueSlice = append(mergeQueueSlice, map[string]any{
-			"check_response_timeout_minutes":    rules.MergeQueue.CheckResponseTimeoutMinutes,
-			"grouping_strategy":                 string(rules.MergeQueue.GroupingStrategy),
-			"max_entries_to_build":              rules.MergeQueue.MaxEntriesToBuild,
-			"max_entries_to_merge":              rules.MergeQueue.MaxEntriesToMerge,
-			"merge_method":                      string(rules.MergeQueue.MergeMethod),
-			"min_entries_to_merge":              rules.MergeQueue.MinEntriesToMerge,
-			"min_entries_to_merge_wait_minutes": rules.MergeQueue.MinEntriesToMergeWaitMinutes,
+			"check_response_timeout_minutes":    rules.GetMergeQueue().GetCheckResponseTimeoutMinutes(),
+			"grouping_strategy":                 string(rules.GetMergeQueue().GetGroupingStrategy()),
+			"max_entries_to_build":              rules.GetMergeQueue().GetMaxEntriesToBuild(),
+			"max_entries_to_merge":              rules.GetMergeQueue().GetMaxEntriesToMerge(),
+			"merge_method":                      string(rules.GetMergeQueue().GetMergeMethod()),
+			"min_entries_to_merge":              rules.GetMergeQueue().GetMinEntriesToMerge(),
+			"min_entries_to_merge_wait_minutes": rules.GetMergeQueue().GetMinEntriesToMergeWaitMinutes(),
 		})
 		rulesMap["merge_queue"] = mergeQueueSlice
 	}
 
 	// Required status checks rule
-	if rules.RequiredStatusChecks != nil {
+	if rules.GetRequiredStatusChecks() != nil {
 		requiredStatusSlice := make([]map[string]any, 0)
 		requiredChecks := make([]map[string]any, 0)
 
-		for _, check := range rules.RequiredStatusChecks.RequiredStatusChecks {
+		for _, check := range rules.GetRequiredStatusChecks().GetRequiredStatusChecks() {
 			checkMap := map[string]any{
-				"context": check.Context,
-			}
-			if check.IntegrationID != nil {
-				checkMap["integration_id"] = int(*check.IntegrationID)
-			} else {
-				checkMap["integration_id"] = 0
+				"context":        check.GetContext(),
+				"integration_id": int(check.GetIntegrationID()),
 			}
 			requiredChecks = append(requiredChecks, checkMap)
 		}
 
 		statusChecksMap := map[string]any{
 			"required_check":                       requiredChecks,
-			"strict_required_status_checks_policy": rules.RequiredStatusChecks.StrictRequiredStatusChecksPolicy,
-		}
-
-		if rules.RequiredStatusChecks.DoNotEnforceOnCreate != nil {
-			statusChecksMap["do_not_enforce_on_create"] = *rules.RequiredStatusChecks.DoNotEnforceOnCreate
-		} else {
-			statusChecksMap["do_not_enforce_on_create"] = false
+			"strict_required_status_checks_policy": rules.GetRequiredStatusChecks().GetStrictRequiredStatusChecksPolicy(),
+			"do_not_enforce_on_create":             rules.GetRequiredStatusChecks().GetDoNotEnforceOnCreate(),
 		}
 
 		requiredStatusSlice = append(requiredStatusSlice, statusChecksMap)
@@ -757,25 +748,25 @@ func flattenRules(ctx context.Context, rules *github.RepositoryRulesetRules, org
 
 	// Pattern parameter rules
 	patternRules := map[string]*github.PatternRuleParameters{
-		"commit_message_pattern":      rules.CommitMessagePattern,
-		"commit_author_email_pattern": rules.CommitAuthorEmailPattern,
-		"committer_email_pattern":     rules.CommitterEmailPattern,
-		"branch_name_pattern":         rules.BranchNamePattern,
-		"tag_name_pattern":            rules.TagNamePattern,
+		"commit_message_pattern":      rules.GetCommitMessagePattern(),
+		"commit_author_email_pattern": rules.GetCommitAuthorEmailPattern(),
+		"committer_email_pattern":     rules.GetCommitterEmailPattern(),
+		"branch_name_pattern":         rules.GetBranchNamePattern(),
+		"tag_name_pattern":            rules.GetTagNamePattern(),
 	}
 
 	for k, v := range patternRules {
 		if v != nil {
 			patternSlice := make([]map[string]any, 0)
 			patternMap := map[string]any{
-				"operator": string(v.Operator),
-				"pattern":  v.Pattern,
+				"operator": string(v.GetOperator()),
+				"pattern":  v.GetPattern(),
 			}
 			if v.Name != nil {
-				patternMap["name"] = *v.Name
+				patternMap["name"] = v.GetName()
 			}
 			if v.Negate != nil {
-				patternMap["negate"] = *v.Negate
+				patternMap["negate"] = v.GetNegate()
 			}
 			patternSlice = append(patternSlice, patternMap)
 			rulesMap[k] = patternSlice
@@ -783,31 +774,26 @@ func flattenRules(ctx context.Context, rules *github.RepositoryRulesetRules, org
 	}
 
 	// Required workflows rule (org-only)
-	if org && rules.Workflows != nil {
+	if org && rules.GetWorkflows() != nil {
 		requiredWorkflowsSlice := make([]map[string]any, 0)
 		requiredWorkflows := make([]map[string]any, 0)
 
-		for _, workflow := range rules.Workflows.Workflows {
+		for _, workflow := range rules.GetWorkflows().GetWorkflows() {
 			workflowMap := map[string]any{
-				"path": workflow.Path,
+				"path": workflow.GetPath(),
 			}
 			if workflow.RepositoryID != nil {
-				workflowMap["repository_id"] = int(*workflow.RepositoryID)
+				workflowMap["repository_id"] = int(workflow.GetRepositoryID())
 			}
 			if workflow.Ref != nil {
-				workflowMap["ref"] = *workflow.Ref
+				workflowMap["ref"] = workflow.GetRef()
 			}
 			requiredWorkflows = append(requiredWorkflows, workflowMap)
 		}
 
 		workflowsMap := map[string]any{
-			"required_workflow": requiredWorkflows,
-		}
-
-		if rules.Workflows.DoNotEnforceOnCreate != nil {
-			workflowsMap["do_not_enforce_on_create"] = *rules.Workflows.DoNotEnforceOnCreate
-		} else {
-			workflowsMap["do_not_enforce_on_create"] = false
+			"required_workflow":        requiredWorkflows,
+			"do_not_enforce_on_create": rules.GetWorkflows().GetDoNotEnforceOnCreate(),
 		}
 
 		requiredWorkflowsSlice = append(requiredWorkflowsSlice, workflowsMap)
@@ -815,15 +801,15 @@ func flattenRules(ctx context.Context, rules *github.RepositoryRulesetRules, org
 	}
 
 	// Required code scanning rule
-	if rules.CodeScanning != nil {
+	if rules.GetCodeScanning() != nil {
 		requiredCodeScanningSlice := make([]map[string]any, 0)
 		requiredCodeScanningTools := make([]map[string]any, 0)
 
-		for _, tool := range rules.CodeScanning.CodeScanningTools {
+		for _, tool := range rules.GetCodeScanning().GetCodeScanningTools() {
 			toolMap := map[string]any{
-				"alerts_threshold":          string(tool.AlertsThreshold),
-				"security_alerts_threshold": string(tool.SecurityAlertsThreshold),
-				"tool":                      tool.Tool,
+				"alerts_threshold":          string(tool.GetAlertsThreshold()),
+				"security_alerts_threshold": string(tool.GetSecurityAlertsThreshold()),
+				"tool":                      tool.GetTool(),
 			}
 			requiredCodeScanningTools = append(requiredCodeScanningTools, toolMap)
 		}
@@ -837,47 +823,47 @@ func flattenRules(ctx context.Context, rules *github.RepositoryRulesetRules, org
 	}
 
 	// File path restriction rule
-	if rules.FilePathRestriction != nil {
+	if rules.GetFilePathRestriction() != nil {
 		filePathRestrictionSlice := make([]map[string]any, 0)
 		filePathRestrictionSlice = append(filePathRestrictionSlice, map[string]any{
-			"restricted_file_paths": rules.FilePathRestriction.RestrictedFilePaths,
+			"restricted_file_paths": rules.GetFilePathRestriction().GetRestrictedFilePaths(),
 		})
 		rulesMap["file_path_restriction"] = filePathRestrictionSlice
 	}
 
 	// Max file size rule
-	if rules.MaxFileSize != nil {
+	if rules.GetMaxFileSize() != nil {
 		maxFileSizeSlice := make([]map[string]any, 0)
 		maxFileSizeSlice = append(maxFileSizeSlice, map[string]any{
-			"max_file_size": rules.MaxFileSize.MaxFileSize,
+			"max_file_size": rules.GetMaxFileSize().GetMaxFileSize(),
 		})
 		rulesMap["max_file_size"] = maxFileSizeSlice
 	}
 
 	// Max file path length rule
-	if rules.MaxFilePathLength != nil {
+	if rules.GetMaxFilePathLength() != nil {
 		maxFilePathLengthSlice := make([]map[string]any, 0)
 		maxFilePathLengthSlice = append(maxFilePathLengthSlice, map[string]any{
-			"max_file_path_length": rules.MaxFilePathLength.MaxFilePathLength,
+			"max_file_path_length": rules.GetMaxFilePathLength().GetMaxFilePathLength(),
 		})
 		rulesMap["max_file_path_length"] = maxFilePathLengthSlice
 	}
 
 	// File extension restriction rule
-	if rules.FileExtensionRestriction != nil {
+	if rules.GetFileExtensionRestriction() != nil {
 		fileExtensionRestrictionSlice := make([]map[string]any, 0)
 		fileExtensionRestrictionSlice = append(fileExtensionRestrictionSlice, map[string]any{
-			"restricted_file_extensions": rules.FileExtensionRestriction.RestrictedFileExtensions,
+			"restricted_file_extensions": rules.GetFileExtensionRestriction().GetRestrictedFileExtensions(),
 		})
 		rulesMap["file_extension_restriction"] = fileExtensionRestrictionSlice
 	}
 
 	// Copilot code review rule
-	if rules.CopilotCodeReview != nil {
+	if rules.GetCopilotCodeReview() != nil {
 		copilotCodeReviewSlice := make([]map[string]any, 0)
 		copilotCodeReviewSlice = append(copilotCodeReviewSlice, map[string]any{
-			"review_on_push":             rules.CopilotCodeReview.ReviewOnPush,
-			"review_draft_pull_requests": rules.CopilotCodeReview.ReviewDraftPullRequests,
+			"review_on_push":             rules.GetCopilotCodeReview().GetReviewOnPush(),
+			"review_draft_pull_requests": rules.GetCopilotCodeReview().GetReviewDraftPullRequests(),
 		})
 		rulesMap["copilot_code_review"] = copilotCodeReviewSlice
 	}
