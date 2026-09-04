@@ -92,7 +92,7 @@ resource "github_repository_ruleset" "example_push" {
 - `enforcement` (String) Possible values for Enforcement are `disabled`, `active`, `evaluate`. Note: `evaluate` is currently only supported for owners of type `organization`.
 - `name` (String) The name of the ruleset.
 - `repository` (String) Name of the repository to apply ruleset to.
-- `rules` (Block List, Min: 1, Max: 1) Rules within the ruleset. (see [below for nested schema](#nestedblock--rules))
+- `rules` (Block List, Min: 1, Max: 1) Rules within the ruleset. Rules are target-specific. (see [below for nested schema](#nestedblock--rules))
 - `target` (String) Possible values are branch, push and tag
 
 ### Optional
@@ -112,27 +112,27 @@ resource "github_repository_ruleset" "example_push" {
 
 Optional:
 
-- `branch_name_pattern` (Block List, Max: 1) Parameters to be used for the branch_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `tag_name_pattern` as it only applies to rulesets with target `branch`. (see [below for nested schema](#nestedblock--rules--branch_name_pattern))
-- `commit_author_email_pattern` (Block List, Max: 1) Parameters to be used for the commit_author_email_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. (see [below for nested schema](#nestedblock--rules--commit_author_email_pattern))
-- `commit_message_pattern` (Block List, Max: 1) Parameters to be used for the commit_message_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. (see [below for nested schema](#nestedblock--rules--commit_message_pattern))
-- `committer_email_pattern` (Block List, Max: 1) Parameters to be used for the committer_email_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. (see [below for nested schema](#nestedblock--rules--committer_email_pattern))
-- `copilot_code_review` (Block List, Max: 1) Automatically request Copilot code review for new pull requests if the author has access to Copilot code review and their premium requests quota has not reached the limit. (see [below for nested schema](#nestedblock--rules--copilot_code_review))
-- `creation` (Boolean) Only allow users with bypass permission to create matching refs.
-- `deletion` (Boolean) Only allow users with bypass permissions to delete matching refs.
-- `file_extension_restriction` (Block List, Max: 1) Prevent pushes based on file extensions. (see [below for nested schema](#nestedblock--rules--file_extension_restriction))
-- `file_path_restriction` (Block List, Max: 1) Prevent commits that include changes in specified file paths from being pushed to the commit graph. (see [below for nested schema](#nestedblock--rules--file_path_restriction))
-- `max_file_path_length` (Block List, Max: 1) Prevent pushes based on file path length. (see [below for nested schema](#nestedblock--rules--max_file_path_length))
-- `max_file_size` (Block List, Max: 1) Prevent pushes based on file size. (see [below for nested schema](#nestedblock--rules--max_file_size))
-- `merge_queue` (Block List, Max: 1) Merges must be performed via a merge queue. (see [below for nested schema](#nestedblock--rules--merge_queue))
-- `non_fast_forward` (Boolean) Prevent users with push access from force pushing to branches.
-- `pull_request` (Block List, Max: 1) Require all commits be made to a non-target branch and submitted via a pull request before they can be merged. (see [below for nested schema](#nestedblock--rules--pull_request))
-- `required_code_scanning` (Block List, Max: 1) Choose which tools must provide code scanning results before the reference is updated. When configured, code scanning must be enabled and have results for both the commit and the reference being updated. (see [below for nested schema](#nestedblock--rules--required_code_scanning))
-- `required_deployments` (Block List, Max: 1) Choose which environments must be successfully deployed to before branches can be merged into a branch that matches this rule. (see [below for nested schema](#nestedblock--rules--required_deployments))
-- `required_linear_history` (Boolean) Prevent merge commits from being pushed to matching branches.
-- `required_signatures` (Boolean) Commits pushed to matching branches must have verified signatures.
-- `required_status_checks` (Block List, Max: 1) Choose which status checks must pass before branches can be merged into a branch that matches this rule. When enabled, commits must first be pushed to another branch, then merged or pushed directly to a branch that matches this rule after status checks have passed. (see [below for nested schema](#nestedblock--rules--required_status_checks))
-- `tag_name_pattern` (Block List, Max: 1) Parameters to be used for the tag_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `branch_name_pattern` as it only applies to rulesets with target `tag`. (see [below for nested schema](#nestedblock--rules--tag_name_pattern))
-- `update` (Boolean) Only allow users with bypass permission to update matching refs.
+- `branch_name_pattern` (Block List, Max: 1) Parameters to be used for the branch_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `tag_name_pattern` as it only applies to rulesets with target `branch`. Supports `branch` and `tag` targets. (see [below for nested schema](#nestedblock--rules--branch_name_pattern))
+- `commit_author_email_pattern` (Block List, Max: 1) Parameters to be used for the commit_author_email_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Supports `branch` and `tag` targets. (see [below for nested schema](#nestedblock--rules--commit_author_email_pattern))
+- `commit_message_pattern` (Block List, Max: 1) Parameters to be used for the commit_message_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Supports `branch` and `tag` targets. (see [below for nested schema](#nestedblock--rules--commit_message_pattern))
+- `committer_email_pattern` (Block List, Max: 1) Parameters to be used for the committer_email_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Supports `branch` and `tag` targets. (see [below for nested schema](#nestedblock--rules--committer_email_pattern))
+- `copilot_code_review` (Block List, Max: 1) Automatically request Copilot code review for new pull requests if the author has access to Copilot code review and their premium requests quota has not reached the limit. Supports `branch` and `tag` targets. (see [below for nested schema](#nestedblock--rules--copilot_code_review))
+- `creation` (Boolean) Only allow users with bypass permission to create matching refs. Supports `branch` and `tag` targets.
+- `deletion` (Boolean) Only allow users with bypass permissions to delete matching refs. Supports `branch` and `tag` targets.
+- `file_extension_restriction` (Block List, Max: 1) Prevent pushes based on file extensions. Supports `push` targets. (see [below for nested schema](#nestedblock--rules--file_extension_restriction))
+- `file_path_restriction` (Block List, Max: 1) Prevent commits that include changes in specified file paths from being pushed to the commit graph. Supports `push` targets. (see [below for nested schema](#nestedblock--rules--file_path_restriction))
+- `max_file_path_length` (Block List, Max: 1) Prevent pushes based on file path length. Supports `push` targets. (see [below for nested schema](#nestedblock--rules--max_file_path_length))
+- `max_file_size` (Block List, Max: 1) Prevent pushes based on file size. Supports `push` targets. (see [below for nested schema](#nestedblock--rules--max_file_size))
+- `merge_queue` (Block List, Max: 1) Merges must be performed via a merge queue. Supports `branch` and `tag` targets. (see [below for nested schema](#nestedblock--rules--merge_queue))
+- `non_fast_forward` (Boolean) Prevent users with push access from force pushing to branches. Supports `branch` and `tag` targets.
+- `pull_request` (Block List, Max: 1) Require all commits be made to a non-target branch and submitted via a pull request before they can be merged. Supports `branch` and `tag` targets. (see [below for nested schema](#nestedblock--rules--pull_request))
+- `required_code_scanning` (Block List, Max: 1) Choose which tools must provide code scanning results before the reference is updated. When configured, code scanning must be enabled and have results for both the commit and the reference being updated. Supports `branch` and `tag` targets. (see [below for nested schema](#nestedblock--rules--required_code_scanning))
+- `required_deployments` (Block List, Max: 1) Choose which environments must be successfully deployed to before branches can be merged into a branch that matches this rule. Supports `branch` and `tag` targets. (see [below for nested schema](#nestedblock--rules--required_deployments))
+- `required_linear_history` (Boolean) Prevent merge commits from being pushed to matching branches. Supports `branch` and `tag` targets.
+- `required_signatures` (Boolean) Commits pushed to matching branches must have verified signatures. Supports `branch` and `tag` targets.
+- `required_status_checks` (Block List, Max: 1) Choose which status checks must pass before branches can be merged into a branch that matches this rule. When enabled, commits must first be pushed to another branch, then merged or pushed directly to a branch that matches this rule after status checks have passed. Supports `branch` and `tag` targets. (see [below for nested schema](#nestedblock--rules--required_status_checks))
+- `tag_name_pattern` (Block List, Max: 1) Parameters to be used for the tag_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `branch_name_pattern` as it only applies to rulesets with target `tag`. Supports `branch` and `tag` targets. (see [below for nested schema](#nestedblock--rules--tag_name_pattern))
+- `update` (Boolean) Only allow users with bypass permission to update matching refs. Supports `branch` and `tag` targets.
 - `update_allows_fetch_and_merge` (Boolean) Branch can pull changes from its upstream repository. This is only applicable to forked repositories. Requires `update` to be set to `true`.
 
 <a id="nestedblock--rules--branch_name_pattern"></a>
