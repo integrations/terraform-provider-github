@@ -224,25 +224,20 @@ func resourceGithubRepositoryEnvironmentRead(ctx context.Context, d *schema.Reso
 		return diag.FromErr(err)
 	}
 
-	if err := d.Set("wait_timer", nil); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("reviewers", []any{}); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("prevent_self_review", false); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("can_admins_bypass", env.CanAdminsBypass); err != nil {
-		return diag.FromErr(err)
-	}
+	// A protection rule is only present in the response while it is configured,
+	// so the attributes it backs are collected in a single pass and then set
+	// unconditionally. Setting them from inside the loop only would leave the
+	// prior state in place when a rule is removed outside Terraform.
+	var (
+		waitTimer         *int
+		preventSelfReview *bool
+	)
+	reviewers := make([]any, 0)
 
 	for _, pr := range env.ProtectionRules {
 		switch pr.GetType() {
 		case "wait_timer":
-			if err = d.Set("wait_timer", pr.WaitTimer); err != nil {
-				return diag.FromErr(err)
-			}
+			waitTimer = pr.WaitTimer
 
 		case "required_reviewers":
 			teams := make([]int64, 0)
@@ -260,19 +255,28 @@ func resourceGithubRepositoryEnvironmentRead(ctx context.Context, d *schema.Reso
 					}
 				}
 			}
-			if err = d.Set("reviewers", []any{
+
+			reviewers = []any{
 				map[string]any{
 					"teams": teams,
 					"users": users,
 				},
-			}); err != nil {
-				return diag.FromErr(err)
 			}
-
-			if err = d.Set("prevent_self_review", pr.PreventSelfReview); err != nil {
-				return diag.FromErr(err)
-			}
+			preventSelfReview = pr.PreventSelfReview
 		}
+	}
+
+	if err := d.Set("wait_timer", waitTimer); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("reviewers", reviewers); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("prevent_self_review", preventSelfReview); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("can_admins_bypass", env.CanAdminsBypass); err != nil {
+		return diag.FromErr(err)
 	}
 
 	if env.DeploymentBranchPolicy != nil {

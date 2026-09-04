@@ -5,9 +5,11 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
@@ -237,6 +239,87 @@ resource "github_repository_environment" "test" {
 					Config: configUpdated,
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_repository_environment.test", tfjsonpath.New("reviewers"), knownvalue.ListSizeExact(1)),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("detects_out_of_band_reviewer_removal", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+		envName := "test"
+
+		config := fmt.Sprintf(`
+resource "github_team" "test" {
+	name        = "%[1]s"
+	description = "test"
+	privacy     = "closed"
+}
+
+resource "github_repository" "test" {
+	name       = "%[1]s"
+	visibility = "public"
+}
+
+resource "github_team_repository" "test" {
+	team_id    = github_team.test.id
+	repository = github_repository.test.name
+	permission = "pull"
+}
+
+resource "github_repository_environment" "test" {
+	repository  = github_repository.test.name
+	environment = "%[2]s"
+
+	prevent_self_review = true
+
+	reviewers {
+		teams = [github_team_repository.test.team_id]
+	}
+}
+`, repoName, envName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_environment.test", tfjsonpath.New("reviewers"), knownvalue.ListSizeExact(1)),
+						statecheck.ExpectKnownValue("github_repository_environment.test", tfjsonpath.New("prevent_self_review"), knownvalue.Bool(true)),
+					},
+				},
+				{
+					// Drop the reviewers out of band. GitHub then stops returning a
+					// "required_reviewers" protection rule, so Read must clear
+					// reviewers and prevent_self_review instead of leaving the prior
+					// state in place, leaving a non-empty plan that restores them.
+					PreConfig: func() {
+						if _, _, err := testAccConf.meta.v3client.Repositories.CreateUpdateEnvironment(t.Context(), testAccConf.meta.name, repoName, envName, &github.CreateUpdateEnvironment{
+							Reviewers:       []*github.EnvReviewers{},
+							CanAdminsBypass: new(true),
+						}); err != nil {
+							t.Errorf("failed to remove environment reviewers out-of-band: %s", err)
+						}
+					},
+					RefreshState:       true,
+					ExpectNonEmptyPlan: true,
+					RefreshPlanChecks: resource.RefreshPlanChecks{
+						PostRefresh: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_environment.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+				{
+					// The detected drift is corrected on the next apply.
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_environment.test", tfjsonpath.New("reviewers"), knownvalue.ListSizeExact(1)),
+						statecheck.ExpectKnownValue("github_repository_environment.test", tfjsonpath.New("prevent_self_review"), knownvalue.Bool(true)),
 					},
 				},
 			},
