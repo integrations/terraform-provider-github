@@ -91,8 +91,7 @@ func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta any) error {
 
 	key, resp, err := client.Users.GetKey(ctx, id)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}

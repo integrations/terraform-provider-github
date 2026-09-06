@@ -288,8 +288,7 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta any) erro
 	githubProtection, resp, err := client.Repositories.GetBranchProtection(ctx,
 		orgName, repoName, branch)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				if err := requireSignedCommitsRead(d, meta); err != nil {
 					return fmt.Errorf("error setting signed commit restriction: %w", err)
