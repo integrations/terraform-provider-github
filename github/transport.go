@@ -244,6 +244,10 @@ func (t *RetryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	var dataBuffer *bytes.Reader
 
 	for retry := 0; retry <= t.maxRetries; retry++ {
+		if err := req.Context().Err(); err != nil {
+			return nil, err
+		}
+
 		// Reset the body
 		// Code from httpretry (https://github.com/ybbus/httpretry/blob/master/roundtripper.go#L60)
 		// if request provides GetBody() we use it as Body,
