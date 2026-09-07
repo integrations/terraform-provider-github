@@ -32,6 +32,8 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 
 		CustomizeDiff: resourceGithubRepositoryRulesetDiff,
 
+		Description: "Resource to manage GitHub repository rulesets.",
+
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:             schema.TypeString,
@@ -74,7 +76,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Type:             schema.TypeString,
 							Required:         true,
 							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"RepositoryRole", "Team", "Integration", "OrganizationAdmin", "DeployKey", "EnterpriseOwner", "User"}, false)),
-							Description:      "The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`, `DeployKey`, `EnterpriseOwner`, or `User`. See https://docs.github.com/en/rest/repos/rules for more information.",
+							Description:      "The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`, `DeployKey`, `EnterpriseOwner`, or `User`. See [GitHub API Docs](https://docs.github.com/en/rest/repos/rules) for more information.",
 						},
 						"bypass_mode": {
 							Type:             schema.TypeString,
@@ -103,9 +105,10 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ref_name": {
-							Type:     schema.TypeList,
-							Required: true,
-							MaxItems: 1,
+							Type:        schema.TypeList,
+							Required:    true,
+							MaxItems:    1,
+							Description: "Targets refs that match the specified patterns. Required for `branch` and `tag` targets.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -134,18 +137,18 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 				Type:        schema.TypeList,
 				Required:    true,
 				MaxItems:    1,
-				Description: "Rules within the ruleset.",
+				Description: "Rules within the ruleset. Rules are target-specific.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"creation": {
 							Type:        schema.TypeBool,
 							Optional:    true,
-							Description: "Only allow users with bypass permission to create matching refs.",
+							Description: "Only allow users with bypass permission to create matching refs. Supports `branch` and `tag` targets.",
 						},
 						"update": {
 							Type:        schema.TypeBool,
 							Optional:    true,
-							Description: "Only allow users with bypass permission to update matching refs.",
+							Description: "Only allow users with bypass permission to update matching refs. Supports `branch` and `tag` targets.",
 						},
 						"update_allows_fetch_and_merge": {
 							Type:         schema.TypeBool,
@@ -157,18 +160,18 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 						"deletion": {
 							Type:        schema.TypeBool,
 							Optional:    true,
-							Description: "Only allow users with bypass permissions to delete matching refs.",
+							Description: "Only allow users with bypass permissions to delete matching refs. Supports `branch` and `tag` targets.",
 						},
 						"required_linear_history": {
 							Type:        schema.TypeBool,
 							Optional:    true,
-							Description: "Prevent merge commits from being pushed to matching branches.",
+							Description: "Prevent merge commits from being pushed to matching branches. Supports `branch` and `tag` targets.",
 						},
 						"required_deployments": {
 							Type:        schema.TypeList,
 							MaxItems:    1,
 							Optional:    true,
-							Description: "Choose which environments must be successfully deployed to before branches can be merged into a branch that matches this rule.",
+							Description: "Choose which environments must be successfully deployed to before branches can be merged into a branch that matches this rule. Supports `branch` and `tag` targets.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"required_deployment_environments": {
@@ -185,13 +188,13 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 						"required_signatures": {
 							Type:        schema.TypeBool,
 							Optional:    true,
-							Description: "Commits pushed to matching branches must have verified signatures.",
+							Description: "Commits pushed to matching branches must have verified signatures. Supports `branch` and `tag` targets.",
 						},
 						"pull_request": {
 							Type:        schema.TypeList,
 							MaxItems:    1,
 							Optional:    true,
-							Description: "Require all commits be made to a non-target branch and submitted via a pull request before they can be merged.",
+							Description: "Require all commits be made to a non-target branch and submitted via a pull request before they can be merged. Supports `branch` and `tag` targets.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"allowed_merge_methods": {
@@ -285,7 +288,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Type:        schema.TypeList,
 							MaxItems:    1,
 							Optional:    true,
-							Description: "Choose which status checks must pass before branches can be merged into a branch that matches this rule. When enabled, commits must first be pushed to another branch, then merged or pushed directly to a branch that matches this rule after status checks have passed.",
+							Description: "Choose which status checks must pass before branches can be merged into a branch that matches this rule. When enabled, commits must first be pushed to another branch, then merged or pushed directly to a branch that matches this rule after status checks have passed. Supports `branch` and `tag` targets.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"required_check": {
@@ -327,7 +330,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Type:        schema.TypeList,
 							MaxItems:    1,
 							Optional:    true,
-							Description: "Merges must be performed via a merge queue.",
+							Description: "Merges must be performed via a merge queue. Supports `branch` and `tag` targets.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"check_response_timeout_minutes": {
@@ -385,13 +388,13 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 						"non_fast_forward": {
 							Type:        schema.TypeBool,
 							Optional:    true,
-							Description: "Prevent users with push access from force pushing to branches.",
+							Description: "Prevent users with push access from force pushing to branches. Supports `branch` and `tag` targets.",
 						},
 						"commit_message_pattern": {
 							Type:        schema.TypeList,
 							MaxItems:    1,
 							Optional:    true,
-							Description: "Parameters to be used for the commit_message_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations.",
+							Description: "Parameters to be used for the commit_message_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Supports `branch` and `tag` targets.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"name": {
@@ -422,7 +425,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Type:        schema.TypeList,
 							MaxItems:    1,
 							Optional:    true,
-							Description: "Parameters to be used for the commit_author_email_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations.",
+							Description: "Parameters to be used for the commit_author_email_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Supports `branch` and `tag` targets.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"name": {
@@ -453,7 +456,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Type:        schema.TypeList,
 							MaxItems:    1,
 							Optional:    true,
-							Description: "Parameters to be used for the committer_email_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations.",
+							Description: "Parameters to be used for the committer_email_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Supports `branch` and `tag` targets.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"name": {
@@ -485,7 +488,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							MaxItems:      1,
 							Optional:      true,
 							ConflictsWith: []string{"rules.0.tag_name_pattern"},
-							Description:   "Parameters to be used for the branch_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `tag_name_pattern` as it only applies to rulesets with target `branch`.",
+							Description:   "Parameters to be used for the branch_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `tag_name_pattern` as it only applies to rulesets with target `branch`. Supports `branch` and `tag` targets.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"name": {
@@ -517,7 +520,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							MaxItems:      1,
 							Optional:      true,
 							ConflictsWith: []string{"rules.0.branch_name_pattern"},
-							Description:   "Parameters to be used for the tag_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `branch_name_pattern` as it only applies to rulesets with target `tag`.",
+							Description:   "Parameters to be used for the tag_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `branch_name_pattern` as it only applies to rulesets with target `tag`. Supports `branch` and `tag` targets.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"name": {
@@ -548,7 +551,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Type:        schema.TypeList,
 							MaxItems:    1,
 							Optional:    true,
-							Description: "Choose which tools must provide code scanning results before the reference is updated. When configured, code scanning must be enabled and have results for both the commit and the reference being updated.",
+							Description: "Choose which tools must provide code scanning results before the reference is updated. When configured, code scanning must be enabled and have results for both the commit and the reference being updated. Supports `branch` and `tag` targets.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"required_code_scanning_tool": {
@@ -585,7 +588,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Type:        schema.TypeList,
 							Optional:    true,
 							MaxItems:    1,
-							Description: "Prevent commits that include changes in specified file paths from being pushed to the commit graph.",
+							Description: "Prevent commits that include changes in specified file paths from being pushed to the commit graph. Supports `push` targets.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"restricted_file_paths": {
@@ -604,7 +607,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Type:        schema.TypeList,
 							Optional:    true,
 							MaxItems:    1,
-							Description: "Prevent pushes based on file size.",
+							Description: "Prevent pushes based on file size. Supports `push` targets.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"max_file_size": {
@@ -620,7 +623,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Type:        schema.TypeList,
 							Optional:    true,
 							MaxItems:    1,
-							Description: "Prevent pushes based on file path length.",
+							Description: "Prevent pushes based on file path length. Supports `push` targets.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"max_file_path_length": {
@@ -636,7 +639,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Type:        schema.TypeList,
 							Optional:    true,
 							MaxItems:    1,
-							Description: "Prevent pushes based on file extensions.",
+							Description: "Prevent pushes based on file extensions. Supports `push` targets.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"restricted_file_extensions": {
@@ -655,7 +658,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Type:        schema.TypeList,
 							Optional:    true,
 							MaxItems:    1,
-							Description: "Automatically request Copilot code review for new pull requests if the author has access to Copilot code review and their premium requests quota has not reached the limit.",
+							Description: "Automatically request Copilot code review for new pull requests if the author has access to Copilot code review and their premium requests quota has not reached the limit. Supports `branch` and `tag` targets.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"review_on_push": {
@@ -708,13 +711,17 @@ func resourceGithubRepositoryRulesetCreate(ctx context.Context, d *schema.Resour
 		return diag.Errorf("cannot create ruleset on archived repository %s/%s", owner, repoName)
 	}
 
+	if v, _ := d.Get("rules.0.update_allows_fetch_and_merge").(bool); v && !repo.GetFork() {
+		return diag.Errorf("cannot set update_allows_fetch_and_merge when repository is not a forked repository %s/%s", owner, repoName)
+	}
+
 	ruleset, resp, err := client.Repositories.CreateRuleset(ctx, owner, repoName, rulesetReq)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
-	if err := d.Set("ruleset_id", ruleset.ID); err != nil {
+	if err := d.Set("ruleset_id", ruleset.GetID()); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
@@ -723,7 +730,7 @@ func resourceGithubRepositoryRulesetCreate(ctx context.Context, d *schema.Resour
 	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("rules", flattenRules(ctx, ruleset.Rules, false)); err != nil {
+	if err := d.Set("rules", flattenRules(ctx, ruleset.GetRules(), false)); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -766,19 +773,19 @@ func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.Resource
 		return nil
 	}
 
-	if err := d.Set("ruleset_id", ruleset.ID); err != nil {
+	if err := d.Set("ruleset_id", ruleset.GetID()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("name", ruleset.Name); err != nil {
+	if err := d.Set("name", ruleset.GetName()); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("target", ruleset.GetTarget()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("enforcement", ruleset.Enforcement); err != nil {
+	if err := d.Set("enforcement", ruleset.GetEnforcement()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("bypass_actors", flattenBypassActors(ctx, ruleset.BypassActors)); err != nil {
+	if err := d.Set("bypass_actors", flattenBypassActors(ctx, ruleset.GetBypassActors())); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("conditions", flattenConditions(ctx, ruleset.GetConditions(), false)); err != nil {
@@ -818,6 +825,9 @@ func resourceGithubRepositoryRulesetUpdate(ctx context.Context, d *schema.Resour
 	if repo.GetArchived() {
 		tflog.Info(ctx, "Repository is archived, skipping ruleset update", map[string]any{"owner": owner, "repo_name": repoName})
 		return nil
+	}
+	if v, _ := d.Get("rules.0.update_allows_fetch_and_merge").(bool); v && !repo.GetFork() {
+		return diag.Errorf("cannot set update_allows_fetch_and_merge when repository is not a forked repository %s/%s", owner, repoName)
 	}
 
 	ruleset, resp, err := client.Repositories.UpdateRuleset(ctx, owner, repoName, rulesetID, rulesetReq)
