@@ -1,11 +1,11 @@
 module github.com/integrations/terraform-provider-github/v6
 
-go 1.26
+go 1.26.0
 
 require (
 	github.com/bored-engineer/github-conditional-http-transport v0.0.7
 	github.com/bored-engineer/github-conditional-http-transport/bbolt v0.0.2
-	github.com/go-jose/go-jose/v4 v4.1.4
+	github.com/go-jose/go-jose/v4 v4.1.5
 	github.com/gofri/go-github-ratelimit/v2 v2.0.2
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-github/v89 v89.0.0
@@ -18,7 +18,7 @@ require (
 	github.com/hashicorp/terraform-plugin-testing v1.16.0
 	github.com/jferrl/go-githubauth v1.7.0
 	github.com/shurcooL/githubv4 v0.0.0-20260209031235-2402fdf4a9ed
-	golang.org/x/crypto v0.54.0
+	golang.org/x/crypto v0.56.0
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/sync v0.22.0
 )
@@ -64,11 +64,11 @@ require (
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/zclconf/go-cty v1.18.1 // indirect
 	go.etcd.io/bbolt v1.5.0 // indirect
-	golang.org/x/mod v0.37.0 // indirect
-	golang.org/x/net v0.56.0 // indirect
+	golang.org/x/mod v0.38.0 // indirect
+	golang.org/x/net v0.57.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/text v0.40.0 // indirect
-	golang.org/x/tools v0.47.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
+	golang.org/x/tools v0.48.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260414002931-afd174a4e478 // indirect
 	google.golang.org/grpc v1.82.1 // indirect
