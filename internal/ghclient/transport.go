@@ -32,6 +32,23 @@ func cloneTransport(tr http.RoundTripper, opts ClientOptions) http.RoundTripper 
 func newTransport(tokenSource oauth2.TokenSource, opts ClientOptions) (http.RoundTripper, error) {
 	tr := cloneTransport(http.DefaultTransport, opts)
 
+	// The cache transport must be wrapped directly around the base transport, before the
+	// OAuth2 transport is applied. The OAuth2 transport injects the Authorization header on a
+	// cloned request immediately before invoking its Base RoundTripper, so any transport wrapping
+	// it from the outside (i.e. added to tr afterwards) would only ever see requests without the
+	// Authorization header. Since the cache transport partitions/validates its cache entries based
+	// on the request's Authorization header (see the Vary handling in
+	// github.com/bored-engineer/github-conditional-http-transport), placing it outside of the
+	// OAuth2 transport silently breaks per-token cache validation for authenticated requests.
+	if opts.Cache {
+		store, err := createCacheStore(opts.CachePath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create cache store: %w", err)
+		}
+
+		tr = ghct.NewTransport(store, tr)
+	}
+
 	if tokenSource != nil {
 		tr = &oauth2.Transport{
 			Base:   tr,
@@ -57,15 +74,6 @@ func newTransport(tokenSource oauth2.TokenSource, opts ClientOptions) (http.Roun
 	}
 
 	tr = ratelimit.New(tr, ratelimitp.WithLimitDetectedCallback(primaryRateLimitCallback), ratelimits.WithLimitDetectedCallback(secondaryRateLimitCallback))
-
-	if opts.Cache {
-		store, err := createCacheStore(opts.CachePath)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create cache store: %w", err)
-		}
-
-		tr = ghct.NewTransport(store, tr)
-	}
 
 	return tr, nil
 }
