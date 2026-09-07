@@ -3,8 +3,6 @@ package github
 import (
 	"fmt"
 	"net/http"
-	"net/http/httptest"
-	"regexp"
 	"testing"
 
 	"github.com/google/go-github/v89/github"
@@ -421,19 +419,28 @@ func Test_dataSourceGithubRepositoryReadLicense(t *testing.T) {
 	const (
 		owner    = "test-org"
 		repoName = "test-repo"
+		repoID   = 123456
 	)
 
-	repoResponse := fmt.Sprintf(`{
-		"id": 123456,
-		"name": %q,
-		"full_name": "%s/%s",
-		"license": {"key": "other", "name": "Other", "spdx_id": "NOASSERTION", "url": null}
-	}`, repoName, owner, repoName)
+	repoURI := fmt.Sprintf("/repos/%s/%s", owner, repoName)
+
+	// A repository whose LICENSE file was removed keeps an `other` classification with a null
+	// license URL, while the license endpoint answers 404.
+	repository := &github.Repository{
+		ID:       new(int64(repoID)),
+		Name:     new(repoName),
+		FullName: new(fmt.Sprintf("%s/%s", owner, repoName)),
+		License: &github.License{
+			Key:    new("other"),
+			Name:   new("Other"),
+			SPDXID: new("NOASSERTION"),
+		},
+	}
 
 	for _, tt := range []struct {
 		name              string
 		licenseStatus     int
-		licenseResponse   string
+		licenseBody       any
 		wantErr           bool
 		wantLicenseBlocks int
 	}{
@@ -443,9 +450,16 @@ func Test_dataSourceGithubRepositoryReadLicense(t *testing.T) {
 			wantLicenseBlocks: 0,
 		},
 		{
-			name:              "sets the license when the API serves it",
-			licenseStatus:     http.StatusOK,
-			licenseResponse:   `{"name": "LICENSE", "path": "LICENSE", "license": {"key": "mit", "spdx_id": "MIT"}}`,
+			name:          "sets the license when the API serves it",
+			licenseStatus: http.StatusOK,
+			licenseBody: &github.RepositoryLicense{
+				Name: new("LICENSE"),
+				Path: new("LICENSE"),
+				License: &github.License{
+					Key:    new("mit"),
+					SPDXID: new("MIT"),
+				},
+			},
 			wantLicenseBlocks: 1,
 		},
 		{
@@ -457,33 +471,19 @@ func Test_dataSourceGithubRepositoryReadLicense(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if regexp.MustCompile(`/license$`).MatchString(r.URL.Path) {
-					w.WriteHeader(tt.licenseStatus)
-					_, _ = w.Write([]byte(tt.licenseResponse))
-					return
-				}
-
-				if regexp.MustCompile(`/repos/[^/]+/[^/]+$`).MatchString(r.URL.Path) {
-					w.WriteHeader(http.StatusOK)
-					_, _ = w.Write([]byte(repoResponse))
-					return
-				}
-
-				w.WriteHeader(http.StatusNotFound)
-			}))
+			ts := githubApiMock([]*mockResponse{
+				mustGetTestMockResponse(t, repoURI, http.StatusOK, repository),
+				mustGetTestMockResponse(t, repoURI+"/license", tt.licenseStatus, tt.licenseBody),
+			})
 			t.Cleanup(ts.Close)
-
-			client, err := github.NewClient(github.WithURLs(new(ts.URL+"/"), nil))
-			if err != nil {
-				t.Fatalf("failed to create test client: %s", err)
-			}
 
 			d := schema.TestResourceDataRaw(t, dataSourceGithubRepository().Schema, map[string]any{
 				"full_name": fmt.Sprintf("%s/%s", owner, repoName),
 			})
 
-			diags := dataSourceGithubRepositoryRead(t.Context(), d, &Owner{name: owner, v3client: client})
+			meta := &Owner{name: owner, v3client: mustCreateTestGitHubClient(t, ts.URL)}
+
+			diags := dataSourceGithubRepositoryRead(t.Context(), d, meta)
 
 			if diags.HasError() != tt.wantErr {
 				t.Fatalf("expected error to be %v, got %v", tt.wantErr, diags)
@@ -493,12 +493,12 @@ func Test_dataSourceGithubRepositoryReadLicense(t *testing.T) {
 				return
 			}
 
-			repoID, ok := d.Get("repo_id").(int)
+			gotID, ok := d.Get("repo_id").(int)
 			if !ok {
 				t.Fatalf("expected repo_id to be an int, got %T", d.Get("repo_id"))
 			}
-			if repoID != 123456 {
-				t.Errorf("expected repo_id to be 123456, got %d", repoID)
+			if gotID != repoID {
+				t.Errorf("expected repo_id to be %d, got %d", repoID, gotID)
 			}
 
 			licenses, ok := d.Get("repository_license").([]any)
