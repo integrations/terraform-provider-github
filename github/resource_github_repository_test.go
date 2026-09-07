@@ -735,7 +735,7 @@ resource "github_repository" "test" {
 		})
 	})
 
-	t.Run("create and modify merge commit strategy without error", func(t *testing.T) {
+	t.Run("create_and_modify_merge_commit_strategy_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -841,7 +841,7 @@ resource "github_repository" "test" {
 		)
 	})
 
-	t.Run("create and modify squash merge commit strategy without error", func(t *testing.T) {
+	t.Run("create_and_modify_squash_merge_commit_strategy_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -884,7 +884,7 @@ resource "github_repository" "test" {
 		})
 	})
 
-	t.Run("manages the legacy pages feature for a repository", func(t *testing.T) {
+	t.Run("manages_the_legacy_pages_feature_for_a_repository", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -923,7 +923,7 @@ resource "github_repository" "test" {
 		})
 	})
 
-	t.Run("manages the pages from workflow feature for a repository", func(t *testing.T) {
+	t.Run("manages_the_pages_from_workflow_feature_for_a_repository", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -957,7 +957,7 @@ resource "github_repository" "test" {
 		})
 	})
 
-	t.Run("manages the security feature for a private repository", func(t *testing.T) {
+	t.Run("manages_the_security_feature_for_a_private_repository", func(t *testing.T) {
 		t.Parallel()
 
 		if !testAccConf.testAdvancedSecurity {
@@ -1014,7 +1014,7 @@ resource "github_repository" "test" {
 		})
 	})
 
-	t.Run("manages the security feature for a public repository", func(t *testing.T) {
+	t.Run("manages_the_security_feature_for_a_public_repository", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -1057,7 +1057,7 @@ resource "github_repository" "test" {
 		})
 	})
 
-	t.Run("creates repos with private visibility", func(t *testing.T) {
+	t.Run("creates_repos_with_private_visibility", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -1083,7 +1083,7 @@ resource "github_repository" "test" {
 		})
 	})
 
-	t.Run("creates repos with internal visibility", func(t *testing.T) {
+	t.Run("creates_repos_with_internal_visibility", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -1109,7 +1109,7 @@ resource "github_repository" "test" {
 		})
 	})
 
-	t.Run("updates repos to private visibility", func(t *testing.T) {
+	t.Run("updates_repos_to_private_visibility", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -1172,7 +1172,7 @@ resource "github_repository" "test" {
 		})
 	})
 
-	t.Run("updates repos to internal visibility", func(t *testing.T) {
+	t.Run("updates_repos_to_internal_visibility", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -1204,7 +1204,7 @@ resource "github_repository" "test" {
 		})
 	})
 
-	t.Run("sets private visibility for repositories created by a template", func(t *testing.T) {
+	t.Run("sets_private_visibility_for_repositories_created_by_a_template", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -1441,7 +1441,7 @@ resource "github_repository" "private" {
 		})
 	})
 
-	t.Run("forks a repository without error", func(t *testing.T) {
+	t.Run("forks_a_repository_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -1474,7 +1474,7 @@ resource "github_repository" "private" {
 		})
 	})
 
-	t.Run("can update forked repository properties", func(t *testing.T) {
+	t.Run("can_update_forked_repository_properties", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -1527,7 +1527,7 @@ resource "github_repository" "private" {
 					ResourceName:            "github_repository.forked_update",
 					ImportState:             true,
 					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"auto_init", "vulnerability_alerts", "ignore_vulnerability_alerts_during_read", "etag"},
+					ImportStateVerifyIgnore: []string{"auto_init", "vulnerability_alerts", "ignore_vulnerability_alerts_during_read", "etag", "security_and_analysis"},
 				},
 			},
 		})
@@ -1537,7 +1537,7 @@ resource "github_repository" "private" {
 func Test_expandPages(t *testing.T) {
 	t.Parallel()
 
-	t.Run("expand Pages configuration with workflow", func(t *testing.T) {
+	t.Run("expand_pages_configuration_with_workflow", func(t *testing.T) {
 		t.Parallel()
 
 		input := []any{map[string]any{
@@ -1557,7 +1557,7 @@ func Test_expandPages(t *testing.T) {
 		}
 	})
 
-	t.Run("expand Pages configuration with source", func(t *testing.T) {
+	t.Run("expand_pages_configuration_with_source", func(t *testing.T) {
 		t.Parallel()
 
 		input := []any{map[string]any{
@@ -1622,7 +1622,7 @@ func (d resourceDataLike) GetOk(key string) (any, bool) {
 func TestResourceGithubParseFullName(t *testing.T) {
 	t.Parallel()
 
-	t.Run("parses valid full name", func(t *testing.T) {
+	t.Run("parses_valid_full_name", func(t *testing.T) {
 		t.Parallel()
 
 		o := "moyorg"
@@ -1640,7 +1640,7 @@ func TestResourceGithubParseFullName(t *testing.T) {
 		}
 	})
 
-	t.Run("handles missing full name", func(t *testing.T) {
+	t.Run("handles_missing_full_name", func(t *testing.T) {
 		t.Parallel()
 
 		_, _, ok := resourceGithubParseFullName(resourceDataLike(map[string]any{}))
@@ -1649,7 +1649,7 @@ func TestResourceGithubParseFullName(t *testing.T) {
 		}
 	})
 
-	t.Run("handles malformed full name", func(t *testing.T) {
+	t.Run("handles_malformed_full_name", func(t *testing.T) {
 		t.Parallel()
 
 		_, _, ok := resourceGithubParseFullName(resourceDataLike(map[string]any{"full_name": "malformed"}))
