@@ -391,7 +391,7 @@ data "github_repository" "test" {
 		repo := mustCreateTestRepository(t, func(repo *github.Repository) {
 			repo.LicenseTemplate = new("mit")
 		})
-		mustDeleteTestRepositoryLicense(t, repo)
+		mustDeleteRepositoryFile(t, repo, "LICENSE")
 
 		config := fmt.Sprintf(`
 data "github_repository" "test" {

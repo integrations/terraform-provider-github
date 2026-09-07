@@ -10,8 +10,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 )
 
-const licenseFilePath = "LICENSE"
-
 type createTestRepositoryOptionsFunc func(*github.Repository)
 
 func mustCreateTestRepository(t *testing.T, f ...createTestRepositoryOptionsFunc) *github.Repository {
@@ -62,19 +60,19 @@ func mustRenameTestRepository(t *testing.T, repo *github.Repository, newName str
 	}
 }
 
-func mustDeleteTestRepositoryLicense(t *testing.T, repo *github.Repository) {
+func mustDeleteRepositoryFile(t *testing.T, repo *github.Repository, path string) {
 	t.Helper()
 
-	license, _, _, err := testAccConf.meta.v3client.Repositories.GetContents(t.Context(), testAccConf.meta.name, repo.GetName(), licenseFilePath, nil)
+	file, _, _, err := testAccConf.meta.v3client.Repositories.GetContents(t.Context(), testAccConf.meta.name, repo.GetName(), path, nil)
 	if err != nil {
-		t.Fatalf("failed to read %s of test repository %s: %v", licenseFilePath, repo.GetName(), err)
+		t.Fatalf("failed to read %s of test repository %s: %v", path, repo.GetName(), err)
 	}
 
-	_, _, err = testAccConf.meta.v3client.Repositories.DeleteFile(t.Context(), testAccConf.meta.name, repo.GetName(), licenseFilePath, &github.RepositoryContentFileOptions{
-		Message: new(fmt.Sprintf("Remove %s", licenseFilePath)),
-		SHA:     license.SHA,
+	_, _, err = testAccConf.meta.v3client.Repositories.DeleteFile(t.Context(), testAccConf.meta.name, repo.GetName(), path, &github.RepositoryContentFileOptions{
+		Message: new(fmt.Sprintf("Remove %s", path)),
+		SHA:     file.SHA,
 	})
 	if err != nil {
-		t.Fatalf("failed to delete %s of test repository %s: %v", licenseFilePath, repo.GetName(), err)
+		t.Fatalf("failed to delete %s of test repository %s: %v", path, repo.GetName(), err)
 	}
 }
