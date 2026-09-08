@@ -21,7 +21,7 @@ func resourceGithubUserSshKey() *schema.Resource {
 			StateContext: resourceGithubUserSshKeyImport,
 		},
 
-		Description: "Manages a SSH key for the authenticated user.",
+		Description: "Resource to manage a SSH key for the authenticated user.",
 
 		SchemaVersion: 1,
 		Schema: map[string]*schema.Schema{
@@ -69,11 +69,12 @@ func resourceGithubUserSshKey() *schema.Resource {
 	}
 }
 
-func resourceGithubUserSshKeyCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func resourceGithubUserSshKeyCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	title := d.Get("title").(string)
-	key := d.Get("key").(string)
+	title, _ := d.Get("title").(string)
+	key, _ := d.Get("key").(string)
 
 	userKey, resp, err := client.Users.CreateKey(ctx, &github.Key{
 		Title: new(title),
@@ -88,43 +89,48 @@ func resourceGithubUserSshKeyCreate(ctx context.Context, d *schema.ResourceData,
 	if err = d.Set("key_id", userKey.GetID()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return diag.FromErr(err)
-	}
 	if err = d.Set("url", userKey.GetURL()); err != nil {
 		return diag.FromErr(err)
 	}
 	if err = d.Set("title", userKey.GetTitle()); err != nil {
 		return diag.FromErr(err)
 	}
+	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
 
-func resourceGithubUserSshKeyRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func resourceGithubUserSshKeyRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	keyID := int64(d.Get("key_id").(int))
+	keyIDInt, _ := d.Get("key_id").(int)
+	keyID := int64(keyIDInt)
+
 	userKey, resp, err := client.Users.GetKey(ctx, keyID)
 	if err != nil {
 		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "user SSH key (%d)", keyID))
 	}
 
 	// set computed fields
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+	if err = d.Set("url", userKey.GetURL()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err = d.Set("url", userKey.GetURL()); err != nil {
+	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
 		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubUserSshKeyDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func resourceGithubUserSshKeyDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	keyID := int64(d.Get("key_id").(int))
+	keyIDInt, _ := d.Get("key_id").(int)
+	keyID := int64(keyIDInt)
 
 	_, err := client.Users.DeleteKey(ctx, keyID)
 	if err != nil {
@@ -136,8 +142,9 @@ func resourceGithubUserSshKeyDelete(ctx context.Context, d *schema.ResourceData,
 	return nil
 }
 
-func resourceGithubUserSshKeyImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	client := meta.(*Owner).v3client
+func resourceGithubUserSshKeyImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
 	keyID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
