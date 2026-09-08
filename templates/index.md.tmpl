@@ -30,26 +30,20 @@ For backwards compatibility; if more than one of `owner`, `organization`, `GITHU
 
 ## Authentication
 
-The GitHub provider offers multiple ways to authenticate with GitHub API. It uses the following authentication fallback chain (first match wins):
+The GitHub provider can be authenticated with the GitHub API via a GitHub App, an OAuth Token, or a Personal Access Token (PAT); it can also operate anonymously (in a limited manner) if no authentication is provided. The provider selects the authentication used based on the `auth_mode` argument, with the ability to explicitly set the authentication mode and falling back to `auto` mode when a specific mode is not explicitly set. Auto mode uses the following authentication fallback chain (first match wins):
 
-1. [**Explicit Token**](#oauth-or-personal-access-token-pat) — `token` argument or `GITHUB_TOKEN` environment variable
-2. [**GitHub App Installation**](#github-app-installation) — `app_auth` block with `id`, `installation_id`, and `pem_file`
-3. [**GitHub CLI**](#github-cli-authentication) — Falls back to `gh auth token` if neither token nor app_auth is set
-4. **Anonymous** — Read-only access when no credentials are available
-
-### OAuth or Personal Access Token (PAT)
-
-To authenticate using OAuth tokens, ensure that the `token` argument or the `GITHUB_TOKEN` environment variable is set.
-
-{{ tffile "examples/provider/token_auth/main.tf" }}
+1. [**GitHub App Installation**](#github-app-installation) — `app_auth` block (or environment) with `id`, `installation_id`, and `pem_file`.
+2. [**Explicit Token**](#oauth-or-personal-access-token-pat) — `token` argument or `GITHUB_TOKEN` environment variable.
+3. [**GitHub CLI**](#github-cli-authentication) — Falls back to `gh auth token` if neither token nor app_auth is set.
+4. **Anonymous** — Read-only access when no credentials are available.
 
 ### GitHub App Installation
 
-To authenticate using a GitHub App installation, ensure that arguments in the `app_auth` block or the `GITHUB_APP_XXX` environment variables are set. The `owner` parameter required in this situation. Leaving out will throw a `403 "Resource not accessible by integration"` error.
+GitHub App authentication requires the `owner` argument to be set and is supported by the `app_auth` provider configuration block and/or the related environment variables. Authenticating the provider with a GitHub App requires all three `app_auth` arguments to be set; `id`, `installation_id`, and `pem_file`. If you want to make sure that the provider is using GitHub App authentication, you can set the `auth_mode` argument to `app` (setting the `app_auth` block also requires the provider to use GitHub App authentication). When using environment variables the provider defaults to using the `GITHUB_APP_` prefix, but this can be overridden with the `app_auth_env_prefix` argument.
+
+By default, the provider will look for the following environment variables: `GITHUB_APP_ID`, `GITHUB_APP_INSTALLATION_ID`, and `GITHUB_APP_PEM_FILE`. If you want to use a different prefix, you can set the `app_auth_env_prefix` argument to the desired prefix. For example, if you set `app_auth_env_prefix = "MYAPP_"`, the provider will look for the following environment variables: `MYAPP_ID`, `MYAPP_INSTALLATION_ID`, and `MYAPP_PEM_FILE`. This is useful if you want to use multiple GitHub providers authenticating with different GitHub Apps.
 
 Some API operations may not be available when using a GitHub App installation configuration. For more information, refer to the list of [supported endpoints](https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps).
-
-~> The `app_auth` block is optional: the provider reads the `GITHUB_APP_XXX` environment variables directly. When you deliberately want GitHub App auth, keeping the block is recommended: its required arguments make `terraform validate` fail fast if a value is missing, and it lets you set non-secret values such as the App `id` directly. Drive auth from the environment without a block when the same configuration must also validate without the variables set, such as CI linting. The three patterns below cover each case.
 
 #### Block with values
 
@@ -63,7 +57,15 @@ Some API operations may not be available when using a GitHub App installation co
 
 #### Non-secret values in configuration, secret from the environment
 
+{{ codefile "shell" "examples/provider/app_auth_mixed/.env" }}
+
 {{ tffile "examples/provider/app_auth_mixed/main.tf" }}
+
+### OAuth or Personal Access Token (PAT)
+
+To authenticate using OAuth tokens, ensure that the `token` argument or the `GITHUB_TOKEN` environment variable is set.
+
+{{ tffile "examples/provider/token_auth/main.tf" }}
 
 ### GitHub CLI Authentication
 

@@ -58,8 +58,14 @@ func resourceGithubTeamMembership() *schema.Resource {
 				ValidateDiagFunc: validateValueFunc([]string{"member", "maintainer"}),
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "An etag representing the team membership.",
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -128,8 +134,7 @@ func resourceGithubTeamMembershipRead(ctx context.Context, d *schema.ResourceDat
 	membership, resp, err := client.Teams.GetTeamMembershipByID(ctx,
 		orgId, teamId, username)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}

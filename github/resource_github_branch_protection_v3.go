@@ -212,8 +212,14 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 				Description: "Setting this to 'true' requires all conversations on code must be resolved before a pull request can be merged.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "An etag representing the branch protection object.",
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -282,8 +288,7 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta any) erro
 	githubProtection, resp, err := client.Repositories.GetBranchProtection(ctx,
 		orgName, repoName, branch)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				if err := requireSignedCommitsRead(d, meta); err != nil {
 					return fmt.Errorf("error setting signed commit restriction: %w", err)

@@ -57,8 +57,14 @@ func resourceGithubTeamRepository() *schema.Resource {
 				Description: "The permissions of team members regarding the repository. Must be one of 'pull', 'triage', 'push', 'maintain', 'admin' or the name of an existing custom repository role within the organisation.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "An etag representing the team repository.",
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -129,8 +135,7 @@ func resourceGithubTeamRepositoryRead(ctx context.Context, d *schema.ResourceDat
 
 	repo, resp, repoErr := client.Teams.IsTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
 	if repoErr != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(repoErr, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](repoErr); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}

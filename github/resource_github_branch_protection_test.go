@@ -213,7 +213,8 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 					ImportState:       true,
 					ImportStateVerify: true,
 					ImportStateIdFunc: importBranchProtectionByRepoID(
-						"github_repository.test", "main"),
+						"github_repository.test", "main",
+					),
 				},
 				{
 					ResourceName: "github_branch_protection.test",
@@ -222,7 +223,8 @@ func TestAccGithubBranchProtectionV4(t *testing.T) {
 						`could not find a branch protection rule with the pattern 'no-such-pattern'`,
 					),
 					ImportStateIdFunc: importBranchProtectionByRepoID(
-						"github_repository.test", "no-such-pattern"),
+						"github_repository.test", "no-such-pattern",
+					),
 				},
 			},
 		})

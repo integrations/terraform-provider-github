@@ -68,8 +68,14 @@ func resourceGithubIssue() *schema.Resource {
 				Description: "The issue id.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "An etag representing the issue.",
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+					return true
+				},
+				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -153,8 +159,7 @@ func resourceGithubIssueRead(d *schema.ResourceData, meta any) error {
 	issue, resp, err := client.Issues.Get(ctx,
 		orgName, repoName, number)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
