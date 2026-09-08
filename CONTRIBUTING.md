@@ -215,7 +215,7 @@ Acceptance tests create real GitHub resources prefixed with `tf-acc-test-`. If t
 make sweep
 ```
 
-This removes leaked test repositories and teams matching the `tf-acc-test-` prefix.
+This removes leaked test repositories, teams and user SSH (signing) keys matching the `tf-acc-test-` prefix.
 
 ### GitHub Organization
 

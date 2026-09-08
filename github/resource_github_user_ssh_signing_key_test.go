@@ -16,7 +16,11 @@ import (
 )
 
 func TestAccGithubUserSshSigningKey(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates and destroys a user SSH signing key without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		name := fmt.Sprintf(`%s%s`, testResourcePrefix, randomID)
 		testKey := newTestSigningKey()
@@ -44,6 +48,8 @@ func TestAccGithubUserSshSigningKey(t *testing.T) {
 	})
 
 	t.Run("imports an individual account SSH signing key without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		name := fmt.Sprintf(`%s%s`, testResourcePrefix, randomID)
 		testKey := newTestSigningKey()

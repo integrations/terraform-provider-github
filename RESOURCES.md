@@ -210,5 +210,6 @@ The overall status of each resource or data source is captured in this document 
 | `github_team_sync_group_mapping` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_user_gpg_key` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_user_invitation_accepter` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
-| `github_user_ssh_key` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
+| `github_user_ssh_key` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `github_user_ssh_signing_key` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_workflow_repository_permissions` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
