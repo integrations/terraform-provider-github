@@ -1,0 +1,1 @@
+terraform import github_user_ssh_key.example 1234567
