@@ -403,16 +403,8 @@ func TestAccGithubBranchProtectionV3_update_with_status_checks(t *testing.T) {
 					{
 						Config: config(true),
 						ConfigStateChecks: []statecheck.StateCheck{
-							statecheck.ExpectKnownValue(
-								"github_branch_protection_v3.test",
-								tfjsonpath.New("enforce_admins"),
-								knownvalue.Bool(true),
-							),
-							statecheck.ExpectKnownValue(
-								"github_branch_protection_v3.test",
-								tfjsonpath.New("required_status_checks").AtSliceIndex(0).AtMapKey(statusChecksField),
-								knownvalue.SetSizeExact(2),
-							),
+							statecheck.ExpectKnownValue("github_branch_protection_v3.test", tfjsonpath.New("enforce_admins"), knownvalue.Bool(true)),
+							statecheck.ExpectKnownValue("github_branch_protection_v3.test", tfjsonpath.New("required_status_checks").AtSliceIndex(0).AtMapKey(statusChecksField), knownvalue.SetSizeExact(2)),
 						},
 					},
 				},
