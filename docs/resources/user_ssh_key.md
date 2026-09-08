@@ -26,9 +26,12 @@ resource "github_user_ssh_key" "example" {
 - `key` (String) The public SSH key to add to your GitHub account.
 - `title` (String) A descriptive name for the new key.
 
+### Optional
+
+- `etag` (String) An etag representing the SSH key.
+
 ### Read-Only
 
-- `etag` (String) The ETag of the SSH key.
 - `id` (String) The ID of this resource.
 - `key_id` (Number) The unique identifier of the SSH key.
 - `url` (String) The URL of the SSH key.
