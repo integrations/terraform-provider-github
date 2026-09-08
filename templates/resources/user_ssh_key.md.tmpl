@@ -1,37 +1,47 @@
 ---
 page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+subcategory: ""
 description: |-
-  Provides a GitHub user's SSH key resource.
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
 ---
 
 # {{.Name}} ({{.Type}})
 
-Provides a GitHub user's SSH key resource.
+{{ .Description | trimspace }}
 
-This resource allows you to add/remove SSH keys from your user account.
-
+{{ if .HasExamples -}}
 ## Example Usage
 
-{{ tffile "examples/resources/user_ssh_key/example_1.tf" }}
+{{- range .ExampleFiles }}
 
-## Argument Reference
+{{ tffile . }}
+{{- end }}
+{{- end }}
 
-The following arguments are supported:
-
-- `title` - (Required) A descriptive name for the new key. e.g. `Personal MacBook Air`
-- `key` - (Required) The public SSH key to add to your GitHub account.
-
-## Attributes Reference
-
-The following attributes are exported:
-
-- `id` - The ID of the SSH key
-- `url` - The URL of the SSH key
+{{ .SchemaMarkdown | trimspace }}
+{{- if or .HasImport .HasImportIDConfig .HasImportIdentityConfig }}
 
 ## Import
 
-SSH keys can be imported using their ID e.g.
+Import is supported using the following syntax:
+{{- end }}
+{{- if .HasImportIdentityConfig }}
 
-```shell
-terraform import github_user_ssh_key.example 1234567
-```
+In Terraform v1.12.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `identity` attribute, for example:
+
+{{tffile .ImportIdentityConfigFile }}
+
+{{ .IdentitySchemaMarkdown | trimspace }}
+{{- end }}
+{{- if .HasImportIDConfig }}
+
+In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `id` attribute, for example:
+
+{{tffile .ImportIDConfigFile }}
+{{- end }}
+{{- if .HasImport }}
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+{{codefile "shell" .ImportFile }}
+{{- end }}

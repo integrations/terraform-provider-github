@@ -1,12 +1,13 @@
 ---
 page_title: "github_user_ssh_signing_key (Resource) - GitHub"
+subcategory: ""
 description: |-
-  Manages a SSH signing key for the authenticated user.
+  Resource to manage a SSH signing key for the authenticated user.
 ---
 
 # github_user_ssh_signing_key (Resource)
 
-Manages a SSH signing key for the authenticated user.
+Resource to manage a SSH signing key for the authenticated user.
 
 ## Example Usage
 
