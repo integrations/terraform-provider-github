@@ -1,4 +1,4 @@
-SWEEP?=repositories,teams
+SWEEP?=repositories,teams,user_ssh_keys,user_ssh_signing_keys
 PKG_NAME=github
 TESTACC?=./$(PKG_NAME)/...
 

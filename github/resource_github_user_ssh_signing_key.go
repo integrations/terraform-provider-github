@@ -12,18 +12,17 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceGithubUserSshKey() *schema.Resource {
+func resourceGithubUserSshSigningKey() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceGithubUserSshKeyCreate,
-		ReadContext:   resourceGithubUserSshKeyRead,
-		DeleteContext: resourceGithubUserSshKeyDelete,
+		CreateContext: resourceGithubUserSshSigningKeyCreate,
+		ReadContext:   resourceGithubUserSshSigningKeyRead,
+		DeleteContext: resourceGithubUserSshSigningKeyDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: resourceGithubUserSshKeyImport,
+			StateContext: resourceGithubUserSshSigningKeyImport,
 		},
 
-		Description: "Resource to manage a SSH key for the authenticated user.",
+		Description: "Resource to manage a SSH signing key for the authenticated user.",
 
-		SchemaVersion: 1,
 		Schema: map[string]*schema.Schema{
 			"title": {
 				Type:        schema.TypeString,
@@ -35,48 +34,35 @@ func resourceGithubUserSshKey() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "The public SSH key to add to your GitHub account.",
-			},
-			"url": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The URL of the SSH key.",
+				Description: "The public SSH signing key to add to your GitHub account.",
 			},
 			"key_id": {
 				Type:        schema.TypeInt,
 				Computed:    true,
-				Description: "The unique identifier of the SSH key.",
+				Description: "The unique identifier of the SSH signing key.",
 			},
 			"etag": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: "An etag representing the SSH key.",
+				Description: "An etag representing the SSH signing key.",
 				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
 					return true
 				},
 				DiffSuppressOnRefresh: true,
 			},
 		},
-
-		StateUpgraders: []schema.StateUpgrader{
-			{
-				Version: 0,
-				Type:    resourceGithubUserSshKeyV0().CoreConfigSchema().ImpliedType(),
-				Upgrade: resourceGithubUserSshKeyStateUpgradeV0,
-			},
-		},
 	}
 }
 
-func resourceGithubUserSshKeyCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+func resourceGithubUserSshSigningKeyCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 
 	title, _ := d.Get("title").(string)
 	key, _ := d.Get("key").(string)
 
-	userKey, resp, err := client.Users.CreateKey(ctx, &github.Key{
+	userKey, resp, err := client.Users.CreateSSHSigningKey(ctx, &github.Key{
 		Title: new(title),
 		Key:   new(key),
 	})
@@ -89,9 +75,6 @@ func resourceGithubUserSshKeyCreate(ctx context.Context, d *schema.ResourceData,
 	if err = d.Set("key_id", userKey.GetID()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err = d.Set("url", userKey.GetURL()); err != nil {
-		return diag.FromErr(err)
-	}
 	if err = d.Set("title", userKey.GetTitle()); err != nil {
 		return diag.FromErr(err)
 	}
@@ -102,22 +85,19 @@ func resourceGithubUserSshKeyCreate(ctx context.Context, d *schema.ResourceData,
 	return nil
 }
 
-func resourceGithubUserSshKeyRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+func resourceGithubUserSshSigningKeyRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 
 	keyIDInt, _ := d.Get("key_id").(int)
 	keyID := int64(keyIDInt)
 
-	userKey, resp, err := client.Users.GetKey(ctx, keyID)
+	_, resp, err := client.Users.GetSSHSigningKey(ctx, keyID)
 	if err != nil {
-		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "user SSH key (%d)", keyID))
+		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "user SSH signing key (%d)", keyID))
 	}
 
 	// set computed fields
-	if err = d.Set("url", userKey.GetURL()); err != nil {
-		return diag.FromErr(err)
-	}
 	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
 		return diag.FromErr(err)
 	}
@@ -125,14 +105,14 @@ func resourceGithubUserSshKeyRead(ctx context.Context, d *schema.ResourceData, m
 	return nil
 }
 
-func resourceGithubUserSshKeyDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+func resourceGithubUserSshSigningKeyDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 
 	keyIDInt, _ := d.Get("key_id").(int)
 	keyID := int64(keyIDInt)
 
-	_, err := client.Users.DeleteKey(ctx, keyID)
+	_, err := client.Users.DeleteSSHSigningKey(ctx, keyID)
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
 			return nil
@@ -142,19 +122,19 @@ func resourceGithubUserSshKeyDelete(ctx context.Context, d *schema.ResourceData,
 	return nil
 }
 
-func resourceGithubUserSshKeyImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+func resourceGithubUserSshSigningKeyImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 
 	keyID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return nil, fmt.Errorf("invalid SSH key ID format: %w", err)
+		return nil, fmt.Errorf("invalid SSH signing key ID format: %w", err)
 	}
 
-	key, _, err := client.Users.GetKey(ctx, keyID)
+	key, _, err := client.Users.GetSSHSigningKey(ctx, keyID)
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
-			return nil, fmt.Errorf("SSH key with ID %d not found", keyID)
+			return nil, fmt.Errorf("SSH signing key with ID %d not found", keyID)
 		}
 		return nil, err
 	}

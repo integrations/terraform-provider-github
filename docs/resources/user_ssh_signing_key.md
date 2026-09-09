@@ -1,18 +1,18 @@
 ---
-page_title: "github_user_ssh_key (Resource) - GitHub"
+page_title: "github_user_ssh_signing_key (Resource) - GitHub"
 subcategory: ""
 description: |-
-  Resource to manage a SSH key for the authenticated user.
+  Resource to manage a SSH signing key for the authenticated user.
 ---
 
-# github_user_ssh_key (Resource)
+# github_user_ssh_signing_key (Resource)
 
-Resource to manage a SSH key for the authenticated user.
+Resource to manage a SSH signing key for the authenticated user.
 
 ## Example Usage
 
 ```terraform
-resource "github_user_ssh_key" "example" {
+resource "github_user_ssh_signing_key" "example" {
   title = "example title"
   key   = file("~/.ssh/id_rsa.pub")
 }
@@ -23,18 +23,17 @@ resource "github_user_ssh_key" "example" {
 
 ### Required
 
-- `key` (String) The public SSH key to add to your GitHub account.
+- `key` (String) The public SSH signing key to add to your GitHub account.
 - `title` (String) A descriptive name for the new key.
 
 ### Optional
 
-- `etag` (String) An etag representing the SSH key.
+- `etag` (String) An etag representing the SSH signing key.
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `key_id` (Number) The unique identifier of the SSH key.
-- `url` (String) The URL of the SSH key.
+- `key_id` (Number) The unique identifier of the SSH signing key.
 
 ## Import
 
@@ -44,7 +43,7 @@ In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.
 
 ```terraform
 import {
-  to = github_user_ssh_key.example
+  to = github_user_ssh_signing_key.example
   id = "1234567"
 }
 ```
@@ -52,5 +51,5 @@ import {
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-terraform import github_user_ssh_key.example 1234567
+terraform import github_user_ssh_signing_key.example 1234567
 ```
