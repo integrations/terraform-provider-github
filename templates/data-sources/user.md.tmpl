@@ -12,13 +12,21 @@ Use this data source to retrieve information about a GitHub user.
 
 {{ tffile "examples/data-sources/user/example_1.tf" }}
 
+### Lookup by stable user ID
+
+{{ tffile "examples/data-sources/user/example_2.tf" }}
+
 ## Argument Reference
 
-- `username` - (Required) The username. Use an empty string `""` to retrieve information about the currently authenticated user.
+Exactly one of the following must be set:
+
+- `username` - (Optional) The username (login). Use an empty string `""` to retrieve information about the currently authenticated user.
+- `user_id` - (Optional) The GitHub numeric user ID. Stable across username changes, so prefer this if you need lookups that survive a rename.
 
 ## Attributes Reference
 
 - `id` - the ID of the user.
+- `user_id` - the GitHub numeric user ID (same value as `id`, also settable as an input).
 - `node_id` - the Node ID of the user.
 - `login` - the user's login.
 - `avatar_url` - the user's avatar URL.

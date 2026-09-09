@@ -16,15 +16,31 @@ data "github_membership" "membership_for_some_user" {
 }
 ```
 
+### Lookup by stable user ID
+
+```terraform
+# Look up a membership by the stable GitHub user ID.
+# The numeric ID does not change when the user renames their account.
+data "github_membership" "by_user_id" {
+  user_id = 1
+}
+```
+
 ## Argument Reference
 
-- `username` - (Required) The username to lookup in the organization.
+Exactly one of the following must be set:
 
-- `organization` - (Optional) The organization to check for the above username.
+- `username` - (Optional) The username (login) to lookup in the organization.
+- `user_id` - (Optional) The GitHub numeric user ID. Stable across username changes; prefer this for lookups that should survive renames.
+
+Other arguments:
+
+- `organization` - (Optional) The organization to check for the above user.
 
 ## Attributes Reference
 
-- `username` - The username.
+- `username` - The username (login). Always reflects the user's current login at refresh time.
+- `user_id` - The GitHub numeric user ID.
 - `role` - `admin` or `member` -- the role the user has within the organization.
 - `etag` - An etag representing the membership object.
 - `state` - `active` or `pending` -- the state of membership within the organization. `active` if the member has accepted the invite, or `pending` if the invite is still pending.
