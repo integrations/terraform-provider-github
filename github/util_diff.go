@@ -293,6 +293,11 @@ func diffTeamCheck(ctx context.Context, client *github.Client, owner string, tea
 	return false, nil
 }
 
+// diffETag clears the etag field from the diff to prevent unnecessary updates when the ETag changes.
+func diffETag(_ context.Context, diff *schema.ResourceDiff, _ any) error {
+	return diff.Clear("etag")
+}
+
 // suppressUnorderedListDiff returns a schema.SchemaDiffSuppressFunc that suppresses diffs for unordered lists of any type.
 func suppressUnorderedListDiff(fieldKey string, f func(a, b any) int) schema.SchemaDiffSuppressFunc {
 	countKey := fieldKey + ".#"
