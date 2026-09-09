@@ -22,6 +22,8 @@ func resourceGithubOrganizationWebhook() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 
+		CustomizeDiff: diffETag,
+
 		SchemaVersion: 1,
 		StateUpgraders: []schema.StateUpgrader{
 			{
@@ -53,13 +55,8 @@ func resourceGithubOrganizationWebhook() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the organization webhook.",
-				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
-					return true
-				},
-				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -190,8 +187,12 @@ func resourceGithubOrganizationWebhookUpdate(ctx context.Context, d *schema.Reso
 	}
 
 	client := meta.(*Owner).v3client
-
 	orgName := meta.(*Owner).name
+
+	if err := d.Set("etag", nil); err != nil {
+		return diag.FromErr(err)
+	}
+
 	webhookObj := resourceGithubOrganizationWebhookObject(d)
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {

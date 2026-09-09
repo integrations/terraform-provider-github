@@ -446,13 +446,8 @@ func resourceGithubRepository() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the repository object.",
-				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
-					return true
-				},
-				DiffSuppressOnRefresh: true,
 			},
 			"primary_language": {
 				Type:        schema.TypeString,
@@ -506,6 +501,7 @@ func resourceGithubRepository() *schema.Resource {
 			customdiff.ForceNewIfChange("fork", valueChangedButNotEmpty),
 			customdiff.ForceNewIfChange("source_repo", valueChangedButNotEmpty),
 			customdiff.ForceNewIfChange("source_owner", valueChangedButNotEmpty),
+			diffETag,
 		),
 	}
 }
@@ -934,6 +930,10 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 	}
 
 	client := meta.(*Owner).v3client
+
+	if err := d.Set("etag", nil); err != nil {
+		return diag.FromErr(err)
+	}
 
 	repoReq := resourceGithubRepositoryObject(d)
 
