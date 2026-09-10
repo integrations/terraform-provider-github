@@ -276,12 +276,16 @@ export GH_TEST_ENTERPRISE_IS_EMU=
 
 Network configuration and runner-group networking tests require an existing Azure `GitHub.Network/networkSettings` resource registered against the organization or enterprise under test. Use its GitHub ID, not its Azure resource ID.
 
+Azure's [`businessId` property](https://learn.microsoft.com/en-us/azure/templates/github.network/networksettings#networksettingsresourceproperties) takes the organization or enterprise's numeric GitHub `databaseId` as a string. An enterprise registration is not an organization fixture, even when that organization belongs to the enterprise. Use the Azure resource's `tags.GitHubId` value for the fixture ID. For organizations within an enterprise, the enterprise must also permit independent organization network configurations; the tests do not change that policy.
+
 | Environment variable | Test fixture |
 | --- | --- |
 | `GITHUB_TEST_NETWORK_SETTINGS_ID` | An unassigned network settings ID registered against `GITHUB_OWNER`, with `GH_TEST_AUTH_MODE=team` or `enterprise`. |
 | `GITHUB_TEST_ENTERPRISE_NETWORK_SETTINGS_ID` | An unassigned network settings ID registered against `GITHUB_ENTERPRISE_SLUG`, with `GH_TEST_AUTH_MODE=enterprise`. |
 
 The tests create and delete network configurations and runner groups, but do not provision or delete the Azure network settings resource. Tests skip when their mode or fixture is unavailable; a skipped test does not validate private networking.
+
+Passing these acceptance tests validates the GitHub API lifecycle and Terraform state, not runner startup or private connectivity. Those require a separate workflow on GitHub-hosted runners attached to the network.
 
 ### Example _.vscode/settings.json_ file
 

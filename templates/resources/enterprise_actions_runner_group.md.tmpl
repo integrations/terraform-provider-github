@@ -8,6 +8,10 @@ description: |-
 
 This resource allows you to create and manage GitHub Actions runner groups within your GitHub enterprise. You must have admin access to an enterprise to use this resource.
 
+Organization access and repository access are separate controls. After making the group available to an organization, ensure that organization grants its repositories access to the inherited group. The [organization repository-access API](https://docs.github.com/en/rest/actions/self-hosted-runner-groups#set-repository-access-for-a-runner-group-in-an-organization) uses the inherited group's organization-local ID, which can differ from this resource's enterprise group ID.
+
+The [github_actions_hosted_runner](actions_hosted_runner) resource cannot provision runners in enterprise-owned groups. Enterprise-hosted runners must be provisioned separately, for example through the [enterprise hosted-runner API](https://docs.github.com/enterprise-cloud@latest/rest/actions/hosted-runners#create-a-github-hosted-runner-for-an-enterprise).
+
 ## Example Usage
 
 {{ tffile "examples/resources/enterprise_actions_runner_group/example_1.tf" }}
