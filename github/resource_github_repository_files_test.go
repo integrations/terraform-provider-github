@@ -1,0 +1,232 @@
+package github
+
+import (
+	"fmt"
+	"regexp"
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-testing/compare"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
+)
+
+func TestAccGithubRepositoryFiles(t *testing.T) {
+	t.Parallel()
+
+	skipUnauthenticated(t)
+
+	t.Run("with_files", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+
+		configInvalid := fmt.Sprintf(`
+resource "github_repository_files" "test" {
+  repository    = "%s"
+  commit_author = "Terraform User"
+
+  file {
+    path    = "a.txt"
+    content = "alpha"
+  }
+}
+`, repo.GetName())
+
+		config := fmt.Sprintf(`
+resource "github_repository_files" "test" {
+  repository    = "%s"
+  commit_author = "Terraform User"
+  commit_email  = "terraform@example.com"
+
+  file {
+    path    = "a.txt"
+    content = "alpha"
+  }
+  file {
+    path    = "nested/b.txt"
+    content = "bravo"
+  }
+  file {
+    path    = "nested/deeper/c.txt"
+    content = "charlie"
+  }
+}
+
+data "github_repository_file" "readme" {
+  repository = github_repository_files.test.repository
+  branch     = github_repository_files.test.branch
+  file       = "README.md"
+}
+`, repo.GetName())
+
+		configUpdated := fmt.Sprintf(`
+resource "github_repository_files" "test" {
+  repository     = "%s"
+  commit_message = "follow-up batch"
+  commit_author  = "Terraform User"
+  commit_email   = "terraform@example.com"
+
+  file {
+    path    = "a.txt"
+    content = "alpha"
+  }
+  file {
+    path    = "nested/b.txt"
+    content = "bravo edited"
+  }
+  file {
+    path    = "added.txt"
+    content = "delta"
+  }
+}
+`, repo.GetName())
+
+		commitSHA := statecheck.CompareValue(compare.ValuesDiffer())
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      configInvalid,
+					PlanOnly:    true,
+					ExpectError: regexp.MustCompile("all of `commit_author,commit_email` must be specified"),
+				},
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("repository_id"), knownvalue.Int64Exact(repo.GetID())),
+						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("branch"), knownvalue.StringExact(repo.GetDefaultBranch())),
+						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("ref"), knownvalue.StringExact("refs/heads/"+repo.GetDefaultBranch())),
+						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("commit_message"), knownvalue.StringExact("Terraform: 3 added")),
+						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("tree_sha"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("file"), knownvalue.SetSizeExact(3)),
+						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("file"), knownvalue.SetPartial([]knownvalue.Check{
+							knownvalue.ObjectExact(map[string]knownvalue.Check{
+								"path":    knownvalue.StringExact("nested/deeper/c.txt"),
+								"content": knownvalue.StringExact("charlie"),
+								"sha":     knownvalue.NotNull(),
+							}),
+						})),
+						statecheck.ExpectKnownValue("data.github_repository_file.readme", tfjsonpath.New("content"), knownvalue.NotNull()),
+						commitSHA.AddStateValue("github_repository_files.test", tfjsonpath.New("commit_sha")),
+					},
+				},
+				{
+					Config: configUpdated,
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_files.test", plancheck.ResourceActionUpdate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("commit_message"), knownvalue.StringExact("follow-up batch")),
+						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("file"), knownvalue.SetSizeExact(3)),
+						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("file"), knownvalue.SetPartial([]knownvalue.Check{
+							knownvalue.ObjectExact(map[string]knownvalue.Check{
+								"path":    knownvalue.StringExact("nested/b.txt"),
+								"content": knownvalue.StringExact("bravo edited"),
+								"sha":     knownvalue.NotNull(),
+							}),
+						})),
+						commitSHA.AddStateValue("github_repository_files.test", tfjsonpath.New("commit_sha")),
+					},
+				},
+				{
+					ResourceName:            "github_repository_files.test",
+					ImportState:             true,
+					ImportStateId:           fmt.Sprintf("%s:%s", repo.GetName(), repo.GetDefaultBranch()),
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"file", "commit_message", "commit_author", "commit_email"},
+				},
+			},
+		})
+	})
+
+	t.Run("with_branch", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+		branch := mustCreateTestBranch(t, repo)
+
+		config := fmt.Sprintf(`
+resource "github_repository_files" "test" {
+  repository = "%s"
+  branch     = "%s"
+
+  file {
+    path    = "a.txt"
+    content = "alpha"
+  }
+}
+`, repo.GetName(), branch)
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("branch"), knownvalue.StringExact(branch)),
+						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("ref"), knownvalue.StringExact("refs/heads/"+branch)),
+						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("commit_message"), knownvalue.StringExact("Terraform: 1 added")),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("with_drift", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+
+		config := fmt.Sprintf(`
+resource "github_repository_files" "test" {
+  repository = "%s"
+
+  file {
+    path    = "a.txt"
+    content = "alpha"
+  }
+  file {
+    path    = "b.txt"
+    content = "bravo"
+  }
+}
+`, repo.GetName())
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+				},
+				{
+					PreConfig:          func() { mustDeleteRepositoryFile(t, repo, "a.txt") },
+					RefreshState:       true,
+					ExpectNonEmptyPlan: true,
+					RefreshPlanChecks: resource.RefreshPlanChecks{
+						PostRefresh: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_files.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+				{
+					Config: config,
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_files.test", plancheck.ResourceActionUpdate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("commit_message"), knownvalue.StringExact("Terraform: 1 added")),
+						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("file"), knownvalue.SetSizeExact(2)),
+					},
+				},
+			},
+		})
+	})
+}

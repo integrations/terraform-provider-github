@@ -1,0 +1,59 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+Every apply that changes the managed files produces exactly one commit, built with the [Git Database API](https://docs.github.com/en/rest/git) from the current branch head. If the branch advances while the commit is being built, the commit is rebuilt on the new head and retried.
+
+~> **Note** Paths listed in `file` blocks are the source of truth: existing files at those paths are overwritten on the first apply, and removing a `file` block deletes that path in the next commit. Files that are not listed are never modified, including on destroy.
+
+~> **Note** When a repository is archived, Terraform will skip deletion of repository files to avoid API errors, as archived repositories are read-only. The files will be removed from Terraform state without attempting to delete them from GitHub.
+
+## Migrating from `github_repository_file`
+
+1. Remove the per-file resources from state, which does not delete the files from GitHub: `terraform state rm 'github_repository_file.example'`.
+2. Replace them in your configuration with a single `github_repository_files` resource, using `dynamic "file"` if the file set is generated.
+3. Import the new resource and run `terraform plan`. Any path whose content already matches is left untouched; the first apply reconciles the rest in a single commit.
+
+{{ if .HasExamples -}}
+## Example Usage
+
+{{- range .ExampleFiles }}
+
+{{ tffile . }}
+{{- end }}
+{{- end }}
+
+{{ .SchemaMarkdown | trimspace }}
+{{- if or .HasImport .HasImportIDConfig .HasImportIdentityConfig }}
+
+## Import
+
+Import is supported using the following syntax:
+{{- end }}
+{{- if .HasImportIdentityConfig }}
+
+In Terraform v1.12.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `identity` attribute, for example:
+
+{{tffile .ImportIdentityConfigFile }}
+
+{{ .IdentitySchemaMarkdown | trimspace }}
+{{- end }}
+{{- if .HasImportIDConfig }}
+
+In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `id` attribute, for example:
+
+{{tffile .ImportIDConfigFile }}
+{{- end }}
+{{- if .HasImport }}
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+{{codefile "shell" .ImportFile }}
+{{- end }}
