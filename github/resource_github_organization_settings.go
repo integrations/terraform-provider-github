@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -191,97 +192,127 @@ func boolAttr(d *schema.ResourceData, name string) bool {
 	return v
 }
 
-// organizationSettingsForCreate builds the payload sent when the resource is
-// created. An attribute is included only when d.GetOk reports it as configured.
+// isConfigured reports whether the named attribute is explicitly set in the
+// configuration, as opposed to merely carrying its schema default.
 //
-// Note that d.GetOk cannot distinguish an explicitly configured false from an
-// unset attribute, so a boolean configured as false is currently dropped from
-// the create payload. That behaviour is unchanged here and is tracked
-// separately in #3493.
+// d.GetOk cannot answer this for booleans: it reports a value configured as
+// false exactly like an unset one, which is why an explicit false used to be
+// dropped from the create payload (#3493). The raw configuration keeps the
+// distinction, so a null there means the user did not write the attribute.
+//
+// The raw configuration is absent on some code paths, such as import. In that
+// case there is nothing to read the user's intent from, so this falls back to
+// the previous d.GetOk behaviour rather than inventing one.
+func isConfigured(d *schema.ResourceData, name string) bool {
+	if d.GetRawConfig().IsNull() {
+		_, ok := d.GetOk(name)
+
+		return ok
+	}
+
+	v, diags := d.GetRawConfigAt(cty.GetAttrPath(name))
+	if diags.HasError() {
+		_, ok := d.GetOk(name)
+
+		return ok
+	}
+
+	return !v.IsNull()
+}
+
+// organizationSettingsForCreate builds the payload sent when the resource is
+// created. An attribute is included only when the user explicitly set it, so
+// unconfigured attributes stay out of the request and the org keeps whatever
+// the API defaults to. Keeping the payload narrow is what avoids the
+// validation errors reported in #2305.
+//
+// Inclusion is decided from the raw configuration rather than d.GetOk, which
+// cannot tell an explicitly configured false from an unset attribute and so
+// used to drop a boolean configured as false from the create payload (#3493).
 func organizationSettingsForCreate(d *schema.ResourceData, isEnterprise bool) *github.Organization {
 	settings := &github.Organization{}
 
 	// The API rejects the request without billing_email, so it is always sent.
-	if _, ok := d.GetOk("billing_email"); ok {
+	if isConfigured(d, "billing_email") {
 		settings.BillingEmail = new(stringAttr(d, "billing_email"))
 	}
 
-	if _, ok := d.GetOk("company"); ok {
+	if isConfigured(d, "company") {
 		settings.Company = new(stringAttr(d, "company"))
 	}
-	if _, ok := d.GetOk("email"); ok {
+	if isConfigured(d, "email") {
 		settings.Email = new(stringAttr(d, "email"))
 	}
-	if _, ok := d.GetOk("twitter_username"); ok {
+	if isConfigured(d, "twitter_username") {
 		settings.TwitterUsername = new(stringAttr(d, "twitter_username"))
 	}
-	if _, ok := d.GetOk("location"); ok {
+	if isConfigured(d, "location") {
 		settings.Location = new(stringAttr(d, "location"))
 	}
-	if _, ok := d.GetOk("name"); ok {
+	if isConfigured(d, "name") {
 		settings.Name = new(stringAttr(d, "name"))
 	}
-	if _, ok := d.GetOk("description"); ok {
+	if isConfigured(d, "description") {
 		settings.Description = new(stringAttr(d, "description"))
 	}
-	if _, ok := d.GetOk("blog"); ok {
+	if isConfigured(d, "blog") {
 		settings.Blog = new(stringAttr(d, "blog"))
 	}
 
-	if _, ok := d.GetOk("has_organization_projects"); ok {
+	if isConfigured(d, "has_organization_projects") {
 		settings.HasOrganizationProjects = new(boolAttr(d, "has_organization_projects"))
 	}
-	if _, ok := d.GetOk("has_repository_projects"); ok {
+	if isConfigured(d, "has_repository_projects") {
 		settings.HasRepositoryProjects = new(boolAttr(d, "has_repository_projects"))
 	}
-	if _, ok := d.GetOk("default_repository_permission"); ok {
+	if isConfigured(d, "default_repository_permission") {
 		settings.DefaultRepoPermission = new(stringAttr(d, "default_repository_permission"))
 	}
-	if _, ok := d.GetOk("members_can_create_repositories"); ok {
+	if isConfigured(d, "members_can_create_repositories") {
 		settings.MembersCanCreateRepos = new(boolAttr(d, "members_can_create_repositories"))
 	}
-	if _, ok := d.GetOk("members_can_create_private_repositories"); ok {
+	if isConfigured(d, "members_can_create_private_repositories") {
 		settings.MembersCanCreatePrivateRepos = new(boolAttr(d, "members_can_create_private_repositories"))
 	}
-	if _, ok := d.GetOk("members_can_create_public_repositories"); ok {
+	if isConfigured(d, "members_can_create_public_repositories") {
 		settings.MembersCanCreatePublicRepos = new(boolAttr(d, "members_can_create_public_repositories"))
 	}
-	if _, ok := d.GetOk("members_can_create_pages"); ok {
+	if isConfigured(d, "members_can_create_pages") {
 		settings.MembersCanCreatePages = new(boolAttr(d, "members_can_create_pages"))
 	}
-	if _, ok := d.GetOk("members_can_create_public_pages"); ok {
+	if isConfigured(d, "members_can_create_public_pages") {
 		settings.MembersCanCreatePublicPages = new(boolAttr(d, "members_can_create_public_pages"))
 	}
-	if _, ok := d.GetOk("members_can_create_private_pages"); ok {
+	if isConfigured(d, "members_can_create_private_pages") {
 		settings.MembersCanCreatePrivatePages = new(boolAttr(d, "members_can_create_private_pages"))
 	}
-	if _, ok := d.GetOk("members_can_fork_private_repositories"); ok {
+	if isConfigured(d, "members_can_fork_private_repositories") {
 		settings.MembersCanForkPrivateRepos = new(boolAttr(d, "members_can_fork_private_repositories"))
 	}
-	if _, ok := d.GetOk("web_commit_signoff_required"); ok {
+	if isConfigured(d, "web_commit_signoff_required") {
 		settings.WebCommitSignoffRequired = new(boolAttr(d, "web_commit_signoff_required"))
 	}
-	if _, ok := d.GetOk("advanced_security_enabled_for_new_repositories"); ok {
+	if isConfigured(d, "advanced_security_enabled_for_new_repositories") {
 		settings.AdvancedSecurityEnabledForNewRepos = new(boolAttr(d, "advanced_security_enabled_for_new_repositories"))
 	}
-	if _, ok := d.GetOk("dependabot_alerts_enabled_for_new_repositories"); ok {
+	if isConfigured(d, "dependabot_alerts_enabled_for_new_repositories") {
 		settings.DependabotAlertsEnabledForNewRepos = new(boolAttr(d, "dependabot_alerts_enabled_for_new_repositories"))
 	}
-	if _, ok := d.GetOk("dependabot_security_updates_enabled_for_new_repositories"); ok {
+	if isConfigured(d, "dependabot_security_updates_enabled_for_new_repositories") {
 		settings.DependabotSecurityUpdatesEnabledForNewRepos = new(boolAttr(d, "dependabot_security_updates_enabled_for_new_repositories"))
 	}
-	if _, ok := d.GetOk("dependency_graph_enabled_for_new_repositories"); ok {
+	if isConfigured(d, "dependency_graph_enabled_for_new_repositories") {
 		settings.DependencyGraphEnabledForNewRepos = new(boolAttr(d, "dependency_graph_enabled_for_new_repositories"))
 	}
-	if _, ok := d.GetOk("secret_scanning_enabled_for_new_repositories"); ok {
+	if isConfigured(d, "secret_scanning_enabled_for_new_repositories") {
 		settings.SecretScanningEnabledForNewRepos = new(boolAttr(d, "secret_scanning_enabled_for_new_repositories"))
 	}
-	if _, ok := d.GetOk("secret_scanning_push_protection_enabled_for_new_repositories"); ok {
+	if isConfigured(d, "secret_scanning_push_protection_enabled_for_new_repositories") {
 		settings.SecretScanningPushProtectionEnabledForNewRepos = new(boolAttr(d, "secret_scanning_push_protection_enabled_for_new_repositories"))
 	}
 
 	if isEnterprise {
-		if _, ok := d.GetOk("members_can_create_internal_repositories"); ok {
+		if isConfigured(d, "members_can_create_internal_repositories") {
 			settings.MembersCanCreateInternalRepos = new(boolAttr(d, "members_can_create_internal_repositories"))
 		}
 	}

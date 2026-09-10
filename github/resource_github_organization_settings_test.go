@@ -2,11 +2,14 @@ package github
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
@@ -620,7 +623,78 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 // Attributes whose schema Default is a non-zero value are reported as
 // configured by d.GetOk even when the practitioner omits them, so they appear
 // in every create payload. Attributes defaulting to false or "" do not.
+// testResourceDataWithConfig builds ResourceData carrying both the attributes
+// d.Get reads and the raw configuration isConfigured reads. Attributes absent
+// from raw are recorded as null in the configuration, which is how an unset
+// attribute is told apart from one explicitly configured as false.
+//
+// schema.TestResourceDataRaw cannot be used here: it leaves the raw
+// configuration null, and that is the one distinction these cases exercise.
+func testResourceDataWithConfig(t *testing.T, raw map[string]any) *schema.ResourceData {
+	t.Helper()
+
+	res := resourceGithubOrganizationSettings()
+	attributes := map[string]string{}
+	config := map[string]cty.Value{}
+
+	for name, attrSchema := range res.Schema {
+		value, configured := raw[name]
+
+		switch attrSchema.Type {
+		case schema.TypeBool:
+			if !configured {
+				config[name] = cty.NullVal(cty.Bool)
+
+				continue
+			}
+
+			b, ok := value.(bool)
+			if !ok {
+				t.Fatalf("attribute %q is a bool in the schema but %T in the test case", name, value)
+			}
+			attributes[name] = strconv.FormatBool(b)
+			config[name] = cty.BoolVal(b)
+		case schema.TypeString:
+			if !configured {
+				config[name] = cty.NullVal(cty.String)
+
+				continue
+			}
+
+			s, ok := value.(string)
+			if !ok {
+				t.Fatalf("attribute %q is a string in the schema but %T in the test case", name, value)
+			}
+			attributes[name] = s
+			config[name] = cty.StringVal(s)
+		default:
+			t.Fatalf("attribute %q has unsupported type %s; extend this helper", name, attrSchema.Type)
+		}
+	}
+
+	return res.Data(&terraform.InstanceState{
+		Attributes: attributes,
+		RawConfig:  cty.ObjectVal(config),
+	})
+}
+
 func createBaseline() *github.Organization {
+	// Only attributes the configuration actually sets reach the create payload,
+	// so a case that configures nothing but billing_email sends nothing else.
+	// Attributes left out keep whatever the API defaults to, which is what
+	// keeps the request narrow enough to avoid #2305.
+	return &github.Organization{
+		BillingEmail: new("org@example.com"),
+	}
+}
+
+// updateBaseline is the update-path counterpart of createBaseline. The update
+// payload is driven by d.HasChange, and under schema.TestResourceDataRaw an
+// attribute left out of raw reads as the zero value from state but as its
+// schema default from d.Get, so every attribute whose default is non-zero
+// looks changed. These entries are that artifact, not a behaviour the
+// provider intends.
+func updateBaseline() *github.Organization {
 	return &github.Organization{
 		BillingEmail:                 new("org@example.com"),
 		HasOrganizationProjects:      new(true),
@@ -645,11 +719,12 @@ func Test_organizationSettingsForCreate(t *testing.T) {
 		want         *github.Organization
 	}{
 		{
-			// Documents the known create-path limitation tracked in #3493:
-			// d.GetOk reports a boolean configured as false the same way it
-			// reports an unset one, so the attribute never reaches the payload
-			// and only corrects itself on a second apply via HasChange.
-			name: "create_drops_explicitly_false_booleans",
+			// The bug reported in #3493: a boolean configured as false used to
+			// be dropped from the create payload, so the API applied its own
+			// default and the first apply silently produced the opposite of the
+			// configuration. Both attributes here are explicitly false and both
+			// must reach the payload.
+			name: "create_includes_explicitly_false_booleans",
 			raw: map[string]any{
 				"billing_email":               "org@example.com",
 				"has_organization_projects":   false,
@@ -657,9 +732,20 @@ func Test_organizationSettingsForCreate(t *testing.T) {
 			},
 			want: func() *github.Organization {
 				want := createBaseline()
-				want.HasOrganizationProjects = nil
+				want.HasOrganizationProjects = new(false)
+				want.WebCommitSignoffRequired = new(false)
 				return want
 			}(),
+		},
+		{
+			// An attribute the user never wrote must stay out of the payload
+			// even though its schema default is a definite true, so the org
+			// keeps whatever the API defaults to.
+			name: "create_omits_unconfigured_default_true_boolean",
+			raw: map[string]any{
+				"billing_email": "org@example.com",
+			},
+			want: createBaseline(),
 		},
 		{
 			name: "create_includes_explicitly_true_booleans",
@@ -707,7 +793,7 @@ func Test_organizationSettingsForCreate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			d := schema.TestResourceDataRaw(t, resourceGithubOrganizationSettings().Schema, tt.raw)
+			d := testResourceDataWithConfig(t, tt.raw)
 
 			got := organizationSettingsForCreate(d, tt.isEnterprise)
 
@@ -740,7 +826,7 @@ func Test_organizationSettingsForUpdate(t *testing.T) {
 				"has_organization_projects": false,
 			},
 			want: func() *github.Organization {
-				want := createBaseline()
+				want := updateBaseline()
 				want.HasOrganizationProjects = nil
 				return want
 			}(),
@@ -755,7 +841,7 @@ func Test_organizationSettingsForUpdate(t *testing.T) {
 				"description":   "example description",
 			},
 			want: func() *github.Organization {
-				want := createBaseline()
+				want := updateBaseline()
 				want.Description = new("example description")
 				return want
 			}(),
