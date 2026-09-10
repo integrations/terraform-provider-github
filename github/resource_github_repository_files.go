@@ -12,6 +12,7 @@ import (
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -25,7 +26,7 @@ func resourceGithubRepositoryFiles() *schema.Resource {
 			StateContext: resourceGithubRepositoryFilesImport,
 		},
 
-		CustomizeDiff: diffRepository,
+		CustomizeDiff: customdiff.All(diffRepository, diffRepositoryFiles),
 
 		Description: "Manages a set of files within a GitHub repository, writing all changes in a single commit per apply. Use this resource instead of multiple `github_repository_file` resources when you need atomic multi-file commits or want to avoid `409` conflicts caused by parallel per-file writes to the same branch.",
 
@@ -94,11 +95,6 @@ func resourceGithubRepositoryFiles() *schema.Resource {
 						},
 					},
 				},
-				Set: func(v any) int {
-					file, _ := v.(map[string]any)
-					path, _ := file["path"].(string)
-					return schema.HashString(path)
-				},
 			},
 			"commit_sha": {
 				Type:        schema.TypeString,
@@ -114,16 +110,24 @@ func resourceGithubRepositoryFiles() *schema.Resource {
 	}
 }
 
-func expandRepositoryFiles(v any) map[string]string {
+func diffRepositoryFiles(_ context.Context, diff *schema.ResourceDiff, _ any) error {
+	_, err := expandRepositoryFiles(diff.Get("file"))
+	return err
+}
+
+func expandRepositoryFiles(v any) (map[string]string, error) {
 	set, _ := v.(*schema.Set)
 	files := make(map[string]string, set.Len())
 	for _, item := range set.List() {
 		file, _ := item.(map[string]any)
 		path, _ := file["path"].(string)
+		if _, duplicate := files[path]; duplicate {
+			return nil, fmt.Errorf("file path %q is declared more than once", path)
+		}
 		content, _ := file["content"].(string)
 		files[path] = content
 	}
-	return files
+	return files, nil
 }
 
 func flattenRepositoryFiles(files, shas map[string]string) []any {
@@ -194,7 +198,10 @@ func resourceGithubRepositoryFilesCreate(ctx context.Context, d *schema.Resource
 		branch = repository.GetDefaultBranch()
 	}
 
-	files := expandRepositoryFiles(d.Get("file"))
+	files, err := expandRepositoryFiles(d.Get("file"))
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	message := repositoryFilesCommitMessage(d, len(files), 0, 0)
 
 	tflog.Debug(ctx, "Committing repository files", map[string]any{"owner": owner, "repository": repoName, "branch": branch, "files": len(files)})
@@ -289,8 +296,14 @@ func resourceGithubRepositoryFilesUpdate(ctx context.Context, d *schema.Resource
 	}
 
 	previous, desired := d.GetChange("file")
-	previousFiles := expandRepositoryFiles(previous)
-	files := expandRepositoryFiles(desired)
+	previousFiles, err := expandRepositoryFiles(previous)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	files, err := expandRepositoryFiles(desired)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	upserts := make(map[string]string)
 	added := 0
@@ -342,14 +355,18 @@ func resourceGithubRepositoryFilesDelete(ctx context.Context, d *schema.Resource
 	repoName, _ := d.Get("repository").(string)
 	branch, _ := d.Get("branch").(string)
 
-	deletes := slices.Sorted(maps.Keys(expandRepositoryFiles(d.Get("file"))))
+	files, err := expandRepositoryFiles(d.Get("file"))
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	deletes := slices.Sorted(maps.Keys(files))
 	if len(deletes) == 0 {
 		return nil
 	}
 
 	tflog.Debug(ctx, "Deleting repository files", map[string]any{"owner": owner, "repository": repoName, "branch": branch, "deletes": len(deletes)})
 
-	_, _, err := commitRepositoryFiles(ctx, client, owner, repoName, branch, repositoryFilesCommitMessage(d, 0, 0, len(deletes)), expandRepositoryFilesAuthor(d), nil, deletes)
+	_, _, err = commitRepositoryFiles(ctx, client, owner, repoName, branch, repositoryFilesCommitMessage(d, 0, 0, len(deletes)), expandRepositoryFilesAuthor(d), nil, deletes)
 	if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
 		tflog.Info(ctx, "Repository files already removed because the branch no longer exists in GitHub", map[string]any{"owner": owner, "repository": repoName, "branch": branch})
 		return nil

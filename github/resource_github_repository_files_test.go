@@ -62,6 +62,42 @@ data "github_repository_file" "readme" {
 }
 `, repo.GetName())
 
+		configEdited := fmt.Sprintf(`
+resource "github_repository_files" "test" {
+  repository    = "%s"
+  commit_author = "Terraform User"
+  commit_email  = "terraform@example.com"
+
+  file {
+    path    = "a.txt"
+    content = "alpha"
+  }
+  file {
+    path    = "nested/b.txt"
+    content = "bravo edited"
+  }
+  file {
+    path    = "nested/deeper/c.txt"
+    content = "charlie"
+  }
+}
+`, repo.GetName())
+
+		configDuplicate := fmt.Sprintf(`
+resource "github_repository_files" "test" {
+  repository = "%s"
+
+  file {
+    path    = "a.txt"
+    content = "alpha"
+  }
+  file {
+    path    = "a.txt"
+    content = "alpha again"
+  }
+}
+`, repo.GetName())
+
 		configUpdated := fmt.Sprintf(`
 resource "github_repository_files" "test" {
   repository     = "%s"
@@ -115,6 +151,31 @@ resource "github_repository_files" "test" {
 					},
 				},
 				{
+					Config: configEdited,
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_files.test", plancheck.ResourceActionUpdate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("commit_message"), knownvalue.StringExact("Terraform: 1 updated")),
+						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("file"), knownvalue.SetSizeExact(3)),
+						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("file"), knownvalue.SetPartial([]knownvalue.Check{
+							knownvalue.ObjectExact(map[string]knownvalue.Check{
+								"path":    knownvalue.StringExact("nested/b.txt"),
+								"content": knownvalue.StringExact("bravo edited"),
+								"sha":     knownvalue.NotNull(),
+							}),
+						})),
+						commitSHA.AddStateValue("github_repository_files.test", tfjsonpath.New("commit_sha")),
+					},
+				},
+				{
+					Config:      configDuplicate,
+					PlanOnly:    true,
+					ExpectError: regexp.MustCompile(`file path "a.txt" is declared more than once`),
+				},
+				{
 					Config: configUpdated,
 					ConfigPlanChecks: resource.ConfigPlanChecks{
 						PreApply: []plancheck.PlanCheck{
@@ -126,8 +187,8 @@ resource "github_repository_files" "test" {
 						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("file"), knownvalue.SetSizeExact(3)),
 						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("file"), knownvalue.SetPartial([]knownvalue.Check{
 							knownvalue.ObjectExact(map[string]knownvalue.Check{
-								"path":    knownvalue.StringExact("nested/b.txt"),
-								"content": knownvalue.StringExact("bravo edited"),
+								"path":    knownvalue.StringExact("added.txt"),
+								"content": knownvalue.StringExact("delta"),
 								"sha":     knownvalue.NotNull(),
 							}),
 						})),
