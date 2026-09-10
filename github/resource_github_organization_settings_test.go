@@ -617,156 +617,81 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 	})
 }
 
-func Test_buildOrganizationSettings(t *testing.T) {
+// Attributes whose schema Default is a non-zero value are reported as
+// configured by d.GetOk even when the practitioner omits them, so they appear
+// in every create payload. Attributes defaulting to false or "" do not.
+func createBaseline() *github.Organization {
+	return &github.Organization{
+		BillingEmail:                 new("org@example.com"),
+		HasOrganizationProjects:      new(true),
+		HasRepositoryProjects:        new(true),
+		DefaultRepoPermission:        new("read"),
+		MembersCanCreateRepos:        new(true),
+		MembersCanCreatePrivateRepos: new(true),
+		MembersCanCreatePublicRepos:  new(true),
+		MembersCanCreatePages:        new(true),
+		MembersCanCreatePublicPages:  new(true),
+		MembersCanCreatePrivatePages: new(true),
+	}
+}
+
+func Test_organizationSettingsForCreate(t *testing.T) {
 	t.Parallel()
 
 	for _, tt := range []struct {
 		name         string
 		raw          map[string]any
-		id           string // a non-empty ID exercises the update path
 		isEnterprise bool
 		want         *github.Organization
 	}{
 		{
-			// Regression test for the create path dropping booleans configured as
-			// false, which only corrected itself on a second apply through the
-			// update/HasChange path. Every boolean carries a definite value on
-			// create, so the full payload is asserted here.
-			name: "create_includes_explicitly_false_booleans",
+			// Documents the known create-path limitation tracked in #3493:
+			// d.GetOk reports a boolean configured as false the same way it
+			// reports an unset one, so the attribute never reaches the payload
+			// and only corrects itself on a second apply via HasChange.
+			name: "create_drops_explicitly_false_booleans",
 			raw: map[string]any{
 				"billing_email":               "org@example.com",
 				"has_organization_projects":   false,
 				"web_commit_signoff_required": false,
 			},
-			want: &github.Organization{
-				BillingEmail:                                   new("org@example.com"),
-				HasOrganizationProjects:                        new(false),
-				HasRepositoryProjects:                          new(true),
-				DefaultRepoPermission:                          new("read"),
-				MembersCanCreateRepos:                          new(true),
-				MembersCanCreatePrivateRepos:                   new(true),
-				MembersCanCreatePublicRepos:                    new(true),
-				MembersCanCreatePages:                          new(true),
-				MembersCanCreatePublicPages:                    new(true),
-				MembersCanCreatePrivatePages:                   new(true),
-				MembersCanForkPrivateRepos:                     new(false),
-				WebCommitSignoffRequired:                       new(false),
-				AdvancedSecurityEnabledForNewRepos:             new(false),
-				DependabotAlertsEnabledForNewRepos:             new(false),
-				DependabotSecurityUpdatesEnabledForNewRepos:    new(false),
-				DependencyGraphEnabledForNewRepos:              new(false),
-				SecretScanningEnabledForNewRepos:               new(false),
-				SecretScanningPushProtectionEnabledForNewRepos: new(false),
-			},
+			want: func() *github.Organization {
+				want := createBaseline()
+				want.HasOrganizationProjects = nil
+				return want
+			}(),
 		},
 		{
-			name: "create_includes_true_booleans",
+			name: "create_includes_explicitly_true_booleans",
 			raw: map[string]any{
 				"billing_email":               "org@example.com",
 				"web_commit_signoff_required": true,
 			},
-			want: &github.Organization{
-				BillingEmail:                                   new("org@example.com"),
-				HasOrganizationProjects:                        new(true),
-				HasRepositoryProjects:                          new(true),
-				DefaultRepoPermission:                          new("read"),
-				MembersCanCreateRepos:                          new(true),
-				MembersCanCreatePrivateRepos:                   new(true),
-				MembersCanCreatePublicRepos:                    new(true),
-				MembersCanCreatePages:                          new(true),
-				MembersCanCreatePublicPages:                    new(true),
-				MembersCanCreatePrivatePages:                   new(true),
-				MembersCanForkPrivateRepos:                     new(false),
-				WebCommitSignoffRequired:                       new(true),
-				AdvancedSecurityEnabledForNewRepos:             new(false),
-				DependabotAlertsEnabledForNewRepos:             new(false),
-				DependabotSecurityUpdatesEnabledForNewRepos:    new(false),
-				DependencyGraphEnabledForNewRepos:              new(false),
-				SecretScanningEnabledForNewRepos:               new(false),
-				SecretScanningPushProtectionEnabledForNewRepos: new(false),
-			},
+			want: func() *github.Organization {
+				want := createBaseline()
+				want.WebCommitSignoffRequired = new(true)
+				return want
+			}(),
 		},
 		{
-			// Only booleans are included unconditionally on create; an
-			// unconfigured optional string stays absent from the payload.
 			name: "create_omits_unconfigured_optional_string",
 			raw: map[string]any{
 				"billing_email": "org@example.com",
 			},
-			want: &github.Organization{
-				BillingEmail:                                   new("org@example.com"),
-				HasOrganizationProjects:                        new(true),
-				HasRepositoryProjects:                          new(true),
-				DefaultRepoPermission:                          new("read"),
-				MembersCanCreateRepos:                          new(true),
-				MembersCanCreatePrivateRepos:                   new(true),
-				MembersCanCreatePublicRepos:                    new(true),
-				MembersCanCreatePages:                          new(true),
-				MembersCanCreatePublicPages:                    new(true),
-				MembersCanCreatePrivatePages:                   new(true),
-				MembersCanForkPrivateRepos:                     new(false),
-				WebCommitSignoffRequired:                       new(false),
-				AdvancedSecurityEnabledForNewRepos:             new(false),
-				DependabotAlertsEnabledForNewRepos:             new(false),
-				DependabotSecurityUpdatesEnabledForNewRepos:    new(false),
-				DependencyGraphEnabledForNewRepos:              new(false),
-				SecretScanningEnabledForNewRepos:               new(false),
-				SecretScanningPushProtectionEnabledForNewRepos: new(false),
-			},
-		},
-		{
-			// On update a field is only sent when it has changed, so the
-			// explicitly configured has_organization_projects is dropped. The
-			// attributes that do survive are an artifact of TestResourceDataRaw:
-			// one left out of raw reads as the zero value from state but as its
-			// schema default from d.Get, so every attribute defaulting to a
-			// non-zero value (true, "read") looks changed here.
-			name: "update_omits_unchanged_booleans",
-			raw: map[string]any{
-				"billing_email":             "org@example.com",
-				"has_organization_projects": false,
-			},
-			id: "example-org",
-			want: &github.Organization{
-				BillingEmail:                 new("org@example.com"),
-				HasRepositoryProjects:        new(true),
-				DefaultRepoPermission:        new("read"),
-				MembersCanCreateRepos:        new(true),
-				MembersCanCreatePrivateRepos: new(true),
-				MembersCanCreatePublicRepos:  new(true),
-				MembersCanCreatePages:        new(true),
-				MembersCanCreatePublicPages:  new(true),
-				MembersCanCreatePrivatePages: new(true),
-			},
+			want: createBaseline(),
 		},
 		{
 			name: "enterprise_create_includes_internal_repositories_boolean",
 			raw: map[string]any{
 				"billing_email": "org@example.com",
-				"members_can_create_internal_repositories": false,
+				"members_can_create_internal_repositories": true,
 			},
 			isEnterprise: true,
-			want: &github.Organization{
-				BillingEmail:                                   new("org@example.com"),
-				HasOrganizationProjects:                        new(true),
-				HasRepositoryProjects:                          new(true),
-				DefaultRepoPermission:                          new("read"),
-				MembersCanCreateRepos:                          new(true),
-				MembersCanCreateInternalRepos:                  new(false),
-				MembersCanCreatePrivateRepos:                   new(true),
-				MembersCanCreatePublicRepos:                    new(true),
-				MembersCanCreatePages:                          new(true),
-				MembersCanCreatePublicPages:                    new(true),
-				MembersCanCreatePrivatePages:                   new(true),
-				MembersCanForkPrivateRepos:                     new(false),
-				WebCommitSignoffRequired:                       new(false),
-				AdvancedSecurityEnabledForNewRepos:             new(false),
-				DependabotAlertsEnabledForNewRepos:             new(false),
-				DependabotSecurityUpdatesEnabledForNewRepos:    new(false),
-				DependencyGraphEnabledForNewRepos:              new(false),
-				SecretScanningEnabledForNewRepos:               new(false),
-				SecretScanningPushProtectionEnabledForNewRepos: new(false),
-			},
+			want: func() *github.Organization {
+				want := createBaseline()
+				want.MembersCanCreateInternalRepos = new(true)
+				return want
+			}(),
 		},
 		{
 			// The enterprise-only attribute must never reach the payload for a
@@ -774,42 +699,78 @@ func Test_buildOrganizationSettings(t *testing.T) {
 			name: "non_enterprise_create_omits_internal_repositories_boolean",
 			raw: map[string]any{
 				"billing_email": "org@example.com",
-				"members_can_create_internal_repositories": false,
+				"members_can_create_internal_repositories": true,
 			},
-			want: &github.Organization{
-				BillingEmail:                                   new("org@example.com"),
-				HasOrganizationProjects:                        new(true),
-				HasRepositoryProjects:                          new(true),
-				DefaultRepoPermission:                          new("read"),
-				MembersCanCreateRepos:                          new(true),
-				MembersCanCreatePrivateRepos:                   new(true),
-				MembersCanCreatePublicRepos:                    new(true),
-				MembersCanCreatePages:                          new(true),
-				MembersCanCreatePublicPages:                    new(true),
-				MembersCanCreatePrivatePages:                   new(true),
-				MembersCanForkPrivateRepos:                     new(false),
-				WebCommitSignoffRequired:                       new(false),
-				AdvancedSecurityEnabledForNewRepos:             new(false),
-				DependabotAlertsEnabledForNewRepos:             new(false),
-				DependabotSecurityUpdatesEnabledForNewRepos:    new(false),
-				DependencyGraphEnabledForNewRepos:              new(false),
-				SecretScanningEnabledForNewRepos:               new(false),
-				SecretScanningPushProtectionEnabledForNewRepos: new(false),
-			},
+			want: createBaseline(),
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
 			d := schema.TestResourceDataRaw(t, resourceGithubOrganizationSettings().Schema, tt.raw)
-			if tt.id != "" {
-				d.SetId(tt.id)
-			}
 
-			got := buildOrganizationSettings(d, tt.isEnterprise)
+			got := organizationSettingsForCreate(d, tt.isEnterprise)
 
 			if diff := cmp.Diff(tt.want, got); diff != "" {
-				t.Errorf("buildOrganizationSettings() mismatch (-want +got):\n%s", diff)
+				t.Errorf("organizationSettingsForCreate() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func Test_organizationSettingsForUpdate(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name         string
+		raw          map[string]any
+		isEnterprise bool
+		want         *github.Organization
+	}{
+		{
+			// Only changed attributes are sent, which is what keeps
+			// unconfigured attributes out of the request (#2305). The
+			// attributes that do survive here are an artifact of
+			// TestResourceDataRaw: one left out of raw reads as the zero value
+			// from state but as its schema default from d.Get, so every
+			// attribute defaulting to a non-zero value looks changed.
+			name: "update_omits_unchanged_booleans",
+			raw: map[string]any{
+				"billing_email":             "org@example.com",
+				"has_organization_projects": false,
+			},
+			want: func() *github.Organization {
+				want := createBaseline()
+				want.HasOrganizationProjects = nil
+				return want
+			}(),
+		},
+		{
+			// A configured optional string is a change against empty state, so
+			// it is included; the create path reaches the same result through
+			// GetOk instead.
+			name: "update_includes_changed_optional_string",
+			raw: map[string]any{
+				"billing_email": "org@example.com",
+				"description":   "example description",
+			},
+			want: func() *github.Organization {
+				want := createBaseline()
+				want.Description = new("example description")
+				return want
+			}(),
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			d := schema.TestResourceDataRaw(t, resourceGithubOrganizationSettings().Schema, tt.raw)
+			d.SetId("example-org")
+
+			got := organizationSettingsForUpdate(d, tt.isEnterprise)
+
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("organizationSettingsForUpdate() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
