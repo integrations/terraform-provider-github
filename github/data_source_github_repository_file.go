@@ -99,8 +99,7 @@ func dataSourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceD
 
 	fc, dc, _, err := client.Repositories.GetContents(ctx, owner, repo, file, opts)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				tflog.Debug(ctx, "Missing GitHub repository file", map[string]any{"owner": owner, "repo": repo, "file": file})
 				d.SetId("")

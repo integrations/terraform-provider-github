@@ -23,10 +23,11 @@ func resourceGithubTeam() *schema.Resource {
 			StateContext: resourceGithubTeamImport,
 		},
 
-		CustomizeDiff: customdiff.Sequence(
+		CustomizeDiff: customdiff.All(
 			customdiff.ComputedIf("slug", func(_ context.Context, d *schema.ResourceDiff, meta any) bool {
 				return d.HasChange("name")
 			}),
+			diffETag,
 		),
 
 		Schema: map[string]*schema.Schema{
@@ -105,8 +106,9 @@ func resourceGithubTeam() *schema.Resource {
 				Description: "The Node ID of the created team.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the team.",
 			},
 		},
 	}
@@ -242,8 +244,7 @@ func resourceGithubTeamRead(ctx context.Context, d *schema.ResourceData, meta an
 
 	team, resp, err := client.Teams.GetTeamByID(ctx, orgId, id)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -322,6 +323,10 @@ func resourceGithubTeamUpdate(ctx context.Context, d *schema.ResourceData, m any
 
 	err := checkOrganization(meta)
 	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := d.Set("etag", nil); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -428,8 +433,7 @@ func resourceGithubTeamDelete(ctx context.Context, d *schema.ResourceData, meta 
 		// Fetch the team in order to see if it exists or not (http 404)
 		_, _, err = client.Teams.GetTeamByID(ctx, orgId, id)
 		if err != nil {
-			var ghErr *github.ErrorResponse
-			if errors.As(err, &ghErr) {
+			if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 				if ghErr.Response.StatusCode == http.StatusNotFound {
 					// If team we failed to delete does not exist, remove it from TF state.
 					log.Printf("[WARN] Removing team: %s from state because it no longer exists",

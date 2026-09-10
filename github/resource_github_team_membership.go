@@ -36,6 +36,8 @@ func resourceGithubTeamMembership() *schema.Resource {
 			},
 		},
 
+		CustomizeDiff: diffETag,
+
 		Schema: map[string]*schema.Schema{
 			"team_id": {
 				Type:        schema.TypeString,
@@ -58,8 +60,9 @@ func resourceGithubTeamMembership() *schema.Resource {
 				ValidateDiagFunc: validateValueFunc([]string{"member", "maintainer"}),
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the team membership.",
 			},
 		},
 	}
@@ -69,6 +72,10 @@ func resourceGithubTeamMembershipCreateOrUpdate(ctx context.Context, d *schema.R
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	orgId := meta.id
+
+	if err := d.Set("etag", nil); err != nil {
+		return diag.FromErr(err)
+	}
 
 	teamIdString := d.Get("team_id").(string)
 	teamId, err := getTeamID(ctx, meta, teamIdString)
@@ -128,8 +135,7 @@ func resourceGithubTeamMembershipRead(ctx context.Context, d *schema.ResourceDat
 	membership, resp, err := client.Teams.GetTeamMembershipByID(ctx,
 		orgId, teamId, username)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}

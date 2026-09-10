@@ -677,8 +677,9 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 				},
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the ruleset.",
 			},
 		},
 	}
@@ -741,8 +742,7 @@ func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.Resource
 
 	ruleset, resp, err := client.Repositories.GetRuleset(ctx, owner, repoName, rulesetID, false)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -792,12 +792,16 @@ func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.Resource
 	return nil
 }
 
-func resourceGithubRepositoryRulesetUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryRulesetUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
+	if err := d.Set("etag", nil); err != nil {
+		return diag.FromErr(err)
+	}
 
 	rulesetReq := resourceGithubRulesetObject(d, "")
-
-	owner := meta.(*Owner).name
 
 	repoName := d.Get("repository").(string)
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -883,16 +887,14 @@ func resourceGithubRepositoryRulesetImport(ctx context.Context, d *schema.Resour
 	return []*schema.ResourceData{d}, nil
 }
 
-func resourceGithubRepositoryRulesetDiff(ctx context.Context, d *schema.ResourceDiff, meta any) error {
-	err := validateRulesetConditions(ctx, d, false)
-	if err != nil {
+func resourceGithubRepositoryRulesetDiff(ctx context.Context, d *schema.ResourceDiff, m any) error {
+	if err := validateRulesetConditions(ctx, d, false); err != nil {
 		return err
 	}
 
-	err = validateRulesetRules(ctx, d)
-	if err != nil {
+	if err := validateRulesetRules(ctx, d); err != nil {
 		return err
 	}
 
-	return nil
+	return diffETag(ctx, d, m)
 }

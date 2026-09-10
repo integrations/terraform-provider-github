@@ -10,6 +10,7 @@ import (
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -23,7 +24,7 @@ func resourceGithubRelease() *schema.Resource {
 			StateContext: resourceGithubReleaseImport,
 		},
 
-		CustomizeDiff: diffRepository,
+		CustomizeDiff: customdiff.All(diffRepository, diffETag),
 
 		SchemaVersion: 1,
 		StateUpgraders: []schema.StateUpgrader{
@@ -93,6 +94,11 @@ func resourceGithubRelease() *schema.Resource {
 				Optional:    true,
 				Description: "If specified, a discussion of the specified category is created and linked to the release. The value must be a category that already exists in the repository. If there is already a discussion linked to the release, this parameter is ignored.",
 			},
+			"etag": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The ETag of the release.",
+			},
 			"release_id": {
 				Type:        schema.TypeInt,
 				Computed:    true,
@@ -142,11 +148,6 @@ func resourceGithubRelease() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The URL for the tarball of the release.",
-			},
-			"etag": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The ETag of the release.",
 			},
 		},
 	}
@@ -268,6 +269,10 @@ func resourceGithubReleaseUpdate(ctx context.Context, d *schema.ResourceData, m 
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
+
+	if err := d.Set("etag", nil); err != nil {
+		return diag.FromErr(err)
+	}
 
 	repoName, _ := d.Get("repository").(string)
 

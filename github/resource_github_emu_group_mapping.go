@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -21,7 +22,7 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceGithubEMUGroupMappingImport,
 		},
-		CustomizeDiff: diffTeam,
+		CustomizeDiff: customdiff.All(diffTeam, diffETag),
 		Description:   "Manages the mapping of an external group to a GitHub team.",
 		Schema: map[string]*schema.Schema{
 			"team_id": {
@@ -46,8 +47,9 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 				Description: "Name of the external group.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the EMU group mapping.",
 			},
 		},
 		SchemaVersion: 2,
@@ -213,8 +215,13 @@ func resourceGithubEMUGroupMappingUpdate(ctx context.Context, d *schema.Resource
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
+
+	if err := d.Set("etag", nil); err != nil {
+		return diag.FromErr(err)
+	}
 
 	teamSlug := d.Get("team_slug").(string)
 

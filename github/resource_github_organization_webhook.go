@@ -22,6 +22,8 @@ func resourceGithubOrganizationWebhook() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 
+		CustomizeDiff: diffETag,
+
 		SchemaVersion: 1,
 		StateUpgraders: []schema.StateUpgrader{
 			{
@@ -52,8 +54,9 @@ func resourceGithubOrganizationWebhook() *schema.Resource {
 				Description: "Indicate if the webhook should receive events.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the organization webhook.",
 			},
 		},
 	}
@@ -131,8 +134,7 @@ func resourceGithubOrganizationWebhookRead(ctx context.Context, d *schema.Resour
 
 	hook, resp, err := client.Organizations.GetHook(ctx, orgName, hookID)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -185,8 +187,12 @@ func resourceGithubOrganizationWebhookUpdate(ctx context.Context, d *schema.Reso
 	}
 
 	client := meta.(*Owner).v3client
-
 	orgName := meta.(*Owner).name
+
+	if err := d.Set("etag", nil); err != nil {
+		return diag.FromErr(err)
+	}
+
 	webhookObj := resourceGithubOrganizationWebhookObject(d)
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {

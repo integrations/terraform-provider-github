@@ -21,6 +21,8 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 		Read:   resourceGithubRepositoryAutolinkReferenceRead,
 		Delete: resourceGithubRepositoryAutolinkReferenceDelete,
 
+		CustomizeDiff: diffETag,
+
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")
@@ -89,8 +91,9 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 				Description: "Whether this autolink reference matches alphanumeric characters. If false, this autolink reference only matches numeric characters.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the autolink reference.",
 			},
 		},
 	}
@@ -137,8 +140,7 @@ func resourceGithubRepositoryAutolinkReferenceRead(d *schema.ResourceData, meta 
 
 	autolinkRef, _, err := client.Repositories.GetAutolink(ctx, owner, repoName, autolinkRefID)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing autolink reference for repository %s/%s from state because it no longer exists in GitHub",
 					owner, repoName)

@@ -46,7 +46,10 @@ linters:
         text: always receives
       - linters:
           - staticcheck
-        text: "SA1019.*ByID.*deprecated"
+        text: "SA1019: \\(github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema.Resource\\)\\.(Create|Read|Update|Delete) is deprecated"
+      - linters:
+          - staticcheck
+        text: "SA1019: \\(github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema.ResourceImporter\\)\\.State is deprecated"
 
 issues:
   max-issues-per-linter: 0
@@ -79,7 +82,10 @@ formatters:
 
     gofumpt:
       module-path: github.com/integrations/terraform-provider-github
-      extra-rules: true
+      extra:
+        group-params: true
+        clothe-returns: true
+        balance-calls: true
     goimports:
       local-prefixes:
         - github.com/integrations/terraform-provider-github

@@ -20,6 +20,7 @@ func resourceGithubIssue() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
+		CustomizeDiff: diffETag,
 		Schema: map[string]*schema.Schema{
 			"repository": {
 				Type:        schema.TypeString,
@@ -68,8 +69,9 @@ func resourceGithubIssue() *schema.Resource {
 				Description: "The issue id.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the issue.",
 			},
 		},
 	}
@@ -79,6 +81,11 @@ func resourceGithubIssueCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
+
+	if err := d.Set("etag", nil); err != nil {
+		return err
+	}
+
 	repoName := d.Get("repository").(string)
 	title := d.Get("title").(string)
 	milestone := d.Get("milestone_number").(int)
@@ -153,8 +160,7 @@ func resourceGithubIssueRead(d *schema.ResourceData, meta any) error {
 	issue, resp, err := client.Issues.Get(ctx,
 		orgName, repoName, number)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}

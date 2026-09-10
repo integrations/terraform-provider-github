@@ -34,6 +34,8 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 			},
 		},
 
+		CustomizeDiff: diffETag,
+
 		SchemaVersion: 1,
 		StateUpgraders: []schema.StateUpgrader{
 			{
@@ -70,13 +72,9 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 				Description: "Indicate if the webhook should receive events. Defaults to 'true'.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
-					return true
-				},
-				DiffSuppressOnRefresh: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the webhook.",
 			},
 		},
 	}
@@ -148,8 +146,7 @@ func resourceGithubRepositoryWebhookRead(ctx context.Context, d *schema.Resource
 
 	hook, _, err := client.Repositories.GetHook(ctx, owner, repoName, hookID)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -193,8 +190,12 @@ func resourceGithubRepositoryWebhookRead(ctx context.Context, d *schema.Resource
 
 func resourceGithubRepositoryWebhookUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
-
 	owner := meta.(*Owner).name
+
+	if err := d.Set("etag", nil); err != nil {
+		return diag.FromErr(err)
+	}
+
 	repoName := d.Get("repository").(string)
 	hk := resourceGithubRepositoryWebhookObject(d)
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
