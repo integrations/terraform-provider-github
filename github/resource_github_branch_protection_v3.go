@@ -22,6 +22,8 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 
+		CustomizeDiff: diffETag,
+
 		Schema: map[string]*schema.Schema{
 			"repository": {
 				Type:        schema.TypeString,
@@ -213,13 +215,8 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the branch protection object.",
-				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
-					return true
-				},
-				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -350,6 +347,11 @@ func resourceGithubBranchProtectionV3Update(d *schema.ResourceData, meta any) er
 	}
 
 	client := meta.(*Owner).v3client
+
+	if err := d.Set("etag", nil); err != nil {
+		return err
+	}
+
 	repoName, branch, err := parseID2(d.Id())
 	if err != nil {
 		return err

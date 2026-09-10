@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -68,7 +69,7 @@ func resourceGithubBranchDefault() *schema.Resource {
 			},
 		},
 
-		CustomizeDiff: diffRepository,
+		CustomizeDiff: customdiff.All(diffRepository, diffETag),
 
 		Description: "Configures the default branch for a GitHub repository.",
 
@@ -102,13 +103,8 @@ func resourceGithubBranchDefault() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "The ETag header for the repository API response.",
-				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
-					return true
-				},
-				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -233,6 +229,10 @@ func resourceGithubBranchDefaultUpdate(ctx context.Context, d *schema.ResourceDa
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
+
+	if err := d.Set("etag", nil); err != nil {
+		return diag.FromErr(err)
+	}
 
 	repoName, _ := d.Get("repository").(string)
 	defaultBranch, _ := d.Get("branch").(string)
