@@ -63,7 +63,7 @@ func resourceGithubActionsRunnerGroup() *schema.Resource {
 			"network_configuration_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The identifier of a hosted compute network configuration to assign to the runner group. Removing this attribute replaces the runner group, because the API cannot unset an existing assignment.",
+				Description: "The identifier of a hosted compute network configuration to assign to the runner group. Removing this attribute currently replaces the runner group because the GitHub client library cannot encode the explicit null required to clear the assignment.",
 			},
 			"runners_url": {
 				Type:        schema.TypeString,
@@ -406,15 +406,4 @@ func resourceGithubActionsRunnerGroupDelete(d *schema.ResourceData, m any) error
 	log.Printf("[INFO] Deleting organization runner group: %s (%s)", d.Id(), orgName)
 	_, err = client.Actions.DeleteOrganizationRunnerGroup(ctx, orgName, runnerGroupID)
 	return err
-}
-
-// networkConfigurationRemoved reports whether a hosted compute network configuration was
-// removed from a runner group. The REST API only accepts an explicit null to clear the
-// assignment, which the client library's request type cannot express, so the runner group is
-// replaced instead of leaving the practitioner with a perpetual diff.
-func networkConfigurationRemoved(_ context.Context, oldValue, newValue, _ any) bool {
-	oldID, _ := oldValue.(string)
-	newID, _ := newValue.(string)
-
-	return oldID != "" && newID == ""
 }

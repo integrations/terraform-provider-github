@@ -59,7 +59,7 @@ func resourceGithubActionsEnterpriseRunnerGroup() *schema.Resource {
 			"network_configuration_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The identifier of a hosted compute network configuration to assign to the runner group. Removing this attribute replaces the runner group, because the API cannot unset an existing assignment.",
+				Description: "The identifier of a hosted compute network configuration to assign to the runner group. Removing this attribute currently replaces the runner group because the GitHub client library cannot encode the explicit null required to clear the assignment.",
 			},
 			"runners_url": {
 				Type:        schema.TypeString,

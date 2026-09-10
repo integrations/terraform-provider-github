@@ -298,6 +298,13 @@ func diffETag(_ context.Context, diff *schema.ResourceDiff, _ any) error {
 	return diff.Clear("etag")
 }
 
+func networkConfigurationRemoved(_ context.Context, oldValue, newValue, _ any) bool {
+	oldID, _ := oldValue.(string)
+	newID, _ := newValue.(string)
+
+	return oldID != "" && newID == ""
+}
+
 // suppressUnorderedListDiff returns a schema.SchemaDiffSuppressFunc that suppresses diffs for unordered lists of any type.
 func suppressUnorderedListDiff(fieldKey string, f func(a, b any) int) schema.SchemaDiffSuppressFunc {
 	countKey := fieldKey + ".#"
