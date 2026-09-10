@@ -24,9 +24,10 @@ func resourceGithubActionsEnterpriseRunnerGroup() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubActionsEnterpriseRunnerGroupImport,
 		},
-		CustomizeDiff: customdiff.ForceNewIfChange("network_configuration_id", networkConfigurationRemoved),
-
-		CustomizeDiff: diffETag,
+		CustomizeDiff: customdiff.All(
+			diffETag,
+			customdiff.ForceNewIfChange("network_configuration_id", networkConfigurationRemoved),
+		),
 
 		Schema: map[string]*schema.Schema{
 			"enterprise_slug": {
