@@ -261,17 +261,7 @@ func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusC
 			// Initialise empty literal to ensure an empty array is passed mitigating schema errors like so:
 			// For 'anyOf/1', {"strict"=>true, "checks"=>nil} is not a null. []
 			rscChecks := []*github.RequiredStatusCheck{}
-
-			// TODO: Remove once contexts is deprecated
-			// Iterate and parse contexts into checks using -1 as default to allow checks from all apps.
-			contexts := expandNestedSet(m, "contexts")
-			for _, c := range contexts {
-				appID := int64(-1) // Default
-				rscChecks = append(rscChecks, &github.RequiredStatusCheck{
-					Context: c,
-					AppID:   &appID,
-				})
-			}
+			rscChecksByContext := make(map[string]*github.RequiredStatusCheck)
 
 			// Iterate and parse checks
 			checks := expandNestedSet(m, "checks")
@@ -303,6 +293,29 @@ func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusC
 
 				// Append
 				rscChecks = append(rscChecks, rscCheck)
+				rscChecksByContext[cContext] = rscCheck
+			}
+
+			// TODO: Remove once contexts is deprecated
+			// Iterate and parse contexts into checks using -1 as default to allow checks from all apps.
+			// A context can appear in both fields even though configuration cannot set both, because
+			// the API returns every required check under `contexts` as well as `checks`, so a read
+			// populates both. GitHub rejects a payload that repeats a context, so skip the duplicates.
+			contexts := expandNestedSet(m, "contexts")
+			for _, c := range contexts {
+				appID := int64(-1) // Default
+				if rscCheck, ok := rscChecksByContext[c]; ok {
+					if rscCheck.AppID == nil {
+						// `app_id: null` was read back, meaning any app is allowed. Omitting app_id
+						// instead would let GitHub pick an app, so keep it explicit.
+						rscCheck.AppID = &appID
+					}
+					continue
+				}
+				rscChecks = append(rscChecks, &github.RequiredStatusCheck{
+					Context: c,
+					AppID:   &appID,
+				})
 			}
 			// Assign after looping both checks and contexts
 			rsc.Checks = &rscChecks
