@@ -1,3 +1,4 @@
+# Register the Azure network settings resource against this enterprise first.
 resource "github_enterprise_network_configuration" "example" {
   enterprise_slug      = "my-enterprise"
   name                 = "my-network-configuration"

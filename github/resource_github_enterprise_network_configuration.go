@@ -16,7 +16,6 @@ import (
 
 func resourceGithubEnterpriseNetworkConfiguration() *schema.Resource {
 	return &schema.Resource{
-		Description:   "Manages a hosted compute network configuration for a GitHub enterprise.",
 		CreateContext: resourceGithubEnterpriseNetworkConfigurationCreate,
 		ReadContext:   resourceGithubEnterpriseNetworkConfigurationRead,
 		UpdateContext: resourceGithubEnterpriseNetworkConfigurationUpdate,
@@ -25,12 +24,21 @@ func resourceGithubEnterpriseNetworkConfiguration() *schema.Resource {
 			StateContext: resourceGithubEnterpriseNetworkConfigurationImport,
 		},
 
+		Description: "Resource to manage a hosted compute network configuration for a GitHub enterprise.\n\n" +
+			"A network configuration associates an Azure virtual network with GitHub-hosted runners. " +
+			"Assign it to a runner group with [`github_enterprise_actions_runner_group.network_configuration_id`](enterprise_actions_runner_group).\n\n" +
+			"First create an Azure `GitHub.Network/networkSettings` resource registered against the same enterprise. " +
+			"Pass its `GitHubId`, not its Azure resource ID, in `network_settings_ids`.\n\n" +
+			"This API does not support GitHub App tokens or fine-grained personal access tokens. " +
+			"See the [GitHub REST API documentation](https://docs.github.com/en/enterprise-cloud@latest/rest/enterprise-admin/network-configurations#create-a-hosted-compute-network-configuration-for-an-enterprise) for authentication requirements.",
+
 		Schema: map[string]*schema.Schema{
 			"enterprise_slug": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The slug of the enterprise.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsNotWhiteSpace),
+				Description:      "The slug of the enterprise. Changing this forces a new resource to be created.",
 			},
 			"name": {
 				Type:     schema.TypeString,
@@ -57,14 +65,15 @@ func resourceGithubEnterpriseNetworkConfiguration() *schema.Resource {
 				MinItems: 1,
 				MaxItems: 1,
 				Elem: &schema.Schema{
-					Type: schema.TypeString,
+					Type:             schema.TypeString,
+					ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsNotWhiteSpace),
 				},
-				Description: "An array containing exactly one network settings ID. A network settings resource can only be associated with one network configuration at a time.",
+				Description: "A list containing exactly one nonempty network settings GitHub ID registered against this enterprise. A network settings resource can only be associated with one network configuration at a time.",
 			},
 			"created_on": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Timestamp of when the network configuration was created, in RFC3339 format.",
+				Description: "Timestamp of when the network configuration was created, in RFC3339 format. Empty when GitHub does not return a creation timestamp.",
 			},
 		},
 	}
@@ -76,7 +85,8 @@ func resourceGithubEnterpriseNetworkConfigurationCreate(ctx context.Context, d *
 	name, _ := d.Get("name").(string)
 	computeServiceName, _ := d.Get("compute_service").(string)
 	computeService := github.ComputeService(computeServiceName)
-	networkSettingsIDs := expandNetworkSettingsIDs(d)
+	ids, _ := d.Get("network_settings_ids").([]any)
+	networkSettingsIDs := expandStringList(ids)
 
 	ctx = tflog.SetField(ctx, "enterprise_slug", enterpriseSlug)
 	tflog.Debug(ctx, "Creating enterprise network configuration", map[string]any{
@@ -137,7 +147,8 @@ func resourceGithubEnterpriseNetworkConfigurationUpdate(ctx context.Context, d *
 	name, _ := d.Get("name").(string)
 	computeServiceName, _ := d.Get("compute_service").(string)
 	computeService := github.ComputeService(computeServiceName)
-	networkSettingsIDs := expandNetworkSettingsIDs(d)
+	ids, _ := d.Get("network_settings_ids").([]any)
+	networkSettingsIDs := expandStringList(ids)
 
 	ctx = tflog.SetField(ctx, "enterprise_slug", enterpriseSlug)
 	tflog.Debug(ctx, "Updating enterprise network configuration", map[string]any{
@@ -182,7 +193,7 @@ func resourceGithubEnterpriseNetworkConfigurationDelete(ctx context.Context, d *
 
 func resourceGithubEnterpriseNetworkConfigurationImport(_ context.Context, d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
 	enterpriseSlug, networkConfigurationID, ok := strings.Cut(d.Id(), "/")
-	if !ok || enterpriseSlug == "" || networkConfigurationID == "" || strings.Contains(networkConfigurationID, "/") {
+	if !ok || strings.TrimSpace(enterpriseSlug) == "" || strings.TrimSpace(networkConfigurationID) == "" || strings.Contains(networkConfigurationID, "/") {
 		return nil, fmt.Errorf("invalid import specified: supplied import must be written as <enterprise_slug>/<network_configuration_id>")
 	}
 

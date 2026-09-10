@@ -5,9 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"testing"
+	"time"
 
 	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-testing/compare"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
@@ -17,42 +21,21 @@ import (
 )
 
 func TestAccGithubEnterpriseNetworkConfiguration(t *testing.T) {
-	t.Run("create", func(t *testing.T) {
+	t.Run("create, import, and update in place", func(t *testing.T) {
 		networkSettingsID := testAccEnterpriseNetworkConfigurationID(t)
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		resourceName := "github_enterprise_network_configuration.test"
 		configurationName := fmt.Sprintf("%senterprise-network-config-%s", testResourcePrefix, randomID)
 
-		config := testAccEnterpriseNetworkConfigurationConfig(configurationName, "actions", networkSettingsID)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessEnterprise(t) },
-			ProviderFactories: providerFactories,
-			CheckDestroy:      testAccCheckGithubEnterpriseNetworkConfigurationDestroy,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("enterprise_slug"), knownvalue.StringExact(testAccConf.enterpriseSlug)),
-						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("name"), knownvalue.StringExact(configurationName)),
-						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("compute_service"), knownvalue.StringExact("actions")),
-						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_settings_ids"), knownvalue.ListExact([]knownvalue.Check{knownvalue.StringExact(networkSettingsID)})),
-						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("id"), knownvalue.NotNull()),
-						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("created_on"), knownvalue.NotNull()),
-					},
-				},
-			},
+		sameID := statecheck.CompareValue(compare.ValuesSame())
+		createdOn := knownvalue.StringFunc(func(value string) error {
+			if value == "" {
+				return nil
+			}
+			_, err := time.Parse(time.RFC3339, value)
+			return err
 		})
-	})
-
-	t.Run("update", func(t *testing.T) {
-		networkSettingsID := testAccEnterpriseNetworkConfigurationID(t)
-
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		resourceName := "github_enterprise_network_configuration.test"
-		beforeName := fmt.Sprintf("%senterprise-network-config-%s-a", testResourcePrefix, randomID)
-		afterName := fmt.Sprintf("%senterprise-network-config-%s-b", testResourcePrefix, randomID)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
@@ -60,53 +43,73 @@ func TestAccGithubEnterpriseNetworkConfiguration(t *testing.T) {
 			CheckDestroy:      testAccCheckGithubEnterpriseNetworkConfigurationDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: testAccEnterpriseNetworkConfigurationConfig(beforeName, "actions", networkSettingsID),
+					Config: testAccEnterpriseNetworkConfigurationConfig(configurationName, "actions", networkSettingsID),
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("name"), knownvalue.StringExact(beforeName)),
-						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("compute_service"), knownvalue.StringExact("actions")),
-						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_settings_ids"), knownvalue.ListExact([]knownvalue.Check{knownvalue.StringExact(networkSettingsID)})),
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("id"), knownvalue.StringRegexp(regexp.MustCompile(`^\S+$`))),
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("created_on"), createdOn),
+						sameID.AddStateValue(resourceName, tfjsonpath.New("id")),
 					},
 				},
 				{
-					Config: testAccEnterpriseNetworkConfigurationConfig(afterName, "none", networkSettingsID),
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("name"), knownvalue.StringExact(afterName)),
-						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("compute_service"), knownvalue.StringExact("none")),
-						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_settings_ids"), knownvalue.ListExact([]knownvalue.Check{knownvalue.StringExact(networkSettingsID)})),
-					},
-				},
-			},
-		})
-	})
-
-	t.Run("import", func(t *testing.T) {
-		networkSettingsID := testAccEnterpriseNetworkConfigurationID(t)
-
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		configurationName := fmt.Sprintf("%senterprise-network-config-%s", testResourcePrefix, randomID)
-
-		config := testAccEnterpriseNetworkConfigurationConfig(configurationName, "actions", networkSettingsID)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessEnterprise(t) },
-			ProviderFactories: providerFactories,
-			CheckDestroy:      testAccCheckGithubEnterpriseNetworkConfigurationDestroy,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_enterprise_network_configuration.test", tfjsonpath.New("id"), knownvalue.NotNull()),
-					},
-				},
-				{
-					ResourceName:        "github_enterprise_network_configuration.test",
+					ResourceName:        resourceName,
 					ImportState:         true,
 					ImportStateVerify:   true,
-					ImportStateIdPrefix: fmt.Sprintf(`%s/`, testAccConf.enterpriseSlug),
+					ImportStateIdPrefix: testAccConf.enterpriseSlug + "/",
+				},
+				{
+					Config: testAccEnterpriseNetworkConfigurationConfig(configurationName+"-updated", "none", networkSettingsID),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("created_on"), createdOn),
+						sameID.AddStateValue(resourceName, tfjsonpath.New("id")),
+					},
+				},
+				{
+					ResourceName:        resourceName,
+					ImportState:         true,
+					ImportStateVerify:   true,
+					ImportStateIdPrefix: testAccConf.enterpriseSlug + "/",
 				},
 			},
 		})
 	})
+}
+
+func TestGithubEnterpriseNetworkConfigurationImport(t *testing.T) {
+	r := resourceGithubEnterpriseNetworkConfiguration()
+	for _, id := range []string{"", "my-enterprise", "/NC_123", "my-enterprise/", "my-enterprise/NC_123/extra", " /NC_123", "my-enterprise/ "} {
+		t.Run("invalid "+id, func(t *testing.T) {
+			d := schema.TestResourceDataRaw(t, r.Schema, nil)
+			d.SetId(id)
+			if _, err := r.Importer.StateContext(context.Background(), d, nil); err == nil {
+				t.Fatalf("import %q should fail", id)
+			}
+		})
+	}
+
+	d := schema.TestResourceDataRaw(t, r.Schema, nil)
+	d.SetId("my-enterprise/NC_123")
+	states, err := r.Importer.StateContext(context.Background(), d, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(states) != 1 || states[0].Id() != "NC_123" || states[0].Get("enterprise_slug") != "my-enterprise" {
+		t.Fatalf("import did not populate network configuration ID and enterprise slug: %v", states)
+	}
+}
+
+func TestGithubEnterpriseNetworkConfigurationSlug(t *testing.T) {
+	s := resourceGithubEnterpriseNetworkConfiguration().Schema["enterprise_slug"]
+	if !s.ForceNew {
+		t.Fatal("changing enterprise_slug must replace the network configuration")
+	}
+	for _, value := range []string{"", " \t"} {
+		if !s.ValidateDiagFunc(value, nil).HasError() {
+			t.Errorf("enterprise_slug %q should fail validation", value)
+		}
+	}
+	if s.ValidateDiagFunc("my-enterprise", nil).HasError() {
+		t.Error("valid enterprise_slug failed validation")
+	}
 }
 
 func testAccCheckGithubEnterpriseNetworkConfigurationDestroy(s *terraform.State) error {

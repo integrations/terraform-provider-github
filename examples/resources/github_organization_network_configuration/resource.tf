@@ -1,3 +1,4 @@
+# Register the Azure network settings resource against the provider's organization first.
 resource "github_organization_network_configuration" "example" {
   name                 = "my-network-configuration"
   compute_service      = "actions"

@@ -3,10 +3,7 @@ package github
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
-	"regexp"
-	"time"
 
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -15,13 +12,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-// networkConfigurationNamePattern mirrors the name constraint the REST API enforces on hosted
-// compute network configurations so that invalid names are rejected at plan time.
-var networkConfigurationNamePattern = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
-
 func resourceGithubOrganizationNetworkConfiguration() *schema.Resource {
 	return &schema.Resource{
-		Description:   "Manages a hosted compute network configuration for a GitHub organization.",
 		CreateContext: resourceGithubOrganizationNetworkConfigurationCreate,
 		ReadContext:   resourceGithubOrganizationNetworkConfigurationRead,
 		UpdateContext: resourceGithubOrganizationNetworkConfigurationUpdate,
@@ -29,6 +21,14 @@ func resourceGithubOrganizationNetworkConfiguration() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
+
+		Description: "Resource to manage a hosted compute network configuration for a GitHub organization. " +
+			"The organization is determined by the provider's `owner` setting.\n\n" +
+			"A network configuration associates an Azure virtual network with GitHub-hosted runners. " +
+			"Assign it to a runner group with [`github_actions_runner_group.network_configuration_id`](actions_runner_group).\n\n" +
+			"First create an Azure `GitHub.Network/networkSettings` resource registered against the same organization. " +
+			"Pass its `GitHubId`, not its Azure resource ID, in `network_settings_ids`.\n\n" +
+			"See the [GitHub REST API documentation](https://docs.github.com/en/rest/orgs/network-configurations#create-a-hosted-compute-network-configuration-for-an-organization) for required permissions.",
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -56,14 +56,15 @@ func resourceGithubOrganizationNetworkConfiguration() *schema.Resource {
 				MinItems: 1,
 				MaxItems: 1,
 				Elem: &schema.Schema{
-					Type: schema.TypeString,
+					Type:             schema.TypeString,
+					ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsNotWhiteSpace),
 				},
-				Description: "An array containing exactly one network settings ID. A network settings resource can only be associated with one network configuration at a time.",
+				Description: "A list containing exactly one nonempty network settings GitHub ID registered against this organization. A network settings resource can only be associated with one network configuration at a time.",
 			},
 			"created_on": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Timestamp of when the network configuration was created, in RFC3339 format.",
+				Description: "Timestamp of when the network configuration was created, in RFC3339 format. Empty when GitHub does not return a creation timestamp.",
 			},
 		},
 	}
@@ -80,7 +81,8 @@ func resourceGithubOrganizationNetworkConfigurationCreate(ctx context.Context, d
 	name, _ := d.Get("name").(string)
 	computeServiceName, _ := d.Get("compute_service").(string)
 	computeService := github.ComputeService(computeServiceName)
-	networkSettingsIDs := expandNetworkSettingsIDs(d)
+	ids, _ := d.Get("network_settings_ids").([]any)
+	networkSettingsIDs := expandStringList(ids)
 
 	ctx = tflog.SetField(ctx, "organization", orgName)
 	tflog.Debug(ctx, "Creating organization network configuration", map[string]any{
@@ -151,7 +153,8 @@ func resourceGithubOrganizationNetworkConfigurationUpdate(ctx context.Context, d
 	name, _ := d.Get("name").(string)
 	computeServiceName, _ := d.Get("compute_service").(string)
 	computeService := github.ComputeService(computeServiceName)
-	networkSettingsIDs := expandNetworkSettingsIDs(d)
+	ids, _ := d.Get("network_settings_ids").([]any)
+	networkSettingsIDs := expandStringList(ids)
 
 	ctx = tflog.SetField(ctx, "organization", orgName)
 	tflog.Debug(ctx, "Updating organization network configuration", map[string]any{
@@ -197,52 +200,4 @@ func resourceGithubOrganizationNetworkConfigurationDelete(ctx context.Context, d
 	}
 
 	return nil
-}
-
-// expandNetworkSettingsIDs reads network_settings_ids, which the schema constrains to exactly
-// one element.
-func expandNetworkSettingsIDs(d *schema.ResourceData) []string {
-	ids, _ := d.Get("network_settings_ids").([]any)
-	networkSettingsIDs := make([]string, 0, len(ids))
-	for _, id := range ids {
-		networkSettingsID, _ := id.(string)
-		networkSettingsIDs = append(networkSettingsIDs, networkSettingsID)
-	}
-
-	return networkSettingsIDs
-}
-
-// setNetworkConfigurationState writes the attributes shared by the organization and enterprise
-// network configuration resources. The REST API returns an identical payload for both scopes.
-func setNetworkConfigurationState(d *schema.ResourceData, configuration *github.NetworkConfiguration) error {
-	if err := d.Set("name", configuration.GetName()); err != nil {
-		return err
-	}
-	if configuration.ComputeService != nil {
-		if err := d.Set("compute_service", string(*configuration.ComputeService)); err != nil {
-			return err
-		}
-	}
-	if err := d.Set("network_settings_ids", configuration.NetworkSettingsIDs); err != nil {
-		return err
-	}
-	if configuration.CreatedOn != nil {
-		if err := d.Set("created_on", configuration.CreatedOn.Format(time.RFC3339)); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// networkSettingsScopeError annotates the 422 the API returns when the referenced network
-// settings resource belongs to a different scope than the configuration being written. Azure
-// issues distinct GitHub IDs for organization and enterprise network settings, and mixing them
-// up is the most common cause of this error.
-func networkSettingsScopeError(err error, scope string) error {
-	if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusUnprocessableEntity {
-		return fmt.Errorf("%w. verify the network settings ID belongs to the same %s: Azure GitHub.Network/networkSettings resources are registered against a single organization or enterprise and cannot be shared across scopes", err, scope)
-	}
-
-	return err
 }
