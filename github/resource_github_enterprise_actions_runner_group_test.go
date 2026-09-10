@@ -2,9 +2,11 @@ package github
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/compare"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 
@@ -13,6 +15,49 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
+
+func TestGithubActionsEnterpriseRunnerGroupReadErrors(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		statusCode int
+		wantID     string
+		wantError  bool
+	}{
+		{"not modified", http.StatusNotModified, "42", false},
+		{"not found", http.StatusNotFound, "", false},
+		{"forbidden", http.StatusForbidden, "42", true},
+		{"server error", http.StatusInternalServerError, "42", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			server := githubApiMock([]*mockResponse{{
+				ExpectedUri:    "/enterprises/test-enterprise/actions/runner-groups/42",
+				ExpectedMethod: http.MethodGet,
+				StatusCode:     tc.statusCode,
+			}})
+			defer server.Close()
+
+			meta := &Owner{v3client: mustCreateTestGitHubClient(t, server.URL)}
+			d := schema.TestResourceDataRaw(t, resourceGithubActionsEnterpriseRunnerGroup().Schema, map[string]any{
+				"enterprise_slug":          "test-enterprise",
+				"name":                     "test-group",
+				"visibility":               "all",
+				"network_configuration_id": "network-1",
+			})
+			d.SetId("42")
+
+			err := resourceGithubActionsEnterpriseRunnerGroupRead(d, meta)
+			if (err != nil) != tc.wantError {
+				t.Fatalf("read error = %v, want error = %t", err, tc.wantError)
+			}
+			if d.Id() != tc.wantID {
+				t.Errorf("ID = %q, want %q", d.Id(), tc.wantID)
+			}
+			if got := d.Get("network_configuration_id"); got != "network-1" {
+				t.Errorf("network_configuration_id = %v, want network-1", got)
+			}
+		})
+	}
+}
 
 func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 	t.Parallel()

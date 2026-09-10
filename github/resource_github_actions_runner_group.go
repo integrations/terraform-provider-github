@@ -210,7 +210,7 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, m any) error
 func getOrganizationRunnerGroup(client *github.Client, ctx context.Context, org string, groupID int64) (*github.RunnerGroup, *github.Response, error) {
 	runnerGroup, resp, err := client.Actions.GetOrganizationRunnerGroup(ctx, org, groupID)
 	if err != nil {
-		if _, ok := errors.AsType[*github.ErrorResponse](err); ok {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotModified {
 			// ignore error StatusNotModified
 			return runnerGroup, resp, nil
 		}
