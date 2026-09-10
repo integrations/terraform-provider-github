@@ -620,13 +620,12 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 	})
 }
 
-// Attributes whose schema Default is a non-zero value are reported as
-// configured by d.GetOk even when the practitioner omits them, so they appear
-// in every create payload. Attributes defaulting to false or "" do not.
 // testResourceDataWithConfig builds ResourceData carrying both the attributes
 // d.Get reads and the raw configuration isConfigured reads. Attributes absent
 // from raw are recorded as null in the configuration, which is how an unset
-// attribute is told apart from one explicitly configured as false.
+// attribute is told apart from one explicitly configured as false, and carry
+// their schema Default in the attributes, which is what the planned state
+// holds during a real create and what d.GetOk answers from.
 //
 // schema.TestResourceDataRaw cannot be used here: it leaves the raw
 // configuration null, and that is the one distinction these cases exercise.
@@ -644,6 +643,9 @@ func testResourceDataWithConfig(t *testing.T, raw map[string]any) *schema.Resour
 		case schema.TypeBool:
 			if !configured {
 				config[name] = cty.NullVal(cty.Bool)
+				if def, ok := attrSchema.Default.(bool); ok {
+					attributes[name] = strconv.FormatBool(def)
+				}
 
 				continue
 			}
@@ -657,6 +659,9 @@ func testResourceDataWithConfig(t *testing.T, raw map[string]any) *schema.Resour
 		case schema.TypeString:
 			if !configured {
 				config[name] = cty.NullVal(cty.String)
+				if def, ok := attrSchema.Default.(string); ok {
+					attributes[name] = def
+				}
 
 				continue
 			}
@@ -678,13 +683,24 @@ func testResourceDataWithConfig(t *testing.T, raw map[string]any) *schema.Resour
 	})
 }
 
+// createBaseline is the payload a configuration setting nothing but
+// billing_email produces. Attributes whose schema Default is a non-zero value
+// are reported by d.GetOk even when the practitioner omits them, so they are
+// sent on every create, exactly as #2807 did. Attributes defaulting to false
+// or "" stay out unless configured, which keeps the request narrow enough to
+// avoid #2305.
 func createBaseline() *github.Organization {
-	// Only attributes the configuration actually sets reach the create payload,
-	// so a case that configures nothing but billing_email sends nothing else.
-	// Attributes left out keep whatever the API defaults to, which is what
-	// keeps the request narrow enough to avoid #2305.
 	return &github.Organization{
-		BillingEmail: new("org@example.com"),
+		BillingEmail:                 new("org@example.com"),
+		HasOrganizationProjects:      new(true),
+		HasRepositoryProjects:        new(true),
+		DefaultRepoPermission:        new("read"),
+		MembersCanCreateRepos:        new(true),
+		MembersCanCreatePrivateRepos: new(true),
+		MembersCanCreatePublicRepos:  new(true),
+		MembersCanCreatePages:        new(true),
+		MembersCanCreatePublicPages:  new(true),
+		MembersCanCreatePrivatePages: new(true),
 	}
 }
 
@@ -738,10 +754,11 @@ func Test_organizationSettingsForCreate(t *testing.T) {
 			}(),
 		},
 		{
-			// An attribute the user never wrote must stay out of the payload
-			// even though its schema default is a definite true, so the org
-			// keeps whatever the API defaults to.
-			name: "create_omits_unconfigured_default_true_boolean",
+			// An attribute the user never wrote is still sent when its schema
+			// default is a definite true, as #2807 already did. Leaving it out
+			// would let the org keep a differing value, so the first plan after
+			// create would not be clean.
+			name: "create_includes_unconfigured_default_true_boolean",
 			raw: map[string]any{
 				"billing_email": "org@example.com",
 			},
