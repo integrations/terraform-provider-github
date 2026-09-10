@@ -23,7 +23,7 @@ The following arguments are supported:
 - `allows_public_repositories` - (Optional) Whether public repositories can be added to the runner group. Defaults to false.
 - `restricted_to_workflows` - (Optional) If true, the runner group will be restricted to running only the workflows specified in the selected_workflows array. Defaults to false.
 - `selected_workflows` - (Optional) List of workflows the runner group should be allowed to run. This setting will be ignored unless restricted_to_workflows is set to true.
-- `network_configuration_id` - (Optional) The ID of a `github_enterprise_network_configuration` to assign to the runner group, so GitHub-hosted runners in the group run inside your private network. Removing this attribute replaces the runner group, because the API cannot unset an existing assignment.
+- `network_configuration_id` - (Optional) The ID of a `github_enterprise_network_configuration` to assign to the runner group, so GitHub-hosted runners in the group run inside your private network. Removing this attribute currently replaces the runner group because the GitHub client library cannot encode the explicit null required to clear the assignment.
 
 ## Attributes Reference
 

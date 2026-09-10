@@ -24,6 +24,7 @@ Before submitting an issue or a pull request, please search the repository for e
   - [Cleaning Up Test Resources](#cleaning-up-test-resources)
   - [GitHub Organization](#github-organization)
 - [Environment Variable Reference](#environment-variable-reference)
+  - [Private networking acceptance tests](#private-networking-acceptance-tests)
   - [Example _.vscode/settings.json_ file](#example-vscodesettingsjson-file)
 
 ## AI Use Policy and Guidelines
@@ -270,6 +271,17 @@ export GH_TEST_ADVANCED_SECURITY=
 # Configure if the enterprise is an EMU enterprise
 export GH_TEST_ENTERPRISE_IS_EMU=
 ```
+
+### Private networking acceptance tests
+
+Network configuration and runner-group networking tests require an existing Azure `GitHub.Network/networkSettings` resource registered against the organization or enterprise under test. Use its GitHub ID, not its Azure resource ID.
+
+| Environment variable | Test fixture |
+| --- | --- |
+| `GITHUB_TEST_NETWORK_SETTINGS_ID` | An unassigned network settings ID registered against `GITHUB_OWNER`, with `GH_TEST_AUTH_MODE=team` or `enterprise`. |
+| `GITHUB_TEST_ENTERPRISE_NETWORK_SETTINGS_ID` | An unassigned network settings ID registered against `GITHUB_ENTERPRISE_SLUG`, with `GH_TEST_AUTH_MODE=enterprise`. |
+
+The tests create and delete network configurations and runner groups, but do not provision or delete the Azure network settings resource. Tests skip when their mode or fixture is unavailable; a skipped test does not validate private networking.
 
 ### Example _.vscode/settings.json_ file
 
