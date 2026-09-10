@@ -16,6 +16,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
+func TestGithubActionsEnterpriseRunnerGroupNetworking(t *testing.T) {
+	testRunnerGroupNetworking(t, resourceGithubActionsEnterpriseRunnerGroup(), "/enterprises/test-enterprise", map[string]any{
+		"enterprise_slug":          "test-enterprise",
+		"name":                     "test-group",
+		"visibility":               "all",
+		"network_configuration_id": "network-1",
+	}, resourceGithubActionsEnterpriseRunnerGroupCreate, resourceGithubActionsEnterpriseRunnerGroupUpdate)
+}
+
 func TestGithubActionsEnterpriseRunnerGroupReadErrors(t *testing.T) {
 	for _, tc := range []struct {
 		name       string
@@ -255,43 +264,28 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 	})
 
 	t.Run("manages runner group network configuration", func(t *testing.T) {
-		networkSettingsID := testAccEnterpriseNetworkConfigurationID(t)
+		networkConfiguration := mustCreateTestEnterpriseNetworkConfiguration(t)
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		resourceName := "github_enterprise_actions_runner_group.test"
-		networkConfigurationResourceName := "github_enterprise_network_configuration.test"
 		groupName := fmt.Sprintf("tf-acc-test-%s", randomID)
-		networkConfigurationName := fmt.Sprintf("%senterprise-network-config-%s", testResourcePrefix, randomID)
+		sameID := statecheck.CompareValue(compare.ValuesSame())
 
 		configWithoutNetworking := fmt.Sprintf(`
-			resource "github_enterprise_network_configuration" "test" {
-			  enterprise_slug      = %q
-			  name                 = %q
-			  compute_service      = "actions"
-			  network_settings_ids = [%q]
-			}
-
 			resource "github_enterprise_actions_runner_group" "test" {
 			  enterprise_slug = %q
 			  name            = %q
 			  visibility      = "all"
 			}
-		`, testAccConf.enterpriseSlug, networkConfigurationName, networkSettingsID, testAccConf.enterpriseSlug, groupName)
+		`, testAccConf.enterpriseSlug, groupName)
 
 		configWithNetworking := fmt.Sprintf(`
-			resource "github_enterprise_network_configuration" "test" {
-			  enterprise_slug      = %q
-			  name                 = %q
-			  compute_service      = "actions"
-			  network_settings_ids = [%q]
-			}
-
 			resource "github_enterprise_actions_runner_group" "test" {
-			  enterprise_slug            = %q
-			  name                       = %q
-			  visibility                 = "all"
-			  network_configuration_id   = github_enterprise_network_configuration.test.id
+			  enterprise_slug          = %q
+			  name                     = %q
+			  visibility               = "all"
+			  network_configuration_id = %q
 			}
-		`, testAccConf.enterpriseSlug, networkConfigurationName, networkSettingsID, testAccConf.enterpriseSlug, groupName)
+		`, testAccConf.enterpriseSlug, groupName, networkConfiguration.GetID())
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
@@ -300,21 +294,13 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 				{
 					Config: configWithoutNetworking,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("name"), knownvalue.StringExact(groupName)),
-						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("visibility"), knownvalue.StringExact("all")),
+						sameID.AddStateValue(resourceName, tfjsonpath.New("id")),
 					},
 				},
 				{
 					Config: configWithNetworking,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.NotNull()),
-						statecheck.CompareValuePairs(
-							resourceName,
-							tfjsonpath.New("network_configuration_id"),
-							networkConfigurationResourceName,
-							tfjsonpath.New("id"),
-							compare.ValuesSame(),
-						),
+						sameID.AddStateValue(resourceName, tfjsonpath.New("id")),
 					},
 				},
 				{
@@ -331,28 +317,19 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 	})
 
 	t.Run("creates runner group network configuration on create", func(t *testing.T) {
-		networkSettingsID := testAccEnterpriseNetworkConfigurationID(t)
+		networkConfiguration := mustCreateTestEnterpriseNetworkConfiguration(t)
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		resourceName := "github_enterprise_actions_runner_group.test"
-		networkConfigurationResourceName := "github_enterprise_network_configuration.test"
 		groupName := fmt.Sprintf("tf-acc-test-create-%s", randomID)
-		networkConfigurationName := fmt.Sprintf("%senterprise-network-config-create-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
-			resource "github_enterprise_network_configuration" "test" {
-			  enterprise_slug      = %q
-			  name                 = %q
-			  compute_service      = "actions"
-			  network_settings_ids = [%q]
-			}
-
 			resource "github_enterprise_actions_runner_group" "test" {
 			  enterprise_slug          = %q
 			  name                     = %q
 			  visibility               = "all"
-			  network_configuration_id = github_enterprise_network_configuration.test.id
+			  network_configuration_id = %q
 			}
-		`, testAccConf.enterpriseSlug, networkConfigurationName, networkSettingsID, testAccConf.enterpriseSlug, groupName)
+		`, testAccConf.enterpriseSlug, groupName, networkConfiguration.GetID())
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
@@ -361,14 +338,8 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 				{
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.NotNull()),
-						statecheck.CompareValuePairs(
-							resourceName,
-							tfjsonpath.New("network_configuration_id"),
-							networkConfigurationResourceName,
-							tfjsonpath.New("id"),
-							compare.ValuesSame(),
-						),
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("runners_url"), knownvalue.NotNull()),
 					},
 				},
 				{
