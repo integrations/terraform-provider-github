@@ -111,6 +111,9 @@ func resourceGithubRepositoryFiles() *schema.Resource {
 }
 
 func diffRepositoryFiles(_ context.Context, diff *schema.ResourceDiff, _ any) error {
+	if config := diff.GetRawConfig(); config.IsNull() || !config.GetAttr("file").IsWhollyKnown() {
+		return nil
+	}
 	_, err := expandRepositoryFiles(diff.Get("file"))
 	return err
 }

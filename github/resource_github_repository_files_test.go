@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/compare"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
@@ -342,4 +344,34 @@ resource "github_repository_files" "test" {
 			},
 		})
 	})
+}
+
+func TestGithubRepositoryFilesDiff(t *testing.T) {
+	t.Parallel()
+
+	file := func(path cty.Value, content string) cty.Value {
+		return cty.ObjectVal(map[string]cty.Value{"path": path, "content": cty.StringVal(content), "sha": cty.NullVal(cty.String)})
+	}
+	unknown := cty.UnknownVal(cty.String)
+
+	for name, tt := range map[string]struct {
+		files   []cty.Value
+		wantErr bool
+	}{
+		"distinct paths":  {files: []cty.Value{file(cty.StringVal("a.txt"), "x"), file(cty.StringVal("b.txt"), "x")}},
+		"duplicate paths": {files: []cty.Value{file(cty.StringVal("a.txt"), "x"), file(cty.StringVal("a.txt"), "y")}, wantErr: true},
+		"unknown paths":   {files: []cty.Value{file(unknown, "x"), file(unknown, "y")}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			rawConfig := cty.ObjectVal(map[string]cty.Value{"repository": cty.StringVal("example"), "file": cty.SetVal(tt.files)})
+			config := terraform.NewResourceConfigShimmed(rawConfig, resourceGithubRepositoryFiles().CoreConfigSchema())
+
+			_, err := resourceGithubRepositoryFiles().Diff(t.Context(), &terraform.InstanceState{RawConfig: rawConfig}, config, nil)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("expected error to be %v, got %v", tt.wantErr, err)
+			}
+		})
+	}
 }
