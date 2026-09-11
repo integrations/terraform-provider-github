@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -68,6 +69,9 @@ func getRepositoryBlobSHAs(ctx context.Context, client *github.Client, owner, re
 	tree, _, err := client.Git.GetTree(ctx, owner, repo, treeSHA, true)
 	if err != nil {
 		return nil, err
+	}
+	if tree.GetTruncated() {
+		return nil, fmt.Errorf("tree %s has more entries than the GitHub API returns for %s/%s", treeSHA, owner, repo)
 	}
 
 	shas := make(map[string]string, len(tree.Entries))
