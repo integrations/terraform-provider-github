@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -22,8 +23,10 @@ func resourceGithubActionsRunnerGroup() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-
-		CustomizeDiff: diffETag,
+		CustomizeDiff: customdiff.All(
+			diffETag,
+			customdiff.ForceNewIfChange("network_configuration_id", networkConfigurationRemoved),
+		),
 
 		Schema: map[string]*schema.Schema{
 			"id": {
@@ -56,6 +59,11 @@ func resourceGithubActionsRunnerGroup() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Name of the runner group.",
+			},
+			"network_configuration_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The identifier of a hosted compute network configuration to assign to the runner group. Removing this attribute currently replaces the runner group because the GitHub client library cannot encode the explicit null required to clear the assignment.",
 			},
 			"runners_url": {
 				Type:        schema.TypeString,
@@ -137,18 +145,20 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, m any) error
 
 	ctx := context.Background()
 
-	runnerGroup, resp, err := client.Actions.CreateOrganizationRunnerGroup(
-		ctx,
-		orgName,
-		github.CreateRunnerGroupRequest{
-			Name:                     &name,
-			Visibility:               &visibility,
-			RestrictedToWorkflows:    &restrictedToWorkflows,
-			SelectedRepositoryIDs:    selectedRepositoryIDs,
-			SelectedWorkflows:        selectedWorkflows,
-			AllowsPublicRepositories: &allowsPublicRepositories,
-		},
-	)
+	createOptions := github.CreateRunnerGroupRequest{
+		Name:                     &name,
+		Visibility:               &visibility,
+		RestrictedToWorkflows:    &restrictedToWorkflows,
+		SelectedRepositoryIDs:    selectedRepositoryIDs,
+		SelectedWorkflows:        selectedWorkflows,
+		AllowsPublicRepositories: &allowsPublicRepositories,
+	}
+	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
+		networkConfigurationIDValue, _ := networkConfigurationID.(string)
+		createOptions.NetworkConfigurationID = new(networkConfigurationIDValue)
+	}
+
+	runnerGroup, resp, err := client.Actions.CreateOrganizationRunnerGroup(ctx, orgName, createOptions)
 	if err != nil {
 		return err
 	}
@@ -170,6 +180,9 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, m any) error
 		return err
 	}
 	if err = d.Set("name", runnerGroup.GetName()); err != nil {
+		return err
+	}
+	if err = d.Set("network_configuration_id", runnerGroup.GetNetworkConfigurationID()); err != nil {
 		return err
 	}
 	if err = d.Set("runners_url", runnerGroup.GetRunnersURL()); err != nil {
@@ -197,7 +210,7 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, m any) error
 func getOrganizationRunnerGroup(client *github.Client, ctx context.Context, org string, groupID int64) (*github.RunnerGroup, *github.Response, error) {
 	runnerGroup, resp, err := client.Actions.GetOrganizationRunnerGroup(ctx, org, groupID)
 	if err != nil {
-		if _, ok := errors.AsType[*github.ErrorResponse](err); ok {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotModified {
 			// ignore error StatusNotModified
 			return runnerGroup, resp, nil
 		}
@@ -258,6 +271,9 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, m any) error {
 		return err
 	}
 	if err = d.Set("name", runnerGroup.GetName()); err != nil {
+		return err
+	}
+	if err = d.Set("network_configuration_id", runnerGroup.GetNetworkConfigurationID()); err != nil {
 		return err
 	}
 	if err = d.Set("runners_url", runnerGroup.GetRunnersURL()); err != nil {
@@ -336,6 +352,10 @@ func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, m any) error
 		RestrictedToWorkflows:    &restrictedToWorkflows,
 		SelectedWorkflows:        selectedWorkflows,
 		AllowsPublicRepositories: &allowsPublicRepositories,
+	}
+	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
+		networkConfigurationIDValue, _ := networkConfigurationID.(string)
+		options.NetworkConfigurationID = new(networkConfigurationIDValue)
 	}
 
 	runnerGroupID, err := strconv.ParseInt(d.Id(), 10, 64)

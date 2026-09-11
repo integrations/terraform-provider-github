@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -23,8 +24,10 @@ func resourceGithubActionsEnterpriseRunnerGroup() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubActionsEnterpriseRunnerGroupImport,
 		},
-
-		CustomizeDiff: diffETag,
+		CustomizeDiff: customdiff.All(
+			diffETag,
+			customdiff.ForceNewIfChange("network_configuration_id", networkConfigurationRemoved),
+		),
 
 		Schema: map[string]*schema.Schema{
 			"enterprise_slug": {
@@ -52,6 +55,11 @@ func resourceGithubActionsEnterpriseRunnerGroup() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Name of the runner group.",
+			},
+			"network_configuration_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The identifier of a hosted compute network configuration to assign to the runner group. Removing this attribute currently replaces the runner group because the GitHub client library cannot encode the explicit null required to clear the assignment.",
 			},
 			"runners_url": {
 				Type:        schema.TypeString,
@@ -127,18 +135,20 @@ func resourceGithubActionsEnterpriseRunnerGroupCreate(d *schema.ResourceData, me
 
 	ctx := context.Background()
 
-	enterpriseRunnerGroup, resp, err := client.Enterprise.CreateEnterpriseRunnerGroup(
-		ctx,
-		enterpriseSlug,
-		github.CreateEnterpriseRunnerGroupRequest{
-			Name:                     &name,
-			Visibility:               &visibility,
-			SelectedOrganizationIDs:  selectedOrganizationIDs,
-			AllowsPublicRepositories: &allowsPublicRepositories,
-			RestrictedToWorkflows:    &restrictedToWorkflows,
-			SelectedWorkflows:        selectedWorkflows,
-		},
-	)
+	createOptions := github.CreateEnterpriseRunnerGroupRequest{
+		Name:                     &name,
+		Visibility:               &visibility,
+		SelectedOrganizationIDs:  selectedOrganizationIDs,
+		AllowsPublicRepositories: &allowsPublicRepositories,
+		RestrictedToWorkflows:    &restrictedToWorkflows,
+		SelectedWorkflows:        selectedWorkflows,
+	}
+	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
+		networkConfigurationIDValue, _ := networkConfigurationID.(string)
+		createOptions.NetworkConfigurationID = new(networkConfigurationIDValue)
+	}
+
+	enterpriseRunnerGroup, resp, err := client.Enterprise.CreateEnterpriseRunnerGroup(ctx, enterpriseSlug, createOptions)
 	if err != nil {
 		return err
 	}
@@ -153,6 +163,9 @@ func resourceGithubActionsEnterpriseRunnerGroupCreate(d *schema.ResourceData, me
 		return err
 	}
 	if err = d.Set("name", enterpriseRunnerGroup.GetName()); err != nil {
+		return err
+	}
+	if err = d.Set("network_configuration_id", enterpriseRunnerGroup.GetNetworkConfigurationID()); err != nil {
 		return err
 	}
 	if err = d.Set("runners_url", enterpriseRunnerGroup.GetRunnersURL()); err != nil {
@@ -183,7 +196,7 @@ func resourceGithubActionsEnterpriseRunnerGroupCreate(d *schema.ResourceData, me
 func getEnterpriseRunnerGroup(client *github.Client, ctx context.Context, ent string, groupID int64) (*github.EnterpriseRunnerGroup, *github.Response, error) {
 	enterpriseRunnerGroup, resp, err := client.Enterprise.GetEnterpriseRunnerGroup(ctx, ent, groupID)
 	if err != nil {
-		if _, ok := errors.AsType[*github.ErrorResponse](err); ok {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotModified {
 			// ignore error StatusNotModified
 			return enterpriseRunnerGroup, resp, nil
 		}
@@ -233,6 +246,9 @@ func resourceGithubActionsEnterpriseRunnerGroupRead(d *schema.ResourceData, m an
 		return err
 	}
 	if err = d.Set("name", enterpriseRunnerGroup.GetName()); err != nil {
+		return err
+	}
+	if err = d.Set("network_configuration_id", enterpriseRunnerGroup.GetNetworkConfigurationID()); err != nil {
 		return err
 	}
 	if err = d.Set("runners_url", enterpriseRunnerGroup.GetRunnersURL()); err != nil {
@@ -309,6 +325,10 @@ func resourceGithubActionsEnterpriseRunnerGroupUpdate(d *schema.ResourceData, m 
 		RestrictedToWorkflows:    &restrictedToWorkflows,
 		SelectedWorkflows:        selectedWorkflows,
 		AllowsPublicRepositories: &allowsPublicRepositories,
+	}
+	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
+		networkConfigurationIDValue, _ := networkConfigurationID.(string)
+		options.NetworkConfigurationID = new(networkConfigurationIDValue)
 	}
 
 	runnerGroupID, err := strconv.ParseInt(d.Id(), 10, 64)
