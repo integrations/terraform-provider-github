@@ -28,7 +28,7 @@ func resourceGithubRepositoryFiles() *schema.Resource {
 
 		CustomizeDiff: customdiff.All(diffRepository, diffRepositoryFiles),
 
-		Description: "Manages a set of files within a GitHub repository, writing all changes in a single commit per apply. Use this resource instead of multiple `github_repository_file` resources when you need atomic multi-file commits or want to avoid `409` conflicts caused by parallel per-file writes to the same branch.",
+		Description: "Manages a set of files on a branch of a GitHub repository, committing all changes together in a single commit.",
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -99,12 +99,12 @@ func resourceGithubRepositoryFiles() *schema.Resource {
 			"commit_sha": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "The SHA of the branch head after the most recent commit created by this resource.",
+				Description: "The SHA of the most recent commit created by this resource, or the branch head when imported.",
 			},
 			"tree_sha": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "The tree SHA of the branch head after the most recent commit created by this resource.",
+				Description: "The tree SHA of the most recent commit created by this resource, or the branch head when imported.",
 			},
 		},
 	}
@@ -167,10 +167,8 @@ func repositoryFilesCommitMessage(d *schema.ResourceData, added, updated, remove
 	return "Terraform: " + strings.Join(changes, ", ")
 }
 
-func setRepositoryFilesState(d *schema.ResourceData, branch, commitSHA, treeSHA string, files []any) error {
+func setRepositoryFilesCommit(d *schema.ResourceData, commitSHA, treeSHA string, files []any) error {
 	for key, value := range map[string]any{
-		"branch":     branch,
-		"ref":        "refs/heads/" + branch,
 		"commit_sha": commitSHA,
 		"tree_sha":   treeSHA,
 		"file":       files,
@@ -216,19 +214,23 @@ func resourceGithubRepositoryFilesCreate(ctx context.Context, d *schema.Resource
 		return diag.FromErr(err)
 	}
 
-	id, err := buildID(repoName, branch)
+	id, err := buildID(repoName, branch, commitSHA)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	d.SetId(id)
 
-	if err := d.Set("repository_id", int(repository.GetID())); err != nil {
-		return diag.FromErr(err)
+	for key, value := range map[string]any{
+		"repository_id":  int(repository.GetID()),
+		"branch":         branch,
+		"ref":            "refs/heads/" + branch,
+		"commit_message": message,
+	} {
+		if err := d.Set(key, value); err != nil {
+			return diag.FromErr(err)
+		}
 	}
-	if err := d.Set("commit_message", message); err != nil {
-		return diag.FromErr(err)
-	}
-	return diag.FromErr(setRepositoryFilesState(d, branch, commitSHA, treeSHA, flattenRepositoryFiles(files, shas)))
+	return diag.FromErr(setRepositoryFilesCommit(d, commitSHA, treeSHA, flattenRepositoryFiles(files, shas)))
 }
 
 func resourceGithubRepositoryFilesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
@@ -249,8 +251,7 @@ func resourceGithubRepositoryFilesRead(ctx context.Context, d *schema.ResourceDa
 		return diag.FromErr(err)
 	}
 
-	treeSHA := head.GetCommit().GetCommit().GetTree().GetSHA()
-	shas, err := getRepositoryBlobSHAs(ctx, client, owner, repoName, treeSHA)
+	shas, err := getRepositoryBlobSHAs(ctx, client, owner, repoName, head.GetCommit().GetCommit().GetTree().GetSHA())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -276,7 +277,7 @@ func resourceGithubRepositoryFilesRead(ctx context.Context, d *schema.ResourceDa
 		files = append(files, file)
 	}
 
-	return diag.FromErr(setRepositoryFilesState(d, branch, head.GetCommit().GetSHA(), treeSHA, files))
+	return diag.FromErr(d.Set("file", files))
 }
 
 func resourceGithubRepositoryFilesUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
@@ -286,14 +287,6 @@ func resourceGithubRepositoryFilesUpdate(ctx context.Context, d *schema.Resource
 
 	repoName, _ := d.Get("repository").(string)
 	branch, _ := d.Get("branch").(string)
-
-	if d.HasChange("repository") {
-		id, err := buildID(repoName, branch)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		d.SetId(id)
-	}
 
 	previous, desired := d.GetChange("file")
 	previousFiles, err := expandRepositoryFiles(previous)
@@ -323,28 +316,38 @@ func resourceGithubRepositoryFilesUpdate(ctx context.Context, d *schema.Resource
 			deletes = append(deletes, path)
 		}
 	}
-	if len(upserts) == 0 && len(deletes) == 0 {
-		return nil
+
+	if len(upserts) > 0 || len(deletes) > 0 {
+		message := repositoryFilesCommitMessage(d, added, len(upserts)-added, len(deletes))
+
+		tflog.Debug(ctx, "Committing repository files", map[string]any{"owner": owner, "repository": repoName, "branch": branch, "upserts": len(upserts), "deletes": len(deletes)})
+
+		commitSHA, treeSHA, err := commitRepositoryFiles(ctx, client, owner, repoName, branch, message, expandRepositoryFilesAuthor(d), upserts, deletes)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		shas, err := getRepositoryBlobSHAs(ctx, client, owner, repoName, treeSHA)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if err := d.Set("commit_message", message); err != nil {
+			return diag.FromErr(err)
+		}
+		if err := setRepositoryFilesCommit(d, commitSHA, treeSHA, flattenRepositoryFiles(files, shas)); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
-	message := repositoryFilesCommitMessage(d, added, len(upserts)-added, len(deletes))
-
-	tflog.Debug(ctx, "Committing repository files", map[string]any{"owner": owner, "repository": repoName, "branch": branch, "upserts": len(upserts), "deletes": len(deletes)})
-
-	commitSHA, treeSHA, err := commitRepositoryFiles(ctx, client, owner, repoName, branch, message, expandRepositoryFilesAuthor(d), upserts, deletes)
+	commitSHA, _ := d.Get("commit_sha").(string)
+	id, err := buildID(repoName, branch, commitSHA)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	d.SetId(id)
 
-	shas, err := getRepositoryBlobSHAs(ctx, client, owner, repoName, treeSHA)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	if err := d.Set("commit_message", message); err != nil {
-		return diag.FromErr(err)
-	}
-	return diag.FromErr(setRepositoryFilesState(d, branch, commitSHA, treeSHA, flattenRepositoryFiles(files, shas)))
+	return nil
 }
 
 func resourceGithubRepositoryFilesDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
@@ -389,13 +392,25 @@ func resourceGithubRepositoryFilesImport(ctx context.Context, d *schema.Resource
 		branch = repository.GetDefaultBranch()
 	}
 
-	id, err := buildID(repoName, branch)
+	head, _, err := client.Repositories.GetBranch(ctx, owner, repoName, branch, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	id, err := buildID(repoName, branch, head.GetCommit().GetSHA())
 	if err != nil {
 		return nil, err
 	}
 	d.SetId(id)
 
-	for key, value := range map[string]any{"repository": repoName, "branch": branch, "repository_id": int(repository.GetID())} {
+	for key, value := range map[string]any{
+		"repository":    repoName,
+		"repository_id": int(repository.GetID()),
+		"branch":        branch,
+		"ref":           "refs/heads/" + branch,
+		"commit_sha":    head.GetCommit().GetSHA(),
+		"tree_sha":      head.GetCommit().GetCommit().GetTree().GetSHA(),
+	} {
 		if err := d.Set(key, value); err != nil {
 			return nil, err
 		}

@@ -133,6 +133,7 @@ resource "github_repository_files" "test" {
 				{
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("id"), knownvalue.StringRegexp(regexp.MustCompile(fmt.Sprintf(`^%s:%s:[0-9a-f]{40}$`, repo.GetName(), repo.GetDefaultBranch())))),
 						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("repository_id"), knownvalue.Int64Exact(repo.GetID())),
 						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("branch"), knownvalue.StringExact(repo.GetDefaultBranch())),
 						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("ref"), knownvalue.StringExact("refs/heads/"+repo.GetDefaultBranch())),
@@ -233,6 +234,57 @@ resource "github_repository_files" "test" {
 						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("branch"), knownvalue.StringExact(branch)),
 						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("ref"), knownvalue.StringExact("refs/heads/"+branch)),
 						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("commit_message"), knownvalue.StringExact("Terraform: 1 added")),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("with_out_of_band_commit", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+
+		config := fmt.Sprintf(`
+resource "github_repository_files" "test" {
+  repository = "%s"
+
+  file {
+    path    = "a.txt"
+    content = "alpha"
+  }
+}
+`, repo.GetName())
+
+		commitSHA := statecheck.CompareValue(compare.ValuesSame())
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						commitSHA.AddStateValue("github_repository_files.test", tfjsonpath.New("commit_sha")),
+					},
+				},
+				{
+					PreConfig:    func() { mustDeleteRepositoryFile(t, repo, "README.md") },
+					RefreshState: true,
+					RefreshPlanChecks: resource.RefreshPlanChecks{
+						PostRefresh: []plancheck.PlanCheck{
+							plancheck.ExpectEmptyPlan(),
+						},
+					},
+				},
+				{
+					Config: config,
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectEmptyPlan(),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						commitSHA.AddStateValue("github_repository_files.test", tfjsonpath.New("commit_sha")),
 					},
 				},
 			},

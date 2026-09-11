@@ -2,24 +2,24 @@
 page_title: "github_repository_files (Resource) - GitHub"
 subcategory: ""
 description: |-
-  Manages a set of files within a GitHub repository, writing all changes in a single commit per apply. Use this resource instead of multiple github_repository_file resources when you need atomic multi-file commits or want to avoid 409 conflicts caused by parallel per-file writes to the same branch.
+  Manages a set of files on a branch of a GitHub repository, committing all changes together in a single commit.
 ---
 
 # github_repository_files (Resource)
 
-Manages a set of files within a GitHub repository, writing all changes in a single commit per apply. Use this resource instead of multiple `github_repository_file` resources when you need atomic multi-file commits or want to avoid `409` conflicts caused by parallel per-file writes to the same branch.
+Manages a set of files on a branch of a GitHub repository, committing all changes together in a single commit.
 
-Every apply that changes the managed files produces exactly one commit, built with the [Git Database API](https://docs.github.com/en/rest/git) from the current branch head. If the branch advances while the commit is being built, the commit is rebuilt on the new head and retried.
+Use it instead of many `github_repository_file` resources when files should change together, or when parallel writes to one branch cause `409` conflicts. Several `github_repository_files` resources can manage the same branch if their paths don't overlap.
 
-~> **Note** Paths listed in `file` blocks are the source of truth: existing files at those paths are overwritten on the first apply, and removing a `file` block deletes that path in the next commit. Files that are not listed are never modified, including on destroy.
+~> **Note** Files at the listed paths are overwritten on the first apply, and removing a `file` block deletes that file. Files that are not listed are ignored: they are never modified, and changes to them are not drift.
 
-~> **Note** When a repository is archived, Terraform will skip deletion of repository files to avoid API errors, as archived repositories are read-only. The files will be removed from Terraform state without attempting to delete them from GitHub.
+Destroying the resource on an archived repository only removes it from state.
 
 ## Migrating from `github_repository_file`
 
-1. Remove the per-file resources from state, which does not delete the files from GitHub: `terraform state rm 'github_repository_file.example'`.
-2. Replace them in your configuration with a single `github_repository_files` resource, using `dynamic "file"` if the file set is generated.
-3. Import the new resource and run `terraform plan`. Any path whose content already matches is left untouched; the first apply reconciles the rest in a single commit.
+1. Run `terraform state rm` on each `github_repository_file` resource. The files stay in GitHub.
+2. Declare the same paths and content in one `github_repository_files` resource.
+3. Import it and run `terraform plan`. Files whose content already matches produce no changes.
 
 ## Example Usage
 
@@ -94,11 +94,11 @@ resource "github_repository_files" "tenants" {
 
 ### Read-Only
 
-- `commit_sha` (String) The SHA of the branch head after the most recent commit created by this resource.
+- `commit_sha` (String) The SHA of the most recent commit created by this resource, or the branch head when imported.
 - `id` (String) The ID of this resource.
 - `ref` (String) The fully-qualified ref (`refs/heads/<branch>`) that this resource commits to.
 - `repository_id` (Number) The repository ID.
-- `tree_sha` (String) The tree SHA of the branch head after the most recent commit created by this resource.
+- `tree_sha` (String) The tree SHA of the most recent commit created by this resource, or the branch head when imported.
 
 <a id="nestedblock--file"></a>
 ### Nested Schema for `file`
