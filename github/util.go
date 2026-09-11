@@ -263,3 +263,30 @@ func toInt64(v any) int64 {
 		return 0
 	}
 }
+
+// isConfigured reports whether the named attribute is explicitly set in the
+// configuration, as opposed to merely carrying its schema default.
+//
+// d.GetOk cannot answer this for booleans: it reports a value configured as
+// false exactly like an unset one. The raw configuration keeps the
+// distinction, so a null there means the user did not write the attribute.
+//
+// The raw configuration is absent on some code paths, such as import. In that
+// case there is nothing to read the user's intent from, so this falls back to
+// d.GetOk rather than inventing one.
+func isConfigured(d *schema.ResourceData, name string) bool {
+	if d.GetRawConfig().IsNull() {
+		_, ok := d.GetOk(name)
+
+		return ok
+	}
+
+	v, diags := d.GetRawConfigAt(cty.GetAttrPath(name))
+	if diags.HasError() {
+		_, ok := d.GetOk(name)
+
+		return ok
+	}
+
+	return !v.IsNull()
+}
