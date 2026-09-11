@@ -133,10 +133,10 @@ func expandRepositoryFiles(v any) (map[string]string, error) {
 	return files, nil
 }
 
-func flattenRepositoryFiles(files, shas map[string]string) []any {
+func flattenRepositoryFiles(files map[string]string) []any {
 	flattened := make([]any, 0, len(files))
 	for path, content := range files {
-		flattened = append(flattened, map[string]any{"path": path, "content": content, "sha": shas[path]})
+		flattened = append(flattened, map[string]any{"path": path, "content": content, "sha": gitBlobSHA(content)})
 	}
 	return flattened
 }
@@ -212,11 +212,6 @@ func resourceGithubRepositoryFilesCreate(ctx context.Context, d *schema.Resource
 		return diag.FromErr(err)
 	}
 
-	shas, err := getRepositoryBlobSHAs(ctx, client, owner, repoName, treeSHA)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
 	id, err := buildID(repoName, branch, commitSHA)
 	if err != nil {
 		return diag.FromErr(err)
@@ -233,7 +228,7 @@ func resourceGithubRepositoryFilesCreate(ctx context.Context, d *schema.Resource
 			return diag.FromErr(err)
 		}
 	}
-	return diag.FromErr(setRepositoryFilesCommit(d, commitSHA, treeSHA, flattenRepositoryFiles(files, shas)))
+	return diag.FromErr(setRepositoryFilesCommit(d, commitSHA, treeSHA, flattenRepositoryFiles(files)))
 }
 
 func resourceGithubRepositoryFilesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
@@ -330,15 +325,10 @@ func resourceGithubRepositoryFilesUpdate(ctx context.Context, d *schema.Resource
 			return diag.FromErr(err)
 		}
 
-		shas, err := getRepositoryBlobSHAs(ctx, client, owner, repoName, treeSHA)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
 		if err := d.Set("commit_message", message); err != nil {
 			return diag.FromErr(err)
 		}
-		if err := setRepositoryFilesCommit(d, commitSHA, treeSHA, flattenRepositoryFiles(files, shas)); err != nil {
+		if err := setRepositoryFilesCommit(d, commitSHA, treeSHA, flattenRepositoryFiles(files)); err != nil {
 			return diag.FromErr(err)
 		}
 	}

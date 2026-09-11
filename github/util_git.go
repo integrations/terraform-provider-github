@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"crypto/sha1"
 	"errors"
 	"fmt"
 	"net/http"
@@ -81,4 +82,8 @@ func getRepositoryBlobSHAs(ctx context.Context, client *github.Client, owner, re
 		}
 	}
 	return shas, nil
+}
+
+func gitBlobSHA(content string) string {
+	return fmt.Sprintf("%x", sha1.Sum(fmt.Appendf(nil, "blob %d\x00%s", len(content), content)))
 }
