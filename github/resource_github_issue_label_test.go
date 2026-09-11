@@ -7,6 +7,10 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubIssueLabel(t *testing.T) {
@@ -63,6 +67,56 @@ func TestAccGithubIssueLabel(t *testing.T) {
 						description,
 						updatedDescription, 1),
 					Check: checks["after"],
+				},
+			},
+		})
+	})
+
+	t.Run("renames labels without error", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-issue-label-rename-%s", testResourcePrefix, randomID)
+		originalName := "original-label"
+		renamedName := "renamed-label"
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name      = "%s"
+				auto_init = true
+			}
+
+			resource "github_issue_label" "test" {
+				repository  = github_repository.test.name
+				name        = "%s"
+				color       = "000000"
+				description = "label_description"
+			}
+		`, repoName, originalName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_issue_label.test", tfjsonpath.New("name"), knownvalue.StringExact(originalName)),
+					},
+				},
+				{
+					Config: strings.Replace(config, originalName, renamedName, 1),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_issue_label.test", tfjsonpath.New("name"), knownvalue.StringExact(renamedName)),
+					},
+					// A refresh after the rename re-reads the label by its new
+					// name. If the rename did not reach GitHub, the read 404s,
+					// drops the resource from state, and the plan is not empty.
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PostApplyPostRefresh: []plancheck.PlanCheck{
+							plancheck.ExpectEmptyPlan(),
+						},
+					},
 				},
 			},
 		})
