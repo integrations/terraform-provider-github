@@ -1,0 +1,201 @@
+---
+page_title: "github_code_security_configuration (Resource) - GitHub"
+description: |-
+  Manages a GitHub Code Security Configuration at the organization or enterprise level.
+---
+
+# github_code_security_configuration (Resource)
+
+This resource allows you to create and manage [Code Security Configurations](https://docs.github.com/en/code-security/securing-your-organization/enabling-security-features-in-your-organization/about-enabling-security-features-at-scale) for a GitHub organization or enterprise. Code security configurations bundle security feature settings (Advanced Security, Dependabot, code scanning default setup, secret scanning, private vulnerability reporting) so they can be applied to repositories at scale.
+
+By default the configuration is created at the organization level, using the organization configured as the provider `owner`. Set `enterprise_slug` to create the configuration at the enterprise level instead.
+
+Organization-level usage requires an organization owner or security manager with the `write:org` scope. Enterprise-level usage requires an enterprise owner with the `admin:enterprise` scope. See the [REST API reference](https://docs.github.com/en/rest/code-security/configurations) for the full permission list.
+
+## Example Usage
+
+```terraform
+# Organization-level configuration, set as the default for new private and
+# internal repositories
+resource "github_code_security_configuration" "org_baseline" {
+  name        = "org-security-baseline"
+  description = "Baseline security configuration for all repositories"
+
+  advanced_security                     = "enabled"
+  dependency_graph                      = "enabled"
+  dependency_graph_autosubmit_action    = "enabled"
+  dependabot_alerts                     = "enabled"
+  dependabot_security_updates           = "enabled"
+  code_scanning_default_setup           = "enabled"
+  secret_scanning                       = "enabled"
+  secret_scanning_push_protection       = "enabled"
+  secret_scanning_validity_checks       = "enabled"
+  secret_scanning_non_provider_patterns = "disabled"
+  private_vulnerability_reporting       = "enabled"
+  enforcement                           = "enforced"
+
+  dependency_graph_autosubmit_action_options {
+    labeled_runners = false
+  }
+
+  code_scanning_default_setup_options {
+    runner_type  = "labeled"
+    runner_label = "codeql-runners"
+  }
+
+  code_scanning_options {
+    allow_advanced = true
+  }
+
+  default_for_new_repos = "private_and_internal"
+}
+
+# Organization-level configuration allowing a team to bypass push protection
+resource "github_team" "security" {
+  name = "security"
+}
+
+resource "github_code_security_configuration" "with_bypass" {
+  name = "push-protection-with-bypass"
+
+  advanced_security                = "enabled"
+  secret_scanning                  = "enabled"
+  secret_scanning_push_protection  = "enabled"
+  secret_scanning_delegated_bypass = "enabled"
+
+  secret_scanning_delegated_bypass_options {
+    reviewers {
+      reviewer_id   = github_team.security.id
+      reviewer_type = "TEAM"
+    }
+  }
+}
+
+# Enterprise-level configuration
+resource "github_code_security_configuration" "enterprise_baseline" {
+  enterprise_slug = "my-enterprise"
+  name            = "enterprise-security-baseline"
+  description     = "Enterprise-wide security baseline"
+
+  dependabot_alerts               = "enabled"
+  secret_scanning                 = "enabled"
+  secret_scanning_push_protection = "enabled"
+
+  default_for_new_repos = "all"
+}
+```
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `name` - (Required) The name of the code security configuration. Must be unique within the organization or enterprise.
+
+- `description` - (Optional) A description of the code security configuration.
+
+- `enterprise_slug` - (Optional) The slug of the enterprise to create the configuration in. If omitted, the configuration is created at the organization level using the provider's configured owner. Changing this forces a new resource.
+
+- `enforcement` - (Optional) The enforcement status of the configuration. Can be `enforced` or `unenforced`. Defaults to `enforced`.
+
+- `default_for_new_repos` - (Optional) Which types of new repositories this configuration should be applied to by default. Can be `all`, `none`, `private_and_internal` or `public`. If omitted, the configuration is not set as a default.
+
+### Feature settings
+
+Each of the following accepts `enabled`, `disabled` or `not_set`. Attributes marked with a default are always sent to the API. Attributes without a default are only sent when set, so GitHub keeps its own value for them and they are not tracked in state until set.
+
+- `advanced_security` - (Optional) GitHub Advanced Security. Defaults to `disabled`.
+
+- `code_security` - (Optional) GitHub Code Security.
+
+- `secret_protection` - (Optional) GitHub Secret Protection.
+
+- `dependency_graph` - (Optional) Dependency Graph. Defaults to `enabled`.
+
+- `dependency_graph_autosubmit_action` - (Optional) Automatic dependency submission.
+
+- `dependabot_alerts` - (Optional) Dependabot alerts. Defaults to `disabled`.
+
+- `dependabot_delegated_alert_dismissal` - (Optional) Dependabot delegated alert dismissal.
+
+- `dependabot_security_updates` - (Optional) Dependabot security updates. Defaults to `disabled`.
+
+- `code_scanning_default_setup` - (Optional) Code scanning default setup. Defaults to `disabled`.
+
+- `code_scanning_delegated_alert_dismissal` - (Optional) Code scanning delegated alert dismissal.
+
+- `secret_scanning` - (Optional) Secret scanning. Defaults to `disabled`.
+
+- `secret_scanning_push_protection` - (Optional) Secret scanning push protection. Defaults to `disabled`.
+
+- `secret_scanning_delegated_bypass` - (Optional) Secret scanning delegated bypass.
+
+- `secret_scanning_validity_checks` - (Optional) Secret scanning validity checks. Defaults to `disabled`.
+
+- `secret_scanning_non_provider_patterns` - (Optional) Secret scanning non-provider patterns. Defaults to `disabled`.
+
+- `secret_scanning_generic_secrets` - (Optional) Copilot secret scanning (generic secrets).
+
+- `secret_scanning_delegated_alert_dismissal` - (Optional) Secret scanning delegated alert dismissal.
+
+- `secret_scanning_extended_metadata` - (Optional) Secret scanning extended metadata.
+
+- `private_vulnerability_reporting` - (Optional) Private vulnerability reporting. Defaults to `disabled`.
+
+### Option blocks
+
+Option blocks are only sent to the API and tracked in state when present in the configuration.
+
+- `dependency_graph_autosubmit_action_options` - (Optional) Options for automatic dependency submission.
+  - `labeled_runners` - (Required) Whether to use runners labeled with `dependency-submission` instead of standard GitHub runners.
+
+- `code_scanning_default_setup_options` - (Optional) Options for code scanning default setup.
+  - `runner_type` - (Optional) The runner type. Can be `standard`, `labeled` or `not_set`. Defaults to `not_set`.
+  - `runner_label` - (Optional) The runner label to use when `runner_type` is `labeled`.
+
+- `code_scanning_options` - (Optional) Options for code scanning.
+  - `allow_advanced` - (Required) Whether repositories may use advanced (self-managed) code scanning setup.
+
+- `secret_scanning_delegated_bypass_options` - (Optional) Options for secret scanning delegated bypass.
+  - `reviewers` - (Optional) One or more `reviewers` blocks, each with:
+    - `reviewer_id` - (Required) The ID of the team or role.
+    - `reviewer_type` - (Required) `TEAM` or `ROLE`.
+
+## Attributes Reference
+
+- `id` - The ID of the code security configuration.
+
+- `configuration_id` - The numeric ID of the code security configuration.
+
+- `target_type` - The target type of the configuration (`organization` or `enterprise`).
+
+- `html_url` - The URL of the configuration in the GitHub UI.
+
+## Import
+
+Organization-level code security configurations can be imported using the configuration ID:
+
+```shell
+terraform import github_code_security_configuration.org_baseline 1234
+```
+
+```terraform
+import {
+  to = github_code_security_configuration.org_baseline
+  id = "1234"
+}
+```
+
+Enterprise-level configurations use `<enterprise_slug>:<configuration_id>`:
+
+```shell
+terraform import github_code_security_configuration.enterprise_baseline my-enterprise:1234
+```
+
+```terraform
+import {
+  to = github_code_security_configuration.enterprise_baseline
+  id = "my-enterprise:1234"
+}
+```
+
+~> **Note** Feature settings without a default and option blocks are not populated on import. Add them to the configuration and run `terraform apply` to start managing them.
