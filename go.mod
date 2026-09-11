@@ -19,8 +19,8 @@ require (
 	github.com/jferrl/go-githubauth v1.7.0
 	github.com/shurcooL/githubv4 v0.0.0-20260209031235-2402fdf4a9ed
 	golang.org/x/crypto v0.56.0
-	golang.org/x/oauth2 v0.36.0
-	golang.org/x/sync v0.22.0
+	golang.org/x/oauth2 v0.37.0
+	golang.org/x/sync v0.23.0
 )
 
 require (
