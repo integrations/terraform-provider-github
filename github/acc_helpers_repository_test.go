@@ -60,6 +60,20 @@ func mustRenameTestRepository(t *testing.T, repo *github.Repository, newName str
 	}
 }
 
+func mustCreateRepositoryFile(t *testing.T, repo *github.Repository, path, content string) *github.RepositoryContentResponse {
+	t.Helper()
+
+	file, _, err := testAccConf.meta.v3client.Repositories.CreateFile(t.Context(), testAccConf.meta.name, repo.GetName(), path, &github.RepositoryContentFileOptions{
+		Message: new(fmt.Sprintf("Add %s", path)),
+		Content: []byte(content),
+	})
+	if err != nil {
+		t.Fatalf("failed to create %s in test repository %s: %v", path, repo.GetName(), err)
+	}
+
+	return file
+}
+
 func mustDeleteRepositoryFile(t *testing.T, repo *github.Repository, path string) {
 	t.Helper()
 

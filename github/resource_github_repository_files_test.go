@@ -242,6 +242,43 @@ resource "github_repository_files" "test" {
 		})
 	})
 
+	t.Run("adopts_matching_files_without_a_commit", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+		existing := mustCreateRepositoryFile(t, repo, "a.txt", "alpha")
+
+		config := fmt.Sprintf(`
+resource "github_repository_files" "test" {
+  repository = "%s"
+
+  file {
+    path    = "a.txt"
+    content = "alpha"
+  }
+}
+`, repo.GetName())
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("commit_sha"), knownvalue.StringExact(existing.GetSHA())),
+						statecheck.ExpectKnownValue("github_repository_files.test", tfjsonpath.New("file"), knownvalue.SetExact([]knownvalue.Check{
+							knownvalue.ObjectExact(map[string]knownvalue.Check{
+								"path":    knownvalue.StringExact("a.txt"),
+								"content": knownvalue.StringExact("alpha"),
+								"sha":     knownvalue.StringExact(existing.GetContent().GetSHA()),
+							}),
+						})),
+					},
+				},
+			},
+		})
+	})
+
 	t.Run("with_out_of_band_commit", func(t *testing.T) {
 		t.Parallel()
 
