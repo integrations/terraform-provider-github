@@ -1,0 +1,21 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Read the organization-wide fork PR contributor approval policy
+---
+
+# {{.Name}} ({{.Type}})
+
+Use this data source to retrieve the current organization-wide fork pull request contributor approval policy.
+
+## Example Usage
+
+{{ tffile "examples/data-sources/actions_organization_fork_pr_contributor_approval/example_1.tf" }}
+
+## Argument Reference
+
+This data source takes no arguments. The organization is determined by the provider configuration.
+
+## Attributes Reference
+
+- `approval_policy` - The organization-wide fork PR contributor approval policy currently configured. One of `first_time_contributors_new_to_github`, `first_time_contributors`, or `all_external_contributors`.
