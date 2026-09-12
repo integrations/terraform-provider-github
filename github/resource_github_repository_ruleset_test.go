@@ -779,6 +779,100 @@ resource "github_repository_ruleset" "test" {
 		})
 	})
 
+	t.Run("validates branch target rejects empty ref_name condition", func(t *testing.T) {
+		t.Parallel()
+
+		config := `
+			resource "github_repository_ruleset" "test" {
+				name        = "test-branch-empty-ref-name"
+				repository  = "example"
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {}
+				}
+
+				rules {
+					creation = true
+				}
+			}
+		`
+
+		resource.UnitTest(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile(`(?s)Missing required argument.*The argument "(include|exclude)" is required`),
+				},
+			},
+		})
+	})
+
+	t.Run("validates push target rejects empty ref_name condition", func(t *testing.T) {
+		t.Parallel()
+
+		config := `
+			resource "github_repository_ruleset" "test" {
+				name        = "test-push-empty-ref-name"
+				repository  = "example"
+				target      = "push"
+				enforcement = "active"
+
+				conditions {
+					ref_name {}
+				}
+
+				rules {
+					max_file_size {
+						max_file_size = 100
+					}
+				}
+			}
+		`
+
+		resource.UnitTest(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile(`(?s)Missing required argument.*The argument "(include|exclude)" is required`),
+				},
+			},
+		})
+	})
+
+	t.Run("validates push target allows conditions omission", func(t *testing.T) {
+		t.Parallel()
+
+		config := `
+			resource "github_repository_ruleset" "test" {
+				name        = "test-push-without-conditions"
+				repository  = "example"
+				target      = "push"
+				enforcement = "active"
+
+				rules {
+					max_file_size {
+						max_file_size = 100
+					}
+				}
+			}
+		`
+
+		resource.UnitTest(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:             config,
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: true,
+				},
+			},
+		})
+	})
+
 	t.Run("Validates push target rejects branch/tag rules", func(t *testing.T) {
 		t.Parallel()
 
