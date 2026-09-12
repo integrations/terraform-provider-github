@@ -25,4 +25,11 @@ resource "github_organization_settings" "test" {
   dependency_graph_enabled_for_new_repositories                = false
   secret_scanning_enabled_for_new_repositories                 = false
   secret_scanning_push_protection_enabled_for_new_repositories = false
+  members_allowed_repository_creation_type                     = "private"
+  two_factor_requirement_enabled                               = false
+  members_can_delete_repositories                              = false
+  members_can_invite_outside_collaborators                     = false
+  members_can_delete_issues                                    = false
+  display_commenter_full_name_setting_enabled                  = false
+  readers_can_create_discussions                               = true
 }
