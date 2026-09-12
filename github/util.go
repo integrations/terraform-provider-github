@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/google/go-github/v89/github"
@@ -91,6 +92,19 @@ func parseID4(id string) (string, string, string, string, error) {
 	}
 
 	return parts[0], parts[1], parts[2], parts[3], nil
+}
+
+func idStringToInt64(id string) (int64, diag.Diagnostics) {
+	if id == "" {
+		return 0, diag.Errorf("id is empty")
+	}
+
+	i, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		return 0, diag.FromErr(unconvertibleIdErr(id, err))
+	}
+
+	return i, diag.Diagnostics{}
 }
 
 func checkOrganizationOK(meta *Owner) (bool, diag.Diagnostics) {
