@@ -1,0 +1,40 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Invites a user to a GitHub organization by email address or GitHub user ID.
+---
+
+# {{.Name}} ({{.Type}})
+
+Invites a user to a GitHub organization by email address or GitHub user ID.
+
+When the invitation is accepted and the user becomes an active member, this resource will reflect that on the next plan/refresh. When an invitation expires or is cancelled outside of Terraform, the resource will be removed from state and Terraform will re-invite on the next apply.
+
+~> **Note** This resource is not compatible with `github_membership`. Use either `github_membership` to manage existing members or `github_organization_invitation` to send invitations.
+
+## Example Usage
+
+{{ tffile "examples/resources/organization_invitation/example_1.tf" }}
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `email` - (Optional, Forces new resource) The email address of the person to invite. Exactly one of `email` or `invitee_id` must be set.
+- `invitee_id` - (Optional, Forces new resource) The GitHub user ID of the person to invite. Exactly one of `email` or `invitee_id` must be set.
+- `role` - (Optional, Forces new resource) The role for the new member. Must be one of `admin`, `direct_member`, or `billing_manager`. Defaults to `direct_member`.
+
+## Attributes Reference
+
+In addition to the arguments above, the following attributes are exported:
+
+- `id` - The ID of the invitation.
+- `login` - The GitHub username of the invited user, if available at invitation time.
+
+## Import
+
+Organization invitations can be imported using the invitation ID, e.g.
+
+```shell
+terraform import github_organization_invitation.example 1234567
+```
