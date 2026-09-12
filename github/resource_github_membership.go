@@ -12,6 +12,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
+const (
+	membershipDowngradeToMember              = "member"
+	membershipDowngradeToOutsideCollaborator = "outside_collaborator"
+	membershipStateActive                    = "active"
+)
+
 func resourceGithubMembership() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceGithubMembershipCreateOrUpdate,
@@ -48,7 +54,14 @@ func resourceGithubMembership() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
-				Description: "Instead of removing the member from the org, you can choose to downgrade their membership to 'member' when this resource is destroyed. This is useful when wanting to downgrade admins while keeping them in the organization",
+				Description: "Instead of removing the member from the org, you can choose to downgrade their membership when this resource is destroyed. This is useful when wanting to downgrade admins while keeping them in the organization, or to downgrade members while keeping their access to public repositories intact.",
+			},
+			"downgrade_to": {
+				Type:             schema.TypeString,
+				Optional:         true,
+				ValidateDiagFunc: validateValueFunc([]string{membershipDowngradeToMember, membershipDowngradeToOutsideCollaborator}),
+				Default:          membershipDowngradeToMember,
+				Description:      "The target membership state when downgrade_on_destroy is true. Must be one of 'member' or 'outside_collaborator'.",
 			},
 		},
 	}
@@ -71,6 +84,9 @@ func resourceGithubMembershipCreateOrUpdate(ctx context.Context, d *schema.Resou
 	roleName := d.Get("role").(string)
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxId, d.Id())
+		if !d.HasChange("role") {
+			return resourceGithubMembershipRead(ctx, d, meta)
+		}
 	}
 
 	_, resp, err := client.Organizations.EditOrgMembership(ctx,
@@ -154,7 +170,10 @@ func resourceGithubMembershipDelete(ctx context.Context, d *schema.ResourceData,
 
 	username := d.Get("username").(string)
 	downgradeOnDestroy := d.Get("downgrade_on_destroy").(bool)
-	downgradeTo := "member"
+	downgradeTo, ok := d.Get("downgrade_to").(string)
+	if !ok || downgradeTo == "" {
+		downgradeTo = membershipDowngradeToMember
+	}
 
 	if downgradeOnDestroy {
 		tflog.Info(ctx, fmt.Sprintf("Downgrading '%s' membership for '%s' to '%s'", orgName, username, downgradeTo), map[string]any{
@@ -181,7 +200,7 @@ func resourceGithubMembershipDelete(ctx context.Context, d *schema.ResourceData,
 			return diag.FromErr(err)
 		}
 
-		if *membership.Role == downgradeTo {
+		if downgradeTo == membershipDowngradeToMember && membership.GetRole() == downgradeTo {
 			tflog.Info(ctx, fmt.Sprintf("Not downgrading '%s' membership for '%s' because they are already '%s'", orgName, username, downgradeTo), map[string]any{
 				"org_name": orgName,
 				"username": username,
@@ -190,9 +209,20 @@ func resourceGithubMembershipDelete(ctx context.Context, d *schema.ResourceData,
 			return nil
 		}
 
-		_, _, err = client.Organizations.EditOrgMembership(ctx, username, orgName, &github.Membership{
-			Role: new(downgradeTo),
-		})
+		if downgradeTo == membershipDowngradeToOutsideCollaborator && membership.GetState() != membershipStateActive {
+			return diag.Errorf("cannot downgrade %q to outside collaborator because organization membership is %q, not active; the user must accept the organization invitation first", username, membership.GetState())
+		}
+
+		switch downgradeTo {
+		case membershipDowngradeToMember:
+			_, _, err = client.Organizations.EditOrgMembership(ctx, username, orgName, &github.Membership{
+				Role: new(downgradeTo),
+			})
+		case membershipDowngradeToOutsideCollaborator:
+			_, err = client.Organizations.ConvertMemberToOutsideCollaborator(ctx, orgName, username)
+		default:
+			return diag.Errorf("%s is an invalid value for argument downgrade_to", downgradeTo)
+		}
 	} else {
 		tflog.Info(ctx, fmt.Sprintf("Revoking '%s' membership for '%s'", orgName, username), map[string]any{
 			"org_name": orgName,
