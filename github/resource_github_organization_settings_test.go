@@ -222,6 +222,44 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 		})
 	})
 
+	t.Run("sends booleans configured as false on create", func(t *testing.T) {
+		// These attributes default to true, so a false value used to be dropped
+		// from the create payload and only reached the API on a second apply
+		// (#3493). The plan-only step fails if the first apply did not converge.
+		config := `
+		resource "github_organization_settings" "test" {
+			billing_email = "test@example.com"
+			has_organization_projects = false
+			has_repository_projects = false
+			members_can_create_pages = false
+			members_can_create_public_pages = false
+			members_can_create_private_pages = false
+		}`
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr("github_organization_settings.test", "has_organization_projects", "false"),
+			resource.TestCheckResourceAttr("github_organization_settings.test", "has_repository_projects", "false"),
+			resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_pages", "false"),
+			resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_public_pages", "false"),
+			resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_private_pages", "false"),
+		)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
+				},
+				{
+					Config:   config,
+					PlanOnly: true,
+				},
+			},
+		})
+	})
+
 	t.Run("handles mixed boolean values correctly", func(t *testing.T) {
 		config := `
 		resource "github_organization_settings" "test" {
