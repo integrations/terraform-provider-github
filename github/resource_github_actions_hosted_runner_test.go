@@ -67,6 +67,14 @@ func TestHostedRunnerProvisioningState(t *testing.T) {
 			requirePublicIPs: true,
 			wantState:        "ready",
 		},
+		"ready when image version is not reported": {
+			runner: map[string]any{
+				"status":        "Ready",
+				"image_details": map[string]any{"id": "custom"},
+			},
+			expectedUpdate: map[string]any{"image_version": "2"},
+			wantState:      "ready",
+		},
 		"ready with public IP allocation": {
 			runner: map[string]any{
 				"status":     "Ready",
