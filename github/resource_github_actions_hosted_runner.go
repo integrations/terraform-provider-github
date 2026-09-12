@@ -336,7 +336,8 @@ func resourceGithubActionsHostedRunnerCreate(d *schema.ResourceData, meta any) e
 		return fmt.Errorf("failed to get runner ID from response: %+v", runner)
 	}
 
-	if err := waitForRunnerReady(ctx, client, orgName, d.Id(), nil, d.Get("public_ip_enabled").(bool), d.Timeout(schema.TimeoutCreate)); err != nil {
+	publicIPEnabled, _ := d.Get("public_ip_enabled").(bool)
+	if err := waitForRunnerReady(ctx, client, orgName, d.Id(), nil, publicIPEnabled, d.Timeout(schema.TimeoutCreate)); err != nil {
 		return err
 	}
 
@@ -495,7 +496,8 @@ func resourceGithubActionsHostedRunnerUpdate(d *schema.ResourceData, meta any) e
 		}
 	}
 
-	if err := waitForRunnerReady(ctx, client, orgName, runnerID, payload, d.Get("public_ip_enabled").(bool), d.Timeout(schema.TimeoutUpdate)); err != nil {
+	publicIPEnabled, _ := d.Get("public_ip_enabled").(bool)
+	if err := waitForRunnerReady(ctx, client, orgName, runnerID, payload, publicIPEnabled, d.Timeout(schema.TimeoutUpdate)); err != nil {
 		return err
 	}
 
@@ -581,11 +583,16 @@ func hostedRunnerUpdateApplied(runner, expectedUpdate map[string]any) bool {
 		case "enable_static_ip":
 			actual, ok = runner["public_ip_enabled"]
 		case "image_version":
+			// image_details and its version are optional in the API response,
+			// so the requested version can only be verified when reported.
 			image, found := runner["image_details"].(map[string]any)
 			if !found {
-				return false
+				continue
 			}
 			actual, ok = image["version"]
+			if !ok {
+				continue
+			}
 		default:
 			actual, ok = runner[key]
 		}
