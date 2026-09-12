@@ -505,17 +505,16 @@ func resourceGithubActionsHostedRunnerUpdate(d *schema.ResourceData, meta any) e
 }
 
 func waitForRunnerReady(ctx context.Context, client *github.Client, orgName, runnerID string, expectedUpdate map[string]any, requirePublicIPs bool, timeout time.Duration) error {
+	id, err := strconv.ParseInt(runnerID, 10, 64)
+	if err != nil {
+		return fmt.Errorf("invalid hosted runner ID %q: %w", runnerID, err)
+	}
+
 	conf := &retry.StateChangeConf{
 		Pending: []string{"pending"},
 		Target:  []string{"ready"},
 		Refresh: func() (any, string, error) {
-			req, err := client.NewRequest(ctx, "GET", fmt.Sprintf("orgs/%s/actions/hosted-runners/%s", orgName, runnerID), nil)
-			if err != nil {
-				return nil, "", err
-			}
-
-			var runner map[string]any
-			resp, err := client.Do(req, &runner)
+			runner, resp, err := client.Actions.GetHostedRunner(ctx, orgName, id)
 			if resp != nil && resp.StatusCode == http.StatusNotFound {
 				// Keep the result non-nil to avoid StateChangeConf's not-found retry limit.
 				return runnerID, "pending", nil
@@ -535,16 +534,16 @@ func waitForRunnerReady(ctx context.Context, client *github.Client, orgName, run
 		MinTimeout: 5 * time.Second,
 	}
 
-	_, err := conf.WaitForStateContext(ctx)
+	_, err = conf.WaitForStateContext(ctx)
 	return err
 }
 
-func hostedRunnerProvisioningState(runner, expectedUpdate map[string]any, requirePublicIPs bool) (string, error) {
-	status, ok := runner["status"].(string)
-	if !ok {
+func hostedRunnerProvisioningState(runner *github.HostedRunner, expectedUpdate map[string]any, requirePublicIPs bool) (string, error) {
+	if runner.Status == nil {
 		return "", fmt.Errorf("failed to get hosted runner status from response: %+v", runner)
 	}
 
+	status := runner.GetStatus()
 	if status == "Stuck" {
 		return "", fmt.Errorf("hosted runner provisioning is stuck")
 	}
@@ -556,75 +555,54 @@ func hostedRunnerProvisioningState(runner, expectedUpdate map[string]any, requir
 		return "pending", nil
 	}
 
-	if requirePublicIPs {
-		publicIPs, ok := runner["public_ips"].([]any)
-		if !ok || len(publicIPs) == 0 {
-			return "pending", nil
-		}
+	if requirePublicIPs && len(runner.PublicIPs) == 0 {
+		return "pending", nil
 	}
 
 	return "ready", nil
 }
 
-func hostedRunnerUpdateApplied(runner, expectedUpdate map[string]any) bool {
+func hostedRunnerUpdateApplied(runner *github.HostedRunner, expectedUpdate map[string]any) bool {
 	for key, expected := range expectedUpdate {
-		var (
-			actual any
-			ok     bool
-		)
+		applied := false
 
 		switch key {
+		case "name":
+			name, ok := expected.(string)
+			applied = ok && runner.GetName() == name
 		case "size":
-			machineSize, found := runner["machine_size_details"].(map[string]any)
-			if !found {
-				return false
-			}
-			actual, ok = machineSize["id"]
+			size, ok := expected.(string)
+			machineSize := runner.GetMachineSizeDetails()
+			applied = ok && machineSize != nil && machineSize.ID == size
+		case "runner_group_id":
+			groupID, ok := expected.(int)
+			applied = ok && runner.GetRunnerGroupID() == int64(groupID)
+		case "maximum_runners":
+			maxRunners, ok := expected.(int)
+			applied = ok && runner.GetMaximumRunners() == int64(maxRunners)
 		case "enable_static_ip":
-			actual, ok = runner["public_ip_enabled"]
+			enabled, ok := expected.(bool)
+			applied = ok && runner.GetPublicIPEnabled() == enabled
 		case "image_version":
 			// image_details and its version are optional in the API response,
 			// so the requested version can only be verified when reported.
-			image, found := runner["image_details"].(map[string]any)
-			if !found {
+			imageDetails := runner.GetImageDetails()
+			if imageDetails == nil || imageDetails.Version == nil {
 				continue
 			}
-			actual, ok = image["version"]
-			if !ok {
-				continue
-			}
+			version, ok := expected.(string)
+			applied = ok && imageDetails.GetVersion() == version
 		default:
-			actual, ok = runner[key]
+			// Fields the response does not expose cannot be verified.
+			continue
 		}
 
-		if !ok || !hostedRunnerValuesEqual(actual, expected) {
+		if !applied {
 			return false
 		}
 	}
 
 	return true
-}
-
-func hostedRunnerValuesEqual(actual, expected any) bool {
-	switch expected := expected.(type) {
-	case bool:
-		actual, ok := actual.(bool)
-		return ok && actual == expected
-	case int:
-		switch actual := actual.(type) {
-		case int:
-			return actual == expected
-		case float64:
-			return actual == float64(expected)
-		default:
-			return false
-		}
-	case string:
-		actual, ok := actual.(string)
-		return ok && actual == expected
-	default:
-		return false
-	}
 }
 
 func resourceGithubActionsHostedRunnerDelete(d *schema.ResourceData, meta any) error {
