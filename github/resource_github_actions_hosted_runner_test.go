@@ -2,28 +2,31 @@ package github
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-testing/compare"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubActionsHostedRunner(t *testing.T) {
 	t.Parallel()
 
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
-	t.Run("creates hosted runners without error", func(t *testing.T) {
+	t.Run("creates_hosted_runners_without_error", func(t *testing.T) {
 		t.Parallel()
 
-		config := fmt.Sprintf(`
-			resource "github_actions_runner_group" "test" {
-				name       = "tf-acc-test-group-%s"
-				visibility = "all"
-			}
+		runnerGroup := mustCreateTestOrganizationActionsRunnerGroup(t)
+		randomID := acctest.RandString(5)
+		hostedRunnerName := fmt.Sprintf("%srunner-%s", testResourcePrefix, randomID)
 
+		config := fmt.Sprintf(`
 			resource "github_actions_hosted_runner" "test" {
-				name = "tf-acc-test-%s"
+				name = "%s"
 
 				image {
 					id     = "2306"
@@ -31,52 +34,9 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				}
 
 				size            = "4-core"
-				runner_group_id = github_actions_runner_group.test.id
+				runner_group_id = "%d"
 			}
-		`, randomID, randomID)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "name",
-				fmt.Sprintf("tf-acc-test-%s", randomID),
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "size",
-				"4-core",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "image.0.id",
-				"2306",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "image.0.source",
-				"github",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_actions_hosted_runner.test", "id",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_actions_hosted_runner.test", "status",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_actions_hosted_runner.test", "platform",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_actions_hosted_runner.test", "image.0.size_gb",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_actions_hosted_runner.test", "machine_size_details.0.id",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_actions_hosted_runner.test", "machine_size_details.0.cpu_cores",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_actions_hosted_runner.test", "machine_size_details.0.memory_gb",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_actions_hosted_runner.test", "machine_size_details.0.storage_gb",
-			),
-		)
+		`, hostedRunnerName, runnerGroup.GetID())
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
@@ -84,23 +44,31 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("status"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("platform"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("image").AtSliceIndex(0).AtMapKey("size_gb"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("machine_size_details").AtSliceIndex(0).AtMapKey("id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("machine_size_details").AtSliceIndex(0).AtMapKey("cpu_cores"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("machine_size_details").AtSliceIndex(0).AtMapKey("memory_gb"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("machine_size_details").AtSliceIndex(0).AtMapKey("storage_gb"), knownvalue.NotNull()),
+					},
 				},
 			},
 		})
 	})
 
-	t.Run("creates hosted runner with optional parameters", func(t *testing.T) {
+	t.Run("creates_hosted_runner_with_optional_parameters", func(t *testing.T) {
 		t.Parallel()
 
-		config := fmt.Sprintf(`
-			resource "github_actions_runner_group" "test" {
-				name       = "tf-acc-test-group-%s"
-				visibility = "all"
-			}
+		runnerGroup := mustCreateTestOrganizationActionsRunnerGroup(t)
+		randomID := acctest.RandString(5)
+		hostedRunnerName := fmt.Sprintf("%srunner-optional-%s", testResourcePrefix, randomID)
 
+		config := fmt.Sprintf(`
 			resource "github_actions_hosted_runner" "test" {
-				name = "tf-acc-test-optional-%s"
+				name = "%s"
 
 				image {
 					id     = "2306"
@@ -108,30 +76,11 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				}
 
 				size              = "2-core"
-				runner_group_id   = github_actions_runner_group.test.id
-				maximum_runners   = 5
+				runner_group_id = "%d"
+				maximum_runners   = 2
 				public_ip_enabled = true
 			}
-		`, randomID, randomID)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "name",
-				fmt.Sprintf("tf-acc-test-optional-%s", randomID),
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "size",
-				"2-core",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "maximum_runners",
-				"5",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "public_ip_enabled",
-				"true",
-			),
-		)
+		`, hostedRunnerName, runnerGroup.GetID())
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
@@ -139,23 +88,21 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
 				},
 			},
 		})
 	})
 
-	t.Run("updates hosted runner configuration", func(t *testing.T) {
+	t.Run("updates_hosted_runner_configuration", func(t *testing.T) {
 		t.Parallel()
 
-		configBefore := fmt.Sprintf(`
-			resource "github_actions_runner_group" "test" {
-				name       = "tf-acc-test-group-%s"
-				visibility = "all"
-			}
+		runnerGroup := mustCreateTestOrganizationActionsRunnerGroup(t)
+		randomID := acctest.RandString(5)
+		hostedRunnerName := fmt.Sprintf("%srunner-update-%s", testResourcePrefix, randomID)
 
+		configTmpl := `
 			resource "github_actions_hosted_runner" "test" {
-				name = "tf-acc-test-update-%s"
+				name = "%s"
 
 				image {
 					id     = "2306"
@@ -163,167 +110,97 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				}
 
 				size            = "4-core"
-				runner_group_id = github_actions_runner_group.test.id
-				maximum_runners = 3
+				runner_group_id = "%d"
+				maximum_runners = %d
 			}
-		`, randomID, randomID)
+		`
 
-		configAfter := fmt.Sprintf(`
-			resource "github_actions_runner_group" "test" {
-				name       = "tf-acc-test-group-%s"
-				visibility = "all"
-			}
-
-			resource "github_actions_hosted_runner" "test" {
-				name = "tf-acc-test-update-%s-updated"
-
-				image {
-					id     = "2306"
-					source = "github"
-				}
-
-				size            = "4-core"
-				runner_group_id = github_actions_runner_group.test.id
-				maximum_runners = 5
-			}
-		`, randomID, randomID)
-
-		checkBefore := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "name",
-				fmt.Sprintf("tf-acc-test-update-%s", randomID),
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "size",
-				"4-core",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "maximum_runners",
-				"3",
-			),
-		)
-
-		checkAfter := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "name",
-				fmt.Sprintf("tf-acc-test-update-%s-updated", randomID),
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "size",
-				"4-core",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "maximum_runners",
-				"5",
-			),
-		)
-
+		compareMaxRunnersUpdated := statecheck.CompareValue(compare.ValuesDiffer())
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: configBefore,
-					Check:  checkBefore,
+					Config: fmt.Sprintf(configTmpl, hostedRunnerName, runnerGroup.GetID(), 2),
+					ConfigStateChecks: []statecheck.StateCheck{
+						compareMaxRunnersUpdated.AddStateValue("github_actions_hosted_runner.test", tfjsonpath.New("maximum_runners")),
+					},
 				},
 				{
-					Config: configAfter,
-					Check:  checkAfter,
+					Config: fmt.Sprintf(configTmpl, fmt.Sprintf("%s-updated", hostedRunnerName), runnerGroup.GetID(), 3),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_hosted_runner.test", plancheck.ResourceActionUpdate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("name"), knownvalue.StringExact(fmt.Sprintf("%s-updated", hostedRunnerName))),
+						compareMaxRunnersUpdated.AddStateValue("github_actions_hosted_runner.test", tfjsonpath.New("maximum_runners")),
+					},
 				},
 			},
 		})
 	})
 
-	t.Run("updates size field", func(t *testing.T) {
+	t.Run("updates_size_field", func(t *testing.T) {
 		t.Parallel()
 
-		configBefore := fmt.Sprintf(`
-			resource "github_actions_runner_group" "test" {
-				name       = "tf-acc-test-group-%s"
-				visibility = "all"
-			}
+		runnerGroup := mustCreateTestOrganizationActionsRunnerGroup(t)
+		randomID := acctest.RandString(5)
+		hostedRunnerName := fmt.Sprintf("%srunner-size-%s", testResourcePrefix, randomID)
 
+		configTmpl := `
 			resource "github_actions_hosted_runner" "test" {
-				name = "tf-acc-test-size-%s"
+				name = "%s"
 
 				image {
 					id     = "2306"
 					source = "github"
 				}
 
-				size            = "4-core"
-				runner_group_id = github_actions_runner_group.test.id
+				size            = "%s"
+				runner_group_id = "%d"
 			}
-		`, randomID, randomID)
+		`
 
-		configAfter := fmt.Sprintf(`
-			resource "github_actions_runner_group" "test" {
-				name       = "tf-acc-test-group-%s"
-				visibility = "all"
-			}
-
-			resource "github_actions_hosted_runner" "test" {
-				name = "tf-acc-test-size-%s"
-
-				image {
-					id     = "2306"
-					source = "github"
-				}
-
-				size            = "8-core"
-				runner_group_id = github_actions_runner_group.test.id
-			}
-		`, randomID, randomID)
-
-		checkBefore := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "size",
-				"4-core",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "machine_size_details.0.cpu_cores",
-				"4",
-			),
-		)
-
-		checkAfter := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "size",
-				"8-core",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "machine_size_details.0.cpu_cores",
-				"8",
-			),
-		)
-
+		compareSizeUpdated := statecheck.CompareValue(compare.ValuesDiffer())
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: configBefore,
-					Check:  checkBefore,
+					Config: fmt.Sprintf(configTmpl, hostedRunnerName, "4-core", runnerGroup.GetID()),
+					ConfigStateChecks: []statecheck.StateCheck{
+						compareSizeUpdated.AddStateValue("github_actions_hosted_runner.test", tfjsonpath.New("size")),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("machine_size_details").AtSliceIndex(0).AtMapKey("cpu_cores"), knownvalue.Int64Exact(4)),
+					},
 				},
 				{
-					Config: configAfter,
-					Check:  checkAfter,
+					Config: fmt.Sprintf(configTmpl, hostedRunnerName, "8-core", runnerGroup.GetID()),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_hosted_runner.test", plancheck.ResourceActionUpdate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						compareSizeUpdated.AddStateValue("github_actions_hosted_runner.test", tfjsonpath.New("size")),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("machine_size_details").AtSliceIndex(0).AtMapKey("cpu_cores"), knownvalue.Int64Exact(8)),
+					},
 				},
 			},
 		})
 	})
 
-	t.Run("imports hosted runner", func(t *testing.T) {
+	t.Run("imports_hosted_runner", func(t *testing.T) {
 		t.Parallel()
+
+		runnerGroup := mustCreateTestOrganizationActionsRunnerGroup(t)
+		randomID := acctest.RandString(5)
+		hostedRunnerName := fmt.Sprintf("%srunner-import-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
-			resource "github_actions_runner_group" "test" {
-				name       = "tf-acc-test-group-%s"
-				visibility = "all"
-			}
-
 			resource "github_actions_hosted_runner" "test" {
-				name = "tf-acc-test-import-%s"
+				name = "%s"
 
 				image {
 					id     = "2306"
@@ -331,19 +208,9 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				}
 
 				size            = "4-core"
-				runner_group_id = github_actions_runner_group.test.id
+				runner_group_id = "%d"
 			}
-		`, randomID, randomID)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet(
-				"github_actions_hosted_runner.test", "id",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "name",
-				fmt.Sprintf("tf-acc-test-import-%s", randomID),
-			),
-		)
+		`, hostedRunnerName, runnerGroup.GetID())
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
@@ -351,29 +218,27 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
 				},
 				{
 					ResourceName:            "github_actions_hosted_runner.test",
 					ImportState:             true,
 					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"image", "image_gen"},
+					ImportStateVerifyIgnore: []string{"status", "image.0.size_gb", "image_gen"},
 				},
 			},
 		})
 	})
 
-	t.Run("deletes hosted runner", func(t *testing.T) {
+	t.Run("deletes_hosted_runner", func(t *testing.T) {
 		t.Parallel()
 
-		config := fmt.Sprintf(`
-			resource "github_actions_runner_group" "test" {
-				name       = "tf-acc-test-group-%s"
-				visibility = "all"
-			}
+		runnerGroup := mustCreateTestOrganizationActionsRunnerGroup(t)
+		randomID := acctest.RandString(5)
+		hostedRunnerName := fmt.Sprintf("%srunner-delete-%s", testResourcePrefix, randomID)
 
+		config := fmt.Sprintf(`
 			resource "github_actions_hosted_runner" "test" {
-				name = "tf-acc-test-delete-%s"
+				name = "%s"
 
 				image {
 					id     = "2306"
@@ -381,9 +246,9 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				}
 
 				size            = "4-core"
-				runner_group_id = github_actions_runner_group.test.id
+				runner_group_id = "%d"
 			}
-		`, randomID, randomID)
+		`, hostedRunnerName, runnerGroup.GetID())
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
@@ -391,20 +256,42 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet(
-							"github_actions_hosted_runner.test", "id",
-						),
-					),
 				},
-				// This step should successfully delete the runner
 				{
-					Config: fmt.Sprintf(`
-							resource "github_actions_runner_group" "test" {
-								name       = "tf-acc-test-group-%s"
-								visibility = "all"
-							}
-						`, randomID),
+					Config:  config,
+					Destroy: true,
+				},
+			},
+		})
+	})
+
+	t.Run("validates_image_version_only_allowed_custom_image", func(t *testing.T) {
+		t.Parallel()
+
+		runnerGroup := mustCreateTestOrganizationActionsRunnerGroup(t)
+		randomID := acctest.RandString(5)
+		hostedRunnerName := fmt.Sprintf("%simage-version-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_actions_hosted_runner" "test" {
+	name = "%s"
+
+	image {
+		id     = "2306"
+		source = "github"
+	}
+	image_version = "1.0.0"
+	size            = "4-core"
+				runner_group_id = "%d"
+}`, hostedRunnerName, runnerGroup.GetID())
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("`image_version` can only be set when `image\\[0\\].source` is 'custom'"),
 				},
 			},
 		})
