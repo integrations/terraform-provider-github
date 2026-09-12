@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
@@ -12,31 +13,31 @@ func TestHostedRunnerProvisioningState(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		runner           map[string]any
+		runner           *github.HostedRunner
 		expectedUpdate   map[string]any
 		requirePublicIPs bool
 		wantState        string
 		wantErr          bool
 	}{
 		"provisioning": {
-			runner:    map[string]any{"status": "Provisioning"},
+			runner:    &github.HostedRunner{Status: new("Provisioning")},
 			wantState: "pending",
 		},
 		"ready without public IP requirement": {
-			runner:    map[string]any{"status": "Ready"},
+			runner:    &github.HostedRunner{Status: new("Ready")},
 			wantState: "ready",
 		},
 		"ready before public IP allocation": {
-			runner:           map[string]any{"status": "Ready", "public_ips": []any{}},
+			runner:           &github.HostedRunner{Status: new("Ready")},
 			requirePublicIPs: true,
 			wantState:        "pending",
 		},
 		"ready before update is applied": {
-			runner: map[string]any{
-				"status":               "Ready",
-				"machine_size_details": map[string]any{"id": "2-core"},
-				"public_ip_enabled":    true,
-				"public_ips":           []any{map[string]any{"prefix": "192.0.2.1"}},
+			runner: &github.HostedRunner{
+				Status:             new("Ready"),
+				MachineSizeDetails: &github.HostedRunnerMachineSpec{ID: "2-core"},
+				PublicIPEnabled:    new(true),
+				PublicIPs:          []*github.HostedRunnerPublicIP{{Prefix: "192.0.2.1"}},
 			},
 			expectedUpdate: map[string]any{
 				"size":             "4-core",
@@ -46,15 +47,15 @@ func TestHostedRunnerProvisioningState(t *testing.T) {
 			wantState:        "pending",
 		},
 		"ready after update is applied": {
-			runner: map[string]any{
-				"status":               "Ready",
-				"name":                 "updated",
-				"machine_size_details": map[string]any{"id": "4-core"},
-				"runner_group_id":      float64(2),
-				"maximum_runners":      float64(5),
-				"public_ip_enabled":    true,
-				"public_ips":           []any{map[string]any{"prefix": "192.0.2.1"}},
-				"image_details":        map[string]any{"version": "2"},
+			runner: &github.HostedRunner{
+				Status:             new("Ready"),
+				Name:               new("updated"),
+				MachineSizeDetails: &github.HostedRunnerMachineSpec{ID: "4-core"},
+				RunnerGroupID:      new(int64(2)),
+				MaximumRunners:     new(int64(5)),
+				PublicIPEnabled:    new(true),
+				PublicIPs:          []*github.HostedRunnerPublicIP{{Prefix: "192.0.2.1"}},
+				ImageDetails:       &github.HostedRunnerImageDetail{Version: new("2")},
 			},
 			expectedUpdate: map[string]any{
 				"name":             "updated",
@@ -68,27 +69,27 @@ func TestHostedRunnerProvisioningState(t *testing.T) {
 			wantState:        "ready",
 		},
 		"ready when image version is not reported": {
-			runner: map[string]any{
-				"status":        "Ready",
-				"image_details": map[string]any{"id": "custom"},
+			runner: &github.HostedRunner{
+				Status:       new("Ready"),
+				ImageDetails: &github.HostedRunnerImageDetail{ID: new("custom")},
 			},
 			expectedUpdate: map[string]any{"image_version": "2"},
 			wantState:      "ready",
 		},
 		"ready with public IP allocation": {
-			runner: map[string]any{
-				"status":     "Ready",
-				"public_ips": []any{map[string]any{"prefix": "192.0.2.1"}},
+			runner: &github.HostedRunner{
+				Status:    new("Ready"),
+				PublicIPs: []*github.HostedRunnerPublicIP{{Prefix: "192.0.2.1"}},
 			},
 			requirePublicIPs: true,
 			wantState:        "ready",
 		},
 		"stuck": {
-			runner:  map[string]any{"status": "Stuck"},
+			runner:  &github.HostedRunner{Status: new("Stuck")},
 			wantErr: true,
 		},
 		"missing status": {
-			runner:  map[string]any{},
+			runner:  &github.HostedRunner{},
 			wantErr: true,
 		},
 	}
