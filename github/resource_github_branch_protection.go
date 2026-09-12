@@ -133,6 +133,8 @@ func resourceGithubBranchProtection() *schema.Resource {
 						PROTECTION_REQUIRED_STATUS_CHECK_CONTEXTS: {
 							Type:        schema.TypeSet,
 							Optional:    true,
+							Computed:    true,
+							Deprecated:  "GitHub is deprecating the use of `contexts`. Use a `checks` array instead.",
 							Description: "The list of status checks to require in order to merge into this branch. No status checks are required by default.",
 							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
@@ -292,6 +294,12 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta any) error 
 		return err
 	}
 	protection := query.Node.Node
+
+	if protection.Repository.IsArchived {
+		log.Printf("[INFO] Removing branch protection (%s) from state because the repository (%s) is archived", d.Id(), protection.Repository.Name)
+		d.SetId("")
+		return nil
+	}
 
 	err = d.Set(PROTECTION_PATTERN, protection.Pattern)
 	if err != nil {
