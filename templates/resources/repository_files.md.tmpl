@@ -1,0 +1,59 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+Use it instead of many `github_repository_file` resources when files should change together, or when parallel writes to one branch cause `409` conflicts. Several `github_repository_files` resources can manage the same branch if their paths don't overlap.
+
+~> **Note** Files at the listed paths are overwritten on the first apply, and removing a `file` block deletes that file. Files that are not listed are ignored: they are never modified, and changes to them are not drift.
+
+Destroying the resource on an archived repository only removes it from state.
+
+## Migrating from `github_repository_file`
+
+1. Run `terraform state rm` on each `github_repository_file` resource. The files stay in GitHub.
+2. Declare the same paths and content in one `github_repository_files` resource.
+3. Import it and run `terraform plan`. Files whose content already matches produce no changes.
+
+{{ if .HasExamples -}}
+## Example Usage
+
+{{- range .ExampleFiles }}
+
+{{ tffile . }}
+{{- end }}
+{{- end }}
+
+{{ .SchemaMarkdown | trimspace }}
+{{- if or .HasImport .HasImportIDConfig .HasImportIdentityConfig }}
+
+## Import
+
+Import is supported using the following syntax:
+{{- end }}
+{{- if .HasImportIdentityConfig }}
+
+In Terraform v1.12.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `identity` attribute, for example:
+
+{{tffile .ImportIdentityConfigFile }}
+
+{{ .IdentitySchemaMarkdown | trimspace }}
+{{- end }}
+{{- if .HasImportIDConfig }}
+
+In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `id` attribute, for example:
+
+{{tffile .ImportIDConfigFile }}
+{{- end }}
+{{- if .HasImport }}
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+{{codefile "shell" .ImportFile }}
+{{- end }}
