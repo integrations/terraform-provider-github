@@ -56,3 +56,5 @@ data "github_organization" "example" {
 - `dependency_graph_enabled_for_new_repositories` - Whether dependency graph is automatically enabled for new repositories.
 - `secret_scanning_enabled_for_new_repositories` - Whether secret scanning is automatically enabled for new repositories.
 - `secret_scanning_push_protection_enabled_for_new_repositories` - Whether secret scanning push protection is automatically enabled for new repositories.
+- `secret_scanning_push_protection_custom_link_enabled` - Whether a custom link is shown to contributors blocked by secret scanning push protection.
+- `secret_scanning_push_protection_custom_link` - URL displayed to contributors blocked by secret scanning push protection.
