@@ -34,6 +34,7 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 			members_can_create_public_pages = true
 			members_can_create_private_pages = true
 			members_can_fork_private_repositories = true
+			deploy_keys_enabled_for_repositories = true
 			web_commit_signoff_required = true
 			advanced_security_enabled_for_new_repositories = false
 			  dependabot_alerts_enabled_for_new_repositories=  false
@@ -154,6 +155,7 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 			members_can_create_private_repositories = false
 			members_can_create_internal_repositories = false
 			members_can_fork_private_repositories = false
+			deploy_keys_enabled_for_repositories = false
 			web_commit_signoff_required = false
 			advanced_security_enabled_for_new_repositories = false
 			dependabot_alerts_enabled_for_new_repositories = false
@@ -179,6 +181,10 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 			resource.TestCheckResourceAttr(
 				"github_organization_settings.test",
 				"members_can_fork_private_repositories", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"deploy_keys_enabled_for_repositories", "false",
 			),
 			resource.TestCheckResourceAttr(
 				"github_organization_settings.test",
@@ -229,6 +235,7 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 			members_can_create_private_repositories = false
 			members_can_create_internal_repositories = true
 			members_can_fork_private_repositories = false
+			deploy_keys_enabled_for_repositories = true
 			web_commit_signoff_required = true
 			advanced_security_enabled_for_new_repositories = false
 			dependabot_alerts_enabled_for_new_repositories = true
@@ -254,6 +261,10 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 			resource.TestCheckResourceAttr(
 				"github_organization_settings.test",
 				"members_can_fork_private_repositories", "false",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_settings.test",
+				"deploy_keys_enabled_for_repositories", "true",
 			),
 			resource.TestCheckResourceAttr(
 				"github_organization_settings.test",
