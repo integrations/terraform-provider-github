@@ -609,8 +609,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 									},
 									"required_workflow": {
 										Type:        schema.TypeSet,
-										MinItems:    1,
-										Required:    true,
+										Optional:    true,
 										Description: "Actions workflows that are required. Several can be defined.",
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
