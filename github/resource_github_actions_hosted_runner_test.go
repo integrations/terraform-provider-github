@@ -7,6 +7,9 @@ import (
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestHostedRunnerProvisioningState(t *testing.T) {
@@ -243,54 +246,27 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			}
 		`, randomID, randomID)
 
-		checkBefore := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "public_ip_enabled",
-				"false",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "status",
-				"Ready",
-			),
-		)
-
-		checkAfter := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "name",
-				fmt.Sprintf("tf-acc-test-optional-%s", randomID),
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "size",
-				"2-core",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "maximum_runners",
-				"5",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "public_ip_enabled",
-				"true",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "status",
-				"Ready",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_actions_hosted_runner.test", "public_ips.0.prefix",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: configBefore,
-					Check:  checkBefore,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("public_ip_enabled"), knownvalue.Bool(false)),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("status"), knownvalue.StringExact("Ready")),
+					},
 				},
 				{
 					Config: configAfter,
-					Check:  checkAfter,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("name"), knownvalue.StringExact(fmt.Sprintf("tf-acc-test-optional-%s", randomID))),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("size"), knownvalue.StringExact("2-core")),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("maximum_runners"), knownvalue.Int64Exact(5)),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("public_ip_enabled"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("status"), knownvalue.StringExact("Ready")),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("public_ips").AtSliceIndex(0).AtMapKey("prefix"), knownvalue.NotNull()),
+					},
 				},
 			},
 		})
