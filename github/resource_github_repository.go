@@ -1042,10 +1042,9 @@ func resourceGithubRepositoryDelete(ctx context.Context, d *schema.ResourceData,
 			log.Printf("[DEBUG] Repository already archived, nothing to do on delete: %s/%s", owner, repoName)
 			return nil
 		} else {
-			if err := d.Set("archived", true); err != nil {
-				return diag.FromErr(err)
+			repoReq := &github.Repository{
+				Archived: new(true),
 			}
-			repoReq := resourceGithubRepositoryObject(d)
 			log.Printf("[DEBUG] Archiving repository on delete: %s/%s", owner, repoName)
 			_, _, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
 			return diag.FromErr(err)
