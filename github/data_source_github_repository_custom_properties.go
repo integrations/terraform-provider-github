@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -87,15 +86,4 @@ func flattenRepositoryCustomProperties(customProperties []*github.CustomProperty
 	}
 
 	return results, nil
-}
-
-func parseRepositoryCustomPropertyValueToStringSlice(prop *github.CustomPropertyValue) ([]string, error) {
-	switch value := prop.Value.(type) {
-	case string:
-		return []string{value}, nil
-	case []string:
-		return value, nil
-	default:
-		return nil, fmt.Errorf("custom property value couldn't be parsed as a string or a list of strings: %s", value)
-	}
 }
