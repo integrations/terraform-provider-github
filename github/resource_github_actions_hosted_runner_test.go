@@ -4,9 +4,119 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
+
+func TestHostedRunnerProvisioningState(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		runner           *github.HostedRunner
+		expectedUpdate   map[string]any
+		requirePublicIPs bool
+		wantState        string
+		wantErr          bool
+	}{
+		"provisioning": {
+			runner:    &github.HostedRunner{Status: new("Provisioning")},
+			wantState: "pending",
+		},
+		"ready without public IP requirement": {
+			runner:    &github.HostedRunner{Status: new("Ready")},
+			wantState: "ready",
+		},
+		"ready before public IP allocation": {
+			runner:           &github.HostedRunner{Status: new("Ready")},
+			requirePublicIPs: true,
+			wantState:        "pending",
+		},
+		"ready before update is applied": {
+			runner: &github.HostedRunner{
+				Status:             new("Ready"),
+				MachineSizeDetails: &github.HostedRunnerMachineSpec{ID: "2-core"},
+				PublicIPEnabled:    new(true),
+				PublicIPs:          []*github.HostedRunnerPublicIP{{Prefix: "192.0.2.1"}},
+			},
+			expectedUpdate: map[string]any{
+				"size":             "4-core",
+				"enable_static_ip": true,
+			},
+			requirePublicIPs: true,
+			wantState:        "pending",
+		},
+		"ready after update is applied": {
+			runner: &github.HostedRunner{
+				Status:             new("Ready"),
+				Name:               new("updated"),
+				MachineSizeDetails: &github.HostedRunnerMachineSpec{ID: "4-core"},
+				RunnerGroupID:      new(int64(2)),
+				MaximumRunners:     new(int64(5)),
+				PublicIPEnabled:    new(true),
+				PublicIPs:          []*github.HostedRunnerPublicIP{{Prefix: "192.0.2.1"}},
+				ImageDetails:       &github.HostedRunnerImageDetail{Version: new("2")},
+			},
+			expectedUpdate: map[string]any{
+				"name":             "updated",
+				"size":             "4-core",
+				"runner_group_id":  2,
+				"maximum_runners":  5,
+				"enable_static_ip": true,
+				"image_version":    "2",
+			},
+			requirePublicIPs: true,
+			wantState:        "ready",
+		},
+		"ready when image version is not reported": {
+			runner: &github.HostedRunner{
+				Status:       new("Ready"),
+				ImageDetails: &github.HostedRunnerImageDetail{ID: new("custom")},
+			},
+			expectedUpdate: map[string]any{"image_version": "2"},
+			wantState:      "ready",
+		},
+		"ready with public IP allocation": {
+			runner: &github.HostedRunner{
+				Status:    new("Ready"),
+				PublicIPs: []*github.HostedRunnerPublicIP{{Prefix: "192.0.2.1"}},
+			},
+			requirePublicIPs: true,
+			wantState:        "ready",
+		},
+		"stuck": {
+			runner:  &github.HostedRunner{Status: new("Stuck")},
+			wantErr: true,
+		},
+		"missing status": {
+			runner:  &github.HostedRunner{},
+			wantErr: true,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := hostedRunnerProvisioningState(test.runner, test.expectedUpdate, test.requirePublicIPs)
+			if test.wantErr {
+				if err == nil {
+					t.Fatal("expected an error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != test.wantState {
+				t.Fatalf("got state %q, want %q", got, test.wantState)
+			}
+		})
+	}
+}
 
 func TestAccGithubActionsHostedRunner(t *testing.T) {
 	t.Parallel()
@@ -55,8 +165,9 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			resource.TestCheckResourceAttrSet(
 				"github_actions_hosted_runner.test", "id",
 			),
-			resource.TestCheckResourceAttrSet(
+			resource.TestCheckResourceAttr(
 				"github_actions_hosted_runner.test", "status",
+				"Ready",
 			),
 			resource.TestCheckResourceAttrSet(
 				"github_actions_hosted_runner.test", "platform",
@@ -90,10 +201,31 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 		})
 	})
 
-	t.Run("creates hosted runner with optional parameters", func(t *testing.T) {
+	t.Run("updates hosted runner to enable public IPs", func(t *testing.T) {
 		t.Parallel()
 
-		config := fmt.Sprintf(`
+		configBefore := fmt.Sprintf(`
+			resource "github_actions_runner_group" "test" {
+				name       = "tf-acc-test-group-%s"
+				visibility = "all"
+			}
+
+			resource "github_actions_hosted_runner" "test" {
+				name = "tf-acc-test-optional-%s"
+
+				image {
+					id     = "2306"
+					source = "github"
+				}
+
+				size              = "2-core"
+				runner_group_id   = github_actions_runner_group.test.id
+				maximum_runners   = 5
+				public_ip_enabled = false
+			}
+		`, randomID, randomID)
+
+		configAfter := fmt.Sprintf(`
 			resource "github_actions_runner_group" "test" {
 				name       = "tf-acc-test-group-%s"
 				visibility = "all"
@@ -114,32 +246,27 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			}
 		`, randomID, randomID)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "name",
-				fmt.Sprintf("tf-acc-test-optional-%s", randomID),
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "size",
-				"2-core",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "maximum_runners",
-				"5",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_hosted_runner.test", "public_ip_enabled",
-				"true",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: config,
-					Check:  check,
+					Config: configBefore,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("public_ip_enabled"), knownvalue.Bool(false)),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("status"), knownvalue.StringExact("Ready")),
+					},
+				},
+				{
+					Config: configAfter,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("name"), knownvalue.StringExact(fmt.Sprintf("tf-acc-test-optional-%s", randomID))),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("size"), knownvalue.StringExact("2-core")),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("maximum_runners"), knownvalue.Int64Exact(5)),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("public_ip_enabled"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("status"), knownvalue.StringExact("Ready")),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("public_ips").AtSliceIndex(0).AtMapKey("prefix"), knownvalue.NotNull()),
+					},
 				},
 			},
 		})

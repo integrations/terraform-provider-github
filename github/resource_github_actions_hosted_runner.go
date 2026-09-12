@@ -27,6 +27,8 @@ func resourceGithubActionsHostedRunner() *schema.Resource {
 		},
 
 		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(30 * time.Minute),
+			Update: schema.DefaultTimeout(30 * time.Minute),
 			Delete: schema.DefaultTimeout(10 * time.Minute),
 		},
 
@@ -334,6 +336,11 @@ func resourceGithubActionsHostedRunnerCreate(d *schema.ResourceData, meta any) e
 		return fmt.Errorf("failed to get runner ID from response: %+v", runner)
 	}
 
+	publicIPEnabled, _ := d.Get("public_ip_enabled").(bool)
+	if err := waitForRunnerReady(ctx, client, orgName, d.Id(), nil, publicIPEnabled, d.Timeout(schema.TimeoutCreate)); err != nil {
+		return err
+	}
+
 	return resourceGithubActionsHostedRunnerRead(d, meta)
 }
 
@@ -489,7 +496,113 @@ func resourceGithubActionsHostedRunnerUpdate(d *schema.ResourceData, meta any) e
 		}
 	}
 
+	publicIPEnabled, _ := d.Get("public_ip_enabled").(bool)
+	if err := waitForRunnerReady(ctx, client, orgName, runnerID, payload, publicIPEnabled, d.Timeout(schema.TimeoutUpdate)); err != nil {
+		return err
+	}
+
 	return resourceGithubActionsHostedRunnerRead(d, meta)
+}
+
+func waitForRunnerReady(ctx context.Context, client *github.Client, orgName, runnerID string, expectedUpdate map[string]any, requirePublicIPs bool, timeout time.Duration) error {
+	id, err := strconv.ParseInt(runnerID, 10, 64)
+	if err != nil {
+		return fmt.Errorf("invalid hosted runner ID %q: %w", runnerID, err)
+	}
+
+	conf := &retry.StateChangeConf{
+		Pending: []string{"pending"},
+		Target:  []string{"ready"},
+		Refresh: func() (any, string, error) {
+			runner, resp, err := client.Actions.GetHostedRunner(ctx, orgName, id)
+			if resp != nil && resp.StatusCode == http.StatusNotFound {
+				// Keep the result non-nil to avoid StateChangeConf's not-found retry limit.
+				return runnerID, "pending", nil
+			}
+			if err != nil {
+				return nil, "", err
+			}
+			if runner == nil {
+				return nil, "", fmt.Errorf("no runner data returned from API")
+			}
+
+			state, err := hostedRunnerProvisioningState(runner, expectedUpdate, requirePublicIPs)
+			return runner, state, err
+		},
+		Timeout:    timeout,
+		Delay:      10 * time.Second,
+		MinTimeout: 5 * time.Second,
+	}
+
+	_, err = conf.WaitForStateContext(ctx)
+	return err
+}
+
+func hostedRunnerProvisioningState(runner *github.HostedRunner, expectedUpdate map[string]any, requirePublicIPs bool) (string, error) {
+	if runner.Status == nil {
+		return "", fmt.Errorf("failed to get hosted runner status from response: %+v", runner)
+	}
+
+	status := runner.GetStatus()
+	if status == "Stuck" {
+		return "", fmt.Errorf("hosted runner provisioning is stuck")
+	}
+	if status != "Ready" {
+		return "pending", nil
+	}
+
+	if !hostedRunnerUpdateApplied(runner, expectedUpdate) {
+		return "pending", nil
+	}
+
+	if requirePublicIPs && len(runner.PublicIPs) == 0 {
+		return "pending", nil
+	}
+
+	return "ready", nil
+}
+
+func hostedRunnerUpdateApplied(runner *github.HostedRunner, expectedUpdate map[string]any) bool {
+	for key, expected := range expectedUpdate {
+		applied := false
+
+		switch key {
+		case "name":
+			name, ok := expected.(string)
+			applied = ok && runner.GetName() == name
+		case "size":
+			size, ok := expected.(string)
+			machineSize := runner.GetMachineSizeDetails()
+			applied = ok && machineSize != nil && machineSize.ID == size
+		case "runner_group_id":
+			groupID, ok := expected.(int)
+			applied = ok && runner.GetRunnerGroupID() == int64(groupID)
+		case "maximum_runners":
+			maxRunners, ok := expected.(int)
+			applied = ok && runner.GetMaximumRunners() == int64(maxRunners)
+		case "enable_static_ip":
+			enabled, ok := expected.(bool)
+			applied = ok && runner.GetPublicIPEnabled() == enabled
+		case "image_version":
+			// image_details and its version are optional in the API response,
+			// so the requested version can only be verified when reported.
+			imageDetails := runner.GetImageDetails()
+			if imageDetails == nil || imageDetails.Version == nil {
+				continue
+			}
+			version, ok := expected.(string)
+			applied = ok && imageDetails.GetVersion() == version
+		default:
+			// Fields the response does not expose cannot be verified.
+			continue
+		}
+
+		if !applied {
+			return false
+		}
+	}
+
+	return true
 }
 
 func resourceGithubActionsHostedRunnerDelete(d *schema.ResourceData, meta any) error {

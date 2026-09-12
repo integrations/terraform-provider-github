@@ -10,6 +10,8 @@ resource "github_actions_hosted_runner" "example" {
   runner_group_id = github_actions_runner_group.example.id
 
   timeouts {
+    create = "45m"
+    update = "45m"
     delete = "15m"
   }
 }

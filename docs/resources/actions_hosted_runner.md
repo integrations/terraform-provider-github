@@ -74,6 +74,8 @@ The following arguments are supported:
 
 The `timeouts` block allows you to specify timeouts for certain actions:
 
+- `create` - (Defaults to 30 minutes) Used for waiting for the hosted runner to become ready and, when enabled, receive its static public IPs.
+- `update` - (Defaults to 30 minutes) Used for waiting for hosted runner updates to complete and, when enabled, static public IPs to become available.
 - `delete` - (Defaults to 10 minutes) Used for waiting for the hosted runner deletion to complete.
 
 Example:
@@ -91,6 +93,8 @@ resource "github_actions_hosted_runner" "example" {
   runner_group_id = github_actions_runner_group.example.id
 
   timeouts {
+    create = "45m"
+    update = "45m"
     delete = "15m"
   }
 }
@@ -131,7 +135,7 @@ terraform import github_actions_hosted_runner.example 123456
 - The `size` field can be updated to scale the runner up or down as needed.
 - Image IDs for GitHub-owned images are numeric strings (e.g., "2306" for Ubuntu Latest 24.04), not names like "ubuntu-latest".
 - Deletion of hosted runners is asynchronous. The provider will poll for up to 10 minutes (configurable via timeouts) to confirm deletion.
-- Runner creation and updates may take several minutes as GitHub provisions the infrastructure.
+- Runner creation and updates wait until the runner is ready. When static public IPs are enabled, they also wait until the IPs are available.
 - Static public IPs are subject to account limits. Check your organization's limits before enabling.
 
 ## Getting Available Images and Sizes
