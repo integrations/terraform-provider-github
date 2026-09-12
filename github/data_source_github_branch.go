@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 
 	"github.com/google/go-github/v89/github"
@@ -53,7 +52,11 @@ func dataSourceGithubBranchRead(ctx context.Context, d *schema.ResourceData, met
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[DEBUG] Missing GitHub branch %s/%s (%s)", orgName, repoName, branchRefName)
+				tflog.Debug(ctx, "Missing GitHub branch", map[string]any{
+					"owner":      orgName,
+					"repository": repoName,
+					"branch_ref": branchRefName,
+				})
 				d.SetId("")
 				return nil
 			}
