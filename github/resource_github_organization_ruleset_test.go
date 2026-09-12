@@ -566,6 +566,76 @@ resource "github_organization_ruleset" "test" {
 		})
 	})
 
+	t.Run("create_and_update_repository_ruleset", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		rulesetName := fmt.Sprintf("%s-repository-ruleset-%s", testResourcePrefix, randomID)
+
+		configTemplate := `
+resource "github_organization_ruleset" "test" {
+	name        = "%s"
+	target      = "repository"
+	enforcement = "active"
+
+	conditions {
+		repository_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	rules {
+		repository_create   = true
+		repository_delete   = %t
+		repository_transfer = true
+
+		repository_name {
+			pattern = "%s"
+			negate  = %t
+		}
+
+		repository_visibility {
+			internal = %t
+			private  = true
+			# TODO(go-github v91): cover once RepositoryVisibilityRuleParameters
+			# exposes Public (https://github.com/google/go-github/pull/4455).
+			# public = true
+		}
+	}
+}
+`
+
+		config := fmt.Sprintf(configTemplate, rulesetName, true, "^tf-acc-", false, true)
+		configUpdated := fmt.Sprintf(configTemplate, rulesetName, false, "^tf-acc-updated-", true, false)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+				},
+				{
+					Config: configUpdated,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_delete"), knownvalue.Bool(false)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_name").AtSliceIndex(0).AtMapKey("pattern"), knownvalue.StringExact("^tf-acc-updated-")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_name").AtSliceIndex(0).AtMapKey("negate"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_visibility").AtSliceIndex(0).AtMapKey("internal"), knownvalue.Bool(false)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_visibility").AtSliceIndex(0).AtMapKey("private"), knownvalue.Bool(true)),
+					},
+				},
+				{
+					ResourceName:            "github_organization_ruleset.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"etag"},
+				},
+			},
+		})
+	})
+
 	t.Run("update_ruleset_name", func(t *testing.T) {
 		t.Parallel()
 
@@ -956,6 +1026,125 @@ resource "github_organization_ruleset" "test" {
 				{
 					Config:      config,
 					ExpectError: regexp.MustCompile("rule .* is not valid for push target"),
+				},
+			},
+		})
+	})
+
+	t.Run("validates_repository_target_rejects_ref_name_condition", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		resourceName := "test-repository-reject-ref-name"
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "%s" {
+				name        = "test-repository-with-ref-%s"
+				target      = "repository"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					# Repository rulesets only support repository-specific rules
+					repository_delete = true
+				}
+			}
+		`, resourceName, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("ref_name must not be set for repository target"),
+				},
+			},
+		})
+	})
+
+	t.Run("validates_repository_target_rejects_branch_or_tag_rules", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		resourceName := "test-repository-reject-branch-rules"
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "%s" {
+				name        = "test-repository-branch-rule-%s"
+				target      = "repository"
+				enforcement = "active"
+
+				conditions {
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					# 'creation' is a branch/tag rule, not valid for repository target
+					creation = true
+				}
+			}
+		`, resourceName, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("rule .* is not valid for repository target"),
+				},
+			},
+		})
+	})
+
+	t.Run("validates_branch_target_rejects_repository-only_rules", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		resourceName := "test-branch-reject-repository-rules"
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "%s" {
+				name        = "test-branch-repository-rule-%s"
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+				}
+
+				rules {
+					# 'repository_delete' is a repository-only rule, not valid for branch target
+					repository_delete = true
+				}
+			}
+		`, resourceName, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("rule .* is not valid for branch target"),
 				},
 			},
 		})

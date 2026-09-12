@@ -16,10 +16,16 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-var supportedOrgRulesetTargetTypes = []string{string(github.RulesetTargetBranch), string(github.RulesetTargetTag), string(github.RulesetTargetPush)}
+var supportedOrgRulesetTargetTypes = []string{
+	string(github.RulesetTargetBranch),
+	string(github.RulesetTargetTag),
+	string(github.RulesetTargetPush),
+	string(github.RulesetTargetRepository),
+}
 
 func resourceGithubOrganizationRuleset() *schema.Resource {
 	return &schema.Resource{
+		Description:   "Creates a GitHub organization ruleset.",
 		CreateContext: resourceGithubOrganizationRulesetCreate,
 		ReadContext:   resourceGithubOrganizationRulesetRead,
 		UpdateContext: resourceGithubOrganizationRulesetUpdate,
@@ -40,9 +46,8 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Description:      "The name of the ruleset.",
 			},
 			"target": {
-				Type:     schema.TypeString,
-				Required: true,
-				// The API accepts an `repository` target, but we don't support it yet.
+				Type:             schema.TypeString,
+				Required:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice(supportedOrgRulesetTargetTypes, false)),
 				Description:      "The target of the ruleset. Possible values are " + strings.Join(supportedOrgRulesetTargetTypes[:len(supportedOrgRulesetTargetTypes)-1], ", ") + " and " + supportedOrgRulesetTargetTypes[len(supportedOrgRulesetTargetTypes)-1] + ".",
 			},
@@ -94,7 +99,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Parameters for an organization ruleset condition.The branch and tag rulesets conditions object should contain both repository_name and ref_name properties, or both repository_id and ref_name properties, or both repository_property and ref_name properties. The push rulesets conditions object does not require the ref_name property.",
+				Description: "Parameters for an organization ruleset condition. Exactly one of `repository_name`, `repository_id` or `repository_property` must be set. For `branch` and `tag` targets, `ref_name` is required alongside it. For `push` and `repository` targets, `ref_name` must not be set.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ref_name": {
@@ -678,7 +683,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Type:        schema.TypeList,
 							Optional:    true,
 							MaxItems:    1,
-							Description: "Prevent commits that include changes in specified file paths from being pushed to the commit graph.",
+							Description: "Prevent commits that include changes in specified file paths from being pushed to the commit graph. Only valid for the `push` target.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"restricted_file_paths": {
@@ -697,7 +702,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Type:        schema.TypeList,
 							Optional:    true,
 							MaxItems:    1,
-							Description: "Prevent pushes based on file size.",
+							Description: "Prevent pushes based on file size. Only valid for the `push` target.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"max_file_size": {
@@ -713,7 +718,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Type:        schema.TypeList,
 							Optional:    true,
 							MaxItems:    1,
-							Description: "Prevent pushes based on file path length.",
+							Description: "Prevent pushes based on file path length. Only valid for the `push` target.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"max_file_path_length": {
@@ -729,7 +734,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Type:        schema.TypeList,
 							Optional:    true,
 							MaxItems:    1,
-							Description: "Prevent pushes based on file extensions.",
+							Description: "Prevent pushes based on file extensions. Only valid for the `push` target.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"restricted_file_extensions": {
@@ -741,6 +746,72 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 											Type: schema.TypeString,
 										},
 									},
+								},
+							},
+						},
+						"repository_create": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "Only allow users with bypass permission to create matching repositories. Only valid for the `repository` target.",
+						},
+						"repository_delete": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "Only allow users with bypass permission to delete matching repositories. Only valid for the `repository` target.",
+						},
+						"repository_transfer": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "Only allow users with bypass permission to transfer matching repositories out of the organization. Only valid for the `repository` target.",
+						},
+						"repository_name": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Restrict the names matching repositories may have. Only valid for the `repository` target.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"pattern": {
+										Type:             schema.TypeString,
+										Required:         true,
+										ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsNotEmpty),
+										Description:      "The pattern to match against the repository name.",
+									},
+									"negate": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Description: "If true, the rule will fail if the pattern matches.",
+									},
+								},
+							},
+						},
+						"repository_visibility": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Restrict the visibilities matching repositories may have. Only valid for the `repository` target.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"internal": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Description: "Allow matching repositories to be internal.",
+									},
+									"private": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Description: "Allow matching repositories to be private.",
+									},
+									// TODO(go-github v91): restore `public` once
+									// github.RepositoryVisibilityRuleParameters exposes Public
+									// (https://github.com/google/go-github/pull/4455). Until then the
+									// field cannot round-trip: the API accepts `public`, but the read
+									// path cannot put it in state and an update would revoke it.
+									// "public": {
+									// 	Type:        schema.TypeBool,
+									// 	Optional:    true,
+									// 	Description: "Allow matching repositories to be public.",
+									// },
 								},
 							},
 						},
