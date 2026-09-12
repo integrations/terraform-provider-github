@@ -66,7 +66,7 @@ func resourceGithubActionsRepositoryAccessLevelRead(d *schema.ResourceData, meta
 
 	actionAccessLevel, _, err := client.Repositories.GetActionsAccessLevel(ctx, owner, repoName)
 	if err != nil {
-		return err
+		return deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "repository (%s/%s) actions access level", owner, repoName)
 	}
 
 	_ = d.Set("access_level", actionAccessLevel.GetAccessLevel())
