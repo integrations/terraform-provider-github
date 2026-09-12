@@ -30,7 +30,7 @@ func Test_configureProviderMeta(t *testing.T) {
 		conf          *Config
 		wantName      string
 		wantIsOrg     bool
-		wantOrgId     int64
+		wantOwnerID   int64
 		wantErr       string
 	}{
 		{
@@ -47,9 +47,9 @@ func Test_configureProviderMeta(t *testing.T) {
 				AppPEM:            mustNewPEM(t),
 				Owner:             "test-org",
 			},
-			wantName:  "test-org",
-			wantIsOrg: true,
-			wantOrgId: 123456,
+			wantName:    "test-org",
+			wantIsOrg:   true,
+			wantOwnerID: 123456,
 		},
 		{
 			name:        "app_auth_user",
@@ -61,7 +61,8 @@ func Test_configureProviderMeta(t *testing.T) {
 				AppPEM:            mustNewPEM(t),
 				Owner:             "test-user",
 			},
-			wantName: "test-user",
+			wantName:    "test-user",
+			wantOwnerID: 123456,
 		},
 		{
 			name:     "token_auth_organization",
@@ -70,9 +71,9 @@ func Test_configureProviderMeta(t *testing.T) {
 				Owner: "test-org",
 				Token: "test-token",
 			},
-			wantName:  "test-org",
-			wantIsOrg: true,
-			wantOrgId: 123456,
+			wantName:    "test-org",
+			wantIsOrg:   true,
+			wantOwnerID: 123456,
 		},
 		{
 			name:     "token_auth_user",
@@ -81,7 +82,8 @@ func Test_configureProviderMeta(t *testing.T) {
 				Owner: "test-user",
 				Token: "test-token",
 			},
-			wantName: "test-user",
+			wantName:    "test-user",
+			wantOwnerID: 123456,
 		},
 		{
 			name: "errors_on_missing_owner",
@@ -115,9 +117,9 @@ func Test_configureProviderMeta(t *testing.T) {
 				AppPEM:            mustNewPEM(t),
 				Owner:             "test-org",
 			},
-			wantName:  "test-org",
-			wantIsOrg: true,
-			wantOrgId: 123456,
+			wantName:    "test-org",
+			wantIsOrg:   true,
+			wantOwnerID: 123456,
 		},
 		{
 			name:        "legacy_client_app_auth_user",
@@ -130,7 +132,8 @@ func Test_configureProviderMeta(t *testing.T) {
 				AppPEM:            mustNewPEM(t),
 				Owner:             "test-user",
 			},
-			wantName: "test-user",
+			wantName:    "test-user",
+			wantOwnerID: 123456,
 		},
 		{
 			name:     "legacy_client_token_auth_organization",
@@ -140,9 +143,9 @@ func Test_configureProviderMeta(t *testing.T) {
 				Owner:        "test-org",
 				Token:        "test-token",
 			},
-			wantName:  "test-org",
-			wantIsOrg: true,
-			wantOrgId: 123456,
+			wantName:    "test-org",
+			wantIsOrg:   true,
+			wantOwnerID: 123456,
 		},
 		{
 			name:     "legacy_client_token_auth_user",
@@ -152,7 +155,8 @@ func Test_configureProviderMeta(t *testing.T) {
 				Owner:        "test-user",
 				Token:        "test-token",
 			},
-			wantName: "test-user",
+			wantName:    "test-user",
+			wantOwnerID: 123456,
 		},
 		{
 			name:          "legacy_client_token_auth_no_owner",
@@ -162,7 +166,8 @@ func Test_configureProviderMeta(t *testing.T) {
 				LegacyClient: true,
 				Token:        "test-token",
 			},
-			wantName: "test-user",
+			wantName:    "test-user",
+			wantOwnerID: 123456,
 		},
 		{
 			name: "legacy_client_token_auth_errors_if_no_owner_found",
@@ -256,8 +261,8 @@ func Test_configureProviderMeta(t *testing.T) {
 				t.Errorf("expected IsOrganization to be %v, got %v", tt.wantIsOrg, meta.IsOrganization)
 			}
 
-			if meta.id != tt.wantOrgId {
-				t.Errorf("expected owner id to be %d, got %d", tt.wantOrgId, meta.id)
+			if meta.id != tt.wantOwnerID {
+				t.Errorf("expected owner id to be %d, got %d", tt.wantOwnerID, meta.id)
 			}
 
 			if meta.v3client == nil {
