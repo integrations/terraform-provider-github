@@ -8,6 +8,10 @@ description: |-
 
 This resource allows you to create and manage GitHub Actions runner groups within your GitHub enterprise. You must have admin access to an enterprise to use this resource.
 
+Organization access and repository access are separate controls. After making the group available to an organization, ensure that organization grants its repositories access to the inherited group. The [organization repository-access API](https://docs.github.com/en/rest/actions/self-hosted-runner-groups#set-repository-access-for-a-runner-group-in-an-organization) uses the inherited group's organization-local ID, which can differ from this resource's enterprise group ID.
+
+The [github_actions_hosted_runner](actions_hosted_runner) resource cannot provision runners in enterprise-owned groups. Enterprise-hosted runners must be provisioned separately, for example through the [enterprise hosted-runner API](https://docs.github.com/enterprise-cloud@latest/rest/actions/hosted-runners#create-a-github-hosted-runner-for-an-enterprise).
+
 ## Example Usage
 
 {{ tffile "examples/resources/enterprise_actions_runner_group/example_1.tf" }}
@@ -23,6 +27,7 @@ The following arguments are supported:
 - `allows_public_repositories` - (Optional) Whether public repositories can be added to the runner group. Defaults to false.
 - `restricted_to_workflows` - (Optional) If true, the runner group will be restricted to running only the workflows specified in the selected_workflows array. Defaults to false.
 - `selected_workflows` - (Optional) List of workflows the runner group should be allowed to run. This setting will be ignored unless restricted_to_workflows is set to true.
+- `network_configuration_id` - (Optional, Computed) The ID of a `github_enterprise_network_configuration` to assign to the runner group, so GitHub-hosted runners in the group run inside your private network. When omitted or set to `null`, the existing assignment is retained. Set this to `""` to clear the assignment. **Clearing currently replaces the runner group** because the GitHub client library cannot encode the explicit null required for in-place removal.
 
 ## Attributes Reference
 
@@ -32,6 +37,7 @@ The following additional attributes are exported:
 - `default` - Whether this is the default runner group
 - `etag` - An etag representing the runner group object
 - `runners_url` - The GitHub API URL for the runner group's runners
+- `network_configuration_id` - The ID of the hosted compute network configuration assigned to the runner group
 - `selected_organizations_url` - The GitHub API URL for the runner group's selected organizations
 
 ## Import

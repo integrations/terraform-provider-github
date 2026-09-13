@@ -27,8 +27,8 @@ resource "github_actions_hosted_runner" "advanced" {
     source = "github"
   }
 
-  size             = "8-core"
-  runner_group_id  = github_actions_runner_group.example.id
-  maximum_runners  = 10
-  enable_static_ip = true
+  size              = "8-core"
+  runner_group_id   = github_actions_runner_group.example.id
+  maximum_runners   = 10
+  public_ip_enabled = true
 }
