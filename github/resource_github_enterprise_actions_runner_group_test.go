@@ -22,7 +22,19 @@ func TestGithubActionsEnterpriseRunnerGroupNetworking(t *testing.T) {
 		"name":                     "test-group",
 		"visibility":               "all",
 		"network_configuration_id": "network-1",
-	}, resourceGithubActionsEnterpriseRunnerGroupCreate, resourceGithubActionsEnterpriseRunnerGroupUpdate)
+	})
+}
+
+func TestGithubActionsEnterpriseRunnerGroupContextCancellation(t *testing.T) {
+	testRunnerGroupContextCancellation(t, resourceGithubActionsEnterpriseRunnerGroup(), map[string]any{
+		"enterprise_slug": "test-enterprise",
+		"name":            "test-group",
+		"visibility":      "all",
+	})
+}
+
+func TestGithubActionsEnterpriseRunnerGroupNetworkingLifecycle(t *testing.T) {
+	testRunnerGroupNetworkingLifecycle(t, resourceGithubActionsEnterpriseRunnerGroup, "github_enterprise_actions_runner_group", "/enterprises/test-enterprise", "test-enterprise")
 }
 
 func TestGithubActionsEnterpriseRunnerGroupReadErrors(t *testing.T) {
@@ -54,9 +66,9 @@ func TestGithubActionsEnterpriseRunnerGroupReadErrors(t *testing.T) {
 			})
 			d.SetId("42")
 
-			err := resourceGithubActionsEnterpriseRunnerGroupRead(d, meta)
-			if (err != nil) != tc.wantError {
-				t.Fatalf("read error = %v, want error = %t", err, tc.wantError)
+			diags := resourceGithubActionsEnterpriseRunnerGroupRead(t.Context(), d, meta)
+			if diags.HasError() != tc.wantError {
+				t.Fatalf("read diagnostics = %v, want error = %t", diags, tc.wantError)
 			}
 			if d.Id() != tc.wantID {
 				t.Errorf("ID = %q, want %q", d.Id(), tc.wantID)
@@ -268,7 +280,8 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		resourceName := "github_enterprise_actions_runner_group.test"
 		groupName := fmt.Sprintf("tf-acc-test-%s", randomID)
-		sameID := statecheck.CompareValue(compare.ValuesSame())
+		groupIDUnchanged := statecheck.CompareValue(compare.ValuesSame())
+		groupIDReplaced := statecheck.CompareValue(compare.ValuesDiffer())
 
 		configWithoutNetworking := fmt.Sprintf(`
 			resource "github_enterprise_actions_runner_group" "test" {
@@ -286,6 +299,14 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 			  network_configuration_id = %q
 			}
 		`, testAccConf.enterpriseSlug, groupName, networkConfiguration.GetID())
+		configWithNetworkingCleared := fmt.Sprintf(`
+			resource "github_enterprise_actions_runner_group" "test" {
+			  enterprise_slug          = %q
+			  name                     = %q
+			  visibility               = "all"
+			  network_configuration_id = ""
+			}
+		`, testAccConf.enterpriseSlug, groupName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
@@ -294,29 +315,36 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 				{
 					Config: configWithoutNetworking,
 					ConfigStateChecks: []statecheck.StateCheck{
-						sameID.AddStateValue(resourceName, tfjsonpath.New("id")),
+						groupIDUnchanged.AddStateValue(resourceName, tfjsonpath.New("id")),
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.StringExact("")),
 					},
 				},
 				{
 					Config: configWithNetworking,
 					ConfigStateChecks: []statecheck.StateCheck{
-						sameID.AddStateValue(resourceName, tfjsonpath.New("id")),
+						groupIDUnchanged.AddStateValue(resourceName, tfjsonpath.New("id")),
 					},
 				},
 				{
-					ResourceName:        resourceName,
-					ImportState:         true,
-					ImportStateVerify:   true,
-					ImportStateIdPrefix: fmt.Sprintf(`%s/`, testAccConf.enterpriseSlug),
+					Config: configWithoutNetworking,
+					ConfigStateChecks: []statecheck.StateCheck{
+						groupIDUnchanged.AddStateValue(resourceName, tfjsonpath.New("id")),
+						groupIDReplaced.AddStateValue(resourceName, tfjsonpath.New("id")),
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.StringExact(networkConfiguration.GetID())),
+					},
 				},
 				{
-					Config: configWithoutNetworking,
+					Config: configWithNetworkingCleared,
+					ConfigStateChecks: []statecheck.StateCheck{
+						groupIDReplaced.AddStateValue(resourceName, tfjsonpath.New("id")),
+						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.StringExact("")),
+					},
 				},
 			},
 		})
 	})
 
-	t.Run("creates runner group network configuration on create", func(t *testing.T) {
+	t.Run("creates and imports a runner group with networking", func(t *testing.T) {
 		networkConfiguration := mustCreateTestEnterpriseNetworkConfiguration(t)
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		resourceName := "github_enterprise_actions_runner_group.test"
