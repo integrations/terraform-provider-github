@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
-func TestAccGithubUserSshKey(t *testing.T) {
+func TestAccGithubUserSshSigningKey(t *testing.T) {
 	t.Parallel()
 
 	skipUnauthenticated(t)
@@ -26,7 +26,7 @@ func TestAccGithubUserSshKey(t *testing.T) {
 		updatedKey := mustNewSshPublicKey(t)
 
 		config := `
-resource "github_user_ssh_key" "test" {
+resource "github_user_ssh_signing_key" "test" {
   title = "%s"
   key   = "%s"
 }
@@ -38,36 +38,35 @@ resource "github_user_ssh_key" "test" {
 				{
 					Config: fmt.Sprintf(config, title, key),
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_user_ssh_key.test", tfjsonpath.New("title"), knownvalue.StringExact(title)),
-						statecheck.ExpectKnownValue("github_user_ssh_key.test", tfjsonpath.New("key"), knownvalue.StringExact(key)),
-						statecheck.ExpectKnownValue("github_user_ssh_key.test", tfjsonpath.New("key_id"), knownvalue.NotNull()),
-						statecheck.ExpectKnownValue("github_user_ssh_key.test", tfjsonpath.New("url"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_user_ssh_signing_key.test", tfjsonpath.New("title"), knownvalue.StringExact(title)),
+						statecheck.ExpectKnownValue("github_user_ssh_signing_key.test", tfjsonpath.New("key"), knownvalue.StringExact(key)),
+						statecheck.ExpectKnownValue("github_user_ssh_signing_key.test", tfjsonpath.New("key_id"), knownvalue.NotNull()),
 					},
 				},
 				{
 					Config: fmt.Sprintf(config, updatedTitle, key),
 					ConfigPlanChecks: resource.ConfigPlanChecks{
 						PreApply: []plancheck.PlanCheck{
-							plancheck.ExpectResourceAction("github_user_ssh_key.test", plancheck.ResourceActionReplace),
+							plancheck.ExpectResourceAction("github_user_ssh_signing_key.test", plancheck.ResourceActionReplace),
 						},
 					},
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_user_ssh_key.test", tfjsonpath.New("title"), knownvalue.StringExact(updatedTitle)),
+						statecheck.ExpectKnownValue("github_user_ssh_signing_key.test", tfjsonpath.New("title"), knownvalue.StringExact(updatedTitle)),
 					},
 				},
 				{
 					Config: fmt.Sprintf(config, updatedTitle, updatedKey),
 					ConfigPlanChecks: resource.ConfigPlanChecks{
 						PreApply: []plancheck.PlanCheck{
-							plancheck.ExpectResourceAction("github_user_ssh_key.test", plancheck.ResourceActionReplace),
+							plancheck.ExpectResourceAction("github_user_ssh_signing_key.test", plancheck.ResourceActionReplace),
 						},
 					},
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_user_ssh_key.test", tfjsonpath.New("key"), knownvalue.StringExact(updatedKey)),
+						statecheck.ExpectKnownValue("github_user_ssh_signing_key.test", tfjsonpath.New("key"), knownvalue.StringExact(updatedKey)),
 					},
 				},
 				{
-					ResourceName:      "github_user_ssh_key.test",
+					ResourceName:      "github_user_ssh_signing_key.test",
 					ImportState:       true,
 					ImportStateVerify: true,
 				},
