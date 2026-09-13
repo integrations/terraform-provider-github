@@ -1,75 +1,69 @@
 package github
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
-	"golang.org/x/crypto/ssh"
 )
 
 func TestAccGithubUserSshKey(t *testing.T) {
 	t.Parallel()
 
-	t.Run("creates and destroys a user SSH key without error", func(t *testing.T) {
+	skipUnauthenticated(t)
+
+	t.Run("default", func(t *testing.T) {
 		t.Parallel()
 
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		name := fmt.Sprintf(`%s%s`, testResourcePrefix, randomID)
-		testKey := newTestKey()
+		title := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
+		updatedTitle := fmt.Sprintf("%s-updated", title)
+		key := mustNewSshPublicKey(t)
+		updatedKey := mustNewSshPublicKey(t)
 
-		config := fmt.Sprintf(`
-			resource "github_user_ssh_key" "test" {
-				title = "%[1]s"
-				key   = "%[2]s"
-			}
-		`, name, testKey)
+		config := `
+resource "github_user_ssh_key" "test" {
+  title = "%s"
+  key   = "%s"
+}
+`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: config,
+					Config: fmt.Sprintf(config, title, key),
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_user_ssh_key.test", tfjsonpath.New("title"), knownvalue.StringExact(name)),
-						statecheck.ExpectKnownValue("github_user_ssh_key.test", tfjsonpath.New("key"), knownvalue.StringExact(testKey)),
+						statecheck.ExpectKnownValue("github_user_ssh_key.test", tfjsonpath.New("title"), knownvalue.StringExact(title)),
+						statecheck.ExpectKnownValue("github_user_ssh_key.test", tfjsonpath.New("key"), knownvalue.StringExact(key)),
+						statecheck.ExpectKnownValue("github_user_ssh_key.test", tfjsonpath.New("key_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_user_ssh_key.test", tfjsonpath.New("url"), knownvalue.NotNull()),
 					},
 				},
-			},
-		})
-	})
-
-	t.Run("imports an individual account SSH key without error", func(t *testing.T) {
-		t.Parallel()
-
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		name := fmt.Sprintf(`%s%s`, testResourcePrefix, randomID)
-		testKey := newTestKey()
-
-		config := fmt.Sprintf(`
-			resource "github_user_ssh_key" "test" {
-				title = "%[1]s"
-				key   = "%[2]s"
-			}
-		`, name, testKey)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
 				{
-					Config: config,
+					Config: fmt.Sprintf(config, updatedTitle, key),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_user_ssh_key.test", plancheck.ResourceActionReplace),
+						},
+					},
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_user_ssh_key.test", tfjsonpath.New("title"), knownvalue.StringExact(name)),
-						statecheck.ExpectKnownValue("github_user_ssh_key.test", tfjsonpath.New("key"), knownvalue.StringExact(testKey)),
+						statecheck.ExpectKnownValue("github_user_ssh_key.test", tfjsonpath.New("title"), knownvalue.StringExact(updatedTitle)),
+					},
+				},
+				{
+					Config: fmt.Sprintf(config, updatedTitle, updatedKey),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_user_ssh_key.test", plancheck.ResourceActionReplace),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_user_ssh_key.test", tfjsonpath.New("key"), knownvalue.StringExact(updatedKey)),
 					},
 				},
 				{
@@ -80,10 +74,4 @@ func TestAccGithubUserSshKey(t *testing.T) {
 			},
 		})
 	})
-}
-
-func newTestKey() string {
-	privateKey, _ := rsa.GenerateKey(rand.Reader, 1024)
-	publicKey, _ := ssh.NewPublicKey(&privateKey.PublicKey)
-	return strings.TrimRight(string(ssh.MarshalAuthorizedKey(publicKey)), "\n")
 }
