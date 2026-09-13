@@ -23,6 +23,8 @@ func resourceGithubUserSshSigningKey() *schema.Resource {
 
 		Description: "Resource to manage a SSH signing key for the authenticated user.",
 
+		CustomizeDiff: diffETag,
+
 		Schema: map[string]*schema.Schema{
 			"title": {
 				Type:        schema.TypeString,
@@ -43,13 +45,8 @@ func resourceGithubUserSshSigningKey() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the SSH signing key.",
-				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
-					return true
-				},
-				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
