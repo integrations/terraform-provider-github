@@ -6,7 +6,11 @@ import (
 )
 
 func TestGithub_MigrateOrganizationWebhookStateV0toV1(t *testing.T) {
+	t.Parallel()
+
 	t.Run("migrates state without errors", func(t *testing.T) {
+		t.Parallel()
+
 		expected := testResourceGithubWebhookInstanceStateDataV1()
 		actual, err := resourceGithubOrganizationWebhookInstanceStateUpgradeV0(t.Context(), testResourceGithubWebhookInstanceStateDataV0(), nil)
 		if err != nil {

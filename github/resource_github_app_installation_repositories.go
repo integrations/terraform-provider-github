@@ -5,7 +5,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -39,12 +39,14 @@ func resourceGithubAppInstallationRepositories() *schema.Resource {
 	}
 }
 
-func resourceGithubAppInstallationRepositoriesCreateOrUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubAppInstallationRepositoriesCreateOrUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
 	installationIDString := d.Get("installation_id").(string)
 	selectedRepositories := d.Get("selected_repositories")
 
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, installationIDString)
 
 	selectedRepositoryNames := []string{}
@@ -96,7 +98,8 @@ func resourceGithubAppInstallationRepositoriesCreateOrUpdate(d *schema.ResourceD
 	return resourceGithubAppInstallationRepositoriesRead(d, meta)
 }
 
-func resourceGithubAppInstallationRepositoriesRead(d *schema.ResourceData, meta any) error {
+func resourceGithubAppInstallationRepositoriesRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	installationIDString := d.Id()
 
 	reposNameIDs, _, err := getAllAccessibleRepos(meta, installationIDString)
@@ -125,7 +128,9 @@ func resourceGithubAppInstallationRepositoriesRead(d *schema.ResourceData, meta 
 	return nil
 }
 
-func resourceGithubAppInstallationRepositoriesDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubAppInstallationRepositoriesDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+
 	installationIDString := d.Get("installation_id").(string)
 
 	reposNameIDs, instID, err := getAllAccessibleRepos(meta, installationIDString)
@@ -133,7 +138,7 @@ func resourceGithubAppInstallationRepositoriesDelete(d *schema.ResourceData, met
 		return err
 	}
 
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 	ctx := context.WithValue(context.Background(), ctxId, installationIDString)
 
 	// There is a github limitation that means we can't remove the last repository from an installation.
@@ -156,15 +161,15 @@ func resourceGithubAppInstallationRepositoriesDelete(d *schema.ResourceData, met
 	return nil
 }
 
-func getAllAccessibleRepos(meta any, idString string) (map[string]int64, int64, error) {
+func getAllAccessibleRepos(meta *Owner, idString string) (map[string]int64, int64, error) {
 	installationID, err := strconv.ParseInt(idString, 10, 64)
 	if err != nil {
 		return nil, 0, unconvertibleIdErr(idString, err)
 	}
 
 	ctx := context.WithValue(context.Background(), ctxId, idString)
-	opt := &github.ListOptions{PerPage: maxPerPage}
-	client := meta.(*Owner).v3client
+	opt := &github.ListOptions{PerPage: meta.maxPerPage}
+	client := meta.v3client
 
 	allRepos := make(map[string]int64)
 

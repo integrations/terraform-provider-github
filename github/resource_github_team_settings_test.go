@@ -19,7 +19,11 @@ import (
 )
 
 func TestAccGithubTeamSettings(t *testing.T) {
+	t.Parallel()
+
 	t.Run("manages team settings can use team_id id and slug", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-settings-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -33,7 +37,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 			}
 		`, teamName)
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
@@ -63,6 +67,8 @@ func TestAccGithubTeamSettings(t *testing.T) {
 	})
 
 	t.Run("manages team code review settings", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-settings-%s", testResourcePrefix, randomID)
 		testAlgorithm := githubv4.TeamReviewAssignmentAlgorithmRoundRobin
@@ -82,7 +88,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 			}
 		`
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
@@ -124,6 +130,8 @@ func TestAccGithubTeamSettings(t *testing.T) {
 	})
 
 	t.Run("cannot manage team code review settings if disabled", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-settings-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -142,7 +150,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 			}
 		`, teamName)
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
@@ -156,6 +164,8 @@ func TestAccGithubTeamSettings(t *testing.T) {
 	})
 
 	t.Run("manages removing review request delegation", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-settings-%s", testResourcePrefix, randomID)
 
@@ -186,7 +196,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 			}
 		`, teamName)
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
@@ -220,6 +230,8 @@ func TestAccGithubTeamSettings(t *testing.T) {
 	})
 
 	t.Run("creates_with_empty_review_request_delegation_block_without_error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-settings-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -234,7 +246,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 			}
 		`, teamName)
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
@@ -250,6 +262,8 @@ func TestAccGithubTeamSettings(t *testing.T) {
 		})
 	})
 	t.Run("validates_member_count_greater_than_0", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-settings-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -266,7 +280,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 			}
 		`, teamName)
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
@@ -280,6 +294,8 @@ func TestAccGithubTeamSettings(t *testing.T) {
 	})
 
 	t.Run("imports_team_settings_without_delegation_using_team_id", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-settings-%s", testResourcePrefix, randomID)
 
@@ -294,7 +310,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 			}
 		`, teamName)
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
@@ -321,6 +337,8 @@ func TestAccGithubTeamSettings(t *testing.T) {
 		})
 	})
 	t.Run("imports_team_settings_without_delegation_using_team_slug", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-settings-%s", testResourcePrefix, randomID)
 
@@ -335,7 +353,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 			}
 		`, teamName)
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
@@ -363,6 +381,8 @@ func TestAccGithubTeamSettings(t *testing.T) {
 	})
 
 	t.Run("imports team settings with delegation", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-settings-%s", testResourcePrefix, randomID)
 
@@ -382,7 +402,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 			}
 		`, teamName)
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
@@ -419,6 +439,8 @@ func TestAccGithubTeamSettings(t *testing.T) {
 	})
 
 	t.Run("manages adding review request delegation to existing team settings", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-settings-%s", testResourcePrefix, randomID)
 
@@ -449,7 +471,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 			}
 		`, teamName)
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
@@ -481,6 +503,8 @@ func TestAccGithubTeamSettings(t *testing.T) {
 	})
 
 	t.Run("manages top-level notify without delegation", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-settings-%s", testResourcePrefix, randomID)
 
@@ -496,7 +520,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 			}
 		`
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
@@ -528,6 +552,8 @@ func TestAccGithubTeamSettings(t *testing.T) {
 	})
 
 	t.Run("manages top-level notify with delegation", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-settings-%s", testResourcePrefix, randomID)
 
@@ -547,7 +573,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 			}
 		`
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
@@ -579,6 +605,8 @@ func TestAccGithubTeamSettings(t *testing.T) {
 	})
 
 	t.Run("imports team settings with top-level notify", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-settings-%s", testResourcePrefix, randomID)
 
@@ -594,7 +622,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 			}
 		`, teamName)
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
@@ -624,6 +652,8 @@ func TestAccGithubTeamSettings(t *testing.T) {
 	})
 
 	t.Run("manages updating only notify field", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-settings-%s", testResourcePrefix, randomID)
 
@@ -643,7 +673,7 @@ func TestAccGithubTeamSettings(t *testing.T) {
 			}
 		`
 
-		resource.ParallelTest(t, resource.TestCase{
+		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubTeamSettingsDestroy,
@@ -682,12 +712,8 @@ func TestAccGithubTeamSettings(t *testing.T) {
 }
 
 func testAccCheckGithubTeamSettingsDestroy(s *terraform.State) error {
-	meta, err := getTestMeta()
-	if err != nil {
-		return err
-	}
-	graphql := meta.v4client
-	orgName := meta.name
+	graphql := testAccConf.meta.v4client
+	orgName := testAccConf.meta.name
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_team_settings" {

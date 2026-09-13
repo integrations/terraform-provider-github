@@ -1,38 +1,25 @@
 package github
 
 import (
-	"fmt"
-	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubActionsOrganizationSecretsDataSource(t *testing.T) {
-	t.Run("queries organization actions secrets from a repository", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	t.Parallel()
 
-		config := fmt.Sprintf(`
-			resource "github_actions_organization_secret" "test" {
-				secret_name = "org_secret_1_%s"
-				value       = "foo"
-				visibility  = "all" # going with all as it does not require a paid subscrption
-			}
-	`, randomID)
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
 
-		config2 := config + `
-			data "github_actions_organization_secrets" "test" {
-			}
-		`
+		_ = mustCreateTestOrganizationSecret(t)
 
-		check := resource.ComposeTestCheckFunc(
-			// resource.TestCheckResourceAttr("data.github_actions_organization_secrets.test", "secrets.#", "1"), // There is no feasible way to know how many secrets exist in the Org during test runs. And I couldn't find a "greater than" operator
-			resource.TestCheckTypeSetElemAttr("data.github_actions_organization_secrets.test", "secrets.*.*", strings.ToUpper(fmt.Sprintf("ORG_SECRET_1_%s", randomID))),
-			resource.TestCheckTypeSetElemAttr("data.github_actions_organization_secrets.test", "secrets.*.*", "all"),
-			resource.TestCheckResourceAttrSet("data.github_actions_organization_secrets.test", "secrets.0.created_at"),
-			resource.TestCheckResourceAttrSet("data.github_actions_organization_secrets.test", "secrets.0.updated_at"),
-		)
+		config := `
+data "github_actions_organization_secrets" "test" {}
+`
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -40,11 +27,16 @@ func TestAccGithubActionsOrganizationSecretsDataSource(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  resource.ComposeTestCheckFunc(),
-				},
-				{
-					Config: config2,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_actions_organization_secrets.test", tfjsonpath.New("secrets"), knownvalue.ListPartial(map[int]knownvalue.Check{
+							0: knownvalue.MapPartial(map[string]knownvalue.Check{
+								"name":       knownvalue.NotNull(),
+								"visibility": knownvalue.NotNull(),
+								"created_at": knownvalue.NotNull(),
+								"updated_at": knownvalue.NotNull(),
+							}),
+						})),
+					},
 				},
 			},
 		})

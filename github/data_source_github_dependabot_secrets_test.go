@@ -9,7 +9,11 @@ import (
 )
 
 func TestAccGithubDependabotSecretsDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("queries dependabot secrets from a repository", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-dep-secrets-%s", testResourcePrefix, randomID)
 

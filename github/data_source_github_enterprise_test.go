@@ -8,6 +8,8 @@ import (
 )
 
 func TestAccGithubEnterpriseDataSource(t *testing.T) {
+	t.Parallel()
+
 	config := fmt.Sprintf(`
 			data "github_enterprise" "test" {
 				slug = "%s"

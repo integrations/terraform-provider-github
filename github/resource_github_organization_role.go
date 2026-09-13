@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -112,8 +112,7 @@ func resourceGithubOrganizationRoleRead(ctx context.Context, d *schema.ResourceD
 
 	role, _, err := client.Organizations.GetOrgRole(ctx, orgName, roleId)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[WARN] organization role (%s/%d) not found, removing from state", orgName, roleId)
 				d.SetId("")

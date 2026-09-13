@@ -50,9 +50,7 @@ func dataSourceGithubAppTokenRead(ctx context.Context, d *schema.ResourceData, m
 	// that contain new lines. Some platforms, like Terraform Cloud,
 	// do not support new lines within Environment Variables.
 	// Any occurrence of \n in the `pem_file` argument's value
-	// (explicit value, or default value taken from
-	// GITHUB_APP_PEM_FILE Environment Variable) is replaced with an
-	// actual new line character before decoding.
+	// is replaced with an actual new line character before decoding.
 	pemFile = strings.ReplaceAll(pemFile, `\n`, "\n")
 
 	u, err := url.Parse(meta.v3client.BaseURL())

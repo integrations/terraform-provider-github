@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -16,6 +16,8 @@ func resourceGithubUserGpgKey() *schema.Resource {
 		Create: resourceGithubUserGpgKeyCreate,
 		Read:   resourceGithubUserGpgKeyRead,
 		Delete: resourceGithubUserGpgKeyDelete,
+
+		CustomizeDiff: diffETag,
 
 		Schema: map[string]*schema.Schema{
 			"armored_public_key": {
@@ -30,8 +32,9 @@ func resourceGithubUserGpgKey() *schema.Resource {
 				Description: "The key ID of the GPG key.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the GPG key.",
 			},
 		},
 	}
@@ -67,8 +70,7 @@ func resourceGithubUserGpgKeyRead(d *schema.ResourceData, meta any) error {
 
 	key, _, err := client.Users.GetGPGKey(ctx, id)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}

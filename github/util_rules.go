@@ -2,10 +2,11 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"reflect"
-	"sort"
+	"strings"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -162,7 +163,9 @@ func expandBypassActors(input []any) []*github.BypassActor {
 	return bypassActors
 }
 
-func flattenBypassActors(bypassActors []*github.BypassActor) []any {
+func flattenBypassActors(ctx context.Context, bypassActors []*github.BypassActor) []any {
+	tflog.Debug(ctx, "Flattening bypass actors", map[string]any{"count_bypass_actors": len(bypassActors)})
+
 	if bypassActors == nil {
 		return []any{}
 	}
@@ -178,6 +181,8 @@ func flattenBypassActors(bypassActors []*github.BypassActor) []any {
 
 		actorsSlice = append(actorsSlice, actorMap)
 	}
+
+	tflog.Debug(ctx, "Flattened bypass actors", map[string]any{"count_bypass_actors": len(bypassActors), "flattened_bypass_actors": actorsSlice})
 
 	return actorsSlice
 }
@@ -880,23 +885,34 @@ func flattenRules(ctx context.Context, rules *github.RepositoryRulesetRules, org
 	return []any{rulesMap}
 }
 
-func bypassActorsDiffSuppressFunc(k, o, n string, d *schema.ResourceData) bool {
-	// If the length has changed, no need to suppress
-	if k == "bypass_actors.#" {
-		return o == n
+// bypassActorCompareIdentity compares two bypass actors based on their actor_type and actor_id.
+func bypassActorCompareIdentity(a, b any) int {
+	mapA, ok := a.(map[string]any)
+	if !ok {
+		return 0
+	}
+	mapB, ok := b.(map[string]any)
+	if !ok {
+		return 0
 	}
 
-	// Get change to bypass actors
-	oba, nba := d.GetChange("bypass_actors")
-	oldBypassActors := oba.([]any)
-	newBypassActors := nba.([]any)
+	typeA, ok := mapA["actor_type"].(string)
+	if !ok {
+		return 0
+	}
+	typeB, ok := mapB["actor_type"].(string)
+	if !ok {
+		return 0
+	}
 
-	sort.SliceStable(oldBypassActors, func(i, j int) bool {
-		return oldBypassActors[i].(map[string]any)["actor_id"].(int) > oldBypassActors[j].(map[string]any)["actor_id"].(int)
-	})
-	sort.SliceStable(newBypassActors, func(i, j int) bool {
-		return newBypassActors[i].(map[string]any)["actor_id"].(int) > newBypassActors[j].(map[string]any)["actor_id"].(int)
-	})
+	idA, ok := mapA["actor_id"].(int)
+	if !ok {
+		return 0
+	}
+	idB, ok := mapB["actor_id"].(int)
+	if !ok {
+		return 0
+	}
 
-	return reflect.DeepEqual(oldBypassActors, newBypassActors)
+	return strings.Compare(fmt.Sprintf("%s:%d", typeA, idA), fmt.Sprintf("%s:%d", typeB, idB))
 }

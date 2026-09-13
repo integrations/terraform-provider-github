@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -21,6 +21,8 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
+
+		CustomizeDiff: diffETag,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -212,8 +214,9 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 				Description: "Setting this to 'true' requires all conversations on code must be resolved before a pull request can be merged.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the branch protection object.",
 			},
 		},
 	}
@@ -282,8 +285,7 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta any) erro
 	githubProtection, resp, err := client.Repositories.GetBranchProtection(ctx,
 		orgName, repoName, branch)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				if err := requireSignedCommitsRead(d, meta); err != nil {
 					return fmt.Errorf("error setting signed commit restriction: %w", err)
@@ -345,6 +347,11 @@ func resourceGithubBranchProtectionV3Update(d *schema.ResourceData, meta any) er
 	}
 
 	client := meta.(*Owner).v3client
+
+	if err := d.Set("etag", nil); err != nil {
+		return err
+	}
+
 	repoName, branch, err := parseID2(d.Id())
 	if err != nil {
 		return err

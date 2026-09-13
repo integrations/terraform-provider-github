@@ -9,7 +9,11 @@ import (
 )
 
 func TestAccGithubRepositoryWebhook(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates repository webhooks without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-webhook-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -54,6 +58,8 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 	})
 
 	t.Run("imports repository webhooks without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-webhook-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -95,6 +101,8 @@ func TestAccGithubRepositoryWebhook(t *testing.T) {
 	})
 
 	t.Run("updates repository webhooks without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-webhook-%s", testResourcePrefix, randomID)
 		configs := map[string]string{

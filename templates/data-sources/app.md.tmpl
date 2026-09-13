@@ -1,29 +1,20 @@
 ---
 page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+subcategory: ""
 description: |-
-  Get information about an app.
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
 ---
 
 # {{.Name}} ({{.Type}})
 
-Use this data source to retrieve information about an app.
+{{ .Description | trimspace }}
+
+{{- if .HasExamples }}
 
 ## Example Usage
+{{ range .ExampleFiles }}
+{{ tffile . }}
+{{- end }}
+{{- end }}
 
-{{ tffile "examples/data-sources/app/example_1.tf" }}
-
-## Argument Reference
-
-The following arguments are supported:
-
-- `slug` - (Required) The URL-friendly name of your GitHub App.
-
-## Attribute Reference
-
-The following additional attributes are exported:
-
-- `description` - The app's description.
-
-- `name` - The app's full name.
-
-- `node_id` - The Node ID of the app.
+{{ .SchemaMarkdown | trimspace }}

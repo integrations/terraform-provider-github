@@ -2,12 +2,12 @@
 page_title: "github_repository_collaborators (Resource) - GitHub"
 subcategory: ""
 description: |-
-  Manage the complete set of collaborators (users and teams) for a GitHub repository.
+  Resource to manage the complete set of collaborators (users and teams) for a repository.
 ---
 
 # github_repository_collaborators (Resource)
 
-Manage the complete set of collaborators (users and teams) for a GitHub repository.
+Resource to manage the complete set of collaborators (users and teams) for a repository.
 
 ~> This resource (`github_repository_collaborators`) cannot be used in conjunction with [`github_repository_collaborator`](repository_collaborator) or [`github_team_repository`](team_repository) as they will conflict over the management of collaborators.
 
@@ -21,13 +21,11 @@ For repositories owned by an organization, collaborators can have explicit (and 
 
 ### Teams
 
-Teams will be added to the repository on apply, and removed if removed from the configuration or on destroy. Teams added to the repository outside of Terraform can be managed by adding them to the configuration, or ignored by using the `ignore_team` argument. This is particularly important for organization/enterprise teams, which either need to be added to the configuration or ignored, as otherwise they will cause perpetual drift.
+Teams will be added to the repository on apply, and removed if removed from the configuration or on destroy. Teams added to the repository outside of Terraform can be managed by adding them to the configuration.
 
 ## Personal Repositories
 
-For personal repositories, collaborators can only be granted [write](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/repository-access-and-collaboration/permission-levels-for-a-personal-account-repository#collaborator-access-for-a-repository-owned-by-a-personal-account) permission.
-
-!> If the repository owner is not added as a collaborator with admin access, the provider will churn this resource on every plan/apply. To prevent this, ensure that the repository owner is included in the set of user collaborators.
+For personal repositories, non-owner collaborators can only be granted [write](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/repository-access-and-collaboration/permission-levels-for-a-personal-account-repository#collaborator-access-for-a-repository-owned-by-a-personal-account) permission. Owners will be ignored unless they are explicitly added, in which case they must be granted `admin` permission.
 
 ## Users
 
@@ -78,7 +76,7 @@ resource "github_repository_collaborators" "some_repo_collaborators" {
 
 ### Optional
 
-- `ignore_team` (Block Set) Teams to ignore when managing repository collaborators. (see [below for nested schema](#nestedblock--ignore_team))
+- `ignore_team` (Block Set, Deprecated) Teams to ignore when managing repository collaborators. (see [below for nested schema](#nestedblock--ignore_team))
 - `team` (Block Set) Teams to grant access to the repository. (see [below for nested schema](#nestedblock--team))
 - `user` (Block Set) Users to grant access to the repository. (see [below for nested schema](#nestedblock--user))
 
@@ -86,6 +84,7 @@ resource "github_repository_collaborators" "some_repo_collaborators" {
 
 - `id` (String) The ID of this resource.
 - `invitation_ids` (Map of String) Map of usernames to invitation ID for users that haven't yet accepted their invitation to become a collaborator. This is only set on read, and is used internally to track pending invitations for users that aren't yet collaborators.
+- `owner_configured` (Boolean) Indicates whether the owner of a personal repository is configured as a collaborator.
 - `repository_id` (Number) ID of the repository.
 
 <a id="nestedblock--ignore_team"></a>

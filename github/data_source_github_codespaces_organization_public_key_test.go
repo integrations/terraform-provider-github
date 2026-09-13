@@ -7,7 +7,11 @@ import (
 )
 
 func TestAccGithubCodespacesOrganizationPublicKeyDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("queries an organization public key without error", func(t *testing.T) {
+		t.Parallel()
+
 		config := `
 			data "github_codespaces_organization_public_key" "test" {}
 		`

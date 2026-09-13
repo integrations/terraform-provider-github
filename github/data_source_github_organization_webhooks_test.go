@@ -7,6 +7,9 @@ import (
 )
 
 func TestAccGithubOrganizationWebhooksDataSource(t *testing.T) {
+	// TODO: Make this test parallel once we can ignore non-direct teams.
+	// t.Parallel()
+
 	t.Run("manages organization webhooks", func(t *testing.T) {
 		config := `
 		resource "github_organization_webhook" "test" {

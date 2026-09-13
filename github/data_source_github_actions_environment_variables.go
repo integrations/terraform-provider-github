@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/url"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -59,9 +59,10 @@ func dataSourceGithubActionsEnvironmentVariables() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsEnvironmentVariablesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func dataSourceGithubActionsEnvironmentVariablesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 	var repoName string
 
 	envName := d.Get("environment").(string)
@@ -83,7 +84,7 @@ func dataSourceGithubActionsEnvironmentVariablesRead(ctx context.Context, d *sch
 	}
 
 	options := github.ListOptions{
-		PerPage: maxPerPage,
+		PerPage: meta.maxPerPage,
 	}
 
 	var all_variables []map[string]string

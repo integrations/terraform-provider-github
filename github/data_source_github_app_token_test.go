@@ -8,8 +8,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func TestAccGithubAppTokenDataSource(t *testing.T) {
+func TestGithubAppTokenDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates a application token without error", func(t *testing.T) {
+		t.Parallel()
+
 		expectedAccessToken := "W+2e/zjiMTweDAr2b35toCF+h29l7NW92rJIPvFrCJQK"
 
 		owner := "test-owner"
@@ -32,7 +36,7 @@ func TestAccGithubAppTokenDataSource(t *testing.T) {
 		})
 		defer ts.Close()
 
-		client := mustGitHubClient(t, ts.URL)
+		client := mustCreateTestGitHubClient(t, ts.URL)
 
 		meta := &Owner{
 			name:     owner,

@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -368,10 +368,9 @@ func dataSourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData,
 
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[DEBUG] Missing GitHub repository %s/%s", owner, repoName)
+				tflog.Debug(ctx, "Missing GitHub repository", map[string]any{"owner": owner, "repo": repoName})
 				d.SetId("")
 				return nil
 			}
@@ -432,11 +431,19 @@ func dataSourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData,
 	}
 
 	if repo.License != nil {
-		repository_license, _, err := client.Repositories.License(ctx, owner, repoName)
+		repositoryLicense, _, err := client.Repositories.License(ctx, owner, repoName)
 		if err != nil {
-			return diag.FromErr(err)
+			// A repository can report a license while the license endpoint has nothing to serve,
+			// for example after a LICENSE file is added and later removed, which leaves the
+			// repository classified as `other` with a null license URL. Treat that like a
+			// repository without a license instead of failing the whole read, matching how a
+			// missing repository is handled above.
+			if ghErr, ok := errors.AsType[*github.ErrorResponse](err); !ok || ghErr.Response.StatusCode != http.StatusNotFound {
+				return diag.FromErr(err)
+			}
+			tflog.Debug(ctx, "Missing GitHub repository license", map[string]any{"owner": owner, "repo": repoName})
 		}
-		if err := d.Set("repository_license", flattenRepositoryLicense(repository_license)); err != nil {
+		if err := d.Set("repository_license", flattenRepositoryLicense(repositoryLicense)); err != nil {
 			return diag.Errorf("error setting repository_license: %v", err)
 		}
 	} else {

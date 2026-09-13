@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -20,7 +20,7 @@ func resourceGithubTeamMembership() *schema.Resource {
 		DeleteContext: resourceGithubTeamMembershipDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-				meta := m.(*Owner)
+				meta, _ := m.(*Owner)
 				teamIdString, username, err := parseID2(d.Id())
 				if err != nil {
 					return nil, err
@@ -35,6 +35,8 @@ func resourceGithubTeamMembership() *schema.Resource {
 				return []*schema.ResourceData{d}, nil
 			},
 		},
+
+		CustomizeDiff: diffETag,
 
 		Schema: map[string]*schema.Schema{
 			"team_id": {
@@ -58,17 +60,22 @@ func resourceGithubTeamMembership() *schema.Resource {
 				ValidateDiagFunc: validateValueFunc([]string{"member", "maintainer"}),
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the team membership.",
 			},
 		},
 	}
 }
 
 func resourceGithubTeamMembershipCreateOrUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	orgId := meta.id
+
+	if err := d.Set("etag", nil); err != nil {
+		return diag.FromErr(err)
+	}
 
 	teamIdString := d.Get("team_id").(string)
 	teamId, err := getTeamID(ctx, meta, teamIdString)
@@ -97,7 +104,7 @@ func resourceGithubTeamMembershipCreateOrUpdate(ctx context.Context, d *schema.R
 }
 
 func resourceGithubTeamMembershipRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	orgId := meta.id
 
@@ -128,8 +135,7 @@ func resourceGithubTeamMembershipRead(ctx context.Context, d *schema.ResourceDat
 	membership, resp, err := client.Teams.GetTeamMembershipByID(ctx,
 		orgId, teamId, username)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -154,7 +160,7 @@ func resourceGithubTeamMembershipRead(ctx context.Context, d *schema.ResourceDat
 }
 
 func resourceGithubTeamMembershipDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	orgId := meta.id
 

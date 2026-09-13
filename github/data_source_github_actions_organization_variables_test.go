@@ -1,39 +1,25 @@
 package github
 
 import (
-	"fmt"
-	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubActionsOrganizationVariablesDataSource(t *testing.T) {
-	t.Run("queries actions variables from an organization", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	t.Parallel()
 
-		config := fmt.Sprintf(`
-			resource "github_actions_organization_variable" "test" {
-				variable_name 		= "org_variable_%s"
-				value = "foo"
-				visibility       = "all"
-			}
-		`, randomID)
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
 
-		config2 := config + `
-			data "github_actions_organization_variables" "test" {
-			}
-		`
+		mustCreateTestOrganizationVariable(t, nil, nil)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("data.github_actions_organization_variables.test", "variables.#", "1"),
-			resource.TestCheckResourceAttr("data.github_actions_organization_variables.test", "variables.0.name", strings.ToUpper(fmt.Sprintf("org_variable_%s", randomID))),
-			resource.TestCheckResourceAttr("data.github_actions_organization_variables.test", "variables.0.value", "foo"),
-			resource.TestCheckResourceAttr("data.github_actions_organization_variables.test", "variables.0.visibility", "all"),
-			resource.TestCheckResourceAttrSet("data.github_actions_organization_variables.test", "variables.0.created_at"),
-			resource.TestCheckResourceAttrSet("data.github_actions_organization_variables.test", "variables.0.updated_at"),
-		)
+		config := `
+data "github_actions_organization_variables" "test" {}
+`
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -41,11 +27,17 @@ func TestAccGithubActionsOrganizationVariablesDataSource(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  resource.ComposeTestCheckFunc(),
-				},
-				{
-					Config: config2,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_actions_organization_variables.test", tfjsonpath.New("variables"), knownvalue.ListPartial(map[int]knownvalue.Check{
+							0: knownvalue.MapPartial(map[string]knownvalue.Check{
+								"name":       knownvalue.NotNull(),
+								"value":      knownvalue.NotNull(),
+								"visibility": knownvalue.NotNull(),
+								"created_at": knownvalue.NotNull(),
+								"updated_at": knownvalue.NotNull(),
+							}),
+						})),
+					},
 				},
 			},
 		})

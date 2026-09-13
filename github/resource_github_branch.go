@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -21,6 +21,8 @@ func resourceGithubBranch() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubBranchImport,
 		},
+
+		CustomizeDiff: diffETag,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -50,13 +52,8 @@ func resourceGithubBranch() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the Branch object.",
-				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
-					return true
-				},
-				DiffSuppressOnRefresh: true,
 			},
 			"ref": {
 				Type:        schema.TypeString,
@@ -130,8 +127,7 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta any) error {
 
 	ref, resp, err := client.Git.GetRef(ctx, orgName, repoName, branchRefName)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -194,6 +190,11 @@ func resourceGithubBranchUpdate(d *schema.ResourceData, meta any) error {
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
+
+	if err := d.Set("etag", nil); err != nil {
+		return err
+	}
+
 	repoName, oldBranchName, err := parseID2(d.Id())
 	if err != nil {
 		return err

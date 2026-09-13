@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
@@ -50,6 +50,7 @@ func dataSourceGithubOrganization() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+				Deprecated: "The `repositories` attribute is deprecated and will be removed in a future version of the provider. Use the `github_organization_repositories` data source instead.",
 			},
 			"members": {
 				Type:     schema.TypeList,
@@ -57,7 +58,7 @@ func dataSourceGithubOrganization() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Deprecated: "Use `users` instead by replacing `github_organization.example.members` to `github_organization.example.users[*].login`. Expect this field to be removed in next major version.",
+				Deprecated: "The `members` attribute is deprecated and will be removed in a future version of the provider. Use the `github_organization_members` data source instead.",
 			},
 			"users": {
 				Type:     schema.TypeList,
@@ -68,6 +69,7 @@ func dataSourceGithubOrganization() *schema.Resource {
 						Type: schema.TypeString,
 					},
 				},
+				Deprecated: "The `users` attribute is deprecated and will be removed in a future version of the provider. Use the `github_organization_members` data source instead.",
 			},
 			"default_repository_permission": {
 				Type:     schema.TypeString,
@@ -150,11 +152,12 @@ func dataSourceGithubOrganization() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	name := d.Get("name").(string)
+func dataSourceGithubOrganizationRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client4 := meta.v4client
+	client3 := meta.v3client
 
-	client4 := meta.(*Owner).v4client
-	client3 := meta.(*Owner).v3client
+	name, _ := d.Get("name").(string)
 
 	organization, _, err := client3.Organizations.Get(ctx, name)
 	if err != nil {
@@ -168,7 +171,7 @@ func dataSourceGithubOrganizationRead(ctx context.Context, d *schema.ResourceDat
 	}
 
 	opts := &github.RepositoryListByOrgOptions{
-		ListOptions: github.ListOptions{PerPage: 100, Page: 1},
+		ListOptions: github.ListOptions{PerPage: meta.maxPerPage, Page: 1},
 	}
 
 	summaryOnly := d.Get("summary_only").(bool)
@@ -215,11 +218,12 @@ func dataSourceGithubOrganizationRead(ctx context.Context, d *schema.ResourceDat
 						EndCursor   githubv4.String
 						HasNextPage bool
 					}
-				} `graphql:"membersWithRole(first: 100, after: $after)"`
+				} `graphql:"membersWithRole(first: $first, after: $after)"`
 			} `graphql:"organization(login: $login)"`
 		}
 		variables := map[string]any{
 			"login": githubv4.String(name),
+			"first": githubv4.Int(meta.maxPerPage),
 			"after": (*githubv4.String)(nil),
 		}
 		var members []string

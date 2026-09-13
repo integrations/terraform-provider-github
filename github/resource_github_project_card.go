@@ -17,6 +17,7 @@ func resourceGithubProjectCard() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubProjectCardImport,
 		},
+		CustomizeDiff: diffETag,
 		Schema: map[string]*schema.Schema{
 			"column_id": {
 				Type:        schema.TypeString,
@@ -40,8 +41,9 @@ func resourceGithubProjectCard() *schema.Resource {
 				Description: "Must be either 'Issue' or 'PullRequest'.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the project card.",
 			},
 			"card_id": {
 				Type:        schema.TypeInt,

@@ -2,261 +2,296 @@ package github
 
 import (
 	"fmt"
-	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubTeamDataSource(t *testing.T) {
-	t.Run("queries an existing team without error", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
+	t.Parallel()
+
+	skipUnlessHasOrgs(t)
+
+	t.Run("queries_root_team_by_slug_summary", func(t *testing.T) {
+		t.Parallel()
+
+		team := mustCreateTestTeam(t)
+
 		config := fmt.Sprintf(`
-			resource "github_team" "test" {
-				name = "%s"
-			}
-
-			data "github_team" "test" {
-				slug = github_team.test.slug
-			}
-		`, teamName)
-
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttrSet("data.github_team.test", "name"),
-			resource.TestCheckResourceAttrSet("data.github_team.test", "node_id"),
-			resource.TestCheckResourceAttrSet("data.github_team.test", "privacy"),
-			resource.TestCheckResourceAttrSet("data.github_team.test", "notification_setting"),
-		)
+data "github_team" "test" {
+  slug               = "%s"
+  lookup_child_teams = false
+  summary_only       = true
+}
+`, team.GetSlug())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("team_id"), knownvalue.Int32Exact(int32(team.GetID()))),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("slug"), knownvalue.StringExact(team.GetSlug())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("node_id"), knownvalue.StringExact(team.GetNodeID())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("name"), knownvalue.StringExact(team.GetName())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("description"), knownvalue.StringExact(team.GetDescription())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("type"), knownvalue.StringExact(team.GetType())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("privacy"), knownvalue.StringExact(team.GetPrivacy())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("notification_setting"), knownvalue.StringExact(team.GetNotificationSetting())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("permission"), knownvalue.StringExact(team.GetPermission())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("parent_team"), knownvalue.ListSizeExact(0)),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("child_teams"), knownvalue.ListSizeExact(0)),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("members"), knownvalue.ListSizeExact(0)),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("repositories"), knownvalue.ListSizeExact(0)),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("repositories_detailed"), knownvalue.ListSizeExact(0)),
+					},
 				},
 			},
 		})
 	})
 
-	t.Run("queries an existing team without error with immediate membership", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
+	t.Run("queries_root_team_by_id_summary", func(t *testing.T) {
+		t.Parallel()
+
+		team := mustCreateTestTeam(t)
+
 		config := fmt.Sprintf(`
-			resource "github_team" "test" {
-				name = "%s"
-			}
-
-			data "github_team" "test" {
-				slug            = github_team.test.slug
-				membership_type = "immediate"
-			}
-		`, teamName)
-
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttrSet("data.github_team.test", "name"),
-			resource.TestCheckResourceAttr("data.github_team.test", "name", teamName),
-		)
+data "github_team" "test" {
+  team_id            = "%d"
+  lookup_child_teams = false
+  summary_only       = true
+}
+`, team.GetID())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("team_id"), knownvalue.Int32Exact(int32(team.GetID()))),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("slug"), knownvalue.StringExact(team.GetSlug())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("node_id"), knownvalue.StringExact(team.GetNodeID())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("name"), knownvalue.StringExact(team.GetName())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("description"), knownvalue.StringExact(team.GetDescription())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("type"), knownvalue.StringExact(team.GetType())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("privacy"), knownvalue.StringExact(team.GetPrivacy())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("notification_setting"), knownvalue.StringExact(team.GetNotificationSetting())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("permission"), knownvalue.StringExact(team.GetPermission())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("parent_team"), knownvalue.ListSizeExact(0)),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("child_teams"), knownvalue.ListSizeExact(0)),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("members"), knownvalue.ListSizeExact(0)),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("repositories"), knownvalue.ListSizeExact(0)),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("repositories_detailed"), knownvalue.ListSizeExact(0)),
+					},
 				},
 			},
 		})
 	})
 
-	t.Run("errors when querying a non-existing team", func(t *testing.T) {
-		config := `
-			data "github_team" "test" {
-				slug = ""
-			}
-		`
+	t.Run("queries_team_details", func(t *testing.T) {
+		t.Parallel()
+
+		skipUnlessHasOrgUser1(t)
+		skipUnlessHasOrgUser2(t)
+
+		team := mustCreateTestTeam(t)
+		mustAddTeamMember(t, team, testAccConf.testOrgUser1)
+		childTeam := mustCreateTestTeam(t, withNewTeamParent(team.GetID()))
+		mustAddTeamMember(t, childTeam, testAccConf.testOrgUser2)
+		repo := mustCreateTestRepository(t)
+		mustAddRepositoryToTeam(t, team, repo)
+
+		config := fmt.Sprintf(`
+data "github_team" "test" {
+  slug               = "%s"
+  lookup_child_teams = false
+  summary_only       = false
+  membership_type    = "%%v"
+}
+`, team.GetSlug())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config:      config,
-					ExpectError: regexp.MustCompile(`Not Found`),
+					Config: fmt.Sprintf(config, "all"),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("team_id"), knownvalue.Int32Exact(int32(team.GetID()))),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("slug"), knownvalue.StringExact(team.GetSlug())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("node_id"), knownvalue.StringExact(team.GetNodeID())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("name"), knownvalue.StringExact(team.GetName())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("description"), knownvalue.StringExact(team.GetDescription())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("type"), knownvalue.StringExact(team.GetType())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("privacy"), knownvalue.StringExact(team.GetPrivacy())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("notification_setting"), knownvalue.StringExact(team.GetNotificationSetting())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("permission"), knownvalue.StringExact(team.GetPermission())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("parent_team"), knownvalue.ListSizeExact(0)),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("child_teams"), knownvalue.ListSizeExact(0)),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("members"), knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.StringExact(testAccConf.testOrgUser1),
+							knownvalue.StringExact(testAccConf.testOrgUser2),
+						})),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("repositories"), knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.StringExact(repo.GetName()),
+						})),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("repositories_detailed"), knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"repo_id":   knownvalue.Int32Exact(int32(repo.GetID())),
+								"repo_name": knownvalue.StringExact(repo.GetName()),
+								"role_name": knownvalue.StringExact("read"),
+							}),
+						})),
+					},
+				},
+				{
+					Config: fmt.Sprintf(config, "immediate"),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("team_id"), knownvalue.Int32Exact(int32(team.GetID()))),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("slug"), knownvalue.StringExact(team.GetSlug())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("node_id"), knownvalue.StringExact(team.GetNodeID())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("name"), knownvalue.StringExact(team.GetName())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("description"), knownvalue.StringExact(team.GetDescription())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("type"), knownvalue.StringExact(team.GetType())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("privacy"), knownvalue.StringExact(team.GetPrivacy())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("notification_setting"), knownvalue.StringExact(team.GetNotificationSetting())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("permission"), knownvalue.StringExact(team.GetPermission())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("parent_team"), knownvalue.ListSizeExact(0)),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("child_teams"), knownvalue.ListSizeExact(0)),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("members"), knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.StringExact(testAccConf.testOrgUser1),
+						})),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("repositories"), knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.StringExact(repo.GetName()),
+						})),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("repositories_detailed"), knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"repo_id":   knownvalue.Int32Exact(int32(repo.GetID())),
+								"repo_name": knownvalue.StringExact(repo.GetName()),
+								"role_name": knownvalue.StringExact("read"),
+							}),
+						})),
+					},
 				},
 			},
 		})
 	})
 
-	t.Run("queries an existing team without error in summary_only mode", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
+	t.Run("queries_team_with_parent_team", func(t *testing.T) {
+		t.Parallel()
+
+		parentTeam := mustCreateTestTeam(t)
+		team := mustCreateTestTeam(t, withNewTeamParent(parentTeam.GetID()))
+
 		config := fmt.Sprintf(`
-			resource "github_team" "test" {
-				name = "%s"
-			}
-
-			data "github_team" "test" {
-				slug = github_team.test.slug
-				summary_only = true
-			}
-		`, teamName)
-
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttrSet("data.github_team.test", "name"),
-			resource.TestCheckResourceAttrSet("data.github_team.test", "node_id"),
-			resource.TestCheckResourceAttrSet("data.github_team.test", "privacy"),
-			resource.TestCheckResourceAttrSet("data.github_team.test", "notification_setting"),
-			resource.TestCheckResourceAttr("data.github_team.test", "members.#", "0"),
-			resource.TestCheckResourceAttr("data.github_team.test", "repositories.#", "0"),
-		)
+data "github_team" "test" {
+  slug               = "%s"
+  lookup_child_teams = false
+  summary_only       = true
+}
+`, team.GetSlug())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("team_id"), knownvalue.Int32Exact(int32(team.GetID()))),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("slug"), knownvalue.StringExact(team.GetSlug())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("node_id"), knownvalue.StringExact(team.GetNodeID())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("name"), knownvalue.StringExact(team.GetName())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("description"), knownvalue.StringExact(team.GetDescription())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("type"), knownvalue.StringExact(team.GetType())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("privacy"), knownvalue.StringExact(team.GetPrivacy())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("notification_setting"), knownvalue.StringExact(team.GetNotificationSetting())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("permission"), knownvalue.StringExact(team.GetPermission())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("parent_team"), knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"id":                   knownvalue.Int32Exact(int32(parentTeam.GetID())),
+								"slug":                 knownvalue.StringExact(parentTeam.GetSlug()),
+								"node_id":              knownvalue.StringExact(parentTeam.GetNodeID()),
+								"name":                 knownvalue.StringExact(parentTeam.GetName()),
+								"description":          knownvalue.StringExact(parentTeam.GetDescription()),
+								"type":                 knownvalue.StringExact(parentTeam.GetType()),
+								"privacy":              knownvalue.StringExact(parentTeam.GetPrivacy()),
+								"notification_setting": knownvalue.StringExact(parentTeam.GetNotificationSetting()),
+								"permission":           knownvalue.StringExact(parentTeam.GetPermission()),
+							}),
+						})),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("child_teams"), knownvalue.ListSizeExact(0)),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("members"), knownvalue.ListSizeExact(0)),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("repositories"), knownvalue.ListSizeExact(0)),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("repositories_detailed"), knownvalue.ListSizeExact(0)),
+					},
 				},
 			},
 		})
 	})
 
-	t.Run("queries an existing team without error with results_per_page reduced", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
+	t.Run("queries_team_with_child_teams", func(t *testing.T) {
+		t.Parallel()
+
+		team := mustCreateTestTeam(t, nil)
+		childTeam1 := mustCreateTestTeam(t, withNewTeamParent(team.GetID()))
+		childTeam2 := mustCreateTestTeam(t, withNewTeamParent(team.GetID()))
+
 		config := fmt.Sprintf(`
-			resource "github_team" "test" {
-				name = "%s"
-			}
-
-			data "github_team" "test" {
-				slug = github_team.test.slug
-				results_per_page = 20
-			}
-		`, teamName)
-
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttrSet("data.github_team.test", "name"),
-			resource.TestCheckResourceAttrSet("data.github_team.test", "node_id"),
-		)
+data "github_team" "test" {
+  slug               = "%s"
+  lookup_child_teams = true
+  summary_only       = true
+}
+`, team.GetSlug())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
-				},
-			},
-		})
-	})
-
-	t.Run("get team with repositories without erroring", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
-		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
-		config := fmt.Sprintf(`
-		resource "github_repository" "test" {
-			name      = "%s"
-			auto_init = true
-		}
-
-		resource "github_team" "test" {
-			name = "%s"
-			description = "test"
-		}
-
-		resource "github_team_repository" "test" {
-			team_id    = github_team.test.id
-			repository = github_repository.test.name
-			permission = "admin"
-		}
-
-		data "github_team" "test" {
-			slug = github_team.test.slug
-
-			depends_on = [github_repository.test, github_team.test, github_team_repository.test]
-		}
-		`, repoName, teamName)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-					Check: resource.ComposeAggregateTestCheckFunc(
-						resource.TestCheckResourceAttrPair("data.github_team.test", "id", "github_team.test", "id"),
-						resource.TestCheckResourceAttrPair("data.github_team.test", "node_id", "github_team.test", "node_id"),
-						resource.TestCheckResourceAttrPair("data.github_team.test", "slug", "github_team.test", "slug"),
-						resource.TestCheckResourceAttrPair("data.github_team.test", "name", "github_team.test", "name"),
-						resource.TestCheckResourceAttrPair("data.github_team.test", "description", "github_team.test", "description"),
-						resource.TestCheckResourceAttrPair("data.github_team.test", "privacy", "github_team.test", "privacy"),
-						resource.TestCheckResourceAttrSet("data.github_team.test", "repositories.#"),
-						resource.TestCheckResourceAttr("data.github_team.test", "repositories.#", "1"),
-						resource.TestCheckResourceAttrPair("data.github_team.test", "repositories.0", "github_repository.test", "name"),
-						resource.TestCheckResourceAttrSet("data.github_team.test", "repositories_detailed.#"),
-						resource.TestCheckResourceAttr("data.github_team.test", "repositories_detailed.#", "1"),
-						resource.TestCheckResourceAttrPair("data.github_team.test", "repositories_detailed.0.repo_id", "github_repository.test", "repo_id"),
-						resource.TestCheckResourceAttrPair("data.github_team.test", "repositories_detailed.0.repo_name", "github_repository.test", "name"),
-						resource.TestCheckResourceAttrPair("data.github_team.test", "repositories_detailed.0.role_name", "github_team_repository.test", "permission"),
-					),
-				},
-			},
-		})
-	})
-
-	t.Run("queries an existing team with connected repositories", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
-		repoName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
-		config := fmt.Sprintf(`
-			resource "github_team" "test" {
-        name = "%s"
-			}
-			resource "github_repository" "test" {
-				name = "%s"
-			}
-			resource "github_team_repository" "test" {
-				team_id    = github_team.test.id
-				repository = github_repository.test.name
-				permission = "admin"
-			}
-		`, teamName, repoName)
-
-		config2 := config + `
-			data "github_team" "test" {
-				slug = github_team.test.slug
-			}
-		`
-
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttrSet("data.github_team.test", "name"),
-			resource.TestCheckResourceAttr("github_repository.test", "name", repoName),
-			resource.TestCheckResourceAttr("data.github_team.test", "repositories_detailed.#", "1"),
-			resource.TestCheckResourceAttrPair("data.github_team.test", "repositories_detailed.0.repo_id", "github_repository.test", "repo_id"),
-			resource.TestCheckResourceAttrPair("data.github_team.test", "repositories_detailed.0.repo_name", "github_repository.test", "name"),
-			resource.TestCheckResourceAttrPair("data.github_team.test", "repositories_detailed.0.role_name", "github_team_repository.test", "permission"),
-		)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-					Check:  resource.ComposeAggregateTestCheckFunc(),
-				},
-				{
-					Config: config2,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("team_id"), knownvalue.Int32Exact(int32(team.GetID()))),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("slug"), knownvalue.StringExact(team.GetSlug())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("node_id"), knownvalue.StringExact(team.GetNodeID())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("name"), knownvalue.StringExact(team.GetName())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("description"), knownvalue.StringExact(team.GetDescription())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("type"), knownvalue.StringExact(team.GetType())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("privacy"), knownvalue.StringExact(team.GetPrivacy())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("notification_setting"), knownvalue.StringExact(team.GetNotificationSetting())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("permission"), knownvalue.StringExact(team.GetPermission())),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("parent_team"), knownvalue.ListSizeExact(0)),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("child_teams"), knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"id":                   knownvalue.Int32Exact(int32(childTeam1.GetID())),
+								"slug":                 knownvalue.StringExact(childTeam1.GetSlug()),
+								"node_id":              knownvalue.StringExact(childTeam1.GetNodeID()),
+								"name":                 knownvalue.StringExact(childTeam1.GetName()),
+								"description":          knownvalue.StringExact(childTeam1.GetDescription()),
+								"type":                 knownvalue.StringExact(childTeam1.GetType()),
+								"privacy":              knownvalue.StringExact(childTeam1.GetPrivacy()),
+								"notification_setting": knownvalue.StringExact(childTeam1.GetNotificationSetting()),
+								"permission":           knownvalue.StringExact(childTeam1.GetPermission()),
+							}),
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"id":                   knownvalue.Int32Exact(int32(childTeam2.GetID())),
+								"slug":                 knownvalue.StringExact(childTeam2.GetSlug()),
+								"node_id":              knownvalue.StringExact(childTeam2.GetNodeID()),
+								"name":                 knownvalue.StringExact(childTeam2.GetName()),
+								"description":          knownvalue.StringExact(childTeam2.GetDescription()),
+								"type":                 knownvalue.StringExact(childTeam2.GetType()),
+								"privacy":              knownvalue.StringExact(childTeam2.GetPrivacy()),
+								"notification_setting": knownvalue.StringExact(childTeam2.GetNotificationSetting()),
+								"permission":           knownvalue.StringExact(childTeam2.GetPermission()),
+							}),
+						})),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("members"), knownvalue.ListSizeExact(0)),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("repositories"), knownvalue.ListSizeExact(0)),
+						statecheck.ExpectKnownValue("data.github_team.test", tfjsonpath.New("repositories_detailed"), knownvalue.ListSizeExact(0)),
+					},
 				},
 			},
 		})

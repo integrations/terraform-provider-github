@@ -1,37 +1,58 @@
 ---
 page_title: "github_external_groups (Data Source) - GitHub"
+subcategory: ""
 description: |-
-  Retrieve external groups belonging to an organization.
+  Data source to list all external groups in an organization.
 ---
 
 # github_external_groups (Data Source)
 
-Use this data source to retrieve external groups belonging to an organization.
+Data source to list all external groups in an organization.
 
 ## Example Usage
 
 ```terraform
-data "github_external_groups" "example_external_groups" {}
-
-locals {
-  local_groups = data.github_external_groups.example_external_groups
-}
-
-output "groups" {
-  value = local.local_groups
-}
+data "github_external_groups" "example" {}
 ```
 
-## Argument Reference
+<!--
+## Schema
 
-N/A. This resource will retrieve all the external groups belonging to an organization.
+### Optional
 
-## Attributes Reference
+- `display_name_filter` (String) Filter external groups by display name.
 
-- `external_groups` - an array of external groups belonging to the organization. Each group consists of the fields documented below.
+### Read-Only
 
----
+- `external_groups` (List of Object) List of external groups in the organization. (see [below for nested schema](#nestedatt--external_groups))
+- `id` (String) The ID of this resource.
 
-- `group_id` - the ID of the group.
-- `group_name` - the name of the group.
-- `updated_at` - the date the group was last updated.
+<a id="nestedatt--external_groups"></a>
+### Nested Schema for `external_groups`
+
+Read-Only:
+
+- `group_id` (Number)
+- `group_name` (String)
+- `updated_at` (String)
+-->
+
+## Schema
+
+### Optional
+
+- `display_name_filter` (String) Filter external groups by display name.
+
+### Read-Only
+
+- `external_groups` (List of Object) List of external groups in the organization. (see [below for nested schema](#nestedatt--external_groups))
+- `id` (String) The ID of this resource.
+
+<a id="nestedatt--external_groups"></a>
+### Nested Schema for `external_groups`
+
+Read-Only:
+
+- `group_id` (Number) ID of the external group.
+- `group_name` (String) Name of the external group.
+- `updated_at` (String) Timestamp of the last update to the external group.

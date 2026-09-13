@@ -8,13 +8,17 @@ import (
 )
 
 func TestAccGithubReleaseAssetDataSource(t *testing.T) {
+	t.Parallel()
+
 	testRepositoryOwner := testAccConf.testPublicRepositoryOwner
 	testReleaseRepository := testAccConf.testPublicRepository
-	testReleaseAssetID := testAccConf.testPublicRelaseAssetId
-	testReleaseAssetName := testAccConf.testPublicRelaseAssetName
+	testReleaseAssetID := testAccConf.testPublicReleaseAssetId
+	testReleaseAssetName := testAccConf.testPublicReleaseAssetName
 	testReleaseAssetContent := testAccConf.testPublicReleaseAssetContent
 
 	t.Run("queries and downloads specified asset ID", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 			data "github_release_asset" "test" {
 				repository = "%s"
@@ -48,6 +52,8 @@ func TestAccGithubReleaseAssetDataSource(t *testing.T) {
 	})
 
 	t.Run("queries without downloading the specified asset ID", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 			data "github_release_asset" "test" {
 				repository = "%s"

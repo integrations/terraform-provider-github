@@ -9,7 +9,11 @@ import (
 )
 
 func TestAccGithubOrganizationDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("queries for an organization without error", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 			data "github_organization" "test" {
 				name = "%s"
@@ -56,6 +60,8 @@ func TestAccGithubOrganizationDataSource(t *testing.T) {
 	})
 
 	t.Run("queries for an organization with archived repos", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-archived-%s", testResourcePrefix, randomID)
 
@@ -107,6 +113,8 @@ func TestAccGithubOrganizationDataSource(t *testing.T) {
 	})
 
 	t.Run("queries for an organization summary_only without error", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 			data "github_organization" "test" {
 				name = "%s"

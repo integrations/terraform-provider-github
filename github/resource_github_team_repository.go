@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -21,7 +21,7 @@ func resourceGithubTeamRepository() *schema.Resource {
 		DeleteContext: resourceGithubTeamRepositoryDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-				meta := m.(*Owner)
+				meta, _ := m.(*Owner)
 				teamIdString, username, err := parseID2(d.Id())
 				if err != nil {
 					return nil, err
@@ -36,6 +36,8 @@ func resourceGithubTeamRepository() *schema.Resource {
 				return []*schema.ResourceData{d}, nil
 			},
 		},
+
+		CustomizeDiff: diffETag,
 
 		Schema: map[string]*schema.Schema{
 			"team_id": {
@@ -57,15 +59,16 @@ func resourceGithubTeamRepository() *schema.Resource {
 				Description: "The permissions of team members regarding the repository. Must be one of 'pull', 'triage', 'push', 'maintain', 'admin' or the name of an existing custom repository role within the organisation.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the team repository.",
 			},
 		},
 	}
 }
 
 func resourceGithubTeamRepositoryCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	orgId := meta.id
 	orgName := meta.name
@@ -104,7 +107,7 @@ func resourceGithubTeamRepositoryCreate(ctx context.Context, d *schema.ResourceD
 }
 
 func resourceGithubTeamRepositoryRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	orgId := meta.id
 	orgName := meta.name
@@ -129,8 +132,7 @@ func resourceGithubTeamRepositoryRead(ctx context.Context, d *schema.ResourceDat
 
 	repo, resp, repoErr := client.Teams.IsTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
 	if repoErr != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(repoErr, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](repoErr); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -172,6 +174,10 @@ func resourceGithubTeamRepositoryUpdate(ctx context.Context, d *schema.ResourceD
 
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
+
+	if err := d.Set("etag", nil); err != nil {
+		return diag.FromErr(err)
+	}
 
 	teamIdString, repoName, err := parseID2(d.Id())
 	if err != nil {
@@ -221,23 +227,14 @@ func resourceGithubTeamRepositoryDelete(ctx context.Context, d *schema.ResourceD
 	}
 	orgName := meta.(*Owner).name
 
-	resp, err := client.Teams.RemoveTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
+	_, err = client.Teams.RemoveTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
+	if err != nil {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			return nil
+		}
 
-	if resp.StatusCode == 404 {
-		log.Printf("[DEBUG] Failed to find team %s to delete for repo: %s.", teamIdString, repoName)
-		repo, _, err := client.Repositories.Get(ctx, orgName, repoName)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		newRepoName := repo.GetName()
-		if newRepoName != repoName {
-			log.Printf("[INFO] Repo name has changed %s -> %s. "+
-				"Try deleting team repository again.",
-				repoName, newRepoName)
-			_, err := client.Teams.RemoveTeamRepoByID(ctx, orgId, teamId, orgName, newRepoName)
-			return diag.FromErr(handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %s", teamIdString), orgName, newRepoName))
-		}
+		return diag.FromErr(handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %s", teamIdString), orgName, repoName))
 	}
 
-	return diag.FromErr(handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %s", teamIdString), orgName, repoName))
+	return nil
 }

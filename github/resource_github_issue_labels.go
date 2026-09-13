@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -59,15 +59,15 @@ func resourceGithubIssueLabels() *schema.Resource {
 	}
 }
 
-func resourceGithubIssueLabelsRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubIssueLabelsRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	owner := meta.name
 	repository := d.Id()
 	ctx := context.WithValue(context.Background(), ctxId, repository)
 
 	log.Printf("[DEBUG] Reading GitHub issue labels for %s/%s", owner, repository)
 
-	labels, err := listLabels(client, ctx, owner, repository)
+	labels, err := listLabels(meta, ctx, owner, repository)
 	if err != nil {
 		return err
 	}
@@ -85,9 +85,10 @@ func resourceGithubIssueLabelsRead(d *schema.ResourceData, meta any) error {
 	return nil
 }
 
-func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 	repository := d.Get("repository").(string)
 	ctx := context.WithValue(context.Background(), ctxId, repository)
 
@@ -102,7 +103,7 @@ func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, meta any) e
 		wantLabelsMap[name] = label
 	}
 
-	hasLabels, err := listLabels(client, ctx, owner, repository)
+	hasLabels, err := listLabels(meta, ctx, owner, repository)
 	if err != nil {
 		return err
 	}
@@ -170,9 +171,10 @@ func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, meta any) e
 	return nil
 }
 
-func resourceGithubIssueLabelsDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubIssueLabelsDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 	repository := d.Get("repository").(string)
 	ctx := context.WithValue(context.Background(), ctxId, repository)
 

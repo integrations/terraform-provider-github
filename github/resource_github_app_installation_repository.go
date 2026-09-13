@@ -5,7 +5,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -39,15 +39,16 @@ func resourceGithubAppInstallationRepository() *schema.Resource {
 	}
 }
 
-func resourceGithubAppInstallationRepositoryCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubAppInstallationRepositoryCreate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	installationIDString := d.Get("installation_id").(string)
 	installationID, err := strconv.ParseInt(installationIDString, 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(installationIDString, err)
 	}
 
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+	client := meta.v3client
+	owner := meta.name
 	ctx := context.Background()
 	repoName := d.Get("repository").(string)
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
@@ -65,8 +66,9 @@ func resourceGithubAppInstallationRepositoryCreate(d *schema.ResourceData, meta 
 	return resourceGithubAppInstallationRepositoryRead(d, meta)
 }
 
-func resourceGithubAppInstallationRepositoryRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubAppInstallationRepositoryRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	installationIDString, repoName, err := parseID2(d.Id())
 	if err != nil {
 		return err
@@ -78,7 +80,7 @@ func resourceGithubAppInstallationRepositoryRead(d *schema.ResourceData, meta an
 	}
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	opt := &github.ListOptions{PerPage: maxPerPage}
+	opt := &github.ListOptions{PerPage: meta.maxPerPage}
 
 	for {
 		repos, resp, err := client.Apps.ListUserRepos(ctx, installationID, opt)
@@ -113,14 +115,15 @@ func resourceGithubAppInstallationRepositoryRead(d *schema.ResourceData, meta an
 	return nil
 }
 
-func resourceGithubAppInstallationRepositoryDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubAppInstallationRepositoryDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	installationIDString := d.Get("installation_id").(string)
 	installationID, err := strconv.ParseInt(installationIDString, 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(installationIDString, err)
 	}
 
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 	ctx := context.Background()
 
 	repoID := d.Get("repo_id").(int)
