@@ -71,13 +71,13 @@ func TestHostedRunnerProvisioningState(t *testing.T) {
 			requirePublicIPs: true,
 			wantState:        "ready",
 		},
-		"ready when image version is not reported": {
+		"ready before image version is reported": {
 			runner: &github.HostedRunner{
 				Status:       new("Ready"),
 				ImageDetails: &github.HostedRunnerImageDetail{ID: new("custom")},
 			},
 			expectedUpdate: map[string]any{"image_version": "2"},
-			wantState:      "ready",
+			wantState:      "pending",
 		},
 		"ready with public IP allocation": {
 			runner: &github.HostedRunner{

@@ -584,14 +584,9 @@ func hostedRunnerUpdateApplied(runner *github.HostedRunner, expectedUpdate map[s
 			enabled, ok := expected.(bool)
 			applied = ok && runner.GetPublicIPEnabled() == enabled
 		case "image_version":
-			// image_details and its version are optional in the API response,
-			// so the requested version can only be verified when reported.
 			imageDetails := runner.GetImageDetails()
-			if imageDetails == nil || imageDetails.Version == nil {
-				continue
-			}
 			version, ok := expected.(string)
-			applied = ok && imageDetails.GetVersion() == version
+			applied = ok && imageDetails != nil && imageDetails.GetVersion() == version
 		default:
 			// Fields the response does not expose cannot be verified.
 			continue
