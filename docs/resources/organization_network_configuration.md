@@ -69,8 +69,6 @@ import {
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-set -euo pipefail
-
 # Import using the network configuration ID. Configure the provider's owner to the organization.
 terraform import github_organization_network_configuration.example 123456789ABCDEF
 ```
