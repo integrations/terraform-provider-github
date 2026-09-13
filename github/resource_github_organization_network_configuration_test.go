@@ -2,10 +2,12 @@ package github
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
+	"reflect"
 	"regexp"
 	"slices"
 	"strings"
@@ -13,6 +15,7 @@ import (
 	"time"
 
 	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	sdkterraform "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/compare"
@@ -217,6 +220,144 @@ func TestGithubOrganizationNetworkConfigurationImport(t *testing.T) {
 	}
 	if len(states) != 1 || states[0].Id() != "NC_123" {
 		t.Fatalf("import did not preserve the network configuration ID: %v", states)
+	}
+}
+
+func TestNetworkConfigurationCRUD(t *testing.T) {
+	for _, scope := range []struct {
+		name string
+		path string
+		r    *schema.Resource
+	}{
+		{
+			name: "organization",
+			path: "/orgs/test-org/settings/network-configurations",
+			r:    resourceGithubOrganizationNetworkConfiguration(),
+		},
+		{
+			name: "enterprise",
+			path: "/enterprises/test-enterprise/network-configurations",
+			r:    resourceGithubEnterpriseNetworkConfiguration(),
+		},
+	} {
+		t.Run(scope.name, func(t *testing.T) {
+			for _, operation := range []struct {
+				name            string
+				method          string
+				success         int
+				ignoredStatuses []int
+				run             func(context.Context, *schema.ResourceData, any) diag.Diagnostics
+			}{
+				{name: "create", method: http.MethodPost, success: http.StatusCreated, run: scope.r.CreateContext},
+				{name: "read", method: http.MethodGet, success: http.StatusOK, ignoredStatuses: []int{http.StatusNotModified, http.StatusNotFound}, run: scope.r.ReadContext},
+				{name: "update", method: http.MethodPatch, success: http.StatusOK, run: scope.r.UpdateContext},
+				{name: "delete", method: http.MethodDelete, success: http.StatusNoContent, ignoredStatuses: []int{http.StatusNotFound}, run: scope.r.DeleteContext},
+			} {
+				for _, status := range []int{operation.success, http.StatusNotModified, http.StatusNotFound, http.StatusForbidden, http.StatusUnprocessableEntity, http.StatusInternalServerError} {
+					t.Run(fmt.Sprintf("%s/%d", operation.name, status), func(t *testing.T) {
+						config := map[string]any{
+							"name":                 "configured",
+							"compute_service":      "actions",
+							"network_settings_ids": []any{"NS_CONFIGURED"},
+						}
+						if scope.name == "enterprise" {
+							config["enterprise_slug"] = "test-enterprise"
+						}
+						d := schema.TestResourceDataRaw(t, scope.r.Schema, config)
+						if operation.name != "create" {
+							d.SetId("NC_123")
+							if err := d.Set("created_on", "2026-09-01T00:00:00Z"); err != nil {
+								t.Fatal(err)
+							}
+						}
+						before := d.State()
+						calls := 0
+						client, err := github.NewClient(github.WithTransport(localRoundTripper{handler: http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+							calls++
+							wantPath := scope.path
+							if operation.name != "create" {
+								wantPath += "/NC_123"
+							}
+							if req.Method != operation.method || req.URL.Path != wantPath {
+								t.Errorf("request = %s %s, want %s %s", req.Method, req.URL.Path, operation.method, wantPath)
+							}
+							if operation.name == "create" || operation.name == "update" {
+								var body map[string]any
+								if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+									t.Fatal(err)
+								}
+								want := map[string]any{
+									"name":                 "configured",
+									"compute_service":      "actions",
+									"network_settings_ids": []any{"NS_CONFIGURED"},
+								}
+								if !reflect.DeepEqual(body, want) {
+									t.Errorf("request body = %v, want %v", body, want)
+								}
+							}
+							w.Header().Set("Content-Type", "application/json")
+							w.WriteHeader(status)
+							if status == http.StatusNotModified || status == http.StatusNoContent {
+								return
+							}
+							if status != operation.success {
+								mustWrite(w, `{"message":"request rejected"}`)
+								return
+							}
+							mustWrite(w, `{"id":"NC_123","name":"returned","compute_service":"none","network_settings_ids":["NS_RETURNED"],"created_on":"2026-09-02T12:00:00Z"}`)
+						})}))
+						if err != nil {
+							t.Fatal(err)
+						}
+						meta := &Owner{name: "test-org", IsOrganization: true, v3client: client}
+						diags := operation.run(context.Background(), d, meta)
+						wantError := status != operation.success && !slices.Contains(operation.ignoredStatuses, status)
+						if diags.HasError() != wantError {
+							t.Fatalf("diagnostics = %v, want error = %t", diags, wantError)
+						}
+						if calls != 1 {
+							t.Errorf("made %d API calls, want exactly one", calls)
+						}
+						if wantError && !strings.Contains(fmt.Sprint(diags), fmt.Sprint(status)) {
+							t.Errorf("diagnostics lost API status %d: %v", status, diags)
+						}
+						if status == http.StatusUnprocessableEntity && (operation.name == "create" || operation.name == "update") &&
+							!strings.Contains(fmt.Sprint(diags), "same "+scope.name) {
+							t.Errorf("missing network settings scope guidance: %v", diags)
+						}
+
+						if operation.name == "read" && status == http.StatusNotFound {
+							if d.Id() != "" {
+								t.Errorf("404 read retained resource ID %q", d.Id())
+							}
+							return
+						}
+						if status != operation.success || operation.name == "delete" {
+							if after := d.State(); !reflect.DeepEqual(after, before) {
+								t.Errorf("unsuccessful request or delete changed state: before %v, after %v", before, after)
+							}
+							return
+						}
+						if d.Id() != "NC_123" {
+							t.Errorf("resource ID = %q, want NC_123", d.Id())
+						}
+						for key, want := range map[string]any{
+							"name":                 "returned",
+							"compute_service":      "none",
+							"network_settings_ids": []any{"NS_RETURNED"},
+							"created_on":           "2026-09-02T12:00:00Z",
+						} {
+							if got := d.Get(key); !reflect.DeepEqual(got, want) {
+								t.Errorf("%s = %v, want %v", key, got, want)
+							}
+						}
+						if scope.name == "enterprise" && d.Get("enterprise_slug") != "test-enterprise" {
+							t.Errorf("enterprise_slug = %v, want test-enterprise", d.Get("enterprise_slug"))
+						}
+					})
+				}
+			}
+		})
 	}
 }
 
