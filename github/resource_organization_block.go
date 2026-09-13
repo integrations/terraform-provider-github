@@ -19,6 +19,8 @@ func resourceOrganizationBlock() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 
+		CustomizeDiff: diffETag,
+
 		Schema: map[string]*schema.Schema{
 			"username": {
 				Type:        schema.TypeString,
@@ -29,13 +31,8 @@ func resourceOrganizationBlock() *schema.Resource {
 
 			"etag": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the organization block.",
-				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
-					return true
-				},
-				DiffSuppressOnRefresh: true,
 			},
 		},
 	}

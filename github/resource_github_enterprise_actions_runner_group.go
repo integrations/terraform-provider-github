@@ -24,6 +24,8 @@ func resourceGithubActionsEnterpriseRunnerGroup() *schema.Resource {
 			State: resourceGithubActionsEnterpriseRunnerGroupImport,
 		},
 
+		CustomizeDiff: diffETag,
+
 		Schema: map[string]*schema.Schema{
 			"enterprise_slug": {
 				Type:        schema.TypeString,
@@ -43,13 +45,8 @@ func resourceGithubActionsEnterpriseRunnerGroup() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the runner group object",
-				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
-					return true
-				},
-				DiffSuppressOnRefresh: true,
 			},
 			"name": {
 				Type:        schema.TypeString,
@@ -289,6 +286,10 @@ func resourceGithubActionsEnterpriseRunnerGroupRead(d *schema.ResourceData, m an
 func resourceGithubActionsEnterpriseRunnerGroupUpdate(d *schema.ResourceData, m any) error {
 	meta, _ := m.(*Owner)
 	client := meta.v3client
+
+	if err := d.Set("etag", nil); err != nil {
+		return err
+	}
 
 	name := d.Get("name").(string)
 	enterpriseSlug := d.Get("enterprise_slug").(string)

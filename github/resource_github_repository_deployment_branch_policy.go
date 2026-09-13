@@ -23,6 +23,8 @@ func resourceGithubRepositoryDeploymentBranchPolicy() *schema.Resource {
 			State: resourceGithubRepositoryDeploymentBranchPolicyImport,
 		},
 
+		CustomizeDiff: diffETag,
+
 		Schema: map[string]*schema.Schema{
 			"repository": {
 				Type:        schema.TypeString,
@@ -43,13 +45,8 @@ func resourceGithubRepositoryDeploymentBranchPolicy() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the Branch object.",
-				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
-					return true
-				},
-				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -59,6 +56,11 @@ func resourceGithubRepositoryDeploymentBranchPolicyUpdate(d *schema.ResourceData
 	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
+
+	if err := d.Set("etag", nil); err != nil {
+		return err
+	}
+
 	repoName := d.Get("repository").(string)
 	environmentName := d.Get("environment_name").(string)
 	name := d.Get("name").(string)

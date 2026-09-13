@@ -37,6 +37,8 @@ func resourceGithubTeamRepository() *schema.Resource {
 			},
 		},
 
+		CustomizeDiff: diffETag,
+
 		Schema: map[string]*schema.Schema{
 			"team_id": {
 				Type:        schema.TypeString,
@@ -58,13 +60,8 @@ func resourceGithubTeamRepository() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the team repository.",
-				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
-					return true
-				},
-				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -177,6 +174,10 @@ func resourceGithubTeamRepositoryUpdate(ctx context.Context, d *schema.ResourceD
 
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
+
+	if err := d.Set("etag", nil); err != nil {
+		return diag.FromErr(err)
+	}
 
 	teamIdString, repoName, err := parseID2(d.Id())
 	if err != nil {

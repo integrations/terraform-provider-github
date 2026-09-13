@@ -10,6 +10,7 @@ import (
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -23,7 +24,7 @@ func resourceGithubRelease() *schema.Resource {
 			StateContext: resourceGithubReleaseImport,
 		},
 
-		CustomizeDiff: diffRepository,
+		CustomizeDiff: customdiff.All(diffRepository, diffETag),
 
 		SchemaVersion: 1,
 		StateUpgraders: []schema.StateUpgrader{
@@ -95,13 +96,8 @@ func resourceGithubRelease() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "The ETag of the release.",
-				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
-					return true
-				},
-				DiffSuppressOnRefresh: true,
 			},
 			"release_id": {
 				Type:        schema.TypeInt,
@@ -273,6 +269,10 @@ func resourceGithubReleaseUpdate(ctx context.Context, d *schema.ResourceData, m 
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
+
+	if err := d.Set("etag", nil); err != nil {
+		return diag.FromErr(err)
+	}
 
 	repoName, _ := d.Get("repository").(string)
 

@@ -23,6 +23,8 @@ func resourceGithubActionsRunnerGroup() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 
+		CustomizeDiff: diffETag,
+
 		Schema: map[string]*schema.Schema{
 			"id": {
 				Type:        schema.TypeString,
@@ -42,13 +44,8 @@ func resourceGithubActionsRunnerGroup() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the runner group object",
-				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
-					return true
-				},
-				DiffSuppressOnRefresh: true,
 			},
 			"inherited": {
 				Type:        schema.TypeBool,
@@ -317,6 +314,10 @@ func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, m any) error
 
 	client := meta.v3client
 	orgName := meta.name
+
+	if err := d.Set("etag", nil); err != nil {
+		return err
+	}
 
 	name := d.Get("name").(string)
 	visibility := d.Get("visibility").(string)

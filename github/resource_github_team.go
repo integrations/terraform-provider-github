@@ -23,10 +23,11 @@ func resourceGithubTeam() *schema.Resource {
 			StateContext: resourceGithubTeamImport,
 		},
 
-		CustomizeDiff: customdiff.Sequence(
+		CustomizeDiff: customdiff.All(
 			customdiff.ComputedIf("slug", func(_ context.Context, d *schema.ResourceDiff, meta any) bool {
 				return d.HasChange("name")
 			}),
+			diffETag,
 		),
 
 		Schema: map[string]*schema.Schema{
@@ -106,13 +107,8 @@ func resourceGithubTeam() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the team.",
-				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
-					return true
-				},
-				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -327,6 +323,10 @@ func resourceGithubTeamUpdate(ctx context.Context, d *schema.ResourceData, m any
 
 	err := checkOrganization(meta)
 	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := d.Set("etag", nil); err != nil {
 		return diag.FromErr(err)
 	}
 

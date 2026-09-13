@@ -22,6 +22,8 @@ func resourceGithubIssueLabel() *schema.Resource {
 			StateContext: resourceGithubIssueLabelImport,
 		},
 
+		CustomizeDiff: diffETag,
+
 		Schema: map[string]*schema.Schema{
 			"repository": {
 				Type:        schema.TypeString,
@@ -51,13 +53,8 @@ func resourceGithubIssueLabel() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the issue label.",
-				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
-					return true
-				},
-				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -163,6 +160,11 @@ func resourceGithubIssueLabelUpdate(ctx context.Context, d *schema.ResourceData,
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	orgName := meta.name
+
+	if err := d.Set("etag", nil); err != nil {
+		return diag.FromErr(err)
+	}
+
 	repoName, ok := d.Get("repository").(string)
 	if !ok {
 		return diag.Errorf(`expected "repository" to be string`)
