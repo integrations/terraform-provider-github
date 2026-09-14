@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
@@ -118,6 +119,10 @@ func resourceGithubCustomPropertiesRead(d *schema.ResourceData, meta any) error 
 
 	customProperty, _, err := client.Organizations.GetCustomProperty(ctx, ownerName, d.Get("property_name").(string))
 	if err != nil {
+		if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == 404 {
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 
@@ -149,6 +154,9 @@ func resourceGithubCustomPropertiesDelete(d *schema.ResourceData, meta any) erro
 
 	_, err := client.Organizations.RemoveCustomProperty(context.Background(), ownerName, d.Get("property_name").(string))
 	if err != nil {
+		if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == 404 {
+			return nil
+		}
 		return err
 	}
 
