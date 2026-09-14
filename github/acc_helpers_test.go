@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v91/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 )
 
@@ -87,10 +87,10 @@ func mustCreateTestOrganizationRepositoryRole(t *testing.T) *github.CustomRepoRo
 	randomID := acctest.RandString(testRandomIDLength)
 	name := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
-	role, _, err := testAccConf.meta.v3client.Organizations.CreateCustomRepoRole(t.Context(), testAccConf.meta.name, &github.CreateOrUpdateCustomRepoRoleOptions{
-		Name:        &name,
+	role, _, err := testAccConf.meta.v3client.Organizations.CreateCustomRepoRole(t.Context(), testAccConf.meta.name, github.CreateCustomRepoRoleRequest{
+		Name:        name,
 		Description: new("Test organization repository role."),
-		BaseRole:    new("read"),
+		BaseRole:    "read",
 		Permissions: []string{"reopen_issue"},
 	})
 	if err != nil {
@@ -209,7 +209,7 @@ func mustCreateTestOrganizationSecret(t *testing.T) string {
 	}
 	encryptedValue := base64.StdEncoding.EncodeToString(encryptedBytes)
 
-	if _, err := testAccConf.meta.v3client.Actions.CreateOrUpdateOrgSecret(t.Context(), testAccConf.meta.name, secretName, github.OrgSecretRequest{
+	if _, err := testAccConf.meta.v3client.Actions.CreateOrUpdateOrgSecret(t.Context(), testAccConf.meta.name, secretName, github.SecretOrgRequest{
 		Visibility:     "all",
 		KeyID:          publicKey.GetKeyID(),
 		EncryptedValue: encryptedValue,
@@ -240,7 +240,7 @@ func mustUpdateOrganizationSecret(t *testing.T, name, value string) {
 	}
 	encryptedValue := base64.StdEncoding.EncodeToString(encryptedBytes)
 
-	if _, err := testAccConf.meta.v3client.Actions.CreateOrUpdateOrgSecret(t.Context(), testAccConf.meta.name, name, github.OrgSecretRequest{
+	if _, err := testAccConf.meta.v3client.Actions.CreateOrUpdateOrgSecret(t.Context(), testAccConf.meta.name, name, github.SecretOrgRequest{
 		Visibility:     "all",
 		KeyID:          publicKey.GetKeyID(),
 		EncryptedValue: encryptedValue,
@@ -267,7 +267,7 @@ func mustCreateTestOrganizationVariable(t *testing.T, name, value *string) {
 		varValue = acctest.RandString(16)
 	}
 
-	if _, err := testAccConf.meta.v3client.Actions.CreateOrgVariable(t.Context(), testAccConf.meta.name, github.OrgActionsVariableCreateRequest{
+	if _, err := testAccConf.meta.v3client.Actions.CreateOrgVariable(t.Context(), testAccConf.meta.name, github.ActionsCreateOrgVariableRequest{
 		Name:       varName,
 		Visibility: "all",
 		Value:      varValue,
@@ -364,7 +364,7 @@ func mustCreateTestRepositoryVariable(t *testing.T, repo *github.Repository, nam
 		varValue = acctest.RandString(16)
 	}
 
-	if _, err := testAccConf.meta.v3client.Actions.CreateRepoVariable(t.Context(), testAccConf.meta.name, repo.GetName(), github.ActionsVariableCreateRequest{
+	if _, err := testAccConf.meta.v3client.Actions.CreateRepoVariable(t.Context(), testAccConf.meta.name, repo.GetName(), github.ActionsCreateVariableRequest{
 		Name:  varName,
 		Value: varValue,
 	}); err != nil {
@@ -475,7 +475,7 @@ func mustCreateTestRepositoryEnvironmentVariable(t *testing.T, repo *github.Repo
 		varValue = acctest.RandString(16)
 	}
 
-	if _, err := testAccConf.meta.v3client.Actions.CreateEnvVariable(t.Context(), testAccConf.meta.name, repo.GetName(), url.PathEscape(env.GetName()), github.ActionsVariableCreateRequest{
+	if _, err := testAccConf.meta.v3client.Actions.CreateEnvVariable(t.Context(), testAccConf.meta.name, repo.GetName(), url.PathEscape(env.GetName()), github.ActionsCreateVariableRequest{
 		Name:  varName,
 		Value: varValue,
 	}); err != nil {
@@ -507,8 +507,7 @@ func mustUpdateOrganizationDependabotSecret(t *testing.T, name, value string) {
 	}
 	encryptedValue := base64.StdEncoding.EncodeToString(encryptedBytes)
 
-	if _, err := testAccConf.meta.v3client.Dependabot.CreateOrUpdateOrgSecret(t.Context(), testAccConf.meta.name, &github.DependabotEncryptedSecret{
-		Name:           name,
+	if _, err := testAccConf.meta.v3client.Dependabot.CreateOrUpdateOrgSecret(t.Context(), testAccConf.meta.name, name, github.SecretOrgRequest{
 		KeyID:          publicKey.GetKeyID(),
 		EncryptedValue: encryptedValue,
 		Visibility:     "all",
@@ -561,8 +560,7 @@ func mustUpdateRepositoryDependabotSecret(t *testing.T, repo *github.Repository,
 	}
 	encryptedValue := base64.StdEncoding.EncodeToString(encryptedBytes)
 
-	if _, err := testAccConf.meta.v3client.Dependabot.CreateOrUpdateRepoSecret(t.Context(), testAccConf.meta.name, repo.GetName(), &github.DependabotEncryptedSecret{
-		Name:           name,
+	if _, err := testAccConf.meta.v3client.Dependabot.CreateOrUpdateRepoSecret(t.Context(), testAccConf.meta.name, repo.GetName(), name, github.SecretRequest{
 		KeyID:          publicKey.GetKeyID(),
 		EncryptedValue: encryptedValue,
 	}); err != nil {

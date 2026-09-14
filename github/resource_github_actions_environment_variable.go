@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v91/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -90,7 +90,7 @@ func resourceGithubActionsEnvironmentVariableCreate(ctx context.Context, d *sche
 
 	escapedEnvName := url.PathEscape(envName)
 
-	varReq := github.ActionsVariableCreateRequest{
+	varReq := github.ActionsCreateVariableRequest{
 		Name:  varName,
 		Value: varValue,
 	}
@@ -176,7 +176,7 @@ func resourceGithubActionsEnvironmentVariableUpdate(ctx context.Context, d *sche
 
 	escapedEnvName := url.PathEscape(envName)
 
-	varReq := github.ActionsVariableUpdateRequest{
+	varReq := github.ActionsUpdateVariableRequest{
 		Name:  new(varName),
 		Value: new(varValue),
 	}

@@ -7,12 +7,14 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v91/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+
+	"github.com/integrations/terraform-provider-github/v6/internal/tfschemautil"
 )
 
 func resourceGithubActionsEnvironmentSecret() *schema.Resource {
@@ -133,7 +135,7 @@ func resourceGithubActionsEnvironmentSecretCreate(ctx context.Context, d *schema
 	envName, _ := d.Get("environment").(string)
 	secretName, _ := d.Get("secret_name").(string)
 	keyID, _ := d.Get("key_id").(string)
-	encryptedValue, _ := resourceKeysGetOk[string](d, "value_encrypted", "encrypted_value")
+	encryptedValue, _ := tfschemautil.GetKeysOk[string](d, "value_encrypted", "encrypted_value")
 
 	escapedEnvName := url.PathEscape(envName)
 
@@ -155,7 +157,7 @@ func resourceGithubActionsEnvironmentSecretCreate(ctx context.Context, d *schema
 	}
 
 	if len(encryptedValue) == 0 {
-		plaintextValue, _ := resourceKeysGetOk[string](d, "value", "plaintext_value")
+		plaintextValue, _ := tfschemautil.GetKeysOk[string](d, "value", "plaintext_value")
 
 		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
 		if err != nil {
@@ -258,7 +260,7 @@ func resourceGithubActionsEnvironmentSecretUpdate(ctx context.Context, d *schema
 	envName, _ := d.Get("environment").(string)
 	secretName, _ := d.Get("secret_name").(string)
 	keyID, _ := d.Get("key_id").(string)
-	encryptedValue, _ := resourceKeysGetOk[string](d, "value_encrypted", "encrypted_value")
+	encryptedValue, _ := tfschemautil.GetKeysOk[string](d, "value_encrypted", "encrypted_value")
 
 	escapedEnvName := url.PathEscape(envName)
 
@@ -274,7 +276,7 @@ func resourceGithubActionsEnvironmentSecretUpdate(ctx context.Context, d *schema
 	}
 
 	if len(encryptedValue) == 0 {
-		plaintextValue, _ := resourceKeysGetOk[string](d, "value", "plaintext_value")
+		plaintextValue, _ := tfschemautil.GetKeysOk[string](d, "value", "plaintext_value")
 
 		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
 		if err != nil {

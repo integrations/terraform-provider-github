@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v91/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
@@ -116,12 +116,12 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(ctx context.Conte
 		pattern = tagPattern
 	}
 
-	createData := github.DeploymentBranchPolicyRequest{
-		Name: new(pattern),
+	createData := github.CreateDeploymentBranchPolicyRequest{
+		Name: pattern,
 		Type: new(policyType),
 	}
 
-	policy, _, err := client.Repositories.CreateDeploymentBranchPolicy(ctx, owner, repoName, url.PathEscape(envName), &createData)
+	policy, _, err := client.Repositories.CreateDeploymentBranchPolicy(ctx, owner, repoName, url.PathEscape(envName), createData)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -201,11 +201,11 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(ctx context.Conte
 		pattern = tagPattern
 	}
 
-	updateData := github.DeploymentBranchPolicyRequest{
-		Name: new(pattern),
+	updateData := github.UpdateDeploymentBranchPolicyRequest{
+		Name: pattern,
 	}
 
-	_, _, err := client.Repositories.UpdateDeploymentBranchPolicy(ctx, owner, repoName, url.PathEscape(envName), int64(policyID), &updateData)
+	_, _, err := client.Repositories.UpdateDeploymentBranchPolicy(ctx, owner, repoName, url.PathEscape(envName), int64(policyID), updateData)
 	if err != nil {
 		return diag.FromErr(err)
 	}

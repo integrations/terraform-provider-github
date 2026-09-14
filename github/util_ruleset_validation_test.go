@@ -3,7 +3,7 @@ package github
 import (
 	"testing"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v91/github"
 )
 
 func Test_validateConditionsFieldForPushTarget(t *testing.T) {

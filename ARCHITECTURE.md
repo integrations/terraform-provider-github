@@ -191,7 +191,7 @@ func resourceGithubExample() *schema.Resource {
             },
         },
 
-        Description: "Manages an example GitHub resource.",
+        Description: "Resource to manages an example GitHub component.",
 
         Schema: map[string]*schema.Schema{
             // Schema definition.
