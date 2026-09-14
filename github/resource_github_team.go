@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v91/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -134,6 +134,10 @@ func resourceGithubTeamCreate(ctx context.Context, d *schema.ResourceData, m any
 		NotificationSetting: new(tfschemautil.Get[string](d, "notification_setting")),
 	}
 
+	if ldapDN, ok := tfschemautil.GetOk[string](d, "ldap_dn"); ok {
+		req.LDAPDN = &ldapDN
+	}
+
 	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
 		teamId, err := getTeamID(ctx, meta, parentTeamID.(string))
 		if err != nil {
@@ -166,14 +170,6 @@ func resourceGithubTeamCreate(ctx context.Context, d *schema.ResourceData, m any
 	if req.ParentTeamID != nil && team.Parent == nil {
 		_, resp, err = client.Teams.UpdateTeamBySlug(ctx, ownerName, slug, github.UpdateTeamRequest{ParentTeamID: req.ParentTeamID})
 		if err != nil {
-			return diag.FromErr(err)
-		}
-	}
-
-	// TODO: Put this back into the request once it's been reinstated.
-	if ldapDNVal, ok := d.GetOk("ldap_dn"); ok {
-		ldapDN, _ := ldapDNVal.(string)
-		if _, _, err = client.Admin.UpdateTeamLDAPMapping(ctx, team.GetID(), github.UpdateTeamLDAPMappingRequest{LDAPDN: ldapDN}); err != nil {
 			return diag.FromErr(err)
 		}
 	}

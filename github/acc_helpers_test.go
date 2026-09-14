@@ -6,11 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/url"
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v91/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 )
 
@@ -401,7 +400,7 @@ func mustCreateTestRepositoryEnvironment(t *testing.T, repo *github.Repository, 
 func mustGetTestRepositoryEnvironmentPublicKey(t *testing.T, repo *github.Repository, env *github.Environment) *github.PublicKey {
 	t.Helper()
 
-	publicKey, _, err := testAccConf.meta.v3client.Actions.GetEnvPublicKey(t.Context(), testAccConf.meta.name, repo.GetName(), url.PathEscape(env.GetName()))
+	publicKey, _, err := testAccConf.meta.v3client.Actions.GetEnvPublicKey(t.Context(), testAccConf.meta.name, repo.GetName(), env.GetName())
 	if err != nil {
 		t.Fatalf("failed to get public key for test repository environment: %v", err)
 	}
@@ -475,7 +474,7 @@ func mustCreateTestRepositoryEnvironmentVariable(t *testing.T, repo *github.Repo
 		varValue = acctest.RandString(16)
 	}
 
-	if _, err := testAccConf.meta.v3client.Actions.CreateEnvVariable(t.Context(), testAccConf.meta.name, repo.GetName(), url.PathEscape(env.GetName()), github.ActionsCreateVariableRequest{
+	if _, err := testAccConf.meta.v3client.Actions.CreateEnvVariable(t.Context(), testAccConf.meta.name, repo.GetName(), env.GetName(), github.ActionsCreateVariableRequest{
 		Name:  varName,
 		Value: varValue,
 	}); err != nil {
