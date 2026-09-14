@@ -10,7 +10,12 @@ import (
 func TestAccGithubOrganizationSettings(t *testing.T) {
 	// IMPORTANT: Do not run these tests in parallel as they modify the organization state.
 
-	t.Skip("TODO: Make this test cleanup correctly")
+	skipUnlessHasOrgs(t)
+
+	// The resource's delete reverts to hardcoded defaults rather than the
+	// organization's prior state, so snapshot the settings and put them back
+	// once every subtest has run.
+	mustSnapshotOrganizationSettings(t)
 
 	t.Run("creates organization settings without error", func(t *testing.T) {
 		config := `
