@@ -33,7 +33,7 @@ The following arguments are supported:
 
 - `repository` - (Required) The GitHub repository
 
-- `name` - (Required) The name of the label.
+- `name` - (Required) The name of the label. Changing this renames the existing label instead of replacing it.
 
 - `color` - (Required) A 6 character hex code, **without the leading #**, identifying the color of the label.
 

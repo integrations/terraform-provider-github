@@ -34,7 +34,7 @@ func resourceGithubIssueLabel() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The name of the label.",
+				Description: "The name of the label. Changing this renames the existing label instead of replacing it.",
 			},
 			"color": {
 				Type:        schema.TypeString,
