@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 )
 
-type createTestTeamOptionsFunc func(*github.NewTeam)
+type createTestTeamOptionsFunc func(*github.CreateTeamRequest)
 
 func withNewTeamParent(parentID int64) createTestTeamOptionsFunc {
-	return func(team *github.NewTeam) {
+	return func(team *github.CreateTeamRequest) {
 		team.ParentTeamID = &parentID
 	}
 }
@@ -24,7 +24,7 @@ func mustCreateTestTeam(t *testing.T, f ...createTestTeamOptionsFunc) *github.Te
 	randomID := acctest.RandString(testRandomIDLength)
 	name := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
-	req := &github.NewTeam{
+	req := &github.CreateTeamRequest{
 		Name:    name,
 		Privacy: new("closed"),
 	}
@@ -55,7 +55,7 @@ func mustCreateTestTeam(t *testing.T, f ...createTestTeamOptionsFunc) *github.Te
 func mustRenameTeam(t *testing.T, team *github.Team, newName string) {
 	t.Helper()
 
-	_, _, err := testAccConf.meta.v3client.Teams.EditTeamBySlug(t.Context(), testAccConf.meta.name, team.GetSlug(), github.NewTeam{Name: newName}, false)
+	_, _, err := testAccConf.meta.v3client.Teams.UpdateTeamBySlug(t.Context(), testAccConf.meta.name, team.GetSlug(), github.UpdateTeamRequest{Name: &newName})
 	if err != nil {
 		t.Fatalf("failed to rename test team %s to %s: %v", team.GetName(), newName, err)
 	}

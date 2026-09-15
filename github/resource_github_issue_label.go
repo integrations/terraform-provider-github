@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -77,8 +77,8 @@ func resourceGithubIssueLabelCreate(ctx context.Context, d *schema.ResourceData,
 		return diag.Errorf(`expected "color" to be string`)
 	}
 
-	label := &github.Label{
-		Name:  new(name),
+	labelReq := github.CreateIssueLabelRequest{
+		Name:  name,
 		Color: new(color),
 	}
 
@@ -86,8 +86,8 @@ func resourceGithubIssueLabelCreate(ctx context.Context, d *schema.ResourceData,
 	if !ok {
 		return diag.Errorf(`expected "description" to be string`)
 	}
-	label.Description = &description
-	githubLabel, resp, err := client.Issues.CreateLabel(ctx, orgName, repoName, label)
+	labelReq.Description = &description
+	githubLabel, resp, err := client.Issues.CreateLabel(ctx, orgName, repoName, labelReq)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -187,16 +187,16 @@ func resourceGithubIssueLabelUpdate(ctx context.Context, d *schema.ResourceData,
 		}
 		originalName = oldNameString
 	}
-	label := &github.Label{
-		Name:  new(name),
-		Color: new(color),
+	labelReq := github.UpdateIssueLabelRequest{
+		NewName: new(name),
+		Color:   new(color),
 	}
 	description, ok := d.Get("description").(string)
 	if !ok {
 		return diag.Errorf(`expected "description" to be string`)
 	}
-	label.Description = &description
-	githubLabel, resp, err := client.Issues.EditLabel(ctx, orgName, repoName, originalName, label)
+	labelReq.Description = &description
+	githubLabel, resp, err := client.Issues.UpdateLabel(ctx, orgName, repoName, originalName, labelReq)
 	if err != nil {
 		return diag.FromErr(err)
 	}

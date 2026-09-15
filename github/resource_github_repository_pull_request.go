@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -151,19 +151,24 @@ func resourceGithubRepositoryPullRequestCreate(d *schema.ResourceData, meta any)
 		baseOwner = explicitBaseOwner.(string)
 	}
 
-	baseRepository := d.Get("base_repository").(string)
+	title, _ := d.Get("title").(string)
+	baseRepository, _ := d.Get("base_repository").(string)
+	head, _ := d.Get("head_ref").(string)
+	body, _ := d.Get("body").(string)
+	maintainerCanModify, _ := d.Get("maintainer_can_modify").(bool)
 
-	head := d.Get("head_ref").(string)
 	if headOwner != baseOwner {
 		head = strings.Join([]string{headOwner, head}, ":")
 	}
 
-	pullRequest, _, err := client.PullRequests.Create(ctx, baseOwner, baseRepository, &github.NewPullRequest{
-		Title:               new(d.Get("title").(string)),
-		Head:                new(head),
-		Base:                new(d.Get("base_ref").(string)),
-		Body:                new(d.Get("body").(string)),
-		MaintainerCanModify: new(d.Get("maintainer_can_modify").(bool)),
+	base, _ := d.Get("base_ref").(string)
+
+	pullRequest, _, err := client.PullRequests.Create(ctx, baseOwner, baseRepository, github.CreatePullRequest{
+		Title:               new(title),
+		Head:                head,
+		Base:                base,
+		Body:                new(body),
+		MaintainerCanModify: new(maintainerCanModify),
 	})
 	if err != nil {
 		return err

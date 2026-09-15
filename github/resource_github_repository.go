@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -682,7 +682,7 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 			private := repoReq.GetVisibility() != "public"
 
 			templateRepoReq := github.TemplateRepoRequest{
-				Name:               &repoName,
+				Name:               repoName,
 				Owner:              &owner,
 				Description:        new(d.Get("description").(string)),
 				Private:            new(private),
@@ -692,7 +692,7 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 			repo, _, err := client.Repositories.CreateFromTemplate(ctx,
 				templateRepoOwner,
 				templateRepo,
-				&templateRepoReq,
+				templateRepoReq,
 			)
 			if err != nil {
 				return diag.FromErr(err)

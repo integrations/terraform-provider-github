@@ -2,6 +2,7 @@ package github
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -14,6 +15,8 @@ import (
 
 func TestAccGithubTeam(t *testing.T) {
 	t.Parallel()
+
+	skipUnlessHasOrgs(t)
 
 	configDefaults := `
 resource "github_team" "test" {
@@ -54,7 +57,6 @@ resource "github_team" "test" {
 		notificationSetting := "notifications_disabled"
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -108,7 +110,6 @@ resource "github_team" "test" {
 		teamNameUpdated := fmt.Sprintf("%s-updated", teamName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -134,7 +135,6 @@ resource "github_team" "test" {
 		teamNameUpdated := fmt.Sprintf("%s updated", teamName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -160,7 +160,6 @@ resource "github_team" "test" {
 		teamName := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(5))
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -180,7 +179,6 @@ resource "github_team" "test" {
 		teamName := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(5))
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -188,6 +186,88 @@ resource "github_team" "test" {
 				},
 				{
 					Config: fmt.Sprintf(configWithParent, teamName, parentTeam.GetID()),
+				},
+			},
+		})
+	})
+
+	t.Run("with_parent_team_by_id", func(t *testing.T) {
+		t.Parallel()
+
+		parentTeam := mustCreateTestTeam(t)
+		teamName := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(5))
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(configWithParent, teamName, parentTeam.GetID()),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("parent_team_read_id"), knownvalue.StringExact(strconv.FormatInt(parentTeam.GetID(), 10))),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("parent_team_read_slug"), knownvalue.StringExact(parentTeam.GetSlug())),
+					},
+				},
+				{
+					Config: fmt.Sprintf(configVisible, teamName),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("parent_team_id"), knownvalue.StringExact("")),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("parent_team_read_id"), knownvalue.StringExact("")),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("parent_team_read_slug"), knownvalue.StringExact("")),
+					},
+				},
+				{
+					Config: fmt.Sprintf(configWithParent, teamName, parentTeam.GetID()),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("parent_team_read_id"), knownvalue.StringExact(strconv.FormatInt(parentTeam.GetID(), 10))),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("parent_team_read_slug"), knownvalue.StringExact(parentTeam.GetSlug())),
+					},
+				},
+				{
+					ResourceName:            "github_team.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"etag"},
+				},
+			},
+		})
+	})
+
+	t.Run("with_parent_team_by_slug", func(t *testing.T) {
+		t.Parallel()
+
+		parentTeam := mustCreateTestTeam(t)
+		teamName := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(5))
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(configWithParent, teamName, parentTeam.GetSlug()),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("parent_team_read_id"), knownvalue.StringExact(strconv.FormatInt(parentTeam.GetID(), 10))),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("parent_team_read_slug"), knownvalue.StringExact(parentTeam.GetSlug())),
+					},
+				},
+				{
+					Config: fmt.Sprintf(configVisible, teamName),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("parent_team_id"), knownvalue.StringExact("")),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("parent_team_read_id"), knownvalue.StringExact("")),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("parent_team_read_slug"), knownvalue.StringExact("")),
+					},
+				},
+				{
+					Config: fmt.Sprintf(configWithParent, teamName, parentTeam.GetSlug()),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("parent_team_read_id"), knownvalue.StringExact(strconv.FormatInt(parentTeam.GetID(), 10))),
+						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("parent_team_read_slug"), knownvalue.StringExact(parentTeam.GetSlug())),
+					},
+				},
+				{
+					ResourceName:            "github_team.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"etag"},
 				},
 			},
 		})

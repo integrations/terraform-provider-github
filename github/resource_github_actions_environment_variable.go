@@ -4,9 +4,8 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"net/url"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -88,14 +87,12 @@ func resourceGithubActionsEnvironmentVariableCreate(ctx context.Context, d *sche
 	varName, _ := d.Get("variable_name").(string)
 	varValue, _ := d.Get("value").(string)
 
-	escapedEnvName := url.PathEscape(envName)
-
-	varReq := github.ActionsVariableCreateRequest{
+	varReq := github.ActionsCreateVariableRequest{
 		Name:  varName,
 		Value: varValue,
 	}
 
-	_, err := client.Actions.CreateEnvVariable(ctx, owner, repoName, escapedEnvName, varReq)
+	_, err := client.Actions.CreateEnvVariable(ctx, owner, repoName, envName, varReq)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -118,7 +115,7 @@ func resourceGithubActionsEnvironmentVariableCreate(ctx context.Context, d *sche
 
 	// GitHub API does not return on create so we have to lookup the variable to get timestamps.
 	if variable, err := retryUntilResourceFound(ctx, func() (*github.ActionsVariable, error) {
-		val, _, err := client.Actions.GetEnvVariable(ctx, owner, repoName, escapedEnvName, varName)
+		val, _, err := client.Actions.GetEnvVariable(ctx, owner, repoName, envName, varName)
 		return val, err
 	}, nil); err == nil {
 		if err := d.Set("created_at", variable.CreatedAt.String()); err != nil {
@@ -141,7 +138,7 @@ func resourceGithubActionsEnvironmentVariableRead(ctx context.Context, d *schema
 	envName, _ := d.Get("environment").(string)
 	varName, _ := d.Get("variable_name").(string)
 
-	variable, _, err := client.Actions.GetEnvVariable(ctx, owner, repoName, url.PathEscape(envName), varName)
+	variable, _, err := client.Actions.GetEnvVariable(ctx, owner, repoName, envName, varName)
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
 			tflog.Info(ctx, "Removing actions variable from state because it no longer exists in GitHub.", map[string]any{"variable_name": varName, "repository": repoName, "environment": envName})
@@ -174,14 +171,12 @@ func resourceGithubActionsEnvironmentVariableUpdate(ctx context.Context, d *sche
 	varName, _ := d.Get("variable_name").(string)
 	varValue, _ := d.Get("value").(string)
 
-	escapedEnvName := url.PathEscape(envName)
-
-	varReq := github.ActionsVariableUpdateRequest{
+	varReq := github.ActionsUpdateVariableRequest{
 		Name:  new(varName),
 		Value: new(varValue),
 	}
 
-	_, err := client.Actions.UpdateEnvVariable(ctx, owner, repoName, escapedEnvName, varName, varReq)
+	_, err := client.Actions.UpdateEnvVariable(ctx, owner, repoName, envName, varName, varReq)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -194,7 +189,7 @@ func resourceGithubActionsEnvironmentVariableUpdate(ctx context.Context, d *sche
 
 	// GitHub API does not return on update so we have to lookup the variable to get timestamps.
 	if variable, err := retryUntilResourceFound(ctx, func() (*github.ActionsVariable, error) {
-		val, _, err := client.Actions.GetEnvVariable(ctx, owner, repoName, escapedEnvName, varName)
+		val, _, err := client.Actions.GetEnvVariable(ctx, owner, repoName, envName, varName)
 		return val, err
 	}, nil); err == nil {
 		if err := d.Set("created_at", variable.CreatedAt.String()); err != nil {
@@ -217,7 +212,7 @@ func resourceGithubActionsEnvironmentVariableDelete(ctx context.Context, d *sche
 	envName, _ := d.Get("environment").(string)
 	varName, _ := d.Get("variable_name").(string)
 
-	_, err := client.Actions.DeleteEnvVariable(ctx, owner, repoName, url.PathEscape(envName), varName)
+	_, err := client.Actions.DeleteEnvVariable(ctx, owner, repoName, envName, varName)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -243,7 +238,7 @@ func resourceGithubActionsEnvironmentVariableImport(ctx context.Context, d *sche
 	}
 	repoID := int(repo.GetID())
 
-	variable, _, err := client.Actions.GetEnvVariable(ctx, owner, repoName, url.PathEscape(envName), varName)
+	variable, _, err := client.Actions.GetEnvVariable(ctx, owner, repoName, envName, varName)
 	if err != nil {
 		return nil, err
 	}
