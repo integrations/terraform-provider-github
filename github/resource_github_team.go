@@ -168,17 +168,8 @@ func resourceGithubTeamCreate(ctx context.Context, d *schema.ResourceData, m any
 		Note that this is best-effort: when running this with a PAT that does not have admin permissions
 		on the parent team, the operation might still fail to set the parent team.
 	*/
-	if req.ParentTeamID != nil && team.Parent == nil {
-		_, resp, err = client.Teams.UpdateTeamBySlug(ctx, ownerName, slug, github.UpdateTeamRequest{ParentTeamID: req.ParentTeamID})
-		if err != nil {
-			return diag.FromErr(err)
-		}
-	}
-
-	// TODO: Put this back into the request once it's been reinstated.
-	if ldapDNVal, ok := d.GetOk("ldap_dn"); ok {
-		ldapDN, _ := ldapDNVal.(string)
-		if _, _, err = client.Admin.UpdateTeamLDAPMapping(ctx, team.GetID(), github.UpdateTeamLDAPMappingRequest{LDAPDN: ldapDN}); err != nil {
+	if (req.ParentTeamID != nil || req.ParentTeamSlug != nil) && team.Parent == nil {
+		if _, _, err := client.Teams.UpdateTeamBySlug(ctx, ownerName, slug, github.UpdateTeamRequest{ParentTeamID: req.ParentTeamID}); err != nil {
 			return diag.FromErr(err)
 		}
 	}
