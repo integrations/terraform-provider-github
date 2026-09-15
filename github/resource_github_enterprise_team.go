@@ -86,13 +86,16 @@ func resourceGithubEnterpriseTeamCreate(ctx context.Context, d *schema.ResourceD
 	groupID := d.Get("group_id").(string)
 
 	req := github.EnterpriseTeamCreateOrUpdateRequest{
-		Name:                      name,
+		Name: name,
+		//nolint:modernize // new() accepts a type, not an expression.
 		OrganizationSelectionType: github.Ptr(orgSelection),
 	}
 	if description != "" {
+		//nolint:modernize // new() accepts a type, not an expression.
 		req.Description = github.Ptr(description)
 	}
 	if groupID != "" {
+		//nolint:modernize // new() accepts a type, not an expression.
 		req.GroupID = github.Ptr(groupID)
 	}
 
@@ -210,13 +213,16 @@ func resourceGithubEnterpriseTeamUpdate(ctx context.Context, d *schema.ResourceD
 	groupID := d.Get("group_id").(string)
 
 	req := github.EnterpriseTeamCreateOrUpdateRequest{
-		Name:                      name,
+		Name: name,
+		//nolint:modernize // new() accepts a type, not an expression.
 		OrganizationSelectionType: github.Ptr(orgSelection),
 	}
 	if description != "" {
+		//nolint:modernize // new() accepts a type, not an expression.
 		req.Description = github.Ptr(description)
 	}
 	if groupID != "" {
+		//nolint:modernize // new() accepts a type, not an expression.
 		req.GroupID = github.Ptr(groupID)
 	}
 
