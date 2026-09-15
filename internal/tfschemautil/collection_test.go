@@ -8,6 +8,8 @@ import (
 )
 
 func TestGetSetValue(t *testing.T) {
+	t.Parallel()
+
 	for _, tt := range []struct {
 		name     string
 		schema   map[string]*schema.Schema
@@ -46,6 +48,8 @@ func TestGetSetValue(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			d := schema.TestResourceDataRaw(t, tt.schema, tt.data)
 
 			v, ok, typeOK := GetSetValue[string](d, tt.key)
@@ -57,6 +61,8 @@ func TestGetSetValue(t *testing.T) {
 }
 
 func TestGetSetOk(t *testing.T) {
+	t.Parallel()
+
 	for _, tt := range []struct {
 		name     string
 		schema   map[string]*schema.Schema
@@ -91,6 +97,8 @@ func TestGetSetOk(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			d := schema.TestResourceDataRaw(t, tt.schema, tt.data)
 
 			v, ok := GetSetOk[string](d, tt.key)
@@ -102,6 +110,8 @@ func TestGetSetOk(t *testing.T) {
 }
 
 func TestGetSet(t *testing.T) {
+	t.Parallel()
+
 	for _, tt := range []struct {
 		name        string
 		schema      map[string]*schema.Schema
@@ -143,6 +153,8 @@ func TestGetSet(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			d := schema.TestResourceDataRaw(t, tt.schema, tt.data)
 
 			v := GetSet[string](d, tt.key, tt.zeroAsEmpty)
