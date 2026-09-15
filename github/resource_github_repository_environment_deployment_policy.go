@@ -5,10 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strconv"
 
-	"github.com/google/go-github/v91/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
@@ -121,7 +120,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(ctx context.Conte
 		Type: new(policyType),
 	}
 
-	policy, _, err := client.Repositories.CreateDeploymentBranchPolicy(ctx, owner, repoName, url.PathEscape(envName), createData)
+	policy, _, err := client.Repositories.CreateDeploymentBranchPolicy(ctx, owner, repoName, envName, createData)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -158,7 +157,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyRead(ctx context.Context
 	envName := d.Get("environment").(string)
 	policyID := d.Get("policy_id").(int)
 
-	policy, _, err := client.Repositories.GetDeploymentBranchPolicy(ctx, owner, repoName, url.PathEscape(envName), int64(policyID))
+	policy, _, err := client.Repositories.GetDeploymentBranchPolicy(ctx, owner, repoName, envName, int64(policyID))
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
@@ -205,7 +204,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(ctx context.Conte
 		Name: pattern,
 	}
 
-	_, _, err := client.Repositories.UpdateDeploymentBranchPolicy(ctx, owner, repoName, url.PathEscape(envName), int64(policyID), updateData)
+	_, _, err := client.Repositories.UpdateDeploymentBranchPolicy(ctx, owner, repoName, envName, int64(policyID), updateData)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -228,7 +227,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyDelete(ctx context.Conte
 	envName := d.Get("environment").(string)
 	policyID := d.Get("policy_id").(int)
 
-	_, err := client.Repositories.DeleteDeploymentBranchPolicy(ctx, owner, repoName, url.PathEscape(envName), int64(policyID))
+	_, err := client.Repositories.DeleteDeploymentBranchPolicy(ctx, owner, repoName, envName, int64(policyID))
 	if err != nil {
 		return diag.FromErr(err)
 	}

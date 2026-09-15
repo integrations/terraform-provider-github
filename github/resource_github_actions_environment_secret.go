@@ -5,9 +5,8 @@ import (
 	"encoding/base64"
 	"errors"
 	"net/http"
-	"net/url"
 
-	"github.com/google/go-github/v91/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
@@ -137,8 +136,6 @@ func resourceGithubActionsEnvironmentSecretCreate(ctx context.Context, d *schema
 	keyID, _ := d.Get("key_id").(string)
 	encryptedValue, _ := tfschemautil.GetKeysOk[string](d, "value_encrypted", "encrypted_value")
 
-	escapedEnvName := url.PathEscape(envName)
-
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
 		return diag.FromErr(err)
@@ -147,7 +144,7 @@ func resourceGithubActionsEnvironmentSecretCreate(ctx context.Context, d *schema
 
 	var publicKey string
 	if len(keyID) == 0 || len(encryptedValue) == 0 {
-		ki, pk, err := getEnvironmentPublicKeyDetails(ctx, meta, owner, repoName, escapedEnvName)
+		ki, pk, err := getEnvironmentPublicKeyDetails(ctx, meta, owner, repoName, envName)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -171,7 +168,7 @@ func resourceGithubActionsEnvironmentSecretCreate(ctx context.Context, d *schema
 		KeyID:          keyID,
 	}
 
-	if _, err := client.Actions.CreateOrUpdateEnvSecret(ctx, owner, repoName, escapedEnvName, secretName, secretReq); err != nil {
+	if _, err := client.Actions.CreateOrUpdateEnvSecret(ctx, owner, repoName, envName, secretName, secretReq); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -190,7 +187,7 @@ func resourceGithubActionsEnvironmentSecretCreate(ctx context.Context, d *schema
 
 	// GitHub API does not return on create so we have to lookup the secret to get timestamps.
 	if secret, err := retryUntilResourceFound(ctx, func() (*github.Secret, error) {
-		val, _, err := client.Actions.GetEnvSecret(ctx, owner, repoName, escapedEnvName, secretName)
+		val, _, err := client.Actions.GetEnvSecret(ctx, owner, repoName, envName, secretName)
 		return val, err
 	}, nil); err == nil {
 		if err := d.Set("created_at", secret.CreatedAt.String()); err != nil {
@@ -216,7 +213,7 @@ func resourceGithubActionsEnvironmentSecretRead(ctx context.Context, d *schema.R
 	envName, _ := d.Get("environment").(string)
 	secretName, _ := d.Get("secret_name").(string)
 
-	secret, _, err := client.Actions.GetEnvSecret(ctx, owner, repoName, url.PathEscape(envName), secretName)
+	secret, _, err := client.Actions.GetEnvSecret(ctx, owner, repoName, envName, secretName)
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
 			tflog.Info(ctx, "Removing environment secret from state because it no longer exists in GitHub.", map[string]any{"secret_name": secretName, "environment": envName, "repository": repoName})
@@ -262,11 +259,9 @@ func resourceGithubActionsEnvironmentSecretUpdate(ctx context.Context, d *schema
 	keyID, _ := d.Get("key_id").(string)
 	encryptedValue, _ := tfschemautil.GetKeysOk[string](d, "value_encrypted", "encrypted_value")
 
-	escapedEnvName := url.PathEscape(envName)
-
 	var publicKey string
 	if len(keyID) == 0 || len(encryptedValue) == 0 {
-		ki, pk, err := getEnvironmentPublicKeyDetails(ctx, meta, owner, repoName, escapedEnvName)
+		ki, pk, err := getEnvironmentPublicKeyDetails(ctx, meta, owner, repoName, envName)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -290,7 +285,7 @@ func resourceGithubActionsEnvironmentSecretUpdate(ctx context.Context, d *schema
 		KeyID:          keyID,
 	}
 
-	if _, err := client.Actions.CreateOrUpdateEnvSecret(ctx, owner, repoName, escapedEnvName, secretName, secretReq); err != nil {
+	if _, err := client.Actions.CreateOrUpdateEnvSecret(ctx, owner, repoName, envName, secretName, secretReq); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -306,7 +301,7 @@ func resourceGithubActionsEnvironmentSecretUpdate(ctx context.Context, d *schema
 
 	// GitHub API does not return on update so we have to lookup the secret to get timestamps.
 	if secret, err := retryUntilResourceFound(ctx, func() (*github.Secret, error) {
-		val, _, err := client.Actions.GetEnvSecret(ctx, owner, repoName, escapedEnvName, secretName)
+		val, _, err := client.Actions.GetEnvSecret(ctx, owner, repoName, envName, secretName)
 		return val, err
 	}, nil); err == nil {
 		if err := d.Set("created_at", secret.CreatedAt.String()); err != nil {
@@ -333,7 +328,7 @@ func resourceGithubActionsEnvironmentSecretDelete(ctx context.Context, d *schema
 	secretName, _ := d.Get("secret_name").(string)
 
 	tflog.Info(ctx, "Deleting actions environment secret.", map[string]any{"secret_name": secretName, "environment": envName, "repository": repoName})
-	_, err := client.Actions.DeleteEnvSecret(ctx, owner, repoName, url.PathEscape(envName), secretName)
+	_, err := client.Actions.DeleteEnvSecret(ctx, owner, repoName, envName, secretName)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -359,7 +354,7 @@ func resourceGithubActionsEnvironmentSecretImport(ctx context.Context, d *schema
 	}
 	repoID := int(repo.GetID())
 
-	secret, _, err := client.Actions.GetEnvSecret(ctx, owner, repoName, url.PathEscape(envName), secretName)
+	secret, _, err := client.Actions.GetEnvSecret(ctx, owner, repoName, envName, secretName)
 	if err != nil {
 		return nil, err
 	}
@@ -389,10 +384,10 @@ func resourceGithubActionsEnvironmentSecretImport(ctx context.Context, d *schema
 	return []*schema.ResourceData{d}, nil
 }
 
-func getEnvironmentPublicKeyDetails(ctx context.Context, meta *Owner, owner, repoName, envNameEscaped string) (string, string, error) {
+func getEnvironmentPublicKeyDetails(ctx context.Context, meta *Owner, owner, repoName, envName string) (string, string, error) {
 	client := meta.v3client
 
-	publicKey, _, err := client.Actions.GetEnvPublicKey(ctx, owner, repoName, envNameEscaped)
+	publicKey, _, err := client.Actions.GetEnvPublicKey(ctx, owner, repoName, envName)
 	if err != nil {
 		return "", "", err
 	}

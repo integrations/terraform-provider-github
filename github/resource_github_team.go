@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v91/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -134,12 +134,17 @@ func resourceGithubTeamCreate(ctx context.Context, d *schema.ResourceData, m any
 		NotificationSetting: new(tfschemautil.Get[string](d, "notification_setting")),
 	}
 
-	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
-		teamId, err := getTeamID(ctx, meta, parentTeamID.(string))
-		if err != nil {
-			return diag.FromErr(err)
+	if parentTeamIDStr, ok := tfschemautil.GetOk[string](d, "parent_team_id"); ok {
+		parentTeamID, ok := parseTeamID(parentTeamIDStr)
+		if ok {
+			req.ParentTeamID = new(parentTeamID)
+		} else {
+			req.ParentTeamSlug = new(parentTeamIDStr)
 		}
-		req.ParentTeamID = &teamId
+	}
+
+	if ldapDNVal, ok := tfschemautil.GetOk[string](d, "ldap_dn"); ok {
+		req.LDAPDN = new(ldapDNVal)
 	}
 
 	team, resp, err := client.Teams.CreateTeam(ctx, ownerName, req)
@@ -338,12 +343,14 @@ func resourceGithubTeamUpdate(ctx context.Context, d *schema.ResourceData, m any
 		Privacy:             new(tfschemautil.Get[string](d, "privacy")),
 		NotificationSetting: new(tfschemautil.Get[string](d, "notification_setting")),
 	}
-	if parentTeamID, ok := tfschemautil.GetOk[string](d, "parent_team_id"); ok {
-		teamId, err := getTeamID(ctx, meta, parentTeamID)
-		if err != nil {
-			return diag.FromErr(err)
+
+	if parentTeamIDStr, ok := tfschemautil.GetOk[string](d, "parent_team_id"); ok {
+		parentTeamID, ok := parseTeamID(parentTeamIDStr)
+		if ok {
+			req.ParentTeamID = new(parentTeamID)
+		} else {
+			req.ParentTeamSlug = new(parentTeamIDStr)
 		}
-		req.ParentTeamID = &teamId
 	} else {
 		req.RemoveParentTeam = true
 	}
