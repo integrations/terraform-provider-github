@@ -25,11 +25,9 @@ func resourceGithubEnterpriseTeam() *schema.Resource {
 		DeleteContext: resourceGithubEnterpriseTeamDelete,
 		Importer:      &schema.ResourceImporter{StateContext: resourceGithubEnterpriseTeamImport},
 
-		CustomizeDiff: customdiff.Sequence(
-			customdiff.ComputedIf("slug", func(_ context.Context, d *schema.ResourceDiff, meta any) bool {
-				return d.HasChange("name")
-			}),
-		),
+		CustomizeDiff: customdiff.ComputedIf("slug", func(_ context.Context, d *schema.ResourceDiff, meta any) bool {
+			return d.HasChange("name")
+		}),
 
 		Schema: map[string]*schema.Schema{
 			"enterprise_slug": {
@@ -85,19 +83,7 @@ func resourceGithubEnterpriseTeamCreate(ctx context.Context, d *schema.ResourceD
 	orgSelection := d.Get("organization_selection_type").(string)
 	groupID := d.Get("group_id").(string)
 
-	req := github.EnterpriseTeamCreateOrUpdateRequest{
-		Name: name,
-		//nolint:modernize // new() accepts a type, not an expression.
-		OrganizationSelectionType: github.Ptr(orgSelection),
-	}
-	if description != "" {
-		//nolint:modernize // new() accepts a type, not an expression.
-		req.Description = github.Ptr(description)
-	}
-	if groupID != "" {
-		//nolint:modernize // new() accepts a type, not an expression.
-		req.GroupID = github.Ptr(groupID)
-	}
+	req := buildEnterpriseTeamRequest(name, description, orgSelection, groupID)
 
 	ctx = context.WithValue(ctx, ctxId, d.Id())
 	te, _, err := client.Enterprise.CreateTeam(ctx, enterpriseSlug, req)
@@ -212,19 +198,7 @@ func resourceGithubEnterpriseTeamUpdate(ctx context.Context, d *schema.ResourceD
 	orgSelection := d.Get("organization_selection_type").(string)
 	groupID := d.Get("group_id").(string)
 
-	req := github.EnterpriseTeamCreateOrUpdateRequest{
-		Name: name,
-		//nolint:modernize // new() accepts a type, not an expression.
-		OrganizationSelectionType: github.Ptr(orgSelection),
-	}
-	if description != "" {
-		//nolint:modernize // new() accepts a type, not an expression.
-		req.Description = github.Ptr(description)
-	}
-	if groupID != "" {
-		//nolint:modernize // new() accepts a type, not an expression.
-		req.GroupID = github.Ptr(groupID)
-	}
+	req := buildEnterpriseTeamRequest(name, description, orgSelection, groupID)
 
 	ctx = context.WithValue(ctx, ctxId, d.Id())
 	te, _, err := client.Enterprise.UpdateTeam(ctx, enterpriseSlug, teamSlug, req)
@@ -273,6 +247,25 @@ func resourceGithubEnterpriseTeamDelete(ctx context.Context, d *schema.ResourceD
 	}
 
 	return nil
+}
+
+// buildEnterpriseTeamRequest builds the create/update request body shared by
+// Create and Update.
+func buildEnterpriseTeamRequest(name, description, orgSelection, groupID string) github.EnterpriseTeamCreateOrUpdateRequest {
+	req := github.EnterpriseTeamCreateOrUpdateRequest{
+		Name: name,
+		//nolint:modernize // new() accepts a type, not an expression.
+		OrganizationSelectionType: github.Ptr(orgSelection),
+	}
+	if description != "" {
+		//nolint:modernize // new() accepts a type, not an expression.
+		req.Description = github.Ptr(description)
+	}
+	if groupID != "" {
+		//nolint:modernize // new() accepts a type, not an expression.
+		req.GroupID = github.Ptr(groupID)
+	}
+	return req
 }
 
 func resourceGithubEnterpriseTeamImport(_ context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {

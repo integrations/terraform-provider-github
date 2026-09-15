@@ -62,14 +62,7 @@ func resourceGithubEnterpriseTeamOrganizationsCreate(ctx context.Context, d *sch
 	client := meta.(*Owner).v3client
 	enterpriseSlug := strings.TrimSpace(d.Get("enterprise_slug").(string))
 
-	var team *github.EnterpriseTeam
-	var err error
-	if v, ok := d.GetOk("team_slug"); ok {
-		team, _, err = client.Enterprise.GetTeam(ctx, enterpriseSlug, v.(string))
-	} else {
-		teamID := int64(d.Get("team_id").(int))
-		team, err = findEnterpriseTeamByID(meta.(*Owner), ctx, enterpriseSlug, teamID)
-	}
+	team, err := resolveEnterpriseTeam(meta.(*Owner), ctx, enterpriseSlug, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -135,12 +128,7 @@ func resourceGithubEnterpriseTeamOrganizationsRead(ctx context.Context, d *schem
 		return diag.FromErr(err)
 	}
 
-	slugs := make([]string, 0, len(orgs))
-	for _, org := range orgs {
-		if org.Login != nil && *org.Login != "" {
-			slugs = append(slugs, *org.Login)
-		}
-	}
+	slugs := organizationSlugs(orgs)
 
 	if err := d.Set("enterprise_slug", enterpriseSlug); err != nil {
 		return diag.FromErr(err)
@@ -221,12 +209,7 @@ func resourceGithubEnterpriseTeamOrganizationsDelete(ctx context.Context, d *sch
 		return diag.FromErr(err)
 	}
 
-	removeSlugs := make([]string, 0, len(orgs))
-	for _, org := range orgs {
-		if org.Login != nil && *org.Login != "" {
-			removeSlugs = append(removeSlugs, *org.Login)
-		}
-	}
+	removeSlugs := organizationSlugs(orgs)
 
 	if len(removeSlugs) > 0 {
 		_, resp, err := client.Enterprise.RemoveMultipleAssignments(ctx, enterpriseSlug, teamSlug, removeSlugs)

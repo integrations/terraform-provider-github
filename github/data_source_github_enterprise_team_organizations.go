@@ -46,12 +46,7 @@ func dataSourceGithubEnterpriseTeamOrganizationsRead(ctx context.Context, d *sch
 		return diag.FromErr(err)
 	}
 
-	slugs := make([]string, 0, len(orgs))
-	for _, org := range orgs {
-		if org.Login != nil && *org.Login != "" {
-			slugs = append(slugs, *org.Login)
-		}
-	}
+	slugs := organizationSlugs(orgs)
 
 	d.SetId(buildEnterpriseTeamOrganizationsID(enterpriseSlug, teamSlug))
 	if err := d.Set("enterprise_slug", enterpriseSlug); err != nil {

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v89/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 // buildEnterpriseTeamMembershipID creates an ID for enterprise team membership resources.
@@ -43,25 +44,38 @@ func parseEnterpriseTeamOrganizationsID(id string) (enterpriseSlug, teamSlug str
 // findEnterpriseTeamByID lists all enterprise teams and returns the one matching the given ID.
 // This is needed because the API doesn't provide a direct lookup by numeric ID.
 func findEnterpriseTeamByID(meta *Owner, ctx context.Context, enterpriseSlug string, id int64) (*github.EnterpriseTeam, error) {
-	opt := &github.ListOptions{PerPage: meta.maxPerPage}
-
-	for {
-		teams, resp, err := meta.v3client.Enterprise.ListTeams(ctx, enterpriseSlug, opt)
-		if err != nil {
-			return nil, err
-		}
-		for _, team := range teams {
-			if team.ID == id {
-				return team, nil
-			}
-		}
-		if resp.NextPage == 0 {
-			break
-		}
-		opt.Page = resp.NextPage
+	teams, err := listAllEnterpriseTeams(meta, ctx, enterpriseSlug)
+	if err != nil {
+		return nil, err
 	}
-
+	for _, team := range teams {
+		if team.ID == id {
+			return team, nil
+		}
+	}
 	return nil, nil
+}
+
+// resolveEnterpriseTeam fetches the enterprise team referenced by team_slug,
+// falling back to a numeric team_id lookup when no slug is set (the schema
+// enforces ExactlyOneOf between the two).
+func resolveEnterpriseTeam(meta *Owner, ctx context.Context, enterpriseSlug string, d *schema.ResourceData) (*github.EnterpriseTeam, error) {
+	if v, ok := d.GetOk("team_slug"); ok {
+		team, _, err := meta.v3client.Enterprise.GetTeam(ctx, enterpriseSlug, v.(string))
+		return team, err
+	}
+	return findEnterpriseTeamByID(meta, ctx, enterpriseSlug, int64(d.Get("team_id").(int)))
+}
+
+// organizationSlugs extracts the non-empty logins of the given organizations.
+func organizationSlugs(orgs []*github.Organization) []string {
+	slugs := make([]string, 0, len(orgs))
+	for _, org := range orgs {
+		if org.Login != nil && *org.Login != "" {
+			slugs = append(slugs, *org.Login)
+		}
+	}
+	return slugs
 }
 
 // listAllEnterpriseTeamOrganizations returns all organizations assigned to an enterprise team with pagination handled.

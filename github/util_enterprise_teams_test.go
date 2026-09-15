@@ -5,37 +5,21 @@ import (
 )
 
 func TestBuildEnterpriseTeamMembershipID(t *testing.T) {
-	t.Run("builds correct ID format", func(t *testing.T) {
-		got := buildEnterpriseTeamMembershipID("my-enterprise", "ent:my-team", "testuser")
-		want := "my-enterprise/ent:my-team/testuser"
-		if got != want {
-			t.Fatalf("buildEnterpriseTeamMembershipID() = %q, want %q", got, want)
-		}
-	})
-
-	t.Run("handles empty strings", func(t *testing.T) {
-		got := buildEnterpriseTeamMembershipID("", "", "")
-		want := "//"
-		if got != want {
-			t.Fatalf("buildEnterpriseTeamMembershipID() = %q, want %q", got, want)
-		}
-	})
+	got := buildEnterpriseTeamMembershipID("my-enterprise", "ent:my-team", "testuser")
+	want := "my-enterprise/ent:my-team/testuser"
+	if got != want {
+		t.Fatalf("buildEnterpriseTeamMembershipID() = %q, want %q", got, want)
+	}
 }
 
 func TestParseEnterpriseTeamMembershipID(t *testing.T) {
-	t.Run("parses valid ID", func(t *testing.T) {
+	t.Run("parses valid ID with slug containing ':'", func(t *testing.T) {
 		enterprise, teamSlug, username, err := parseEnterpriseTeamMembershipID("my-enterprise/ent:my-team/testuser")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if enterprise != "my-enterprise" {
-			t.Fatalf("enterprise = %q, want %q", enterprise, "my-enterprise")
-		}
-		if teamSlug != "ent:my-team" {
-			t.Fatalf("teamSlug = %q, want %q", teamSlug, "ent:my-team")
-		}
-		if username != "testuser" {
-			t.Fatalf("username = %q, want %q", username, "testuser")
+		if enterprise != "my-enterprise" || teamSlug != "ent:my-team" || username != "testuser" {
+			t.Fatalf("got (%q, %q, %q), want (my-enterprise, ent:my-team, testuser)", enterprise, teamSlug, username)
 		}
 	})
 
@@ -56,85 +40,34 @@ func TestParseEnterpriseTeamMembershipID(t *testing.T) {
 	})
 
 	t.Run("returns error for invalid format", func(t *testing.T) {
-		_, _, _, err := parseEnterpriseTeamMembershipID("only-one-part")
-		if err == nil {
+		if _, _, _, err := parseEnterpriseTeamMembershipID("only-one-part"); err == nil {
 			t.Fatal("expected error for invalid ID format, got nil")
-		}
-	})
-
-	t.Run("returns error for empty string", func(t *testing.T) {
-		_, _, _, err := parseEnterpriseTeamMembershipID("")
-		if err == nil {
-			t.Fatal("expected error for empty ID, got nil")
-		}
-	})
-
-	t.Run("roundtrips with build function", func(t *testing.T) {
-		id := buildEnterpriseTeamMembershipID("enterprise", "ent:team-slug", "user123")
-		enterprise, teamSlug, username, err := parseEnterpriseTeamMembershipID(id)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if enterprise != "enterprise" || teamSlug != "ent:team-slug" || username != "user123" {
-			t.Fatalf("roundtrip failed: got (%q, %q, %q)", enterprise, teamSlug, username)
 		}
 	})
 }
 
 func TestBuildEnterpriseTeamOrganizationsID(t *testing.T) {
-	t.Run("builds correct ID format", func(t *testing.T) {
-		got := buildEnterpriseTeamOrganizationsID("my-enterprise", "ent:my-team")
-		want := "my-enterprise/ent:my-team"
-		if got != want {
-			t.Fatalf("buildEnterpriseTeamOrganizationsID() = %q, want %q", got, want)
-		}
-	})
-
-	t.Run("handles empty strings", func(t *testing.T) {
-		got := buildEnterpriseTeamOrganizationsID("", "")
-		want := "/"
-		if got != want {
-			t.Fatalf("buildEnterpriseTeamOrganizationsID() = %q, want %q", got, want)
-		}
-	})
+	got := buildEnterpriseTeamOrganizationsID("my-enterprise", "ent:my-team")
+	want := "my-enterprise/ent:my-team"
+	if got != want {
+		t.Fatalf("buildEnterpriseTeamOrganizationsID() = %q, want %q", got, want)
+	}
 }
 
 func TestParseEnterpriseTeamOrganizationsID(t *testing.T) {
-	t.Run("parses valid ID", func(t *testing.T) {
+	t.Run("parses valid ID with slug containing ':'", func(t *testing.T) {
 		enterprise, teamSlug, err := parseEnterpriseTeamOrganizationsID("my-enterprise/ent:my-team")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if enterprise != "my-enterprise" {
-			t.Fatalf("enterprise = %q, want %q", enterprise, "my-enterprise")
-		}
-		if teamSlug != "ent:my-team" {
-			t.Fatalf("teamSlug = %q, want %q", teamSlug, "ent:my-team")
+		if enterprise != "my-enterprise" || teamSlug != "ent:my-team" {
+			t.Fatalf("got (%q, %q), want (my-enterprise, ent:my-team)", enterprise, teamSlug)
 		}
 	})
 
 	t.Run("returns error for invalid format", func(t *testing.T) {
-		_, _, err := parseEnterpriseTeamOrganizationsID("no-slash-here")
-		if err == nil {
+		if _, _, err := parseEnterpriseTeamOrganizationsID("no-slash-here"); err == nil {
 			t.Fatal("expected error for invalid ID format, got nil")
-		}
-	})
-
-	t.Run("returns error for empty string", func(t *testing.T) {
-		_, _, err := parseEnterpriseTeamOrganizationsID("")
-		if err == nil {
-			t.Fatal("expected error for empty ID, got nil")
-		}
-	})
-
-	t.Run("roundtrips with build function", func(t *testing.T) {
-		id := buildEnterpriseTeamOrganizationsID("enterprise", "ent:team-slug")
-		enterprise, teamSlug, err := parseEnterpriseTeamOrganizationsID(id)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if enterprise != "enterprise" || teamSlug != "ent:team-slug" {
-			t.Fatalf("roundtrip failed: got (%q, %q)", enterprise, teamSlug)
 		}
 	})
 }

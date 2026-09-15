@@ -66,14 +66,7 @@ func resourceGithubEnterpriseTeamMembershipCreate(ctx context.Context, d *schema
 	enterpriseSlug := strings.TrimSpace(d.Get("enterprise_slug").(string))
 	username := strings.TrimSpace(d.Get("username").(string))
 
-	var team *github.EnterpriseTeam
-	var err error
-	if v, ok := d.GetOk("team_slug"); ok {
-		team, _, err = client.Enterprise.GetTeam(ctx, enterpriseSlug, v.(string))
-	} else {
-		teamID := int64(d.Get("team_id").(int))
-		team, err = findEnterpriseTeamByID(meta.(*Owner), ctx, enterpriseSlug, teamID)
-	}
+	team, err := resolveEnterpriseTeam(meta.(*Owner), ctx, enterpriseSlug, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
