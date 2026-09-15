@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -144,7 +144,7 @@ func resourceGithubEnterpriseTeamRead(ctx context.Context, d *schema.ResourceDat
 	}
 
 	if te == nil {
-		te, err = findEnterpriseTeamByID(ctx, client, enterpriseSlug, teamID)
+		te, err = findEnterpriseTeamByID(meta.(*Owner), ctx, enterpriseSlug, teamID)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -245,7 +245,7 @@ func resourceGithubEnterpriseTeamDelete(ctx context.Context, d *schema.ResourceD
 		if err != nil {
 			return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 		}
-		te, err := findEnterpriseTeamByID(ctx, client, enterpriseSlug, teamID)
+		te, err := findEnterpriseTeamByID(meta.(*Owner), ctx, enterpriseSlug, teamID)
 		if err != nil {
 			return diag.FromErr(err)
 		}

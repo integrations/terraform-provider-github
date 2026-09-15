@@ -74,9 +74,8 @@ func dataSourceGithubEnterpriseTeams() *schema.Resource {
 }
 
 func dataSourceGithubEnterpriseTeamsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
 	enterpriseSlug := strings.TrimSpace(d.Get("enterprise_slug").(string))
-	teams, err := listAllEnterpriseTeams(ctx, client, enterpriseSlug)
+	teams, err := listAllEnterpriseTeams(meta.(*Owner), ctx, enterpriseSlug)
 	if err != nil {
 		return diag.FromErr(err)
 	}

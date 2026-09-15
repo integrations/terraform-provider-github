@@ -18,7 +18,7 @@ func TestAccGithubEnterpriseTeamDataSource(t *testing.T) {
 		randomID := acctest.RandString(5)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -52,7 +52,7 @@ func TestAccGithubEnterpriseTeamDataSource(t *testing.T) {
 		randomID := acctest.RandString(5)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -92,7 +92,7 @@ func TestAccGithubEnterpriseTeamOrganizationsDataSource(t *testing.T) {
 		randomID := acctest.RandString(5)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -140,7 +140,7 @@ func TestAccGithubEnterpriseTeamMembershipDataSource(t *testing.T) {
 		randomID := acctest.RandString(5)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

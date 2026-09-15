@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -68,7 +68,7 @@ func resourceGithubEnterpriseTeamOrganizationsCreate(ctx context.Context, d *sch
 		team, _, err = client.Enterprise.GetTeam(ctx, enterpriseSlug, v.(string))
 	} else {
 		teamID := int64(d.Get("team_id").(int))
-		team, err = findEnterpriseTeamByID(ctx, client, enterpriseSlug, teamID)
+		team, err = findEnterpriseTeamByID(meta.(*Owner), ctx, enterpriseSlug, teamID)
 	}
 	if err != nil {
 		return diag.FromErr(err)
@@ -79,7 +79,7 @@ func resourceGithubEnterpriseTeamOrganizationsCreate(ctx context.Context, d *sch
 
 	// Verify no organizations are already assigned (authoritative resource).
 	// A 404 here means the team has no assignments yet — treat as empty and proceed.
-	existing, err := listAllEnterpriseTeamOrganizations(ctx, client, enterpriseSlug, team.Slug)
+	existing, err := listAllEnterpriseTeamOrganizations(meta.(*Owner), ctx, enterpriseSlug, team.Slug)
 	if err != nil {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
@@ -120,13 +120,12 @@ func resourceGithubEnterpriseTeamOrganizationsCreate(ctx context.Context, d *sch
 }
 
 func resourceGithubEnterpriseTeamOrganizationsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
 	enterpriseSlug, teamSlug, err := parseEnterpriseTeamOrganizationsID(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	orgs, err := listAllEnterpriseTeamOrganizations(ctx, client, enterpriseSlug, teamSlug)
+	orgs, err := listAllEnterpriseTeamOrganizations(meta.(*Owner), ctx, enterpriseSlug, teamSlug)
 	if err != nil {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
@@ -213,7 +212,7 @@ func resourceGithubEnterpriseTeamOrganizationsDelete(ctx context.Context, d *sch
 		return diag.FromErr(err)
 	}
 
-	orgs, err := listAllEnterpriseTeamOrganizations(ctx, client, enterpriseSlug, teamSlug)
+	orgs, err := listAllEnterpriseTeamOrganizations(meta.(*Owner), ctx, enterpriseSlug, teamSlug)
 	if err != nil {
 		var ghErr *github.ErrorResponse
 		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -72,7 +72,7 @@ func resourceGithubEnterpriseTeamMembershipCreate(ctx context.Context, d *schema
 		team, _, err = client.Enterprise.GetTeam(ctx, enterpriseSlug, v.(string))
 	} else {
 		teamID := int64(d.Get("team_id").(int))
-		team, err = findEnterpriseTeamByID(ctx, client, enterpriseSlug, teamID)
+		team, err = findEnterpriseTeamByID(meta.(*Owner), ctx, enterpriseSlug, teamID)
 	}
 	if err != nil {
 		return diag.FromErr(err)
@@ -117,7 +117,7 @@ func resourceGithubEnterpriseTeamMembershipRead(ctx context.Context, d *schema.R
 	if v, ok := d.GetOk("team_id"); ok {
 		teamID := int64(v.(int))
 		if teamID > 0 {
-			team, findErr := findEnterpriseTeamByID(ctx, client, enterpriseSlug, teamID)
+			team, findErr := findEnterpriseTeamByID(meta.(*Owner), ctx, enterpriseSlug, teamID)
 			if findErr != nil {
 				return diag.FromErr(findErr)
 			}
@@ -179,7 +179,7 @@ func resourceGithubEnterpriseTeamMembershipDelete(ctx context.Context, d *schema
 	if v, ok := d.GetOk("team_id"); ok {
 		teamID := int64(v.(int))
 		if teamID > 0 {
-			team, findErr := findEnterpriseTeamByID(ctx, client, enterpriseSlug, teamID)
+			team, findErr := findEnterpriseTeamByID(meta.(*Owner), ctx, enterpriseSlug, teamID)
 			if findErr != nil {
 				return diag.FromErr(findErr)
 			}

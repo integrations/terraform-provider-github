@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -70,7 +70,7 @@ func dataSourceGithubEnterpriseTeamRead(ctx context.Context, d *schema.ResourceD
 	var te *github.EnterpriseTeam
 	if v, ok := d.GetOk("team_id"); ok {
 		teamID := int64(v.(int))
-		found, err := findEnterpriseTeamByID(ctx, client, enterpriseSlug, teamID)
+		found, err := findEnterpriseTeamByID(meta.(*Owner), ctx, enterpriseSlug, teamID)
 		if err != nil {
 			return diag.FromErr(err)
 		}

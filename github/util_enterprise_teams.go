@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
 )
 
 // buildEnterpriseTeamMembershipID creates an ID for enterprise team membership resources.
@@ -42,11 +42,11 @@ func parseEnterpriseTeamOrganizationsID(id string) (enterpriseSlug, teamSlug str
 
 // findEnterpriseTeamByID lists all enterprise teams and returns the one matching the given ID.
 // This is needed because the API doesn't provide a direct lookup by numeric ID.
-func findEnterpriseTeamByID(ctx context.Context, client *github.Client, enterpriseSlug string, id int64) (*github.EnterpriseTeam, error) {
-	opt := &github.ListOptions{PerPage: maxPerPage}
+func findEnterpriseTeamByID(meta *Owner, ctx context.Context, enterpriseSlug string, id int64) (*github.EnterpriseTeam, error) {
+	opt := &github.ListOptions{PerPage: meta.maxPerPage}
 
 	for {
-		teams, resp, err := client.Enterprise.ListTeams(ctx, enterpriseSlug, opt)
+		teams, resp, err := meta.v3client.Enterprise.ListTeams(ctx, enterpriseSlug, opt)
 		if err != nil {
 			return nil, err
 		}
@@ -65,12 +65,12 @@ func findEnterpriseTeamByID(ctx context.Context, client *github.Client, enterpri
 }
 
 // listAllEnterpriseTeamOrganizations returns all organizations assigned to an enterprise team with pagination handled.
-func listAllEnterpriseTeamOrganizations(ctx context.Context, client *github.Client, enterpriseSlug, enterpriseTeam string) ([]*github.Organization, error) {
+func listAllEnterpriseTeamOrganizations(meta *Owner, ctx context.Context, enterpriseSlug, enterpriseTeam string) ([]*github.Organization, error) {
 	var all []*github.Organization
-	opt := &github.ListOptions{PerPage: maxPerPage}
+	opt := &github.ListOptions{PerPage: meta.maxPerPage}
 
 	for {
-		orgs, resp, err := client.Enterprise.ListAssignments(ctx, enterpriseSlug, enterpriseTeam, opt)
+		orgs, resp, err := meta.v3client.Enterprise.ListAssignments(ctx, enterpriseSlug, enterpriseTeam, opt)
 		if err != nil {
 			return nil, err
 		}
@@ -85,12 +85,12 @@ func listAllEnterpriseTeamOrganizations(ctx context.Context, client *github.Clie
 }
 
 // listAllEnterpriseTeams returns all enterprise teams with pagination handled.
-func listAllEnterpriseTeams(ctx context.Context, client *github.Client, enterpriseSlug string) ([]*github.EnterpriseTeam, error) {
+func listAllEnterpriseTeams(meta *Owner, ctx context.Context, enterpriseSlug string) ([]*github.EnterpriseTeam, error) {
 	var all []*github.EnterpriseTeam
-	opt := &github.ListOptions{PerPage: maxPerPage}
+	opt := &github.ListOptions{PerPage: meta.maxPerPage}
 
 	for {
-		teams, resp, err := client.Enterprise.ListTeams(ctx, enterpriseSlug, opt)
+		teams, resp, err := meta.v3client.Enterprise.ListTeams(ctx, enterpriseSlug, opt)
 		if err != nil {
 			return nil, err
 		}
