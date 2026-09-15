@@ -195,6 +195,11 @@ func resourceGithubOrganizationRepositoryRoleDelete(ctx context.Context, d *sche
 	roleID := int64(roleIDInt)
 
 	if _, err := client.Organizations.DeleteCustomRepoRole(ctx, orgName, roleID); err != nil {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Warn(ctx, "Organization repository role not found, skipping delete", map[string]any{"orgName": orgName, "roleId": roleID})
+			return nil
+		}
+
 		return diag.FromErr(fmt.Errorf("Error deleting organization repository role %d: %w", roleID, err))
 	}
 
