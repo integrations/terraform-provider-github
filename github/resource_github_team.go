@@ -169,7 +169,7 @@ func resourceGithubTeamCreate(ctx context.Context, d *schema.ResourceData, m any
 		on the parent team, the operation might still fail to set the parent team.
 	*/
 	if (req.ParentTeamID != nil || req.ParentTeamSlug != nil) && team.Parent == nil {
-		if _, _, err := client.Teams.UpdateTeamBySlug(ctx, ownerName, slug, github.UpdateTeamRequest{ParentTeamID: req.ParentTeamID}); err != nil {
+		if _, _, err := client.Teams.UpdateTeamBySlug(ctx, ownerName, slug, github.UpdateTeamRequest{ParentTeamID: req.ParentTeamID, ParentTeamSlug: req.ParentTeamSlug}); err != nil {
 			return diag.FromErr(err)
 		}
 	}
