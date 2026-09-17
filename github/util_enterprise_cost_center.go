@@ -3,6 +3,9 @@ package github
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/google/go-github/v89/github"
@@ -21,6 +24,15 @@ const (
 	CostCenterResourceTypeOrg  = "Org"
 	CostCenterResourceTypeRepo = "Repo"
 )
+
+type costCenterPage struct {
+	ID                string                       `json:"id"`
+	Name              string                       `json:"name"`
+	Resources         []*github.CostCenterResource `json:"resources"`
+	State             *string                      `json:"state,omitempty"`
+	AzureSubscription *string                      `json:"azure_subscription,omitempty"`
+	HasNextPage       bool                         `json:"has_next_page"`
+}
 
 func costCenterOwner(meta any) (*Owner, error) {
 	owner, ok := meta.(*Owner)
@@ -49,6 +61,48 @@ func costCenterStringSet(d *schema.ResourceData, key string) ([]string, error) {
 		return nil, fmt.Errorf("expected %q to contain only non-empty strings", key)
 	}
 	return result, nil
+}
+
+func getEnterpriseCostCenter(ctx context.Context, client *github.Client, enterpriseSlug, costCenterID string) (*github.CostCenter, error) {
+	const resourcesPerPage = 100
+
+	var costCenter *github.CostCenter
+	for page := 1; ; page++ {
+		query := url.Values{}
+		query.Set("page", strconv.Itoa(page))
+		query.Set("per_page", strconv.Itoa(resourcesPerPage))
+
+		endpoint := fmt.Sprintf(
+			"enterprises/%s/settings/billing/cost-centers/%s?%s",
+			url.PathEscape(enterpriseSlug),
+			url.PathEscape(costCenterID),
+			query.Encode(),
+		)
+		req, err := client.NewRequest(ctx, http.MethodGet, endpoint, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		result := new(costCenterPage)
+		_, err = client.Do(req, result)
+		if err != nil {
+			return nil, err
+		}
+
+		if costCenter == nil {
+			costCenter = &github.CostCenter{
+				ID:                result.ID,
+				Name:              result.Name,
+				State:             result.State,
+				AzureSubscription: result.AzureSubscription,
+			}
+		}
+		costCenter.Resources = append(costCenter.Resources, result.Resources...)
+
+		if !result.HasNextPage {
+			return costCenter, nil
+		}
+	}
 }
 
 // retryCostCenterRemoveResources removes resources from a cost center with retry logic.

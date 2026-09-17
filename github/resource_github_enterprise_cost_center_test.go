@@ -2,14 +2,28 @@ package github
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
+
+func TestGithubEnterpriseCostCenterNameValidation(t *testing.T) {
+	t.Parallel()
+
+	nameSchema := resourceGithubEnterpriseCostCenter().Schema["name"]
+	if diags := nameSchema.ValidateDiagFunc(strings.Repeat("a", 255), cty.GetAttrPath("name")); diags.HasError() {
+		t.Fatalf("expected a 255-character name to pass validation: %s", diags[0].Summary)
+	}
+	if diags := nameSchema.ValidateDiagFunc(strings.Repeat("a", 256), cty.GetAttrPath("name")); !diags.HasError() {
+		t.Fatal("expected a 256-character name to fail validation")
+	}
+}
 
 func TestAccGithubEnterpriseCostCenter(t *testing.T) {
 	t.Run("creates cost center without error", func(t *testing.T) {

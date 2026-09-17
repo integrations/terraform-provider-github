@@ -83,6 +83,9 @@ func dataSourceGithubEnterpriseCostCentersRead(ctx context.Context, d *schema.Re
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	if result == nil {
+		return diag.Errorf("GitHub returned an empty response when listing cost centers for enterprise %q", enterpriseSlug)
+	}
 
 	items := make([]any, 0, len(result.CostCenters))
 	for _, cc := range result.CostCenters {

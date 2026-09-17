@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubEnterpriseCostCenter() *schema.Resource {
@@ -29,9 +30,10 @@ func resourceGithubEnterpriseCostCenter() *schema.Resource {
 				Description: "The slug of the enterprise.",
 			},
 			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name of the cost center.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 255)),
+				Description:      "The name of the cost center, up to 255 characters.",
 			},
 			"state": {
 				Type:        schema.TypeString,
@@ -70,6 +72,9 @@ func resourceGithubEnterpriseCostCenterCreate(ctx context.Context, d *schema.Res
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	if cc == nil {
+		return diag.Errorf("GitHub returned an empty response when creating cost center %q in enterprise %q", name, enterpriseSlug)
+	}
 
 	d.SetId(cc.ID)
 
@@ -94,7 +99,7 @@ func resourceGithubEnterpriseCostCenterRead(ctx context.Context, d *schema.Resou
 	}
 	costCenterID := d.Id()
 
-	cc, _, err := owner.v3client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
+	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID)
 	if err != nil {
 		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "cost center %s/%s", enterpriseSlug, costCenterID))
 	}
@@ -190,7 +195,7 @@ func resourceGithubEnterpriseCostCenterImport(ctx context.Context, d *schema.Res
 	if err != nil {
 		return nil, err
 	}
-	cc, _, err := owner.v3client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
+	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID)
 	if err != nil {
 		return nil, fmt.Errorf("error reading cost center %q in enterprise %q: %w", costCenterID, enterpriseSlug, err)
 	}

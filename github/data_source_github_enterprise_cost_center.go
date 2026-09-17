@@ -74,7 +74,7 @@ func dataSourceGithubEnterpriseCostCenterRead(ctx context.Context, d *schema.Res
 		return diag.FromErr(err)
 	}
 
-	cc, _, err := owner.v3client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
+	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID)
 	if err != nil {
 		return diag.FromErr(err)
 	}

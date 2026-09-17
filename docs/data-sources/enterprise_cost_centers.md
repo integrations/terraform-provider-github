@@ -9,6 +9,8 @@ description: |-
 
 Retrieves a list of GitHub enterprise cost centers.
 
+~> Verify that authentication has the required enterprise billing access in the [GitHub Cost centers REST API documentation](https://docs.github.com/enterprise-cloud@latest/rest/billing/cost-centers).
+
 ## Example Usage
 
 ```terraform

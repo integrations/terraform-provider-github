@@ -59,7 +59,7 @@ func resourceGithubEnterpriseCostCenterOrganizationsCreate(ctx context.Context, 
 		return diag.FromErr(err)
 	}
 
-	cc, _, err := owner.v3client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
+	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -104,7 +104,7 @@ func resourceGithubEnterpriseCostCenterOrganizationsUpdate(ctx context.Context, 
 		return diag.FromErr(err)
 	}
 
-	cc, _, err := owner.v3client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
+	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -182,7 +182,7 @@ func resourceGithubEnterpriseCostCenterOrganizationsRead(ctx context.Context, d 
 		return diag.FromErr(err)
 	}
 
-	cc, _, err := owner.v3client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
+	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID)
 	if err != nil {
 		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "cost center organizations %s/%s", enterpriseSlug, costCenterID))
 	}
@@ -215,7 +215,7 @@ func resourceGithubEnterpriseCostCenterOrganizationsDelete(ctx context.Context, 
 		return diag.FromErr(err)
 	}
 
-	cc, _, err := owner.v3client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
+	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID)
 	if err != nil {
 		if errIs404(err) {
 			return nil

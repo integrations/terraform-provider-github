@@ -9,6 +9,8 @@ description: |-
 
 Manages an enterprise cost center in GitHub.
 
+~> Verify that authentication has the required enterprise billing access in the [GitHub Cost centers REST API documentation](https://docs.github.com/enterprise-cloud@latest/rest/billing/cost-centers).
+
 ## Example Usage
 
 ```terraform
@@ -24,7 +26,7 @@ resource "github_enterprise_cost_center" "example" {
 ### Required
 
 - `enterprise_slug` (String) The slug of the enterprise.
-- `name` (String) The name of the cost center.
+- `name` (String) The name of the cost center, up to 255 characters.
 
 ### Read-Only
 

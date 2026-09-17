@@ -95,7 +95,7 @@ func testAccCheckGithubEnterpriseCostCenterUsersDestroy(s *terraform.State) erro
 		enterpriseSlug := rs.Primary.Attributes["enterprise_slug"]
 		costCenterID := rs.Primary.Attributes["cost_center_id"]
 
-		cc, _, err := client.Enterprise.GetCostCenter(context.Background(), enterpriseSlug, costCenterID)
+		cc, err := getEnterpriseCostCenter(context.Background(), client, enterpriseSlug, costCenterID)
 		if errIs404(err) {
 			return nil
 		}
