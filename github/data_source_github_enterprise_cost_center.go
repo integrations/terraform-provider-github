@@ -61,11 +61,20 @@ func dataSourceGithubEnterpriseCostCenter() *schema.Resource {
 }
 
 func dataSourceGithubEnterpriseCostCenterRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	enterpriseSlug := d.Get("enterprise_slug").(string)
-	costCenterID := d.Get("cost_center_id").(string)
+	owner, err := costCenterOwner(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	enterpriseSlug, err := costCenterString(d, "enterprise_slug")
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	costCenterID, err := costCenterString(d, "cost_center_id")
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
-	cc, _, err := client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
+	cc, _, err := owner.v3client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
 	if err != nil {
 		return diag.FromErr(err)
 	}

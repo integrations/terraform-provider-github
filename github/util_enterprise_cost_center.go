@@ -2,11 +2,13 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"time"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 // Cost center resource management constants and retry functions.
@@ -19,6 +21,35 @@ const (
 	CostCenterResourceTypeOrg  = "Org"
 	CostCenterResourceTypeRepo = "Repo"
 )
+
+func costCenterOwner(meta any) (*Owner, error) {
+	owner, ok := meta.(*Owner)
+	if !ok {
+		return nil, fmt.Errorf("unexpected provider metadata type %T", meta)
+	}
+	return owner, nil
+}
+
+func costCenterString(d *schema.ResourceData, key string) (string, error) {
+	value, ok := resourceKeysGetOk[string](d, key)
+	if !ok {
+		return "", fmt.Errorf("expected %q to be a non-empty string", key)
+	}
+	return value, nil
+}
+
+func costCenterStringSet(d *schema.ResourceData, key string) ([]string, error) {
+	values, ok := resourceKeysGetOk[*schema.Set](d, key)
+	if !ok {
+		return nil, fmt.Errorf("expected %q to be a non-empty set of strings", key)
+	}
+
+	result := expandStringList(values.List())
+	if len(result) != values.Len() {
+		return nil, fmt.Errorf("expected %q to contain only non-empty strings", key)
+	}
+	return result, nil
+}
 
 // retryCostCenterRemoveResources removes resources from a cost center with retry logic.
 // Uses retry.RetryContext for exponential backoff on transient errors.

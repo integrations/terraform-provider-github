@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-testing/compare"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
@@ -15,15 +16,20 @@ import (
 )
 
 func TestAccGithubEnterpriseCostCenterOrganizations(t *testing.T) {
-	orgLogin := os.Getenv("ENTERPRISE_TEST_ORGANIZATION")
-	if orgLogin == "" {
-		t.Skip("ENTERPRISE_TEST_ORGANIZATION not set")
+	initialOrganization := os.Getenv("ENTERPRISE_TEST_ORGANIZATION")
+	updatedOrganization := os.Getenv("ENTERPRISE_TEST_ORGANIZATION_UPDATED")
+	if initialOrganization == "" || updatedOrganization == "" {
+		t.Skip("ENTERPRISE_TEST_ORGANIZATION and ENTERPRISE_TEST_ORGANIZATION_UPDATED must be set")
+	}
+	if initialOrganization == updatedOrganization {
+		t.Skip("ENTERPRISE_TEST_ORGANIZATION and ENTERPRISE_TEST_ORGANIZATION_UPDATED must identify different organizations")
 	}
 
 	t.Run("manages organization assignments without error", func(t *testing.T) {
 		randomID := acctest.RandString(5)
 
-		config := fmt.Sprintf(`
+		config := func(organizationLogin string) string {
+			return fmt.Sprintf(`
 			data "github_enterprise" "enterprise" {
 				slug = "%s"
 			}
@@ -38,19 +44,30 @@ func TestAccGithubEnterpriseCostCenterOrganizations(t *testing.T) {
 				cost_center_id      = github_enterprise_cost_center.test.id
 				organization_logins = [%q]
 			}
-		`, testAccConf.enterpriseSlug, testResourcePrefix, randomID, orgLogin)
+		`, testAccConf.enterpriseSlug, testResourcePrefix, randomID, organizationLogin)
+		}
 
+		idValuesSame := statecheck.CompareValue(compare.ValuesSame())
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubEnterpriseCostCenterOrganizationsDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: config,
+					Config: config(initialOrganization),
 					ConfigStateChecks: []statecheck.StateCheck{
+						idValuesSame.AddStateValue("github_enterprise_cost_center_organizations.test", tfjsonpath.New("id")),
 						statecheck.ExpectKnownValue("github_enterprise_cost_center_organizations.test", tfjsonpath.New("enterprise_slug"), knownvalue.StringExact(testAccConf.enterpriseSlug)),
 						statecheck.ExpectKnownValue("github_enterprise_cost_center_organizations.test", tfjsonpath.New("organization_logins"), knownvalue.SetSizeExact(1)),
-						statecheck.ExpectKnownValue("github_enterprise_cost_center_organizations.test", tfjsonpath.New("organization_logins"), knownvalue.SetPartial([]knownvalue.Check{knownvalue.StringExact(orgLogin)})),
+						statecheck.ExpectKnownValue("github_enterprise_cost_center_organizations.test", tfjsonpath.New("organization_logins"), knownvalue.SetPartial([]knownvalue.Check{knownvalue.StringExact(initialOrganization)})),
+					},
+				},
+				{
+					Config: config(updatedOrganization),
+					ConfigStateChecks: []statecheck.StateCheck{
+						idValuesSame.AddStateValue("github_enterprise_cost_center_organizations.test", tfjsonpath.New("id")),
+						statecheck.ExpectKnownValue("github_enterprise_cost_center_organizations.test", tfjsonpath.New("organization_logins"), knownvalue.SetSizeExact(1)),
+						statecheck.ExpectKnownValue("github_enterprise_cost_center_organizations.test", tfjsonpath.New("organization_logins"), knownvalue.SetPartial([]knownvalue.Check{knownvalue.StringExact(updatedOrganization)})),
 					},
 				},
 				{
@@ -65,7 +82,7 @@ func TestAccGithubEnterpriseCostCenterOrganizations(t *testing.T) {
 }
 
 func testAccCheckGithubEnterpriseCostCenterOrganizationsDestroy(s *terraform.State) error {
-	meta, err := getTestMeta()
+	meta, err := getTestMeta(testAccConf)
 	if err != nil {
 		return err
 	}

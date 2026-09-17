@@ -6,7 +6,7 @@ import (
 	"testing"
 	"unicode"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/go-cty/cty"
 )
 

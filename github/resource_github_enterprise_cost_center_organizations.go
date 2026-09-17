@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -46,11 +46,20 @@ func resourceGithubEnterpriseCostCenterOrganizations() *schema.Resource {
 }
 
 func resourceGithubEnterpriseCostCenterOrganizationsCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	enterpriseSlug := d.Get("enterprise_slug").(string)
-	costCenterID := d.Get("cost_center_id").(string)
+	owner, err := costCenterOwner(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	enterpriseSlug, err := costCenterString(d, "enterprise_slug")
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	costCenterID, err := costCenterString(d, "cost_center_id")
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
-	cc, _, err := client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
+	cc, _, err := owner.v3client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -60,8 +69,10 @@ func resourceGithubEnterpriseCostCenterOrganizationsCreate(ctx context.Context, 
 		}
 	}
 
-	desiredOrgsSet := d.Get("organization_logins").(*schema.Set)
-	toAdd := expandStringList(desiredOrgsSet.List())
+	toAdd, err := costCenterStringSet(d, "organization_logins")
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	tflog.Info(ctx, "Adding organizations to cost center", map[string]any{
 		"enterprise_slug": enterpriseSlug,
@@ -69,22 +80,31 @@ func resourceGithubEnterpriseCostCenterOrganizationsCreate(ctx context.Context, 
 		"count":           len(toAdd),
 	})
 
+	d.SetId(costCenterID)
 	for _, batch := range chunkStringSlice(toAdd, maxCostCenterResourcesPerRequest) {
-		if diags := retryCostCenterAddResources(ctx, client, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Organizations: batch}); diags.HasError() {
+		if diags := retryCostCenterAddResources(ctx, owner.v3client, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Organizations: batch}); diags.HasError() {
 			return diags
 		}
 	}
 
-	d.SetId(costCenterID)
 	return nil
 }
 
 func resourceGithubEnterpriseCostCenterOrganizationsUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	enterpriseSlug := d.Get("enterprise_slug").(string)
-	costCenterID := d.Get("cost_center_id").(string)
+	owner, err := costCenterOwner(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	enterpriseSlug, err := costCenterString(d, "enterprise_slug")
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	costCenterID, err := costCenterString(d, "cost_center_id")
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
-	cc, _, err := client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
+	cc, _, err := owner.v3client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -96,9 +116,13 @@ func resourceGithubEnterpriseCostCenterOrganizationsUpdate(ctx context.Context, 
 		}
 	}
 
+	desiredOrganizations, err := costCenterStringSet(d, "organization_logins")
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	var toAdd []string
-	for _, org := range d.Get("organization_logins").(*schema.Set).List() {
-		name := org.(string)
+	for _, name := range desiredOrganizations {
 		if _, exists := diff[name]; exists {
 			diff[name] = true
 		} else {
@@ -121,7 +145,7 @@ func resourceGithubEnterpriseCostCenterOrganizationsUpdate(ctx context.Context, 
 		})
 
 		for _, batch := range chunkStringSlice(toRemove, maxCostCenterResourcesPerRequest) {
-			if diags := retryCostCenterRemoveResources(ctx, client, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Organizations: batch}); diags.HasError() {
+			if diags := retryCostCenterRemoveResources(ctx, owner.v3client, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Organizations: batch}); diags.HasError() {
 				return diags
 			}
 		}
@@ -135,7 +159,7 @@ func resourceGithubEnterpriseCostCenterOrganizationsUpdate(ctx context.Context, 
 		})
 
 		for _, batch := range chunkStringSlice(toAdd, maxCostCenterResourcesPerRequest) {
-			if diags := retryCostCenterAddResources(ctx, client, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Organizations: batch}); diags.HasError() {
+			if diags := retryCostCenterAddResources(ctx, owner.v3client, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Organizations: batch}); diags.HasError() {
 				return diags
 			}
 		}
@@ -145,11 +169,20 @@ func resourceGithubEnterpriseCostCenterOrganizationsUpdate(ctx context.Context, 
 }
 
 func resourceGithubEnterpriseCostCenterOrganizationsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	enterpriseSlug := d.Get("enterprise_slug").(string)
-	costCenterID := d.Get("cost_center_id").(string)
+	owner, err := costCenterOwner(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	enterpriseSlug, err := costCenterString(d, "enterprise_slug")
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	costCenterID, err := costCenterString(d, "cost_center_id")
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
-	cc, _, err := client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
+	cc, _, err := owner.v3client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
 	if err != nil {
 		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "cost center organizations %s/%s", enterpriseSlug, costCenterID))
 	}
@@ -169,11 +202,20 @@ func resourceGithubEnterpriseCostCenterOrganizationsRead(ctx context.Context, d 
 }
 
 func resourceGithubEnterpriseCostCenterOrganizationsDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	enterpriseSlug := d.Get("enterprise_slug").(string)
-	costCenterID := d.Get("cost_center_id").(string)
+	owner, err := costCenterOwner(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	enterpriseSlug, err := costCenterString(d, "enterprise_slug")
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	costCenterID, err := costCenterString(d, "cost_center_id")
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
-	cc, _, err := client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
+	cc, _, err := owner.v3client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
 	if err != nil {
 		if errIs404(err) {
 			return nil
@@ -196,7 +238,7 @@ func resourceGithubEnterpriseCostCenterOrganizationsDelete(ctx context.Context, 
 		})
 
 		for _, batch := range chunkStringSlice(organizations, maxCostCenterResourcesPerRequest) {
-			if diags := retryCostCenterRemoveResources(ctx, client, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Organizations: batch}); diags.HasError() {
+			if diags := retryCostCenterRemoveResources(ctx, owner.v3client, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Organizations: batch}); diags.HasError() {
 				return diags
 			}
 		}

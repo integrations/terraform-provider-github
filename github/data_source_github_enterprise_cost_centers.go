@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -61,16 +61,25 @@ func dataSourceGithubEnterpriseCostCenters() *schema.Resource {
 }
 
 func dataSourceGithubEnterpriseCostCentersRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	enterpriseSlug := d.Get("enterprise_slug").(string)
-	stateFilter := d.Get("state").(string)
+	owner, err := costCenterOwner(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	enterpriseSlug, err := costCenterString(d, "enterprise_slug")
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	stateFilter, err := costCenterString(d, "state")
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	var opts github.ListCostCenterOptions
 	if stateFilter != "all" {
 		opts.State = &stateFilter
 	}
 
-	result, _, err := client.Enterprise.ListCostCenters(ctx, enterpriseSlug, &opts)
+	result, _, err := owner.v3client.Enterprise.ListCostCenters(ctx, enterpriseSlug, &opts)
 	if err != nil {
 		return diag.FromErr(err)
 	}

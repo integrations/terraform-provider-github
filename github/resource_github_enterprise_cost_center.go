@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -48,16 +48,25 @@ func resourceGithubEnterpriseCostCenter() *schema.Resource {
 }
 
 func resourceGithubEnterpriseCostCenterCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	enterpriseSlug := d.Get("enterprise_slug").(string)
-	name := d.Get("name").(string)
+	owner, err := costCenterOwner(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	enterpriseSlug, err := costCenterString(d, "enterprise_slug")
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	name, err := costCenterString(d, "name")
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	tflog.Info(ctx, "Creating enterprise cost center", map[string]any{
 		"enterprise_slug": enterpriseSlug,
 		"name":            name,
 	})
 
-	cc, _, err := client.Enterprise.CreateCostCenter(ctx, enterpriseSlug, github.CostCenterRequest{Name: name})
+	cc, _, err := owner.v3client.Enterprise.CreateCostCenter(ctx, enterpriseSlug, github.CostCenterRequest{Name: name})
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -75,11 +84,17 @@ func resourceGithubEnterpriseCostCenterCreate(ctx context.Context, d *schema.Res
 }
 
 func resourceGithubEnterpriseCostCenterRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	enterpriseSlug := d.Get("enterprise_slug").(string)
+	owner, err := costCenterOwner(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	enterpriseSlug, err := costCenterString(d, "enterprise_slug")
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	costCenterID := d.Id()
 
-	cc, _, err := client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
+	cc, _, err := owner.v3client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
 	if err != nil {
 		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "cost center %s/%s", enterpriseSlug, costCenterID))
 	}
@@ -109,18 +124,27 @@ func resourceGithubEnterpriseCostCenterRead(ctx context.Context, d *schema.Resou
 }
 
 func resourceGithubEnterpriseCostCenterUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	enterpriseSlug := d.Get("enterprise_slug").(string)
+	owner, err := costCenterOwner(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	enterpriseSlug, err := costCenterString(d, "enterprise_slug")
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	costCenterID := d.Id()
 
 	if d.HasChange("name") {
-		name := d.Get("name").(string)
+		name, err := costCenterString(d, "name")
+		if err != nil {
+			return diag.FromErr(err)
+		}
 		tflog.Info(ctx, "Updating enterprise cost center name", map[string]any{
 			"enterprise_slug": enterpriseSlug,
 			"cost_center_id":  costCenterID,
 			"name":            name,
 		})
-		_, _, err := client.Enterprise.UpdateCostCenter(ctx, enterpriseSlug, costCenterID, github.CostCenterRequest{Name: name})
+		_, _, err = owner.v3client.Enterprise.UpdateCostCenter(ctx, enterpriseSlug, costCenterID, github.CostCenterRequest{Name: name})
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -130,8 +154,14 @@ func resourceGithubEnterpriseCostCenterUpdate(ctx context.Context, d *schema.Res
 }
 
 func resourceGithubEnterpriseCostCenterDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	enterpriseSlug := d.Get("enterprise_slug").(string)
+	owner, err := costCenterOwner(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	enterpriseSlug, err := costCenterString(d, "enterprise_slug")
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	costCenterID := d.Id()
 
 	tflog.Info(ctx, "Archiving enterprise cost center", map[string]any{
@@ -139,7 +169,7 @@ func resourceGithubEnterpriseCostCenterDelete(ctx context.Context, d *schema.Res
 		"cost_center_id":  costCenterID,
 	})
 
-	_, _, err := client.Enterprise.DeleteCostCenter(ctx, enterpriseSlug, costCenterID)
+	_, _, err = owner.v3client.Enterprise.DeleteCostCenter(ctx, enterpriseSlug, costCenterID)
 	if err != nil {
 		if errIs404(err) {
 			return nil
@@ -156,8 +186,11 @@ func resourceGithubEnterpriseCostCenterImport(ctx context.Context, d *schema.Res
 		return nil, fmt.Errorf("invalid import ID %q: expected format <enterprise_slug>:<cost_center_id>", d.Id())
 	}
 
-	client := meta.(*Owner).v3client
-	cc, _, err := client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
+	owner, err := costCenterOwner(meta)
+	if err != nil {
+		return nil, err
+	}
+	cc, _, err := owner.v3client.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
 	if err != nil {
 		return nil, fmt.Errorf("error reading cost center %q in enterprise %q: %w", costCenterID, enterpriseSlug, err)
 	}

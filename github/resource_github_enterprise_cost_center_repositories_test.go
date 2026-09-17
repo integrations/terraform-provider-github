@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-testing/compare"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
@@ -15,15 +16,20 @@ import (
 )
 
 func TestAccGithubEnterpriseCostCenterRepositories(t *testing.T) {
-	repoName := os.Getenv("ENTERPRISE_TEST_REPOSITORY")
-	if repoName == "" {
-		t.Skip("ENTERPRISE_TEST_REPOSITORY not set")
+	initialRepository := os.Getenv("ENTERPRISE_TEST_REPOSITORY")
+	updatedRepository := os.Getenv("ENTERPRISE_TEST_REPOSITORY_UPDATED")
+	if initialRepository == "" || updatedRepository == "" {
+		t.Skip("ENTERPRISE_TEST_REPOSITORY and ENTERPRISE_TEST_REPOSITORY_UPDATED must be set")
+	}
+	if initialRepository == updatedRepository {
+		t.Skip("ENTERPRISE_TEST_REPOSITORY and ENTERPRISE_TEST_REPOSITORY_UPDATED must identify different repositories")
 	}
 
 	t.Run("manages repository assignments without error", func(t *testing.T) {
 		randomID := acctest.RandString(5)
 
-		config := fmt.Sprintf(`
+		config := func(repositoryName string) string {
+			return fmt.Sprintf(`
 			data "github_enterprise" "enterprise" {
 				slug = "%s"
 			}
@@ -38,19 +44,30 @@ func TestAccGithubEnterpriseCostCenterRepositories(t *testing.T) {
 				cost_center_id   = github_enterprise_cost_center.test.id
 				repository_names = [%q]
 			}
-		`, testAccConf.enterpriseSlug, testResourcePrefix, randomID, repoName)
+		`, testAccConf.enterpriseSlug, testResourcePrefix, randomID, repositoryName)
+		}
 
+		idValuesSame := statecheck.CompareValue(compare.ValuesSame())
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubEnterpriseCostCenterRepositoriesDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: config,
+					Config: config(initialRepository),
 					ConfigStateChecks: []statecheck.StateCheck{
+						idValuesSame.AddStateValue("github_enterprise_cost_center_repositories.test", tfjsonpath.New("id")),
 						statecheck.ExpectKnownValue("github_enterprise_cost_center_repositories.test", tfjsonpath.New("enterprise_slug"), knownvalue.StringExact(testAccConf.enterpriseSlug)),
 						statecheck.ExpectKnownValue("github_enterprise_cost_center_repositories.test", tfjsonpath.New("repository_names"), knownvalue.SetSizeExact(1)),
-						statecheck.ExpectKnownValue("github_enterprise_cost_center_repositories.test", tfjsonpath.New("repository_names"), knownvalue.SetPartial([]knownvalue.Check{knownvalue.StringExact(repoName)})),
+						statecheck.ExpectKnownValue("github_enterprise_cost_center_repositories.test", tfjsonpath.New("repository_names"), knownvalue.SetPartial([]knownvalue.Check{knownvalue.StringExact(initialRepository)})),
+					},
+				},
+				{
+					Config: config(updatedRepository),
+					ConfigStateChecks: []statecheck.StateCheck{
+						idValuesSame.AddStateValue("github_enterprise_cost_center_repositories.test", tfjsonpath.New("id")),
+						statecheck.ExpectKnownValue("github_enterprise_cost_center_repositories.test", tfjsonpath.New("repository_names"), knownvalue.SetSizeExact(1)),
+						statecheck.ExpectKnownValue("github_enterprise_cost_center_repositories.test", tfjsonpath.New("repository_names"), knownvalue.SetPartial([]knownvalue.Check{knownvalue.StringExact(updatedRepository)})),
 					},
 				},
 				{
@@ -65,7 +82,7 @@ func TestAccGithubEnterpriseCostCenterRepositories(t *testing.T) {
 }
 
 func testAccCheckGithubEnterpriseCostCenterRepositoriesDestroy(s *terraform.State) error {
-	meta, err := getTestMeta()
+	meta, err := getTestMeta(testAccConf)
 	if err != nil {
 		return err
 	}
