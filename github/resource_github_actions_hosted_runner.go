@@ -244,8 +244,10 @@ func resourceGithubActionsHostedRunnerCreate(ctx context.Context, d *schema.Reso
 	if err := d.Set("platform", runner.GetPlatform()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("last_active_on", runner.GetLastActiveOn().Format(time.RFC3339)); err != nil {
-		return diag.FromErr(err)
+	if lastActiveOn := runner.GetLastActiveOn(); !lastActiveOn.IsZero() {
+		if err := d.Set("last_active_on", lastActiveOn.Format(time.RFC3339)); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	if machineSizeDetails := runner.GetMachineSizeDetails(); machineSizeDetails != nil {
@@ -300,8 +302,10 @@ func resourceGithubActionsHostedRunnerRead(ctx context.Context, d *schema.Resour
 	if err := d.Set("platform", runner.GetPlatform()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("last_active_on", runner.GetLastActiveOn().Format(time.RFC3339)); err != nil {
+	if lastActiveOn := runner.GetLastActiveOn(); !lastActiveOn.IsZero() {
+		if err := d.Set("last_active_on", lastActiveOn.Format(time.RFC3339)); err != nil {
 		return diag.FromErr(err)
+	}
 	}
 	if err := d.Set("public_ip_enabled", runner.GetPublicIPEnabled()); err != nil {
 		return diag.FromErr(err)
@@ -391,8 +395,10 @@ func resourceGithubActionsHostedRunnerUpdate(ctx context.Context, d *schema.Reso
 	if err := d.Set("platform", runner.GetPlatform()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("last_active_on", runner.GetLastActiveOn().Format(time.RFC3339)); err != nil {
+	if lastActiveOn := runner.GetLastActiveOn(); !lastActiveOn.IsZero() {
+		if err := d.Set("last_active_on", lastActiveOn.Format(time.RFC3339)); err != nil {
 		return diag.FromErr(err)
+	}
 	}
 
 	if machineSizeDetails := runner.GetMachineSizeDetails(); machineSizeDetails != nil {
