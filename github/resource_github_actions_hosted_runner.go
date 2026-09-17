@@ -25,7 +25,7 @@ func resourceGithubActionsHostedRunner() *schema.Resource {
 		UpdateContext: resourceGithubActionsHostedRunnerUpdate,
 		DeleteContext: resourceGithubActionsHostedRunnerDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: resourceGithubActionsHostedRunnerImport,
 		},
 
 		Timeouts: &schema.ResourceTimeout{
@@ -331,11 +331,9 @@ func resourceGithubActionsHostedRunnerRead(ctx context.Context, d *schema.Resour
 	if err := d.Set("public_ips", flattenPublicIPs(runner.GetPublicIPs())); err != nil {
 		return diag.FromErr(err)
 	}
-
-	// TODO: Uncomment when go-github supports image_gen field in the HostedRunner struct
-	// if err := d.Set("image_gen", runner.GetImageGen()); err != nil {
-	// 	return diag.FromErr(err)
-	// }
+	if err := d.Set("image_gen", runner.GetImageGen()); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
@@ -445,6 +443,39 @@ func resourceGithubActionsHostedRunnerDelete(ctx context.Context, d *schema.Reso
 	}
 
 	return nil
+}
+
+func resourceGithubActionsHostedRunnerImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+	err := checkOrganization(m)
+	if err != nil {
+		return nil, err
+	}
+
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
+
+	runnerID, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid runner ID: %w", err)
+	}
+
+	runner, _, err := client.Actions.GetHostedRunner(ctx, orgName, runnerID)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching runner: %w", err)
+	}
+
+	d.SetId(strconv.Itoa(int(runner.GetID())))
+	if err := d.Set("image_gen", runner.GetImageGen()); err != nil {
+		return nil, fmt.Errorf("error setting image_gen: %w", err)
+	}
+	if imageDetails := runner.GetImageDetails(); imageDetails != nil {
+		if err := d.Set("image", flattenImage(imageDetails)); err != nil {
+			return nil, fmt.Errorf("error setting image: %w", err)
+		}
+	}
+
+	return []*schema.ResourceData{d}, nil
 }
 
 func waitForRunnerDeletion(ctx context.Context, client *github.Client, orgName string, runnerID int64, timeout time.Duration) error {
