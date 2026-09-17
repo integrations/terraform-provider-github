@@ -2,48 +2,14 @@ terraform {
   required_providers {
     github = {
       source  = "integrations/github"
-      version = "~> 6.11"
+      version = ">= 6.11"
     }
   }
 }
 
 provider "github" {
   token = var.github_token
-  owner = var.enterprise_slug
-}
-
-variable "github_token" {
-  description = "GitHub classic personal access token (PAT) for an enterprise admin"
-  type        = string
-  sensitive   = true
-}
-
-variable "enterprise_slug" {
-  description = "The GitHub Enterprise slug"
-  type        = string
-}
-
-variable "cost_center_name" {
-  description = "Name for the cost center"
-  type        = string
-}
-
-variable "users" {
-  description = "Usernames to assign to the cost center"
-  type        = list(string)
-  default     = []
-}
-
-variable "organizations" {
-  description = "Organization logins to assign to the cost center"
-  type        = list(string)
-  default     = []
-}
-
-variable "repositories" {
-  description = "Repositories (full name, e.g. org/repo) to assign to the cost center"
-  type        = list(string)
-  default     = []
+  owner = var.github_owner
 }
 
 # The cost center resource manages only the cost center entity itself.
@@ -90,26 +56,4 @@ data "github_enterprise_cost_centers" "active" {
   state           = "active"
 
   depends_on = [github_enterprise_cost_center.example]
-}
-
-output "cost_center" {
-  description = "Created cost center"
-  value = {
-    id                 = github_enterprise_cost_center.example.id
-    name               = github_enterprise_cost_center.example.name
-    state              = github_enterprise_cost_center.example.state
-    azure_subscription = github_enterprise_cost_center.example.azure_subscription
-  }
-}
-
-output "cost_center_from_data_source" {
-  description = "Cost center fetched by data source (includes all assignments)"
-  value = {
-    id            = data.github_enterprise_cost_center.by_id.cost_center_id
-    name          = data.github_enterprise_cost_center.by_id.name
-    state         = data.github_enterprise_cost_center.by_id.state
-    users         = sort(tolist(data.github_enterprise_cost_center.by_id.users))
-    organizations = sort(tolist(data.github_enterprise_cost_center.by_id.organizations))
-    repositories  = sort(tolist(data.github_enterprise_cost_center.by_id.repositories))
-  }
 }
