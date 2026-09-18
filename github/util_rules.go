@@ -684,12 +684,11 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 			if repositoryVisibilityMap, ok := v[0].(map[string]any); ok {
 				internal, _ := repositoryVisibilityMap["internal"].(bool)
 				private, _ := repositoryVisibilityMap["private"].(bool)
+				public, _ := repositoryVisibilityMap["public"].(bool)
 				rulesetRules.RepositoryVisibility = &github.RepositoryVisibilityRuleParameters{
 					Internal: internal,
 					Private:  private,
-					// TODO(go-github v91): restore once RepositoryVisibilityRuleParameters
-					// exposes Public (https://github.com/google/go-github/pull/4455).
-					// Public: public,
+					Public:   public,
 				}
 			}
 		}
@@ -942,9 +941,7 @@ func flattenRules(ctx context.Context, rules *github.RepositoryRulesetRules, org
 			repositoryVisibilitySlice = append(repositoryVisibilitySlice, map[string]any{
 				"internal": rules.RepositoryVisibility.Internal,
 				"private":  rules.RepositoryVisibility.Private,
-				// TODO(go-github v91): restore once RepositoryVisibilityRuleParameters
-				// exposes Public (https://github.com/google/go-github/pull/4455).
-				// "public": rules.RepositoryVisibility.Public,
+				"public":   rules.RepositoryVisibility.Public,
 			})
 			rulesMap["repository_visibility"] = repositoryVisibilitySlice
 		}

@@ -344,6 +344,7 @@ Optional:
 
 - `internal` (Boolean) Allow matching repositories to be internal.
 - `private` (Boolean) Allow matching repositories to be private.
+- `public` (Boolean) Allow matching repositories to be public.
 
 
 <a id="nestedblock--rules--required_code_scanning"></a>

@@ -598,16 +598,14 @@ resource "github_organization_ruleset" "test" {
 		repository_visibility {
 			internal = %t
 			private  = true
-			# TODO(go-github v91): cover once RepositoryVisibilityRuleParameters
-			# exposes Public (https://github.com/google/go-github/pull/4455).
-			# public = true
+			public   = %t
 		}
 	}
 }
 `
 
-		config := fmt.Sprintf(configTemplate, rulesetName, true, "^tf-acc-", false, true)
-		configUpdated := fmt.Sprintf(configTemplate, rulesetName, false, "^tf-acc-updated-", true, false)
+		config := fmt.Sprintf(configTemplate, rulesetName, true, "^tf-acc-", false, true, false)
+		configUpdated := fmt.Sprintf(configTemplate, rulesetName, false, "^tf-acc-updated-", true, false, true)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
@@ -624,6 +622,7 @@ resource "github_organization_ruleset" "test" {
 						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_name").AtSliceIndex(0).AtMapKey("negate"), knownvalue.Bool(true)),
 						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_visibility").AtSliceIndex(0).AtMapKey("internal"), knownvalue.Bool(false)),
 						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_visibility").AtSliceIndex(0).AtMapKey("private"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("repository_visibility").AtSliceIndex(0).AtMapKey("public"), knownvalue.Bool(true)),
 					},
 				},
 				{

@@ -1474,7 +1474,8 @@ func TestRoundTripRepositoryTargetRules(t *testing.T) {
 		"repository_visibility": []any{
 			map[string]any{
 				"internal": true,
-				"private":  true,
+				"private":  false,
+				"public":   true,
 			},
 		},
 	}
@@ -1513,8 +1514,12 @@ func TestRoundTripRepositoryTargetRules(t *testing.T) {
 		t.Errorf("Expected Internal to be true, got %v", expandedRules.RepositoryVisibility.Internal)
 	}
 
-	if expandedRules.RepositoryVisibility.Private != true {
-		t.Errorf("Expected Private to be true, got %v", expandedRules.RepositoryVisibility.Private)
+	if expandedRules.RepositoryVisibility.Private != false {
+		t.Errorf("Expected Private to be false, got %v", expandedRules.RepositoryVisibility.Private)
+	}
+
+	if expandedRules.RepositoryVisibility.Public != true {
+		t.Errorf("Expected Public to be true, got %v", expandedRules.RepositoryVisibility.Public)
 	}
 
 	flattenedRulesMap, ok := flattenRules(t.Context(), expandedRules, true)[0].(map[string]any)
@@ -1552,8 +1557,12 @@ func TestRoundTripRepositoryTargetRules(t *testing.T) {
 		t.Errorf("Expected internal to be true, got %v", repositoryVisibility[0]["internal"])
 	}
 
-	if repositoryVisibility[0]["private"] != true {
-		t.Errorf("Expected private to be true, got %v", repositoryVisibility[0]["private"])
+	if repositoryVisibility[0]["private"] != false {
+		t.Errorf("Expected private to be false, got %v", repositoryVisibility[0]["private"])
+	}
+
+	if repositoryVisibility[0]["public"] != true {
+		t.Errorf("Expected public to be true, got %v", repositoryVisibility[0]["public"])
 	}
 }
 
