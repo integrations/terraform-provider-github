@@ -10,9 +10,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+
+	"github.com/integrations/terraform-provider-github/v6/internal/tfpluginv2util"
 )
 
 func resourceGithubRepositoryMilestone() *schema.Resource {
@@ -100,28 +102,30 @@ func resourceGithubRepositoryMilestoneCreate(d *schema.ResourceData, meta any) e
 	owner := d.Get("owner").(string)
 	repoName := d.Get("repository").(string)
 
-	milestone := &github.Milestone{
-		Title: new(d.Get("title").(string)),
+	title, _ := d.Get("title").(string)
+
+	req := github.CreateMilestoneRequest{
+		Title: title,
 	}
 
-	if v, ok := d.GetOk("description"); ok && len(v.(string)) > 0 {
-		milestone.Description = new(v.(string))
+	if v, ok := tfpluginv2util.GetOk[string](d, "description"); ok && len(v) > 0 {
+		req.Description = new(v)
 	}
-	if v, ok := d.GetOk("due_date"); ok && len(v.(string)) > 0 {
-		dueDate, err := time.Parse(layoutISO, v.(string))
+	if v, ok := tfpluginv2util.GetOk[string](d, "due_date"); ok && len(v) > 0 {
+		dueDate, err := time.Parse(layoutISO, v)
 		if err != nil {
 			return err
 		}
 		date := time.Date(dueDate.Year(), dueDate.Month(), dueDate.Day(), 23, 39, 0, 0, time.UTC)
-		milestone.DueOn = &github.Timestamp{
+		req.DueOn = &github.Timestamp{
 			Time: date,
 		}
 	}
-	if v, ok := d.GetOk("state"); ok && len(v.(string)) > 0 {
-		milestone.State = new(v.(string))
+	if v, ok := tfpluginv2util.GetOk[string](d, "state"); ok && len(v) > 0 {
+		req.State = new(v)
 	}
 
-	milestone, _, err := conn.Issues.CreateMilestone(ctx, owner, repoName, milestone)
+	milestone, _, err := conn.Issues.CreateMilestone(ctx, owner, repoName, req)
 	if err != nil {
 		return err
 	}
@@ -189,15 +193,17 @@ func resourceGithubRepositoryMilestoneUpdate(d *schema.ResourceData, meta any) e
 		return err
 	}
 
-	milestone := &github.Milestone{}
+	req := github.UpdateMilestoneRequest{}
 	if d.HasChanges("title") {
 		_, n := d.GetChange("title")
-		milestone.Title = new(n.(string))
+		title, _ := n.(string)
+		req.Title = new(title)
 	}
 
 	if d.HasChanges("description") {
 		_, n := d.GetChange("description")
-		milestone.Description = new(n.(string))
+		description, _ := n.(string)
+		req.Description = new(description)
 	}
 
 	if d.HasChanges("due_date") {
@@ -207,17 +213,18 @@ func resourceGithubRepositoryMilestoneUpdate(d *schema.ResourceData, meta any) e
 			return err
 		}
 		date := time.Date(dueDate.Year(), dueDate.Month(), dueDate.Day(), 7, 0, 0, 0, time.UTC)
-		milestone.DueOn = &github.Timestamp{
+		req.DueOn = &github.Timestamp{
 			Time: date,
 		}
 	}
 
 	if d.HasChanges("state") {
 		_, n := d.GetChange("state")
-		milestone.State = new(n.(string))
+		state, _ := n.(string)
+		req.State = new(state)
 	}
 
-	_, _, err = conn.Issues.EditMilestone(ctx, owner, repoName, number, milestone)
+	_, _, err = conn.Issues.UpdateMilestone(ctx, owner, repoName, number, req)
 	if err != nil {
 		return err
 	}

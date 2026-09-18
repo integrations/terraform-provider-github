@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -20,6 +20,8 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 		Create: resourceGithubRepositoryAutolinkReferenceCreate,
 		Read:   resourceGithubRepositoryAutolinkReferenceRead,
 		Delete: resourceGithubRepositoryAutolinkReferenceDelete,
+
+		CustomizeDiff: diffETag,
 
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
@@ -90,13 +92,8 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the autolink reference.",
-				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
-					return true
-				},
-				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -112,13 +109,13 @@ func resourceGithubRepositoryAutolinkReferenceCreate(d *schema.ResourceData, met
 	isAlphanumeric := d.Get("is_alphanumeric").(bool)
 	ctx := context.Background()
 
-	opts := &github.AutolinkOptions{
-		KeyPrefix:      &keyPrefix,
-		URLTemplate:    &targetURLTemplate,
+	opts := github.CreateAutolinkRequest{
+		KeyPrefix:      keyPrefix,
+		URLTemplate:    targetURLTemplate,
 		IsAlphanumeric: &isAlphanumeric,
 	}
 
-	autolinkRef, _, err := client.Repositories.AddAutolink(ctx, owner, repoName, opts)
+	autolinkRef, _, err := client.Repositories.CreateAutolink(ctx, owner, repoName, opts)
 	if err != nil {
 		return err
 	}

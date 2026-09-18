@@ -5,9 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
@@ -179,7 +178,7 @@ func resourceGithubRepositoryEnvironmentCreate(ctx context.Context, d *schema.Re
 	envName := d.Get("environment").(string)
 	updateData := createUpdateEnvironmentData(d)
 
-	_, _, err := client.Repositories.CreateUpdateEnvironment(ctx, owner, repoName, url.PathEscape(envName), &updateData)
+	_, _, err := client.Repositories.CreateUpdateEnvironment(ctx, owner, repoName, envName, &updateData)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -212,7 +211,7 @@ func resourceGithubRepositoryEnvironmentRead(ctx context.Context, d *schema.Reso
 	repoName := d.Get("repository").(string)
 	envName := d.Get("environment").(string)
 
-	env, _, err := client.Repositories.GetEnvironment(ctx, owner, repoName, url.PathEscape(envName))
+	env, _, err := client.Repositories.GetEnvironment(ctx, owner, repoName, envName)
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
@@ -296,7 +295,7 @@ func resourceGithubRepositoryEnvironmentUpdate(ctx context.Context, d *schema.Re
 	envName := d.Get("environment").(string)
 	updateData := createUpdateEnvironmentData(d)
 
-	_, _, err := client.Repositories.CreateUpdateEnvironment(ctx, owner, repoName, url.PathEscape(envName), &updateData)
+	_, _, err := client.Repositories.CreateUpdateEnvironment(ctx, owner, repoName, envName, &updateData)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -318,7 +317,7 @@ func resourceGithubRepositoryEnvironmentDelete(ctx context.Context, d *schema.Re
 	repoName := d.Get("repository").(string)
 	envName := d.Get("environment").(string)
 
-	_, err := client.Repositories.DeleteEnvironment(ctx, owner, repoName, url.PathEscape(envName))
+	_, err := client.Repositories.DeleteEnvironment(ctx, owner, repoName, envName)
 	if err != nil {
 		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "environment (%s)", envName))
 	}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -38,27 +38,23 @@ func resourceGithubDependabotOrganizationSecretRepository() *schema.Resource {
 }
 
 func resourceGithubDependabotOrganizationSecretRepositoryCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	if err := checkOrganization(m); err != nil {
-		return diag.FromErr(err)
-	}
-
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
-	secretName := d.Get("secret_name").(string)
-	repoID := d.Get("repository_id").(int)
-
-	repository := &github.Repository{
-		ID: new(int64(repoID)),
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
 	}
 
-	_, err := client.Dependabot.AddSelectedRepoToOrgSecret(ctx, owner, secretName, repository)
-	if err != nil {
+	secretName, _ := d.Get("secret_name").(string)
+	repoIDInt, _ := d.Get("repository_id").(int)
+	repoID := int64(repoIDInt)
+
+	if _, err := client.Dependabot.AddSelectedRepoToOrgSecret(ctx, owner, secretName, repoID); err != nil {
 		return diag.FromErr(err)
 	}
 
-	id, err := buildID(secretName, strconv.Itoa(repoID))
+	id, err := buildID(secretName, strconv.Itoa(repoIDInt))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -68,37 +64,26 @@ func resourceGithubDependabotOrganizationSecretRepositoryCreate(ctx context.Cont
 }
 
 func resourceGithubDependabotOrganizationSecretRepositoryRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	if err := checkOrganization(m); err != nil {
-		return diag.FromErr(err)
-	}
-
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
-	secretName := d.Get("secret_name").(string)
-	repoID := int64(d.Get("repository_id").(int))
-
-	opt := &github.ListOptions{
-		PerPage: meta.maxPerPage,
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
 	}
 
-	for {
-		repos, resp, err := client.Dependabot.ListSelectedReposForOrgSecret(ctx, owner, secretName, opt)
+	secretName, _ := d.Get("secret_name").(string)
+	repoIDInt, _ := d.Get("repository_id").(int)
+	repoID := int64(repoIDInt)
+
+	for repo, err := range client.Dependabot.ListSelectedReposForOrgSecretIter(ctx, owner, secretName, &github.ListOptions{PerPage: meta.maxPerPage}) {
 		if err != nil {
 			return diag.FromErr(err)
 		}
 
-		for _, repo := range repos.Repositories {
-			if repo.GetID() == repoID {
-				return nil
-			}
+		if repo.GetID() == repoID {
+			return nil
 		}
-
-		if resp.NextPage == 0 {
-			break
-		}
-		opt.Page = resp.NextPage
 	}
 
 	tflog.Info(ctx, "Removing Dependabot organization secret repository association from state because it no longer exists in GitHub", map[string]any{"secret_name": secretName, "repository_id": repoID})
@@ -108,22 +93,19 @@ func resourceGithubDependabotOrganizationSecretRepositoryRead(ctx context.Contex
 }
 
 func resourceGithubDependabotOrganizationSecretRepositoryDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	if err := checkOrganization(m); err != nil {
-		return diag.FromErr(err)
-	}
-
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
-	secretName := d.Get("secret_name").(string)
-	repoID := d.Get("repository_id").(int)
-
-	repository := &github.Repository{
-		ID: new(int64(repoID)),
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
 	}
-	_, err := client.Dependabot.RemoveSelectedRepoFromOrgSecret(ctx, owner, secretName, repository)
-	if err != nil {
+
+	secretName, _ := d.Get("secret_name").(string)
+	repoIDInt, _ := d.Get("repository_id").(int)
+	repoID := int64(repoIDInt)
+
+	if _, err := client.Dependabot.RemoveSelectedRepoFromOrgSecret(ctx, owner, secretName, repoID); err != nil {
 		return diag.FromErr(err)
 	}
 

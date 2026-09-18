@@ -7,13 +7,15 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"golang.org/x/crypto/nacl/box"
+
+	"github.com/integrations/terraform-provider-github/v6/internal/tfpluginv2util"
 )
 
 func resourceGithubActionsSecret() *schema.Resource {
@@ -137,7 +139,7 @@ func resourceGithubActionsSecretCreate(ctx context.Context, d *schema.ResourceDa
 	repoName, _ := d.Get("repository").(string)
 	secretName, _ := d.Get("secret_name").(string)
 	keyID, _ := d.Get("key_id").(string)
-	encryptedValue, _ := resourceKeysGetOk[string](d, "value_encrypted", "encrypted_value")
+	encryptedValue, _ := tfpluginv2util.GetKeysOk[string](d, "value_encrypted", "encrypted_value")
 
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
@@ -157,7 +159,7 @@ func resourceGithubActionsSecretCreate(ctx context.Context, d *schema.ResourceDa
 	}
 
 	if len(encryptedValue) == 0 {
-		plaintextValue, _ := resourceKeysGetOk[string](d, "value", "plaintext_value")
+		plaintextValue, _ := tfpluginv2util.GetKeysOk[string](d, "value", "plaintext_value")
 
 		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
 		if err != nil {
@@ -258,7 +260,7 @@ func resourceGithubActionsSecretUpdate(ctx context.Context, d *schema.ResourceDa
 	repoName, _ := d.Get("repository").(string)
 	secretName, _ := d.Get("secret_name").(string)
 	keyID, _ := d.Get("key_id").(string)
-	encryptedValue, _ := resourceKeysGetOk[string](d, "value_encrypted", "encrypted_value")
+	encryptedValue, _ := tfpluginv2util.GetKeysOk[string](d, "value_encrypted", "encrypted_value")
 
 	var publicKey string
 	if len(keyID) == 0 || len(encryptedValue) == 0 {
@@ -272,7 +274,7 @@ func resourceGithubActionsSecretUpdate(ctx context.Context, d *schema.ResourceDa
 	}
 
 	if len(encryptedValue) == 0 {
-		plaintextValue, _ := resourceKeysGetOk[string](d, "value", "plaintext_value")
+		plaintextValue, _ := tfpluginv2util.GetKeysOk[string](d, "value", "plaintext_value")
 
 		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
 		if err != nil {
