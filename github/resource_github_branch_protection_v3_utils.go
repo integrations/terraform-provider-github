@@ -50,18 +50,29 @@ func flattenAndSetRequiredStatusChecks(d *schema.ResourceData, protection *githu
 
 		// TODO: Remove once contexts is fully deprecated.
 		// Flatten contexts
-		for _, c := range *rsc.Contexts {
-			// Parse into contexts
-			contexts = append(contexts, c)
+		if rsc.Contexts != nil {
+			for _, c := range *rsc.Contexts {
+				// Parse into contexts
+				contexts = append(contexts, c)
+			}
+		}
+
+		// Fallback to populating contexts from checks if it's empty (e.g. archived repo)
+		if len(contexts) == 0 && rsc.Checks != nil {
+			for _, chk := range *rsc.Checks {
+				contexts = append(contexts, chk.Context)
+			}
 		}
 
 		// Flatten checks
-		for _, chk := range *rsc.Checks {
-			// Parse into checks
-			if chk.AppID != nil {
-				checks = append(checks, fmt.Sprintf("%s:%d", chk.Context, *chk.AppID))
-			} else {
-				checks = append(checks, chk.Context)
+		if rsc.Checks != nil {
+			for _, chk := range *rsc.Checks {
+				// Parse into checks
+				if chk.AppID != nil {
+					checks = append(checks, fmt.Sprintf("%s:%d", chk.Context, *chk.AppID))
+				} else {
+					checks = append(checks, chk.Context)
+				}
 			}
 		}
 
