@@ -5,6 +5,8 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/integrations/terraform-provider-github/v6/internal/tfpluginv2util"
 )
 
 func dataSourceGithubOrganizationPrivateRegistry() *schema.Resource {
@@ -119,82 +121,20 @@ func dataSourceGithubOrganizationPrivateRegistry() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationPrivateRegistryRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	org := meta.(*Owner).name
-	registryName := d.Get("name").(string)
+func dataSourceGithubOrganizationPrivateRegistryRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+	registryName := tfpluginv2util.Get[string](d, "name")
 
-	registry, _, err := client.PrivateRegistries.GetOrganizationPrivateRegistry(ctx, org, registryName)
+	registry, _, err := client.PrivateRegistries.GetOrganizationPrivateRegistry(ctx, owner, registryName)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	d.SetId(registry.GetName())
 
-	if registry.RegistryType != nil {
-		if err := d.Set("registry_type", string(*registry.RegistryType)); err != nil {
-			return diag.FromErr(err)
-		}
-	}
-	if err := d.Set("url", registry.GetURL()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("username", registry.GetUsername()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("replaces_base", registry.GetReplacesBase()); err != nil {
-		return diag.FromErr(err)
-	}
-	if registry.Visibility != nil {
-		if err := d.Set("visibility", string(*registry.Visibility)); err != nil {
-			return diag.FromErr(err)
-		}
-	}
-
-	if registry.AuthType != nil {
-		if err := d.Set("auth_type", string(*registry.AuthType)); err != nil {
-			return diag.FromErr(err)
-		}
-	}
-	if err := d.Set("oidc_azure_tenant_id", registry.GetTenantID()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("oidc_azure_client_id", registry.GetClientID()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("oidc_aws_region", registry.GetAWSRegion()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("oidc_aws_account_id", registry.GetAccountID()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("oidc_aws_role_name", registry.GetRoleName()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("oidc_aws_domain", registry.GetDomain()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("oidc_aws_domain_owner", registry.GetDomainOwner()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("oidc_jfrog_provider_name", registry.GetJFrogOIDCProviderName()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("oidc_audience", registry.GetAudience()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("oidc_jfrog_identity_mapping_name", registry.GetIdentityMappingName()); err != nil {
-		return diag.FromErr(err)
-	}
-
-	var repoIDs []any
-	for _, id := range registry.SelectedRepositoryIDs {
-		repoIDs = append(repoIDs, int(id))
-	}
-	if err := d.Set("selected_repository_ids", schema.NewSet(schema.HashInt, repoIDs)); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("created_at", registry.GetCreatedAt().String()); err != nil {
+	if err := setPrivateRegistryAttributes(d, registry); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("updated_at", registry.GetUpdatedAt().String()); err != nil {

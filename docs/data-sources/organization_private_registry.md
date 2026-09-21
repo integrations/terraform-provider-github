@@ -12,8 +12,8 @@ Use this data source to retrieve information about a specific organization priva
 ## Example Usage
 
 ```terraform
-data "github_organization_private_registry" "my_registry" {
-  name = "NPM_REGISTRY_SECRET_1"
+data "github_organization_private_registry" "example" {
+  name = "NPM_REGISTRY_1"
 }
 ```
 

@@ -2,23 +2,55 @@
 page_title: "github_organization_private_registry (Resource) - GitHub"
 subcategory: ""
 description: |-
-  This resource allows you to create and manage an organization private registry.
+  This resource allows you to create and manage an organization private registry for Dependabot.
 ---
 
 # github_organization_private_registry (Resource)
 
-This resource allows you to create and manage an organization private registry.
+This resource allows you to create and manage an organization private registry for Dependabot.
 
 ## Example Usage
 
 ```terraform
-resource "github_organization_private_registry" "my_registry" {
+# Token-authenticated npm registry, available to every repository of the organization.
+resource "github_organization_private_registry" "example" {
   registry_type = "npm_registry"
   url           = "https://npm.pkg.github.com"
-  auth_type     = "username_password"
-  username      = "github-actions"
-  value         = "super_secret_token_123"
-  visibility    = "private"
+  auth_type     = "token"
+  value         = var.npm_token
+  visibility    = "all"
+}
+```
+
+```terraform
+# Username and password registry, restricted to selected repositories.
+resource "github_repository" "example" {
+  name = "example"
+}
+
+resource "github_organization_private_registry" "example" {
+  registry_type           = "maven_repository"
+  url                     = "https://maven.example.com/releases"
+  auth_type               = "username_password"
+  username                = "deploy"
+  value                   = var.maven_password
+  visibility              = "selected"
+  selected_repository_ids = [github_repository.example.repo_id]
+}
+```
+
+```terraform
+# AWS CodeArtifact registry authenticated through OIDC, no stored secret.
+resource "github_organization_private_registry" "example" {
+  registry_type         = "maven_repository"
+  url                   = "https://example-111122223333.d.codeartifact.eu-west-3.amazonaws.com/maven/releases/"
+  auth_type             = "oidc_aws"
+  oidc_aws_region       = "eu-west-3"
+  oidc_aws_account_id   = "111122223333"
+  oidc_aws_role_name    = "dependabot-codeartifact"
+  oidc_aws_domain       = "example"
+  oidc_aws_domain_owner = "111122223333"
+  visibility            = "private"
 }
 ```
 
@@ -27,33 +59,53 @@ resource "github_organization_private_registry" "my_registry" {
 
 ### Required
 
-- `registry_type` (String) The registry type. Can be `maven_repository`, `nuget_feed`, `goproxy_server`, `npm_registry`, `rubygems_server`, `cargo_registry`, `composer_repository`, `docker_registry`, `git_source`, `helm_registry`, `pub_repository`, `python_index`, or `terraform_registry`.
+- `registry_type` (String) The registry type. Must be one of `maven_repository`, `nuget_feed`, `goproxy_server`, `npm_registry`, `rubygems_server`, `cargo_registry`, `composer_repository`, `docker_registry`, `git_source`, `helm_registry`, `hex_organization`, `hex_repository`, `pub_repository`, `python_index`, or `terraform_registry`.
 - `url` (String) The URL of the private registry.
 - `visibility` (String) Configures the access that repositories have to the organization private registry. Must be one of `all`, `private`, or `selected`.
 
 ### Optional
 
-- `auth_type` (String) The authentication type for the private registry. Can be `token`, `username_password`, `oidc_azure`, `oidc_aws`, or `oidc_jfrog`. Defaults to `token`.
-- `key_id` (String) ID of the public key used to encrypt the secret. Required if encrypted_value is set.
+- `auth_type` (String) The authentication type for the private registry. Can be `token`, `username_password`, `oidc_azure`, `oidc_aws`, or `oidc_jfrog`. Defaults to `token`. Cannot be changed after creation.
+- `key_id` (String) ID of the public key used to encrypt the secret. Required if `value_encrypted` is set.
 - `oidc_audience` (String) The OIDC audience.
-- `oidc_aws_account_id` (String) The AWS account ID. Required when auth_type is oidc_aws.
-- `oidc_aws_domain` (String) The CodeArtifact domain. Required when auth_type is oidc_aws.
-- `oidc_aws_domain_owner` (String) The CodeArtifact domain owner. Required when auth_type is oidc_aws.
-- `oidc_aws_region` (String) The AWS region. Required when auth_type is oidc_aws.
-- `oidc_aws_role_name` (String) The AWS IAM role name. Required when auth_type is oidc_aws.
-- `oidc_azure_client_id` (String) The client ID of the Azure AD application. Required when auth_type is oidc_azure.
-- `oidc_azure_tenant_id` (String) The tenant ID of the Azure AD application. Required when auth_type is oidc_azure.
+- `oidc_aws_account_id` (String) The AWS account ID. Required when `auth_type` is `oidc_aws`.
+- `oidc_aws_domain` (String) The CodeArtifact domain. Required when `auth_type` is `oidc_aws`.
+- `oidc_aws_domain_owner` (String) The CodeArtifact domain owner. Required when `auth_type` is `oidc_aws`.
+- `oidc_aws_region` (String) The AWS region. Required when `auth_type` is `oidc_aws`.
+- `oidc_aws_role_name` (String) The AWS IAM role name. Required when `auth_type` is `oidc_aws`.
+- `oidc_azure_client_id` (String) The client ID of the Azure AD application. Required when `auth_type` is `oidc_azure`.
+- `oidc_azure_tenant_id` (String) The tenant ID of the Azure AD application. Required when `auth_type` is `oidc_azure`.
 - `oidc_jfrog_identity_mapping_name` (String) The JFrog identity mapping name.
-- `oidc_jfrog_provider_name` (String) The JFrog OIDC provider name. Required when auth_type is oidc_jfrog.
+- `oidc_jfrog_provider_name` (String) The JFrog OIDC provider name. Required when `auth_type` is `oidc_jfrog`.
 - `replaces_base` (Boolean) Indicates whether this private registry should replace the base registry.
-- `selected_repository_ids` (Set of Number) An array of repository IDs that can access the organization private registry.
+- `selected_repository_ids` (Set of Number) An array of repository IDs that can access the organization private registry. Only valid when `visibility` is `selected`. GitHub does not return this list when reading a registry, so it is kept from the configuration and cannot be recovered by `terraform import`.
 - `username` (String) The username to use when authenticating with the private registry.
-- `value` (String, Sensitive) The plaintext secret to be encrypted and sent to GitHub. This is used for a token when auth_type is token, and for a password when auth_type is username_password. Required when auth_type is token or username_password.
-- `value_encrypted` (String, Sensitive) The encrypted value of the secret using the GitHub public key in Base64 format.
+- `value` (String, Sensitive) The plaintext secret to be encrypted and sent to GitHub. This is used for a token when `auth_type` is `token`, and for a password when `auth_type` is `username_password`. One of `value` or `value_encrypted` is required for those auth types.
+- `value_encrypted` (String, Sensitive) The secret encrypted with the organization private registries public key, in Base64 format. One of `value` or `value_encrypted` is required when `auth_type` is `token` or `username_password`.
 
 ### Read-Only
 
 - `created_at` (String) The timestamp when the private registry was created.
 - `id` (String) The ID of this resource.
 - `name` (String) The auto-generated name of the private registry (computed by GitHub).
-- `updated_at` (String) The timestamp when the private registry was last updated.
+- `remote_updated_at` (String) The timestamp when the private registry was last updated in GitHub. A difference with `updated_at` means the secret was changed outside of Terraform.
+- `updated_at` (String) The timestamp when the private registry was last updated by this resource.
+
+## Import
+
+Import is supported using the following syntax:
+
+In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `id` attribute, for example:
+
+```terraform
+import {
+  to = github_organization_private_registry.example
+  id = "registry-name"
+}
+```
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+terraform import github_organization_private_registry.example registry-name
+```
