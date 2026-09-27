@@ -1,3 +1,5 @@
+# Repository From A Template Example
+
 resource "github_repository" "example" {
   name        = "example"
   description = "My awesome codebase"

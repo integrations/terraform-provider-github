@@ -159,6 +159,94 @@ func Test_newTransport(t *testing.T) {
 		})
 	}
 
+	t.Run("transport_cache_varies_on_authorization", func(t *testing.T) {
+		t.Parallel()
+
+		// The cache transport must observe the real per-request Authorization header (injected
+		// by the OAuth2 transport) rather than an empty one. Otherwise its cache-key validation
+		// can never distinguish between requests using different tokens, and repeated requests
+		// using the *same* token will never be served from cache either, since the stored Vary
+		// metadata for Authorization is never populated correctly.
+		const etag = `"fixed-etag"`
+
+		called := atomic.Int32{}
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			call := int(called.Add(1))
+
+			// A real GitHub response varies on the Authorization header.
+			w.Header().Set("Vary", "Authorization")
+
+			if r.Header.Get("If-None-Match") == etag {
+				w.Header().Set("Etag", etag)
+				w.WriteHeader(http.StatusNotModified)
+				return
+			}
+
+			w.Header().Set("Etag", etag)
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("resp-" + strconv.Itoa(call)))
+		}))
+		defer ts.Close()
+
+		opts := ClientOptions{Cache: true, CachePath: mustMkdirTemp(t, cacheBasePath, "*")}
+		tr, err := newTransport(&sequentialTokenSource{tokens: []string{"token-A", "token-A", "token-B"}}, opts)
+		if err != nil {
+			t.Fatalf("failed to create transport: %v", err)
+		}
+
+		client := &http.Client{Transport: tr}
+
+		// Request 1: token-A, nothing cached yet -> MISS.
+		res1, err := client.Get(ts.URL)
+		if err != nil {
+			t.Fatalf("failed to make first request: %v", err)
+		}
+		b1, err := io.ReadAll(res1.Body)
+		if err != nil {
+			t.Fatalf("failed to read first response body: %v", err)
+		}
+		res1.Body.Close()
+		if xCache := res1.Header.Get("X-Cache"); xCache != "MISS" {
+			t.Fatalf("expected first request to be a MISS, got %q", xCache)
+		}
+
+		// Request 2: same token-A as request 1 -> the cached entry's stored Authorization Vary
+		// metadata must match, so this must be a HIT with an identical cached body.
+		res2, err := client.Get(ts.URL)
+		if err != nil {
+			t.Fatalf("failed to make second request: %v", err)
+		}
+		b2, err := io.ReadAll(res2.Body)
+		if err != nil {
+			t.Fatalf("failed to read second response body: %v", err)
+		}
+		res2.Body.Close()
+		if xCache := res2.Header.Get("X-Cache"); xCache != "HIT" {
+			t.Fatalf("expected second request (same token) to be a HIT, got %q", xCache)
+		}
+		if string(b2) != string(b1) {
+			t.Fatalf("expected second request (same token) to reuse the first cached response, got %q and %q", string(b2), string(b1))
+		}
+
+		// Request 3: token-B, different token -> must not reuse token-A's cached response, so
+		// this must be a MISS with fresh content from the origin.
+		res3, err := client.Get(ts.URL)
+		if err != nil {
+			t.Fatalf("failed to make third request: %v", err)
+		}
+		b3, err := io.ReadAll(res3.Body)
+		if err != nil {
+			t.Fatalf("failed to read third response body: %v", err)
+		}
+		res3.Body.Close()
+		if xCache := res3.Header.Get("X-Cache"); xCache != "MISS" {
+			t.Fatalf("expected third request (different token) to be a MISS, got %q", xCache)
+		}
+		if string(b3) == string(b1) {
+			t.Fatalf("expected third request (different token) to fetch fresh content, got cached body %q", string(b3))
+		}
+	})
+
 	t.Run("transport_retries_requests", func(t *testing.T) {
 		t.Parallel()
 
@@ -315,82 +403,6 @@ func Test_newTransport(t *testing.T) {
 
 		if string(body) != "PASS" {
 			t.Fatalf("expected response body to be %q, got %q", "PASS", string(body))
-		}
-	})
-
-	t.Run("transport_caches_requests", func(t *testing.T) {
-		t.Parallel()
-
-		etag := "test-etag"
-
-		called := atomic.Int32{}
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			called.Add(1)
-			call := int(called.Load())
-
-			if call <= 2 && r.Header.Get("If-None-Match") == etag {
-				w.Header().Set("Etag", etag)
-				w.WriteHeader(http.StatusNotModified)
-				return
-			}
-
-			w.Header().Set("Etag", etag)
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(strconv.Itoa(call)))
-		}))
-		defer ts.Close()
-
-		opts := ClientOptions{Cache: true, CachePath: mustMkdirTemp(t, cacheBasePath, "*")}
-		tr, err := newTransport(nil, opts)
-		if err != nil {
-			t.Fatalf("failed to create transport: %v", err)
-		}
-
-		if tr == nil {
-			t.Fatal("expected transport to be non-nil")
-		}
-
-		client := &http.Client{Transport: tr}
-
-		res1, err := client.Get(ts.URL)
-		if err != nil {
-			t.Fatalf("failed to make first request: %v", err)
-		}
-
-		b1, err := io.ReadAll(res1.Body)
-		if err != nil {
-			t.Fatalf("failed to read first response body: %v", err)
-		}
-		res1.Body.Close()
-
-		res2, err := client.Get(ts.URL)
-		if err != nil {
-			t.Fatalf("failed to make second request: %v", err)
-		}
-
-		b2, err := io.ReadAll(res2.Body)
-		if err != nil {
-			t.Fatalf("failed to read second response body: %v", err)
-		}
-		res2.Body.Close()
-
-		if string(b2) != string(b1) {
-			t.Fatalf("expected cached response to match first response, got %q and %q", string(b2), string(b1))
-		}
-
-		res3, err := client.Get(ts.URL)
-		if err != nil {
-			t.Fatalf("failed to make third request: %v", err)
-		}
-
-		b3, err := io.ReadAll(res3.Body)
-		if err != nil {
-			t.Fatalf("failed to read third response body: %v", err)
-		}
-		res3.Body.Close()
-
-		if string(b3) == string(b2) {
-			t.Fatalf("expected cached response to not match last response, got %q and %q", string(b3), string(b2))
 		}
 	})
 }

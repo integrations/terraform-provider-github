@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -21,6 +21,8 @@ func resourceGithubRepositoryDeployKey() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
+
+		CustomizeDiff: diffETag,
 
 		// Deploy keys are defined immutable in the API. Updating results in force new.
 		Schema: map[string]*schema.Schema{
@@ -51,8 +53,9 @@ func resourceGithubRepositoryDeployKey() *schema.Resource {
 				Description: "A title.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the deploy key.",
 			},
 		},
 	}
@@ -68,8 +71,8 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta any) e
 	owner := meta.(*Owner).name
 	ctx := context.Background()
 
-	resultKey, _, err := client.Repositories.CreateKey(ctx, owner, repoName, &github.Key{
-		Key:      new(key),
+	resultKey, _, err := client.Repositories.CreateKey(ctx, owner, repoName, github.CreateDeployKeyRequest{
+		Key:      key,
 		Title:    new(title),
 		ReadOnly: new(readOnly),
 	})
@@ -104,8 +107,7 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta any) err
 
 	key, resp, err := client.Repositories.GetKey(ctx, owner, repoName, id)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}

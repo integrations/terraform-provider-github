@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -53,8 +53,7 @@ func dataSourceGithubRefRead(ctx context.Context, d *schema.ResourceData, meta a
 
 	refData, resp, err := client.Git.GetRef(ctx, owner, repoName, ref)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				tflog.Debug(ctx, "Missing GitHub ref", map[string]any{"owner": owner, "repoName": repoName, "ref": ref})
 				d.SetId("")

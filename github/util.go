@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -221,8 +221,7 @@ func validateSecretNameFunc(v any, path cty.Path) diag.Diagnostics {
 // resourceDescription represents a formatting string that represents the resource
 // args will be passed to resourceDescription in `log.Printf`.
 func deleteResourceOn404AndSwallow304OtherwiseReturnError(err error, d *schema.ResourceData, resourceDescription string, args ...any) error {
-	var ghErr *github.ErrorResponse
-	if errors.As(err, &ghErr) {
+	if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 		if ghErr.Response.StatusCode == http.StatusNotModified {
 			log.Printf("[INFO] Resource %s not modified, skipping", resourceDescription)
 			return nil
@@ -263,17 +262,4 @@ func toInt64(v any) int64 {
 	default:
 		return 0
 	}
-}
-
-// resourceKeysGetOk is a helper function that checks multiple keys in the ResourceData and returns the first one that is set and a boolean indicating if any were set.
-func resourceKeysGetOk[T any](d *schema.ResourceData, keys ...string) (T, bool) {
-	var empty T
-	for _, key := range keys {
-		if v, ok := d.GetOk(key); ok {
-			if vv, ok := v.(T); ok {
-				return vv, true
-			}
-		}
-	}
-	return empty, false
 }

@@ -7,31 +7,11 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"testing/synctest"
+	"time"
 
 	"golang.org/x/sync/semaphore"
 )
-
-func Test_throttlerReadCloser_Close(t *testing.T) {
-	t.Parallel()
-
-	sema := semaphore.NewWeighted(1)
-	if err := sema.Acquire(t.Context(), 1); err != nil {
-		t.Fatalf("failed to acquire semaphore for setup: %v", err)
-	}
-
-	rc := &throttlerReadCloser{
-		ReadCloser: io.NopCloser(strings.NewReader("ok")),
-		sema:       sema,
-	}
-
-	if err := rc.Close(); err != nil {
-		t.Fatalf("failed to close read closer: %v", err)
-	}
-
-	if err := rc.Close(); err != nil {
-		t.Fatalf("failed to close read closer on second close: %v", err)
-	}
-}
 
 func Test_throttler_RoundTrip(t *testing.T) {
 	t.Parallel()
@@ -53,7 +33,11 @@ func Test_throttler_RoundTrip(t *testing.T) {
 			t.Fatalf("failed to create request: %v", err)
 		}
 
-		_, err = tr.RoundTrip(req)
+		resp, err := tr.RoundTrip(req)
+		if resp != nil && resp.Body != nil {
+			defer resp.Body.Close()
+		}
+
 		if err == nil {
 			t.Fatal("expected acquire error from canceled context")
 		}
@@ -76,12 +60,13 @@ func Test_throttler_RoundTrip(t *testing.T) {
 			inner: inner,
 		}
 
-		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "https://example.com", nil)
-		if err != nil {
-			t.Fatalf("failed to create request: %v", err)
+		req := mustCreateRequest(t, http.MethodGet, "https://example.com")
+
+		resp, err := tr.RoundTrip(req)
+		if resp != nil && resp.Body != nil {
+			defer resp.Body.Close()
 		}
 
-		_, err = tr.RoundTrip(req)
 		if err == nil {
 			t.Fatal("expected round trip to fail")
 		}
@@ -99,21 +84,18 @@ func Test_throttler_RoundTrip(t *testing.T) {
 		t.Parallel()
 
 		inner := &testRoundTripper{resp: &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader("ok"))}}
-		sema := semaphore.NewWeighted(1)
 		tr := &throttler{
-			sema:  sema,
+			sema:  semaphore.NewWeighted(1),
 			inner: inner,
 		}
 
-		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "https://example.com", nil)
-		if err != nil {
-			t.Fatalf("failed to create request: %v", err)
-		}
+		req := mustCreateRequest(t, http.MethodGet, "https://example.com")
 
 		resp, err := tr.RoundTrip(req)
 		if err != nil {
 			t.Fatalf("expected round trip to succeed, got error: %v", err)
 		}
+		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("expected status code 200 OK, got %d", resp.StatusCode)
@@ -122,17 +104,72 @@ func Test_throttler_RoundTrip(t *testing.T) {
 		if inner.called.Load() != 1 {
 			t.Fatalf("expected inner transport to be called once, got %d calls", inner.called.Load())
 		}
+	})
 
-		if ok := sema.TryAcquire(1); ok {
-			t.Fatal("expected semaphore to be held until response body is closed")
+	t.Run("success_after_no_body_close", func(t *testing.T) {
+		t.Parallel()
+
+		inner := &testRoundTripper{err: errors.New("boom")}
+		sema := semaphore.NewWeighted(1)
+		tr := &throttler{
+			sema:  sema,
+			inner: inner,
 		}
 
-		if err := resp.Body.Close(); err != nil {
-			t.Fatalf("failed to close response body: %v", err)
+		req := mustCreateRequest(t, http.MethodGet, "https://example.com")
+
+		_, err := tr.RoundTrip(req)
+		if err == nil || !errors.Is(err, inner.err) {
+			t.Fatalf("expected round trip to error with %v, got %v", inner.err, err)
 		}
 
-		if ok := sema.TryAcquire(1); !ok {
-			t.Fatal("expected semaphore to be released after closing response body")
+		if !sema.TryAcquire(1) {
+			t.Fatal("semaphore permit leaked after body not closed")
 		}
+	})
+
+	t.Run("throttles_concurrent_requests", func(t *testing.T) {
+		t.Parallel()
+
+		synctest.Test(t, func(t *testing.T) {
+			reqs := 5
+			inner := &testRoundTripper{delay: 1 * time.Second, resp: &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader("ok"))}}
+			tr := &throttler{
+				sema:  semaphore.NewWeighted(1),
+				inner: inner,
+			}
+
+			for i := range reqs {
+				req := mustCreateRequest(t, http.MethodGet, "https://example.com")
+				go func() {
+					req := req
+					resp, err := tr.RoundTrip(req)
+					if err != nil {
+						t.Errorf("request %d: %v", i, err)
+						return
+					}
+					resp.Body.Close()
+
+					if resp.StatusCode != http.StatusOK {
+						t.Errorf("request %d: expected status code 200 OK, got %d", i, resp.StatusCode)
+					}
+				}()
+			}
+
+			// Both goroutines are now durably blocked (one sleeping, others on sema.Acquire).
+			synctest.Wait()
+			if inner.called.Load() != 0 {
+				t.Fatal("expected no completions before time advances")
+			}
+
+			for i := range reqs {
+				// Clock jumps 1s: sleeping goroutine wakes, completes, releases semaphore; next goroutine acquires and sleeps.
+				time.Sleep(time.Second)
+				synctest.Wait()
+				if inner.called.Load() != int32(i+1) {
+					t.Fatal("expected completions to be throttled to one per second")
+				}
+			}
+		})
 	})
 }

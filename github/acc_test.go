@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
@@ -245,16 +245,18 @@ func getTestMeta(conf *testAccConfig) (*Owner, error) {
 		Owner:        conf.owner,
 	}
 
-	if config.LegacyClient || conf.appID == "" {
-		token, err := getTestToken(conf)
-		if err != nil {
-			return nil, fmt.Errorf("error getting test token: %w", err)
+	if conf.authMode != anonymous {
+		if config.LegacyClient || conf.appID == "" {
+			token, err := getTestToken(conf)
+			if err != nil {
+				return nil, fmt.Errorf("error getting test token: %w", err)
+			}
+			config.Token = token
+		} else {
+			config.AppID = &conf.appID
+			config.AppInstallationID = &conf.appInstallationID
+			config.AppPEM = []byte(conf.appPEM)
 		}
-		config.Token = token
-	} else {
-		config.AppID = &conf.appID
-		config.AppInstallationID = &conf.appInstallationID
-		config.AppPEM = []byte(conf.appPEM)
 	}
 
 	return configureProviderMeta(context.Background(), "test", config)
