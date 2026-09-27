@@ -76,17 +76,17 @@ func resourceGithubMembershipCreateOrUpdate(ctx context.Context, d *schema.Resou
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 
-	if err := d.Set("etag", nil); err != nil {
-		return diag.FromErr(err)
-	}
-
 	username := d.Get("username").(string)
 	roleName := d.Get("role").(string)
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxId, d.Id())
 		if !d.HasChange("role") {
-			return resourceGithubMembershipRead(ctx, d, meta)
+			return nil
 		}
+	}
+
+	if err := d.Set("etag", nil); err != nil {
+		return diag.FromErr(err)
 	}
 
 	_, resp, err := client.Organizations.EditOrgMembership(ctx,
@@ -170,8 +170,8 @@ func resourceGithubMembershipDelete(ctx context.Context, d *schema.ResourceData,
 
 	username := d.Get("username").(string)
 	downgradeOnDestroy := d.Get("downgrade_on_destroy").(bool)
-	downgradeTo, ok := d.Get("downgrade_to").(string)
-	if !ok || downgradeTo == "" {
+	downgradeTo := d.Get("downgrade_to").(string)
+	if downgradeTo == "" {
 		downgradeTo = membershipDowngradeToMember
 	}
 
