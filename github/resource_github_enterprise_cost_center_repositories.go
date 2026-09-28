@@ -3,11 +3,13 @@ package github
 import (
 	"context"
 	"fmt"
+	"slices"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubEnterpriseCostCenterRepositories() *schema.Resource {
@@ -35,10 +37,13 @@ func resourceGithubEnterpriseCostCenterRepositories() *schema.Resource {
 				Description: "The ID of the cost center.",
 			},
 			"repository_names": {
-				Type:        schema.TypeSet,
-				Required:    true,
-				MinItems:    1,
-				Elem:        &schema.Schema{Type: schema.TypeString},
+				Type:     schema.TypeSet,
+				Required: true,
+				MinItems: 1,
+				Elem: &schema.Schema{
+					Type:             schema.TypeString,
+					ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsNotEmpty),
+				},
 				Description: "Repository names (full name, e.g. org/repo) to assign to the cost center. This is authoritative - repositories not in this set will be removed.",
 			},
 		},
@@ -46,20 +51,20 @@ func resourceGithubEnterpriseCostCenterRepositories() *schema.Resource {
 }
 
 func resourceGithubEnterpriseCostCenterRepositoriesCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	owner, err := costCenterOwner(meta)
-	if err != nil {
-		return diag.FromErr(err)
+	owner, ok := meta.(*Owner)
+	if !ok {
+		return diag.Errorf("unexpected provider metadata type %T", meta)
 	}
-	enterpriseSlug, err := costCenterString(d, "enterprise_slug")
-	if err != nil {
-		return diag.FromErr(err)
+	enterpriseSlug, ok := resourceKeysGetOk[string](d, "enterprise_slug")
+	if !ok {
+		return diag.Errorf("expected enterprise_slug to be a non-empty string")
 	}
-	costCenterID, err := costCenterString(d, "cost_center_id")
-	if err != nil {
-		return diag.FromErr(err)
+	costCenterID, ok := resourceKeysGetOk[string](d, "cost_center_id")
+	if !ok {
+		return diag.Errorf("expected cost_center_id to be a non-empty string")
 	}
 
-	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID)
+	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID, owner.maxPerPage)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -69,10 +74,11 @@ func resourceGithubEnterpriseCostCenterRepositoriesCreate(ctx context.Context, d
 		}
 	}
 
-	toAdd, err := costCenterStringSet(d, "repository_names")
-	if err != nil {
-		return diag.FromErr(err)
+	repositories, ok := resourceKeysGetOk[*schema.Set](d, "repository_names")
+	if !ok {
+		return diag.Errorf("expected repository_names to be a non-empty set")
 	}
+	toAdd := expandStringList(repositories.List())
 
 	tflog.Info(ctx, "Adding repositories to cost center", map[string]any{
 		"enterprise_slug": enterpriseSlug,
@@ -81,9 +87,9 @@ func resourceGithubEnterpriseCostCenterRepositoriesCreate(ctx context.Context, d
 	})
 
 	d.SetId(costCenterID)
-	for _, batch := range chunkStringSlice(toAdd, maxCostCenterResourcesPerRequest) {
-		if diags := retryCostCenterAddResources(ctx, owner.v3client, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Repositories: batch}); diags.HasError() {
-			return diags
+	for batch := range slices.Chunk(toAdd, maxCostCenterResourcesPerRequest) {
+		if _, _, err := owner.v3client.Enterprise.AddResourcesToCostCenter(ctx, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Repositories: batch}); err != nil {
+			return diag.FromErr(err)
 		}
 	}
 
@@ -91,20 +97,20 @@ func resourceGithubEnterpriseCostCenterRepositoriesCreate(ctx context.Context, d
 }
 
 func resourceGithubEnterpriseCostCenterRepositoriesUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	owner, err := costCenterOwner(meta)
-	if err != nil {
-		return diag.FromErr(err)
+	owner, ok := meta.(*Owner)
+	if !ok {
+		return diag.Errorf("unexpected provider metadata type %T", meta)
 	}
-	enterpriseSlug, err := costCenterString(d, "enterprise_slug")
-	if err != nil {
-		return diag.FromErr(err)
+	enterpriseSlug, ok := resourceKeysGetOk[string](d, "enterprise_slug")
+	if !ok {
+		return diag.Errorf("expected enterprise_slug to be a non-empty string")
 	}
-	costCenterID, err := costCenterString(d, "cost_center_id")
-	if err != nil {
-		return diag.FromErr(err)
+	costCenterID, ok := resourceKeysGetOk[string](d, "cost_center_id")
+	if !ok {
+		return diag.Errorf("expected cost_center_id to be a non-empty string")
 	}
 
-	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID)
+	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID, owner.maxPerPage)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -116,10 +122,11 @@ func resourceGithubEnterpriseCostCenterRepositoriesUpdate(ctx context.Context, d
 		}
 	}
 
-	desiredRepositories, err := costCenterStringSet(d, "repository_names")
-	if err != nil {
-		return diag.FromErr(err)
+	repositories, ok := resourceKeysGetOk[*schema.Set](d, "repository_names")
+	if !ok {
+		return diag.Errorf("expected repository_names to be a non-empty set")
 	}
+	desiredRepositories := expandStringList(repositories.List())
 
 	var toAdd []string
 	for _, name := range desiredRepositories {
@@ -144,9 +151,9 @@ func resourceGithubEnterpriseCostCenterRepositoriesUpdate(ctx context.Context, d
 			"count":           len(toRemove),
 		})
 
-		for _, batch := range chunkStringSlice(toRemove, maxCostCenterResourcesPerRequest) {
-			if diags := retryCostCenterRemoveResources(ctx, owner.v3client, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Repositories: batch}); diags.HasError() {
-				return diags
+		for batch := range slices.Chunk(toRemove, maxCostCenterResourcesPerRequest) {
+			if _, _, err := owner.v3client.Enterprise.RemoveResourcesFromCostCenter(ctx, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Repositories: batch}); err != nil {
+				return diag.FromErr(err)
 			}
 		}
 	}
@@ -158,9 +165,9 @@ func resourceGithubEnterpriseCostCenterRepositoriesUpdate(ctx context.Context, d
 			"count":           len(toAdd),
 		})
 
-		for _, batch := range chunkStringSlice(toAdd, maxCostCenterResourcesPerRequest) {
-			if diags := retryCostCenterAddResources(ctx, owner.v3client, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Repositories: batch}); diags.HasError() {
-				return diags
+		for batch := range slices.Chunk(toAdd, maxCostCenterResourcesPerRequest) {
+			if _, _, err := owner.v3client.Enterprise.AddResourcesToCostCenter(ctx, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Repositories: batch}); err != nil {
+				return diag.FromErr(err)
 			}
 		}
 	}
@@ -169,20 +176,20 @@ func resourceGithubEnterpriseCostCenterRepositoriesUpdate(ctx context.Context, d
 }
 
 func resourceGithubEnterpriseCostCenterRepositoriesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	owner, err := costCenterOwner(meta)
-	if err != nil {
-		return diag.FromErr(err)
+	owner, ok := meta.(*Owner)
+	if !ok {
+		return diag.Errorf("unexpected provider metadata type %T", meta)
 	}
-	enterpriseSlug, err := costCenterString(d, "enterprise_slug")
-	if err != nil {
-		return diag.FromErr(err)
+	enterpriseSlug, ok := resourceKeysGetOk[string](d, "enterprise_slug")
+	if !ok {
+		return diag.Errorf("expected enterprise_slug to be a non-empty string")
 	}
-	costCenterID, err := costCenterString(d, "cost_center_id")
-	if err != nil {
-		return diag.FromErr(err)
+	costCenterID, ok := resourceKeysGetOk[string](d, "cost_center_id")
+	if !ok {
+		return diag.Errorf("expected cost_center_id to be a non-empty string")
 	}
 
-	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID)
+	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID, owner.maxPerPage)
 	if err != nil {
 		if errIs404(err) {
 			tflog.Warn(ctx, "Cost center not found, removing from state", map[string]any{
@@ -193,6 +200,14 @@ func resourceGithubEnterpriseCostCenterRepositoriesRead(ctx context.Context, d *
 			return nil
 		}
 		return diag.FromErr(err)
+	}
+	if cc.GetState() == "deleted" {
+		tflog.Warn(ctx, "Cost center is archived, removing repository assignments from state", map[string]any{
+			"enterprise_slug": enterpriseSlug,
+			"cost_center_id":  costCenterID,
+		})
+		d.SetId("")
+		return nil
 	}
 
 	var repositories []string
@@ -210,25 +225,28 @@ func resourceGithubEnterpriseCostCenterRepositoriesRead(ctx context.Context, d *
 }
 
 func resourceGithubEnterpriseCostCenterRepositoriesDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	owner, err := costCenterOwner(meta)
-	if err != nil {
-		return diag.FromErr(err)
+	owner, ok := meta.(*Owner)
+	if !ok {
+		return diag.Errorf("unexpected provider metadata type %T", meta)
 	}
-	enterpriseSlug, err := costCenterString(d, "enterprise_slug")
-	if err != nil {
-		return diag.FromErr(err)
+	enterpriseSlug, ok := resourceKeysGetOk[string](d, "enterprise_slug")
+	if !ok {
+		return diag.Errorf("expected enterprise_slug to be a non-empty string")
 	}
-	costCenterID, err := costCenterString(d, "cost_center_id")
-	if err != nil {
-		return diag.FromErr(err)
+	costCenterID, ok := resourceKeysGetOk[string](d, "cost_center_id")
+	if !ok {
+		return diag.Errorf("expected cost_center_id to be a non-empty string")
 	}
 
-	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID)
+	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID, owner.maxPerPage)
 	if err != nil {
 		if errIs404(err) {
 			return nil
 		}
 		return diag.FromErr(err)
+	}
+	if cc.GetState() == "deleted" {
+		return nil
 	}
 
 	var repositories []string
@@ -245,9 +263,9 @@ func resourceGithubEnterpriseCostCenterRepositoriesDelete(ctx context.Context, d
 			"count":           len(repositories),
 		})
 
-		for _, batch := range chunkStringSlice(repositories, maxCostCenterResourcesPerRequest) {
-			if diags := retryCostCenterRemoveResources(ctx, owner.v3client, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Repositories: batch}); diags.HasError() {
-				return diags
+		for batch := range slices.Chunk(repositories, maxCostCenterResourcesPerRequest) {
+			if _, _, err := owner.v3client.Enterprise.RemoveResourcesFromCostCenter(ctx, enterpriseSlug, costCenterID, github.CostCenterResourceRequest{Repositories: batch}); err != nil {
+				return diag.FromErr(err)
 			}
 		}
 	}

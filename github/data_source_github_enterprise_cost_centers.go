@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -61,17 +61,17 @@ func dataSourceGithubEnterpriseCostCenters() *schema.Resource {
 }
 
 func dataSourceGithubEnterpriseCostCentersRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	owner, err := costCenterOwner(meta)
-	if err != nil {
-		return diag.FromErr(err)
+	owner, ok := meta.(*Owner)
+	if !ok {
+		return diag.Errorf("unexpected provider metadata type %T", meta)
 	}
-	enterpriseSlug, err := costCenterString(d, "enterprise_slug")
-	if err != nil {
-		return diag.FromErr(err)
+	enterpriseSlug, ok := resourceKeysGetOk[string](d, "enterprise_slug")
+	if !ok {
+		return diag.Errorf("expected enterprise_slug to be a non-empty string")
 	}
-	stateFilter, err := costCenterString(d, "state")
-	if err != nil {
-		return diag.FromErr(err)
+	stateFilter, ok := resourceKeysGetOk[string](d, "state")
+	if !ok {
+		return diag.Errorf("expected state to be a non-empty string")
 	}
 
 	var opts github.ListCostCenterOptions
@@ -79,16 +79,13 @@ func dataSourceGithubEnterpriseCostCentersRead(ctx context.Context, d *schema.Re
 		opts.State = &stateFilter
 	}
 
-	result, _, err := owner.v3client.Enterprise.ListCostCenters(ctx, enterpriseSlug, &opts)
+	costCenters, err := listEnterpriseCostCenters(ctx, owner.v3client, enterpriseSlug, &opts, owner.maxPerPage)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	if result == nil {
-		return diag.Errorf("GitHub returned an empty response when listing cost centers for enterprise %q", enterpriseSlug)
-	}
 
-	items := make([]any, 0, len(result.CostCenters))
-	for _, cc := range result.CostCenters {
+	items := make([]any, 0, len(costCenters))
+	for _, cc := range costCenters {
 		if cc == nil {
 			continue
 		}

@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -11,6 +12,9 @@ func dataSourceGithubEnterpriseCostCenter() *schema.Resource {
 	return &schema.Resource{
 		Description: "Retrieves information about a specific GitHub enterprise cost center.",
 		ReadContext: dataSourceGithubEnterpriseCostCenterRead,
+		Timeouts: &schema.ResourceTimeout{
+			Read: schema.DefaultTimeout(5 * time.Minute),
+		},
 
 		Schema: map[string]*schema.Schema{
 			"enterprise_slug": {
@@ -61,20 +65,20 @@ func dataSourceGithubEnterpriseCostCenter() *schema.Resource {
 }
 
 func dataSourceGithubEnterpriseCostCenterRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	owner, err := costCenterOwner(meta)
-	if err != nil {
-		return diag.FromErr(err)
+	owner, ok := meta.(*Owner)
+	if !ok {
+		return diag.Errorf("unexpected provider metadata type %T", meta)
 	}
-	enterpriseSlug, err := costCenterString(d, "enterprise_slug")
-	if err != nil {
-		return diag.FromErr(err)
+	enterpriseSlug, ok := resourceKeysGetOk[string](d, "enterprise_slug")
+	if !ok {
+		return diag.Errorf("expected enterprise_slug to be a non-empty string")
 	}
-	costCenterID, err := costCenterString(d, "cost_center_id")
-	if err != nil {
-		return diag.FromErr(err)
+	costCenterID, ok := resourceKeysGetOk[string](d, "cost_center_id")
+	if !ok {
+		return diag.Errorf("expected cost_center_id to be a non-empty string")
 	}
 
-	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID)
+	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID, owner.maxPerPage)
 	if err != nil {
 		return diag.FromErr(err)
 	}

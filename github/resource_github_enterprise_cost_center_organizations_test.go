@@ -96,7 +96,7 @@ func testAccCheckGithubEnterpriseCostCenterOrganizationsDestroy(s *terraform.Sta
 		enterpriseSlug := rs.Primary.Attributes["enterprise_slug"]
 		costCenterID := rs.Primary.Attributes["cost_center_id"]
 
-		cc, err := getEnterpriseCostCenter(context.Background(), client, enterpriseSlug, costCenterID)
+		cc, err := getEnterpriseCostCenter(context.Background(), client, enterpriseSlug, costCenterID, meta.maxPerPage)
 		if errIs404(err) {
 			return nil
 		}

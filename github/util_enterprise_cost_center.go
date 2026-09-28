@@ -6,18 +6,12 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"time"
 
-	"github.com/google/go-github/v89/github"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/google/go-github/v92/github"
 )
 
-// Cost center resource management constants and retry functions.
 const (
 	maxCostCenterResourcesPerRequest = 50
-	costCenterResourcesRetryTimeout  = 5 * time.Minute
 
 	// CostCenterResourceType constants match the API response values.
 	CostCenterResourceTypeUser = "User"
@@ -25,68 +19,65 @@ const (
 	CostCenterResourceTypeRepo = "Repo"
 )
 
-type costCenterPage struct {
-	ID                string                       `json:"id"`
-	Name              string                       `json:"name"`
-	Resources         []*github.CostCenterResource `json:"resources"`
-	State             *string                      `json:"state,omitempty"`
-	AzureSubscription *string                      `json:"azure_subscription,omitempty"`
-	HasNextPage       bool                         `json:"has_next_page"`
+type queryParameterTransport struct {
+	base   http.RoundTripper
+	values url.Values
 }
 
-func costCenterOwner(meta any) (*Owner, error) {
-	owner, ok := meta.(*Owner)
-	if !ok {
-		return nil, fmt.Errorf("unexpected provider metadata type %T", meta)
+func (t queryParameterTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req = req.Clone(req.Context())
+	requestURL := *req.URL
+	query := requestURL.Query()
+	for key, values := range t.values {
+		query.Del(key)
+		for _, value := range values {
+			query.Add(key, value)
+		}
 	}
-	return owner, nil
+	requestURL.RawQuery = query.Encode()
+	req.URL = &requestURL
+
+	return t.base.RoundTrip(req)
 }
 
-func costCenterString(d *schema.ResourceData, key string) (string, error) {
-	value, ok := resourceKeysGetOk[string](d, key)
-	if !ok {
-		return "", fmt.Errorf("expected %q to be a non-empty string", key)
+func githubClientWithListOptions(client *github.Client, opts github.ListOptions) (*github.Client, error) {
+	query := url.Values{}
+	if opts.Page > 0 {
+		query.Set("page", strconv.Itoa(opts.Page))
 	}
-	return value, nil
+	if opts.PerPage > 0 {
+		query.Set("per_page", strconv.Itoa(opts.PerPage))
+	}
+
+	transport := client.Client().Transport
+	if transport == nil {
+		transport = http.DefaultTransport
+	}
+
+	return client.Clone(github.WithTransport(queryParameterTransport{
+		base:   transport,
+		values: query,
+	}))
 }
 
-func costCenterStringSet(d *schema.ResourceData, key string) ([]string, error) {
-	values, ok := resourceKeysGetOk[*schema.Set](d, key)
-	if !ok {
-		return nil, fmt.Errorf("expected %q to be a non-empty set of strings", key)
+func getEnterpriseCostCenter(ctx context.Context, client *github.Client, enterpriseSlug, costCenterID string, perPage int) (*github.CostCenter, error) {
+	if perPage < 1 {
+		return nil, fmt.Errorf("per-page limit must be at least 1")
 	}
-
-	result := expandStringList(values.List())
-	if len(result) != values.Len() {
-		return nil, fmt.Errorf("expected %q to contain only non-empty strings", key)
-	}
-	return result, nil
-}
-
-func getEnterpriseCostCenter(ctx context.Context, client *github.Client, enterpriseSlug, costCenterID string) (*github.CostCenter, error) {
-	const resourcesPerPage = 100
 
 	var costCenter *github.CostCenter
 	for page := 1; ; page++ {
-		query := url.Values{}
-		query.Set("page", strconv.Itoa(page))
-		query.Set("per_page", strconv.Itoa(resourcesPerPage))
-
-		endpoint := fmt.Sprintf(
-			"enterprises/%s/settings/billing/cost-centers/%s?%s",
-			url.PathEscape(enterpriseSlug),
-			url.PathEscape(costCenterID),
-			query.Encode(),
-		)
-		req, err := client.NewRequest(ctx, http.MethodGet, endpoint, nil)
+		pagedClient, err := githubClientWithListOptions(client, github.ListOptions{Page: page, PerPage: perPage})
 		if err != nil {
 			return nil, err
 		}
 
-		result := new(costCenterPage)
-		_, err = client.Do(req, result)
+		result, _, err := pagedClient.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
 		if err != nil {
 			return nil, err
+		}
+		if result == nil {
+			return nil, fmt.Errorf("GitHub returned an empty response when reading cost center %q in enterprise %q", costCenterID, enterpriseSlug)
 		}
 
 		if costCenter == nil {
@@ -99,46 +90,35 @@ func getEnterpriseCostCenter(ctx context.Context, client *github.Client, enterpr
 		}
 		costCenter.Resources = append(costCenter.Resources, result.Resources...)
 
-		if !result.HasNextPage {
+		if len(result.Resources) < perPage {
 			return costCenter, nil
 		}
 	}
 }
 
-// retryCostCenterRemoveResources removes resources from a cost center with retry logic.
-// Uses retry.RetryContext for exponential backoff on transient errors.
-func retryCostCenterRemoveResources(ctx context.Context, client *github.Client, enterpriseSlug, costCenterID string, req github.CostCenterResourceRequest) diag.Diagnostics {
-	err := retry.RetryContext(ctx, costCenterResourcesRetryTimeout, func() *retry.RetryError {
-		_, _, err := client.Enterprise.RemoveResourcesFromCostCenter(ctx, enterpriseSlug, costCenterID, req)
-		if err == nil {
-			return nil
-		}
-		if errIsRetryable(err) {
-			return retry.RetryableError(err)
-		}
-		return retry.NonRetryableError(err)
-	})
-	if err != nil {
-		return diag.FromErr(err)
+func listEnterpriseCostCenters(ctx context.Context, client *github.Client, enterpriseSlug string, opts *github.ListCostCenterOptions, perPage int) ([]*github.CostCenter, error) {
+	if perPage < 1 {
+		return nil, fmt.Errorf("per-page limit must be at least 1")
 	}
-	return nil
-}
 
-// retryCostCenterAddResources adds resources to a cost center with retry logic.
-// Uses retry.RetryContext for exponential backoff on transient errors.
-func retryCostCenterAddResources(ctx context.Context, client *github.Client, enterpriseSlug, costCenterID string, req github.CostCenterResourceRequest) diag.Diagnostics {
-	err := retry.RetryContext(ctx, costCenterResourcesRetryTimeout, func() *retry.RetryError {
-		_, _, err := client.Enterprise.AddResourcesToCostCenter(ctx, enterpriseSlug, costCenterID, req)
-		if err == nil {
-			return nil
+	var costCenters []*github.CostCenter
+	for page := 1; ; page++ {
+		pagedClient, err := githubClientWithListOptions(client, github.ListOptions{Page: page, PerPage: perPage})
+		if err != nil {
+			return nil, err
 		}
-		if errIsRetryable(err) {
-			return retry.RetryableError(err)
+
+		result, _, err := pagedClient.Enterprise.ListCostCenters(ctx, enterpriseSlug, opts)
+		if err != nil {
+			return nil, err
 		}
-		return retry.NonRetryableError(err)
-	})
-	if err != nil {
-		return diag.FromErr(err)
+		if result == nil {
+			return nil, fmt.Errorf("GitHub returned an empty response when listing cost centers for enterprise %q", enterpriseSlug)
+		}
+
+		costCenters = append(costCenters, result.CostCenters...)
+		if len(result.CostCenters) < perPage {
+			return costCenters, nil
+		}
 	}
-	return nil
 }

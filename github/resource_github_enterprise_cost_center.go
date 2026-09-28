@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -50,17 +50,17 @@ func resourceGithubEnterpriseCostCenter() *schema.Resource {
 }
 
 func resourceGithubEnterpriseCostCenterCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	owner, err := costCenterOwner(meta)
-	if err != nil {
-		return diag.FromErr(err)
+	owner, ok := meta.(*Owner)
+	if !ok {
+		return diag.Errorf("unexpected provider metadata type %T", meta)
 	}
-	enterpriseSlug, err := costCenterString(d, "enterprise_slug")
-	if err != nil {
-		return diag.FromErr(err)
+	enterpriseSlug, ok := resourceKeysGetOk[string](d, "enterprise_slug")
+	if !ok {
+		return diag.Errorf("expected enterprise_slug to be a non-empty string")
 	}
-	name, err := costCenterString(d, "name")
-	if err != nil {
-		return diag.FromErr(err)
+	name, ok := resourceKeysGetOk[string](d, "name")
+	if !ok {
+		return diag.Errorf("expected name to be a non-empty string")
 	}
 
 	tflog.Info(ctx, "Creating enterprise cost center", map[string]any{
@@ -89,17 +89,17 @@ func resourceGithubEnterpriseCostCenterCreate(ctx context.Context, d *schema.Res
 }
 
 func resourceGithubEnterpriseCostCenterRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	owner, err := costCenterOwner(meta)
-	if err != nil {
-		return diag.FromErr(err)
+	owner, ok := meta.(*Owner)
+	if !ok {
+		return diag.Errorf("unexpected provider metadata type %T", meta)
 	}
-	enterpriseSlug, err := costCenterString(d, "enterprise_slug")
-	if err != nil {
-		return diag.FromErr(err)
+	enterpriseSlug, ok := resourceKeysGetOk[string](d, "enterprise_slug")
+	if !ok {
+		return diag.Errorf("expected enterprise_slug to be a non-empty string")
 	}
 	costCenterID := d.Id()
 
-	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID)
+	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID, owner.maxPerPage)
 	if err != nil {
 		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "cost center %s/%s", enterpriseSlug, costCenterID))
 	}
@@ -129,27 +129,27 @@ func resourceGithubEnterpriseCostCenterRead(ctx context.Context, d *schema.Resou
 }
 
 func resourceGithubEnterpriseCostCenterUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	owner, err := costCenterOwner(meta)
-	if err != nil {
-		return diag.FromErr(err)
+	owner, ok := meta.(*Owner)
+	if !ok {
+		return diag.Errorf("unexpected provider metadata type %T", meta)
 	}
-	enterpriseSlug, err := costCenterString(d, "enterprise_slug")
-	if err != nil {
-		return diag.FromErr(err)
+	enterpriseSlug, ok := resourceKeysGetOk[string](d, "enterprise_slug")
+	if !ok {
+		return diag.Errorf("expected enterprise_slug to be a non-empty string")
 	}
 	costCenterID := d.Id()
 
 	if d.HasChange("name") {
-		name, err := costCenterString(d, "name")
-		if err != nil {
-			return diag.FromErr(err)
+		name, ok := resourceKeysGetOk[string](d, "name")
+		if !ok {
+			return diag.Errorf("expected name to be a non-empty string")
 		}
 		tflog.Info(ctx, "Updating enterprise cost center name", map[string]any{
 			"enterprise_slug": enterpriseSlug,
 			"cost_center_id":  costCenterID,
 			"name":            name,
 		})
-		_, _, err = owner.v3client.Enterprise.UpdateCostCenter(ctx, enterpriseSlug, costCenterID, github.CostCenterRequest{Name: name})
+		_, _, err := owner.v3client.Enterprise.UpdateCostCenter(ctx, enterpriseSlug, costCenterID, github.CostCenterRequest{Name: name})
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -159,13 +159,13 @@ func resourceGithubEnterpriseCostCenterUpdate(ctx context.Context, d *schema.Res
 }
 
 func resourceGithubEnterpriseCostCenterDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	owner, err := costCenterOwner(meta)
-	if err != nil {
-		return diag.FromErr(err)
+	owner, ok := meta.(*Owner)
+	if !ok {
+		return diag.Errorf("unexpected provider metadata type %T", meta)
 	}
-	enterpriseSlug, err := costCenterString(d, "enterprise_slug")
-	if err != nil {
-		return diag.FromErr(err)
+	enterpriseSlug, ok := resourceKeysGetOk[string](d, "enterprise_slug")
+	if !ok {
+		return diag.Errorf("expected enterprise_slug to be a non-empty string")
 	}
 	costCenterID := d.Id()
 
@@ -174,7 +174,7 @@ func resourceGithubEnterpriseCostCenterDelete(ctx context.Context, d *schema.Res
 		"cost_center_id":  costCenterID,
 	})
 
-	_, _, err = owner.v3client.Enterprise.DeleteCostCenter(ctx, enterpriseSlug, costCenterID)
+	_, _, err := owner.v3client.Enterprise.DeleteCostCenter(ctx, enterpriseSlug, costCenterID)
 	if err != nil {
 		if errIs404(err) {
 			return nil
@@ -191,11 +191,11 @@ func resourceGithubEnterpriseCostCenterImport(ctx context.Context, d *schema.Res
 		return nil, fmt.Errorf("invalid import ID %q: expected format <enterprise_slug>:<cost_center_id>", d.Id())
 	}
 
-	owner, err := costCenterOwner(meta)
-	if err != nil {
-		return nil, err
+	owner, ok := meta.(*Owner)
+	if !ok {
+		return nil, fmt.Errorf("unexpected provider metadata type %T", meta)
 	}
-	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID)
+	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID, owner.maxPerPage)
 	if err != nil {
 		return nil, fmt.Errorf("error reading cost center %q in enterprise %q: %w", costCenterID, enterpriseSlug, err)
 	}

@@ -28,6 +28,10 @@ data "github_enterprise_cost_center" "example" {
 - `cost_center_id` (String) The ID of the cost center.
 - `enterprise_slug` (String) The slug of the enterprise.
 
+### Optional
+
+- `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
+
 ### Read-Only
 
 - `azure_subscription` (String) The Azure subscription associated with the cost center.
@@ -37,3 +41,10 @@ data "github_enterprise_cost_center" "example" {
 - `repositories` (Set of String) The repositories (full name) assigned to this cost center.
 - `state` (String) The state of the cost center.
 - `users` (Set of String) The usernames assigned to this cost center.
+
+<a id="nestedblock--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- `read` (String)
