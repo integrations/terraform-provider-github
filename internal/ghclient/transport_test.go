@@ -8,6 +8,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -39,28 +40,28 @@ func Test_cloneTransport(t *testing.T) {
 			t.Parallel()
 
 			opts := ClientOptions{MaxIdleConns: 10, IdleConnTimeout: 30 * time.Second}
-			cloned := cloneTransport(tt.source, opts)
+			got := cloneTransport(tt.source, opts)
 
-			if !tt.httpTransport && cloned != tt.source {
-				t.Fatal("expected cloned transport to match original pointer")
+			if !tt.httpTransport && got != tt.source {
+				t.Fatal("expected cloned non-http transport to match original pointer")
 			}
 
-			if tt.httpTransport && cloned == tt.source {
-				t.Fatal("expected cloned transport to have a different pointer")
+			if tt.httpTransport && got == tt.source {
+				t.Fatal("expected cloned http transport to have a different pointer")
 			}
 
-			htr, ok := cloned.(*http.Transport)
+			htr, ok := got.(*http.Transport)
 
 			if !tt.httpTransport && ok {
 				t.Fatalf("expected cloned transport to not be an *http.Transport")
 			}
 
-			if tt.httpTransport && !ok {
-				t.Fatalf("expected cloned transport to be an *http.Transport, got %T", cloned)
-			}
-
 			if !tt.httpTransport {
 				return
+			}
+
+			if tt.httpTransport && !ok {
+				t.Fatalf("expected cloned transport to be an *http.Transport, got %T", got)
 			}
 
 			if htr.ForceAttemptHTTP2 != true {
@@ -94,7 +95,7 @@ func Test_newTransport(t *testing.T) {
 		name        string
 		tokenSource oauth2.TokenSource
 		opts        ClientOptions
-		wantErr     string
+		wantErr     *string
 	}{
 		{
 			name:        "succeeds_with_empty_options",
@@ -109,28 +110,28 @@ func Test_newTransport(t *testing.T) {
 		{
 			name:        "succeeds_with_retry",
 			tokenSource: nil,
-			opts:        ClientOptions{RetryMax: 1, RetryWaitMin: time.Millisecond, RetryWaitMax: time.Millisecond},
+			opts:        ClientOptions{Retry: RetryOptions{Max: 1, WaitMin: time.Millisecond, WaitMax: time.Millisecond}},
 		},
 		{
 			name:        "succeeds_with_throttler",
 			tokenSource: nil,
-			opts:        ClientOptions{Sema: semaphore.NewWeighted(1)},
+			opts:        ClientOptions{Concurrency: ConcurrencyOptions{Max: 1}},
 		},
 		{
 			name:        "succeeds_with_cache",
 			tokenSource: nil,
-			opts:        ClientOptions{Cache: true, CachePath: mustMkdirTemp(t, cacheBasePath, "*")},
+			opts:        ClientOptions{Cache: CacheOptions{Enabled: true, BasePath: mustMkdirTemp(t, cacheBasePath, "*")}},
 		},
 		{
 			name:        "succeeds_with_all_options",
 			tokenSource: oauth2.StaticTokenSource(&oauth2.Token{AccessToken: "test-token"}),
-			opts:        ClientOptions{RetryMax: 1, RetryWaitMin: time.Millisecond, RetryWaitMax: time.Millisecond, Sema: semaphore.NewWeighted(1), Cache: true, CachePath: mustMkdirTemp(t, cacheBasePath, "*")},
+			opts:        ClientOptions{Retry: RetryOptions{Max: 1, WaitMin: time.Millisecond, WaitMax: time.Millisecond}, Concurrency: ConcurrencyOptions{Max: 1}, Cache: CacheOptions{Enabled: true, BasePath: mustMkdirTemp(t, cacheBasePath, "*")}},
 		},
 		{
 			name:        "errors_with_invalid_cache_path",
 			tokenSource: nil,
-			opts:        ClientOptions{Cache: true, CachePath: "\x00c"},
-			wantErr:     "failed to create cache store",
+			opts:        ClientOptions{Cache: CacheOptions{Enabled: true, BasePath: "\x00c"}},
+			wantErr:     new("failed to create cache store"),
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -138,19 +139,19 @@ func Test_newTransport(t *testing.T) {
 
 			tr, err := newTransport(tt.tokenSource, tt.opts)
 			if err != nil {
-				if tt.wantErr == "" {
-					t.Fatalf("failed to create transport: %v", err)
+				if tt.wantErr == nil {
+					t.Fatalf("expected no error, got %v", err)
 				}
 
-				if !regexp.MustCompile(regexp.QuoteMeta(tt.wantErr)).MatchString(err.Error()) {
-					t.Fatalf("expected error to match %q, got %v", tt.wantErr, err)
+				if !regexp.MustCompile(regexp.QuoteMeta(*tt.wantErr)).MatchString(err.Error()) {
+					t.Fatalf("expected error %q, got %q", *tt.wantErr, err.Error())
 				}
 
 				return
 			}
 
-			if tt.wantErr != "" {
-				t.Fatalf("expected error %q, got nil", tt.wantErr)
+			if tt.wantErr != nil {
+				t.Fatalf("expected error %q, got nil", *tt.wantErr)
 			}
 
 			if tr == nil {
@@ -188,7 +189,7 @@ func Test_newTransport(t *testing.T) {
 		}))
 		defer ts.Close()
 
-		opts := ClientOptions{Cache: true, CachePath: mustMkdirTemp(t, cacheBasePath, "*")}
+		opts := ClientOptions{Cache: CacheOptions{Enabled: true, BasePath: mustMkdirTemp(t, cacheBasePath, "*")}}
 		tr, err := newTransport(&sequentialTokenSource{tokens: []string{"token-A", "token-A", "token-B"}}, opts)
 		if err != nil {
 			t.Fatalf("failed to create transport: %v", err)
@@ -256,7 +257,7 @@ func Test_newTransport(t *testing.T) {
 			failures           int
 			failStatusCode     int
 			wantFailStatusCode bool
-			wantError          string
+			wantErr            *string
 		}{
 			{
 				name:               "no_retries",
@@ -276,7 +277,7 @@ func Test_newTransport(t *testing.T) {
 				retryMax:       2,
 				failures:       3,
 				failStatusCode: http.StatusInternalServerError,
-				wantError:      "giving up after",
+				wantErr:        new("server error"),
 			},
 			{
 				name:               "does_not_retry_on_4xx",
@@ -303,7 +304,7 @@ func Test_newTransport(t *testing.T) {
 				}))
 				defer ts.Close()
 
-				opts := ClientOptions{RetryMax: tt.retryMax, RetryWaitMin: time.Millisecond, RetryWaitMax: time.Millisecond}
+				opts := ClientOptions{Retry: RetryOptions{Max: tt.retryMax, WaitMin: time.Millisecond, WaitMax: time.Millisecond}}
 				tr, err := newTransport(nil, opts)
 				if err != nil {
 					t.Fatalf("failed to create transport: %v", err)
@@ -317,20 +318,20 @@ func Test_newTransport(t *testing.T) {
 
 				res, err := client.Get(ts.URL)
 				if err != nil {
-					if tt.wantError != "" {
-						if !regexp.MustCompile(regexp.QuoteMeta(tt.wantError)).MatchString(err.Error()) {
-							t.Fatalf("expected error to match %q, got %v", tt.wantError, err)
-						}
-
-						return
+					if tt.wantErr == nil {
+						t.Fatalf("expected no error, got %v", err)
 					}
 
-					t.Fatalf("failed to make request: %v", err)
+					if !regexp.MustCompile(regexp.QuoteMeta(*tt.wantErr)).MatchString(err.Error()) {
+						t.Fatalf("expected error %q, got %q", *tt.wantErr, err.Error())
+					}
+
+					return
 				}
 				defer res.Body.Close()
 
-				if tt.wantError != "" {
-					t.Fatalf("expected error %q, got nil", tt.wantError)
+				if tt.wantErr != nil {
+					t.Fatalf("expected error %q, got nil", *tt.wantErr)
 				}
 
 				if tt.wantFailStatusCode {
@@ -357,18 +358,30 @@ func Test_newTransport(t *testing.T) {
 		}
 	})
 
-	t.Run("transport_throttles_requests", func(t *testing.T) {
+	t.Run("transport_preserves_body_on_secondary_rate_limit_retry", func(t *testing.T) {
 		t.Parallel()
 
-		result := "FAIL"
+		const reqBody = `{"foo": "bar"}`
 
+		called := atomic.Int32{}
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(result))
+			call := int(called.Add(1))
+
+			if call > 1 {
+				by, _ := io.ReadAll(r.Body)
+
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write(by)
+				return
+			}
+
+			w.Header().Set("retry-after", "1")
+			w.WriteHeader(http.StatusForbidden)
+			_, _ = w.Write([]byte(`{"message": "You have exceeded a secondary rate limit."}`))
 		}))
 		defer ts.Close()
 
-		opts := ClientOptions{Sema: semaphore.NewWeighted(1)}
+		opts := ClientOptions{Retry: RetryOptions{Max: 2, WaitMin: time.Second, WaitMax: time.Second}}
 		tr, err := newTransport(nil, opts)
 		if err != nil {
 			t.Fatalf("failed to create transport: %v", err)
@@ -380,14 +393,62 @@ func Test_newTransport(t *testing.T) {
 
 		client := &http.Client{Transport: tr}
 
-		if err := opts.Sema.Acquire(t.Context(), 1); err != nil {
+		req, err := http.NewRequestWithContext(t.Context(), "POST", ts.URL, strings.NewReader(reqBody))
+		if err != nil {
+			t.Fatalf("failed to create request: %v", err)
+		}
+
+		res, err := client.Do(req)
+		if err != nil {
+			t.Fatalf("failed to make request: %v", err)
+		}
+		defer res.Body.Close()
+
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("expected status code %d, got %d", http.StatusOK, res.StatusCode)
+		}
+
+		body, err := io.ReadAll(res.Body)
+		if err != nil {
+			t.Fatalf("failed to read response body: %v", err)
+		}
+
+		if string(body) != reqBody {
+			t.Fatalf("unexpected response body: %s", body)
+		}
+	})
+
+	t.Run("transport_throttles_requests", func(t *testing.T) {
+		t.Parallel()
+
+		result := "FAIL"
+
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(result))
+		}))
+		defer ts.Close()
+
+		opts := ClientOptions{Concurrency: ConcurrencyOptions{Max: 1, sema: semaphore.NewWeighted(1)}}
+		tr, err := newTransport(nil, opts)
+		if err != nil {
+			t.Fatalf("failed to create transport: %v", err)
+		}
+
+		if tr == nil {
+			t.Fatal("expected transport to be non-nil")
+		}
+
+		client := &http.Client{Transport: tr}
+
+		if err := opts.Concurrency.sema.Acquire(t.Context(), 1); err != nil {
 			t.Fatalf("failed to acquire semaphore: %v", err)
 		}
 
 		go func() {
 			time.Sleep(1 * time.Second)
 			result = "PASS"
-			opts.Sema.Release(1)
+			opts.Concurrency.sema.Release(1)
 		}()
 
 		res, err := client.Get(ts.URL)

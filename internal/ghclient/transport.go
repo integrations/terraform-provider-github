@@ -5,10 +5,6 @@ import (
 	"net/http"
 
 	ghct "github.com/bored-engineer/github-conditional-http-transport"
-	ratelimit "github.com/gofri/go-github-ratelimit/v2/github_ratelimit"
-	ratelimitp "github.com/gofri/go-github-ratelimit/v2/github_ratelimit/github_primary_ratelimit"
-	ratelimits "github.com/gofri/go-github-ratelimit/v2/github_ratelimit/github_secondary_ratelimit"
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	"golang.org/x/oauth2"
 )
@@ -39,8 +35,8 @@ func newTransport(tokenSource oauth2.TokenSource, opts ClientOptions) (http.Roun
 	// on the request's Authorization header (see the Vary handling in
 	// github.com/bored-engineer/github-conditional-http-transport), placing it outside of the
 	// OAuth2 transport silently breaks per-token cache validation for authenticated requests.
-	if opts.Cache {
-		store, err := createCacheStore(opts.CachePath)
+	if opts.Cache.Enabled {
+		store, err := createCacheStore(opts.Cache)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create cache store: %w", err)
 		}
@@ -57,22 +53,22 @@ func newTransport(tokenSource oauth2.TokenSource, opts ClientOptions) (http.Roun
 
 	tr = logging.NewLoggingHTTPTransport(tr)
 
-	if opts.RetryMax > 0 {
-		retryClient := retryablehttp.NewClient()
-		retryClient.Logger = nil
-		retryClient.HTTPClient = &http.Client{Transport: tr, Timeout: clientTimeout}
-		retryClient.RetryMax = opts.RetryMax
-		retryClient.RetryWaitMin = opts.RetryWaitMin
-		retryClient.RetryWaitMax = opts.RetryWaitMax
-		retryClient.CheckRetry = checkRetryNoRatelimit
-
-		tr = &retryablehttp.RoundTripper{Client: retryClient}
+	if opts.Retry.Max > 0 {
+		rtr, err := newRetryTransport(tr, opts.Retry)
+		if err != nil {
+			return nil, err
+		}
+		tr = rtr
 	}
 
-	tr = ratelimit.New(tr, ratelimitp.WithLimitDetectedCallback(primaryRateLimitCallback), ratelimits.WithLimitDetectedCallback(secondaryRateLimitCallback))
+	tr = newRateLimitTransport(tr)
 
-	if opts.Sema != nil {
-		tr = &throttler{sema: opts.Sema, inner: tr}
+	if opts.Concurrency.Max > 0 {
+		ctr, err := newThrottleTransport(tr, opts.Concurrency)
+		if err != nil {
+			return nil, err
+		}
+		tr = ctr
 	}
 
 	return tr, nil

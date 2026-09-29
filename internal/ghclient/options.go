@@ -3,7 +3,6 @@ package ghclient
 import (
 	"fmt"
 	"net/url"
-	"path/filepath"
 	"time"
 
 	"golang.org/x/sync/semaphore"
@@ -11,14 +10,32 @@ import (
 
 // SourceOptions defines the configuration options for creating a GitHub client source.
 type SourceOptions struct {
-	BaseURL       string
-	IsGHES        bool
-	UserAgent     string
-	Cache         bool
-	CacheBasePath string
-	RetryMax      int
-	RetryWaitMin  time.Duration
-	RetryWaitMax  time.Duration
+	BaseURL   string
+	IsGHES    bool
+	UserAgent string
+	Cache     CacheOptions
+	Retry     RetryOptions
+}
+
+// CacheOptions defines the configuration options for caching.
+type CacheOptions struct {
+	Enabled  bool
+	BasePath string
+	Ref      string
+}
+
+// RetryOptions defines the configuration options for retrying failed requests.
+type RetryOptions struct {
+	Max     int
+	WaitMin time.Duration
+	WaitMax time.Duration
+	Jitter  time.Duration
+}
+
+// ConcurrencyOptions defines the configuration options for concurrency.
+type ConcurrencyOptions struct {
+	Max  int64
+	sema *semaphore.Weighted
 }
 
 // getRESTClientOptions returns the REST client options derived from the source options.
@@ -27,14 +44,18 @@ func (o *SourceOptions) getRESTClientOptions(sema *semaphore.Weighted, cacheRef 
 		BaseURL:         o.BaseURL,
 		IsGHES:          o.IsGHES,
 		UserAgent:       o.UserAgent,
-		Cache:           o.Cache,
-		CachePath:       filepath.Join(o.CacheBasePath, cacheRef),
-		RetryMax:        o.RetryMax,
-		RetryWaitMin:    o.RetryWaitMin,
-		RetryWaitMax:    o.RetryWaitMax,
-		Sema:            sema,
 		MaxIdleConns:    maxIdleConnsREST,
 		IdleConnTimeout: idleConnTimeoutREST,
+		Concurrency: ConcurrencyOptions{
+			Max:  maxConcurrentRequests,
+			sema: sema,
+		},
+		Retry: o.Retry,
+		Cache: CacheOptions{
+			Enabled:  o.Cache.Enabled,
+			BasePath: o.Cache.BasePath,
+			Ref:      cacheRef,
+		},
 	}
 }
 
@@ -44,12 +65,13 @@ func (o *SourceOptions) getGraphQLClientOptions(sema *semaphore.Weighted) Client
 		BaseURL:         o.BaseURL,
 		IsGHES:          o.IsGHES,
 		UserAgent:       o.UserAgent,
-		RetryMax:        o.RetryMax,
-		RetryWaitMin:    o.RetryWaitMin,
-		RetryWaitMax:    o.RetryWaitMax,
-		Sema:            sema,
 		MaxIdleConns:    maxIdleConnsGraphQL,
 		IdleConnTimeout: idleConnTimeoutGraphQL,
+		Concurrency: ConcurrencyOptions{
+			Max:  maxConcurrentRequests,
+			sema: sema,
+		},
+		Retry: o.Retry,
 	}
 }
 
@@ -58,14 +80,11 @@ type ClientOptions struct {
 	BaseURL         string
 	IsGHES          bool
 	UserAgent       string
-	Cache           bool
-	CachePath       string
-	RetryMax        int
-	RetryWaitMin    time.Duration
-	RetryWaitMax    time.Duration
-	Sema            *semaphore.Weighted
 	MaxIdleConns    int
 	IdleConnTimeout time.Duration
+	Concurrency     ConcurrencyOptions
+	Cache           CacheOptions
+	Retry           RetryOptions
 }
 
 // getRESTURL returns the REST API URL based on the provided base URL and whether it is a GitHub Enterprise Server instance.
