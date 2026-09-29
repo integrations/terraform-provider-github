@@ -1,0 +1,63 @@
+---
+# This workflow integrates Harness SAST and SCA with GitHub
+# Visit https://docs.shiftleft.io for help
+name: Harness SAST and SCA
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  NextGen-Static-Analysis:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-go@v3
+      with:
+        go-version: '1.23'
+    - name: Build
+      run: |
+        go build ./...
+
+    - name: Download Harness SAST and SCA CLI
+      run: |
+        curl https://cdn.shiftleft.io/download/sl > ${GITHUB_WORKSPACE}/sl && chmod a+rx ${GITHUB_WORKSPACE}/sl
+
+    - name: Static Analysis
+      run: |
+        ${GITHUB_WORKSPACE}/sl --version
+        ${GITHUB_WORKSPACE}/sl analyze --strict --wait \
+          --app terraform-provider-github \
+          --tag branch=${{ github.head_ref }} \
+          --go $(pwd)
+      env:
+        SHIFTLEFT_ACCESS_TOKEN: ${{ secrets.SHIFTLEFT_ACCESS_TOKEN }}
+        SHIFTLEFT_API_HOST: www.shiftleft.io
+        SHIFTLEFT_GRPC_TELEMETRY_HOST: telemetry.shiftleft.io:443
+        SHIFTLEFT_GRPC_API_HOST: api.shiftleft.io:443
+
+#   Build-Rules:
+#     runs-on: ubuntu-latest
+#     permissions: write-all
+#     needs: NextGen-Static-Analysis
+#     steps:
+#     - uses: actions/checkout@v3
+#     - name: Download Harness SAST and SCA CLI
+#       run: |
+#         curl https://cdn.shiftleft.io/download/sl > ${GITHUB_WORKSPACE}/sl && chmod a+rx ${GITHUB_WORKSPACE}/sl
+#     - name: Validate Build Rules
+#       run: |
+#         ${GITHUB_WORKSPACE}/sl check-analysis --app terraform-provider-github \
+#             --github-pr-number=${{github.event.number}} \
+#             --github-pr-user=${{ github.repository_owner }} \
+#             --github-pr-repo=${{ github.event.repository.name }} \
+#             --github-token=${{ secrets.GITHUB_TOKEN }}
+#       env:
+#         # SHIFTLEFT_ACCESS_TOKEN: ${{ secrets.SHIFTLEFT_ACCESS_TOKEN }}
+#
+#         SHIFTLEFT_API_HOST: www.shiftleft.io
+#         SHIFTLEFT_GRPC_TELEMETRY_HOST: telemetry.shiftleft.io:443
+#         SHIFTLEFT_GRPC_API_HOST: api.shiftleft.io:443
+#
+
+
