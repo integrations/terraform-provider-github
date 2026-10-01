@@ -1,10 +1,16 @@
 package github
 
 import (
+	"context"
 	"fmt"
+	"net/http"
 	"regexp"
+	"strings"
 	"testing"
 
+	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
@@ -12,6 +18,172 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
+
+func TestValidateSelectPropertyDefaultValue(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name          string
+		valueType     github.PropertyValueType
+		defaultValues []string
+		allowedValues []string
+		wantError     bool
+	}{
+		{
+			name:          "single select value is allowed",
+			valueType:     github.PropertyValueTypeSingleSelect,
+			defaultValues: []string{"production"},
+			allowedValues: []string{"development", "production"},
+		},
+		{
+			name:          "single select value is not allowed",
+			valueType:     github.PropertyValueTypeSingleSelect,
+			defaultValues: []string{"staging"},
+			allowedValues: []string{"development", "production"},
+			wantError:     true,
+		},
+		{
+			name:          "all multi select values are allowed",
+			valueType:     github.PropertyValueTypeMultiSelect,
+			defaultValues: []string{"backend", "frontend"},
+			allowedValues: []string{"backend", "frontend", "platform"},
+		},
+		{
+			name:          "a multi select value is not allowed",
+			valueType:     github.PropertyValueTypeMultiSelect,
+			defaultValues: []string{"backend", "unknown"},
+			allowedValues: []string{"backend", "frontend", "platform"},
+			wantError:     true,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := validateSelectPropertyDefaultValue(testCase.valueType, testCase.defaultValues, testCase.allowedValues)
+			if (err != nil) != testCase.wantError {
+				t.Fatalf("validateSelectPropertyDefaultValue() error = %v, wantError %t", err, testCase.wantError)
+			}
+		})
+	}
+}
+
+func TestResourceGithubOrganizationRepositoryCustomPropertyDelete(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name        string
+		statusCode  int
+		response    string
+		wantError   bool
+		errorDetail string
+	}{
+		{
+			name:       "missing property is already deleted",
+			statusCode: http.StatusNotFound,
+			response:   `{"message":"Not Found"}`,
+		},
+		{
+			name:        "unexpected API error is returned",
+			statusCode:  http.StatusInternalServerError,
+			response:    `{"message":"Internal Server Error"}`,
+			wantError:   true,
+			errorDetail: "Internal Server Error",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			server := githubApiMock([]*mockResponse{{
+				ExpectedUri:    "/orgs/test-org/properties/schema/test-property",
+				ExpectedMethod: http.MethodDelete,
+				StatusCode:     testCase.statusCode,
+				ResponseBody:   testCase.response,
+			}})
+			defer server.Close()
+
+			meta := &Owner{
+				name:           "test-org",
+				v3client:       mustCreateTestGitHubClient(t, server.URL),
+				IsOrganization: true,
+			}
+			data := schema.TestResourceDataRaw(t, resourceGithubOrganizationRepositoryCustomProperty().Schema, map[string]any{
+				"property_name": "test-property",
+			})
+			data.SetId("test-property")
+
+			diags := resourceGithubOrganizationRepositoryCustomPropertyDelete(t.Context(), data, meta)
+			if diags.HasError() != testCase.wantError {
+				t.Fatalf("Delete() diagnostics = %v, want error %t", diags, testCase.wantError)
+			}
+			if testCase.wantError && !strings.Contains(diags[0].Summary+diags[0].Detail, testCase.errorDetail) {
+				t.Fatalf("Delete() diagnostic = %q: %q, want it to contain %q", diags[0].Summary, diags[0].Detail, testCase.errorDetail)
+			}
+		})
+	}
+}
+
+func TestResourceGithubOrganizationRepositoryCustomPropertyCreateUpdateClearsAllowedValues(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+		call func(context.Context, *schema.ResourceData, any) diag.Diagnostics
+	}{
+		{
+			name: "create",
+			call: resourceGithubOrganizationRepositoryCustomPropertyCreate,
+		},
+		{
+			name: "update",
+			call: resourceGithubOrganizationRepositoryCustomPropertyUpdate,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			server := githubApiMock([]*mockResponse{{
+				ExpectedUri:    "/orgs/test-org/properties/schema/test-property",
+				ExpectedMethod: http.MethodPut,
+				StatusCode:     http.StatusOK,
+				ResponseBody: `{
+  "property_name": "test-property",
+  "value_type": "string",
+  "allowed_values": ["unexpected"]
+}`,
+			}})
+			defer server.Close()
+
+			meta := &Owner{
+				name:           "test-org",
+				v3client:       mustCreateTestGitHubClient(t, server.URL),
+				IsOrganization: true,
+			}
+			data := schema.TestResourceDataRaw(t, resourceGithubOrganizationRepositoryCustomProperty().Schema, map[string]any{
+				"property_name": "test-property",
+				"value_type":    "string",
+			})
+			if testCase.name == "update" {
+				data.SetId("test-property")
+			}
+
+			diags := testCase.call(t.Context(), data, meta)
+			if diags.HasError() {
+				t.Fatalf("%s() diagnostics = %v", testCase.name, diags)
+			}
+
+			allowedValues, ok := data.Get("allowed_values").([]any)
+			if !ok || len(allowedValues) != 0 {
+				t.Fatalf("%s() allowed_values = %v, want empty", testCase.name, data.Get("allowed_values"))
+			}
+		})
+	}
+}
 
 func TestAccGithubOrganizationRepositoryCustomProperty(t *testing.T) {
 	const resourceAddr = "github_organization_repository_custom_property.test"
@@ -253,39 +425,6 @@ resource "github_organization_repository_custom_property" "test" {
 		})
 	})
 
-	t.Run("destroys cleanly when the property is already gone", func(t *testing.T) {
-		t.Parallel()
-
-		name := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
-		config := fmt.Sprintf(`
-resource "github_organization_repository_custom_property" "test" {
-  property_name = %[1]q
-  value_type    = "string"
-  description   = "tf-acc-test delete of a missing property"
-}
-`, name)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{Config: config},
-				{
-					// Delete must treat a 404 as success. Removing the property
-					// out of band immediately before destroy exercises that branch,
-					// which the recreate test above never reaches.
-					PreConfig: func() {
-						if _, err := testAccConf.meta.v3client.Organizations.RemoveCustomProperty(t.Context(), testAccConf.meta.name, name); err != nil {
-							t.Fatalf("failed to delete organization custom property %s out of band: %v", name, err)
-						}
-					},
-					Config:  config,
-					Destroy: true,
-				},
-			},
-		})
-	})
-
 	t.Run("creates a url property with a default value", func(t *testing.T) {
 		t.Parallel()
 
@@ -340,6 +479,31 @@ resource "github_organization_repository_custom_property" "test" {
 				{
 					Config:      config,
 					ExpectError: regexp.MustCompile(`default_value must be "true" or "false"`),
+				},
+			},
+		})
+	})
+
+	t.Run("rejects a select default_value outside allowed_values", func(t *testing.T) {
+		t.Parallel()
+
+		name := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
+		config := fmt.Sprintf(`
+resource "github_organization_repository_custom_property" "test" {
+  property_name  = %[1]q
+  value_type     = "single_select"
+  allowed_values = ["development", "production"]
+  default_value  = ["staging"]
+}
+`, name)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile(`default_value "staging" must be one of allowed_values`),
 				},
 			},
 		})

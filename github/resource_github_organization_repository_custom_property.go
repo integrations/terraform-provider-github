@@ -6,10 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -36,7 +35,7 @@ func resourceGithubOrganizationRepositoryCustomProperty() *schema.Resource {
 			StateContext: resourceGithubOrganizationRepositoryCustomPropertyImport,
 		},
 
-		CustomizeDiff: customdiff.All(resourceGithubOrganizationRepositoryCustomPropertyDiff),
+		CustomizeDiff: resourceGithubOrganizationRepositoryCustomPropertyDiff,
 
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(5 * time.Minute),
@@ -112,37 +111,68 @@ func resourceGithubOrganizationRepositoryCustomPropertyDiff(ctx context.Context,
 	}
 
 	valueType := github.PropertyValueType(d.Get("value_type").(string))
+	if err := validateOrganizationRepositoryCustomPropertyAllowedValues(d, valueType); err != nil {
+		return err
+	}
+
+	return validateOrganizationRepositoryCustomPropertyDefaultValue(d, valueType)
+}
+
+func validateOrganizationRepositoryCustomPropertyAllowedValues(d *schema.ResourceDiff, valueType github.PropertyValueType) error {
+	if !d.NewValueKnown("allowed_values") {
+		return nil
+	}
+
+	allowedValues, _ := d.Get("allowed_values").([]any)
 	selectType := valueType == github.PropertyValueTypeSingleSelect || valueType == github.PropertyValueTypeMultiSelect
+	if selectType && len(allowedValues) == 0 {
+		return fmt.Errorf("allowed_values is required when value_type is %q", valueType)
+	}
+	if !selectType && len(allowedValues) > 0 {
+		return fmt.Errorf("allowed_values must not be set when value_type is %q", valueType)
+	}
 
-	if d.NewValueKnown("allowed_values") {
-		allowedValues, _ := d.Get("allowed_values").([]any)
+	return nil
+}
 
-		if selectType && len(allowedValues) == 0 {
-			return fmt.Errorf("allowed_values is required when value_type is %q", valueType)
-		}
-		if !selectType && len(allowedValues) > 0 {
-			return fmt.Errorf("allowed_values must not be set when value_type is %q", valueType)
+func validateOrganizationRepositoryCustomPropertyDefaultValue(d *schema.ResourceDiff, valueType github.PropertyValueType) error {
+	if !d.NewValueKnown("default_value") {
+		return nil
+	}
+
+	defaultValue, _ := d.Get("default_value").([]any)
+	if valueType != github.PropertyValueTypeMultiSelect && len(defaultValue) > 1 {
+		return fmt.Errorf("default_value must contain at most one element when value_type is %q, got %d", valueType, len(defaultValue))
+	}
+
+	if valueType == github.PropertyValueTypeTrueFalse {
+		for _, v := range defaultValue {
+			if s, _ := v.(string); s != "true" && s != "false" {
+				return fmt.Errorf("default_value must be %q or %q when value_type is %q, got %q", "true", "false", valueType, s)
+			}
 		}
 	}
 
-	if d.NewValueKnown("default_value") {
-		defaultValue, _ := d.Get("default_value").([]any)
-
-		// Only multi_select accepts a list-valued default; every other type is scalar.
-		if valueType != github.PropertyValueTypeMultiSelect && len(defaultValue) > 1 {
-			return fmt.Errorf("default_value must contain at most one element when value_type is %q, got %d", valueType, len(defaultValue))
+	selectType := valueType == github.PropertyValueTypeSingleSelect || valueType == github.PropertyValueTypeMultiSelect
+	if selectType && d.NewValueKnown("allowed_values") {
+		allowedValues, _ := d.Get("allowed_values").([]any)
+		if err := validateSelectPropertyDefaultValue(valueType, expandStringList(defaultValue), expandStringList(allowedValues)); err != nil {
+			return err
 		}
+	}
 
-		// GitHub stores true_false defaults as the strings "true"/"false". Reject
-		// anything else here: strconv.ParseBool would accept "True" or "1" and the
-		// read path would then normalise it to a different string than the config,
-		// failing the apply with an inconsistent-result error.
-		if valueType == github.PropertyValueTypeTrueFalse {
-			for _, v := range defaultValue {
-				if s, _ := v.(string); s != "true" && s != "false" {
-					return fmt.Errorf("default_value must be %q or %q when value_type is %q, got %q", "true", "false", valueType, s)
-				}
-			}
+	return nil
+}
+
+func validateSelectPropertyDefaultValue(valueType github.PropertyValueType, defaultValues, allowedValues []string) error {
+	allowed := make(map[string]struct{}, len(allowedValues))
+	for _, value := range allowedValues {
+		allowed[value] = struct{}{}
+	}
+
+	for _, value := range defaultValues {
+		if _, ok := allowed[value]; !ok {
+			return fmt.Errorf("default_value %q must be one of allowed_values when value_type is %q", value, valueType)
 		}
 	}
 
@@ -207,35 +237,7 @@ func resourceGithubOrganizationRepositoryCustomPropertyCreate(ctx context.Contex
 		return diag.Errorf("organization %q returned a custom property with an empty name when creating %q", owner, propertyName)
 	}
 
-	defaultValue, err := flattenOrganizationRepositoryCustomPropertyDefaultValue(cp)
-	if err != nil {
-		return diag.Errorf("error reading organization custom property %q: %v", propertyName, err)
-	}
-
-	d.SetId(cp.GetPropertyName())
-	if err := d.Set("property_name", cp.GetPropertyName()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("value_type", string(cp.ValueType)); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("required", cp.GetRequired()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("default_value", defaultValue); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("description", cp.GetDescription()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("allowed_values", cp.AllowedValues); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("values_editable_by", cp.GetValuesEditableBy()); err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
+	return setOrganizationRepositoryCustomPropertyState(d, cp)
 }
 
 func resourceGithubOrganizationRepositoryCustomPropertyRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
@@ -255,48 +257,14 @@ func resourceGithubOrganizationRepositoryCustomPropertyRead(ctx context.Context,
 			d.SetId("")
 			return nil
 		}
-		return diag.Errorf("error reading organization custom property %q: %v", propertyName, err)
+		return diag.Errorf(organizationCustomPropertyReadErrorFormat, propertyName, err)
 	}
 
 	if cp.GetPropertyName() == "" {
 		return diag.Errorf("organization %q returned a custom property with an empty name when reading %q", owner, propertyName)
 	}
 
-	switch cp.ValueType {
-	case github.PropertyValueTypeSingleSelect, github.PropertyValueTypeMultiSelect:
-	default:
-		cp.AllowedValues = nil
-	}
-
-	defaultValue, err := flattenOrganizationRepositoryCustomPropertyDefaultValue(cp)
-	if err != nil {
-		return diag.Errorf("error reading organization custom property %q: %v", propertyName, err)
-	}
-
-	d.SetId(cp.GetPropertyName())
-	if err := d.Set("property_name", cp.GetPropertyName()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("value_type", string(cp.ValueType)); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("required", cp.GetRequired()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("default_value", defaultValue); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("description", cp.GetDescription()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("allowed_values", cp.AllowedValues); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("values_editable_by", cp.GetValuesEditableBy()); err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
+	return setOrganizationRepositoryCustomPropertyState(d, cp)
 }
 
 func resourceGithubOrganizationRepositoryCustomPropertyUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
@@ -320,35 +288,7 @@ func resourceGithubOrganizationRepositoryCustomPropertyUpdate(ctx context.Contex
 		return diag.Errorf("organization %q returned a custom property with an empty name when updating %q", owner, propertyName)
 	}
 
-	defaultValue, err := flattenOrganizationRepositoryCustomPropertyDefaultValue(cp)
-	if err != nil {
-		return diag.Errorf("error reading organization custom property %q: %v", propertyName, err)
-	}
-
-	d.SetId(cp.GetPropertyName())
-	if err := d.Set("property_name", cp.GetPropertyName()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("value_type", string(cp.ValueType)); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("required", cp.GetRequired()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("default_value", defaultValue); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("description", cp.GetDescription()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("allowed_values", cp.AllowedValues); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("values_editable_by", cp.GetValuesEditableBy()); err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
+	return setOrganizationRepositoryCustomPropertyState(d, cp)
 }
 
 func resourceGithubOrganizationRepositoryCustomPropertyDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
