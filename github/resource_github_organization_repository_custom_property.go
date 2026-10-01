@@ -62,7 +62,7 @@ func resourceGithubOrganizationRepositoryCustomProperty() *schema.Resource {
 			"required": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "Whether the custom property must be set on every repository. GitHub may reject `required = true` unless a `default_value` is also provided.",
+				Description: "Whether the custom property must be set on every repository. A `default_value` is required when this is `true`.",
 			},
 			"default_value": {
 				Type:        schema.TypeList,
@@ -136,11 +136,16 @@ func validateOrganizationRepositoryCustomPropertyAllowedValues(d *schema.Resourc
 }
 
 func validateOrganizationRepositoryCustomPropertyDefaultValue(d *schema.ResourceDiff, valueType github.PropertyValueType) error {
-	if !d.NewValueKnown("default_value") {
+	defaultValueKnown := d.NewValueKnown("default_value")
+	defaultValue, _ := d.Get("default_value").([]any)
+	required := d.NewValueKnown("required") && d.Get("required").(bool)
+	if err := validateRequiredOrganizationRepositoryCustomPropertyDefaultValue(required, defaultValueKnown, defaultValue); err != nil {
+		return err
+	}
+	if !defaultValueKnown {
 		return nil
 	}
 
-	defaultValue, _ := d.Get("default_value").([]any)
 	if valueType != github.PropertyValueTypeMultiSelect && len(defaultValue) > 1 {
 		return fmt.Errorf("default_value must contain at most one element when value_type is %q, got %d", valueType, len(defaultValue))
 	}
@@ -159,6 +164,14 @@ func validateOrganizationRepositoryCustomPropertyDefaultValue(d *schema.Resource
 		if err := validateSelectPropertyDefaultValue(valueType, expandStringList(defaultValue), expandStringList(allowedValues)); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func validateRequiredOrganizationRepositoryCustomPropertyDefaultValue(required, defaultValueKnown bool, defaultValue []any) error {
+	if required && (!defaultValueKnown || len(defaultValue) == 0) {
+		return fmt.Errorf("default_value is required when required is true")
 	}
 
 	return nil

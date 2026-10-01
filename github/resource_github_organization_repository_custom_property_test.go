@@ -69,6 +69,51 @@ func TestValidateSelectPropertyDefaultValue(t *testing.T) {
 	}
 }
 
+func TestValidateRequiredOrganizationRepositoryCustomPropertyDefaultValue(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name              string
+		required          bool
+		defaultValueKnown bool
+		defaultValue      []any
+		wantError         bool
+	}{
+		{
+			name: "not required without a default",
+		},
+		{
+			name:      "required with unknown default",
+			required:  true,
+			wantError: true,
+		},
+		{
+			name:              "required with empty default",
+			required:          true,
+			defaultValueKnown: true,
+			defaultValue:      []any{},
+			wantError:         true,
+		},
+		{
+			name:              "required with a default",
+			required:          true,
+			defaultValueKnown: true,
+			defaultValue:      []any{"production"},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := validateRequiredOrganizationRepositoryCustomPropertyDefaultValue(testCase.required, testCase.defaultValueKnown, testCase.defaultValue)
+			if (err != nil) != testCase.wantError {
+				t.Fatalf("validation error = %v, wantError %t", err, testCase.wantError)
+			}
+		})
+	}
+}
+
 func TestResourceGithubOrganizationRepositoryCustomPropertyDelete(t *testing.T) {
 	t.Parallel()
 
@@ -504,6 +549,30 @@ resource "github_organization_repository_custom_property" "test" {
 				{
 					Config:      config,
 					ExpectError: regexp.MustCompile(`default_value "staging" must be one of allowed_values`),
+				},
+			},
+		})
+	})
+
+	t.Run("requires default_value when required is true", func(t *testing.T) {
+		t.Parallel()
+
+		name := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
+		config := fmt.Sprintf(`
+resource "github_organization_repository_custom_property" "test" {
+  property_name = %[1]q
+  value_type    = "string"
+  required      = true
+}
+`, name)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("default_value is required when required is true"),
 				},
 			},
 		})

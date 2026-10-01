@@ -69,7 +69,7 @@ resource "github_organization_repository_custom_property" "compliance" {
 - `allowed_values` (List of String) Allowed values for `single_select` and `multi_select` property types. Must be omitted for other types.
 - `default_value` (List of String) Default value applied to repositories that do not explicitly set the property. Exactly one element for the `string`, `single_select`, `true_false` and `url` types; one or more for `multi_select`. Once set, a default cannot be removed via the API, only changed.
 - `description` (String) Short description of the custom property.
-- `required` (Boolean) Whether the custom property must be set on every repository. GitHub may reject `required = true` unless a `default_value` is also provided.
+- `required` (Boolean) Whether the custom property must be set on every repository. A `default_value` is required when this is `true`.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 - `values_editable_by` (String) Who can edit values of this property on repositories. One of: [org_actors org_and_repo_actors]. Defaults to `org_actors` server-side.
 
