@@ -72,7 +72,7 @@ func getEnterpriseCostCenter(ctx context.Context, client *github.Client, enterpr
 			return nil, err
 		}
 
-		result, _, err := pagedClient.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
+		result, resp, err := pagedClient.Enterprise.GetCostCenter(ctx, enterpriseSlug, costCenterID)
 		if err != nil {
 			return nil, err
 		}
@@ -90,7 +90,7 @@ func getEnterpriseCostCenter(ctx context.Context, client *github.Client, enterpr
 		}
 		costCenter.Resources = append(costCenter.Resources, result.Resources...)
 
-		if len(result.Resources) < perPage {
+		if resp == nil || resp.NextPage == 0 {
 			return costCenter, nil
 		}
 	}
@@ -108,7 +108,7 @@ func listEnterpriseCostCenters(ctx context.Context, client *github.Client, enter
 			return nil, err
 		}
 
-		result, _, err := pagedClient.Enterprise.ListCostCenters(ctx, enterpriseSlug, opts)
+		result, resp, err := pagedClient.Enterprise.ListCostCenters(ctx, enterpriseSlug, opts)
 		if err != nil {
 			return nil, err
 		}
@@ -117,7 +117,7 @@ func listEnterpriseCostCenters(ctx context.Context, client *github.Client, enter
 		}
 
 		costCenters = append(costCenters, result.CostCenters...)
-		if len(result.CostCenters) < perPage {
+		if resp == nil || resp.NextPage == 0 {
 			return costCenters, nil
 		}
 	}

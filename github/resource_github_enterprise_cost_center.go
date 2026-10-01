@@ -24,10 +24,11 @@ func resourceGithubEnterpriseCostCenter() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"enterprise_slug": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The slug of the enterprise.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsNotEmpty),
+				Description:      "The slug of the enterprise.",
 			},
 			"name": {
 				Type:             schema.TypeString,

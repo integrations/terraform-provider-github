@@ -76,9 +76,57 @@ func TestAccGithubEnterpriseCostCenterOrganizations(t *testing.T) {
 					ImportStateVerify:   true,
 					ImportStateIdPrefix: testAccConf.enterpriseSlug + ":",
 				},
+				{
+					Config: fmt.Sprintf(`
+						data "github_enterprise" "enterprise" {
+							slug = "%s"
+						}
+
+						resource "github_enterprise_cost_center" "test" {
+							enterprise_slug = data.github_enterprise.enterprise.slug
+							name            = "%s%s"
+						}
+					`, testAccConf.enterpriseSlug, testResourcePrefix, randomID),
+					Check: testAccCheckGithubEnterpriseCostCenterOrganizationsAssignmentRemoved,
+				},
 			},
 		})
 	})
+}
+
+// testAccCheckGithubEnterpriseCostCenterOrganizationsAssignmentRemoved verifies, via the
+// API, that organization assignments were removed by the resource's DeleteContext while the
+// parent cost center still exists. This ensures the destroy check in
+// testAccCheckGithubEnterpriseCostCenterOrganizationsDestroy isn't trivially satisfied by the
+// parent cost center having been archived.
+func testAccCheckGithubEnterpriseCostCenterOrganizationsAssignmentRemoved(s *terraform.State) error {
+	meta, err := getTestMeta(testAccConf)
+	if err != nil {
+		return err
+	}
+
+	rs, ok := s.RootModule().Resources["github_enterprise_cost_center.test"]
+	if !ok {
+		return fmt.Errorf("github_enterprise_cost_center.test not found in state")
+	}
+
+	enterpriseSlug := rs.Primary.Attributes["enterprise_slug"]
+	costCenterID := rs.Primary.ID
+
+	cc, err := getEnterpriseCostCenter(context.Background(), meta.v3client, enterpriseSlug, costCenterID, meta.maxPerPage)
+	if err != nil {
+		return fmt.Errorf("verifying organization assignments were removed: %w", err)
+	}
+	if cc.GetState() == "deleted" {
+		return fmt.Errorf("expected cost center %s to still exist after removing organization assignments", costCenterID)
+	}
+	for _, resource := range cc.Resources {
+		if resource.Type == CostCenterResourceTypeOrg {
+			return fmt.Errorf("cost center %s still has organization assignments after resource deletion", costCenterID)
+		}
+	}
+
+	return nil
 }
 
 func testAccCheckGithubEnterpriseCostCenterOrganizationsDestroy(s *terraform.State) error {

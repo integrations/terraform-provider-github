@@ -26,6 +26,7 @@ func TestGetEnterpriseCostCenterPaginatesResources(t *testing.T) {
 
 		switch page := req.URL.Query().Get("page"); page {
 		case "1":
+			w.Header().Set("Link", `<https://example.invalid/api/v3/enterprises/example/settings/billing/cost-centers/123?page=2&per_page=2>; rel="next"`)
 			fmt.Fprint(w, `{
 				"id": "123",
 				"name": "Engineering",
@@ -86,6 +87,7 @@ func TestListEnterpriseCostCentersPaginates(t *testing.T) {
 
 		switch page := req.URL.Query().Get("page"); page {
 		case "1":
+			w.Header().Set("Link", `<https://example.invalid/api/v3/enterprises/example/settings/billing/cost-centers?page=2&per_page=2&state=active>; rel="next"`)
 			fmt.Fprint(w, `{"costCenters":[
 				{"id":"1","name":"Engineering","state":"active"},
 				{"id":"2","name":"Product","state":"active"}

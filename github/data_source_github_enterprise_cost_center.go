@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func dataSourceGithubEnterpriseCostCenter() *schema.Resource {
@@ -18,14 +19,16 @@ func dataSourceGithubEnterpriseCostCenter() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"enterprise_slug": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The slug of the enterprise.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsNotEmpty),
+				Description:      "The slug of the enterprise.",
 			},
 			"cost_center_id": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The ID of the cost center.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsNotEmpty),
+				Description:      "The ID of the cost center.",
 			},
 			"name": {
 				Type:        schema.TypeString,
