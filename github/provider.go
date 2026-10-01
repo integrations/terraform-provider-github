@@ -303,6 +303,7 @@ func NewProvider(version, commit string) func() *schema.Provider {
 				"github_organization_ip_allow_list":                                     dataSourceGithubOrganizationIpAllowList(),
 				"github_organization_members":                                           dataSourceGithubOrganizationMembers(),
 				"github_organization_repositories":                                      dataSourceGithubOrganizationRepositories(),
+				"github_organization_repository_custom_properties":                      dataSourceGithubOrganizationRepositoryCustomProperties(),
 				"github_organization_repository_custom_property":                        dataSourceGithubOrganizationRepositoryCustomProperty(),
 				"github_organization_repository_role":                                   dataSourceGithubOrganizationRepositoryRole(),
 				"github_organization_repository_roles":                                  dataSourceGithubOrganizationRepositoryRoles(),

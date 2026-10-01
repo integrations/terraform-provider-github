@@ -172,6 +172,7 @@ The overall status of each resource or data source is captured in this document 
 | `github_organization_custom_properties` (🚫) | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_organization_custom_role` (🚫) | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_organization_project` (🚫) | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
+| `github_organization_repository_custom_properties` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_organization_repository_custom_property` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_organization_repository_role` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_organization_role` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
