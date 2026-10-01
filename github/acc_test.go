@@ -71,6 +71,7 @@ type testAccConfig struct {
 	testExternalUser1      string
 	testExternalUser1Token string
 	testExternalUser2      string
+	testInvitationEmail    string
 
 	// Enterprise test configuration
 	testEnterpriseEMUGroupId      int
@@ -141,6 +142,7 @@ func TestMain(m *testing.M) {
 		testExternalUser1:                 os.Getenv("GH_TEST_EXTERNAL_USER1"),
 		testExternalUser1Token:            os.Getenv("GH_TEST_EXTERNAL_USER1_TOKEN"),
 		testExternalUser2:                 os.Getenv("GH_TEST_EXTERNAL_USER2"),
+		testInvitationEmail:               os.Getenv("GH_TEST_INVITATION_EMAIL"),
 		testAdvancedSecurity:              os.Getenv("GH_TEST_ADVANCED_SECURITY") == "true",
 		testRepositoryVisibility:          "public",
 	}
