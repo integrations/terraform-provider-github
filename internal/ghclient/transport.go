@@ -2,30 +2,48 @@ package ghclient
 
 import (
 	"fmt"
+	"net"
 	"net/http"
+	"time"
 
 	ghct "github.com/bored-engineer/github-conditional-http-transport"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	"golang.org/x/oauth2"
 )
 
-// cloneTransport attempts to clone the given http.RoundTripper if it is an *http.Transport, otherwise it returns the original RoundTripper. Cloning the transport is important to avoid sharing state (such as idle connections) between different clients that use the same base transport.
-func cloneTransport(tr http.RoundTripper, opts ClientOptions) http.RoundTripper {
-	if dtr, ok := tr.(*http.Transport); ok {
-		htr := dtr.Clone()
-		htr.ForceAttemptHTTP2 = true
-		htr.MaxIdleConns = opts.MaxIdleConns
-		htr.MaxIdleConnsPerHost = opts.MaxIdleConns
-		htr.IdleConnTimeout = opts.IdleConnTimeout
-		return htr
+// getHTTPTransport returns an HTTP transport configured with the given options, including idle connection pooling and retry logic. If the [http.DefaultTransport] is a [*http.Transport], it is cloned and configured with the given options; otherwise, a new transport is created with the default settings and the given options are applied.
+func getHTTPTransport(t http.RoundTripper, opts ClientOptions) *http.Transport {
+	if dtr, ok := t.(*http.Transport); ok {
+		tr := dtr.Clone()
+		tr.ForceAttemptHTTP2 = true
+		tr.MaxIdleConns = opts.MaxIdleConns
+		tr.MaxIdleConnsPerHost = opts.MaxIdleConns
+		tr.IdleConnTimeout = opts.IdleConnTimeout
+		return tr
 	}
 
-	return tr
+	dialer := &net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+
+	return &http.Transport{
+		Proxy:                 http.ProxyFromEnvironment,
+		DialContext:           dialer.DialContext,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          opts.MaxIdleConns,
+		MaxIdleConnsPerHost:   opts.MaxIdleConns,
+		IdleConnTimeout:       opts.IdleConnTimeout,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
 }
 
 // newTransport creates a new HTTP RoundTripper that wraps the provided token source with OAuth2 authentication, adds conditional request caching, logging, and retry logic based on the provided options. The resulting RoundTripper is designed to be used with GitHub API clients to handle authentication, caching, rate limiting, and retries in a consistent manner.
 func newTransport(tokenSource oauth2.TokenSource, opts ClientOptions) (http.RoundTripper, error) {
-	tr := cloneTransport(http.DefaultTransport, opts)
+	var tr http.RoundTripper
+
+	tr = getHTTPTransport(http.DefaultTransport, opts)
 
 	// The cache transport must be wrapped directly around the base transport, before the
 	// OAuth2 transport is applied. The OAuth2 transport injects the Authorization header on a
@@ -52,6 +70,12 @@ func newTransport(tokenSource oauth2.TokenSource, opts ClientOptions) (http.Roun
 	}
 
 	tr = logging.NewLoggingHTTPTransport(tr)
+
+	rtr, err := newRewindableTransport(tr, 0)
+	if err != nil {
+		return nil, err
+	}
+	tr = rtr
 
 	if opts.Retry.Max > 0 {
 		rtr, err := newRetryTransport(tr, opts.Retry)

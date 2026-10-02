@@ -9,12 +9,6 @@ import (
 	"github.com/sethvargo/go-retry"
 )
 
-// retryTransport is a [http.RoundTripper] that wraps another http.RoundTripper and retries failed requests using an exponential backoff strategy.
-type retryTransport struct {
-	inner http.RoundTripper
-	opts  RetryOptions
-}
-
 // newRetryTransport returns a [retryTransport] that wraps the given [http.RoundTripper] using the [RetryOptions] to configure the retry backoff strategy.
 func newRetryTransport(inner http.RoundTripper, opts RetryOptions) (http.RoundTripper, error) {
 	if opts.Max <= 0 {
@@ -29,6 +23,12 @@ func newRetryTransport(inner http.RoundTripper, opts RetryOptions) (http.RoundTr
 		inner: inner,
 		opts:  opts,
 	}, nil
+}
+
+// retryTransport is a [http.RoundTripper] that wraps another http.RoundTripper and retries failed requests using an exponential backoff strategy.
+type retryTransport struct {
+	inner http.RoundTripper
+	opts  RetryOptions
 }
 
 // RoundTrip implements the [http.RoundTripper] interface for the [retryTransport]. It retries failed requests using the configured backoff strategy.
