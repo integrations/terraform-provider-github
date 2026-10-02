@@ -80,20 +80,12 @@ func dataSourceGithubOrganizationRepositoryCustomPropertiesRead(ctx context.Cont
 			return diag.Errorf("organization %q returned a custom property with an empty name", meta.name)
 		}
 
-		defaultValue, err := flattenOrganizationRepositoryCustomPropertyDefaultValue(property)
+		values, err := organizationRepositoryCustomPropertyToMap(property)
 		if err != nil {
 			return diag.Errorf(organizationCustomPropertyReadErrorFormat, property.GetPropertyName(), err)
 		}
 
-		propertyValues = append(propertyValues, map[string]any{
-			"property_name":      property.GetPropertyName(),
-			"value_type":         string(property.ValueType),
-			"required":           property.GetRequired(),
-			"default_value":      defaultValue,
-			"description":        property.GetDescription(),
-			"allowed_values":     allowedValuesForOrganizationRepositoryCustomProperty(property),
-			"values_editable_by": property.GetValuesEditableBy(),
-		})
+		propertyValues = append(propertyValues, values)
 	}
 
 	d.SetId(meta.name)

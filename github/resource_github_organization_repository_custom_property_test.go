@@ -114,6 +114,47 @@ func TestValidateRequiredOrganizationRepositoryCustomPropertyDefaultValue(t *tes
 	}
 }
 
+func TestValidateOrganizationRepositoryCustomPropertyDefaultValueNotRemoved(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name    string
+		old     []any
+		new     []any
+		wantErr bool
+	}{
+		{
+			name: "allows an unset default to remain unset",
+		},
+		{
+			name: "allows setting an initial default",
+			new:  []any{"production"},
+		},
+		{
+			name: "allows changing an existing default",
+			old:  []any{"development"},
+			new:  []any{"production"},
+		},
+		{
+			name:    "rejects clearing an existing default",
+			old:     []any{"production"},
+			new:     []any{},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := validateOrganizationRepositoryCustomPropertyDefaultValueNotRemoved(testCase.old, testCase.new)
+			if (err != nil) != testCase.wantErr {
+				t.Fatalf("validation error = %v, want error %t", err, testCase.wantErr)
+			}
+		})
+	}
+}
+
 func TestResourceGithubOrganizationRepositoryCustomPropertyDelete(t *testing.T) {
 	t.Parallel()
 
@@ -524,6 +565,31 @@ resource "github_organization_repository_custom_property" "test" {
 				{
 					Config:      config,
 					ExpectError: regexp.MustCompile(`default_value must be "true" or "false"`),
+				},
+			},
+		})
+	})
+
+	t.Run("rejects removing an existing default value", func(t *testing.T) {
+		t.Parallel()
+
+		name := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
+		config := fmt.Sprintf(`
+resource "github_organization_repository_custom_property" "test" {
+  property_name = %[1]q
+  value_type    = "string"
+  default_value = %%s
+}
+`, name)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: fmt.Sprintf(config, `["production"]`)},
+				{
+					Config:      fmt.Sprintf(config, `[]`),
+					ExpectError: regexp.MustCompile("default_value cannot be removed once set"),
 				},
 			},
 		})

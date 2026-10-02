@@ -49,17 +49,13 @@ func allowedValuesForOrganizationRepositoryCustomProperty(cp *github.CustomPrope
 	}
 }
 
-// setOrganizationRepositoryCustomPropertyState writes an API custom property
-// definition into the resource or data source state.
-func setOrganizationRepositoryCustomPropertyState(d *schema.ResourceData, cp *github.CustomProperty) diag.Diagnostics {
+func organizationRepositoryCustomPropertyToMap(cp *github.CustomProperty) (map[string]any, error) {
 	defaultValue, err := flattenOrganizationRepositoryCustomPropertyDefaultValue(cp)
 	if err != nil {
-		return diag.Errorf(organizationCustomPropertyReadErrorFormat, cp.GetPropertyName(), err)
+		return nil, err
 	}
 
-	d.SetId(cp.GetPropertyName())
-
-	values := map[string]any{
+	return map[string]any{
 		"property_name":      cp.GetPropertyName(),
 		"value_type":         string(cp.ValueType),
 		"required":           cp.GetRequired(),
@@ -67,7 +63,18 @@ func setOrganizationRepositoryCustomPropertyState(d *schema.ResourceData, cp *gi
 		"description":        cp.GetDescription(),
 		"allowed_values":     allowedValuesForOrganizationRepositoryCustomProperty(cp),
 		"values_editable_by": cp.GetValuesEditableBy(),
+	}, nil
+}
+
+// setOrganizationRepositoryCustomPropertyState writes an API custom property
+// definition into the resource or data source state.
+func setOrganizationRepositoryCustomPropertyState(d *schema.ResourceData, cp *github.CustomProperty) diag.Diagnostics {
+	values, err := organizationRepositoryCustomPropertyToMap(cp)
+	if err != nil {
+		return diag.Errorf(organizationCustomPropertyReadErrorFormat, cp.GetPropertyName(), err)
 	}
+
+	d.SetId(cp.GetPropertyName())
 	for key, value := range values {
 		if err := d.Set(key, value); err != nil {
 			return diag.FromErr(err)

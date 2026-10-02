@@ -139,6 +139,9 @@ func validateOrganizationRepositoryCustomPropertyDefaultValue(d *schema.Resource
 	defaultValueKnown := d.NewValueKnown("default_value")
 	defaultValue, _ := d.Get("default_value").([]any)
 	required := d.NewValueKnown("required") && d.Get("required").(bool)
+	if err := validateOrganizationRepositoryCustomPropertyDefaultValueUpdate(d, defaultValueKnown, defaultValue); err != nil {
+		return err
+	}
 	if err := validateRequiredOrganizationRepositoryCustomPropertyDefaultValue(required, defaultValueKnown, defaultValue); err != nil {
 		return err
 	}
@@ -164,6 +167,24 @@ func validateOrganizationRepositoryCustomPropertyDefaultValue(d *schema.Resource
 		if err := validateSelectPropertyDefaultValue(valueType, expandStringList(defaultValue), expandStringList(allowedValues)); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func validateOrganizationRepositoryCustomPropertyDefaultValueUpdate(d *schema.ResourceDiff, defaultValueKnown bool, defaultValue []any) error {
+	if !defaultValueKnown || !d.HasChange("default_value") {
+		return nil
+	}
+
+	oldValue, _ := d.GetChange("default_value")
+	oldDefaultValue, _ := oldValue.([]any)
+	return validateOrganizationRepositoryCustomPropertyDefaultValueNotRemoved(oldDefaultValue, defaultValue)
+}
+
+func validateOrganizationRepositoryCustomPropertyDefaultValueNotRemoved(oldValue, newValue []any) error {
+	if len(oldValue) > 0 && len(newValue) == 0 {
+		return fmt.Errorf("default_value cannot be removed once set; the GitHub API only allows changing it")
 	}
 
 	return nil
