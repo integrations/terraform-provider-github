@@ -223,20 +223,18 @@ func resourceGithubRepositoryEnvironmentRead(ctx context.Context, d *schema.Reso
 		return diag.FromErr(err)
 	}
 
-	// A protection rule is only present in the response while it is configured,
-	// so the attributes it backs are collected in a single pass and then set
-	// unconditionally. Setting them from inside the loop only would leave the
-	// prior state in place when a rule is removed outside Terraform.
+	// Protection rules are omitted from the response once removed, so set these
+	// after the loop to avoid keeping stale state.
 	var (
-		waitTimer         *int
-		preventSelfReview *bool
+		waitTimer         int
+		preventSelfReview bool
 	)
 	reviewers := make([]any, 0)
 
 	for _, pr := range env.ProtectionRules {
 		switch pr.GetType() {
 		case "wait_timer":
-			waitTimer = pr.WaitTimer
+			waitTimer = pr.GetWaitTimer()
 
 		case "required_reviewers":
 			teams := make([]int64, 0)
@@ -261,7 +259,7 @@ func resourceGithubRepositoryEnvironmentRead(ctx context.Context, d *schema.Reso
 					"users": users,
 				},
 			}
-			preventSelfReview = pr.PreventSelfReview
+			preventSelfReview = pr.GetPreventSelfReview()
 		}
 	}
 
@@ -274,7 +272,7 @@ func resourceGithubRepositoryEnvironmentRead(ctx context.Context, d *schema.Reso
 	if err := d.Set("prevent_self_review", preventSelfReview); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("can_admins_bypass", env.CanAdminsBypass); err != nil {
+	if err := d.Set("can_admins_bypass", env.GetCanAdminsBypass()); err != nil {
 		return diag.FromErr(err)
 	}
 
