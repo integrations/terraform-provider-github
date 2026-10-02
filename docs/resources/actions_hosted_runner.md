@@ -129,3 +129,22 @@ Read-Only:
 - `enabled` (Boolean)
 - `length` (Number)
 - `prefix` (String)
+
+## Import
+
+Import is supported using the following syntax:
+
+In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `id` attribute, for example:
+
+```terraform
+import {
+  to = github_actions_hosted_runner.example
+  id = "123456"
+}
+```
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+terraform import github_actions_hosted_runner.example 123456
+```
