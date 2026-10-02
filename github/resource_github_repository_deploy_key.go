@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -71,8 +71,8 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta any) e
 	owner := meta.(*Owner).name
 	ctx := context.Background()
 
-	resultKey, _, err := client.Repositories.CreateKey(ctx, owner, repoName, &github.Key{
-		Key:      new(key),
+	resultKey, _, err := client.Repositories.CreateKey(ctx, owner, repoName, github.CreateDeployKeyRequest{
+		Key:      key,
 		Title:    new(title),
 		ReadOnly: new(readOnly),
 	})
