@@ -42,9 +42,11 @@ func resourceGithubEnterpriseCostCenterUsers() *schema.Resource {
 				Type:     schema.TypeSet,
 				Required: true,
 				MinItems: 1,
+				Set:      caseInsensitiveStringHash,
 				Elem: &schema.Schema{
 					Type:             schema.TypeString,
 					ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsNotEmpty),
+					StateFunc:        caseInsensitiveStringState,
 				},
 				Description: "Usernames to assign to the cost center. This is authoritative - users not in this set will be removed.",
 			},
@@ -117,10 +119,10 @@ func resourceGithubEnterpriseCostCenterUsersUpdate(ctx context.Context, d *schem
 		return diag.FromErr(err)
 	}
 
-	diff := make(map[string]bool)
+	var currentUsers []string
 	for _, ccResource := range cc.Resources {
 		if ccResource != nil && ccResource.Type == CostCenterResourceTypeUser {
-			diff[ccResource.Name] = false
+			currentUsers = append(currentUsers, ccResource.Name)
 		}
 	}
 
@@ -129,22 +131,7 @@ func resourceGithubEnterpriseCostCenterUsersUpdate(ctx context.Context, d *schem
 		return diag.Errorf("expected usernames to be a non-empty set")
 	}
 	desiredUsers := expandStringList(usernames.List())
-
-	var toAdd []string
-	for _, name := range desiredUsers {
-		if _, exists := diff[name]; exists {
-			diff[name] = true
-		} else {
-			toAdd = append(toAdd, name)
-		}
-	}
-
-	var toRemove []string
-	for name, keep := range diff {
-		if !keep {
-			toRemove = append(toRemove, name)
-		}
-	}
+	toAdd, toRemove := caseInsensitiveStringDifference(currentUsers, desiredUsers)
 
 	if len(toRemove) > 0 {
 		tflog.Info(ctx, "Removing users from cost center", map[string]any{
@@ -215,7 +202,7 @@ func resourceGithubEnterpriseCostCenterUsersRead(ctx context.Context, d *schema.
 	var users []string
 	for _, ccResource := range cc.Resources {
 		if ccResource != nil && ccResource.Type == CostCenterResourceTypeUser {
-			users = append(users, ccResource.Name)
+			users = append(users, caseInsensitiveStringState(ccResource.Name))
 		}
 	}
 

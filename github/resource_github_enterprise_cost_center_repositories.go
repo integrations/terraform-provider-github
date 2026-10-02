@@ -42,9 +42,11 @@ func resourceGithubEnterpriseCostCenterRepositories() *schema.Resource {
 				Type:     schema.TypeSet,
 				Required: true,
 				MinItems: 1,
+				Set:      caseInsensitiveStringHash,
 				Elem: &schema.Schema{
 					Type:             schema.TypeString,
 					ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsNotEmpty),
+					StateFunc:        caseInsensitiveStringState,
 				},
 				Description: "Repository names (full name, e.g. org/repo) to assign to the cost center. This is authoritative - repositories not in this set will be removed.",
 			},
@@ -117,10 +119,10 @@ func resourceGithubEnterpriseCostCenterRepositoriesUpdate(ctx context.Context, d
 		return diag.FromErr(err)
 	}
 
-	diff := make(map[string]bool)
+	var currentRepositories []string
 	for _, ccResource := range cc.Resources {
 		if ccResource != nil && ccResource.Type == CostCenterResourceTypeRepo {
-			diff[ccResource.Name] = false
+			currentRepositories = append(currentRepositories, ccResource.Name)
 		}
 	}
 
@@ -129,22 +131,7 @@ func resourceGithubEnterpriseCostCenterRepositoriesUpdate(ctx context.Context, d
 		return diag.Errorf("expected repository_names to be a non-empty set")
 	}
 	desiredRepositories := expandStringList(repositories.List())
-
-	var toAdd []string
-	for _, name := range desiredRepositories {
-		if _, exists := diff[name]; exists {
-			diff[name] = true
-		} else {
-			toAdd = append(toAdd, name)
-		}
-	}
-
-	var toRemove []string
-	for name, keep := range diff {
-		if !keep {
-			toRemove = append(toRemove, name)
-		}
-	}
+	toAdd, toRemove := caseInsensitiveStringDifference(currentRepositories, desiredRepositories)
 
 	if len(toRemove) > 0 {
 		tflog.Info(ctx, "Removing repositories from cost center", map[string]any{
@@ -215,7 +202,7 @@ func resourceGithubEnterpriseCostCenterRepositoriesRead(ctx context.Context, d *
 	var repositories []string
 	for _, ccResource := range cc.Resources {
 		if ccResource != nil && ccResource.Type == CostCenterResourceTypeRepo {
-			repositories = append(repositories, ccResource.Name)
+			repositories = append(repositories, caseInsensitiveStringState(ccResource.Name))
 		}
 	}
 

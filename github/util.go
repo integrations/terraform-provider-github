@@ -115,6 +115,41 @@ func caseInsensitive() schema.SchemaDiffSuppressFunc {
 	}
 }
 
+func caseInsensitiveStringState(value any) string {
+	stringValue, ok := value.(string)
+	if !ok {
+		return ""
+	}
+
+	return strings.ToLower(stringValue)
+}
+
+func caseInsensitiveStringHash(value any) int {
+	return schema.HashString(caseInsensitiveStringState(value))
+}
+
+func caseInsensitiveStringDifference(current, desired []string) (toAdd, toRemove []string) {
+	currentByKey := make(map[string]string, len(current))
+	for _, value := range current {
+		currentByKey[strings.ToLower(value)] = value
+	}
+
+	for _, value := range desired {
+		key := strings.ToLower(value)
+		if _, exists := currentByKey[key]; exists {
+			delete(currentByKey, key)
+			continue
+		}
+		toAdd = append(toAdd, value)
+	}
+
+	for _, value := range currentByKey {
+		toRemove = append(toRemove, value)
+	}
+
+	return toAdd, toRemove
+}
+
 func validateValueFunc(values []string) schema.SchemaValidateDiagFunc {
 	return func(v any, k cty.Path) diag.Diagnostics {
 		value := v.(string)

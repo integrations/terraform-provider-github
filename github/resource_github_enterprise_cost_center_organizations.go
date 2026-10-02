@@ -42,9 +42,11 @@ func resourceGithubEnterpriseCostCenterOrganizations() *schema.Resource {
 				Type:     schema.TypeSet,
 				Required: true,
 				MinItems: 1,
+				Set:      caseInsensitiveStringHash,
 				Elem: &schema.Schema{
 					Type:             schema.TypeString,
 					ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsNotEmpty),
+					StateFunc:        caseInsensitiveStringState,
 				},
 				Description: "Organization logins to assign to the cost center. This is authoritative - organizations not in this set will be removed.",
 			},
@@ -117,10 +119,10 @@ func resourceGithubEnterpriseCostCenterOrganizationsUpdate(ctx context.Context, 
 		return diag.FromErr(err)
 	}
 
-	diff := make(map[string]bool)
+	var currentOrganizations []string
 	for _, ccResource := range cc.Resources {
 		if ccResource != nil && ccResource.Type == CostCenterResourceTypeOrg {
-			diff[ccResource.Name] = false
+			currentOrganizations = append(currentOrganizations, ccResource.Name)
 		}
 	}
 
@@ -129,22 +131,7 @@ func resourceGithubEnterpriseCostCenterOrganizationsUpdate(ctx context.Context, 
 		return diag.Errorf("expected organization_logins to be a non-empty set")
 	}
 	desiredOrganizations := expandStringList(organizations.List())
-
-	var toAdd []string
-	for _, name := range desiredOrganizations {
-		if _, exists := diff[name]; exists {
-			diff[name] = true
-		} else {
-			toAdd = append(toAdd, name)
-		}
-	}
-
-	var toRemove []string
-	for name, keep := range diff {
-		if !keep {
-			toRemove = append(toRemove, name)
-		}
-	}
+	toAdd, toRemove := caseInsensitiveStringDifference(currentOrganizations, desiredOrganizations)
 
 	if len(toRemove) > 0 {
 		tflog.Info(ctx, "Removing organizations from cost center", map[string]any{
@@ -207,7 +194,7 @@ func resourceGithubEnterpriseCostCenterOrganizationsRead(ctx context.Context, d 
 	var organizations []string
 	for _, ccResource := range cc.Resources {
 		if ccResource != nil && ccResource.Type == CostCenterResourceTypeOrg {
-			organizations = append(organizations, ccResource.Name)
+			organizations = append(organizations, caseInsensitiveStringState(ccResource.Name))
 		}
 	}
 

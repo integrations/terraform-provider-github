@@ -1,8 +1,7 @@
 terraform {
   required_providers {
     github = {
-      source  = "integrations/github"
-      version = ">= 6.11"
+      source = "integrations/github"
     }
   }
 }
@@ -49,11 +48,21 @@ resource "github_enterprise_cost_center_repositories" "example" {
 data "github_enterprise_cost_center" "by_id" {
   enterprise_slug = var.enterprise_slug
   cost_center_id  = github_enterprise_cost_center.example.id
+
+  depends_on = [
+    github_enterprise_cost_center_users.example,
+    github_enterprise_cost_center_organizations.example,
+    github_enterprise_cost_center_repositories.example,
+  ]
 }
 
 data "github_enterprise_cost_centers" "active" {
   enterprise_slug = var.enterprise_slug
   state           = "active"
 
-  depends_on = [github_enterprise_cost_center.example]
+  depends_on = [
+    github_enterprise_cost_center_users.example,
+    github_enterprise_cost_center_organizations.example,
+    github_enterprise_cost_center_repositories.example,
+  ]
 }

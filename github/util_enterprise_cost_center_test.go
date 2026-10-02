@@ -6,6 +6,8 @@ import (
 	"maps"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/google/go-github/v92/github"
@@ -179,6 +181,186 @@ func TestCostCenterAssignmentReadsClearArchivedParent(t *testing.T) {
 				t.Fatalf("expected archived cost center assignments to be removed from state, got ID %q", data.Id())
 			}
 		})
+	}
+}
+
+func TestCostCenterAssignmentSchemasNormalizeCase(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		resource   *schema.Resource
+		field      string
+		configured string
+		canonical  string
+	}{
+		{
+			name:       "users",
+			resource:   resourceGithubEnterpriseCostCenterUsers(),
+			field:      "usernames",
+			configured: "MONALISA",
+			canonical:  "Monalisa",
+		},
+		{
+			name:       "organizations",
+			resource:   resourceGithubEnterpriseCostCenterOrganizations(),
+			field:      "organization_logins",
+			configured: "OCTO-ORG",
+			canonical:  "Octo-Org",
+		},
+		{
+			name:       "repositories",
+			resource:   resourceGithubEnterpriseCostCenterRepositories(),
+			field:      "repository_names",
+			configured: "OCTO-ORG/EXAMPLE",
+			canonical:  "Octo-Org/Example",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			fieldSchema := test.resource.Schema[test.field]
+			if fieldSchema.Set(test.configured) != fieldSchema.Set(test.canonical) {
+				t.Fatalf("expected %s set hashing to be case-insensitive", test.field)
+			}
+			elementSchema, ok := fieldSchema.Elem.(*schema.Schema)
+			if !ok {
+				t.Fatalf("expected %s elements to have a schema", test.field)
+			}
+			if got := elementSchema.StateFunc(test.configured); got != strings.ToLower(test.configured) {
+				t.Fatalf("expected normalized %s state %q, got %q", test.field, strings.ToLower(test.configured), got)
+			}
+
+			data := schema.TestResourceDataRaw(t, test.resource.Schema, map[string]any{
+				"enterprise_slug": "example",
+				"cost_center_id":  "123",
+				test.field:        []any{test.configured, test.canonical},
+			})
+			values, ok := data.Get(test.field).(*schema.Set)
+			if !ok {
+				t.Fatalf("expected %s to be a set", test.field)
+			}
+			if values.Len() != 1 {
+				t.Fatalf("expected case variants in %s to collapse to one value, got %d", test.field, values.Len())
+			}
+		})
+	}
+}
+
+func TestCostCenterAssignmentUpdatesIgnoreCaseOnlyDifferences(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		resource     *schema.Resource
+		update       schema.UpdateContextFunc
+		read         schema.ReadContextFunc
+		field        string
+		resourceType string
+		configured   string
+		canonical    string
+	}{
+		{
+			name:         "users",
+			resource:     resourceGithubEnterpriseCostCenterUsers(),
+			update:       resourceGithubEnterpriseCostCenterUsersUpdate,
+			read:         resourceGithubEnterpriseCostCenterUsersRead,
+			field:        "usernames",
+			resourceType: CostCenterResourceTypeUser,
+			configured:   "MONALISA",
+			canonical:    "Monalisa",
+		},
+		{
+			name:         "organizations",
+			resource:     resourceGithubEnterpriseCostCenterOrganizations(),
+			update:       resourceGithubEnterpriseCostCenterOrganizationsUpdate,
+			read:         resourceGithubEnterpriseCostCenterOrganizationsRead,
+			field:        "organization_logins",
+			resourceType: CostCenterResourceTypeOrg,
+			configured:   "OCTO-ORG",
+			canonical:    "Octo-Org",
+		},
+		{
+			name:         "repositories",
+			resource:     resourceGithubEnterpriseCostCenterRepositories(),
+			update:       resourceGithubEnterpriseCostCenterRepositoriesUpdate,
+			read:         resourceGithubEnterpriseCostCenterRepositoriesRead,
+			field:        "repository_names",
+			resourceType: CostCenterResourceTypeRepo,
+			configured:   "OCTO-ORG/EXAMPLE",
+			canonical:    "Octo-Org/Example",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			var mutations atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+				if req.Method != http.MethodGet {
+					mutations.Add(1)
+					w.WriteHeader(http.StatusNoContent)
+					return
+				}
+
+				fmt.Fprintf(w, `{
+					"id": "123",
+					"name": "Engineering",
+					"state": "active",
+					"resources": [{"type": %q, "name": %q}]
+				}`, test.resourceType, test.canonical)
+			}))
+			t.Cleanup(server.Close)
+
+			client, err := github.NewClient(github.WithEnterpriseURLs(server.URL+"/", server.URL+"/"))
+			if err != nil {
+				t.Fatalf("configuring GitHub client: %v", err)
+			}
+
+			data := schema.TestResourceDataRaw(t, test.resource.Schema, map[string]any{
+				"enterprise_slug": "example",
+				"cost_center_id":  "123",
+				test.field:        []any{test.configured},
+			})
+			data.SetId("123")
+
+			diags := test.update(t.Context(), data, &Owner{v3client: client, maxPerPage: 100})
+			if diags.HasError() {
+				t.Fatalf("updating assignment resource: %s", diagnosticsSummary(diags))
+			}
+			if got := mutations.Load(); got != 0 {
+				t.Fatalf("expected no mutation for a case-only difference, got %d", got)
+			}
+
+			diags = test.read(t.Context(), data, &Owner{v3client: client, maxPerPage: 100})
+			if diags.HasError() {
+				t.Fatalf("reading assignment resource: %s", diagnosticsSummary(diags))
+			}
+			assertNormalizedAssignmentSet(t, data, test.field, strings.ToLower(test.canonical))
+		})
+	}
+}
+
+func assertNormalizedAssignmentSet(t *testing.T, data *schema.ResourceData, field, expected string) {
+	t.Helper()
+
+	values, ok := data.Get(field).(*schema.Set)
+	if !ok {
+		t.Fatalf("expected %s to be a set", field)
+	}
+	if values.Len() != 1 {
+		t.Fatalf("expected case variants in %s to collapse to one value, got %d", field, values.Len())
+	}
+
+	value, ok := values.List()[0].(string)
+	if !ok {
+		t.Fatalf("expected %s to contain strings", field)
+	}
+	if value != expected {
+		t.Fatalf("expected normalized %s value %q, got %q", field, expected, value)
 	}
 }
 
