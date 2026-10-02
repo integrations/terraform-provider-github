@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
@@ -247,79 +247,80 @@ resource "github_repository_environment" "test" {
 
 	t.Run("detects_out_of_band_reviewer_removal", func(t *testing.T) {
 		t.Parallel()
+		skipUnlessHasOrgs(t)
 
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+		repo := mustCreateTestRepository(t)
+		team := mustCreateTestTeam(t)
+		mustAddRepositoryToTeam(t, team, repo)
 		envName := "test"
 
-		config := fmt.Sprintf(`
-resource "github_team" "test" {
-	name        = "%[1]s"
-	description = "test"
-	privacy     = "closed"
-}
-
-resource "github_repository" "test" {
-	name       = "%[1]s"
-	visibility = "public"
-}
-
-resource "github_team_repository" "test" {
-	team_id    = github_team.test.id
-	repository = github_repository.test.name
-	permission = "pull"
-}
-
+		configWithReviewers := fmt.Sprintf(`
 resource "github_repository_environment" "test" {
-	repository  = github_repository.test.name
-	environment = "%[2]s"
+	repository  = "%s"
+	environment = "%s"
 
 	prevent_self_review = true
 
 	reviewers {
-		teams = [github_team_repository.test.team_id]
+		teams = [%d]
 	}
 }
-`, repoName, envName)
+`, repo.GetName(), envName, team.GetID())
+
+		configWithoutReviewers := fmt.Sprintf(`
+resource "github_repository_environment" "test" {
+	repository  = "%s"
+	environment = "%s"
+}
+`, repo.GetName(), envName)
+
+		// Removing the last reviewer drops the "required_reviewers" protection
+		// rule from the API response entirely.
+		removeReviewers := func() {
+			if _, _, err := testAccConf.meta.v3client.Repositories.CreateUpdateEnvironment(t.Context(), testAccConf.meta.name, repo.GetName(), envName, &github.CreateUpdateEnvironment{
+				Reviewers:       []*github.EnvReviewers{},
+				CanAdminsBypass: new(true),
+			}); err != nil {
+				t.Fatalf("failed to remove environment reviewers out-of-band: %v", err)
+			}
+		}
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: config,
+					Config: configWithReviewers,
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_repository_environment.test", tfjsonpath.New("reviewers"), knownvalue.ListSizeExact(1)),
 						statecheck.ExpectKnownValue("github_repository_environment.test", tfjsonpath.New("prevent_self_review"), knownvalue.Bool(true)),
 					},
 				},
 				{
-					// Drop the reviewers out of band. GitHub then stops returning a
-					// "required_reviewers" protection rule, so Read must clear
-					// reviewers and prevent_self_review instead of leaving the prior
-					// state in place, leaving a non-empty plan that restores them.
-					PreConfig: func() {
-						if _, _, err := testAccConf.meta.v3client.Repositories.CreateUpdateEnvironment(t.Context(), testAccConf.meta.name, repoName, envName, &github.CreateUpdateEnvironment{
-							Reviewers:       []*github.EnvReviewers{},
-							CanAdminsBypass: new(true),
-						}); err != nil {
-							t.Errorf("failed to remove environment reviewers out-of-band: %s", err)
-						}
-					},
-					RefreshState:       true,
-					ExpectNonEmptyPlan: true,
-					RefreshPlanChecks: resource.RefreshPlanChecks{
-						PostRefresh: []plancheck.PlanCheck{
+					PreConfig: removeReviewers,
+					Config:    configWithReviewers,
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
 							plancheck.ExpectResourceAction("github_repository_environment.test", plancheck.ResourceActionUpdate),
 						},
 					},
-				},
-				{
-					// The detected drift is corrected on the next apply.
-					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_repository_environment.test", tfjsonpath.New("reviewers"), knownvalue.ListSizeExact(1)),
 						statecheck.ExpectKnownValue("github_repository_environment.test", tfjsonpath.New("prevent_self_review"), knownvalue.Bool(true)),
+					},
+				},
+				{
+					// A no-op plan against a config without reviewers is only possible
+					// if refresh cleared both reviewers and prevent_self_review.
+					PreConfig: removeReviewers,
+					Config:    configWithoutReviewers,
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_environment.test", plancheck.ResourceActionNoop),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_environment.test", tfjsonpath.New("reviewers"), knownvalue.ListSizeExact(0)),
+						statecheck.ExpectKnownValue("github_repository_environment.test", tfjsonpath.New("prevent_self_review"), knownvalue.Bool(false)),
 					},
 				},
 			},
