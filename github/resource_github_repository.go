@@ -233,7 +233,11 @@ func resourceGithubRepository() *schema.Resource {
 				Optional:         true,
 				Default:          "all",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"all", "collaborators_only"}, false)),
-				Description:      "Restricts who can create pull requests on the repository. Can be 'all' (default) to allow any user, or 'collaborators_only' to restrict creation to collaborators with write access.",
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+					hasPullRequests, ok := d.Get("has_pull_requests").(bool)
+					return ok && !hasPullRequests
+				},
+				Description: "Restricts who can create pull requests on the repository. Can be 'all' (default) to allow any user, or 'collaborators_only' to restrict creation to collaborators with write access. Applicable only if 'has_pull_requests' is 'true'.",
 			},
 			"is_template": {
 				Type:        schema.TypeBool,

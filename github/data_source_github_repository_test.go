@@ -144,6 +144,39 @@ data "github_repository" "test" {
 		})
 	})
 
+	t.Run("queries pull request settings", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-ds-pr-settings-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_repository" "test" {
+  name                         = "%s"
+  has_pull_requests            = true
+  pull_request_creation_policy = "collaborators_only"
+}
+
+data "github_repository" "test" {
+  name = github_repository.test.name
+}
+`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_repository.test", tfjsonpath.New("has_pull_requests"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("data.github_repository.test", tfjsonpath.New("pull_request_creation_policy"), knownvalue.StringExact("collaborators_only")),
+					},
+				},
+			},
+		})
+	})
+
 	t.Run("queries a public repository that is a template", func(t *testing.T) {
 		t.Parallel()
 

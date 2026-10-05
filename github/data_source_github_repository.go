@@ -70,12 +70,14 @@ func dataSourceGithubRepository() *schema.Resource {
 				Computed: true,
 			},
 			"has_pull_requests": {
-				Type:     schema.TypeBool,
-				Computed: true,
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Whether the repository has pull requests enabled.",
 			},
 			"pull_request_creation_policy": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Who can create pull requests on the repository. Either 'all' or 'collaborators_only'.",
 			},
 			"is_template": {
 				Type:     schema.TypeBool,
