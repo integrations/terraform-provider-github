@@ -42,12 +42,12 @@ func NewAppSource(clientID string, privateKey []byte, opts SourceOptions) (*appS
 		return nil, err
 	}
 
-	if opts.Cache && opts.CacheBasePath == "" {
+	if opts.Cache.Enabled && opts.Cache.BasePath == "" {
 		s, err := os.MkdirTemp("", "*")
 		if err != nil {
 			return nil, fmt.Errorf("failed to create temporary cache directory: %w", err)
 		}
-		opts.CacheBasePath = s
+		opts.Cache.BasePath = s
 	}
 
 	return &appSource{

@@ -522,6 +522,11 @@ func configureProvider(version, commit string) func(context.Context, *schema.Res
 			if i, ok := v.(int); ok {
 				tflog.Debug(ctx, "Using max retries from provider configuration.", map[string]any{"max_retries": i})
 				config.MaxRetries = i
+
+				// TODO: Remove this for v7 and set the schema validation for retry_delay_ms to require that it is at least 1ms
+				if config.RetryDelay == 0 {
+					config.RetryDelay = 1 * time.Millisecond
+				}
 			}
 		}
 
@@ -607,14 +612,19 @@ func configureProviderMeta(ctx context.Context, version string, c *Config) (*Own
 		}
 
 		options := ghclient.SourceOptions{
-			BaseURL:       c.BaseURL.String(),
-			IsGHES:        c.IsGHES,
-			UserAgent:     fmt.Sprintf("%s/%s (+%s; go/%s; os/%s; arch/%s)", providerName, version, providerURL, runtime.Version(), runtime.GOOS, runtime.GOARCH),
-			Cache:         true,
-			CacheBasePath: cacheBasePath,
-			RetryMax:      c.MaxRetries,
-			RetryWaitMin:  c.RetryDelay,
-			RetryWaitMax:  c.RetryDelay,
+			BaseURL:   c.BaseURL.String(),
+			IsGHES:    c.IsGHES,
+			UserAgent: fmt.Sprintf("%s/%s (+%s; go/%s; os/%s; arch/%s)", providerName, version, providerURL, runtime.Version(), runtime.GOOS, runtime.GOARCH),
+			Cache: ghclient.CacheOptions{
+				Enabled:  true,
+				BasePath: cacheBasePath,
+			},
+			Retry: ghclient.RetryOptions{
+				Max:     c.MaxRetries,
+				WaitMin: c.RetryDelay,
+				WaitMax: c.RetryDelay,
+				Jitter:  c.RetryDelay / 2,
+			},
 		}
 
 		var source ghclient.Source
