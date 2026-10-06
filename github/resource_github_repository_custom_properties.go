@@ -209,8 +209,7 @@ func resourceGithubRepositoryCustomPropertiesRead(ctx context.Context, d *schema
 	// Read actual properties from GitHub
 	allCustomProperties, _, err := client.Repositories.GetAllCustomPropertyValues(ctx, owner, repoName)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
 			tflog.Warn(ctx, "Repository not found, removing from state", map[string]any{"owner": owner, "repository": repoName})
 			d.SetId("")
 			return nil
@@ -297,11 +296,13 @@ func resourceGithubRepositoryCustomPropertiesDelete(ctx context.Context, d *sche
 
 	_, err = client.Repositories.CreateOrUpdateCustomProperties(ctx, owner, repoName, customProperties)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Repository not found, skipping custom properties deletion", map[string]any{"owner": owner, "repository": repoName})
 			return nil
 		}
-		return diag.Errorf("error deleting custom properties for repository %s/%s: %v", owner, repoName, err)
+		if err := handleArchivedRepoDelete(err, "repository custom properties", repoName, owner, repoName); err != nil {
+			return diag.Errorf("error deleting custom properties for repository %s/%s: %v", owner, repoName, err)
+		}
 	}
 
 	return nil
