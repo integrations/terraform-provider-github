@@ -514,7 +514,6 @@ resource "github_repository" "test" {
 	name               = "%s"
 	auto_init          = true
 	archive_on_destroy = true
-	archived           = %s
 	visibility         = "%s"
 }
 `
@@ -522,17 +521,21 @@ resource "github_repository" "test" {
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
+			CheckDestroy: func(_ *terraform.State) error {
+				repository, _, err := testAccConf.meta.v3client.Repositories.Get(t.Context(), testAccConf.meta.name, testRepoName)
+				if err != nil {
+					return fmt.Errorf("failed to get repository %q after destroy: %w", testRepoName, err)
+				}
+				if !repository.GetArchived() {
+					return fmt.Errorf("repository %q was not archived on destroy", testRepoName)
+				}
+				return nil
+			},
 			Steps: []resource.TestStep{
 				{
-					Config: fmt.Sprintf(config, testRepoName, "false", testAccConf.testRepositoryVisibility),
+					Config: fmt.Sprintf(config, testRepoName, testAccConf.testRepositoryVisibility),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("github_repository.test", "archived", "false"),
-					),
-				},
-				{
-					Config: fmt.Sprintf(config, testRepoName, "true", testAccConf.testRepositoryVisibility),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository.test", "archived", "true"),
 					),
 				},
 			},
@@ -1629,6 +1632,44 @@ resource "github_repository" "private" {
 			},
 		})
 	})
+}
+
+func TestGithubRepositoryDeleteArchivesWithMinimalPayload(t *testing.T) {
+	t.Parallel()
+
+	ts := githubApiMock([]*mockResponse{
+		{
+			ExpectedUri:    "/repos/owner/repo",
+			ExpectedMethod: "PATCH",
+			ExpectedBody: []byte(`{"archived":true}
+`),
+			StatusCode:   200,
+			ResponseBody: `{"name":"repo","archived":true}`,
+		},
+	})
+	defer ts.Close()
+
+	client := mustCreateTestGitHubClient(t, ts.URL)
+	meta := &Owner{name: "owner", v3client: client}
+
+	d := schema.TestResourceDataRaw(t, resourceGithubRepository().Schema, map[string]any{
+		"name":               "repo",
+		"archive_on_destroy": true,
+		"archived":           false,
+		"security_and_analysis": []any{
+			map[string]any{
+				"advanced_security": []any{
+					map[string]any{"status": "enabled"},
+				},
+			},
+		},
+	})
+	d.SetId("repo")
+
+	diags := resourceGithubRepositoryDelete(t.Context(), d, meta)
+	if diags.HasError() {
+		t.Fatalf("expected no error, got: %v", diags)
+	}
 }
 
 func Test_expandPages(t *testing.T) {
