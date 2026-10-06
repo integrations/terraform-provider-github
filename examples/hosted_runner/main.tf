@@ -8,9 +8,9 @@ resource "github_actions_runner_group" "example" {
 # The image ID is numeric, not a string like "ubuntu-latest"
 resource "github_actions_hosted_runner" "example" {
   name = "example-hosted-runner"
-  
+
   image {
-    id     = "2306"  # Ubuntu Latest (24.04) - query your org for available IDs
+    id     = "2306" # Ubuntu Latest (24.04) - query your org for available IDs
     source = "github"
   }
 
@@ -21,9 +21,9 @@ resource "github_actions_hosted_runner" "example" {
 # Advanced example with optional parameters
 resource "github_actions_hosted_runner" "advanced" {
   name = "advanced-hosted-runner"
-  
+
   image {
-    id     = "2306"  # Ubuntu Latest (24.04) - query your org for available IDs
+    id     = "2306" # Ubuntu Latest (24.04) - query your org for available IDs
     source = "github"
   }
 

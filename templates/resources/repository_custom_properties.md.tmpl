@@ -1,0 +1,43 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+For more information, see the [GitHub API documentation](https://docs.github.com/rest/repos/custom-properties#create-or-update-custom-property-values-for-a-repository).
+
+~> **Note:** This resource manages **values** for custom properties that have already been defined at the organization level (e.g. using [`github_organization_custom_properties`](organization_custom_properties)). It cannot create new property definitions.
+
+~> **Note:** This resource requires the provider to be configured with an organization owner. Individual user accounts are not supported.
+
+## Example Usage
+
+{{ tffile "examples/resources/github_repository_custom_properties/resource_1.tf" }}
+
+## Example Usage - Multi-Select Property
+
+{{ tffile "examples/resources/github_repository_custom_properties/resource_2.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+Repository custom properties can be imported using the repository name. When imported, **all** custom property values currently set on the repository will be imported into state. After import, only the properties present in your configuration will continue to be managed; any properties not declared in `property` blocks will be ignored on subsequent plans.
+
+In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `id` attribute, for example:
+
+{{tffile .ImportIDConfigFile }}
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+{{codefile "shell" .ImportFile }}
+
+## Differences from `github_repository_custom_property`
+
+This resource (`github_repository_custom_properties`, plural) manages **multiple** custom property values for a repository in a single resource block, with in-place updates when values change. It is non-authoritative — only the properties declared in the configuration are managed. This is useful when you want to manage multiple properties together as a unit without affecting properties managed elsewhere.
+
+The singular [`github_repository_custom_property`](repository_custom_property) resource manages a **single** property value per resource instance. Use it when you need independent lifecycle management for each property.

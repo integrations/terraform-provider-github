@@ -1,0 +1,9 @@
+# These rules are enabled for any new code, but not for the whole codebase yet.
+# This file is for linting rules we want to start enforcing, but can't enable for the whole codebase yet.
+# Always add new rules to .golangci.yml first. If they cause too many issues to fix reasonably, add them here instead.
+# Once a rule in here has been fixed across the codebase, remove it from here and add it to .golangci.yml.
+version: "2"
+
+linters:
+  enable:
+    - forcetypeassert

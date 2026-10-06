@@ -1,0 +1,17 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Get information on GitHub's SSH keys.
+---
+
+# {{.Name}} ({{.Type}})
+
+Use this data source to retrieve information about GitHub's SSH keys.
+
+## Example Usage
+
+{{ tffile "examples/data-sources/ssh_keys/example_1.tf" }}
+
+## Attributes Reference
+
+- `keys` - An array of GitHub's SSH public keys.

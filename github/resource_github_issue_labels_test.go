@@ -10,7 +10,11 @@ import (
 )
 
 func TestAccGithubIssueLabels(t *testing.T) {
+	t.Parallel()
+
 	t.Run("authoritatively overtakes existing labels", func(t *testing.T) {
+		t.Parallel()
+
 		repoName := fmt.Sprintf("%srepo-issue-labels-%s", testResourcePrefix, acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
 		empty := []map[string]any{}
 
@@ -114,9 +118,13 @@ func testAccGithubIssueLabelsConfig(repoName string, labels []map[string]any) st
 }
 
 func TestAccGithubIssueLabelsArchived(t *testing.T) {
+	t.Parallel()
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("can delete labels from archived repositories without error", func(t *testing.T) {
+		t.Parallel()
+
 		repoName := fmt.Sprintf("%srepo-labels-arch-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`

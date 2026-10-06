@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-jose/go-jose/v3"
-	"github.com/go-jose/go-jose/v3/jwt"
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
 )
 
 const (
@@ -29,6 +29,8 @@ var (
 )
 
 func TestGenerateAppJWT(t *testing.T) {
+	t.Parallel()
+
 	appJWT, err := generateAppJWT(testGitHubAppID, testEpochTime, testGitHubAppPrivateKeyPemData)
 	t.Log(appJWT)
 	if err != nil {
@@ -46,7 +48,7 @@ func TestGenerateAppJWT(t *testing.T) {
 	})
 
 	t.Run("produces a jwt with expected algorithm and type", func(t *testing.T) {
-		tok, err := jwt.ParseSigned(appJWT)
+		tok, err := jwt.ParseSigned(appJWT, []jose.SignatureAlgorithm{jose.RS256})
 		if err != nil {
 			t.Logf("Failed to decode JWT '%s': %s", appJWT, err)
 			t.Fail()
@@ -72,7 +74,7 @@ func TestGenerateAppJWT(t *testing.T) {
 	})
 
 	t.Run("produces a jwt with expected claims", func(t *testing.T) {
-		tok, err := jwt.ParseSigned(appJWT)
+		tok, err := jwt.ParseSigned(appJWT, []jose.SignatureAlgorithm{jose.RS256})
 		if err != nil {
 			t.Logf("Failed to decode JWT '%s': %s", appJWT, err)
 			t.Fail()
@@ -122,7 +124,7 @@ func TestGenerateAppJWT(t *testing.T) {
 			t.FailNow()
 		}
 
-		tok, err := jwt.ParseSigned(appJWT)
+		tok, err := jwt.ParseSigned(appJWT, []jose.SignatureAlgorithm{jose.RS256})
 		if err != nil {
 			t.Logf("Failed to decode JWT '%s': %s", appJWT, err)
 			t.Fail()
@@ -138,6 +140,8 @@ func TestGenerateAppJWT(t *testing.T) {
 }
 
 func TestGetInstallationAccessToken(t *testing.T) {
+	t.Parallel()
+
 	fakeJWT := "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9" +
 		".eyJpc3MiOiIxMjM0NTY3ODkiLCJhdWQiOiIiLCJleHAiOjMwMCwiaWF0IjotNjB9" +
 		".jpx6AFGoZzHzre79JveY_nyKop11v-bLxLEMvEDrn2wDF9S1FeX-zfTiA6Xi00Akn0Wklj7OYx0wHCvi37aiD4zjp0qPz5i5V7aMrRsWsO6eCzNfY0VLuV6pX8jlAHFfo71SvpdAMWH4in8ty5bNVUMv0NmwWdlHAQ0LLIPSxE4"

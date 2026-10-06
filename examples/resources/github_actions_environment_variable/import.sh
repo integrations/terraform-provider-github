@@ -1,0 +1,1 @@
+terraform import github_actions_environment_variable.example repo-name:environment-name:variable-name

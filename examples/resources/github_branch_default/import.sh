@@ -1,0 +1,1 @@
+terraform import github_branch_default.branch_default my-repo

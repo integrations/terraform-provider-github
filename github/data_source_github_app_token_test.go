@@ -2,17 +2,18 @@ package github
 
 import (
 	"fmt"
-	"net/http"
-	"net/url"
 	"os"
 	"testing"
 
-	"github.com/google/go-github/v84/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func TestAccGithubAppTokenDataSource(t *testing.T) {
+func TestGithubAppTokenDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates a application token without error", func(t *testing.T) {
+		t.Parallel()
+
 		expectedAccessToken := "W+2e/zjiMTweDAr2b35toCF+h29l7NW92rJIPvFrCJQK"
 
 		owner := "test-owner"
@@ -35,12 +36,7 @@ func TestAccGithubAppTokenDataSource(t *testing.T) {
 		})
 		defer ts.Close()
 
-		httpCl := http.DefaultClient
-		httpCl.Transport = http.DefaultTransport
-
-		client := github.NewClient(httpCl)
-		u, _ := url.Parse(ts.URL + "/")
-		client.BaseURL = u
+		client := mustCreateTestGitHubClient(t, ts.URL)
 
 		meta := &Owner{
 			name:     owner,

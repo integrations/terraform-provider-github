@@ -1,0 +1,84 @@
+---
+page_title: "{{.RenderedProviderName}} Provider"
+description: |-
+  The GitHub Terraform provider is used to interact with GitHub resources either as an authenticated client or anonymously.
+---
+
+# {{.RenderedProviderName}} Provider
+
+The GitHub Terraform provider is used to interact with GitHub resources either as an authenticated client or anonymously.
+
+!> You **must** add a `required_providers` block to every module that will create resources with this provider. If you do not explicitly require `integrations/github` in a submodule, your Terraform code run may [break in hard-to-troubleshoot ways](https://github.com/integrations/terraform-provider-github/issues/876#issuecomment-1303790559).
+
+## Example Usage
+
+{{- range .ExampleFiles }}
+
+{{ tffile . }}
+{{- end }}
+
+## Owner
+
+For backwards compatibility; if more than one of `owner`, `organization`, `GITHUB_OWNER` and `GITHUB_ORGANIZATION` are set the first in this list takes priority.
+
+1. Setting `organization` in the GitHub provider configuration.
+2. Setting the `GITHUB_ORGANIZATION` environment variable.
+3. Setting the `GITHUB_OWNER` environment variable.
+4. Setting `owner` in the GitHub provider configuration.
+
+!> It is a bug that `GITHUB_OWNER` takes precedence over `owner`; this will be fixed in a future major release. For compatibility with future releases, please set only one of `GITHUB_OWNER` and `owner`.
+
+## Authentication
+
+The GitHub provider can be authenticated with the GitHub API via a GitHub App, an OAuth Token, or a Personal Access Token (PAT); it can also operate anonymously (in a limited manner) if no authentication is provided. The provider selects the authentication used based on the `auth_mode` argument, with the ability to explicitly set the authentication mode and falling back to `auto` mode when a specific mode is not explicitly set. Auto mode uses the following authentication fallback chain (first match wins):
+
+1. [**GitHub App Installation**](#github-app-installation) — `app_auth` block (or environment) with `id`, `installation_id`, and `pem_file`.
+2. [**Explicit Token**](#oauth-or-personal-access-token-pat) — `token` argument or `GITHUB_TOKEN` environment variable.
+3. [**GitHub CLI**](#github-cli-authentication) — Falls back to `gh auth token` if neither token nor app_auth is set.
+4. **Anonymous** — Read-only access when no credentials are available.
+
+### GitHub App Installation
+
+GitHub App authentication requires the `owner` argument to be set and is supported by the `app_auth` provider configuration block and/or the related environment variables. Authenticating the provider with a GitHub App requires all three `app_auth` arguments to be set; `id`, `installation_id`, and `pem_file`. If you want to make sure that the provider is using GitHub App authentication, you can set the `auth_mode` argument to `app` (setting the `app_auth` block also requires the provider to use GitHub App authentication). When using environment variables the provider defaults to using the `GITHUB_APP_` prefix, but this can be overridden with the `app_auth_env_prefix` argument.
+
+By default, the provider will look for the following environment variables: `GITHUB_APP_ID`, `GITHUB_APP_INSTALLATION_ID`, and `GITHUB_APP_PEM_FILE`. If you want to use a different prefix, you can set the `app_auth_env_prefix` argument to the desired prefix. For example, if you set `app_auth_env_prefix = "MYAPP_"`, the provider will look for the following environment variables: `MYAPP_ID`, `MYAPP_INSTALLATION_ID`, and `MYAPP_PEM_FILE`. This is useful if you want to use multiple GitHub providers authenticating with different GitHub Apps.
+
+Some API operations may not be available when using a GitHub App installation configuration. For more information, refer to the list of [supported endpoints](https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps).
+
+#### Block with values
+
+{{ tffile "examples/provider/app_auth/main.tf" }}
+
+#### Environment variables only
+
+{{ codefile "shell" "examples/provider/app_auth_env/.env" }}
+
+{{ tffile "examples/provider/app_auth_env/main.tf" }}
+
+#### Non-secret values in configuration, secret from the environment
+
+{{ codefile "shell" "examples/provider/app_auth_mixed/.env" }}
+
+{{ tffile "examples/provider/app_auth_mixed/main.tf" }}
+
+### OAuth or Personal Access Token (PAT)
+
+To authenticate using OAuth tokens, ensure that the `token` argument or the `GITHUB_TOKEN` environment variable is set.
+
+{{ tffile "examples/provider/token_auth/main.tf" }}
+
+### GitHub CLI Authentication
+
+~> The GitHub CLI authentication fallback is only available when using the legacy client implementation and will be removed in a future major release. To use the legacy client implementation, set `legacy_client = true` in the provider configuration or set the `GITHUB_LEGACY_CLIENT` environment variable to `true`.
+
+When using the GitHub CLI authentication fallback, you can optionally specify the path to the `gh` executable using the `GH_PATH` environment variable. This is useful when the provider cannot properly determine the path to GitHub CLI, such as in cygwin terminals. If not specified, the provider looks for `gh` in your system PATH.
+
+#### .env
+
+{{ codefile "shell" "examples/provider/gh_auth/.env" }}
+
+#### main.tf
+
+{{ tffile "examples/provider/gh_auth/main.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}

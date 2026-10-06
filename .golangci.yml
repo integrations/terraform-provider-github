@@ -12,7 +12,7 @@ linters:
     - errcheck
     - errname
     - errorlint
-    # - forcetypeassert TODO: Re-enable when we can fix the issues
+    # - forcetypeassert # TODO: Re-enable when we can fix the issues
     - godot
     - govet
     - ineffassign
@@ -46,7 +46,10 @@ linters:
         text: always receives
       - linters:
           - staticcheck
-        text: "SA1019.*ByID.*deprecated"
+        text: "SA1019: \\(github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema.Resource\\)\\.(Create|Read|Update|Delete) is deprecated"
+      - linters:
+          - staticcheck
+        text: "SA1019: \\(github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema.ResourceImporter\\)\\.State is deprecated"
 
 issues:
   max-issues-per-linter: 0
@@ -62,13 +65,27 @@ formatters:
     gofmt:
       simplify: true
       rewrite-rules:
-        - pattern: interface{}
-          replacement: any
-        - pattern: a[b:len(a)]
-          replacement: a[b:]
+        - pattern: skipUnlessMode(t, enterprise)
+          replacement: skipUnlessEnterprise(t)
+        - pattern: parseTwoPartID(a, b, c)
+          replacement: parseID2(a)
+        - pattern: parseThreePartID(a, b, c, d)
+          replacement: parseID3(a)
+        - pattern: wrapErrors([]error{fmt.Errorf(a)})
+          replacement: diag.Errorf(a)
+        - pattern: wrapErrors([]error{fmt.Errorf(a, b)})
+          replacement: diag.Errorf(a, b)
+        - pattern: wrapErrors([]error{err})
+          replacement: diag.FromErr(err)
+        - pattern: diag.FromErr(fmt.Errorf(a))
+          replacement: diag.Errorf(a)
+
     gofumpt:
       module-path: github.com/integrations/terraform-provider-github
-      extra-rules: true
+      extra:
+        group-params: true
+        clothe-returns: true
+        balance-calls: true
     goimports:
       local-prefixes:
         - github.com/integrations/terraform-provider-github

@@ -44,14 +44,14 @@ func dataSourceGithubIssueLabels() *schema.Resource {
 	}
 }
 
-func dataSourceGithubIssueLabelsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func dataSourceGithubIssueLabelsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	owner := meta.name
 	repository := d.Get("repository").(string)
 
 	d.SetId(repository)
 
-	labels, err := listLabels(client, ctx, owner, repository)
+	labels, err := listLabels(meta, ctx, owner, repository)
 	if err != nil {
 		return diag.FromErr(err)
 	}

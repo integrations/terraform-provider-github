@@ -1,0 +1,30 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Creates and manages IP allow list entries within a GitHub Enterprise
+---
+
+# {{.Name}} ({{.Type}})
+
+This resource allows you to create and manage IP allow list entries for a GitHub Enterprise account. IP allow list entries define IP addresses or ranges that are permitted to access private resources in the enterprise.
+
+## Example Usage
+
+{{tffile "examples/resources/enterprise_ip_allow_list_entry/example_1.tf"}}
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `enterprise_slug` - (Required) The slug of the enterprise.
+- `ip` - (Required) An IP address or range of IP addresses in CIDR notation.
+- `name` - (Optional) A descriptive name for the IP allow list entry.
+- `is_active` - (Optional) Whether the entry is currently active. Default: true.
+
+## Import
+
+This resource can be imported using the ID of the IP allow list entry:
+
+```shell
+terraform import github_enterprise_ip_allow_list_entry.test IALE_kwHOC1234567890a
+```

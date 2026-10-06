@@ -9,7 +9,11 @@ import (
 )
 
 func TestAccGithubCodespacesSecretsDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("queries codespaces secrets from a repository", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-cs-secrets-%s", testResourcePrefix, randomID)
 

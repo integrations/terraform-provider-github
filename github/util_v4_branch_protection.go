@@ -558,7 +558,8 @@ func setForcePushBypassers(protection BranchProtectionRule, data BranchProtectio
 	return bypassForcePushActors
 }
 
-func getBranchProtectionID(repoID githubv4.ID, pattern string, meta any) (githubv4.ID, error) {
+func getBranchProtectionID(repoID githubv4.ID, pattern string, m any) (githubv4.ID, error) {
+	meta, _ := m.(*Owner)
 	var query struct {
 		Node struct {
 			Repository struct {
@@ -575,12 +576,12 @@ func getBranchProtectionID(repoID githubv4.ID, pattern string, meta any) (github
 	}
 	variables := map[string]any{
 		"id":     repoID,
-		"first":  githubv4.Int(100),
+		"first":  githubv4.Int(meta.maxPerPage),
 		"cursor": (*githubv4.String)(nil),
 	}
 
 	ctx := context.Background()
-	client := meta.(*Owner).v4client
+	client := meta.v4client
 
 	var allRules []struct {
 		ID      string

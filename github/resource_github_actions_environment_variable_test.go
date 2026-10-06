@@ -1,388 +1,55 @@
 package github
 
 import (
-	"context"
 	"fmt"
-	"net/url"
 	"regexp"
 	"testing"
 
-	"github.com/google/go-github/v84/github"
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubActionsEnvironmentVariable(t *testing.T) {
-	t.Run("create", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
-		envName := "test"
-		varName := "test"
-		value := "my_variable_value"
+	t.Parallel()
+
+	skipUnauthenticated(t)
+
+	t.Run("default", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+		env := mustCreateTestRepositoryEnvironment(t, repo)
 
 		config := fmt.Sprintf(`
-resource "github_repository" "test" {
-	name = "%s"
-}
-
-resource "github_repository_environment" "test" {
-	repository  = github_repository.test.name
-	environment = "%s"
-}
-
 resource "github_actions_environment_variable" "test" {
-	repository    = github_repository.test.name
-	environment   = github_repository_environment.test.environment
-	variable_name = "%s"
-	value         = "%s"
+  repository    = "%s"
+  environment   = "%s"
+  variable_name = "TEST"
+  value         = "%%s"
 }
-`, repoName, envName, varName, value)
+`, repo.GetName(), env.GetName())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrPair("github_actions_environment_variable.test", "repository", "github_repository.test", "name"),
-						resource.TestCheckResourceAttr("github_actions_environment_variable.test", "environment", envName),
-						resource.TestCheckResourceAttr("github_actions_environment_variable.test", "variable_name", varName),
-						resource.TestCheckResourceAttr("github_actions_environment_variable.test", "value", value),
-						resource.TestCheckResourceAttrSet("github_actions_environment_variable.test", "created_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_variable.test", "updated_at"),
-					),
-				},
-			},
-		})
-	})
-
-	t.Run("create_with_env_name_id_separator_character", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
-		envName := "env:test"
-		varName := "test"
-		value := "my_variable_value"
-
-		config := fmt.Sprintf(`
-resource "github_repository" "test" {
-	name = "%s"
-}
-
-resource "github_repository_environment" "test" {
-	repository  = github_repository.test.name
-	environment = "%s"
-}
-
-resource "github_actions_environment_variable" "test" {
-	repository    = github_repository.test.name
-	environment   = github_repository_environment.test.environment
-	variable_name = "%s"
-	value         = "%s"
-}
-`, repoName, envName, varName, value)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrPair("github_actions_environment_variable.test", "repository", "github_repository.test", "name"),
-						resource.TestCheckResourceAttr("github_actions_environment_variable.test", "environment", envName),
-						resource.TestCheckResourceAttr("github_actions_environment_variable.test", "variable_name", varName),
-						resource.TestCheckResourceAttr("github_actions_environment_variable.test", "value", value),
-						resource.TestCheckResourceAttrSet("github_actions_environment_variable.test", "created_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_variable.test", "updated_at"),
-					),
-				},
-			},
-		})
-	})
-
-	t.Run("create_update", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
-		envName := "test"
-		varName := "test"
-		value := "my_variable_value"
-		updatedValue := "my_updated_variable_value"
-
-		config := `
-resource "github_repository" "test" {
-	name = "%s"
-}
-
-resource "github_repository_environment" "test" {
-	repository  = github_repository.test.name
-	environment = "%s"
-}
-
-resource "github_actions_environment_variable" "test" {
-	repository    = github_repository.test.name
-	environment   = github_repository_environment.test.environment
-	variable_name = "%s"
-	value         = "%s"
-}
-`
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: fmt.Sprintf(config, repoName, envName, varName, value),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrPair("github_actions_environment_variable.test", "repository", "github_repository.test", "name"),
-						resource.TestCheckResourceAttr("github_actions_environment_variable.test", "environment", envName),
-						resource.TestCheckResourceAttr("github_actions_environment_variable.test", "variable_name", varName),
-						resource.TestCheckResourceAttr("github_actions_environment_variable.test", "value", value),
-						resource.TestCheckResourceAttrSet("github_actions_environment_variable.test", "created_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_variable.test", "updated_at"),
-					),
+					Config: fmt.Sprintf(config, "my-value"),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_environment_variable.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_environment_variable.test", tfjsonpath.New("created_at"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_environment_variable.test", tfjsonpath.New("updated_at"), knownvalue.NotNull()),
+					},
 				},
 				{
-					Config: fmt.Sprintf(config, repoName, envName, varName, updatedValue),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrPair("github_actions_environment_variable.test", "repository", "github_repository.test", "name"),
-						resource.TestCheckResourceAttr("github_actions_environment_variable.test", "environment", envName),
-						resource.TestCheckResourceAttr("github_actions_environment_variable.test", "variable_name", varName),
-						resource.TestCheckResourceAttr("github_actions_environment_variable.test", "value", updatedValue),
-						resource.TestCheckResourceAttrSet("github_actions_environment_variable.test", "created_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_variable.test", "updated_at"),
-					),
-				},
-			},
-		})
-	})
-
-	t.Run("update_renamed_repo", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
-		updatedRepoName := fmt.Sprintf("%s%s-updated", testResourcePrefix, randomID)
-
-		// TODO: Remove lifecycle ignore_changes block when repo rename is supported
-		config := `
-resource "github_repository" "test" {
-	name = "%s"
-}
-
-resource "github_repository_environment" "test" {
-	repository  = github_repository.test.name
-	environment = "test"
-
-	lifecycle {
-		ignore_changes = all
-	}
-}
-
-resource "github_actions_environment_variable" "test" {
-	repository    = github_repository.test.name
-	environment   = github_repository_environment.test.environment
-	variable_name = "test"
-	value         = "test"
-}
-`
-
-		var beforeCreatedAt string
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: fmt.Sprintf(config, repoName),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("github_actions_environment_variable.test", "created_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_variable.test", "updated_at"),
-						func(s *terraform.State) error {
-							beforeCreatedAt = s.RootModule().Resources["github_actions_environment_variable.test"].Primary.Attributes["created_at"]
-							return nil
+					Config: fmt.Sprintf(config, "my-value-2"),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_environment_variable.test", plancheck.ResourceActionUpdate),
 						},
-					),
-				},
-				{
-					Config: fmt.Sprintf(config, updatedRepoName),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("github_actions_environment_variable.test", "created_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_variable.test", "updated_at"),
-						func(s *terraform.State) error {
-							afterCreatedAt := s.RootModule().Resources["github_actions_environment_variable.test"].Primary.Attributes["created_at"]
-
-							if afterCreatedAt != beforeCreatedAt {
-								return fmt.Errorf("expected resource to not be recreated, but created_at has been modified: %s", beforeCreatedAt)
-							}
-							return nil
-						},
-					),
-				},
-			},
-		})
-	})
-
-	t.Run("recreate_changed_repo", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
-		repoName2 := fmt.Sprintf("%supdated-%s", testResourcePrefix, randomID)
-
-		config := fmt.Sprintf(`
-resource "github_repository" "test" {
-	name = "%s"
-}
-
-resource "github_repository_environment" "test" {
-	repository  = github_repository.test.name
-	environment = "test"
-}
-
-resource "github_repository" "test2" {
-	name = "%s"
-}
-
-resource "github_repository_environment" "test2" {
-	repository  = github_repository.test2.name
-	environment = "test"
-}
-
-resource "github_actions_environment_variable" "test" {
-	repository    = github_repository.test.name
-	environment   = github_repository_environment.test.environment
-	variable_name = "test_variable"
-	value         = "test"
-}
-`, repoName, repoName2)
-
-		configUpdated := fmt.Sprintf(`
-resource "github_repository" "test" {
-	name = "%s"
-}
-
-resource "github_repository_environment" "test" {
-	repository  = github_repository.test.name
-	environment = "test"
-}
-
-resource "github_repository" "test2" {
-	name = "%s"
-}
-
-resource "github_repository_environment" "test2" {
-	repository  = github_repository.test2.name
-	environment = "test"
-}
-
-resource "github_actions_environment_variable" "test" {
-	repository    = github_repository.test2.name
-	environment   = github_repository_environment.test2.environment
-	variable_name = "test_variable"
-	value         = "test"
-}
-`, repoName, repoName2)
-
-		var beforeCreatedAt string
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("github_actions_environment_variable.test", "created_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_variable.test", "updated_at"),
-						func(s *terraform.State) error {
-							beforeCreatedAt = s.RootModule().Resources["github_actions_environment_variable.test"].Primary.Attributes["created_at"]
-							return nil
-						},
-					),
-				},
-				{
-					Config: configUpdated,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("github_actions_environment_variable.test", "created_at"),
-						resource.TestCheckResourceAttrSet("github_actions_environment_variable.test", "updated_at"),
-						func(s *terraform.State) error {
-							afterCreatedAt := s.RootModule().Resources["github_actions_environment_variable.test"].Primary.Attributes["created_at"]
-
-							if afterCreatedAt == beforeCreatedAt {
-								return fmt.Errorf("expected resource to be recreated, but created_at has not been modified: %s", beforeCreatedAt)
-							}
-							return nil
-						},
-					),
-				},
-			},
-		})
-	})
-
-	t.Run("destroy", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
-
-		config := fmt.Sprintf(`
-resource "github_repository" "test" {
-	name = "%s"
-}
-
-resource "github_repository_environment" "test" {
-	repository  = github_repository.test.name
-	environment = "test"
-}
-
-resource "github_actions_environment_variable" "test" {
-	repository    = github_repository.test.name
-	environment   = github_repository_environment.test.environment
-	variable_name = "test_variable"
-	value         = "my_variable_value"
-}
-`, repoName)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-				},
-				{
-					Config:  config,
-					Destroy: true,
-				},
-			},
-		})
-	})
-
-	t.Run("import", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
-		envName := "test"
-		varName := "test_variable"
-		value := "my_variable_value"
-
-		config := fmt.Sprintf(`
-resource "github_repository" "test" {
-	name = "%s"
-}
-
-resource "github_repository_environment" "test" {
-	repository  = github_repository.test.name
-	environment = "%s"
-}
-
-resource "github_actions_environment_variable" "test" {
-	repository    = github_repository.test.name
-	environment   = github_repository_environment.test.environment
-	variable_name = "%s"
-	value         = "%s"
-}
-`, repoName, envName, varName, value)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
+					},
 				},
 				{
 					ResourceName:      "github_actions_environment_variable.test",
@@ -393,71 +60,127 @@ resource "github_actions_environment_variable" "test" {
 		})
 	})
 
-	t.Run("error_on_existing", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
-		envName := "test"
-		varName := "test_variable"
+	t.Run("with_env_name_id_separator_character", func(t *testing.T) {
+		t.Parallel()
 
-		baseConfig := fmt.Sprintf(`
-resource "github_repository" "test" {
-	name = "%s"
-}
-
-resource "github_repository_environment" "test" {
-	repository       = github_repository.test.name
-	environment      = "%s"
-}
-`, repoName, envName)
+		repo := mustCreateTestRepository(t)
+		env := mustCreateTestRepositoryEnvironment(t, repo, withTestCreateName("env:test"))
 
 		config := fmt.Sprintf(`
-%s
-
 resource "github_actions_environment_variable" "test" {
-	repository       = github_repository.test.name
-	environment      = github_repository_environment.test.environment
-	variable_name    = "%s"
-	value            = "test"
+  repository    = "%s"
+  environment   = "%s"
+  variable_name = "TEST"
+  value         = "my-value"
 }
-`, baseConfig, varName)
+`, repo.GetName(), env.GetName())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: baseConfig,
-					Check: func(*terraform.State) error {
-						meta, err := getTestMeta()
-						if err != nil {
-							return err
-						}
-						client := meta.v3client
-						owner := meta.name
-						ctx := context.Background()
+					Config: config,
+				},
+			},
+		})
+	})
 
-						_, err = client.Actions.CreateEnvVariable(ctx, owner, repoName, url.PathEscape(envName), &github.ActionsVariable{
-							Name:  varName,
-							Value: "test",
-						})
-						return err
+	t.Run("updates_renamed_repo", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+		env := mustCreateTestRepositoryEnvironment(t, repo)
+		newRepoName := fmt.Sprintf("%s-updated", repo.GetName())
+
+		config := fmt.Sprintf(`
+resource "github_actions_environment_variable" "test" {
+  repository    = "%%s"
+  environment   = "%s"
+  variable_name = "TEST"
+  value         = "my-value"
+}
+`, env.GetName())
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, repo.GetName()),
+				},
+				{
+					PreConfig: func() {
+						mustRenameTestRepository(t, repo, newRepoName)
+					},
+					Config: fmt.Sprintf(config, newRepoName),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_environment_variable.test", plancheck.ResourceActionUpdate),
+						},
 					},
 				},
+			},
+		})
+	})
+
+	t.Run("recreates_changed_repo", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+		env := mustCreateTestRepositoryEnvironment(t, repo)
+		repo2 := mustCreateTestRepository(t)
+		_ = mustCreateTestRepositoryEnvironment(t, repo2, withTestCreateName(env.GetName()))
+
+		config := fmt.Sprintf(`
+resource "github_actions_environment_variable" "test" {
+  repository    = "%%s"
+  environment   = "%s"
+  variable_name = "TEST"
+  value         = "my-value"
+}
+`, env.GetName())
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, repo.GetName()),
+				},
+				{
+					Config: fmt.Sprintf(config, repo2.GetName()),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_environment_variable.test", plancheck.ResourceActionReplace),
+						},
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("errors_if_variable_already_exists", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+		env := mustCreateTestRepositoryEnvironment(t, repo)
+		varName := "TEST"
+
+		mustCreateTestRepositoryEnvironmentVariable(t, repo, env, &varName, nil)
+
+		config := fmt.Sprintf(`
+resource "github_actions_environment_variable" "test" {
+  repository    = "%s"
+  environment   = "%s"
+  variable_name = "%s"
+  value         = "my-value"
+}
+`, repo.GetName(), env.GetName(), varName)
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
 				{
 					Config:      config,
 					ExpectError: regexp.MustCompile(`Variable already exists`),
-					Check: func(*terraform.State) error {
-						meta, err := getTestMeta()
-						if err != nil {
-							return err
-						}
-						client := meta.v3client
-						owner := meta.name
-						ctx := context.Background()
-
-						_, err = client.Actions.DeleteEnvVariable(ctx, owner, repoName, url.PathEscape(envName), varName)
-						return err
-					},
 				},
 			},
 		})

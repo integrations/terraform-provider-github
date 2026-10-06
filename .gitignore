@@ -30,11 +30,15 @@ testdata/
 website/vendor
 terraform-provider-github
 
+# Generated temporary files
+.golangci.new.yml
+
 # Test exclusions
 !command/test-fixtures/**/*.tfstate
 !command/test-fixtures/**/.terraform/
 
 # do not commit secrets
 .env
+!examples/**/.env
 *_rsa
 *_rsa.pub

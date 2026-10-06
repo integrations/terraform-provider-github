@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
@@ -21,8 +21,7 @@ func checkRepositoryBranchExists(ctx context.Context, client *github.Client, own
 	})
 	_, _, err := client.Repositories.GetBranch(ctx, owner, repo, branch, 2)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				return fmt.Errorf("branch %s not found in repository %s/%s or repository is not readable", branch, owner, repo)
 			}
@@ -121,8 +120,7 @@ func listAutolinks(ctx context.Context, client *github.Client, owner, repo strin
 // isArchivedRepositoryError checks if an error is a 403 "repository archived" error.
 // Returns true if the repository is archived.
 func isArchivedRepositoryError(err error) bool {
-	var ghErr *github.ErrorResponse
-	if errors.As(err, &ghErr) {
+	if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 		if ghErr.Response.StatusCode == http.StatusForbidden {
 			return strings.Contains(strings.ToLower(ghErr.Message), "archived")
 		}
@@ -149,14 +147,4 @@ func handleArchivedRepositoryError(err error, operation, resource, owner, repo s
 // specifically for delete operations, which is the most common use case.
 func handleArchivedRepoDelete(err error, resourceType, resourceName, owner, repo string) error {
 	return handleArchivedRepositoryError(err, "deletion", fmt.Sprintf("%s %s", resourceType, resourceName), owner, repo)
-}
-
-// get the list of retriable errors.
-func getDefaultRetriableErrors() map[int]bool {
-	return map[int]bool{
-		500: true,
-		502: true,
-		503: true,
-		504: true,
-	}
 }

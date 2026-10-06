@@ -9,7 +9,11 @@ import (
 )
 
 func TestAccGithubRepositoryFileDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("reads a file with a branch name provided without erroring", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -61,6 +65,8 @@ func TestAccGithubRepositoryFileDataSource(t *testing.T) {
 	})
 
 	t.Run("reads a file from a short repo name without erroring", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -114,6 +120,8 @@ func TestAccGithubRepositoryFileDataSource(t *testing.T) {
 	})
 
 	t.Run("create and read a file without providing a branch name", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -167,6 +175,8 @@ func TestAccGithubRepositoryFileDataSource(t *testing.T) {
 
 	// Can't test due to SDK and test framework limitations
 	// t.Run("try reading a non-existent file without an error", func(t *testing.T) {
+	// 	t.Parallel()
+
 	// 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 	// 	config := fmt.Sprintf(`
 	// 		resource "github_repository" "test" {
@@ -207,6 +217,8 @@ func TestAccGithubRepositoryFileDataSource(t *testing.T) {
 	// })
 
 	t.Run("reads a directory without erroring", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-file-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`

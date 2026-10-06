@@ -3,6 +3,7 @@
 This example demonstrates creating an organization security manager team.
 
 It will:
+
 - Create a team with the specified `team_name` in the specified `owner` organization
 - Assign the organization security manager role to the team
 

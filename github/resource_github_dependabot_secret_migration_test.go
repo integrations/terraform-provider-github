@@ -38,7 +38,7 @@ package github
 // 		t.Run(d.testName, func(t *testing.T) {
 // 			t.Parallel()
 
-// 			got, err := resourceGithubDependabotSecretStateUpgradeV0(context.Background(), d.rawState, nil)
+// 			got, err := resourceGithubDependabotSecretStateUpgradeV0(t.Context(), d.rawState, nil)
 // 			if (err != nil) != d.shouldError {
 // 				t.Fatalf("unexpected error state")
 // 			}

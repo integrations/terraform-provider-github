@@ -4,47 +4,28 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubActionsEnvironmentSecretsDataSource(t *testing.T) {
-	t.Run("queries actions secrets from an environment", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%srepo-env-secrets-%s", testResourcePrefix, randomID)
+	t.Parallel()
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+		env := mustCreateTestRepositoryEnvironment(t, repo)
+		secretName := mustCreateTestRepositoryEnvironmentSecret(t, repo, env, "super_secret_value")
 
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name = "%s"
-			}
-
-			resource "github_repository_environment" "test" {
-				repository  = github_repository.test.name
-				environment = "environment / test"
-			  }
-
-			resource "github_actions_environment_secret" "test" {
-				repository  = github_repository.test.name
-				environment = github_repository_environment.test.environment
-				secret_name = "secret_1"
-				value       = "foo"
-			}
-		`, repoName)
-
-		config2 := config + `
-			data "github_actions_environment_secrets" "test" {
-				name = github_repository.test.name
-				environment      	= github_repository_environment.test.environment
-			}
-		`
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("data.github_actions_environment_secrets.test", "name", repoName),
-			resource.TestCheckResourceAttr("data.github_actions_environment_secrets.test", "secrets.#", "1"),
-			resource.TestCheckResourceAttr("data.github_actions_environment_secrets.test", "secrets.0.name", "SECRET_1"),
-			resource.TestCheckResourceAttrSet("data.github_actions_environment_secrets.test", "secrets.0.created_at"),
-			resource.TestCheckResourceAttrSet("data.github_actions_environment_secrets.test", "secrets.0.updated_at"),
-		)
+data "github_actions_environment_secrets" "test" {
+  name        = "%s"
+  environment = "%s"
+}
+`, repo.GetName(), env.GetName())
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
@@ -52,11 +33,15 @@ func TestAccGithubActionsEnvironmentSecretsDataSource(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  resource.ComposeTestCheckFunc(),
-				},
-				{
-					Config: config2,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_actions_environment_secrets.test", tfjsonpath.New("secrets"), knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"name":       knownvalue.StringExact(secretName),
+								"created_at": knownvalue.NotNull(),
+								"updated_at": knownvalue.NotNull(),
+							}),
+						})),
+					},
 				},
 			},
 		})

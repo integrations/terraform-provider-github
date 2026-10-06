@@ -7,6 +7,7 @@ body:
     attributes:
       value: |
         Thanks for taking the time to fill this out!
+
   - type: textarea
     id: describe-need
     attributes:
@@ -15,22 +16,22 @@ body:
       placeholder: Describe the need for the feature.
     validations:
       required: true
-  - type: input
-    id: sdk_version
+
+  - type: checkboxes
+    id: github-installation
     attributes:
-      label: SDK Version
-      description: Does this feature suggestion apply to a specific SDK version?
-      placeholder: Octokit.rb v6.0.0
+      label: GitHub Installation Type
+      description: What type of GitHub installation are you using?
+      options:
+        - label: GitHub.com (Free, Pro, or Team)
+        - label: GitHub Enterprise Server (on-premises)
+        - label: GitHub Enterprise Cloud with Personal Accounts (github.com)
+        - label: GitHub Enterprise Cloud with Managed Users/EMU (github.com)
+        - label: GitHub Enterprise Cloud with Data Residency (*.ghe.com)
+        - label: I don't know
     validations:
-      required: false
-  - type: input
-    id: api_version
-    attributes:
-      label: API Version
-      description: Does this feature suggestion apply to a specific version of the GitHub REST API or GraphQL API?
-      placeholder: ex. v1.1.1
-    validations:
-      required: false
+      required: true
+
   - type: textarea
     id: logs
     attributes:
@@ -39,6 +40,7 @@ body:
         Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
         Please check your logs before submission to ensure sensitive information is redacted.
       render: shell
+
   - type: checkboxes
     id: terms
     attributes:

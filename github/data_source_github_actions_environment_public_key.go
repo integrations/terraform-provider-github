@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"net/url"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -33,19 +32,15 @@ func dataSourceGithubActionsEnvironmentPublicKey() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsEnvironmentPublicKeyRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	repository := d.Get("repository").(string)
+func dataSourceGithubActionsEnvironmentPublicKeyRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
-	envName := d.Get("environment").(string)
+	repository, _ := d.Get("repository").(string)
+	envName, _ := d.Get("environment").(string)
 
-	repo, _, err := client.Repositories.Get(ctx, owner, repository)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	publicKey, _, err := client.Actions.GetEnvPublicKey(ctx, int(repo.GetID()), url.PathEscape(envName))
+	publicKey, _, err := client.Actions.GetEnvPublicKey(ctx, owner, repository, envName)
 	if err != nil {
 		return diag.FromErr(err)
 	}

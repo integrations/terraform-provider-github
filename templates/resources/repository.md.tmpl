@@ -1,0 +1,49 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+~> When used with GitHub App authentication, even GET requests must have the `contents:write` permission. Without it, the following arguments will be ignored, leading to unexpected behavior and confusing diffs: `allow_merge_commit`, `allow_squash_merge`, `allow_rebase_merge`, `merge_commit_title`, `merge_commit_message`, `squash_merge_commit_title` and `squash_merge_commit_message`.
+
+{{ if .HasExamples -}}
+## Example Usage
+
+{{- range .ExampleFiles }}
+
+{{ tffile . }}
+{{- end }}
+{{- end }}
+
+{{ .SchemaMarkdown | trimspace }}
+{{- if or .HasImport .HasImportIDConfig .HasImportIdentityConfig }}
+
+## Import
+
+Import is supported using the following syntax:
+{{- end }}
+{{- if .HasImportIdentityConfig }}
+
+In Terraform v1.12.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `identity` attribute, for example:
+
+{{tffile .ImportIdentityConfigFile }}
+
+{{ .IdentitySchemaMarkdown | trimspace }}
+{{- end }}
+{{- if .HasImportIDConfig }}
+
+In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `id` attribute, for example:
+
+{{tffile .ImportIDConfigFile }}
+{{- end }}
+{{- if .HasImport }}
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+{{codefile "shell" .ImportFile }}
+{{- end }}

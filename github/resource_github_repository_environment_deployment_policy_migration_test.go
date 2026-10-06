@@ -59,6 +59,8 @@ package github
 // 		},
 // 	} {
 // 		t.Run(d.testName, func(t *testing.T) {
+// 		t.Parallel()
+
 // 			t.Parallel()
 
 // 			got, err := resourceGithubRepositoryEnvironmentDeploymentPolicyStateUpgradeV0(t.Context(), d.rawState, nil)

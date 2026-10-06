@@ -1,4 +1,4 @@
-## Release Flow
+# Release Flow
 
 The release process uses GitHub Actions and [`goreleaser`](https://github.com/goreleaser/goreleaser) to build, sign, and upload provider binaries to a GitHub release. Release are triggered by a tag with the pattern `v*` (e.g. `v1.2.3`); these tags may only be created from the default branch (`main`) or branches that match the pattern `release-v*`.
 

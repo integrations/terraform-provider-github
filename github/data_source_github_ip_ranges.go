@@ -198,7 +198,7 @@ func dataSourceGithubIpRanges() *schema.Resource {
 func dataSourceGithubIpRangesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	owner := meta.(*Owner)
 
-	api, _, err := owner.v3client.Meta.Get(owner.StopContext)
+	api, _, err := owner.v3client.Meta.Get(ctx)
 	if err != nil {
 		return diag.FromErr(err)
 	}
