@@ -75,9 +75,16 @@ Required:
 - `name` (String) Name of the custom property (must be defined at the organization level).
 - `value` (Set of String) Value(s) of the custom property. For multi_select properties, multiple values can be specified.
 
+## Behavior
+
+- Each `property` block is matched by `name`, and names must be unique within the resource. Changing `value` updates the property in place.
+- Removing a `property` block unsets that property's value on the repository.
+- Properties of type `string`, `single_select`, `true_false` and `url` take exactly one value. Only `multi_select` properties accept several.
+- Destroying the resource unsets every property it manages.
+
 ## Import
 
-Repository custom properties can be imported using the repository name. When imported, **all** custom property values currently set on the repository will be imported into state. After import, only the properties present in your configuration will continue to be managed; any properties not declared in `property` blocks will be ignored on subsequent plans.
+Repository custom properties can be imported using the repository name. When imported, **all** custom property values currently set on the repository will be imported into state. Importing a repository that has no custom property values set fails, because there is nothing to import. After import, only the properties present in your configuration will continue to be managed; any properties not declared in `property` blocks will be ignored on subsequent plans.
 
 In Terraform v1.5.0 and later, the [`import` block](https://developer.hashicorp.com/terraform/language/import) can be used with the `id` attribute, for example:
 

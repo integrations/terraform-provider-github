@@ -27,6 +27,7 @@ func resourceGithubRepositoryCustomProperties() *schema.Resource {
 
 		CustomizeDiff: customdiff.All(
 			diffRepository,
+			diffRepositoryCustomPropertiesDuplicateNames,
 		),
 
 		Schema: map[string]*schema.Schema{
@@ -69,16 +70,62 @@ func resourceGithubRepositoryCustomProperties() *schema.Resource {
 	}
 }
 
-// resourceGithubRepositoryCustomPropertiesHash creates a hash for a property block
-// using only the property name, so that value changes are detected as in-place
-// updates rather than remove+add within the set.
+// resourceGithubRepositoryCustomPropertiesHash hashes a property block by name only.
 func resourceGithubRepositoryCustomPropertiesHash(v any) int {
 	raw := v.(map[string]any)
 	name := raw["name"].(string)
 	return schema.HashString(name)
 }
 
-func resourceGithubRepositoryCustomPropertiesApply(ctx context.Context, d *schema.ResourceData, meta any) error {
+// diffRepositoryCustomPropertiesDuplicateNames rejects property blocks that share a name,
+// which the name-only set hash would otherwise collapse into one.
+func diffRepositoryCustomPropertiesDuplicateNames(_ context.Context, diff *schema.ResourceDiff, _ any) error {
+	raw := diff.GetRawConfig()
+	if raw.IsNull() || !raw.IsKnown() {
+		return nil
+	}
+	props := raw.GetAttr("property")
+	if props.IsNull() || !props.IsKnown() {
+		return nil
+	}
+
+	seen := make(map[string]struct{})
+	for it := props.ElementIterator(); it.Next(); {
+		_, block := it.Element()
+		if block.IsNull() || !block.IsKnown() {
+			continue
+		}
+		name := block.GetAttr("name")
+		if name.IsNull() || !name.IsKnown() {
+			continue
+		}
+		if _, dup := seen[name.AsString()]; dup {
+			return fmt.Errorf("custom property %q is declared in more than one property block", name.AsString())
+		}
+		seen[name.AsString()] = struct{}{}
+	}
+
+	return nil
+}
+
+// removedCustomPropertyNames returns the names present in the old property set but not in the new one.
+func removedCustomPropertyNames(oldSet, newSet *schema.Set) []string {
+	kept := make(map[string]struct{}, newSet.Len())
+	for _, v := range newSet.List() {
+		kept[v.(map[string]any)["name"].(string)] = struct{}{}
+	}
+
+	var removed []string
+	for _, v := range oldSet.List() {
+		name := v.(map[string]any)["name"].(string)
+		if _, ok := kept[name]; !ok {
+			removed = append(removed, name)
+		}
+	}
+	return removed
+}
+
+func resourceGithubRepositoryCustomPropertiesApply(ctx context.Context, d *schema.ResourceData, meta any, removed []string) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
@@ -120,14 +167,19 @@ func resourceGithubRepositoryCustomPropertiesApply(ctx context.Context, d *schem
 			customProperty.Value = propertyValues
 		case github.PropertyValueTypeString, github.PropertyValueTypeSingleSelect,
 			github.PropertyValueTypeTrueFalse, github.PropertyValueTypeURL:
-			if len(propertyValues) > 0 {
-				customProperty.Value = propertyValues[0]
+			if len(propertyValues) != 1 {
+				return fmt.Errorf("custom property %q has type %q and requires exactly one value, got %d", propertyName, propertyType, len(propertyValues))
 			}
+			customProperty.Value = propertyValues[0]
 		default:
 			return fmt.Errorf("unsupported property type %q for property %q", propertyType, propertyName)
 		}
 
 		customProperties = append(customProperties, customProperty)
+	}
+
+	for _, name := range removed {
+		customProperties = append(customProperties, &github.CustomPropertyValue{PropertyName: name, Value: nil})
 	}
 
 	_, err = client.Repositories.CreateOrUpdateCustomProperties(ctx, owner, repoName, customProperties)
@@ -148,7 +200,12 @@ func resourceGithubRepositoryCustomPropertiesCreate(ctx context.Context, d *sche
 	client := meta.(*Owner).v3client
 	repoName := d.Get("repository").(string)
 
-	if err := resourceGithubRepositoryCustomPropertiesApply(ctx, d, meta); err != nil {
+	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := resourceGithubRepositoryCustomPropertiesApply(ctx, d, meta, nil); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -157,11 +214,6 @@ func resourceGithubRepositoryCustomPropertiesCreate(ctx context.Context, d *sche
 		return diag.FromErr(err)
 	}
 	d.SetId(id)
-
-	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
 
 	if err := d.Set("repository_id", int(repo.GetID())); err != nil {
 		return diag.FromErr(err)
@@ -176,7 +228,10 @@ func resourceGithubRepositoryCustomPropertiesUpdate(ctx context.Context, d *sche
 		return diag.FromErr(err)
 	}
 
-	if err := resourceGithubRepositoryCustomPropertiesApply(ctx, d, meta); err != nil {
+	oldProps, newProps := d.GetChange("property")
+	removed := removedCustomPropertyNames(oldProps.(*schema.Set), newProps.(*schema.Set))
+
+	if err := resourceGithubRepositoryCustomPropertiesApply(ctx, d, meta, removed); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -195,8 +250,7 @@ func resourceGithubRepositoryCustomPropertiesRead(ctx context.Context, d *schema
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 
-	// Get current properties from state to know which ones we're managing.
-	// On import this will be empty, which is handled below.
+	// Properties in state are the managed ones; empty state means import (see docs, Import).
 	propertiesFromState := d.Get("property").(*schema.Set).List()
 	managedPropertyNames := make(map[string]bool)
 	for _, propBlock := range propertiesFromState {
@@ -220,6 +274,10 @@ func resourceGithubRepositoryCustomPropertiesRead(ctx context.Context, d *schema
 	managedProperties, err := filterManagedCustomProperties(allCustomProperties, managedPropertyNames, isImport)
 	if err != nil {
 		return diag.Errorf("error processing custom properties for repository %s/%s: %v", owner, repoName, err)
+	}
+
+	if isImport && len(managedProperties) == 0 {
+		return diag.Errorf("repository %s/%s has no custom property values set, nothing to import", owner, repoName)
 	}
 
 	// If no properties exist, remove resource from state
@@ -309,8 +367,7 @@ func resourceGithubRepositoryCustomPropertiesDelete(ctx context.Context, d *sche
 }
 
 func resourceGithubRepositoryCustomPropertiesImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	// Import ID format: <repository> — owner is inferred from the provider config.
-	// On import, Read will detect empty state and import ALL properties.
+	// Import ID format: <repository>; owner is inferred from the provider config.
 	repoName := d.Id()
 
 	owner := meta.(*Owner).name
