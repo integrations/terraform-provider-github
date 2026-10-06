@@ -1,0 +1,1 @@
+terraform import github_agents_organization_secret.example SERVICE_TOKEN
