@@ -618,13 +618,18 @@ func resourceGithubActionsHostedRunnerDelete(ctx context.Context, d *schema.Reso
 			return nil
 		}
 		if _, ok := errors.AsType[*github.AcceptedError](err); ok {
-			return diag.FromErr(waitForRunnerDeletion(ctx, client, orgName, runnerID, d.Timeout(schema.TimeoutDelete)))
+			if err := waitForRunnerDeletion(ctx, client, orgName, runnerID, d.Timeout(schema.TimeoutDelete)); err != nil {
+				return diag.FromErr(err)
+			}
+			return nil
 		}
 		return diag.FromErr(err)
 	}
 
 	if resp != nil && resp.StatusCode == http.StatusAccepted {
-		return diag.FromErr(waitForRunnerDeletion(ctx, client, orgName, runnerID, d.Timeout(schema.TimeoutDelete)))
+		if err := waitForRunnerDeletion(ctx, client, orgName, runnerID, d.Timeout(schema.TimeoutDelete)); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	return nil

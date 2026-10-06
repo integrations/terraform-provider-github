@@ -201,6 +201,45 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 		})
 	})
 
+	t.Run("creates hosted runner with public IP enabled", func(t *testing.T) {
+		t.Parallel()
+
+		config := fmt.Sprintf(`
+			resource "github_actions_runner_group" "test" {
+				name       = "tf-acc-test-group-ip-%s"
+				visibility = "all"
+			}
+
+			resource "github_actions_hosted_runner" "test" {
+				name = "tf-acc-test-ip-%s"
+
+				image {
+					id     = "2306"
+					source = "github"
+				}
+
+				size              = "2-core"
+				runner_group_id   = github_actions_runner_group.test.id
+				public_ip_enabled = true
+			}
+		`, randomID, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("public_ip_enabled"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("status"), knownvalue.StringExact("Ready")),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("public_ips").AtSliceIndex(0).AtMapKey("prefix"), knownvalue.NotNull()),
+					},
+				},
+			},
+		})
+	})
+
 	t.Run("updates hosted runner to enable public IPs", func(t *testing.T) {
 		t.Parallel()
 
