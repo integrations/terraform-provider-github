@@ -197,18 +197,30 @@ func TestAgentsSecretMissing(t *testing.T) {
 
 func TestAgentsOrganizationSecretRotation(t *testing.T) {
 	t.Parallel()
+	ids := []int64{123, 456}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/orgs/test/agents/secrets/TEST/repositories" {
+			repositories := []map[string]int64{}
+			for _, id := range ids {
+				repositories = append(repositories, map[string]int64{"id": id})
+			}
+			if err := json.NewEncoder(w).Encode(map[string]any{"repositories": repositories}); err != nil {
+				t.Error(err)
+			}
+			return
+		}
 		if r.URL.Path != "/orgs/test/agents/secrets/TEST" {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		if r.Method == http.MethodPut {
-			var body map[string]any
+			var body struct {
+				IDs []int64 `json:"selected_repository_ids"`
+			}
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 				t.Error(err)
 			}
-			if _, ok := body["selected_repository_ids"]; ok {
-				t.Error("secret rotation must not overwrite separately managed repository access")
-			}
+			// GitHub replaces access with an empty list when the field is omitted.
+			ids = body.IDs
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
@@ -217,10 +229,15 @@ func TestAgentsOrganizationSecretRotation(t *testing.T) {
 		}
 	}))
 	defer server.Close()
-	meta := &Owner{name: "test", IsOrganization: true, v3client: mustCreateTestGitHubClient(t, server.URL)}
+	meta := &Owner{name: "test", IsOrganization: true, maxPerPage: 100, v3client: mustCreateTestGitHubClient(t, server.URL)}
 	d := schema.TestResourceDataRaw(t, resourceGithubAgentsOrganizationSecret().Schema, map[string]any{"secret_name": "TEST", "visibility": "selected", "value_encrypted": "c2VjcmV0", "key_id": "key"})
+	d.SetId("TEST")
 	if diagnostics := resourceGithubAgentsOrganizationSecretUpdate(t.Context(), d, meta); diagnostics.HasError() {
 		t.Fatal(diagnostics)
+	}
+	observedIDs, _ := d.Get("selected_repository_ids").(*schema.Set)
+	if !observedIDs.Equal(schema.NewSet(schema.HashInt, []any{123, 456})) {
+		t.Fatal("rotation removed live repository access not present in Terraform state")
 	}
 	baseline := d.Get("updated_at")
 	if err := d.Set("updated_at", "2026-01-01T00:00:00Z"); err != nil {
@@ -231,6 +248,82 @@ func TestAgentsOrganizationSecretRotation(t *testing.T) {
 	}
 	if d.Get("updated_at") == baseline || d.Get("remote_updated_at") != baseline {
 		t.Fatal("refresh lost the provider timestamp baseline")
+	}
+}
+
+func TestAgentsOrganizationSecretAccessDrift(t *testing.T) {
+	t.Parallel()
+	for _, ids := range [][]int{{123}, {}} {
+		t.Run(fmt.Sprint(ids), func(t *testing.T) {
+			t.Parallel()
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if strings.HasSuffix(r.URL.Path, "/repositories") {
+					repositories := []map[string]int{}
+					for _, id := range ids {
+						repositories = append(repositories, map[string]int{"id": id})
+					}
+					if err := json.NewEncoder(w).Encode(map[string]any{"repositories": repositories}); err != nil {
+						t.Error(err)
+					}
+					return
+				}
+				if _, err := fmt.Fprint(w, `{"name":"TEST","visibility":"selected","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z"}`); err != nil {
+					t.Error(err)
+				}
+			}))
+			defer server.Close()
+			meta := &Owner{name: "test", IsOrganization: true, maxPerPage: 100, v3client: mustCreateTestGitHubClient(t, server.URL)}
+			previousIDs := []any{}
+			if len(ids) == 0 {
+				previousIDs = append(previousIDs, 123)
+			}
+			d := schema.TestResourceDataRaw(t, resourceGithubAgentsOrganizationSecret().Schema, map[string]any{
+				"secret_name": "TEST", "visibility": "selected", "value": "placeholder",
+				"updated_at": "2026-01-01 00:00:00 +0000 UTC", "selected_repository_ids": previousIDs,
+			})
+			d.SetId("TEST")
+			if diagnostics := resourceGithubAgentsOrganizationSecretRead(t.Context(), d, meta); diagnostics.HasError() {
+				t.Fatal(diagnostics)
+			}
+			if d.Get("updated_at") != d.Get("remote_updated_at") {
+				t.Fatal("repository access change was mistaken for secret value drift")
+			}
+			// Once access is unchanged, a later timestamp must still detect value drift.
+			if err := d.Set("updated_at", "2026-01-01 00:00:00 +0000 UTC"); err != nil {
+				t.Fatal(err)
+			}
+			if diagnostics := resourceGithubAgentsOrganizationSecretRead(t.Context(), d, meta); diagnostics.HasError() {
+				t.Fatal(diagnostics)
+			}
+			if d.Get("updated_at") == d.Get("remote_updated_at") {
+				t.Fatal("value drift with unchanged access was ignored")
+			}
+		})
+	}
+}
+
+func TestAgentsOrganizationSecretRotationAccessError(t *testing.T) {
+	t.Parallel()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPut {
+			t.Error("rotation must not proceed when repository access cannot be read")
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		if strings.HasSuffix(r.URL.Path, "/repositories") {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+		if _, err := fmt.Fprint(w, `{"name":"TEST","visibility":"selected"}`); err != nil {
+			t.Error(err)
+		}
+	}))
+	defer server.Close()
+	meta := &Owner{name: "test", IsOrganization: true, maxPerPage: 100, v3client: mustCreateTestGitHubClient(t, server.URL)}
+	d := schema.TestResourceDataRaw(t, resourceGithubAgentsOrganizationSecret().Schema, map[string]any{"secret_name": "TEST", "visibility": "selected", "value_encrypted": "c2VjcmV0", "key_id": "key"})
+	d.SetId("TEST")
+	if diagnostics := resourceGithubAgentsOrganizationSecretUpdate(t.Context(), d, meta); !diagnostics.HasError() {
+		t.Fatal("rotation ignored repository access lookup failure")
 	}
 }
 

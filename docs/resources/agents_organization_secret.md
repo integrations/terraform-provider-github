@@ -14,9 +14,11 @@ Provide either `value`, which the provider encrypts using a LibSodium-compatible
 
 Both value attributes are sensitive, but **plaintext `value` is still stored in Terraform state**. Protect your state and supply values through secure inputs rather than hardcoding them.
 
-For `selected` visibility, manage access with either `github_agents_organization_secret_repositories` (the complete set) or `github_agents_organization_secret_repository` (individual associations). Do not use both for the same secret. Rotating the value does not manage the selected repository list.
+For `selected` visibility, manage access with either `github_agents_organization_secret_repositories` (the complete set) or `github_agents_organization_secret_repository` (individual associations). Do not use both for the same secret. When rotating a selected secret, the provider reads and resubmits the current repository list because GitHub clears access if the list is omitted. Avoid concurrent access edits during rotation: the API has no atomic value-only update.
 
-External changes are detected using timestamps and restored from configuration. To keep a placeholder value in Terraform and manage subsequent rotations outside Terraform, use `lifecycle { ignore_changes = [updated_at] }`.
+External value changes are detected using timestamps and restored from configuration when repository access is unchanged. GitHub also updates the same timestamp when visibility or selected repositories change. The provider observes access changes and advances its timestamp baseline without rotating the value. If both access and value change between refreshes, value drift cannot be distinguished and will not trigger rotation. Explicit value changes in configuration still trigger updates.
+
+To keep a placeholder value in Terraform and manage subsequent rotations outside Terraform, use `lifecycle { ignore_changes = [updated_at] }`.
 
 ## Example Usage
 
@@ -73,7 +75,8 @@ resource "github_agents_organization_secret" "encrypted" {
 - `created_at` (String) Timestamp of when the secret was created.
 - `id` (String) The ID of this resource.
 - `remote_updated_at` (String) Timestamp of when the secret was last updated on GitHub.
-- `updated_at` (String) Timestamp of when the secret was last updated by the provider.
+- `selected_repository_ids` (Set of Number) Observed repository access, used to distinguish access changes from value drift. Manage access with the separate repository association resources.
+- `updated_at` (String) Timestamp baseline for detecting value drift. Updated after provider writes or observed repository access changes.
 
 ## Import
 
