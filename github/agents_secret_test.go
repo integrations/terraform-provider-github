@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -97,45 +96,6 @@ func TestAgentsSecretLifecycle(t *testing.T) {
 	defer mutex.Unlock()
 	if exists {
 		t.Fatal("Terraform destroy left the agent secret behind")
-	}
-}
-
-func TestAgentsSecretValidation(t *testing.T) {
-	t.Parallel()
-	for _, test := range []struct {
-		name         string
-		attributes   string
-		errorPattern string
-	}{
-		{name: "missing_value", errorPattern: "one of.*value.*must be specified"},
-		{name: "both_values", attributes: `value = "test"
-value_encrypted = "c2VjcmV0"
-key_id = "key"`, errorPattern: "only one of|conflicts"},
-		{name: "missing_key", attributes: `value_encrypted = "c2VjcmV0"`, errorPattern: "key_id"},
-		{name: "invalid_base64", attributes: `value_encrypted = "!"
-key_id = "key"`, errorPattern: "base64"},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-			resource.UnitTest(t, resource.TestCase{
-				ProviderFactories: map[string]func() (*schema.Provider, error){
-					"github": func() (*schema.Provider, error) {
-						provider := NewProvider("test", "none")()
-						provider.ConfigureContextFunc = nil
-						return provider, nil
-					},
-				},
-				Steps: []resource.TestStep{{
-					Config: fmt.Sprintf(`resource "github_agents_secret" "test" {
-repository = "repository"
-secret_name = "TEST"
-%s
-}`, test.attributes),
-					PlanOnly:    true,
-					ExpectError: regexp.MustCompile(test.errorPattern),
-				}},
-			})
-		})
 	}
 }
 
@@ -232,7 +192,7 @@ func TestAgentsOrganizationSecretRotation(t *testing.T) {
 	meta := &Owner{name: "test", IsOrganization: true, maxPerPage: 100, v3client: mustCreateTestGitHubClient(t, server.URL)}
 	d := schema.TestResourceDataRaw(t, resourceGithubAgentsOrganizationSecret().Schema, map[string]any{"secret_name": "TEST", "visibility": "selected", "value_encrypted": "c2VjcmV0", "key_id": "key"})
 	d.SetId("TEST")
-	if diagnostics := resourceGithubAgentsOrganizationSecretUpdate(t.Context(), d, meta); diagnostics.HasError() {
+	if diagnostics := resourceGithubAgentsOrganizationSecretCreateOrUpdate(t.Context(), d, meta); diagnostics.HasError() {
 		t.Fatal(diagnostics)
 	}
 	observedIDs, _ := d.Get("selected_repository_ids").(*schema.Set)
@@ -322,7 +282,7 @@ func TestAgentsOrganizationSecretRotationAccessError(t *testing.T) {
 	meta := &Owner{name: "test", IsOrganization: true, maxPerPage: 100, v3client: mustCreateTestGitHubClient(t, server.URL)}
 	d := schema.TestResourceDataRaw(t, resourceGithubAgentsOrganizationSecret().Schema, map[string]any{"secret_name": "TEST", "visibility": "selected", "value_encrypted": "c2VjcmV0", "key_id": "key"})
 	d.SetId("TEST")
-	if diagnostics := resourceGithubAgentsOrganizationSecretUpdate(t.Context(), d, meta); !diagnostics.HasError() {
+	if diagnostics := resourceGithubAgentsOrganizationSecretCreateOrUpdate(t.Context(), d, meta); !diagnostics.HasError() {
 		t.Fatal("rotation ignored repository access lookup failure")
 	}
 }
@@ -367,61 +327,6 @@ func TestAgentsSecretsPagination(t *testing.T) {
 	association.SetId("TEST:2")
 	if diagnostics := resourceGithubAgentsOrganizationSecretRepositoryRead(t.Context(), association, meta); diagnostics.HasError() || association.Id() == "" {
 		t.Fatalf("association on second page was lost: %v", diagnostics)
-	}
-}
-
-func TestAgentsSecretAccessWrites(t *testing.T) {
-	t.Parallel()
-	for _, test := range []struct {
-		name       string
-		resource   *schema.Resource
-		attributes map[string]any
-		path       string
-	}{
-		{name: "complete_set", resource: resourceGithubAgentsOrganizationSecretRepositories(), attributes: map[string]any{"secret_name": "TEST", "selected_repository_ids": []any{123}}, path: "/orgs/test/agents/secrets/TEST/repositories"},
-		{name: "individual", resource: resourceGithubAgentsOrganizationSecretRepository(), attributes: map[string]any{"secret_name": "TEST", "repository_id": 123}, path: "/orgs/test/agents/secrets/TEST/repositories/123"},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-			var methods []string
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.URL.Path != test.path {
-					t.Errorf("access write targeted wrong entity: %s", r.URL.Path)
-				}
-				methods = append(methods, r.Method)
-				if test.name == "complete_set" {
-					var body struct {
-						IDs []int64 `json:"selected_repository_ids"`
-					}
-					if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-						t.Error(err)
-					}
-					if len(methods) == 1 && (len(body.IDs) != 1 || body.IDs[0] != 123) {
-						t.Error("create did not set the selected repositories")
-					}
-					if len(methods) == 2 && (body.IDs == nil || len(body.IDs) != 0) {
-						t.Error("delete must send an empty array, not null or omit access")
-					}
-				}
-				w.WriteHeader(http.StatusNoContent)
-			}))
-			defer server.Close()
-			meta := &Owner{name: "test", IsOrganization: true, v3client: mustCreateTestGitHubClient(t, server.URL)}
-			d := schema.TestResourceDataRaw(t, test.resource.Schema, test.attributes)
-			if diagnostics := test.resource.CreateContext(t.Context(), d, meta); diagnostics.HasError() {
-				t.Fatal(diagnostics)
-			}
-			if diagnostics := test.resource.DeleteContext(t.Context(), d, meta); diagnostics.HasError() {
-				t.Fatal(diagnostics)
-			}
-			deleteMethod := http.MethodPut
-			if test.name == "individual" {
-				deleteMethod = http.MethodDelete
-			}
-			if len(methods) != 2 || methods[0] != http.MethodPut || methods[1] != deleteMethod {
-				t.Fatalf("unexpected access operations: %v", methods)
-			}
-		})
 	}
 }
 

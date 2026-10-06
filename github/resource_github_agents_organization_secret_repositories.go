@@ -13,9 +13,9 @@ import (
 
 func resourceGithubAgentsOrganizationSecretRepositories() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceGithubAgentsOrganizationSecretRepositoriesCreate,
+		CreateContext: resourceGithubAgentsOrganizationSecretRepositoriesCreateOrUpdate,
 		ReadContext:   resourceGithubAgentsOrganizationSecretRepositoriesRead,
-		UpdateContext: resourceGithubAgentsOrganizationSecretRepositoriesUpdate,
+		UpdateContext: resourceGithubAgentsOrganizationSecretRepositoriesCreateOrUpdate,
 		DeleteContext: resourceGithubAgentsOrganizationSecretRepositoriesDelete,
 		Importer:      &schema.ResourceImporter{StateContext: resourceGithubAgentsOrganizationSecretImport},
 		Description:   "Manages the complete set of repositories with access to an organization agent secret. Requires selected visibility.",
@@ -26,11 +26,7 @@ func resourceGithubAgentsOrganizationSecretRepositories() *schema.Resource {
 	}
 }
 
-func resourceGithubAgentsOrganizationSecretRepositoriesCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	return resourceGithubAgentsOrganizationSecretRepositoriesUpdate(ctx, d, m)
-}
-
-func resourceGithubAgentsOrganizationSecretRepositoriesUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+func resourceGithubAgentsOrganizationSecretRepositoriesCreateOrUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	if err := checkOrganization(m); err != nil {
 		return diag.FromErr(err)
 	}

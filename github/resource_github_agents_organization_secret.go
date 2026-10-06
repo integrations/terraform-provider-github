@@ -14,9 +14,9 @@ import (
 
 func resourceGithubAgentsOrganizationSecret() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceGithubAgentsOrganizationSecretCreate,
+		CreateContext: resourceGithubAgentsOrganizationSecretCreateOrUpdate,
 		ReadContext:   resourceGithubAgentsOrganizationSecretRead,
-		UpdateContext: resourceGithubAgentsOrganizationSecretUpdate,
+		UpdateContext: resourceGithubAgentsOrganizationSecretCreateOrUpdate,
 		DeleteContext: resourceGithubAgentsOrganizationSecretDelete,
 		Importer:      &schema.ResourceImporter{StateContext: resourceGithubAgentsOrganizationSecretImport},
 		CustomizeDiff: diffSecret,
@@ -35,11 +35,7 @@ func resourceGithubAgentsOrganizationSecret() *schema.Resource {
 	}
 }
 
-func resourceGithubAgentsOrganizationSecretCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	return resourceGithubAgentsOrganizationSecretUpdate(ctx, d, m)
-}
-
-func resourceGithubAgentsOrganizationSecretUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+func resourceGithubAgentsOrganizationSecretCreateOrUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	if err := checkOrganization(m); err != nil {
 		return diag.FromErr(err)
 	}
