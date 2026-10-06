@@ -13,12 +13,35 @@ func dataSourceGithubAgentsOrganizationSecrets() *schema.Resource {
 		ReadContext: dataSourceGithubAgentsOrganizationSecretsRead,
 		Description: "Lists organization agent secret metadata without revealing secret values.",
 		Schema: map[string]*schema.Schema{
-			"secrets": {Type: schema.TypeList, Computed: true, Description: "Organization agent secret metadata.", Elem: &schema.Resource{Schema: map[string]*schema.Schema{
-				"name":       {Type: schema.TypeString, Computed: true, Description: "Name of the secret."},
-				"visibility": {Type: schema.TypeString, Computed: true, Description: "Repository access to the secret: all, private, or selected."},
-				"created_at": {Type: schema.TypeString, Computed: true, Description: "Timestamp of when the secret was created."},
-				"updated_at": {Type: schema.TypeString, Computed: true, Description: "Timestamp of when the secret was last updated."},
-			}}},
+			"secrets": {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "Organization agent secret metadata.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Name of the secret.",
+						},
+						"visibility": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Repository access to the secret: all, private, or selected.",
+						},
+						"created_at": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Timestamp of when the secret was created.",
+						},
+						"updated_at": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Timestamp of when the secret was last updated.",
+						},
+					},
+				},
+			},
 		},
 	}
 }

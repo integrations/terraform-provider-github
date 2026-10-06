@@ -20,8 +20,23 @@ func resourceGithubAgentsOrganizationSecretRepositories() *schema.Resource {
 		Importer:      &schema.ResourceImporter{StateContext: resourceGithubAgentsOrganizationSecretImport},
 		Description:   "Manages the complete set of repositories with access to an organization agent secret. Requires selected visibility.",
 		Schema: map[string]*schema.Schema{
-			"secret_name":             {Type: schema.TypeString, Required: true, ForceNew: true, ValidateDiagFunc: validateSecretNameFunc, Description: "Name of the existing organization agent secret."},
-			"selected_repository_ids": {Type: schema.TypeSet, Required: true, Set: schema.HashInt, Elem: &schema.Schema{Type: schema.TypeInt, ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(1))}, Description: "Complete set of repository IDs allowed to access the secret. An empty set removes all access."},
+			"secret_name": {
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				ValidateDiagFunc: validateSecretNameFunc,
+				Description:      "Name of the existing organization agent secret.",
+			},
+			"selected_repository_ids": {
+				Type:     schema.TypeSet,
+				Required: true,
+				Set:      schema.HashInt,
+				Elem: &schema.Schema{
+					Type:             schema.TypeInt,
+					ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(1)),
+				},
+				Description: "Complete set of repository IDs allowed to access the secret. An empty set removes all access.",
+			},
 		},
 	}
 }
@@ -72,8 +87,5 @@ func resourceGithubAgentsOrganizationSecretRepositoriesDelete(ctx context.Contex
 	meta, _ := m.(*Owner)
 	name, _ := d.Get("secret_name").(string)
 	_, err := meta.v3client.Agents.SetSelectedReposForOrgSecret(ctx, meta.name, name, []int64{})
-	if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
-		return nil
-	}
-	return diag.FromErr(err)
+	return diag.FromErr(agentSecretAccessDeleteError(ctx, meta, name, err))
 }

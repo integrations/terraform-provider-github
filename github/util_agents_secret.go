@@ -3,10 +3,38 @@ package github
 import (
 	"context"
 	"encoding/base64"
+	"errors"
+	"net/http"
 
 	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+func agentSecretAccessDeleteError(ctx context.Context, meta *Owner, name string, err error) error {
+	ghErr, ok := errors.AsType[*github.ErrorResponse](err)
+	if !ok {
+		return err
+	}
+	if ghErr.Response.StatusCode == http.StatusNotFound {
+		return nil
+	}
+	if ghErr.Response.StatusCode != http.StatusConflict {
+		return err
+	}
+	// Access removal conflicts once visibility changes away from selected.
+	// Confirm that condition rather than swallowing unrelated conflicts.
+	secret, _, lookupErr := meta.v3client.Agents.GetOrgSecret(ctx, meta.name, name)
+	if lookupErr != nil {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](lookupErr); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			return nil
+		}
+		return lookupErr
+	}
+	if secret.Visibility == "all" || secret.Visibility == "private" {
+		return nil
+	}
+	return err
+}
 
 // Agent secrets have their own keys; Actions keys cannot be used here.
 func agentSecretValue(ctx context.Context, d *schema.ResourceData, meta *Owner, repository string) (github.SecretRequest, error) {

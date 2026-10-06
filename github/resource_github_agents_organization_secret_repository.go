@@ -20,8 +20,20 @@ func resourceGithubAgentsOrganizationSecretRepository() *schema.Resource {
 		Importer:      &schema.ResourceImporter{StateContext: resourceGithubAgentsOrganizationSecretRepositoryImport},
 		Description:   "Manages one repository's access to an organization agent secret. Requires selected visibility.",
 		Schema: map[string]*schema.Schema{
-			"secret_name":   {Type: schema.TypeString, Required: true, ForceNew: true, ValidateDiagFunc: validateSecretNameFunc, Description: "Name of the existing organization agent secret."},
-			"repository_id": {Type: schema.TypeInt, Required: true, ForceNew: true, ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(1)), Description: "ID of the repository allowed to access the secret."},
+			"secret_name": {
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				ValidateDiagFunc: validateSecretNameFunc,
+				Description:      "Name of the existing organization agent secret.",
+			},
+			"repository_id": {
+				Type:             schema.TypeInt,
+				Required:         true,
+				ForceNew:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(1)),
+				Description:      "ID of the repository allowed to access the secret.",
+			},
 		},
 	}
 }
@@ -75,10 +87,7 @@ func resourceGithubAgentsOrganizationSecretRepositoryDelete(ctx context.Context,
 	name, _ := d.Get("secret_name").(string)
 	id, _ := d.Get("repository_id").(int)
 	_, err := meta.v3client.Agents.RemoveSelectedRepoFromOrgSecret(ctx, meta.name, name, int64(id))
-	if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
-		return nil
-	}
-	return diag.FromErr(err)
+	return diag.FromErr(agentSecretAccessDeleteError(ctx, meta, name, err))
 }
 
 func resourceGithubAgentsOrganizationSecretRepositoryImport(_ context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {

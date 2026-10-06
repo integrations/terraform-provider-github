@@ -13,13 +13,42 @@ func dataSourceGithubAgentsSecrets() *schema.Resource {
 		ReadContext: dataSourceGithubAgentsSecretsRead,
 		Description: "Lists repository agent secret metadata without revealing secret values.",
 		Schema: map[string]*schema.Schema{
-			"name":      {Type: schema.TypeString, Optional: true, ExactlyOneOf: []string{"name", "full_name"}, Description: "Repository name within the provider's owner."},
-			"full_name": {Type: schema.TypeString, Optional: true, ExactlyOneOf: []string{"name", "full_name"}, Description: "Full repository name in owner/repository format."},
-			"secrets": {Type: schema.TypeList, Computed: true, Description: "Repository agent secret metadata.", Elem: &schema.Resource{Schema: map[string]*schema.Schema{
-				"name":       {Type: schema.TypeString, Computed: true, Description: "Name of the secret."},
-				"created_at": {Type: schema.TypeString, Computed: true, Description: "Timestamp of when the secret was created."},
-				"updated_at": {Type: schema.TypeString, Computed: true, Description: "Timestamp of when the secret was last updated."},
-			}}},
+			"name": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ExactlyOneOf: []string{"name", "full_name"},
+				Description:  "Repository name within the provider's owner.",
+			},
+			"full_name": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ExactlyOneOf: []string{"name", "full_name"},
+				Description:  "Full repository name in owner/repository format.",
+			},
+			"secrets": {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "Repository agent secret metadata.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Name of the secret.",
+						},
+						"created_at": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Timestamp of when the secret was created.",
+						},
+						"updated_at": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Timestamp of when the secret was last updated.",
+						},
+					},
+				},
+			},
 		},
 	}
 }

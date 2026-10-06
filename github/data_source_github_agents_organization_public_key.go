@@ -12,8 +12,16 @@ func dataSourceGithubAgentsOrganizationPublicKey() *schema.Resource {
 		ReadContext: dataSourceGithubAgentsOrganizationPublicKeyRead,
 		Description: "Retrieves the public key used to encrypt an organization's agent secrets.",
 		Schema: map[string]*schema.Schema{
-			"key_id": {Type: schema.TypeString, Computed: true, Description: "ID of the agent public key."},
-			"key":    {Type: schema.TypeString, Computed: true, Description: "Base64-encoded agent public key."},
+			"key_id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "ID of the agent public key.",
+			},
+			"key": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Base64-encoded agent public key.",
+			},
 		},
 	}
 }
