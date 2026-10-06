@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
@@ -12,28 +12,28 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
-func TestHostedRunnerProvisioningState(t *testing.T) {
+func TestHostedRunnerReady(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
 		runner           *github.HostedRunner
 		expectedUpdate   map[string]any
 		requirePublicIPs bool
-		wantState        string
+		want             bool
 		wantErr          bool
 	}{
 		"provisioning": {
-			runner:    &github.HostedRunner{Status: new("Provisioning")},
-			wantState: "pending",
+			runner: &github.HostedRunner{Status: new("Provisioning")},
+			want:   false,
 		},
 		"ready without public IP requirement": {
-			runner:    &github.HostedRunner{Status: new("Ready")},
-			wantState: "ready",
+			runner: &github.HostedRunner{Status: new("Ready")},
+			want:   true,
 		},
 		"ready before public IP allocation": {
 			runner:           &github.HostedRunner{Status: new("Ready")},
 			requirePublicIPs: true,
-			wantState:        "pending",
+			want:             false,
 		},
 		"ready before update is applied": {
 			runner: &github.HostedRunner{
@@ -47,7 +47,7 @@ func TestHostedRunnerProvisioningState(t *testing.T) {
 				"enable_static_ip": true,
 			},
 			requirePublicIPs: true,
-			wantState:        "pending",
+			want:             false,
 		},
 		"ready after update is applied": {
 			runner: &github.HostedRunner{
@@ -69,7 +69,7 @@ func TestHostedRunnerProvisioningState(t *testing.T) {
 				"image_version":    "2",
 			},
 			requirePublicIPs: true,
-			wantState:        "ready",
+			want:             true,
 		},
 		"ready before image version is reported": {
 			runner: &github.HostedRunner{
@@ -77,7 +77,7 @@ func TestHostedRunnerProvisioningState(t *testing.T) {
 				ImageDetails: &github.HostedRunnerImageDetail{ID: new("custom")},
 			},
 			expectedUpdate: map[string]any{"image_version": "2"},
-			wantState:      "pending",
+			want:           false,
 		},
 		"ready with public IP allocation": {
 			runner: &github.HostedRunner{
@@ -85,7 +85,7 @@ func TestHostedRunnerProvisioningState(t *testing.T) {
 				PublicIPs: []*github.HostedRunnerPublicIP{{Prefix: "192.0.2.1"}},
 			},
 			requirePublicIPs: true,
-			wantState:        "ready",
+			want:             true,
 		},
 		"stuck": {
 			runner:  &github.HostedRunner{Status: new("Stuck")},
@@ -101,7 +101,7 @@ func TestHostedRunnerProvisioningState(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := hostedRunnerProvisioningState(test.runner, test.expectedUpdate, test.requirePublicIPs)
+			got, err := hostedRunnerReady(test.runner, test.expectedUpdate, test.requirePublicIPs)
 			if test.wantErr {
 				if err == nil {
 					t.Fatal("expected an error")
@@ -111,8 +111,8 @@ func TestHostedRunnerProvisioningState(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if got != test.wantState {
-				t.Fatalf("got state %q, want %q", got, test.wantState)
+			if got != test.want {
+				t.Fatalf("got %v, want %v", got, test.want)
 			}
 		})
 	}
