@@ -69,6 +69,16 @@ func dataSourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
+			"has_pull_requests": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Whether the repository has pull requests enabled.",
+			},
+			"pull_request_creation_policy": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Who can create pull requests on the repository. Either 'all' or 'collaborators_only'.",
+			},
 			"is_template": {
 				Type:     schema.TypeBool,
 				Computed: true,
@@ -388,6 +398,8 @@ func dataSourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData,
 	_ = d.Set("has_issues", repo.GetHasIssues())
 	_ = d.Set("has_discussions", repo.GetHasDiscussions())
 	_ = d.Set("has_wiki", repo.GetHasWiki())
+	_ = d.Set("has_pull_requests", repo.GetHasPullRequests())
+	_ = d.Set("pull_request_creation_policy", repo.GetPullRequestCreationPolicy())
 	_ = d.Set("is_template", repo.GetIsTemplate())
 	_ = d.Set("fork", repo.GetFork())
 	_ = d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
