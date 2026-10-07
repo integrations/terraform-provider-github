@@ -249,12 +249,14 @@ func Test_transport_retries(t *testing.T) {
 		wantErr         *string
 	}{
 		{
-			name:     "no_failures",
-			retryMax: 3,
+			name:           "no_failures",
+			retryMax:       3,
+			wantStatusCode: http.StatusOK,
 		},
 		{
-			name:     "no_failures_no_retries",
-			retryMax: 0,
+			name:           "no_failures_no_retries",
+			retryMax:       0,
+			wantStatusCode: http.StatusOK,
 		},
 		{
 			name:           "can_error_with_no_retries",
@@ -263,15 +265,16 @@ func Test_transport_retries(t *testing.T) {
 			wantStatusCode: http.StatusInternalServerError,
 		},
 		{
-			name:     "retries_until_success",
-			retryMax: 3,
-			failures: []fakeHTTPResponse{{statusCode: http.StatusInternalServerError}, {statusCode: http.StatusInternalServerError}},
+			name:           "retries_until_success",
+			retryMax:       3,
+			failures:       []fakeHTTPResponse{{statusCode: http.StatusInternalServerError}, {statusCode: http.StatusInternalServerError}},
+			wantStatusCode: http.StatusOK,
 		},
 		{
-			name:     "retries_until_failure",
-			retryMax: 1,
-			failures: []fakeHTTPResponse{{statusCode: http.StatusInternalServerError}, {statusCode: http.StatusInternalServerError}},
-			wantErr:  new("server error"),
+			name:           "retries_until_failure",
+			retryMax:       1,
+			failures:       []fakeHTTPResponse{{statusCode: http.StatusInternalServerError}, {statusCode: http.StatusInternalServerError}},
+			wantStatusCode: http.StatusInternalServerError,
 		},
 		{
 			name:           "does_not_retry_on_4xx",
@@ -284,25 +287,25 @@ func Test_transport_retries(t *testing.T) {
 			nonSeekableBody: true,
 			retryMax:        3,
 			failures:        []fakeHTTPResponse{{statusCode: http.StatusInternalServerError}},
+			wantStatusCode:  http.StatusOK,
 		},
 		{
-			name:     "handles_secondary_rate_limit",
-			retryMax: 3,
-			failures: []fakeHTTPResponse{{statusCode: http.StatusForbidden, headers: map[string]string{"retry-after": "1"}, body: []byte(`{"message": "You have exceeded a secondary rate limit."}`)}},
+			name:           "handles_secondary_rate_limit",
+			retryMax:       3,
+			failures:       []fakeHTTPResponse{{statusCode: http.StatusForbidden, headers: map[string]string{"retry-after": "1"}, body: []byte(`{"message": "You have exceeded a secondary rate limit."}`)}},
+			wantStatusCode: http.StatusOK,
 		},
 		{
 			name:            "handles_secondary_rate_limit_with_non_seekable_body",
 			nonSeekableBody: true,
 			retryMax:        3,
 			failures:        []fakeHTTPResponse{{statusCode: http.StatusForbidden, headers: map[string]string{"retry-after": "1"}, body: []byte(`{"message": "You have exceeded a secondary rate limit."}`)}},
+			wantStatusCode:  http.StatusOK,
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			if tt.wantStatusCode == 0 {
-				tt.wantStatusCode = http.StatusOK
-			}
 			wantBody := "PASS"
 
 			called := atomic.Int32{}

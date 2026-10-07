@@ -9,6 +9,9 @@ import (
 	"github.com/sethvargo/go-retry"
 )
 
+// errRetryServerError represents a server error that can be retried.
+var errRetryServerError = fmt.Errorf("server error")
+
 // newRetryTransport returns a [retryTransport] that wraps the given [http.RoundTripper] using the [RetryOptions] to configure the retry backoff strategy.
 func newRetryTransport(inner http.RoundTripper, opts RetryOptions) (http.RoundTripper, error) {
 	if opts.Max <= 0 {
@@ -33,37 +36,40 @@ type retryTransport struct {
 
 // RoundTrip implements the [http.RoundTripper] interface for the [retryTransport]. It retries failed requests using the configured backoff strategy.
 func (t *retryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	var prevResp *http.Response
+	var resp *http.Response
 
 	backoff, err := newBackoff(t.opts)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := retry.DoValue(req.Context(), backoff, func(ctx context.Context) (*http.Response, error) {
+	err = retry.Do(req.Context(), backoff, func(ctx context.Context) error {
 		// If there was a previous response, drain it and reset the body
-		if prevResp != nil {
-			_ = drainResponseBody(prevResp)
-			prevResp = nil
+		if resp != nil {
+			_ = drainResponseBody(resp)
+			resp = nil
 		}
 
-		resp, err := t.inner.RoundTrip(req)
-		if err != nil {
+		var respErr error
+		resp, respErr = t.inner.RoundTrip(req)
+		if respErr != nil {
 			_ = drainResponseBody(resp)
-			if isRetryableNetworkError(err) {
-				return nil, retry.RetryableError(err)
+			if isRetryableNetworkError(respErr) {
+				return retry.RetryableError(respErr)
 			}
-			return resp, err
+			return respErr
 		}
 
 		if isRetryableStatusCode(resp.StatusCode) {
-			// Keep the response in case we can't retry and need to return it to the caller
-			prevResp = resp
-			return nil, retry.RetryableError(fmt.Errorf("server error: %d", resp.StatusCode))
+			return retry.RetryableError(errRetryServerError)
 		}
 
-		return resp, err
+		return respErr
 	})
+
+	if errors.Is(err, errRetryServerError) {
+		err = nil
+	}
 
 	return resp, err
 }

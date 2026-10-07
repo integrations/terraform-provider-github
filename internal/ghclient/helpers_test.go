@@ -1,6 +1,7 @@
 package ghclient
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -99,4 +100,16 @@ type nonSeekableReader struct {
 
 func (n *nonSeekableReader) Read(p []byte) (int, error) {
 	return n.r.Read(p)
+}
+
+type errorReadSeeker struct {
+	io.Closer
+}
+
+func (rs *errorReadSeeker) Read(p []byte) (n int, err error) {
+	return 0, fmt.Errorf("error reading")
+}
+
+func (rs *errorReadSeeker) Seek(offset int64, whence int) (int64, error) {
+	return 0, fmt.Errorf("error seeking")
 }

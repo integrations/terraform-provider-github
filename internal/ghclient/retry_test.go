@@ -3,7 +3,10 @@ package ghclient
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"regexp"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -68,6 +71,135 @@ func Test_newRetryTransport(t *testing.T) {
 
 			if diff := cmp.Diff(retry.opts, tt.opts); diff != "" {
 				t.Fatalf("got opts %+v, want %+v: %s", retry.opts, tt.opts, diff)
+			}
+		})
+	}
+}
+
+func Test_retryTransport_RoundTrip(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name           string
+		retryMax       int
+		failures       []fakeHTTPResponse
+		cancel         bool
+		wantStatusCode int
+		wantErr        *string
+	}{
+		{
+			name:    "errors_if_context_canceled",
+			cancel:  true,
+			wantErr: new("context canceled"),
+		},
+		{
+			name:           "no_failures",
+			retryMax:       3,
+			wantStatusCode: http.StatusOK,
+		},
+		{
+			name:           "no_failures_no_retries",
+			retryMax:       0,
+			wantStatusCode: http.StatusOK,
+		},
+		{
+			name:           "failure_no_error",
+			retryMax:       0,
+			failures:       []fakeHTTPResponse{{statusCode: http.StatusInternalServerError}},
+			wantStatusCode: http.StatusInternalServerError,
+		},
+		{
+			name:           "retries_until_success",
+			retryMax:       3,
+			failures:       []fakeHTTPResponse{{statusCode: http.StatusInternalServerError}, {statusCode: http.StatusInternalServerError}},
+			wantStatusCode: http.StatusOK,
+		},
+		{
+			name:           "retries_until_failure",
+			retryMax:       1,
+			failures:       []fakeHTTPResponse{{statusCode: http.StatusInternalServerError}, {statusCode: http.StatusInternalServerError}},
+			wantStatusCode: http.StatusInternalServerError,
+		},
+		{
+			name:           "does_not_retry_on_4xx",
+			retryMax:       3,
+			failures:       []fakeHTTPResponse{{statusCode: http.StatusBadRequest}},
+			wantStatusCode: http.StatusBadRequest,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			wantBody := "PASS"
+
+			called := atomic.Int32{}
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				call := int(called.Add(1))
+
+				if call <= len(tt.failures) {
+					f := tt.failures[call-1]
+
+					for k, v := range f.headers {
+						w.Header().Set(k, v)
+					}
+
+					w.WriteHeader(f.statusCode)
+
+					_, _ = w.Write(f.body)
+
+					return
+				}
+
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(wantBody))
+			}))
+			defer ts.Close()
+
+			tr, err := newRetryTransport(ts.Client().Transport, RetryOptions{Max: tt.retryMax, WaitMin: time.Millisecond, WaitMax: time.Millisecond, Jitter: time.Microsecond})
+			if err != nil || tr == nil {
+				t.Fatalf("failed to create retry transport: %v", err)
+			}
+
+			client := &http.Client{Transport: tr}
+
+			var ctx context.Context
+			var cancel context.CancelFunc
+			if tt.cancel {
+				ctx, cancel = context.WithCancel(t.Context())
+				defer cancel()
+			} else {
+				ctx = t.Context()
+			}
+
+			req, err := http.NewRequestWithContext(ctx, "GET", ts.URL, nil)
+			if err != nil {
+				t.Fatalf("failed to create request: %v", err)
+			}
+
+			if tt.cancel {
+				cancel()
+			}
+
+			res, err := client.Do(req)
+			if err != nil {
+				if tt.wantErr == nil {
+					t.Fatalf("expected no error, got %v", err)
+				}
+
+				if !regexp.MustCompile(regexp.QuoteMeta(*tt.wantErr)).MatchString(err.Error()) {
+					t.Fatalf("expected error %q, got %q", *tt.wantErr, err.Error())
+				}
+
+				return
+			}
+			defer res.Body.Close()
+
+			if tt.wantErr != nil {
+				t.Fatalf("expected error %q, got nil", *tt.wantErr)
+				return
+			}
+
+			if res.StatusCode != tt.wantStatusCode {
+				t.Fatalf("expected status code %d, got %d", tt.wantStatusCode, res.StatusCode)
 			}
 		})
 	}
