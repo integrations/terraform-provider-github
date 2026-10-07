@@ -32,7 +32,11 @@ The following arguments are supported:
 
 - `content_type` - (Required) The content type for the payload. Valid values are either `form` or `json`.
 
-- `secret` - (Optional) The shared secret for the webhook. [See API documentation](https://developer.github.com/v3/repos/hooks/#create-a-hook).
+- `secret` - (Optional) The shared secret for the webhook. It conflicts with `secret_wo`. [See API documentation](https://developer.github.com/v3/repos/hooks/#create-a-hook).
+
+- `secret_wo` - (Optional, Write-only) The shared secret for the webhook (write-only variant). Requires Terraform 1.11 or later and must be paired with `secret_wo_version`. It accepts ephemeral or ordinary values and is omitted from Terraform plan and state. It conflicts with `secret`.
+
+- `secret_wo_version` - (Optional) Version of `secret_wo`. It must be at least `1` and must be paired with `secret_wo`. Change this value whenever the secret is rotated; changing the secret value alone does not trigger an update.
 
 - `insecure_ssl` - (Optional) Insecure SSL boolean toggle. Defaults to `false`.
 
@@ -52,4 +56,4 @@ Importing uses the name of the repository, as well as the ID of the webhook, e.g
 terraform import github_repository_webhook.terraform terraform/11235813
 ```
 
-If secret is populated in the webhook's configuration, the value will be imported as "********".
+Webhook secrets cannot be recovered during import, so neither `secret` nor `secret_wo` is populated in imported state. To establish a write-only secret after import, configure `secret_wo` and `secret_wo_version`; Terraform updates the existing webhook in place.
