@@ -79,6 +79,20 @@ func Test_retryUntilOK(t *testing.T) {
 			wantErr: new("timeout while waiting for state to become 'found'"),
 		},
 		{
+			name: "retries_past_not_found_check_limit",
+			f: func() func() (int, bool, error) {
+				return func() (int, bool, error) {
+					return 0, false, nil
+				}
+			},
+			opts: &retryOptions{
+				delay:      defaultRetryDelay,
+				maxRetries: defaultRetryMaxRetries,
+				timeout:    10 * time.Minute,
+			},
+			wantErr: new("timeout while waiting for state to become 'found'"),
+		},
+		{
 			name: "retries_until_value_found_with_custom_options",
 			f: func() func() (int, bool, error) {
 				staticCounter := 0
