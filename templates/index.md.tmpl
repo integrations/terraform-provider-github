@@ -81,4 +81,14 @@ When using the GitHub CLI authentication fallback, you can optionally specify th
 
 {{ tffile "examples/provider/gh_auth/main.tf" }}
 
+## Logging
+
+The provider uses Terraform's structured logging. To enable provider debug logs without enabling Terraform core logs:
+
+```shell
+TF_LOG_PROVIDER=DEBUG terraform plan
+```
+
+Set `TF_LOG=JSON` for JSON-formatted logs. Resource identifiers are recorded in structured fields such as `owner`, `repository`, and `resource_id`. Treat log files as potentially sensitive and review them before sharing.
+
 {{ .SchemaMarkdown | trimspace }}
