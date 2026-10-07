@@ -114,6 +114,57 @@ func TestAccGithubMembership(t *testing.T) {
 	})
 }
 
+func TestAccGithubMembershipEmailInvitation(t *testing.T) {
+	t.Parallel()
+
+	if len(testAccConf.testInvitationEmail) == 0 {
+		t.Skip("No invitation email provided")
+	}
+
+	t.Run("invites a person by email", func(t *testing.T) {
+		ctx := t.Context()
+
+		rn := "github_membership.test_org_membership"
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubMembershipInvitationDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccGithubMembershipConfigEmail(testAccConf.testInvitationEmail),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(rn, "email", testAccConf.testInvitationEmail),
+						resource.TestCheckResourceAttr(rn, "role", "member"),
+						testAccCheckGithubMembershipInvitationExists(ctx, rn),
+					),
+				},
+				{
+					ResourceName:      rn,
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
+		})
+	})
+}
+
+func TestGithubMembershipInvitationRoleMapping(t *testing.T) {
+	t.Parallel()
+
+	for membershipRole, invitationRole := range map[string]string{
+		"member": "direct_member",
+		"admin":  "admin",
+	} {
+		if got := membershipRoleToInvitationRole(membershipRole); got != invitationRole {
+			t.Errorf("membershipRoleToInvitationRole(%q) = %q, want %q", membershipRole, got, invitationRole)
+		}
+		if got := invitationRoleToMembershipRole(invitationRole); got != membershipRole {
+			t.Errorf("invitationRoleToMembershipRole(%q) = %q, want %q", invitationRole, got, membershipRole)
+		}
+	}
+}
+
 func testAccCheckGithubMembershipDestroy(s *terraform.State) error {
 	ctx := context.Background()
 	conn := testAccConf.meta.v3client
@@ -218,6 +269,57 @@ func testAccCheckGithubMembershipRoleState(ctx context.Context, n string, member
 	}
 }
 
+func testAccCheckGithubMembershipInvitationDestroy(s *terraform.State) error {
+	ctx := context.Background()
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "github_membership" {
+			continue
+		}
+
+		_, email, err := parseID2(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+
+		invitation, err := findPendingOrgInvitationByEmail(ctx, testAccConf.meta, email)
+		if err != nil {
+			return err
+		}
+		if invitation != nil {
+			return fmt.Errorf("organization invitation %q still exists", rs.Primary.ID)
+		}
+	}
+	return nil
+}
+
+func testAccCheckGithubMembershipInvitationExists(ctx context.Context, n string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("not Found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("no membership ID is set")
+		}
+
+		_, email, err := parseID2(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+
+		invitation, err := findPendingOrgInvitationByEmail(ctx, testAccConf.meta, email)
+		if err != nil {
+			return err
+		}
+		if invitation == nil {
+			return fmt.Errorf("no pending organization invitation found for %q", email)
+		}
+		return nil
+	}
+}
+
 func testAccGithubMembershipConfig(username string) string {
 	return fmt.Sprintf(`
   resource "github_membership" "test_org_membership" {
@@ -235,6 +337,15 @@ func testAccGithubMembershipConfigDowngradable(username string) string {
     downgrade_on_destroy = %t
   }
 `, username, true)
+}
+
+func testAccGithubMembershipConfigEmail(email string) string {
+	return fmt.Sprintf(`
+  resource "github_membership" "test_org_membership" {
+    email = "%s"
+    role = "member"
+  }
+`, email)
 }
 
 func testAccGithubMembershipTheSame(orig, other *github.Membership) resource.TestCheckFunc {
