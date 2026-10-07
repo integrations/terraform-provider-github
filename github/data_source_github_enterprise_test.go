@@ -8,6 +8,7 @@ import (
 )
 
 func TestAccGithubEnterpriseDataSource(t *testing.T) {
+	skipWithoutAccConf(t)
 	t.Parallel()
 
 	config := fmt.Sprintf(`

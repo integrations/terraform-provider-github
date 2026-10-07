@@ -261,6 +261,9 @@ export GH_TEST_EXTERNAL_USER1_TOKEN=
 export GH_TEST_EXTERNAL_USER2=
 
 # Configure values for the enterprise under test
+export GH_TEST_ENTERPRISE_ORG=
+export GH_TEST_ENTERPRISE_ORG_2=
+export GH_TEST_ENTERPRISE_USER=
 export GH_TEST_ENTERPRISE_EMU_GROUP_ID=
 export GITHUB_ENTERPRISE_SLUG=
 

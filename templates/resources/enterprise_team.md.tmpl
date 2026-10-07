@@ -1,0 +1,27 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Creates and manages a GitHub enterprise team.
+---
+
+# {{.Name}} ({{.Type}})
+
+{{.Description}}
+
+See the [GitHub REST API documentation](https://docs.github.com/en/rest/enterprise-teams) for required enterprise permissions and supported authentication.
+
+## Example Usage
+
+{{ tffile "examples/resources/enterprise_team/resource.tf" }}
+
+{{.SchemaMarkdown}}
+
+## Import
+
+{{ codefile "shell" "examples/resources/enterprise_team/import.sh" }}
+
+## Removing an IdP group
+
+Removing `group_id` (or setting it to an empty string) from a linked team requires replacement. The current GitHub SDK cannot encode an explicit JSON null for this field. Terraform shows the replacement in the plan; it deletes the existing team and creates a new team without an IdP mapping. The numeric team ID changes and dependent memberships and organization assignments must be recreated. Changing to a different non-empty group ID remains an in-place update.
+
+Removing `description` clears the remote description in place.

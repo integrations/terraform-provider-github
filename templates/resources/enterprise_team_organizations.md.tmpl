@@ -1,0 +1,31 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Manages organization assignments for a GitHub enterprise team.
+---
+
+# {{.Name}} ({{.Type}})
+
+{{.Description}}
+
+See the [GitHub REST API documentation](https://docs.github.com/en/rest/enterprise-teams) for required enterprise permissions and supported authentication.
+
+## Example Usage
+
+{{ tffile "examples/resources/enterprise_team_organizations/resource.tf" }}
+
+{{.SchemaMarkdown}}
+
+## Import
+
+{{ codefile "shell" "examples/resources/enterprise_team_organizations/import.sh" }}
+
+## Team identity and renames
+
+Prefer `team_id = github_enterprise_team.team.team_id` when managing the team in the same configuration. It remains stable when the team's name and slug change. `team_slug` is still supported and updates in place while it still resolves to the managed team.
+
+The provider records `resolved_team_id` when creating, importing, or refreshing this resource. The organization-assignment APIs accept the numeric team ID in place of a slug, so refreshes, updates, and deletions address the team by its stored numeric identity without any ID-to-slug resolution and without refreshing a configured `team_slug` merely to discover the team's current slug. On update with `team_slug` configured, the provider first verifies that the slug still resolves to the managed team: a nonexistent slug (for example after an out-of-band rename) or a slug resolving to a different team is rejected before any organization change — update the literal `team_slug` and apply again. To manage a different team, import it instead of changing `team_slug`. Legacy state that still carries only a slug bootstraps `resolved_team_id` with a single lookup on refresh.
+
+Import with `enterprise-slug/12345` when configuring `team_id`, or `enterprise-slug/ent:platform` when configuring `team_slug`. Match the import selector to the configuration to avoid replacement, and keep the selector in the resource ID. Existing slug-based import IDs remain supported. Existing state gains `resolved_team_id` on refresh without a schema migration. If using a development build that predates this attribute, refresh before renaming teams. Legacy state containing only a slug cannot distinguish a renamed team from another team that has already reused that slug; verify the intended team and re-import using its current slug if a rename already occurred.
+
+This resource manages the complete set of organization assignments. Import a team with existing assignments before managing them; creation refuses to take over existing assignments silently.

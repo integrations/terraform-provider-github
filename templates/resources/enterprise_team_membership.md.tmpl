@@ -1,0 +1,29 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Manages membership in a GitHub enterprise team.
+---
+
+# {{.Name}} ({{.Type}})
+
+{{.Description}}
+
+See the [GitHub REST API documentation](https://docs.github.com/en/rest/enterprise-teams) for required enterprise permissions and supported authentication.
+
+## Example Usage
+
+{{ tffile "examples/resources/enterprise_team_membership/resource.tf" }}
+
+{{.SchemaMarkdown}}
+
+## Import
+
+{{ codefile "shell" "examples/resources/enterprise_team_membership/import.sh" }}
+
+## Team identity and renames
+
+Prefer `team_id = github_enterprise_team.team.team_id` when managing the team in the same configuration. It remains stable when the team's name and slug change. `team_slug` is still supported, but a slug change that remains in the plan requires replacement; update literal slugs after renaming a team.
+
+The provider records `resolved_team_id` when creating, importing, or refreshing this resource. The membership APIs accept the numeric team ID in place of a slug, so refreshes and deletions address the team by its stored numeric identity without any ID-to-slug resolution and without refreshing a configured `team_slug` merely to discover the team's current slug. Legacy state that still carries only a slug bootstraps `resolved_team_id` with a single lookup on refresh.
+
+Import with `enterprise-slug/12345/username` when configuring `team_id`, or `enterprise-slug/ent:platform/username` when configuring `team_slug`. Match the import selector to the configuration to avoid replacement, and keep the selector in the resource ID. Existing slug-based import IDs remain supported. Existing state gains `resolved_team_id` on refresh without a schema migration. If using a development build that predates this attribute, refresh before renaming teams. Legacy state containing only a slug cannot distinguish a renamed team from another team that has already reused that slug; verify the intended team and re-import using its current slug if a rename already occurred.
