@@ -1,0 +1,396 @@
+package github
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net/http"
+
+	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+)
+
+func resourceGithubRepositoryCustomProperties() *schema.Resource {
+	return &schema.Resource{
+		Description: "Manages custom properties for a GitHub repository. This resource is non-authoritative: it only manages the property values explicitly declared in the resource block, with in-place updates when values change. Properties set by other sources (UI, API, or other tooling) are ignored.",
+
+		CreateContext: resourceGithubRepositoryCustomPropertiesCreate,
+		ReadContext:   resourceGithubRepositoryCustomPropertiesRead,
+		UpdateContext: resourceGithubRepositoryCustomPropertiesUpdate,
+		DeleteContext: resourceGithubRepositoryCustomPropertiesDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: resourceGithubRepositoryCustomPropertiesImport,
+		},
+
+		CustomizeDiff: customdiff.All(
+			diffRepository,
+			diffRepositoryCustomPropertiesDuplicateNames,
+		),
+
+		Schema: map[string]*schema.Schema{
+			"repository": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Name of the repository.",
+			},
+			"repository_id": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The ID of the GitHub repository.",
+			},
+			"property": {
+				Type:        schema.TypeSet,
+				Required:    true,
+				MinItems:    1,
+				Description: "Set of custom property values for this repository.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "Name of the custom property (must be defined at the organization level).",
+						},
+						"value": {
+							Type:        schema.TypeSet,
+							Required:    true,
+							MinItems:    1,
+							Description: "Value(s) of the custom property. For multi_select properties, multiple values can be specified.",
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
+						},
+					},
+				},
+				Set: resourceGithubRepositoryCustomPropertiesHash,
+			},
+		},
+	}
+}
+
+// resourceGithubRepositoryCustomPropertiesHash hashes a property block by name only.
+func resourceGithubRepositoryCustomPropertiesHash(v any) int {
+	raw := v.(map[string]any)
+	name := raw["name"].(string)
+	return schema.HashString(name)
+}
+
+// diffRepositoryCustomPropertiesDuplicateNames rejects property blocks that share a name,
+// which the name-only set hash would otherwise collapse into one.
+func diffRepositoryCustomPropertiesDuplicateNames(_ context.Context, diff *schema.ResourceDiff, _ any) error {
+	raw := diff.GetRawConfig()
+	if raw.IsNull() || !raw.IsKnown() {
+		return nil
+	}
+	props := raw.GetAttr("property")
+	if props.IsNull() || !props.IsKnown() {
+		return nil
+	}
+
+	seen := make(map[string]struct{})
+	for it := props.ElementIterator(); it.Next(); {
+		_, block := it.Element()
+		if block.IsNull() || !block.IsKnown() {
+			continue
+		}
+		name := block.GetAttr("name")
+		if name.IsNull() || !name.IsKnown() {
+			continue
+		}
+		if _, dup := seen[name.AsString()]; dup {
+			return fmt.Errorf("custom property %q is declared in more than one property block", name.AsString())
+		}
+		seen[name.AsString()] = struct{}{}
+	}
+
+	return nil
+}
+
+// removedCustomPropertyNames returns the names present in the old property set but not in the new one.
+func removedCustomPropertyNames(oldSet, newSet *schema.Set) []string {
+	kept := make(map[string]struct{}, newSet.Len())
+	for _, v := range newSet.List() {
+		kept[v.(map[string]any)["name"].(string)] = struct{}{}
+	}
+
+	var removed []string
+	for _, v := range oldSet.List() {
+		name := v.(map[string]any)["name"].(string)
+		if _, ok := kept[name]; !ok {
+			removed = append(removed, name)
+		}
+	}
+	return removed
+}
+
+func resourceGithubRepositoryCustomPropertiesApply(ctx context.Context, d *schema.ResourceData, meta any, removed []string) error {
+	client := meta.(*Owner).v3client
+	owner := meta.(*Owner).name
+	repoName := d.Get("repository").(string)
+	properties := d.Get("property").(*schema.Set).List()
+
+	// Get all organization custom property definitions to determine types
+	orgProperties, _, err := client.Organizations.GetAllCustomProperties(ctx, owner)
+	if err != nil {
+		return fmt.Errorf("error reading organization custom property definitions: %w", err)
+	}
+
+	// Create a map of property names to their types
+	propertyTypes := make(map[string]github.PropertyValueType)
+	for _, prop := range orgProperties {
+		if prop.PropertyName != nil {
+			propertyTypes[*prop.PropertyName] = prop.ValueType
+		}
+	}
+
+	// Build custom property values for this repository
+	customProperties := make([]*github.CustomPropertyValue, 0, len(properties))
+
+	for _, propBlock := range properties {
+		propMap := propBlock.(map[string]any)
+		propertyName := propMap["name"].(string)
+		propertyValues := expandStringList(propMap["value"].(*schema.Set).List())
+
+		propertyType, ok := propertyTypes[propertyName]
+		if !ok {
+			return fmt.Errorf("custom property %q is not defined at the organization level", propertyName)
+		}
+
+		customProperty := &github.CustomPropertyValue{
+			PropertyName: propertyName,
+		}
+
+		switch propertyType {
+		case github.PropertyValueTypeMultiSelect:
+			customProperty.Value = propertyValues
+		case github.PropertyValueTypeString, github.PropertyValueTypeSingleSelect,
+			github.PropertyValueTypeTrueFalse, github.PropertyValueTypeURL:
+			if len(propertyValues) != 1 {
+				return fmt.Errorf("custom property %q has type %q and requires exactly one value, got %d", propertyName, propertyType, len(propertyValues))
+			}
+			customProperty.Value = propertyValues[0]
+		default:
+			return fmt.Errorf("unsupported property type %q for property %q", propertyType, propertyName)
+		}
+
+		customProperties = append(customProperties, customProperty)
+	}
+
+	for _, name := range removed {
+		customProperties = append(customProperties, &github.CustomPropertyValue{PropertyName: name, Value: nil})
+	}
+
+	_, err = client.Repositories.CreateOrUpdateCustomProperties(ctx, owner, repoName, customProperties)
+	if err != nil {
+		return fmt.Errorf("error setting custom properties for repository %s/%s: %w", owner, repoName, err)
+	}
+
+	return nil
+}
+
+func resourceGithubRepositoryCustomPropertiesCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	err := checkOrganization(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	owner := meta.(*Owner).name
+	client := meta.(*Owner).v3client
+	repoName := d.Get("repository").(string)
+
+	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := resourceGithubRepositoryCustomPropertiesApply(ctx, d, meta, nil); err != nil {
+		return diag.FromErr(err)
+	}
+
+	id, err := buildID(owner, repoName)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	d.SetId(id)
+
+	if err := d.Set("repository_id", int(repo.GetID())); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
+}
+
+func resourceGithubRepositoryCustomPropertiesUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	err := checkOrganization(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	oldProps, newProps := d.GetChange("property")
+	removed := removedCustomPropertyNames(oldProps.(*schema.Set), newProps.(*schema.Set))
+
+	if err := resourceGithubRepositoryCustomPropertiesApply(ctx, d, meta, removed); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
+}
+
+func resourceGithubRepositoryCustomPropertiesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	err := checkOrganization(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	ctx = tflog.SetField(ctx, "id", d.Id())
+
+	client := meta.(*Owner).v3client
+	owner := meta.(*Owner).name
+	repoName := d.Get("repository").(string)
+
+	// Properties in state are the managed ones; empty state means import (see docs, Import).
+	propertiesFromState := d.Get("property").(*schema.Set).List()
+	managedPropertyNames := make(map[string]bool)
+	for _, propBlock := range propertiesFromState {
+		propMap := propBlock.(map[string]any)
+		managedPropertyNames[propMap["name"].(string)] = true
+	}
+
+	isImport := len(managedPropertyNames) == 0
+
+	// Read actual properties from GitHub
+	allCustomProperties, _, err := client.Repositories.GetAllCustomPropertyValues(ctx, owner, repoName)
+	if err != nil {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Warn(ctx, "Repository not found, removing from state", map[string]any{"owner": owner, "repository": repoName})
+			d.SetId("")
+			return nil
+		}
+		return diag.Errorf("error reading custom properties for repository %s/%s: %v", owner, repoName, err)
+	}
+
+	managedProperties, err := filterManagedCustomProperties(allCustomProperties, managedPropertyNames, isImport)
+	if err != nil {
+		return diag.Errorf("error processing custom properties for repository %s/%s: %v", owner, repoName, err)
+	}
+
+	if isImport && len(managedProperties) == 0 {
+		return diag.Errorf("repository %s/%s has no custom property values set, nothing to import", owner, repoName)
+	}
+
+	// If no properties exist, remove resource from state
+	if len(managedProperties) == 0 {
+		tflog.Warn(ctx, "No custom properties found, removing from state", map[string]any{"owner": owner, "repository": repoName})
+		d.SetId("")
+		return nil
+	}
+
+	if err := d.Set("repository", repoName); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("property", managedProperties); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
+}
+
+// filterManagedCustomProperties builds the property set from GitHub API results,
+// filtering to only managed properties (or all properties during import).
+func filterManagedCustomProperties(allProps []*github.CustomPropertyValue, managed map[string]bool, isImport bool) ([]any, error) {
+	result := make([]any, 0)
+	for _, prop := range allProps {
+		if !isImport && !managed[prop.PropertyName] {
+			continue
+		}
+
+		if prop.Value == nil {
+			continue
+		}
+
+		propertyValue, err := parseRepositoryCustomPropertyValueToStringSlice(prop)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing property %q: %w", prop.PropertyName, err)
+		}
+
+		if len(propertyValue) == 0 {
+			continue
+		}
+
+		result = append(result, map[string]any{
+			"name":  prop.PropertyName,
+			"value": propertyValue,
+		})
+	}
+	return result, nil
+}
+
+func resourceGithubRepositoryCustomPropertiesDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	err := checkOrganization(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	client := meta.(*Owner).v3client
+	owner := meta.(*Owner).name
+	repoName := d.Get("repository").(string)
+
+	properties := d.Get("property").(*schema.Set).List()
+	if len(properties) == 0 {
+		return nil
+	}
+
+	// Set all managed properties to nil (removes them)
+	customProperties := make([]*github.CustomPropertyValue, 0, len(properties))
+	for _, propBlock := range properties {
+		propMap := propBlock.(map[string]any)
+		customProperties = append(customProperties, &github.CustomPropertyValue{
+			PropertyName: propMap["name"].(string),
+			Value:        nil,
+		})
+	}
+
+	_, err = client.Repositories.CreateOrUpdateCustomProperties(ctx, owner, repoName, customProperties)
+	if err != nil {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Repository not found, skipping custom properties deletion", map[string]any{"owner": owner, "repository": repoName})
+			return nil
+		}
+		if err := handleArchivedRepoDelete(err, "repository custom properties", repoName, owner, repoName); err != nil {
+			return diag.Errorf("error deleting custom properties for repository %s/%s: %v", owner, repoName, err)
+		}
+	}
+
+	return nil
+}
+
+func resourceGithubRepositoryCustomPropertiesImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+	// Import ID format: <repository>; owner is inferred from the provider config.
+	repoName := d.Id()
+
+	owner := meta.(*Owner).name
+	client := meta.(*Owner).v3client
+
+	id, err := buildID(owner, repoName)
+	if err != nil {
+		return nil, err
+	}
+	d.SetId(id)
+
+	if err := d.Set("repository", repoName); err != nil {
+		return nil, err
+	}
+
+	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve repository %s: %w", repoName, err)
+	}
+
+	if err := d.Set("repository_id", int(repo.GetID())); err != nil {
+		return nil, err
+	}
+
+	return []*schema.ResourceData{d}, nil
+}
