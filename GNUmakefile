@@ -1,4 +1,4 @@
-SWEEP?=repositories,teams
+SWEEP?=all
 PKG_NAME=github
 TESTACC?=./$(PKG_NAME)/...
 
@@ -81,7 +81,7 @@ testacc:
 
 sweep:
 	@echo "WARNING: This will destroy infrastructure. Use only in development accounts."
-	go test $(TESTACC) -v -sweep=$(SWEEP) $(SWEEPARGS)
+	go test ./github -v -sweep=$(SWEEP) $(SWEEPARGS)
 
 generatedocs:
 	@cd tools; go generate ./...
