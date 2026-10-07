@@ -176,7 +176,7 @@ func TestGetRepositoryIDPositiveMatches(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		got, err := getRepositoryID(tc.Provided, &meta)
+		got, err := getRepositoryID(t.Context(), tc.Provided, &meta)
 		if err != nil {
 			// We expect to error out on these repos
 			if tc.Expected != "" {

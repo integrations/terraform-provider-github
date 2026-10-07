@@ -5,21 +5,22 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubCodespacesSecret() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubCodespacesSecretCreateOrUpdate,
-		Read:   resourceGithubCodespacesSecretRead,
-		Delete: resourceGithubCodespacesSecretDelete,
+		CreateContext: resourceGithubCodespacesSecretCreateOrUpdate,
+		ReadContext:   resourceGithubCodespacesSecretRead,
+		DeleteContext: resourceGithubCodespacesSecretDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourceGithubCodespacesSecretImport,
+			StateContext: resourceGithubCodespacesSecretImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -66,19 +67,18 @@ func resourceGithubCodespacesSecret() *schema.Resource {
 	}
 }
 
-func resourceGithubCodespacesSecretCreateOrUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubCodespacesSecretCreateOrUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
-	ctx := context.Background()
 
 	repo := d.Get("repository").(string)
 	secretName := d.Get("secret_name").(string)
 	plaintextValue := d.Get("plaintext_value").(string)
 	var encryptedValue string
 
-	keyId, publicKey, err := getCodespacesPublicKeyDetails(owner, repo, meta)
+	keyId, publicKey, err := getCodespacesPublicKeyDetails(ctx, owner, repo, meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if encryptedText, ok := d.GetOk("encrypted_value"); ok {
@@ -86,7 +86,7 @@ func resourceGithubCodespacesSecretCreateOrUpdate(d *schema.ResourceData, meta a
 	} else {
 		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		encryptedValue = base64.StdEncoding.EncodeToString(encryptedBytes)
 	}
@@ -100,44 +100,42 @@ func resourceGithubCodespacesSecretCreateOrUpdate(d *schema.ResourceData, meta a
 
 	_, err = client.Codespaces.CreateOrUpdateRepoSecret(ctx, owner, repo, eSecret)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(buildTwoPartID(repo, secretName))
-	return resourceGithubCodespacesSecretRead(d, meta)
+	return resourceGithubCodespacesSecretRead(ctx, d, meta)
 }
 
-func resourceGithubCodespacesSecretRead(d *schema.ResourceData, meta any) error {
+func resourceGithubCodespacesSecretRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
-	ctx := context.Background()
 
 	repoName, secretName, err := parseID2(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	secret, _, err := client.Codespaces.GetRepoSecret(ctx, owner, repoName, secretName)
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing actions secret %s from state because it no longer exists in GitHub",
-					d.Id())
+				tflog.Warn(ctx, "Removing Codespaces secret from state because it no longer exists in GitHub", map[string]any{"secret_id": d.Id(), "owner": owner, "repository": repoName, "secret_name": secretName})
 				d.SetId("")
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err = d.Set("encrypted_value", d.Get("encrypted_value")); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("plaintext_value", d.Get("plaintext_value")); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("created_at", secret.CreatedAt.String()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// This is a drift detection mechanism based on timestamps.
@@ -156,37 +154,35 @@ func resourceGithubCodespacesSecretRead(d *schema.ResourceData, meta any) error 
 	// as deleted (unset the ID) in order to fix potential drift by recreating
 	// the resource.
 	if updatedAt, ok := d.GetOk("updated_at"); ok && updatedAt != secret.UpdatedAt.String() {
-		log.Printf("[WARN] The secret %s has been externally updated in GitHub", d.Id())
+		tflog.Warn(ctx, "Secret has been externally updated in GitHub", map[string]any{"secret_id": d.Id(), "owner": owner, "repository": repoName, "secret_name": secretName})
 		d.SetId("")
 	} else if !ok {
 		if err = d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	return nil
 }
 
-func resourceGithubCodespacesSecretDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubCodespacesSecretDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	repoName, secretName, err := parseID2(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-
-	log.Printf("[DEBUG] Deleting secret: %s", d.Id())
+	tflog.Debug(ctx, "Deleting secret", map[string]any{"secret_id": d.Id(), "owner": orgName, "repository": repoName, "secret_name": secretName})
 	_, err = client.Codespaces.DeleteRepoSecret(ctx, orgName, repoName, secretName)
 
-	return err
+	return diag.FromErr(err)
 }
 
-func resourceGithubCodespacesSecretImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubCodespacesSecretImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
-	ctx := context.Background()
 
 	parts := strings.Split(d.Id(), "/")
 	if len(parts) != 2 {
@@ -224,9 +220,8 @@ func resourceGithubCodespacesSecretImport(d *schema.ResourceData, meta any) ([]*
 	return []*schema.ResourceData{d}, nil
 }
 
-func getCodespacesPublicKeyDetails(owner, repository string, meta any) (keyId, pkValue string, err error) {
+func getCodespacesPublicKeyDetails(ctx context.Context, owner, repository string, meta any) (keyId, pkValue string, err error) {
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 
 	publicKey, _, err := client.Codespaces.GetRepoPublicKey(ctx, owner, repository)
 	if err != nil {

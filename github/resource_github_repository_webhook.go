@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -151,8 +151,7 @@ func resourceGithubRepositoryWebhookRead(ctx context.Context, d *schema.Resource
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing repository webhook %s from state because it no longer exists in GitHub",
-					d.Id())
+				tflog.Info(ctx, "Removing repository webhook from state because it no longer exists in GitHub", map[string]any{"resource_id": d.Id()})
 				d.SetId("")
 				return nil
 			}
@@ -224,5 +223,5 @@ func resourceGithubRepositoryWebhookDelete(ctx context.Context, d *schema.Resour
 	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	_, err = client.Repositories.DeleteHook(ctx, owner, repoName, hookID)
-	return diag.FromErr(handleArchivedRepoDelete(err, "repository webhook", d.Id(), owner, repoName))
+	return diag.FromErr(handleArchivedRepoDelete(ctx, err, "repository webhook", d.Id(), owner, repoName))
 }

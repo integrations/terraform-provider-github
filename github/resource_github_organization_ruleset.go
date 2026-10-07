@@ -760,21 +760,14 @@ func resourceGithubOrganizationRulesetCreate(ctx context.Context, d *schema.Reso
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	name := d.Get("name").(string)
-
-	tflog.Debug(ctx, fmt.Sprintf("Creating organization ruleset: %s/%s", owner, name), map[string]any{
-		"owner": owner,
-		"name":  name,
-	})
+	tflog.Debug(ctx, "Creating organization ruleset", map[string]any{"owner": owner, "name": name})
 
 	rulesetReq := resourceGithubRulesetObject(d, owner)
 
 	ruleset, resp, err := client.Organizations.CreateRepositoryRuleset(ctx, owner, rulesetReq)
 	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Failed to create organization ruleset: %s/%s", owner, name), map[string]any{
-			"owner": owner,
-			"name":  name,
-			"error": err.Error(),
-		})
+		tflog.Error(ctx, "Failed to create organization ruleset", map[string]any{"owner": owner, "name": name, "error": err.Error()})
+
 		return diag.FromErr(err)
 	}
 
@@ -791,12 +784,7 @@ func resourceGithubOrganizationRulesetCreate(ctx context.Context, d *schema.Reso
 	if err := d.Set("rules", flattenRules(ctx, ruleset.Rules, true)); err != nil {
 		return diag.FromErr(err)
 	}
-
-	tflog.Info(ctx, fmt.Sprintf("Created organization ruleset: %s/%s (ID: %d)", owner, name, ruleset.GetID()), map[string]any{
-		"owner":      owner,
-		"name":       name,
-		"ruleset_id": ruleset.GetID(),
-	})
+	tflog.Info(ctx, "Created organization ruleset", map[string]any{"owner": owner, "name": name, "ruleset_id": ruleset.GetID()})
 
 	return nil
 }
@@ -804,19 +792,12 @@ func resourceGithubOrganizationRulesetCreate(ctx context.Context, d *schema.Reso
 func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
-
-	tflog.Trace(ctx, fmt.Sprintf("Reading organization ruleset: %s", d.Id()), map[string]any{
-		"owner":      owner,
-		"ruleset_id": d.Id(),
-	})
+	tflog.Trace(ctx, "Reading organization ruleset", map[string]any{"owner": owner, "ruleset_id": d.Id()})
 
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Could not convert ruleset ID '%s' to int64", d.Id()), map[string]any{
-			"owner":      owner,
-			"ruleset_id": d.Id(),
-			"error":      err.Error(),
-		})
+		tflog.Error(ctx, "Could not convert ruleset ID to int64", map[string]any{"owner": owner, "ruleset_id": d.Id(), "error": err.Error()})
+
 		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
 
@@ -835,19 +816,14 @@ func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.Resour
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, fmt.Sprintf("Removing ruleset %s/%d from state because it no longer exists in GitHub", owner, rulesetID), map[string]any{
-					"owner":      owner,
-					"ruleset_id": rulesetID,
-				})
+				tflog.Info(ctx, "Removing ruleset from state because it no longer exists in GitHub", map[string]any{"owner": owner, "ruleset_id": rulesetID})
+
 				d.SetId("")
 				return nil
 			}
 		}
-		tflog.Error(ctx, fmt.Sprintf("Failed to read organization ruleset: %s/%d", owner, rulesetID), map[string]any{
-			"owner":      owner,
-			"ruleset_id": rulesetID,
-			"error":      err.Error(),
-		})
+		tflog.Error(ctx, "Failed to read organization ruleset", map[string]any{"owner": owner, "ruleset_id": rulesetID, "error": err.Error()})
+
 		return diag.FromErr(err)
 	}
 
@@ -878,12 +854,7 @@ func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.Resour
 	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
 		return diag.FromErr(err)
 	}
-
-	tflog.Trace(ctx, fmt.Sprintf("Successfully read organization ruleset: %s/%d", owner, rulesetID), map[string]any{
-		"owner":      owner,
-		"ruleset_id": rulesetID,
-		"name":       ruleset.Name,
-	})
+	tflog.Trace(ctx, "Successfully read organization ruleset", map[string]any{"owner": owner, "ruleset_id": rulesetID, "name": ruleset.Name})
 
 	return nil
 }
@@ -899,29 +870,18 @@ func resourceGithubOrganizationRulesetUpdate(ctx context.Context, d *schema.Reso
 
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Could not convert ruleset ID '%s' to int64", d.Id()), map[string]any{
-			"owner":      owner,
-			"ruleset_id": d.Id(),
-			"error":      err.Error(),
-		})
+		tflog.Error(ctx, "Could not convert ruleset ID to int64", map[string]any{"owner": owner, "ruleset_id": d.Id(), "error": err.Error()})
+
 		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
-
-	tflog.Debug(ctx, fmt.Sprintf("Updating organization ruleset: %s/%d", owner, rulesetID), map[string]any{
-		"owner":      owner,
-		"ruleset_id": rulesetID,
-		"name":       name,
-	})
+	tflog.Debug(ctx, "Updating organization ruleset", map[string]any{"owner": owner, "ruleset_id": rulesetID, "name": name})
 
 	rulesetReq := resourceGithubRulesetObject(d, owner)
 
 	ruleset, resp, err := client.Organizations.UpdateRepositoryRuleset(ctx, owner, rulesetID, rulesetReq)
 	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Failed to update organization ruleset: %s/%d", owner, rulesetID), map[string]any{
-			"owner":      owner,
-			"ruleset_id": rulesetID,
-			"error":      err.Error(),
-		})
+		tflog.Error(ctx, "Failed to update organization ruleset", map[string]any{"owner": owner, "ruleset_id": rulesetID, "error": err.Error()})
+
 		return diag.FromErr(err)
 	}
 
@@ -935,12 +895,7 @@ func resourceGithubOrganizationRulesetUpdate(ctx context.Context, d *schema.Reso
 	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
 		return diag.FromErr(err)
 	}
-
-	tflog.Info(ctx, fmt.Sprintf("Updated organization ruleset: %s/%d", owner, rulesetID), map[string]any{
-		"owner":      owner,
-		"ruleset_id": rulesetID,
-		"name":       name,
-	})
+	tflog.Info(ctx, "Updated organization ruleset", map[string]any{"owner": owner, "ruleset_id": rulesetID, "name": name})
 
 	return nil
 }
@@ -951,33 +906,19 @@ func resourceGithubOrganizationRulesetDelete(ctx context.Context, d *schema.Reso
 
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Could not convert ruleset ID '%s' to int64", d.Id()), map[string]any{
-			"owner":      owner,
-			"ruleset_id": d.Id(),
-			"error":      err.Error(),
-		})
+		tflog.Error(ctx, "Could not convert ruleset ID to int64", map[string]any{"owner": owner, "ruleset_id": d.Id(), "error": err.Error()})
+
 		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
-
-	tflog.Debug(ctx, fmt.Sprintf("Deleting organization ruleset: %s/%d", owner, rulesetID), map[string]any{
-		"owner":      owner,
-		"ruleset_id": rulesetID,
-	})
+	tflog.Debug(ctx, "Deleting organization ruleset", map[string]any{"owner": owner, "ruleset_id": rulesetID})
 
 	_, err = client.Organizations.DeleteRepositoryRuleset(ctx, owner, rulesetID)
 	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Failed to delete organization ruleset: %s/%d", owner, rulesetID), map[string]any{
-			"owner":      owner,
-			"ruleset_id": rulesetID,
-			"error":      err.Error(),
-		})
+		tflog.Error(ctx, "Failed to delete organization ruleset", map[string]any{"owner": owner, "ruleset_id": rulesetID, "error": err.Error()})
+
 		return diag.FromErr(err)
 	}
-
-	tflog.Info(ctx, fmt.Sprintf("Deleted organization ruleset: %s/%d", owner, rulesetID), map[string]any{
-		"owner":      owner,
-		"ruleset_id": rulesetID,
-	})
+	tflog.Info(ctx, "Deleted organization ruleset", map[string]any{"owner": owner, "ruleset_id": rulesetID})
 
 	return nil
 }
@@ -988,11 +929,8 @@ func resourceGithubOrganizationRulesetImport(ctx context.Context, d *schema.Reso
 
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Could not convert ruleset ID '%s' to int64", d.Id()), map[string]any{
-			"owner":      owner,
-			"ruleset_id": d.Id(),
-			"error":      err.Error(),
-		})
+		tflog.Error(ctx, "Could not convert ruleset ID to int64", map[string]any{"owner": owner, "ruleset_id": d.Id(), "error": err.Error()})
+
 		return []*schema.ResourceData{d}, unconvertibleIdErr(d.Id(), err)
 	}
 	if rulesetID == 0 {
@@ -1002,28 +940,16 @@ func resourceGithubOrganizationRulesetImport(ctx context.Context, d *schema.Reso
 		})
 		return []*schema.ResourceData{d}, fmt.Errorf("`ruleset_id` must be present")
 	}
-
-	tflog.Debug(ctx, fmt.Sprintf("Importing organization ruleset: %s/%d", owner, rulesetID), map[string]any{
-		"owner":      owner,
-		"ruleset_id": rulesetID,
-	})
+	tflog.Debug(ctx, "Importing organization ruleset", map[string]any{"owner": owner, "ruleset_id": rulesetID})
 
 	ruleset, _, err := client.Organizations.GetRepositoryRuleset(ctx, owner, rulesetID)
 	if ruleset == nil || err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Failed to import organization ruleset: %s/%d", owner, rulesetID), map[string]any{
-			"owner":      owner,
-			"ruleset_id": rulesetID,
-			"error":      err.Error(),
-		})
+		tflog.Error(ctx, "Failed to import organization ruleset", map[string]any{"owner": owner, "ruleset_id": rulesetID, "error": err.Error()})
+
 		return []*schema.ResourceData{d}, err
 	}
 	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
-
-	tflog.Info(ctx, fmt.Sprintf("Imported organization ruleset: %s/%d (name: %s)", owner, rulesetID, ruleset.Name), map[string]any{
-		"owner":      owner,
-		"ruleset_id": rulesetID,
-		"name":       ruleset.Name,
-	})
+	tflog.Info(ctx, "Imported organization ruleset", map[string]any{"owner": owner, "ruleset_id": rulesetID, "name": ruleset.Name})
 
 	return []*schema.ResourceData{d}, nil
 }

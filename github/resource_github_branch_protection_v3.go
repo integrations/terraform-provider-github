@@ -4,20 +4,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubBranchProtectionV3() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubBranchProtectionV3Create,
-		Read:   resourceGithubBranchProtectionV3Read,
-		Update: resourceGithubBranchProtectionV3Update,
-		Delete: resourceGithubBranchProtectionV3Delete,
+		CreateContext: resourceGithubBranchProtectionV3Create,
+		ReadContext:   resourceGithubBranchProtectionV3Read,
+		UpdateContext: resourceGithubBranchProtectionV3Update,
+		DeleteContext: resourceGithubBranchProtectionV3Delete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -222,10 +223,10 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 	}
 }
 
-func resourceGithubBranchProtectionV3Create(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchProtectionV3Create(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
@@ -236,9 +237,8 @@ func resourceGithubBranchProtectionV3Create(d *schema.ResourceData, meta any) er
 
 	protectionRequest, err := buildProtectionRequest(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	ctx := context.Background()
 
 	protection, _, err := client.Repositories.UpdateBranchProtection(ctx,
 		orgName,
@@ -247,37 +247,37 @@ func resourceGithubBranchProtectionV3Create(d *schema.ResourceData, meta any) er
 		protectionRequest,
 	)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err := checkBranchRestrictionsUsers(protection.GetRestrictions(), protectionRequest.GetRestrictions()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(buildTwoPartID(repoName, branch))
 
-	if err = requireSignedCommitsUpdate(d, meta); err != nil {
-		return err
+	if err = requireSignedCommitsUpdate(ctx, d, meta); err != nil {
+		return diag.FromErr(err)
 	}
 
-	return resourceGithubBranchProtectionV3Read(d, meta)
+	return resourceGithubBranchProtectionV3Read(ctx, d, meta)
 }
 
-func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchProtectionV3Read(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
 
 	repoName, branch, err := parseID2(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	orgName := meta.(*Owner).name
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
@@ -287,83 +287,82 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta any) erro
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
-				if err := requireSignedCommitsRead(d, meta); err != nil {
-					return fmt.Errorf("error setting signed commit restriction: %w", err)
+				if err := requireSignedCommitsRead(ctx, d, meta); err != nil {
+					return diag.FromErr(fmt.Errorf("error setting signed commit restriction: %w", err))
 				}
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing branch protection %s/%s (%s) from state because it no longer exists in GitHub",
-					orgName, repoName, branch)
+				tflog.Info(ctx, "Removing branch protection from state because it no longer exists in GitHub", map[string]any{"owner": orgName, "repository": repoName, "branch": branch})
 				d.SetId("")
 				return nil
 			}
 		}
 
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("repository", repoName); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("branch", branch); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("enforce_admins", githubProtection.GetEnforceAdmins().Enabled); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if rcr := githubProtection.GetRequiredConversationResolution(); rcr != nil {
 		if err = d.Set("require_conversation_resolution", rcr.Enabled); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	if err := flattenAndSetRequiredStatusChecks(d, githubProtection); err != nil {
-		return fmt.Errorf("error setting required_status_checks: %w", err)
+		return diag.FromErr(fmt.Errorf("error setting required_status_checks: %w", err))
 	}
 
 	if err := flattenAndSetRequiredPullRequestReviews(d, githubProtection); err != nil {
-		return fmt.Errorf("error setting required_pull_request_reviews: %w", err)
+		return diag.FromErr(fmt.Errorf("error setting required_pull_request_reviews: %w", err))
 	}
 
 	if err := flattenAndSetRestrictions(d, githubProtection); err != nil {
-		return fmt.Errorf("error setting restrictions: %w", err)
+		return diag.FromErr(fmt.Errorf("error setting restrictions: %w", err))
 	}
 
-	if err := requireSignedCommitsRead(d, meta); err != nil {
-		return fmt.Errorf("error setting signed commit restriction: %w", err)
+	if err := requireSignedCommitsRead(ctx, d, meta); err != nil {
+		return diag.FromErr(fmt.Errorf("error setting signed commit restriction: %w", err))
 	}
 
 	return nil
 }
 
-func resourceGithubBranchProtectionV3Update(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchProtectionV3Update(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
 
 	if err := d.Set("etag", nil); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	repoName, branch, err := parseID2(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	protectionRequest, err := buildProtectionRequest(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	orgName := meta.(*Owner).name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	protection, _, err := client.Repositories.UpdateBranchProtection(ctx,
 		orgName,
@@ -372,11 +371,11 @@ func resourceGithubBranchProtectionV3Update(d *schema.ResourceData, meta any) er
 		protectionRequest,
 	)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err := checkBranchRestrictionsUsers(protection.GetRestrictions(), protectionRequest.GetRestrictions()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if protectionRequest.RequiredPullRequestReviews == nil {
@@ -386,35 +385,35 @@ func resourceGithubBranchProtectionV3Update(d *schema.ResourceData, meta any) er
 			branch,
 		)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	d.SetId(buildTwoPartID(repoName, branch))
 
-	if err = requireSignedCommitsUpdate(d, meta); err != nil {
-		return err
+	if err = requireSignedCommitsUpdate(ctx, d, meta); err != nil {
+		return diag.FromErr(err)
 	}
 
-	return resourceGithubBranchProtectionV3Read(d, meta)
+	return resourceGithubBranchProtectionV3Read(ctx, d, meta)
 }
 
-func resourceGithubBranchProtectionV3Delete(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchProtectionV3Delete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
 	repoName, branch, err := parseID2(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	orgName := meta.(*Owner).name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	_, err = client.Repositories.RemoveBranchProtection(ctx,
 		orgName, repoName, branch)
-	return err
+	return diag.FromErr(err)
 }

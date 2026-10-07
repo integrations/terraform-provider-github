@@ -2,9 +2,9 @@ package github
 
 import (
 	"context"
-	"log"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -45,7 +45,7 @@ func resourceGithubRepositoryWebhookResourceV0() *schema.Resource {
 }
 
 func resourceGithubRepositoryWebhookInstanceStateUpgradeV0(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
-	log.Printf("[DEBUG] GitHub Repository Webhook State before migration: %#v", rawState)
+	tflog.Debug(ctx, "GitHub Repository Webhook State before migration", map[string]any{"field_count": len(rawState)})
 
 	prefix := "configuration."
 	delete(rawState, prefix+"%")
@@ -68,8 +68,7 @@ func resourceGithubRepositoryWebhookInstanceStateUpgradeV0(ctx context.Context, 
 	}
 
 	rawState[prefix+"#"] = "1"
-
-	log.Printf("[DEBUG] GitHub Repository Webhook State after migration: %#v", rawState)
+	tflog.Debug(ctx, "GitHub Repository Webhook State after migration", map[string]any{"field_count": len(rawState)})
 
 	return rawState, nil
 }

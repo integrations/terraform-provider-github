@@ -4,21 +4,22 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubTeamSyncGroupMapping() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubTeamSyncGroupMappingCreate,
-		Read:   resourceGithubTeamSyncGroupMappingRead,
-		Update: resourceGithubTeamSyncGroupMappingUpdate,
-		Delete: resourceGithubTeamSyncGroupMappingDelete,
+		CreateContext: resourceGithubTeamSyncGroupMappingCreate,
+		ReadContext:   resourceGithubTeamSyncGroupMappingRead,
+		UpdateContext: resourceGithubTeamSyncGroupMappingUpdate,
+		DeleteContext: resourceGithubTeamSyncGroupMappingDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+			StateContext: func(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				if err := d.Set("team_slug", d.Id()); err != nil {
 					return nil, err
 				}
@@ -69,39 +70,39 @@ func resourceGithubTeamSyncGroupMapping() *schema.Resource {
 	}
 }
 
-func resourceGithubTeamSyncGroupMappingCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubTeamSyncGroupMappingCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
+
 	orgName := meta.(*Owner).name
 	slug := d.Get("team_slug").(string)
 
 	idpGroupList := expandTeamSyncGroups(d)
 	_, _, err = client.Teams.CreateOrUpdateIDPGroupConnectionsBySlug(ctx, orgName, slug, *idpGroupList)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(fmt.Sprintf("teams/%s/team-sync/group-mappings", slug))
 
-	return resourceGithubTeamSyncGroupMappingRead(d, meta)
+	return resourceGithubTeamSyncGroupMappingRead(ctx, d, meta)
 }
 
-func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta any) error {
+func resourceGithubTeamSyncGroupMappingRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	slug := d.Get("team_slug").(string)
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
@@ -113,68 +114,67 @@ func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta any) er
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing team_sync_group mapping for %s/%s from state because it no longer exists in GitHub",
-					orgName, slug)
+				tflog.Info(ctx, "Removing team sync group mapping from state because it no longer exists in GitHub", map[string]any{"owner": orgName, "team_slug": slug})
 				d.SetId("")
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	groups := flattenGithubIDPGroupList(idpGroupList)
 
 	if err = d.Set("group", groups); err != nil {
-		return fmt.Errorf("error setting groups: %w", err)
+		return diag.FromErr(fmt.Errorf("error setting groups: %w", err))
 	}
 	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return fmt.Errorf("error setting etag: %w", err)
+		return diag.FromErr(fmt.Errorf("error setting etag: %w", err))
 	}
 
 	return nil
 }
 
-func resourceGithubTeamSyncGroupMappingUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubTeamSyncGroupMappingUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 
 	if err := d.Set("etag", nil); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	slug := d.Get("team_slug").(string)
 
 	idpGroupList := expandTeamSyncGroups(d)
 	_, _, err = client.Teams.CreateOrUpdateIDPGroupConnectionsBySlug(ctx, orgName, slug, *idpGroupList)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceGithubTeamSyncGroupMappingRead(d, meta)
+	return resourceGithubTeamSyncGroupMappingRead(ctx, d, meta)
 }
 
-func resourceGithubTeamSyncGroupMappingDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubTeamSyncGroupMappingDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	slug := d.Get("team_slug").(string)
 
 	groups := make([]*github.IDPGroup, 0)
 	emptyGroupList := github.IDPGroupList{Groups: groups}
 
 	_, _, err = client.Teams.CreateOrUpdateIDPGroupConnectionsBySlug(ctx, orgName, slug, emptyGroupList)
-	return err
+	return diag.FromErr(err)
 }
 
 func flattenGithubIDPGroupList(idpGroupList *github.IDPGroupList) []any {

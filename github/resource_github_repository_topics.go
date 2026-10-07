@@ -3,23 +3,24 @@ package github
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 	"regexp"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubRepositoryTopics() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryTopicsCreateOrUpdate,
-		Read:   resourceGithubRepositoryTopicsRead,
-		Update: resourceGithubRepositoryTopicsCreateOrUpdate,
-		Delete: resourceGithubRepositoryTopicsDelete,
+		CreateContext: resourceGithubRepositoryTopicsCreateOrUpdate,
+		ReadContext:   resourceGithubRepositoryTopicsRead,
+		UpdateContext: resourceGithubRepositoryTopicsCreateOrUpdate,
+		DeleteContext: resourceGithubRepositoryTopicsDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
+			StateContext: func(ctx context.Context, d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
 				_ = d.Set("repository", d.Id())
 				return []*schema.ResourceData{d}, nil
 			},
@@ -44,10 +45,9 @@ func resourceGithubRepositoryTopics() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryTopicsCreateOrUpdate(d *schema.ResourceData, m any) error {
+func resourceGithubRepositoryTopicsCreateOrUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	client := meta.v3client
-	ctx := context.Background()
 
 	owner := meta.name
 	repoName := d.Get("repository").(string)
@@ -56,18 +56,18 @@ func resourceGithubRepositoryTopicsCreateOrUpdate(d *schema.ResourceData, m any)
 	if len(topics) > 0 {
 		_, _, err := client.Repositories.ReplaceAllTopics(ctx, owner, repoName, topics)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	d.SetId(repoName)
-	return resourceGithubRepositoryTopicsRead(d, meta)
+	return resourceGithubRepositoryTopicsRead(ctx, d, meta)
 }
 
-func resourceGithubRepositoryTopicsRead(d *schema.ResourceData, m any) error {
+func resourceGithubRepositoryTopicsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	client := meta.v3client
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	owner := meta.name
 	repoName := d.Get("repository").(string)
@@ -82,13 +82,12 @@ func resourceGithubRepositoryTopicsRead(d *schema.ResourceData, m any) error {
 					return nil
 				}
 				if ghErr.Response.StatusCode == http.StatusNotFound {
-					log.Printf("[INFO] Removing topics from repository %s/%s from state because it no longer exists in GitHub",
-						owner, repoName)
+					tflog.Info(ctx, "Removing topics from repository from state because it no longer exists in GitHub", map[string]any{"owner": owner, "repository": repoName})
 					d.SetId("")
 					return nil
 				}
 			}
-			return err
+			return diag.FromErr(err)
 		}
 
 		results = append(results, topics...)
@@ -101,23 +100,23 @@ func resourceGithubRepositoryTopicsRead(d *schema.ResourceData, m any) error {
 	}
 
 	if err := d.Set("topics", flattenStringList(results)); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubRepositoryTopicsDelete(d *schema.ResourceData, m any) error {
+func resourceGithubRepositoryTopicsDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	client := meta.v3client
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	owner := meta.name
 	repoName := d.Get("repository").(string)
 
 	_, _, err := client.Repositories.ReplaceAllTopics(ctx, owner, repoName, []string{})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

@@ -128,7 +128,7 @@ func resourceGithubOrganizationRepositoryRoleRead(ctx context.Context, d *schema
 	role, _, err := client.Organizations.GetCustomRepoRole(ctx, orgName, roleID)
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
-			tflog.Warn(ctx, "GitHub organization repository role not found, removing from state", map[string]any{"orgName": orgName, "roleId": roleID})
+			tflog.Warn(ctx, "GitHub organization repository role not found, removing from state", map[string]any{"owner": orgName, "role_id": roleID})
 			d.SetId("")
 			return nil
 		}
@@ -196,7 +196,7 @@ func resourceGithubOrganizationRepositoryRoleDelete(ctx context.Context, d *sche
 
 	if _, err := client.Organizations.DeleteCustomRepoRole(ctx, orgName, roleID); err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
-			tflog.Warn(ctx, "Organization repository role not found, skipping delete", map[string]any{"orgName": orgName, "roleId": roleID})
+			tflog.Warn(ctx, "Organization repository role not found, skipping delete", map[string]any{"owner": orgName, "role_id": roleID})
 			return nil
 		}
 

@@ -3,10 +3,10 @@ package github
 import (
 	"context"
 	"fmt"
-	"log"
 	"strconv"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -106,7 +106,7 @@ func resourceGithubOrganizationRoleTeamRead(ctx context.Context, d *schema.Resou
 	}
 
 	if team == nil {
-		log.Printf("[INFO] Removing organization role team (%d:%s) from state because it no longer exists in GitHub", roleId, teamSlug)
+		tflog.Info(ctx, "Removing organization role team from state because it no longer exists in GitHub", map[string]any{"role_id": roleId, "team_slug": teamSlug})
 		d.SetId("")
 		return nil
 	}

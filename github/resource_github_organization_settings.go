@@ -3,20 +3,21 @@ package github
 import (
 	"context"
 	"errors"
-	"log"
 	"strconv"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubOrganizationSettings() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubOrganizationSettingsCreateOrUpdate,
-		Read:   resourceGithubOrganizationSettingsRead,
-		Update: resourceGithubOrganizationSettingsCreateOrUpdate,
-		Delete: resourceGithubOrganizationSettingsDelete,
+		CreateContext: resourceGithubOrganizationSettingsCreateOrUpdate,
+		ReadContext:   resourceGithubOrganizationSettingsRead,
+		UpdateContext: resourceGithubOrganizationSettingsCreateOrUpdate,
+		DeleteContext: resourceGithubOrganizationSettingsDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -301,236 +302,208 @@ func buildOrganizationSettings(d *schema.ResourceData, isEnterprise bool) *githu
 	return settings
 }
 
-func resourceGithubOrganizationSettingsCreateOrUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationSettingsCreateOrUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	client := meta.(*Owner).v3client
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	org := meta.(*Owner).name
 
 	orgInfo, _, err := client.Organizations.Get(ctx, org)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// Build settings using helper function
 	isEnterprise := orgInfo.GetPlan().GetName() == "enterprise"
 	settings := buildOrganizationSettings(d, isEnterprise)
-
-	// Debug: Log the settings being sent to the API with detailed field information
-	log.Printf("[DEBUG] Built settings for org %s (enterprise: %v)", org, isEnterprise)
-	if settings.BillingEmail != nil {
-		log.Printf("[DEBUG]   BillingEmail: %s", *settings.BillingEmail)
-	}
-	if settings.Company != nil {
-		log.Printf("[DEBUG]   Company: %s", *settings.Company)
-	}
-	if settings.Email != nil {
-		log.Printf("[DEBUG]   Email: %s", *settings.Email)
-	}
-	if settings.TwitterUsername != nil {
-		log.Printf("[DEBUG]   TwitterUsername: %s", *settings.TwitterUsername)
-	}
-	if settings.Location != nil {
-		log.Printf("[DEBUG]   Location: %s", *settings.Location)
-	}
-	if settings.Name != nil {
-		log.Printf("[DEBUG]   Name: %s", *settings.Name)
-	}
-	if settings.Description != nil {
-		log.Printf("[DEBUG]   Description: %s", *settings.Description)
-	}
-	if settings.Blog != nil {
-		log.Printf("[DEBUG]   Blog: %s", *settings.Blog)
-	}
+	tflog.Debug(ctx, "Built organization settings", map[string]any{"owner": org, "is_enterprise": isEnterprise})
 	if settings.HasOrganizationProjects != nil {
-		log.Printf("[DEBUG]   HasOrganizationProjects: %v", *settings.HasOrganizationProjects)
+		tflog.Debug(ctx, "HasOrganizationProjects", map[string]any{"settings_has_organization_projects": *settings.HasOrganizationProjects})
 	}
 	if settings.HasRepositoryProjects != nil {
-		log.Printf("[DEBUG]   HasRepositoryProjects: %v", *settings.HasRepositoryProjects)
+		tflog.Debug(ctx, "HasRepositoryProjects", map[string]any{"settings_has_repository_projects": *settings.HasRepositoryProjects})
 	}
 	if settings.DefaultRepoPermission != nil {
-		log.Printf("[DEBUG]   DefaultRepoPermission: %s", *settings.DefaultRepoPermission)
+		tflog.Debug(ctx, "DefaultRepoPermission", map[string]any{"settings_default_repo_permission": *settings.DefaultRepoPermission})
 	}
 	if settings.MembersCanCreateRepos != nil {
-		log.Printf("[DEBUG]   MembersCanCreateRepos: %v", *settings.MembersCanCreateRepos)
+		tflog.Debug(ctx, "MembersCanCreateRepos", map[string]any{"settings_members_can_create_repos": *settings.MembersCanCreateRepos})
 	}
 	if settings.MembersCanCreatePrivateRepos != nil {
-		log.Printf("[DEBUG]   MembersCanCreatePrivateRepos: %v", *settings.MembersCanCreatePrivateRepos)
+		tflog.Debug(ctx, "MembersCanCreatePrivateRepos", map[string]any{"settings_members_can_create_private_repos": *settings.MembersCanCreatePrivateRepos})
 	}
 	if settings.MembersCanCreatePublicRepos != nil {
-		log.Printf("[DEBUG]   MembersCanCreatePublicRepos: %v", *settings.MembersCanCreatePublicRepos)
+		tflog.Debug(ctx, "MembersCanCreatePublicRepos", map[string]any{"settings_members_can_create_public_repos": *settings.MembersCanCreatePublicRepos})
 	}
 	if settings.MembersCanCreateInternalRepos != nil {
-		log.Printf("[DEBUG]   MembersCanCreateInternalRepos: %v", *settings.MembersCanCreateInternalRepos)
+		tflog.Debug(ctx, "MembersCanCreateInternalRepos", map[string]any{"settings_members_can_create_internal_repos": *settings.MembersCanCreateInternalRepos})
 	}
 	if settings.MembersCanCreatePages != nil {
-		log.Printf("[DEBUG]   MembersCanCreatePages: %v", *settings.MembersCanCreatePages)
+		tflog.Debug(ctx, "MembersCanCreatePages", map[string]any{"settings_members_can_create_pages": *settings.MembersCanCreatePages})
 	}
 	if settings.MembersCanCreatePublicPages != nil {
-		log.Printf("[DEBUG]   MembersCanCreatePublicPages: %v", *settings.MembersCanCreatePublicPages)
+		tflog.Debug(ctx, "MembersCanCreatePublicPages", map[string]any{"settings_members_can_create_public_pages": *settings.MembersCanCreatePublicPages})
 	}
 	if settings.MembersCanCreatePrivatePages != nil {
-		log.Printf("[DEBUG]   MembersCanCreatePrivatePages: %v", *settings.MembersCanCreatePrivatePages)
+		tflog.Debug(ctx, "MembersCanCreatePrivatePages", map[string]any{"settings_members_can_create_private_pages": *settings.MembersCanCreatePrivatePages})
 	}
 	if settings.MembersCanForkPrivateRepos != nil {
-		log.Printf("[DEBUG]   MembersCanForkPrivateRepos: %v", *settings.MembersCanForkPrivateRepos)
+		tflog.Debug(ctx, "MembersCanForkPrivateRepos", map[string]any{"settings_members_can_fork_private_repos": *settings.MembersCanForkPrivateRepos})
 	}
 	if settings.WebCommitSignoffRequired != nil {
-		log.Printf("[DEBUG]   WebCommitSignoffRequired: %v", *settings.WebCommitSignoffRequired)
+		tflog.Debug(ctx, "WebCommitSignoffRequired", map[string]any{"settings_web_commit_signoff_required": *settings.WebCommitSignoffRequired})
 	}
 	if settings.AdvancedSecurityEnabledForNewRepos != nil {
-		log.Printf("[DEBUG]   AdvancedSecurityEnabledForNewRepos: %v", *settings.AdvancedSecurityEnabledForNewRepos)
+		tflog.Debug(ctx, "AdvancedSecurityEnabledForNewRepos", map[string]any{"settings_advanced_security_enabled_for_new_repos": *settings.AdvancedSecurityEnabledForNewRepos})
 	}
 	if settings.DependabotAlertsEnabledForNewRepos != nil {
-		log.Printf("[DEBUG]   DependabotAlertsEnabledForNewRepos: %v", *settings.DependabotAlertsEnabledForNewRepos)
+		tflog.Debug(ctx, "DependabotAlertsEnabledForNewRepos", map[string]any{"settings_dependabot_alerts_enabled_for_new_repos": *settings.DependabotAlertsEnabledForNewRepos})
 	}
 	if settings.DependabotSecurityUpdatesEnabledForNewRepos != nil {
-		log.Printf("[DEBUG]   DependabotSecurityUpdatesEnabledForNewRepos: %v", *settings.DependabotSecurityUpdatesEnabledForNewRepos)
+		tflog.Debug(ctx, "DependabotSecurityUpdatesEnabledForNewRepos", map[string]any{"settings_dependabot_security_updates_enabled_for_new_repos": *settings.DependabotSecurityUpdatesEnabledForNewRepos})
 	}
 	if settings.DependencyGraphEnabledForNewRepos != nil {
-		log.Printf("[DEBUG]   DependencyGraphEnabledForNewRepos: %v", *settings.DependencyGraphEnabledForNewRepos)
+		tflog.Debug(ctx, "DependencyGraphEnabledForNewRepos", map[string]any{"settings_dependency_graph_enabled_for_new_repos": *settings.DependencyGraphEnabledForNewRepos})
 	}
 	if settings.SecretScanningEnabledForNewRepos != nil {
-		log.Printf("[DEBUG]   SecretScanningEnabledForNewRepos: %v", *settings.SecretScanningEnabledForNewRepos)
+		tflog.Debug(ctx, "SecretScanningEnabledForNewRepos", map[string]any{"settings_secret_scanning_enabled_for_new_repos": *settings.SecretScanningEnabledForNewRepos})
 	}
 	if settings.SecretScanningPushProtectionEnabledForNewRepos != nil {
-		log.Printf("[DEBUG]   SecretScanningPushProtectionEnabledForNewRepos: %v", *settings.SecretScanningPushProtectionEnabledForNewRepos)
+		tflog.Debug(ctx, "SecretScanningPushProtectionEnabledForNewRepos", map[string]any{"settings_secret_scanning_push_protection_enabled_for_new_repos": *settings.SecretScanningPushProtectionEnabledForNewRepos})
 	}
 
 	orgSettings, _, err := client.Organizations.Edit(ctx, org, settings)
 	if err != nil {
 		// Log detailed error information for debugging
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
-			log.Printf("[DEBUG] GitHub API Error: Status=%d, Message=%s", ghErr.Response.StatusCode, ghErr.Message)
+			tflog.Debug(ctx, "GitHub API error", map[string]any{"status_code": ghErr.Response.StatusCode, "message": ghErr.Message})
 			if len(ghErr.Errors) > 0 {
 				for i, apiErr := range ghErr.Errors {
-					log.Printf("[DEBUG]   Error[%d]: Resource=%s, Field=%s, Code=%s, Message=%s",
-						i, apiErr.Resource, apiErr.Field, apiErr.Code, apiErr.Message)
+					tflog.Debug(ctx, "GitHub API validation error", map[string]any{"error_index": i, "resource": apiErr.Resource, "field": apiErr.Field, "code": apiErr.Code, "message": apiErr.Message})
 				}
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 	id := strconv.FormatInt(orgSettings.GetID(), 10)
 	d.SetId(id)
 
-	return resourceGithubOrganizationSettingsRead(d, meta)
+	return resourceGithubOrganizationSettingsRead(ctx, d, meta)
 }
 
-func resourceGithubOrganizationSettingsRead(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationSettingsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
+
 	org := meta.(*Owner).name
 
 	orgSettings, _, err := client.Organizations.Get(ctx, org)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err = d.Set("billing_email", orgSettings.GetBillingEmail()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("company", orgSettings.GetCompany()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("email", orgSettings.GetEmail()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("twitter_username", orgSettings.GetTwitterUsername()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("location", orgSettings.GetLocation()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("name", orgSettings.GetName()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("description", orgSettings.GetDescription()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("has_organization_projects", orgSettings.GetHasOrganizationProjects()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("has_repository_projects", orgSettings.GetHasRepositoryProjects()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("default_repository_permission", orgSettings.GetDefaultRepoPermission()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("members_can_create_repositories", orgSettings.GetMembersCanCreateRepos()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("members_can_create_internal_repositories", orgSettings.GetMembersCanCreateInternalRepos()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("members_can_create_private_repositories", orgSettings.GetMembersCanCreatePrivateRepos()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("members_can_create_public_repositories", orgSettings.GetMembersCanCreatePublicRepos()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("members_can_create_pages", orgSettings.GetMembersCanCreatePages()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("members_can_create_public_pages", orgSettings.GetMembersCanCreatePublicPages()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("members_can_create_private_pages", orgSettings.GetMembersCanCreatePrivatePages()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("members_can_fork_private_repositories", orgSettings.GetMembersCanForkPrivateRepos()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("web_commit_signoff_required", orgSettings.GetWebCommitSignoffRequired()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("blog", orgSettings.GetBlog()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("advanced_security_enabled_for_new_repositories", orgSettings.GetAdvancedSecurityEnabledForNewRepos()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("dependabot_alerts_enabled_for_new_repositories", orgSettings.GetDependabotAlertsEnabledForNewRepos()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("dependabot_security_updates_enabled_for_new_repositories", orgSettings.GetDependabotSecurityUpdatesEnabledForNewRepos()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("dependency_graph_enabled_for_new_repositories", orgSettings.GetDependencyGraphEnabledForNewRepos()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("secret_scanning_enabled_for_new_repositories", orgSettings.GetSecretScanningEnabledForNewRepos()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("secret_scanning_push_protection_enabled_for_new_repositories", orgSettings.GetSecretScanningPushProtectionEnabledForNewRepos()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	return nil
 }
 
-func resourceGithubOrganizationSettingsDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationSettingsDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	org := meta.(*Owner).name
-
-	log.Printf("[DEBUG] Reverting Organization Settings to default values: %s", org)
+	tflog.Debug(ctx, "Reverting Organization Settings to default values", map[string]any{"owner": org})
 
 	// Get organization info to determine if it's enterprise
 	orgInfo, _, err := client.Organizations.Get(ctx, org)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// Build minimal settings with only required fields
@@ -546,7 +519,7 @@ func resourceGithubOrganizationSettingsDelete(d *schema.ResourceData, meta any) 
 
 	_, _, err = client.Organizations.Edit(ctx, org, defaultSettings)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

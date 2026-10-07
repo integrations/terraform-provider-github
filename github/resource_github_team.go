@@ -3,11 +3,11 @@ package github
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -178,7 +178,7 @@ func resourceGithubTeamCreate(ctx context.Context, d *schema.ResourceData, m any
 
 	create_default_maintainer := d.Get("create_default_maintainer").(bool)
 	if !create_default_maintainer && membersCount > 0 {
-		log.Printf("[DEBUG] Removing default maintainer from team: %s (%s)", name, ownerName)
+		tflog.Debug(ctx, "Removing default maintainer from team", map[string]any{"name": name, "owner": ownerName})
 		err := removeTeamMembers(ctx, client, ownerName, slug)
 		if err != nil {
 			return diag.FromErr(err)
@@ -250,8 +250,7 @@ func resourceGithubTeamRead(ctx context.Context, d *schema.ResourceData, m any) 
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing team %s from state because it no longer exists in GitHub",
-					d.Id())
+				tflog.Info(ctx, "Removing team from state because it no longer exists in GitHub", map[string]any{"resource_id": d.Id()})
 				d.SetId("")
 				return nil
 			}
@@ -432,8 +431,7 @@ func resourceGithubTeamDelete(ctx context.Context, d *schema.ResourceData, m any
 			if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 				if ghErr.Response.StatusCode == http.StatusNotFound {
 					// If team we failed to delete does not exist, remove it from TF state.
-					log.Printf("[WARN] Removing team: %s from state because it no longer exists",
-						d.Id())
+					tflog.Warn(ctx, "Removing team from state because it no longer exists", map[string]any{"resource_id": d.Id()})
 					d.SetId("")
 					return nil
 				}

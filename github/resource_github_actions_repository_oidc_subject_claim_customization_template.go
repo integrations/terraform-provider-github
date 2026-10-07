@@ -5,16 +5,17 @@ import (
 	"errors"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateCreateOrUpdate,
-		Read:   resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead,
-		Update: resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateCreateOrUpdate,
-		Delete: resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDelete,
+		CreateContext: resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateCreateOrUpdate,
+		ReadContext:   resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead,
+		UpdateContext: resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateCreateOrUpdate,
+		DeleteContext: resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -43,7 +44,7 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate() *sch
 	}
 }
 
-func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateCreateOrUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateCreateOrUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	repository := d.Get("repository").(string)
@@ -53,7 +54,7 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateCreateO
 	includeClaimKeys, hasClaimKeys := d.GetOk("include_claim_keys")
 
 	if useDefault && hasClaimKeys {
-		return errors.New("include_claim_keys cannot be set when use_default is true")
+		return diag.FromErr(errors.New("include_claim_keys cannot be set when use_default is true"))
 	}
 
 	customOIDCSubjectClaimTemplate := github.OIDCSubjectClaimCustomTemplate{
@@ -73,42 +74,40 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateCreateO
 		customOIDCSubjectClaimTemplate.IncludeClaimKeys = claimsStr
 	}
 
-	ctx := context.Background()
 	_, err := client.Actions.SetRepoOIDCSubjectClaimCustomTemplate(ctx, owner, repository, customOIDCSubjectClaimTemplate)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(repository)
-	return resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead(d, meta)
+	return resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead(ctx, d, meta)
 }
 
-func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	repository := d.Id()
 	owner := meta.(*Owner).name
 
-	ctx := context.Background()
 	template, _, err := client.Actions.GetRepoOIDCSubjectClaimCustomTemplate(ctx, owner, repository)
 	if err != nil {
-		return deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "actions repository oidc subject claim customization template (%s, %s)", owner, repository)
+		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(ctx, err, d, "actions repository oidc subject claim customization template", map[string]any{"owner": owner, "repository": repository}))
 	}
 
 	if err = d.Set("repository", repository); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("use_default", template.UseDefault); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("include_claim_keys", template.IncludeClaimKeys); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	// Reset the repository to use the default claims
 	// https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/about-security-hardening-with-openid-connect#using-the-default-subject-claims
 	client := meta.(*Owner).v3client
@@ -120,10 +119,9 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDelete(
 		UseDefault: new(true),
 	}
 
-	ctx := context.Background()
 	_, err := client.Actions.SetRepoOIDCSubjectClaimCustomTemplate(ctx, owner, repository, customOIDCSubjectClaimTemplate)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

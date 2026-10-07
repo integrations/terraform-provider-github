@@ -425,7 +425,7 @@ func resourceGithubRepositoryCollaboratorsRead(ctx context.Context, d *schema.Re
 		ghTeams, err := listTeamCollaborators(ctx, meta, owner, repoName, inTeams, inIgnoreTeams)
 		if err != nil {
 			if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == 404 {
-				tflog.Debug(ctx, fmt.Sprintf("Repository %s not found when listing teams, removing from state.", repoName))
+				tflog.Debug(ctx, "Repository not found when listing teams, removing from state.", map[string]any{"repository": repoName})
 				d.SetId("")
 				return nil
 			}
@@ -440,7 +440,7 @@ func resourceGithubRepositoryCollaboratorsRead(ctx context.Context, d *schema.Re
 	ghUsers, err := listUserCollaborators(ctx, meta, owner, repoName, inIgnoreUsers)
 	if err != nil {
 		if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == 404 {
-			tflog.Debug(ctx, fmt.Sprintf("Repository %s not found when listing users, removing from state.", repoName))
+			tflog.Debug(ctx, "Repository not found when listing users, removing from state.", map[string]any{"repository": repoName})
 			d.SetId("")
 			return nil
 		}
@@ -551,8 +551,7 @@ func resourceGithubRepositoryCollaboratorsDelete(ctx context.Context, d *schema.
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	tflog.Debug(ctx, fmt.Sprintf("Removing all collaborators from repository %s.", repoName))
+	tflog.Debug(ctx, "Removing all collaborators from repository", map[string]any{"repository": repoName})
 
 	if _, err := updateUserCollaboratorsAndInvites(ctx, meta, owner, repoName, nil, nil); err != nil {
 		return diag.FromErr(err)
@@ -740,7 +739,7 @@ func getTeamIdentity(d any) (teamIdentity, error) {
 }
 
 func listUserCollaborators(ctx context.Context, meta *Owner, owner, repoName string, ignoreUsers []string) (userCollaborators, error) {
-	tflog.Debug(ctx, "Listing user collaborators.", map[string]any{"owner": owner, "repoName": repoName})
+	tflog.Debug(ctx, "Listing user collaborators.", map[string]any{"owner": owner, "repository": repoName})
 
 	collaborators := make([]userCollaborator, 0)
 	for _, affiliation := range []string{"direct", "outside"} {
@@ -766,7 +765,7 @@ func listUserCollaborators(ctx context.Context, meta *Owner, owner, repoName str
 }
 
 func listInvitations(ctx context.Context, meta *Owner, owner, repoName string) (userCollaborators, error) {
-	tflog.Debug(ctx, "Listing user invitations.", map[string]any{"owner": owner, "repoName": repoName})
+	tflog.Debug(ctx, "Listing user invitations.", map[string]any{"owner": owner, "repository": repoName})
 
 	collaborators := make([]userCollaborator, 0)
 	for user, err := range meta.v3client.Repositories.ListInvitationsIter(ctx, owner, repoName, &github.ListOptions{PerPage: meta.maxPerPage}) {
@@ -787,7 +786,7 @@ func listInvitations(ctx context.Context, meta *Owner, owner, repoName string) (
 }
 
 func listTeamCollaborators(ctx context.Context, meta *Owner, orgName, repoName string, inTeams teamCollaborators, ignoreTeams []teamIdentity) (teamCollaborators, error) {
-	tflog.Debug(ctx, "Listing team collaborators.", map[string]any{"owner": orgName, "repoName": repoName})
+	tflog.Debug(ctx, "Listing team collaborators.", map[string]any{"owner": orgName, "repository": repoName})
 
 	lookup := make(map[string]teamCollaborator)
 	ignore := len(ignoreTeams) > 0
@@ -844,7 +843,7 @@ func listTeamCollaborators(ctx context.Context, meta *Owner, orgName, repoName s
 }
 
 func updateUserCollaboratorsAndInvites(ctx context.Context, meta *Owner, owner, repoName string, inUsers userCollaborators, ignoreUsers []string) (userCollaborators, error) {
-	tflog.Debug(ctx, "Updating user collaborators and invitations.", map[string]any{"owner": owner, "repoName": repoName, "inUsers": inUsers, "ignoreUsers": ignoreUsers})
+	tflog.Debug(ctx, "Updating user collaborators and invitations.", map[string]any{"owner": owner, "repository": repoName, "inUsers": inUsers, "ignoreUsers": ignoreUsers})
 
 	lookup := make(map[string]userCollaborator)
 	seen := make(map[string]any)
@@ -865,7 +864,7 @@ func updateUserCollaboratorsAndInvites(ctx context.Context, meta *Owner, owner, 
 			seen[ghUser.login] = nil
 
 			if ghUser.permission != inUser.permission {
-				tflog.Info(ctx, fmt.Sprintf("Updating user %s permission from %s to %s for repo %s.", inUser.login, ghUser.permission, inUser.permission, repoName))
+				tflog.Info(ctx, "Updating user repository permission", map[string]any{"username": inUser.login, "old_permission": ghUser.permission, "permission": inUser.permission, "repository": repoName})
 				_, _, err := meta.v3client.Repositories.AddCollaborator(ctx, owner, repoName, inUser.login, &github.RepositoryAddCollaboratorOptions{Permission: inUser.permission})
 				if err != nil {
 					return nil, err
@@ -887,17 +886,17 @@ func updateUserCollaboratorsAndInvites(ctx context.Context, meta *Owner, owner, 
 			seen[ghInvite.login] = nil
 
 			if ghInvite.permission != inInvite.permission {
-				tflog.Info(ctx, fmt.Sprintf("Updating invite for user %s permission from %s to %s for repo %s.", inInvite.login, ghInvite.permission, inInvite.permission, repoName))
+				tflog.Info(ctx, "Updating repository invitation permission", map[string]any{"username": inInvite.login, "old_permission": ghInvite.permission, "permission": inInvite.permission, "repository": repoName})
 				_, _, err := meta.v3client.Repositories.UpdateInvitation(ctx, owner, repoName, *ghInvite.invitationID, inInvite.permission)
 				if err != nil {
 					return nil, err
 				}
 			}
 		} else {
-			tflog.Info(ctx, fmt.Sprintf("Deleting invite for user %s from repo %s.", ghInvite.login, repoName))
+			tflog.Info(ctx, "Deleting repository invitation", map[string]any{"username": ghInvite.login, "repository": repoName})
 			_, err := meta.v3client.Repositories.DeleteInvitation(ctx, owner, repoName, *ghInvite.invitationID)
 			if err != nil {
-				return nil, handleArchivedRepoDelete(err, "repository collaborator invitation", ghInvite.login, owner, repoName)
+				return nil, handleArchivedRepoDelete(ctx, err, "repository collaborator invitation", ghInvite.login, owner, repoName)
 			}
 		}
 	}
@@ -906,8 +905,7 @@ func updateUserCollaboratorsAndInvites(ctx context.Context, meta *Owner, owner, 
 		if _, ok := seen[inUser.login]; ok {
 			continue
 		}
-
-		tflog.Info(ctx, fmt.Sprintf("Inviting user %s to repo %s with permission %s.", inUser.login, repoName, inUser.permission))
+		tflog.Info(ctx, "Inviting user to repository", map[string]any{"username": inUser.login, "repository": repoName, "permission": inUser.permission})
 		inv, _, err := meta.v3client.Repositories.AddCollaborator(ctx, owner, repoName, inUser.login, &github.RepositoryAddCollaboratorOptions{Permission: inUser.permission})
 		if err != nil {
 			return nil, err
@@ -924,14 +922,13 @@ func updateUserCollaboratorsAndInvites(ctx context.Context, meta *Owner, owner, 
 
 	for _, l := range remove {
 		if strings.EqualFold(l, owner) {
-			tflog.Info(ctx, fmt.Sprintf("Skipping removal of user %s who is the owner of repo %s.", l, repoName))
+			tflog.Info(ctx, "Skipping removal of the repository owner", map[string]any{"username": l, "repository": repoName})
 			continue
 		}
-
-		tflog.Info(ctx, fmt.Sprintf("Removing user %s from repo %s.", l, repoName))
+		tflog.Info(ctx, "Removing user from repository", map[string]any{"username": l, "repository": repoName})
 		_, err := meta.v3client.Repositories.RemoveCollaborator(ctx, owner, repoName, l)
 		if err != nil {
-			return nil, handleArchivedRepoDelete(err, "repository collaborator", l, owner, repoName)
+			return nil, handleArchivedRepoDelete(ctx, err, "repository collaborator", l, owner, repoName)
 		}
 	}
 
@@ -962,7 +959,7 @@ func updateTeamCollaborators(ctx context.Context, meta *Owner, orgID int64, orgN
 			seen[teamID] = nil
 
 			if ghTeam.permission != inTeam.permission {
-				tflog.Info(ctx, fmt.Sprintf("Updating team %s permission from %s to %s for repo %s.", slug, ghTeam.permission, inTeam.permission, repoName))
+				tflog.Info(ctx, "Updating team repository permission", map[string]any{"team_slug": slug, "old_permission": ghTeam.permission, "permission": inTeam.permission, "repository": repoName})
 				_, err := meta.v3client.Teams.AddTeamRepoBySlug(ctx, orgName, slug, orgName, repoName, &github.TeamAddTeamRepoOptions{
 					Permission: inTeam.permission,
 				})
@@ -980,8 +977,7 @@ func updateTeamCollaborators(ctx context.Context, meta *Owner, orgID int64, orgN
 		if _, ok := seen[teamID]; ok {
 			continue
 		}
-
-		tflog.Info(ctx, fmt.Sprintf("Adding team %s to repo %s with permission %s.", teamID, repoName, inTeam.permission))
+		tflog.Info(ctx, "Adding team to repository", map[string]any{"team_id": teamID, "repository": repoName, "permission": inTeam.permission})
 		if slug, ok := inTeam.getSlugOK(); ok {
 			_, err := meta.v3client.Teams.AddTeamRepoBySlug(ctx, orgName, slug, orgName, repoName, &github.TeamAddTeamRepoOptions{Permission: inTeam.permission})
 			if err != nil {
@@ -996,10 +992,10 @@ func updateTeamCollaborators(ctx context.Context, meta *Owner, orgID int64, orgN
 	}
 
 	for _, s := range remove {
-		tflog.Info(ctx, fmt.Sprintf("Removing team %s from repo %s.", s, repoName))
+		tflog.Info(ctx, "Removing team from repository", map[string]any{"team_slug": s, "repository": repoName})
 		_, err := meta.v3client.Teams.RemoveTeamRepoBySlug(ctx, orgName, s, orgName, repoName)
 		if err != nil {
-			return handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %s", s), orgName, repoName)
+			return handleArchivedRepoDelete(ctx, err, "team repository access", fmt.Sprintf("team %s", s), orgName, repoName)
 		}
 	}
 

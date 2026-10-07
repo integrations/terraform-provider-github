@@ -93,7 +93,7 @@ func resourceGithubRepositoryEnvironmentStateUpgradeV0(ctx context.Context, rawS
 	client := meta.v3client
 	owner := meta.name
 
-	tflog.Debug(ctx, "Starting state upgrade for GitHub Repository Environment.", map[string]any{"raw_state": rawState})
+	tflog.Debug(ctx, "Starting state upgrade for GitHub Repository Environment.", map[string]any{"field_count": len(rawState)})
 
 	repoName, ok := rawState["repository"].(string)
 	if !ok {
@@ -107,7 +107,7 @@ func resourceGithubRepositoryEnvironmentStateUpgradeV0(ctx context.Context, rawS
 
 	rawState["repository_id"] = int(repo.GetID())
 
-	tflog.Debug(ctx, "Completed state upgrade for GitHub Repository Environment.", map[string]any{"upgraded_state": rawState})
+	tflog.Debug(ctx, "Completed state upgrade for GitHub Repository Environment.", map[string]any{"field_count": len(rawState)})
 
 	return rawState, nil
 }

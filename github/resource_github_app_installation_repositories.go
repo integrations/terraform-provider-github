@@ -2,19 +2,20 @@ package github
 
 import (
 	"context"
-	"log"
 	"strconv"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubAppInstallationRepositories() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubAppInstallationRepositoriesCreateOrUpdate,
-		Read:   resourceGithubAppInstallationRepositoriesRead,
-		Update: resourceGithubAppInstallationRepositoriesCreateOrUpdate,
-		Delete: resourceGithubAppInstallationRepositoriesDelete,
+		CreateContext: resourceGithubAppInstallationRepositoriesCreateOrUpdate,
+		ReadContext:   resourceGithubAppInstallationRepositoriesRead,
+		UpdateContext: resourceGithubAppInstallationRepositoriesCreateOrUpdate,
+		DeleteContext: resourceGithubAppInstallationRepositoriesDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -39,7 +40,7 @@ func resourceGithubAppInstallationRepositories() *schema.Resource {
 	}
 }
 
-func resourceGithubAppInstallationRepositoriesCreateOrUpdate(d *schema.ResourceData, m any) error {
+func resourceGithubAppInstallationRepositoriesCreateOrUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
@@ -47,7 +48,7 @@ func resourceGithubAppInstallationRepositoriesCreateOrUpdate(d *schema.ResourceD
 	installationIDString := d.Get("installation_id").(string)
 	selectedRepositories := d.Get("selected_repositories")
 
-	ctx := context.WithValue(context.Background(), ctxId, installationIDString)
+	ctx = context.WithValue(ctx, ctxId, installationIDString)
 
 	selectedRepositoryNames := []string{}
 
@@ -56,9 +57,9 @@ func resourceGithubAppInstallationRepositoriesCreateOrUpdate(d *schema.ResourceD
 		selectedRepositoryNames = append(selectedRepositoryNames, name.(string))
 	}
 
-	currentReposNameIDs, instID, err := getAllAccessibleRepos(meta, installationIDString)
+	currentReposNameIDs, instID, err := getAllAccessibleRepos(ctx, meta, installationIDString)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// Add repos that are not in the current state on GitHub
@@ -69,13 +70,13 @@ func resourceGithubAppInstallationRepositoriesCreateOrUpdate(d *schema.ResourceD
 		} else {
 			repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 			if err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 			repoID := repo.GetID()
-			log.Printf("[DEBUG]: Adding %v:%v to app installation %v", repoName, repoID, instID)
+			tflog.Debug(ctx, "Adding repository to app installation", map[string]any{"repository": repoName, "repository_id": repoID, "installation_id": instID})
 			_, _, err = client.Apps.AddRepository(ctx, instID, repoID)
 			if err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 		}
 	}
@@ -86,25 +87,25 @@ func resourceGithubAppInstallationRepositoriesCreateOrUpdate(d *schema.ResourceD
 	// as there is no current API endpoint for [un]installation. Ensure there is at least one repository remaining.
 	if len(selectedRepositoryNames) >= 1 {
 		for repoName, repoID := range currentReposNameIDs {
-			log.Printf("[DEBUG]: Removing %v:%v from app installation %v", repoName, repoID, instID)
+			tflog.Debug(ctx, "Removing repository from app installation", map[string]any{"repository": repoName, "repository_id": repoID, "installation_id": instID})
 			_, err = client.Apps.RemoveRepository(ctx, instID, repoID)
 			if err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 		}
 	}
 
 	d.SetId(installationIDString)
-	return resourceGithubAppInstallationRepositoriesRead(d, meta)
+	return resourceGithubAppInstallationRepositoriesRead(ctx, d, meta)
 }
 
-func resourceGithubAppInstallationRepositoriesRead(d *schema.ResourceData, m any) error {
+func resourceGithubAppInstallationRepositoriesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	installationIDString := d.Id()
 
-	reposNameIDs, _, err := getAllAccessibleRepos(meta, installationIDString)
+	reposNameIDs, _, err := getAllAccessibleRepos(ctx, meta, installationIDString)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	repoNames := []string{}
@@ -114,32 +115,30 @@ func resourceGithubAppInstallationRepositoriesRead(d *schema.ResourceData, m any
 
 	if len(reposNameIDs) > 0 {
 		if err = d.Set("installation_id", installationIDString); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		if err = d.Set("selected_repositories", repoNames); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		return nil
 	}
-
-	log.Printf("[INFO] Removing app installation repository association %s from state because it no longer exists in GitHub",
-		d.Id())
+	tflog.Info(ctx, "Removing app installation repository association from state because it no longer exists in GitHub", map[string]any{"resource_id": d.Id()})
 	d.SetId("")
 	return nil
 }
 
-func resourceGithubAppInstallationRepositoriesDelete(d *schema.ResourceData, m any) error {
+func resourceGithubAppInstallationRepositoriesDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 
 	installationIDString := d.Get("installation_id").(string)
 
-	reposNameIDs, instID, err := getAllAccessibleRepos(meta, installationIDString)
+	reposNameIDs, instID, err := getAllAccessibleRepos(ctx, meta, installationIDString)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.v3client
-	ctx := context.WithValue(context.Background(), ctxId, installationIDString)
+	ctx = context.WithValue(ctx, ctxId, installationIDString)
 
 	// There is a github limitation that means we can't remove the last repository from an installation.
 	// Therefore, we skip the first and delete the rest. The app will then need to be uninstalled via the GUI
@@ -148,26 +147,26 @@ func resourceGithubAppInstallationRepositoriesDelete(d *schema.ResourceData, m a
 	for repoName, repoID := range reposNameIDs {
 		if first {
 			first = false
-			log.Printf("[WARN]: Cannot remove %v:%v from app installation %v as there must remain at least one repository selected due to API limitations. Manually uninstall the app to remove.", repoName, repoID, instID)
+			tflog.Warn(ctx, "Cannot remove the last repository from an app installation due to API limitations. Manually uninstall the app to remove.", map[string]any{"repository": repoName, "repository_id": repoID, "installation_id": instID})
 			continue
 		} else {
 			_, err = client.Apps.RemoveRepository(ctx, instID, repoID)
-			log.Printf("[DEBUG]: Removing %v:%v from app installation %v", repoName, repoID, instID)
+			tflog.Debug(ctx, "Removing repository from app installation", map[string]any{"repository": repoName, "repository_id": repoID, "installation_id": instID})
 			if err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 		}
 	}
 	return nil
 }
 
-func getAllAccessibleRepos(meta *Owner, idString string) (map[string]int64, int64, error) {
+func getAllAccessibleRepos(ctx context.Context, meta *Owner, idString string) (map[string]int64, int64, error) {
 	installationID, err := strconv.ParseInt(idString, 10, 64)
 	if err != nil {
 		return nil, 0, unconvertibleIdErr(idString, err)
 	}
 
-	ctx := context.WithValue(context.Background(), ctxId, idString)
+	ctx = context.WithValue(ctx, ctxId, idString)
 	opt := &github.ListOptions{PerPage: meta.maxPerPage}
 	client := meta.v3client
 

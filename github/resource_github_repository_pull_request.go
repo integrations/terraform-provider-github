@@ -3,22 +3,23 @@ package github
 import (
 	"context"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubRepositoryPullRequest() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryPullRequestCreate,
-		Read:   resourceGithubRepositoryPullRequestRead,
-		Update: resourceGithubRepositoryPullRequestUpdate,
-		Delete: resourceGithubRepositoryPullRequestDelete,
+		CreateContext: resourceGithubRepositoryPullRequestCreate,
+		ReadContext:   resourceGithubRepositoryPullRequestRead,
+		UpdateContext: resourceGithubRepositoryPullRequestUpdate,
+		DeleteContext: resourceGithubRepositoryPullRequestDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+			StateContext: func(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
 				_, baseRepository, _, err := parsePullRequestID(d)
 				if err != nil {
 					return nil, err
@@ -135,8 +136,7 @@ func resourceGithubRepositoryPullRequest() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryPullRequestCreate(d *schema.ResourceData, meta any) error {
-	ctx := context.Background()
+func resourceGithubRepositoryPullRequestCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	// For convenience, by default we expect that the base repository and head
@@ -171,89 +171,88 @@ func resourceGithubRepositoryPullRequestCreate(d *schema.ResourceData, meta any)
 		MaintainerCanModify: new(maintainerCanModify),
 	})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(buildThreePartID(baseOwner, baseRepository, strconv.Itoa(pullRequest.GetNumber())))
 
-	return resourceGithubRepositoryPullRequestRead(d, meta)
+	return resourceGithubRepositoryPullRequestRead(ctx, d, meta)
 }
 
-func resourceGithubRepositoryPullRequestRead(d *schema.ResourceData, meta any) error {
-	ctx := context.Background()
+func resourceGithubRepositoryPullRequestRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	owner, repository, number, err := parsePullRequestID(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	pullRequest, _, err := client.PullRequests.Get(ctx, owner, repository, number)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err = d.Set("number", pullRequest.GetNumber()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if head := pullRequest.GetHead(); head != nil {
 		if err = d.Set("head_ref", head.GetRef()); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		if err = d.Set("head_sha", head.GetSHA()); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	} else {
 		// Totally unexpected condition. Better do that than segfault, I guess?
-		log.Printf("[INFO] Head branch missing, expected %s", d.Get("head_ref"))
+		tflog.Info(ctx, "Head branch missing", map[string]any{"head_ref": d.Get("head_ref")})
 		d.SetId("")
 		return nil
 	}
 
 	if base := pullRequest.GetBase(); base != nil {
 		if err = d.Set("base_ref", base.GetRef()); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		if err = d.Set("base_sha", base.GetSHA()); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	} else {
 		// Seme logic as with the missing head branch.
-		log.Printf("[INFO] Base branch missing, expected %s", d.Get("base_ref"))
+		tflog.Info(ctx, "Base branch missing", map[string]any{"base_ref": d.Get("base_ref")})
 		d.SetId("")
 		return nil
 	}
 
 	if err = d.Set("body", pullRequest.GetBody()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("title", pullRequest.GetTitle()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("draft", pullRequest.GetDraft()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("maintainer_can_modify", pullRequest.GetMaintainerCanModify()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("number", pullRequest.GetNumber()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("state", pullRequest.GetState()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("opened_at", pullRequest.GetCreatedAt().Unix()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("updated_at", pullRequest.GetUpdatedAt().Unix()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if user := pullRequest.GetUser(); user != nil {
 		if err = d.Set("opened_by", user.GetLogin()); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
@@ -262,19 +261,18 @@ func resourceGithubRepositoryPullRequestRead(d *schema.ResourceData, meta any) e
 		labels = append(labels, label.GetName())
 	}
 	if err = d.Set("labels", labels); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubRepositoryPullRequestUpdate(d *schema.ResourceData, meta any) error {
-	ctx := context.Background()
+func resourceGithubRepositoryPullRequestUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	owner, repository, number, err := parsePullRequestID(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	update := &github.PullRequest{
@@ -291,19 +289,19 @@ func resourceGithubRepositoryPullRequestUpdate(d *schema.ResourceData, meta any)
 
 	_, _, err = client.PullRequests.Edit(ctx, owner, repository, number, update)
 	if err == nil {
-		return resourceGithubRepositoryPullRequestRead(d, meta)
+		return resourceGithubRepositoryPullRequestRead(ctx, d, meta)
 	}
 
 	errs := []string{fmt.Sprintf("could not update the Pull Request: %v", err)}
 
-	if err := resourceGithubRepositoryPullRequestRead(d, meta); err != nil {
-		errs = append(errs, fmt.Sprintf("could not read the Pull Request after the failed update: %v", err))
+	if diags := resourceGithubRepositoryPullRequestRead(ctx, d, meta); diags.HasError() {
+		errs = append(errs, fmt.Sprintf("could not read the Pull Request after the failed update: %s", diags[0].Summary))
 	}
 
-	return fmt.Errorf("%s", strings.Join(errs, ", "))
+	return diag.FromErr(fmt.Errorf("%s", strings.Join(errs, ", ")))
 }
 
-func resourceGithubRepositoryPullRequestDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryPullRequestDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	// It's not entirely clear how to treat PR deletion according to Terraform's
 	// CRUD semantics. The approach we're taking here is to close the PR unless
 	// it's already closed or merged. Merging it feels intuitively wrong in what
@@ -313,17 +311,16 @@ func resourceGithubRepositoryPullRequestDelete(d *schema.ResourceData, meta any)
 		return nil
 	}
 
-	ctx := context.Background()
 	client := meta.(*Owner).v3client
 
 	owner, repository, number, err := parsePullRequestID(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	update := &github.PullRequest{State: new("closed")}
 	if _, _, err = client.PullRequests.Edit(ctx, owner, repository, number, update); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId("")
