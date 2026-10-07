@@ -205,6 +205,42 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 											ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"merge", "squash", "rebase"}, false)),
 										},
 									},
+									"dismissal_restriction": {
+										Type:        schema.TypeList,
+										MaxItems:    1,
+										Optional:    true,
+										Description: "Restrict who may dismiss pull request reviews. Omit the block to leave dismissal unrestricted.",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"enabled": {
+													Type:        schema.TypeBool,
+													Optional:    true,
+													Default:     true,
+													Description: "Whether review dismissal is restricted. Defaults to `true`.",
+												},
+												"allowed_actors": {
+													Type:        schema.TypeList,
+													Optional:    true,
+													Description: "The actors allowed to dismiss reviews. An empty list restricts dismissal to those who can bypass the ruleset.",
+													Elem: &schema.Resource{
+														Schema: map[string]*schema.Schema{
+															"actor_id": {
+																Type:        schema.TypeInt,
+																Required:    true,
+																Description: "The ID of the actor that can dismiss reviews.",
+															},
+															"actor_type": {
+																Type:             schema.TypeString,
+																Required:         true,
+																ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"User", "Team", "IntegrationInstallation", "RepositoryRole"}, false)),
+																Description:      "The type of actor that can dismiss reviews. Can be one of: `User`, `Team`, `IntegrationInstallation`, `RepositoryRole`. Note that an app is `IntegrationInstallation` here, where a bypass actor is `Integration`.",
+															},
+														},
+													},
+												},
+											},
+										},
+									},
 									"dismiss_stale_reviews_on_push": {
 										Type:        schema.TypeBool,
 										Optional:    true,

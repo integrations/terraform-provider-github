@@ -92,6 +92,46 @@ func flattenRequiredReviewers(reviewers []*github.RulesetRequiredReviewer) []map
 	return reviewersList
 }
 
+func expandDismissalRestriction(input map[string]any) *github.DismissalRestriction {
+	restriction := &github.DismissalRestriction{
+		Enabled: input["enabled"].(bool),
+	}
+
+	if actors, ok := input["allowed_actors"].([]any); ok {
+		for _, item := range actors {
+			actorMap := item.(map[string]any)
+			restriction.AllowedActors = append(restriction.AllowedActors, &github.DismissalRestrictionActor{
+				ID:   toInt64(actorMap["actor_id"]),
+				Type: github.DismissalRestrictionActorType(actorMap["actor_type"].(string)),
+			})
+		}
+	}
+
+	return restriction
+}
+
+// A ruleset always reports a dismissal restriction, disabled and empty where
+// none is set, so a configuration without the block would otherwise read back
+// as a block and diff forever.
+func flattenDismissalRestriction(restriction *github.DismissalRestriction) []map[string]any {
+	if restriction == nil || (!restriction.Enabled && len(restriction.AllowedActors) == 0) {
+		return nil
+	}
+
+	actors := make([]map[string]any, 0, len(restriction.AllowedActors))
+	for _, actor := range restriction.AllowedActors {
+		actors = append(actors, map[string]any{
+			"actor_id":   int(actor.ID),
+			"actor_type": string(actor.Type),
+		})
+	}
+
+	return []map[string]any{{
+		"enabled":        restriction.Enabled,
+		"allowed_actors": actors,
+	}}
+}
+
 func resourceGithubRulesetObject(d *schema.ResourceData, org string) github.RepositoryRuleset {
 	isOrgLevel := len(org) > 0
 
@@ -452,6 +492,11 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 			params.RequiredReviewers = expandRequiredReviewers(reqReviewers)
 		}
 
+		// Add the dismissal restriction if provided
+		if restriction, ok := pullRequestMap["dismissal_restriction"].([]any); ok && len(restriction) != 0 && restriction[0] != nil {
+			params.DismissalRestriction = expandDismissalRestriction(restriction[0].(map[string]any))
+		}
+
 		rulesetRules.PullRequest = params
 	}
 
@@ -703,6 +748,7 @@ func flattenRules(ctx context.Context, rules *github.RepositoryRulesetRules, org
 			"required_review_thread_resolution": rules.PullRequest.RequiredReviewThreadResolution,
 			"allowed_merge_methods":             rules.PullRequest.AllowedMergeMethods,
 			"required_reviewers":                flattenRequiredReviewers(rules.PullRequest.RequiredReviewers),
+			"dismissal_restriction":             flattenDismissalRestriction(rules.PullRequest.DismissalRestriction),
 		})
 		tflog.Debug(ctx, "Flattened Pull Request rules slice", map[string]any{"pull_request": pullRequestSlice})
 		rulesMap["pull_request"] = pullRequestSlice
