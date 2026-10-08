@@ -62,6 +62,7 @@ func resourceGithubTeamMembers() *schema.Resource {
 			"members": {
 				Type:        schema.TypeSet,
 				Required:    true,
+				Set:         hashTeamMember,
 				Description: "List of users that should be members of the team.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -83,6 +84,18 @@ func resourceGithubTeamMembers() *schema.Resource {
 			},
 		},
 	}
+}
+
+// hashTeamMember keys a members block on the lowercased username. GitHub logins
+// are case-insensitive and the API returns the canonical casing, so without this
+// a configured login that differs only in case lands on a different set key than
+// the one read back, and every plan removes and re-adds the member.
+func hashTeamMember(v any) int {
+	m, _ := v.(map[string]any)
+	username, _ := m["username"].(string)
+	role, _ := m["role"].(string)
+
+	return schema.HashString(strings.ToLower(username) + ":" + role)
 }
 
 func resourceGithubTeamMembersCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {

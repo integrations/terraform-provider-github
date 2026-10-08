@@ -57,6 +57,41 @@ resource "github_team_members" "test" {
 		})
 	})
 
+	t.Run("members_are_case_insensitive", func(t *testing.T) {
+		t.Parallel()
+
+		team := mustCreateTestTeam(t)
+
+		config := func(username string) string {
+			return fmt.Sprintf(`
+resource "github_team_members" "test" {
+  team_slug = "%s"
+
+  members {
+    username = "%s"
+    role     = "member"
+  }
+}
+`, team.GetSlug(), username)
+		}
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config(testAccConf.testOrgUser1),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_members.test", tfjsonpath.New("members"), knownvalue.SetSizeExact(1)),
+					},
+				},
+				{
+					Config:   config(flipUsernameCase(testAccConf.testOrgUser1)),
+					PlanOnly: true,
+				},
+			},
+		})
+	})
+
 	t.Run("team_by_id_as_slug", func(t *testing.T) {
 		t.Parallel()
 
@@ -430,4 +465,24 @@ resource "github_team_members" "test" {
 			},
 		})
 	})
+}
+
+func Test_hashTeamMember(t *testing.T) {
+	t.Parallel()
+
+	member := func(username, role string) map[string]any {
+		return map[string]any{"username": username, "role": role}
+	}
+
+	if hashTeamMember(member("OctoCat", "member")) != hashTeamMember(member("octocat", "member")) {
+		t.Error("expected the same hash for a username that differs only in case")
+	}
+
+	if hashTeamMember(member("OctoCat", "member")) == hashTeamMember(member("OctoCat", "maintainer")) {
+		t.Error("expected different hashes for different roles")
+	}
+
+	if hashTeamMember(member("OctoCat", "member")) == hashTeamMember(member("octodog", "member")) {
+		t.Error("expected different hashes for different usernames")
+	}
 }
