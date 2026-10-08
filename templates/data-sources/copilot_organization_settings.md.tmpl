@@ -1,0 +1,33 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Reads the GitHub Copilot settings for an organization.
+---
+
+# {{.Name}} ({{.Type}})
+
+Use this data source to read the GitHub Copilot settings and seat breakdown for an organization.
+
+~> **Note** This data source requires the organization to have a Copilot Business or Enterprise subscription.
+
+## Example Usage
+
+{{ tffile "examples/data-sources/github_copilot_organization_settings/data-source.tf" }}
+
+## Argument Reference
+
+No arguments are required. The data source reads settings for the provider's configured organization.
+
+## Attributes Reference
+
+The following attributes are exported:
+
+- `seat_management_setting` - How Copilot seats are assigned: `assign_selected`, `all_members`, or `unconfigured`.
+- `public_code_suggestions` - Whether Copilot can suggest code matching public repositories: `allow` or `block`.
+- `seat_breakdown` - Breakdown of Copilot seat usage. Contains:
+  - `total` - Total number of Copilot seats.
+  - `added_this_cycle` - Seats added in the current billing cycle.
+  - `pending_invitation` - Seats pending invitation acceptance.
+  - `pending_cancellation` - Seats pending cancellation.
+  - `active_this_cycle` - Seats active in the current billing cycle.
+  - `inactive_this_cycle` - Seats inactive in the current billing cycle.
