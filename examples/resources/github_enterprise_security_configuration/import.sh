@@ -1,0 +1,1 @@
+terraform import github_enterprise_security_configuration.default my-enterprise:123
