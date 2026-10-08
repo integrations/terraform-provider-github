@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-testing/compare"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -372,6 +373,48 @@ source {
 					ResourceName:  "github_repository_pages.test",
 					ImportState:   true,
 					ImportStateId: repoName,
+				},
+			},
+		})
+	})
+
+	t.Run("adopts_existing_pages", func(t *testing.T) {
+		t.Parallel()
+		skipUnauthenticated(t)
+
+		repo := mustCreateTestRepository(t, func(r *github.Repository) {
+			r.Visibility = new(testAccConf.testRepositoryVisibility)
+		})
+		if _, _, err := testAccConf.meta.v3client.Repositories.EnablePages(t.Context(), testAccConf.meta.name, repo.GetName(), &github.Pages{BuildType: new("workflow")}); err != nil {
+			t.Fatalf("failed to enable pages on test repository %s: %v", repo.GetName(), err)
+		}
+
+		config := fmt.Sprintf(`
+			resource "github_repository_pages" "test" {
+				repository = "%s"
+				build_type = "legacy"
+				source {
+					branch = "main"
+					path   = "/"
+				}
+			}
+		`, repo.GetName())
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_pages.test", plancheck.ResourceActionCreate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_pages.test", tfjsonpath.New("repository_id"), knownvalue.Int64Exact(repo.GetID())),
+						statecheck.ExpectKnownValue("github_repository_pages.test", tfjsonpath.New("build_type"), knownvalue.StringExact("legacy")),
+						statecheck.ExpectKnownValue("github_repository_pages.test", tfjsonpath.New("source").AtSliceIndex(0).AtMapKey("branch"), knownvalue.StringExact("main")),
+					},
 				},
 			},
 		})
