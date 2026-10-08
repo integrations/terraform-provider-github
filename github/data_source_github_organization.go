@@ -44,6 +44,14 @@ func dataSourceGithubOrganization() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"plan_seats": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+			"plan_filled_seats": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
 			"repositories": {
 				Type:     schema.TypeList,
 				Computed: true,
@@ -165,9 +173,12 @@ func dataSourceGithubOrganizationRead(ctx context.Context, d *schema.ResourceDat
 	}
 
 	var planName string
+	var planSeats, planFilledSeats int
 
 	if plan := organization.GetPlan(); plan != nil {
 		planName = plan.GetName()
+		planSeats = plan.GetSeats()
+		planFilledSeats = plan.GetFilledSeats()
 	}
 
 	opts := &github.RepositoryListByOrgOptions{
@@ -278,6 +289,8 @@ func dataSourceGithubOrganizationRead(ctx context.Context, d *schema.ResourceDat
 	_ = d.Set("node_id", organization.GetNodeID())
 	_ = d.Set("description", organization.GetDescription())
 	_ = d.Set("plan", planName)
+	_ = d.Set("plan_seats", planSeats)
+	_ = d.Set("plan_filled_seats", planFilledSeats)
 
 	return nil
 }
