@@ -145,6 +145,10 @@ func TestMain(m *testing.M) {
 		testRepositoryVisibility:          "public",
 	}
 
+	if i, err := strconv.Atoi(os.Getenv("GH_TEST_EXTERNAL_GROUP1_ID")); err == nil {
+		conf.testExternalGroup1ID = i
+	}
+
 	if conf.authMode != anonymous {
 		conf.owner = os.Getenv("GITHUB_OWNER")
 		conf.token = os.Getenv("GITHUB_TOKEN")

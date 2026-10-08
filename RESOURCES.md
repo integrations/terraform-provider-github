@@ -113,6 +113,7 @@ The overall status of each resource or data source is captured in this document 
 | `github_rest_api` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_ssh_keys` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
 | `github_team` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `github_team_external_groups` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_team_members` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_team_repositories` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_tree` | ⚠️ | ✅ | ❓ | ❓ | ❓ | ❓ |
