@@ -6,6 +6,8 @@ description: |-
 
 # github_organization_custom_properties (Data Source)
 
+~> **Deprecated:** Use the [`github_organization_repository_custom_properties`](organization_repository_custom_properties) data source instead. This data source will be removed in a future major release.
+
 Use this data source to retrieve information about a GitHub organization custom property.
 
 ## Example Usage
