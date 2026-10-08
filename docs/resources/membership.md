@@ -20,13 +20,27 @@ resource "github_membership" "membership_for_some_user" {
 }
 ```
 
+## Example Usage with Downgrade on Destroy
+
+```terraform
+# Downgrade a member to an outside collaborator when the resource is destroyed
+resource "github_membership" "outside_collaborator_on_destroy" {
+  username = "SomeUser"
+  role     = "member"
+
+  downgrade_on_destroy = true
+  downgrade_to         = "outside_collaborator"
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
 
 - `username` - (Required) The user to add to the organization.
 - `role` - (Optional) The role of the user within the organization. Must be one of `member` or `admin`. Defaults to `member`. `admin` role represents the `owner` role available via GitHub UI.
-- `downgrade_on_destroy` - (Optional) Defaults to `false`. If set to true, when this resource is destroyed, the member will not be removed from the organization. Instead, the member's role will be downgraded to 'member'.
+- `downgrade_on_destroy` - (Optional) Defaults to `false`. Instead of removing the member from the org, you can choose to downgrade their membership when this resource is destroyed. This is useful when wanting to downgrade admins while keeping them in the organization, or to downgrade members while keeping their access to public repositories intact.
+- `downgrade_to` - (Optional) The target membership state when `downgrade_on_destroy` is true. Must be one of `member` or `outside_collaborator`. Defaults to `member`.
 
 ## Import
 
