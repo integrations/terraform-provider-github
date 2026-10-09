@@ -290,29 +290,75 @@ func TestMigrationLoggingOmitsSecrets(t *testing.T) {
 	t.Parallel()
 
 	for name, upgrade := range map[string]schema.StateUpgradeFunc{
-		"repository webhook":   resourceGithubRepositoryWebhookInstanceStateUpgradeV0,
-		"organization webhook": resourceGithubOrganizationWebhookInstanceStateUpgradeV0,
-		"actions secret":       resourceGithubActionsSecretStateUpgradeV0,
+		"repository webhook":          resourceGithubRepositoryWebhookInstanceStateUpgradeV0,
+		"organization webhook":        resourceGithubOrganizationWebhookInstanceStateUpgradeV0,
+		"actions secret v0":           resourceGithubActionsSecretStateUpgradeV0,
+		"actions secret v1":           resourceGithubActionsSecretStateUpgradeV1,
+		"actions environment secret":  resourceGithubActionsEnvironmentSecretStateUpgradeV0,
+		"actions organization secret": resourceGithubActionsOrganizationSecretStateUpgradeV0,
+		"dependabot secret":           resourceGithubDependabotSecretStateUpgradeV0,
+		"repository file":             resourceGithubRepositoryFileStateUpgradeV0,
 	} {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
 			const secret = "test-sensitive-value-not-for-logging"
 			state := map[string]any{
+				"repository":           "repo",
+				"environment":          "production",
+				"secret_name":          "EXAMPLE",
+				"file":                 "config.txt",
+				"content":              secret,
 				"configuration.secret": secret,
 				"plaintext_value":      secret,
 				"encrypted_value":      secret,
 			}
 			var output bytes.Buffer
-			ctx := tflogtest.RootLogger(t.Context(), &output)
-			if _, err := upgrade(ctx, state, nil); err != nil {
+			ctx := loggingTestContext(t, &output)
+			client, err := goGithub.NewClient(goGithub.WithTransport(&mockRoundTripper{
+				roundTripFunc: func(req *http.Request) (*http.Response, error) {
+					assertLoggingRequestContext(t, req, ctx)
+					if req.Method != http.MethodGet || req.URL.Path != "/repos/owner/repo" {
+						t.Fatalf("unexpected migration request: %s %s", req.Method, req.URL.Path)
+					}
+					return &http.Response{
+						StatusCode: http.StatusOK,
+						Body:       io.NopCloser(strings.NewReader(`{"id":123,"default_branch":"main"}`)),
+						Request:    req,
+					}, nil
+				},
+			}))
+			if err != nil {
 				t.Fatal(err)
 			}
-			if output.Len() == 0 {
-				t.Fatal("migration did not use the context logger")
+			beforeCount := len(state)
+			migratedState, err := upgrade(ctx, state, &Owner{name: "owner", v3client: client})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if migratedState["plaintext_value"] != secret || migratedState["encrypted_value"] != secret || migratedState["content"] != secret {
+				t.Fatal("migration did not preserve sensitive state values")
 			}
 			if strings.Contains(output.String(), secret) {
 				t.Fatal("migration logged sensitive state values")
+			}
+			entries, err := tflogtest.MultilineJSONDecode(&output)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(entries) != 2 {
+				t.Fatalf("expected migration start and completion logs, got %d", len(entries))
+			}
+			for i, fieldCount := range []int{beforeCount, len(migratedState)} {
+				expected := map[string]any{
+					"@level":         "debug",
+					"@module":        "provider",
+					"correlation_id": "test-operation",
+					"field_count":    float64(fieldCount),
+				}
+				if findLogEntry(entries[i:i+1], expected) == nil {
+					t.Fatalf("migration log is missing expected fields %v; got %v", expected, entries[i])
+				}
 			}
 		})
 	}
