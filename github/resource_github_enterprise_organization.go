@@ -24,6 +24,72 @@ func isSAMLEnforcementError(err error) bool {
 	return strings.Contains(err.Error(), "Resource protected by organization SAML enforcement")
 }
 
+// organizationClients returns clients that can act on the organization. With a GitHub App these are
+// the clients of the app installation on that organization; otherwise the provider clients.
+func organizationClients(ctx context.Context, meta *Owner, orgName string) (*github.Client, *githubv4.Client, error) {
+	if meta.appSource == nil {
+		return meta.v3client, meta.v4client, nil
+	}
+
+	v3, err := meta.appSource.OwnerRESTClient(ctx, orgName)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	v4, err := meta.appSource.OwnerGraphQLClient(ctx, orgName)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return v3, v4, nil
+}
+
+// installAppOnOrganization installs the authenticated GitHub App on an enterprise-owned organization
+// so that the app can manage the organization it just created.
+func installAppOnOrganization(ctx context.Context, meta *Owner, enterpriseId, orgName string) error {
+	appClient, err := meta.appSource.RESTClient()
+	if err != nil {
+		return err
+	}
+
+	app, _, err := appClient.Apps.Get(ctx, "")
+	if err != nil {
+		return fmt.Errorf("could not read the authenticated GitHub App: %w", err)
+	}
+
+	enterpriseSlug, err := getEnterpriseSlug(ctx, meta.v4client, enterpriseId)
+	if err != nil {
+		return err
+	}
+
+	_, _, err = meta.v3client.Enterprise.InstallApp(ctx, enterpriseSlug, orgName, github.InstallAppRequest{
+		ClientID:            app.GetClientID(),
+		RepositorySelection: "all",
+	})
+	if err != nil {
+		return fmt.Errorf("could not install GitHub App %q on organization %q: %w", app.GetSlug(), orgName, err)
+	}
+
+	return nil
+}
+
+func getEnterpriseSlug(ctx context.Context, v4 *githubv4.Client, enterpriseId string) (string, error) {
+	var query struct {
+		Node struct {
+			Enterprise struct {
+				Slug githubv4.String
+			} `graphql:"... on Enterprise"`
+		} `graphql:"node(id: $id)"`
+	}
+
+	err := v4.Query(ctx, &query, map[string]any{"id": githubv4.ID(enterpriseId)})
+	if err != nil {
+		return "", err
+	}
+
+	return string(query.Node.Enterprise.Slug), nil
+}
+
 func resourceGithubEnterpriseOrganization() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGithubEnterpriseOrganizationCreate,
@@ -102,10 +168,15 @@ func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, m any
 		adminLogins = append(adminLogins, githubv4.String(v.(string)))
 	}
 
+	profileName := data.Get("display_name").(string)
+	if profileName == "" {
+		profileName = data.Get("name").(string)
+	}
+
 	input := githubv4.CreateEnterpriseOrganizationInput{
 		EnterpriseID: data.Get("enterprise_id"),
 		Login:        githubv4.String(data.Get("name").(string)),
-		ProfileName:  githubv4.String(data.Get("name").(string)),
+		ProfileName:  githubv4.String(profileName),
 		BillingEmail: githubv4.String(data.Get("billing_email").(string)),
 		AdminLogins:  adminLogins,
 	}
@@ -124,7 +195,7 @@ func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, m any
 	}
 
 	// We use the V3 api to set the description of the org, because there is no mutator in the V4 API to edit the org's
-	// description and display name
+	// description
 
 	//NOTE: There is some odd behavior here when using an EMU with SSO. If the user token has been granted permission to
 	//ANY ORG in the enterprise, then this works, provided that our token has sufficient permission. If the user token
@@ -137,24 +208,35 @@ func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, m any
 	//
 	//It would be nice if there was an API available in github to enable a token for SSO.
 
+	ctx := context.Background()
+	orgName := data.Get("name").(string)
+
+	if meta.appSource != nil {
+		err = installAppOnOrganization(ctx, meta, data.Get("enterprise_id").(string), orgName)
+		if err != nil {
+			return err
+		}
+		v3, _, err = organizationClients(ctx, meta, orgName)
+		if err != nil {
+			return err
+		}
+	}
+
 	description := data.Get("description").(string)
-	displayName := data.Get("display_name").(string)
-	if description != "" || displayName != "" {
+	if description != "" {
 		_, _, err = v3.Organizations.Edit(
-			context.Background(),
-			data.Get("name").(string),
+			ctx,
+			orgName,
 			&github.Organization{
 				Description: new(description),
-				Name:        new(displayName),
 			},
 		)
 		if err != nil {
 			if isSAMLEnforcementError(err) {
-				// The org was created but we can't set description/display_name until the PAT is authorized.
-				// Clear them from state so next plan will show drift and retry after PAT authorization.
-				log.Printf("[WARN] Organization %q created but could not set description/display_name due to SAML enforcement. Authorize the PAT and run apply again.", data.Get("name").(string))
+				// The org was created but we can't set description until the PAT is authorized.
+				// Clear it from state so next plan will show drift and retry after PAT authorization.
+				log.Printf("[WARN] Organization %q created but could not set description due to SAML enforcement. Authorize the PAT and run apply again.", orgName)
 				_ = data.Set("description", "")
-				_ = data.Set("display_name", "")
 				return nil
 			}
 			return err
@@ -165,64 +247,28 @@ func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, m any
 
 func resourceGithubEnterpriseOrganizationRead(data *schema.ResourceData, m any) error {
 	meta, _ := m.(*Owner)
+	v4 := meta.v4client
+	ctx := context.Background()
 
 	var query struct {
 		Node struct {
 			Organization struct {
-				ID                       githubv4.ID
-				DatabaseId               githubv4.Int
-				Name                     githubv4.String
-				Login                    githubv4.String
-				Description              githubv4.String
-				OrganizationBillingEmail githubv4.String
-				MembersWithRole          struct {
-					Edges []struct {
-						User struct {
-							Login githubv4.String
-						} `graphql:"node"`
-						Role githubv4.String
-					} `graphql:"edges"`
-					PageInfo PageInfo
-				} `graphql:"membersWithRole(first:$first, after:$cursor)"`
+				ID          githubv4.ID
+				DatabaseId  githubv4.Int
+				Name        githubv4.String
+				Login       githubv4.String
+				Description githubv4.String
 			} `graphql:"... on Organization"`
 		} `graphql:"node(id: $id)"`
 	}
 
-	variables := map[string]any{
-		"id":     data.Id(),
-		"first":  githubv4.Int(meta.maxPerPage),
-		"cursor": (*githubv4.String)(nil),
-	}
-
-	var adminLogins []any
-
-	for {
-		v4 := meta.v4client
-		err := v4.Query(context.Background(), &query, variables)
-		if err != nil {
-			if strings.Contains(err.Error(), "Could not resolve to a node with the global id") {
-				log.Printf("[INFO] Removing organization (%s) from state because it no longer exists in GitHub", data.Id())
-				data.SetId("")
-				return nil
-			}
-			return err
-		}
-
-		for _, v := range query.Node.Organization.MembersWithRole.Edges {
-			if v.Role == "ADMIN" {
-				adminLogins = append(adminLogins, string(v.User.Login))
-			}
-		}
-
-		if !query.Node.Organization.MembersWithRole.PageInfo.HasNextPage {
-			break
-		}
-
-		variables["cursor"] = new(query.Node.Organization.MembersWithRole.PageInfo.EndCursor)
-	}
-
-	err := data.Set("admin_logins", schema.NewSet(schema.HashString, adminLogins))
+	err := v4.Query(ctx, &query, map[string]any{"id": data.Id()})
 	if err != nil {
+		if strings.Contains(err.Error(), "Could not resolve to a node with the global id") {
+			log.Printf("[INFO] Removing organization (%s) from state because it no longer exists in GitHub", data.Id())
+			data.SetId("")
+			return nil
+		}
 		return err
 	}
 
@@ -238,27 +284,98 @@ func resourceGithubEnterpriseOrganizationRead(data *schema.ResourceData, m any) 
 		}
 	}
 
-	err = data.Set("billing_email", query.Node.Organization.OrganizationBillingEmail)
-	if err != nil {
-		return err
-	}
-
 	err = data.Set("database_id", query.Node.Organization.DatabaseId)
 	if err != nil {
 		return err
 	}
 
 	err = data.Set("description", query.Node.Organization.Description)
-	return err
+	if err != nil {
+		return err
+	}
+
+	orgName := string(query.Node.Organization.Login)
+	orgV3, orgV4, err := organizationClients(ctx, meta, orgName)
+	if err != nil {
+		return err
+	}
+
+	adminLogins, err := readOrganizationAdmins(ctx, orgV4, data.Id(), meta.maxPerPage)
+	if err != nil {
+		return err
+	}
+
+	err = data.Set("admin_logins", schema.NewSet(schema.HashString, adminLogins))
+	if err != nil {
+		return err
+	}
+
+	// The GraphQL field organizationBillingEmail is not available to app installations; REST is.
+	org, _, err := orgV3.Organizations.Get(ctx, orgName)
+	if err != nil {
+		return err
+	}
+
+	return data.Set("billing_email", org.GetBillingEmail())
+}
+
+func readOrganizationAdmins(ctx context.Context, v4 *githubv4.Client, orgId string, perPage int) ([]any, error) {
+	var query struct {
+		Node struct {
+			Organization struct {
+				MembersWithRole struct {
+					Edges []struct {
+						User struct {
+							Login githubv4.String
+						} `graphql:"node"`
+						Role githubv4.String
+					} `graphql:"edges"`
+					PageInfo PageInfo
+				} `graphql:"membersWithRole(first:$first, after:$cursor)"`
+			} `graphql:"... on Organization"`
+		} `graphql:"node(id: $id)"`
+	}
+
+	variables := map[string]any{
+		"id":     orgId,
+		"first":  githubv4.Int(perPage),
+		"cursor": (*githubv4.String)(nil),
+	}
+
+	var adminLogins []any
+
+	for {
+		err := v4.Query(ctx, &query, variables)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, v := range query.Node.Organization.MembersWithRole.Edges {
+			if v.Role == "ADMIN" {
+				adminLogins = append(adminLogins, string(v.User.Login))
+			}
+		}
+
+		if !query.Node.Organization.MembersWithRole.PageInfo.HasNextPage {
+			break
+		}
+
+		variables["cursor"] = new(query.Node.Organization.MembersWithRole.PageInfo.EndCursor)
+	}
+
+	return adminLogins, nil
 }
 
 func resourceGithubEnterpriseOrganizationDelete(data *schema.ResourceData, m any) error {
 	meta, _ := m.(*Owner)
-	v3 := meta.v3client
-
 	ctx := context.WithValue(context.Background(), ctxId, data.Id())
 
-	_, err := v3.Organizations.Delete(ctx, data.Get("name").(string))
+	v3, _, err := organizationClients(ctx, meta, data.Get("name").(string))
+	if err != nil {
+		return err
+	}
+
+	_, err = v3.Organizations.Delete(ctx, data.Get("name").(string))
 
 	// We expect the delete to return with a 202 Accepted error so ignore those
 	acceptedError := &github.AcceptedError{}
@@ -285,7 +402,11 @@ func resourceGithubEnterpriseOrganizationImport(data *schema.ResourceData, m any
 	}
 	_ = data.Set("enterprise_id", enterpriseId)
 
+	// An enterprise app installation cannot resolve organizations by login, only through the enterprise.
 	orgId, err := getOrganizationId(ctx, v4, parts[1])
+	if err != nil {
+		orgId, err = getEnterpriseOrganizationId(ctx, v4, parts[0], parts[1])
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -310,6 +431,35 @@ func getOrganizationId(ctx context.Context, v4 *githubv4.Client, orgName string)
 		return "", err
 	}
 	return string(query.Organization.Id), nil
+}
+
+func getEnterpriseOrganizationId(ctx context.Context, v4 *githubv4.Client, enterpriseSlug, orgName string) (string, error) {
+	var query struct {
+		Enterprise struct {
+			Organizations struct {
+				Nodes []struct {
+					Id    githubv4.String
+					Login githubv4.String
+				}
+			} `graphql:"organizations(first: 1, query: $orgName)"`
+		} `graphql:"enterprise(slug: $slug)"`
+	}
+
+	err := v4.Query(ctx, &query, map[string]any{
+		"slug":    githubv4.String(enterpriseSlug),
+		"orgName": githubv4.String(orgName),
+	})
+	if err != nil {
+		return "", err
+	}
+
+	for _, node := range query.Enterprise.Organizations.Nodes {
+		if string(node.Login) == orgName {
+			return string(node.Id), nil
+		}
+	}
+
+	return "", fmt.Errorf("organization %q not found in enterprise %q", orgName, enterpriseSlug)
 }
 
 func updateDescription(ctx context.Context, data *schema.ResourceData, v3 *github.Client) error {
@@ -413,12 +563,14 @@ func removeUser(ctx context.Context, v3 *github.Client, v4 *githubv4.Client, use
 	return err
 }
 
-func updateAdminList(ctx context.Context, data *schema.ResourceData, orgName string, v3 *github.Client, v4 *githubv4.Client) error {
+// Owners are added through an enterprise mutation (enterpriseV4) and looked up or removed through the
+// organization (v3, v4).
+func updateAdminList(ctx context.Context, data *schema.ResourceData, orgName string, v3 *github.Client, v4, enterpriseV4 *githubv4.Client) error {
 	oldSet, newSet := setChanges(data.GetChange("admin_logins"))
 	toRemove := oldSet.Difference(newSet).List()
 	toAdd := newSet.Difference(oldSet).List()
 
-	err := addUsers(ctx, data, v4, toAdd)
+	err := addUsers(ctx, data, v4, enterpriseV4, toAdd)
 	if err != nil {
 		return err
 	}
@@ -426,7 +578,7 @@ func updateAdminList(ctx context.Context, data *schema.ResourceData, orgName str
 	return removeUsers(ctx, v3, v4, toRemove, orgName)
 }
 
-func addUsers(ctx context.Context, data *schema.ResourceData, v4 *githubv4.Client, toAdd []any) error {
+func addUsers(ctx context.Context, data *schema.ResourceData, v4, enterpriseV4 *githubv4.Client, toAdd []any) error {
 	if len(toAdd) != 0 {
 		var mutate struct {
 			AddEnterpriseOrganizationMember struct {
@@ -447,7 +599,7 @@ func addUsers(ctx context.Context, data *schema.ResourceData, v4 *githubv4.Clien
 			Role:           &adminRole,
 		}
 
-		err = v4.Mutate(ctx, &mutate, input, nil)
+		err = enterpriseV4.Mutate(ctx, &mutate, input, nil)
 		if err != nil {
 			return err
 		}
@@ -475,11 +627,15 @@ func updateBillingEmail(ctx context.Context, data *schema.ResourceData, orgName 
 
 func resourceGithubEnterpriseOrganizationUpdate(data *schema.ResourceData, m any) error {
 	meta, _ := m.(*Owner)
-	v3 := meta.v3client
-	v4 := meta.v4client
 	ctx := context.Background()
+	orgName := data.Get("name").(string)
 
-	err := updateDisplayName(ctx, data, v3)
+	v3, v4, err := organizationClients(ctx, meta, orgName)
+	if err != nil {
+		return err
+	}
+
+	err = updateDisplayName(ctx, data, v3)
 	if err != nil {
 		return err
 	}
@@ -489,8 +645,7 @@ func resourceGithubEnterpriseOrganizationUpdate(data *schema.ResourceData, m any
 		return err
 	}
 
-	orgName := data.Get("name").(string)
-	err = updateAdminList(ctx, data, orgName, v3, v4)
+	err = updateAdminList(ctx, data, orgName, v3, v4, meta.v4client)
 	if err != nil {
 		return err
 	}

@@ -13,6 +13,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
+
+	"github.com/integrations/terraform-provider-github/v6/internal/ghclient"
 )
 
 type Config struct {
@@ -43,6 +45,9 @@ type Owner struct {
 	StopContext    context.Context
 	IsOrganization bool
 	maxPerPage     int
+	// appSource is set when authenticating as a GitHub App. It provides clients for other
+	// installations of the same app, such as an organization created by an enterprise installation.
+	appSource ghclient.Source
 }
 
 const (
