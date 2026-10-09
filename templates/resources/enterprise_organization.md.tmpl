@@ -8,6 +8,18 @@ description: |-
 
 This resource allows you to create and manage a GitHub enterprise organization.
 
+## Authentication
+
+This resource works with a personal access token of an enterprise owner, or with a GitHub App that is
+installed on the enterprise. With a GitHub App, the organization is created through the enterprise
+installation, the app is then installed on the new organization, and that installation is used for all
+organization-level operations. The app needs these permissions:
+
+- Enterprise: "Enterprise organizations" (write) and "Enterprise organization installations" (write)
+- Organization: "Administration" (write) and "Members" (write)
+
+Organizations that already exist must have the app installed before they can be imported or managed.
+
 ## Example Usage
 
 ```hcl
