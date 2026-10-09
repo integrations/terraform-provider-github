@@ -3,10 +3,10 @@ package github
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -53,7 +53,7 @@ func dataSourceGithubBranchRead(ctx context.Context, d *schema.ResourceData, met
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[DEBUG] Missing GitHub branch %s/%s (%s)", orgName, repoName, branchRefName)
+				tflog.Debug(ctx, "GitHub branch not found", map[string]any{"owner": orgName, "repository": repoName, "branch": branchRefName})
 				d.SetId("")
 				return nil
 			}

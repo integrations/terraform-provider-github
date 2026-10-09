@@ -69,14 +69,14 @@ func resourceGithubActionsOrganizationSecretV0() *schema.Resource {
 }
 
 func resourceGithubActionsOrganizationSecretStateUpgradeV0(ctx context.Context, rawState map[string]any, _ any) (map[string]any, error) {
-	tflog.Debug(ctx, "GitHub Actions Organization Secret migration from v0 to v1 starting.", map[string]any{"raw_state": rawState})
+	tflog.Debug(ctx, "GitHub Actions Organization Secret migration from v0 to v1 starting.", map[string]any{"field_count": len(rawState)})
 
 	// Add the destroy_on_drift field with default value true if it doesn't exist
 	if _, ok := rawState["destroy_on_drift"]; !ok {
 		rawState["destroy_on_drift"] = true
 	}
 
-	tflog.Debug(ctx, "GitHub Actions Organization Secret migration from v0 to v1 completed.", map[string]any{"raw_state": rawState})
+	tflog.Debug(ctx, "GitHub Actions Organization Secret migration from v0 to v1 completed.", map[string]any{"field_count": len(rawState)})
 
 	return rawState, nil
 }

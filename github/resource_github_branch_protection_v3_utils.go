@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -78,7 +78,7 @@ func flattenAndSetRequiredStatusChecks(d *schema.ResourceData, protection *githu
 	return d.Set("required_status_checks", []any{})
 }
 
-func requireSignedCommitsRead(d *schema.ResourceData, meta any) error {
+func requireSignedCommitsRead(ctx context.Context, d *schema.ResourceData, meta any) error {
 	client := meta.(*Owner).v3client
 
 	repoName, branch, err := parseID2(d.Id())
@@ -87,7 +87,7 @@ func requireSignedCommitsRead(d *schema.ResourceData, meta any) error {
 	}
 	orgName := meta.(*Owner).name
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
@@ -95,7 +95,7 @@ func requireSignedCommitsRead(d *schema.ResourceData, meta any) error {
 	signedCommitStatus, _, err := client.Repositories.GetSignaturesProtectedBranch(ctx,
 		orgName, repoName, branch)
 	if err != nil {
-		log.Printf("[INFO] Not able to read signature protection: %s/%s (%s)", orgName, repoName, branch)
+		tflog.Info(ctx, "Unable to read commit signature protection", map[string]any{"owner": orgName, "repository": repoName, "branch": branch})
 		// TODO: Remove nolint once we can return an error
 		return nil //nolint:nilerr
 	}
@@ -103,7 +103,7 @@ func requireSignedCommitsRead(d *schema.ResourceData, meta any) error {
 	return d.Set("require_signed_commits", signedCommitStatus.Enabled)
 }
 
-func requireSignedCommitsUpdate(d *schema.ResourceData, meta any) (err error) {
+func requireSignedCommitsUpdate(ctx context.Context, d *schema.ResourceData, meta any) (err error) {
 	requiredSignedCommit := d.Get("require_signed_commits").(bool)
 	client := meta.(*Owner).v3client
 
@@ -113,7 +113,7 @@ func requireSignedCommitsUpdate(d *schema.ResourceData, meta any) (err error) {
 	}
 	orgName := meta.(*Owner).name
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}

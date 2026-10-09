@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"regexp"
 	"strconv"
 	"time"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -18,10 +19,10 @@ import (
 
 func resourceGithubActionsHostedRunner() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsHostedRunnerCreate,
-		Read:   resourceGithubActionsHostedRunnerRead,
-		Update: resourceGithubActionsHostedRunnerUpdate,
-		Delete: resourceGithubActionsHostedRunnerDelete,
+		CreateContext: resourceGithubActionsHostedRunnerCreate,
+		ReadContext:   resourceGithubActionsHostedRunnerRead,
+		UpdateContext: resourceGithubActionsHostedRunnerUpdate,
+		DeleteContext: resourceGithubActionsHostedRunnerDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -275,15 +276,14 @@ func flattenPublicIPs(ips []any) []any {
 	return result
 }
 
-func resourceGithubActionsHostedRunnerCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsHostedRunnerCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	ctx := context.Background()
 
 	// Build request payload
 	payload := map[string]any{
@@ -312,46 +312,46 @@ func resourceGithubActionsHostedRunnerCreate(d *schema.ResourceData, meta any) e
 	// Create HTTP request
 	req, err := client.NewRequest(ctx, "POST", fmt.Sprintf("orgs/%s/actions/hosted-runners", orgName), payload)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	var runner map[string]any
 	_, err = client.Do(req, &runner)
 	if err != nil {
 		if _, ok := errors.AsType[*github.AcceptedError](err); !ok {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	if runner == nil {
-		return fmt.Errorf("no runner data returned from API")
+		return diag.Errorf("no runner data returned from API")
 	}
 
 	// Set the ID
 	if id, ok := runner["id"].(float64); ok {
 		d.SetId(strconv.Itoa(int(id)))
 	} else {
-		return fmt.Errorf("failed to get runner ID from response: %+v", runner)
+		return diag.FromErr(fmt.Errorf("failed to get runner ID from response: %+v", runner))
 	}
 
-	return resourceGithubActionsHostedRunnerRead(d, meta)
+	return resourceGithubActionsHostedRunnerRead(ctx, d, meta)
 }
 
-func resourceGithubActionsHostedRunnerRead(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsHostedRunnerRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	runnerID := d.Id()
-	ctx := context.WithValue(context.Background(), ctxId, runnerID)
+	ctx = context.WithValue(ctx, ctxId, runnerID)
 
 	// Create GET request
 	req, err := client.NewRequest(ctx, "GET", fmt.Sprintf("orgs/%s/actions/hosted-runners/%s", orgName, runnerID), nil)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	var runner map[string]any
@@ -359,96 +359,96 @@ func resourceGithubActionsHostedRunnerRead(d *schema.ResourceData, meta any) err
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing hosted runner %s from state because it no longer exists in GitHub", runnerID)
+				tflog.Warn(ctx, "Removing hosted runner from state because it no longer exists in GitHub", map[string]any{"runner_id": runnerID})
 				d.SetId("")
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if runner == nil {
-		return fmt.Errorf("no runner data returned from API")
+		return diag.Errorf("no runner data returned from API")
 	}
 
 	if name, ok := runner["name"].(string); ok {
 		if err := d.Set("name", name); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 	if status, ok := runner["status"].(string); ok {
 		if err := d.Set("status", status); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 	if platform, ok := runner["platform"].(string); ok {
 		if err := d.Set("platform", platform); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 	if lastActiveOn, ok := runner["last_active_on"].(string); ok {
 		if err := d.Set("last_active_on", lastActiveOn); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 	if publicIPEnabled, ok := runner["public_ip_enabled"].(bool); ok {
 		if err := d.Set("public_ip_enabled", publicIPEnabled); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	if image, ok := runner["image"].(map[string]any); ok {
 		if err := d.Set("image", flattenImage(image)); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	if machineSizeDetails, ok := runner["machine_size_details"].(map[string]any); ok {
 		if err := d.Set("size", machineSizeDetails["id"]); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		if err := d.Set("machine_size_details", flattenMachineSizeDetails(machineSizeDetails)); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	if runnerGroupID, ok := runner["runner_group_id"].(float64); ok {
 		if err := d.Set("runner_group_id", int(runnerGroupID)); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	if maxRunners, ok := runner["maximum_runners"].(float64); ok {
 		if err := d.Set("maximum_runners", int(maxRunners)); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	if publicIPs, ok := runner["public_ips"].([]any); ok {
 		if err := d.Set("public_ips", flattenPublicIPs(publicIPs)); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	if imageGen, ok := runner["image_gen"].(bool); ok {
 		if err := d.Set("image_gen", imageGen); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	return nil
 }
 
-func resourceGithubActionsHostedRunnerUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsHostedRunnerUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 	runnerID := d.Id()
-	ctx := context.WithValue(context.Background(), ctxId, runnerID)
+	ctx = context.WithValue(ctx, ctxId, runnerID)
 
 	payload := make(map[string]any)
 
@@ -472,42 +472,41 @@ func resourceGithubActionsHostedRunnerUpdate(d *schema.ResourceData, meta any) e
 	}
 
 	if len(payload) == 0 {
-		return resourceGithubActionsHostedRunnerRead(d, meta)
+		return resourceGithubActionsHostedRunnerRead(ctx, d, meta)
 	}
 
 	// Create PATCH request
 	req, err := client.NewRequest(ctx, "PATCH", fmt.Sprintf("orgs/%s/actions/hosted-runners/%s", orgName, runnerID), payload)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	var runner map[string]any
 	_, err = client.Do(req, &runner)
 	if err != nil {
 		if _, ok := errors.AsType[*github.AcceptedError](err); !ok {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
-	return resourceGithubActionsHostedRunnerRead(d, meta)
+	return resourceGithubActionsHostedRunnerRead(ctx, d, meta)
 }
 
-func resourceGithubActionsHostedRunnerDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsHostedRunnerDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	ctx := context.Background()
 
 	runnerID := d.Id()
 
 	// Send DELETE request
 	req, err := client.NewRequest(ctx, "DELETE", fmt.Sprintf("orgs/%s/actions/hosted-runners/%s", orgName, runnerID), nil)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	resp, err := client.Do(req, nil)
@@ -516,13 +515,13 @@ func resourceGithubActionsHostedRunnerDelete(d *schema.ResourceData, meta any) e
 			return nil
 		}
 		if _, ok := errors.AsType[*github.AcceptedError](err); ok {
-			return waitForRunnerDeletion(ctx, client, orgName, runnerID, d.Timeout(schema.TimeoutDelete))
+			return diag.FromErr(waitForRunnerDeletion(ctx, client, orgName, runnerID, d.Timeout(schema.TimeoutDelete)))
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if resp != nil && resp.StatusCode == http.StatusAccepted {
-		return waitForRunnerDeletion(ctx, client, orgName, runnerID, d.Timeout(schema.TimeoutDelete))
+		return diag.FromErr(waitForRunnerDeletion(ctx, client, orgName, runnerID, d.Timeout(schema.TimeoutDelete)))
 	}
 
 	return nil

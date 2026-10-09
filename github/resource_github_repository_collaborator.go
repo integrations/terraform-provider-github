@@ -4,20 +4,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubRepositoryCollaborator() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryCollaboratorCreate,
-		Read:   resourceGithubRepositoryCollaboratorRead,
-		Update: resourceGithubRepositoryCollaboratorUpdate,
-		Delete: resourceGithubRepositoryCollaboratorDelete,
+		CreateContext: resourceGithubRepositoryCollaboratorCreate,
+		ReadContext:   resourceGithubRepositoryCollaboratorRead,
+		UpdateContext: resourceGithubRepositoryCollaboratorUpdate,
+		DeleteContext: resourceGithubRepositoryCollaboratorDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -67,7 +68,7 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, m any) error {
+func resourceGithubRepositoryCollaboratorCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 
@@ -75,8 +76,6 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, m any) e
 	repoName := d.Get("repository").(string)
 
 	owner, repoNameWithoutOwner := parseRepoName(repoName, meta.name)
-
-	ctx := context.Background()
 
 	_, _, err := client.Repositories.AddCollaborator(ctx,
 		owner,
@@ -86,24 +85,24 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, m any) e
 			Permission: d.Get("permission").(string),
 		})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(buildTwoPartID(repoName, username))
 
-	return resourceGithubRepositoryCollaboratorRead(d, meta)
+	return resourceGithubRepositoryCollaboratorRead(ctx, d, meta)
 }
 
-func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, m any) error {
+func resourceGithubRepositoryCollaboratorRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 
 	repoName, username, err := parseID2(d.Id())
 	owner, repoNameWithoutOwner := parseRepoName(repoName, meta.name)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	// First, check if the user has been invited but has not yet accepted
 	invitation, err := findRepoInvitation(meta, ctx, owner, repoNameWithoutOwner, username)
@@ -111,12 +110,11 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, m any) err
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
 			// this short circuits the rest of the code because if the
 			// repo is 404, no reason to try to list existing collaborators
-			log.Printf("[INFO] Removing repository collaborator %s/%s %s from state because it no longer exists in GitHub",
-				owner, repoName, username)
+			tflog.Info(ctx, "Removing repository collaborator from state because it no longer exists in GitHub", map[string]any{"owner": owner, "repository": repoName, "username": username})
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 	if invitation != nil {
 		username = invitation.GetInvitee().GetLogin()
@@ -124,16 +122,16 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, m any) err
 		permissionName := getPermission(invitation.GetPermissions())
 
 		if err = d.Set("repository", repoName); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		if err = d.Set("username", username); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		if err = d.Set("permission", permissionName); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		if err = d.Set("invitation_id", fmt.Sprintf("%d", invitation.GetID())); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		return nil
 	}
@@ -147,19 +145,19 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, m any) err
 		collaborators, resp, err := client.Repositories.ListCollaborators(ctx,
 			owner, repoNameWithoutOwner, opt)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		for _, c := range collaborators {
 			if strings.EqualFold(c.GetLogin(), username) {
 				if err = d.Set("repository", repoName); err != nil {
-					return err
+					return diag.FromErr(err)
 				}
 				if err = d.Set("username", c.GetLogin()); err != nil {
-					return err
+					return diag.FromErr(err)
 				}
 				if err = d.Set("permission", getPermission(c.GetRoleName())); err != nil {
-					return err
+					return diag.FromErr(err)
 				}
 				return nil
 			}
@@ -170,20 +168,18 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, m any) err
 		}
 		opt.Page = resp.NextPage
 	}
-
 	// The user is neither invited nor a collaborator
-	log.Printf("[INFO] Removing repository collaborator %s (%s/%s) from state because it no longer exists in GitHub",
-		username, owner, repoName)
+	tflog.Info(ctx, "Removing repository collaborator from state because it no longer exists in GitHub", map[string]any{"username": username, "owner": owner, "repository": repoName})
 	d.SetId("")
 
 	return nil
 }
 
-func resourceGithubRepositoryCollaboratorUpdate(d *schema.ResourceData, m any) error {
-	return resourceGithubRepositoryCollaboratorRead(d, m)
+func resourceGithubRepositoryCollaboratorUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	return resourceGithubRepositoryCollaboratorRead(ctx, d, m)
 }
 
-func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, m any) error {
+func resourceGithubRepositoryCollaboratorDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 
@@ -192,19 +188,19 @@ func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, m any) e
 
 	owner, repoNameWithoutOwner := parseRepoName(repoName, meta.name)
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	// Delete any pending invitations
 	invitation, err := findRepoInvitation(meta, ctx, owner, repoNameWithoutOwner, username)
 	if err != nil {
-		return handleArchivedRepoDelete(err, "repository collaborator invitation", username, owner, repoNameWithoutOwner)
+		return diag.FromErr(handleArchivedRepoDelete(ctx, err, "repository collaborator invitation", username, owner, repoNameWithoutOwner))
 	} else if invitation != nil {
 		_, err = client.Repositories.DeleteInvitation(ctx, owner, repoNameWithoutOwner, invitation.GetID())
-		return handleArchivedRepoDelete(err, "repository collaborator invitation", username, owner, repoNameWithoutOwner)
+		return diag.FromErr(handleArchivedRepoDelete(ctx, err, "repository collaborator invitation", username, owner, repoNameWithoutOwner))
 	}
 
 	_, err = client.Repositories.RemoveCollaborator(ctx, owner, repoNameWithoutOwner, username)
-	return handleArchivedRepoDelete(err, "repository collaborator", username, owner, repoNameWithoutOwner)
+	return diag.FromErr(handleArchivedRepoDelete(ctx, err, "repository collaborator", username, owner, repoNameWithoutOwner))
 }
 
 func findRepoInvitation(meta *Owner, ctx context.Context, owner, repo, collaborator string) (*github.RepositoryInvitation, error) {

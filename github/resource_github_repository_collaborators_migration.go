@@ -3,10 +3,10 @@ package github
 import (
 	"context"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -88,8 +88,7 @@ func resourceGithubRepositoryCollaboratorsStateUpgradeV0(ctx context.Context, ra
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
-
-	log.Printf("[DEBUG] GitHub Repository Collaborators Attributes before migration to v1: %#v", rawState)
+	tflog.Debug(ctx, "GitHub Repository Collaborators Attributes before migration to v1", map[string]any{"field_count": len(rawState)})
 
 	repoName, ok := rawState["repository"].(string)
 	if !ok {
@@ -103,8 +102,7 @@ func resourceGithubRepositoryCollaboratorsStateUpgradeV0(ctx context.Context, ra
 
 	rawState["id"] = strconv.FormatInt(repo.GetID(), 10)
 	rawState["repository_id"] = int(repo.GetID())
-
-	log.Printf("[DEBUG] GitHub Repository Collaborators Attributes after migration to v1: %#v", rawState)
+	tflog.Debug(ctx, "GitHub Repository Collaborators Attributes after migration to v1", map[string]any{"field_count": len(rawState)})
 
 	return rawState, nil
 }
@@ -191,10 +189,9 @@ func resourceGithubRepositoryCollaboratorsV1() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryCollaboratorsStateUpgradeV1(_ context.Context, rawState map[string]any, m any) (map[string]any, error) {
+func resourceGithubRepositoryCollaboratorsStateUpgradeV1(ctx context.Context, rawState map[string]any, m any) (map[string]any, error) {
 	meta, _ := m.(*Owner)
-
-	log.Printf("[DEBUG] GitHub Repository Collaborators Attributes before migration to v2: %#v", rawState)
+	tflog.Debug(ctx, "GitHub Repository Collaborators Attributes before migration to v2", map[string]any{"field_count": len(rawState)})
 
 	if meta.IsOrganization {
 		// If the repository belongs to an organization the owner cannot be a,
@@ -237,8 +234,7 @@ func resourceGithubRepositoryCollaboratorsStateUpgradeV1(_ context.Context, rawS
 
 		rawState["owner_configured"] = ownerConfigured
 	}
-
-	log.Printf("[DEBUG] GitHub Repository Collaborators Attributes after migration to v2: %#v", rawState)
+	tflog.Debug(ctx, "GitHub Repository Collaborators Attributes after migration to v2", map[string]any{"field_count": len(rawState)})
 
 	return rawState, nil
 }

@@ -2,9 +2,9 @@ package github
 
 import (
 	"context"
-	"log"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -201,7 +201,7 @@ func resourceGithubRepositoryResourceV0() *schema.Resource {
 }
 
 func resourceGithubRepositoryInstanceStateUpgradeV0(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
-	log.Printf("[DEBUG] GitHub Repository State before migration: %#v", rawState)
+	tflog.Debug(ctx, "GitHub Repository State before migration", map[string]any{"field_count": len(rawState)})
 
 	prefix := "branches."
 
@@ -210,7 +210,7 @@ func resourceGithubRepositoryInstanceStateUpgradeV0(ctx context.Context, rawStat
 			delete(rawState, k)
 		}
 	}
+	tflog.Debug(ctx, "GitHub Repository State after migration", map[string]any{"field_count": len(rawState)})
 
-	log.Printf("[DEBUG] GitHub Repository State after migration: %#v", rawState)
 	return rawState, nil
 }

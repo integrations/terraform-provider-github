@@ -99,10 +99,7 @@ func resourceGithubTeamSettingsCreate(ctx context.Context, d *schema.ResourceDat
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	tflog.Trace(ctx, "Resolved team_id to Team node_id and slug", map[string]any{
-		"node_id": nodeId,
-		"slug":    slug,
-	})
+	tflog.Trace(ctx, "Resolved team_id to Team node_id and slug", map[string]any{"node_id": nodeId, "team_slug": slug})
 	d.SetId(nodeId)
 	if err = d.Set("team_slug", slug); err != nil {
 		return diag.FromErr(err)

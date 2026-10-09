@@ -3,8 +3,8 @@ package github
 import (
 	"context"
 	"fmt"
-	"log"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -35,8 +35,7 @@ func dataSourceGithubActionsRegistrationTokenRead(ctx context.Context, d *schema
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
-
-	log.Printf("[DEBUG] Creating a GitHub Actions repository registration token for %s/%s", owner, repoName)
+	tflog.Debug(ctx, "Creating a GitHub Actions repository registration token", map[string]any{"owner": owner, "repository": repoName})
 	token, _, err := client.Actions.CreateRegistrationToken(ctx, owner, repoName)
 	if err != nil {
 		return diag.Errorf("error creating a GitHub Actions repository registration token for %s/%s: %v", owner, repoName, err)

@@ -34,7 +34,7 @@ func resourceGithubEMUGroupMappingV0() *schema.Resource {
 func resourceGithubEMUGroupMappingStateUpgradeV0(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	tflog.Trace(ctx, "GitHub EMU Group Mapping State before migration", map[string]any{"state": rawState, "owner": orgName})
+	tflog.Trace(ctx, "GitHub EMU Group Mapping State before migration", map[string]any{"field_count": len(rawState), "owner": orgName})
 
 	teamSlug := rawState["team_slug"].(string)
 	// We need to bypass the etag because we need to get the latest group
@@ -63,7 +63,7 @@ func resourceGithubEMUGroupMappingStateUpgradeV0(ctx context.Context, rawState m
 	}
 	rawState["id"] = resourceID
 
-	tflog.Trace(ctx, "GitHub EMU Group Mapping State after migration", map[string]any{"state": rawState})
+	tflog.Trace(ctx, "GitHub EMU Group Mapping State after migration", map[string]any{"field_count": len(rawState)})
 	return rawState, nil
 }
 
@@ -100,7 +100,7 @@ func resourceGithubEMUGroupMappingV1() *schema.Resource {
 }
 
 func resourceGithubEMUGroupMappingStateUpgradeV1(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
-	tflog.Trace(ctx, "GitHub EMU Group Mapping State before migration v1 => v2", map[string]any{"state": rawState})
+	tflog.Trace(ctx, "GitHub EMU Group Mapping State before migration v1 => v2", map[string]any{"field_count": len(rawState)})
 
 	oldResourceID, ok := rawState["id"].(string)
 	if !ok {
@@ -116,6 +116,6 @@ func resourceGithubEMUGroupMappingStateUpgradeV1(ctx context.Context, rawState m
 	}
 	rawState["id"] = resourceID
 
-	tflog.Trace(ctx, "GitHub EMU Group Mapping State after migration", map[string]any{"state": rawState})
+	tflog.Trace(ctx, "GitHub EMU Group Mapping State after migration", map[string]any{"field_count": len(rawState)})
 	return rawState, nil
 }

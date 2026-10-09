@@ -66,7 +66,7 @@ func resourceGithubActionsEnvironmentSecretStateUpgradeV0(ctx context.Context, r
 	client := meta.v3client
 	owner := meta.name
 
-	tflog.Debug(ctx, "GitHub Actions Environment Secret migration from v0 to v1 starting.", map[string]any{"raw_state": rawState})
+	tflog.Debug(ctx, "GitHub Actions Environment Secret migration from v0 to v1 starting.", map[string]any{"field_count": len(rawState)})
 
 	repoName, ok := rawState["repository"].(string)
 	if !ok {
@@ -97,7 +97,7 @@ func resourceGithubActionsEnvironmentSecretStateUpgradeV0(ctx context.Context, r
 	rawState["id"] = id
 	rawState["repository_id"] = repoID
 
-	tflog.Debug(ctx, "GitHub Actions Environment Secret migration from v0 to v1 completed.", map[string]any{"raw_state": rawState})
+	tflog.Debug(ctx, "GitHub Actions Environment Secret migration from v0 to v1 completed.", map[string]any{"field_count": len(rawState)})
 
 	return rawState, nil
 }

@@ -85,9 +85,7 @@ func resourceGithubRepositoryFileV0() *schema.Resource {
 }
 
 func resourceGithubRepositoryFileStateUpgradeV0(ctx context.Context, rawState map[string]any, m any) (map[string]any, error) {
-	tflog.Debug(ctx, "GitHub Repository File State before v0 migration", map[string]any{
-		"rawState": rawState,
-	})
+	tflog.Debug(ctx, "GitHub Repository File State before v0 migration", map[string]any{"field_count": len(rawState)})
 
 	meta, _ := m.(*Owner)
 	client := meta.v3client
@@ -140,8 +138,6 @@ func resourceGithubRepositoryFileStateUpgradeV0(ctx context.Context, rawState ma
 	}
 	rawState["id"] = newResourceID
 
-	tflog.Debug(ctx, "GitHub Repository File State after v0 migration", map[string]any{
-		"rawState": rawState,
-	})
+	tflog.Debug(ctx, "GitHub Repository File State after v0 migration", map[string]any{"field_count": len(rawState)})
 	return rawState, nil
 }

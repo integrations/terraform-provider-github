@@ -2,10 +2,12 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"log"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/shurcooL/githubv4"
@@ -168,13 +170,13 @@ func resourceGithubBranchProtection() *schema.Resource {
 			},
 		},
 
-		Create: resourceGithubBranchProtectionCreate,
-		Read:   resourceGithubBranchProtectionRead,
-		Update: resourceGithubBranchProtectionUpdate,
-		Delete: resourceGithubBranchProtectionDelete,
+		CreateContext: resourceGithubBranchProtectionCreate,
+		ReadContext:   resourceGithubBranchProtectionRead,
+		UpdateContext: resourceGithubBranchProtectionUpdate,
+		DeleteContext: resourceGithubBranchProtectionDelete,
 
 		Importer: &schema.ResourceImporter{
-			State: resourceGithubBranchProtectionImport,
+			StateContext: resourceGithubBranchProtectionImport,
 		},
 
 		StateUpgraders: []schema.StateUpgrader{
@@ -192,7 +194,7 @@ func resourceGithubBranchProtection() *schema.Resource {
 	}
 }
 
-func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchProtectionCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	var mutate struct {
 		CreateBranchProtectionRule struct {
 			BranchProtectionRule struct {
@@ -200,30 +202,30 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta any) erro
 			}
 		} `graphql:"createBranchProtectionRule(input: $input)"`
 	}
-	data, err := branchProtectionResourceData(d, meta)
+	data, err := branchProtectionResourceData(ctx, d, meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	var reviewIds, pushIds, bypassForcePushIds, bypassPullRequestIds []string
-	reviewIds, err = getActorIds(data.ReviewDismissalActorIDs, meta)
+	reviewIds, err = getActorIds(ctx, data.ReviewDismissalActorIDs, meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	pushIds, err = getActorIds(data.PushActorIDs, meta)
+	pushIds, err = getActorIds(ctx, data.PushActorIDs, meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	bypassForcePushIds, err = getActorIds(data.BypassForcePushActorIDs, meta)
+	bypassForcePushIds, err = getActorIds(ctx, data.BypassForcePushActorIDs, meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	bypassPullRequestIds, err = getActorIds(data.BypassPullRequestActorIDs, meta)
+	bypassPullRequestIds, err = getActorIds(ctx, data.BypassPullRequestActorIDs, meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	data.PushActorIDs = pushIds
@@ -258,19 +260,18 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta any) erro
 		RequireLastPushApproval:        new(githubv4.Boolean(data.RequireLastPushApproval)),
 	}
 
-	ctx := context.Background()
 	client := meta.(*Owner).v4client
 	err = client.Mutate(ctx, &mutate, input, nil)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(fmt.Sprintf("%s", mutate.CreateBranchProtectionRule.BranchProtectionRule.ID))
 
-	return resourceGithubBranchProtectionRead(d, meta)
+	return resourceGithubBranchProtectionRead(ctx, d, meta)
 }
 
-func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchProtectionRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	var query struct {
 		Node struct {
 			Node BranchProtectionRule `graphql:"... on BranchProtectionRule"`
@@ -279,93 +280,93 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta any) error 
 	variables := map[string]any{
 		"id": d.Id(),
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	client := meta.(*Owner).v4client
 	err := client.Query(ctx, &query, variables)
 	if err != nil {
 		if strings.Contains(err.Error(), "Could not resolve to a node with the global id") {
-			log.Printf("[INFO] Removing branch protection (%s) from state because it no longer exists in GitHub", d.Id())
+			tflog.Info(ctx, "Removing branch protection from state because it no longer exists in GitHub", map[string]any{"resource_id": d.Id()})
 			d.SetId("")
 			return nil
 		}
 
-		return err
+		return diag.FromErr(err)
 	}
 	protection := query.Node.Node
 
 	err = d.Set(PROTECTION_PATTERN, protection.Pattern)
 	if err != nil {
-		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_PATTERN, protection.Repository.Name, protection.Pattern, d.Id())
+		tflog.Debug(ctx, "Failed to set branch protection field", map[string]any{"field": PROTECTION_PATTERN, "repository": protection.Repository.Name, "branch_pattern": protection.Pattern, "resource_id": d.Id()})
 	}
 
 	err = d.Set(PROTECTION_ALLOWS_DELETIONS, protection.AllowsDeletions)
 	if err != nil {
-		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_ALLOWS_DELETIONS, protection.Repository.Name, protection.Pattern, d.Id())
+		tflog.Debug(ctx, "Failed to set branch protection field", map[string]any{"field": PROTECTION_ALLOWS_DELETIONS, "repository": protection.Repository.Name, "branch_pattern": protection.Pattern, "resource_id": d.Id()})
 	}
 
 	err = d.Set(PROTECTION_ALLOWS_FORCE_PUSHES, protection.AllowsForcePushes)
 	if err != nil {
-		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_ALLOWS_FORCE_PUSHES, protection.Repository.Name, protection.Pattern, d.Id())
+		tflog.Debug(ctx, "Failed to set branch protection field", map[string]any{"field": PROTECTION_ALLOWS_FORCE_PUSHES, "repository": protection.Repository.Name, "branch_pattern": protection.Pattern, "resource_id": d.Id()})
 	}
 
 	err = d.Set(PROTECTION_IS_ADMIN_ENFORCED, protection.IsAdminEnforced)
 	if err != nil {
-		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_IS_ADMIN_ENFORCED, protection.Repository.Name, protection.Pattern, d.Id())
+		tflog.Debug(ctx, "Failed to set branch protection field", map[string]any{"field": PROTECTION_IS_ADMIN_ENFORCED, "repository": protection.Repository.Name, "branch_pattern": protection.Pattern, "resource_id": d.Id()})
 	}
 
 	err = d.Set(PROTECTION_REQUIRES_COMMIT_SIGNATURES, protection.RequiresCommitSignatures)
 	if err != nil {
-		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_COMMIT_SIGNATURES, protection.Repository.Name, protection.Pattern, d.Id())
+		tflog.Debug(ctx, "Failed to set branch protection field", map[string]any{"field": PROTECTION_REQUIRES_COMMIT_SIGNATURES, "repository": protection.Repository.Name, "branch_pattern": protection.Pattern, "resource_id": d.Id()})
 	}
 
 	err = d.Set(PROTECTION_REQUIRES_LINEAR_HISTORY, protection.RequiresLinearHistory)
 	if err != nil {
-		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_LINEAR_HISTORY, protection.Repository.Name, protection.Pattern, d.Id())
+		tflog.Debug(ctx, "Failed to set branch protection field", map[string]any{"field": PROTECTION_REQUIRES_LINEAR_HISTORY, "repository": protection.Repository.Name, "branch_pattern": protection.Pattern, "resource_id": d.Id()})
 	}
 
 	err = d.Set(PROTECTION_REQUIRES_CONVERSATION_RESOLUTION, protection.RequiresConversationResolution)
 	if err != nil {
-		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_CONVERSATION_RESOLUTION, protection.Repository.Name, protection.Pattern, d.Id())
+		tflog.Debug(ctx, "Failed to set branch protection field", map[string]any{"field": PROTECTION_REQUIRES_CONVERSATION_RESOLUTION, "repository": protection.Repository.Name, "branch_pattern": protection.Pattern, "resource_id": d.Id()})
 	}
 
 	data, err := branchProtectionResourceDataActors(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	approvingReviews := setApprovingReviews(protection, data, meta)
 	err = d.Set(PROTECTION_REQUIRES_APPROVING_REVIEWS, approvingReviews)
 	if err != nil {
-		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_APPROVING_REVIEWS, protection.Repository.Name, protection.Pattern, d.Id())
+		tflog.Debug(ctx, "Failed to set branch protection field", map[string]any{"field": PROTECTION_REQUIRES_APPROVING_REVIEWS, "repository": protection.Repository.Name, "branch_pattern": protection.Pattern, "resource_id": d.Id()})
 	}
 
 	statusChecks := setStatusChecks(protection)
 	err = d.Set(PROTECTION_REQUIRES_STATUS_CHECKS, statusChecks)
 	if err != nil {
-		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_STATUS_CHECKS, protection.Repository.Name, protection.Pattern, d.Id())
+		tflog.Debug(ctx, "Failed to set branch protection field", map[string]any{"field": PROTECTION_REQUIRES_STATUS_CHECKS, "repository": protection.Repository.Name, "branch_pattern": protection.Pattern, "resource_id": d.Id()})
 	}
 
 	restrictsPushes := setPushes(protection, data, meta)
 	err = d.Set(PROTECTION_RESTRICTS_PUSHES, restrictsPushes)
 	if err != nil {
-		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_RESTRICTS_PUSHES, protection.Repository.Name, protection.Pattern, d.Id())
+		tflog.Debug(ctx, "Failed to set branch protection field", map[string]any{"field": PROTECTION_RESTRICTS_PUSHES, "repository": protection.Repository.Name, "branch_pattern": protection.Pattern, "resource_id": d.Id()})
 	}
 
 	forcePushBypassers := setForcePushBypassers(protection, data, meta)
 	err = d.Set(PROTECTION_FORCE_PUSHES_BYPASSERS, forcePushBypassers)
 	if err != nil {
-		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_FORCE_PUSHES_BYPASSERS, protection.Repository.Name, protection.Pattern, d.Id())
+		tflog.Debug(ctx, "Failed to set branch protection field", map[string]any{"field": PROTECTION_FORCE_PUSHES_BYPASSERS, "repository": protection.Repository.Name, "branch_pattern": protection.Pattern, "resource_id": d.Id()})
 	}
 
 	err = d.Set(PROTECTION_LOCK_BRANCH, protection.LockBranch)
 	if err != nil {
-		log.Printf("[DEBUG] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_LOCK_BRANCH, protection.Repository.Name, protection.Pattern, d.Id())
+		tflog.Debug(ctx, "Failed to set branch protection field", map[string]any{"field": PROTECTION_LOCK_BRANCH, "repository": protection.Repository.Name, "branch_pattern": protection.Pattern, "resource_id": d.Id()})
 	}
 
 	return nil
 }
 
-func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchProtectionUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	var mutate struct {
 		UpdateBranchProtectionRule struct {
 			BranchProtectionRule struct {
@@ -373,30 +374,30 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta any) erro
 			}
 		} `graphql:"updateBranchProtectionRule(input: $input)"`
 	}
-	data, err := branchProtectionResourceData(d, meta)
+	data, err := branchProtectionResourceData(ctx, d, meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	var reviewIds, pushIds, bypassForcePushIds, bypassPullRequestIds []string
-	reviewIds, err = getActorIds(data.ReviewDismissalActorIDs, meta)
+	reviewIds, err = getActorIds(ctx, data.ReviewDismissalActorIDs, meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	pushIds, err = getActorIds(data.PushActorIDs, meta)
+	pushIds, err = getActorIds(ctx, data.PushActorIDs, meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	bypassForcePushIds, err = getActorIds(data.BypassForcePushActorIDs, meta)
+	bypassForcePushIds, err = getActorIds(ctx, data.BypassForcePushActorIDs, meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	bypassPullRequestIds, err = getActorIds(data.BypassPullRequestActorIDs, meta)
+	bypassPullRequestIds, err = getActorIds(ctx, data.BypassPullRequestActorIDs, meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	data.PushActorIDs = pushIds
@@ -431,19 +432,19 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta any) erro
 		RequireLastPushApproval:        new(githubv4.Boolean(data.RequireLastPushApproval)),
 	}
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	client := meta.(*Owner).v4client
 	err = client.Mutate(ctx, &mutate, input, nil)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(fmt.Sprintf("%s", mutate.UpdateBranchProtectionRule.BranchProtectionRule.ID))
 
-	return resourceGithubBranchProtectionRead(d, meta)
+	return resourceGithubBranchProtectionRead(ctx, d, meta)
 }
 
-func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchProtectionDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	var mutate struct {
 		DeleteBranchProtectionRule struct { // Empty struct does not work
 			ClientMutationId githubv4.ID
@@ -453,20 +454,20 @@ func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta any) erro
 		BranchProtectionRuleID: d.Id(),
 	}
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	client := meta.(*Owner).v4client
 	err := client.Mutate(ctx, &mutate, input, nil)
 
-	return err
+	return diag.FromErr(err)
 }
 
-func resourceGithubBranchProtectionImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubBranchProtectionImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	repoName, pattern, err := parseID2(d.Id())
 	if err != nil {
 		return nil, err
 	}
 
-	repoID, err := getRepositoryID(repoName, meta)
+	repoID, err := getRepositoryID(ctx, repoName, meta)
 	if err != nil {
 		return nil, err
 	}
@@ -474,11 +475,14 @@ func resourceGithubBranchProtectionImport(d *schema.ResourceData, meta any) ([]*
 		return nil, err
 	}
 
-	id, err := getBranchProtectionID(repoID, pattern, meta)
+	id, err := getBranchProtectionID(ctx, repoID, pattern, meta)
 	if err != nil {
 		return nil, err
 	}
 	d.SetId(fmt.Sprintf("%s", id))
 
-	return []*schema.ResourceData{d}, resourceGithubBranchProtectionRead(d, meta)
+	if diags := resourceGithubBranchProtectionRead(ctx, d, meta); diags.HasError() {
+		return nil, errors.New(diags[0].Summary)
+	}
+	return []*schema.ResourceData{d}, nil
 }

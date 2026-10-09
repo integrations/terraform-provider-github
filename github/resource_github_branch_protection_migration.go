@@ -23,15 +23,15 @@ func resourceGithubBranchProtectionV0() *schema.Resource {
 	}
 }
 
-func resourceGithubBranchProtectionUpgradeV0(_ context.Context, rawState map[string]any, meta any) (map[string]any, error) {
+func resourceGithubBranchProtectionUpgradeV0(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
 	repoName := rawState["repository"].(string)
-	repoID, err := getRepositoryID(repoName, meta)
+	repoID, err := getRepositoryID(ctx, repoName, meta)
 	if err != nil {
 		return nil, err
 	}
 
 	branch := rawState["branch"].(string)
-	protectionRuleID, err := getBranchProtectionID(repoID, branch, meta)
+	protectionRuleID, err := getBranchProtectionID(ctx, repoID, branch, meta)
 	if err != nil {
 		return nil, err
 	}

@@ -133,7 +133,7 @@ Also note that there is no build / `terraform init` / `terraform plan` sequence 
 
 ### Debugging the terraform provider
 
-Println debugging can easily be used to obtain information about how code changes perform. If the `TF_LOG=DEBUG` level is set, debug messages will be printed. Use `tflog.Debug(ctx, "your message here", map[string]any{...})` for new code. Some existing code still uses `log.Printf("[DEBUG] ...")` — see [ARCHITECTURE.md](ARCHITECTURE.md#logging) for the migration pattern.
+Set `TF_LOG_PROVIDER=DEBUG` to enable provider debug logging. Use `tflog.Debug(ctx, "your message here", map[string]any{...})` with the SDK-provided context and structured fields. See [ARCHITECTURE.md](ARCHITECTURE.md#logging) for logging guidance.
 
 If a full debugger is desired, VSCode may be used. In order to do so,
 

@@ -372,7 +372,7 @@ func resourceGithubRepositoryPagesDelete(ctx context.Context, d *schema.Resource
 
 	_, err := client.Repositories.DisablePages(ctx, owner, repoName)
 	if err != nil {
-		return diag.FromErr(handleArchivedRepoDelete(err, "repository pages", d.Id(), owner, repoName))
+		return diag.FromErr(handleArchivedRepoDelete(ctx, err, "repository pages", d.Id(), owner, repoName))
 	}
 
 	return nil

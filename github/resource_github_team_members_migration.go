@@ -50,7 +50,7 @@ func resourceGithubTeamMembersStateUpgradeV0(ctx context.Context, rawState map[s
 	client := meta.v3client
 	owner := meta.name
 
-	tflog.Debug(ctx, "Migrating GitHub Team Members from v0 to v1.", map[string]any{"raw_state": rawState})
+	tflog.Debug(ctx, "Migrating GitHub Team Members from v0 to v1.", map[string]any{"field_count": len(rawState)})
 
 	idv, ok := rawState["id"]
 	if !ok {
@@ -88,7 +88,7 @@ func resourceGithubTeamMembersStateUpgradeV0(ctx context.Context, rawState map[s
 	rawState["id"] = strconv.FormatInt(teamID, 10)
 	rawState["team_slug"] = teamSlug
 
-	tflog.Debug(ctx, "GitHub Team Members migrated to v1.", map[string]any{"raw_state": rawState})
+	tflog.Debug(ctx, "GitHub Team Members migrated to v1.", map[string]any{"field_count": len(rawState)})
 
 	return rawState, nil
 }

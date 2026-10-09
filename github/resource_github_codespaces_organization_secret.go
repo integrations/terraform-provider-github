@@ -4,22 +4,22 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
-	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubCodespacesOrganizationSecret() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubCodespacesOrganizationSecretCreateOrUpdate,
-		Read:   resourceGithubCodespacesOrganizationSecretRead,
-		Delete: resourceGithubCodespacesOrganizationSecretDelete,
+		CreateContext: resourceGithubCodespacesOrganizationSecretCreateOrUpdate,
+		ReadContext:   resourceGithubCodespacesOrganizationSecretRead,
+		DeleteContext: resourceGithubCodespacesOrganizationSecretDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+			StateContext: func(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				if err := d.Set("secret_name", d.Id()); err != nil {
 					return nil, err
 				}
@@ -83,10 +83,9 @@ func resourceGithubCodespacesOrganizationSecret() *schema.Resource {
 	}
 }
 
-func resourceGithubCodespacesOrganizationSecretCreateOrUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubCodespacesOrganizationSecretCreateOrUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
-	ctx := context.Background()
 
 	secretName := d.Get("secret_name").(string)
 	plaintextValue := d.Get("plaintext_value").(string)
@@ -96,7 +95,7 @@ func resourceGithubCodespacesOrganizationSecretCreateOrUpdate(d *schema.Resource
 	selectedRepositories, hasSelectedRepositories := d.GetOk("selected_repository_ids")
 
 	if visibility != "selected" && hasSelectedRepositories {
-		return fmt.Errorf("cannot use selected_repository_ids without visibility being set to selected")
+		return diag.Errorf("cannot use selected_repository_ids without visibility being set to selected")
 	}
 
 	selectedRepositoryIDs := github.SelectedRepoIDs{}
@@ -109,9 +108,9 @@ func resourceGithubCodespacesOrganizationSecretCreateOrUpdate(d *schema.Resource
 		}
 	}
 
-	keyId, publicKey, err := getCodespacesOrganizationPublicKeyDetails(owner, meta)
+	keyId, publicKey, err := getCodespacesOrganizationPublicKeyDetails(ctx, owner, meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if encryptedText, ok := d.GetOk("encrypted_value"); ok {
@@ -119,7 +118,7 @@ func resourceGithubCodespacesOrganizationSecretCreateOrUpdate(d *schema.Resource
 	} else {
 		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		encryptedValue = base64.StdEncoding.EncodeToString(encryptedBytes)
 	}
@@ -135,42 +134,40 @@ func resourceGithubCodespacesOrganizationSecretCreateOrUpdate(d *schema.Resource
 
 	_, err = client.Codespaces.CreateOrUpdateOrgSecret(ctx, owner, eSecret)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(secretName)
-	return resourceGithubCodespacesOrganizationSecretRead(d, meta)
+	return resourceGithubCodespacesOrganizationSecretRead(ctx, d, meta)
 }
 
-func resourceGithubCodespacesOrganizationSecretRead(d *schema.ResourceData, meta any) error {
+func resourceGithubCodespacesOrganizationSecretRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
-	ctx := context.Background()
 
 	secret, _, err := client.Codespaces.GetOrgSecret(ctx, owner, d.Id())
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing actions secret %s from state because it no longer exists in GitHub",
-					d.Id())
+				tflog.Warn(ctx, "Removing Codespaces secret from state because it no longer exists in GitHub", map[string]any{"secret_id": d.Id()})
 				d.SetId("")
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err = d.Set("encrypted_value", d.Get("encrypted_value")); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("plaintext_value", d.Get("plaintext_value")); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("created_at", secret.CreatedAt.String()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("visibility", secret.Visibility); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	selectedRepositoryIDs := []int64{}
@@ -182,7 +179,7 @@ func resourceGithubCodespacesOrganizationSecretRead(d *schema.ResourceData, meta
 		for {
 			results, resp, err := client.Codespaces.ListSelectedReposForOrgSecret(ctx, owner, d.Id(), opt)
 			if err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 
 			for _, repo := range results.Repositories {
@@ -197,7 +194,7 @@ func resourceGithubCodespacesOrganizationSecretRead(d *schema.ResourceData, meta
 	}
 
 	if err = d.Set("selected_repository_ids", selectedRepositoryIDs); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// This is a drift detection mechanism based on timestamps.
@@ -216,30 +213,28 @@ func resourceGithubCodespacesOrganizationSecretRead(d *schema.ResourceData, meta
 	// as deleted (unset the ID) in order to fix potential drift by recreating
 	// the resource.
 	if updatedAt, ok := d.GetOk("updated_at"); ok && updatedAt != secret.UpdatedAt.String() {
-		log.Printf("[WARN] The secret %s has been externally updated in GitHub", d.Id())
+		tflog.Warn(ctx, "Secret has been externally updated in GitHub", map[string]any{"secret_id": d.Id()})
 		d.SetId("")
 	} else if !ok {
 		if err = d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	return nil
 }
 
-func resourceGithubCodespacesOrganizationSecretDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubCodespacesOrganizationSecretDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-
-	log.Printf("[DEBUG] Deleting secret: %s", d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
+	tflog.Debug(ctx, "Deleting secret", map[string]any{"secret_id": d.Id()})
 	_, err := client.Codespaces.DeleteOrgSecret(ctx, orgName, d.Id())
-	return err
+	return diag.FromErr(err)
 }
 
-func getCodespacesOrganizationPublicKeyDetails(owner string, meta any) (keyId, pkValue string, err error) {
+func getCodespacesOrganizationPublicKeyDetails(ctx context.Context, owner string, meta any) (keyId, pkValue string, err error) {
 	client := meta.(*Owner).v3client
-	ctx := context.Background()
 
 	publicKey, _, err := client.Codespaces.GetOrgPublicKey(ctx, owner)
 	if err != nil {

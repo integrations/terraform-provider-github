@@ -3,10 +3,11 @@ package github
 import (
 	"context"
 	"errors"
-	"log"
 	"strconv"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -14,10 +15,10 @@ func resourceGithubOrganizationSecurityManager() *schema.Resource {
 	return &schema.Resource{
 		DeprecationMessage: "This resource is deprecated in favor of the github_organization_role_team resource.",
 
-		Create: resourceGithubOrganizationSecurityManagerCreate,
-		Read:   resourceGithubOrganizationSecurityManagerRead,
-		Update: resourceGithubOrganizationSecurityManagerUpdate,
-		Delete: resourceGithubOrganizationSecurityManagerDelete,
+		CreateContext: resourceGithubOrganizationSecurityManagerCreate,
+		ReadContext:   resourceGithubOrganizationSecurityManagerRead,
+		UpdateContext: resourceGithubOrganizationSecurityManagerUpdate,
+		DeleteContext: resourceGithubOrganizationSecurityManagerDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -47,59 +48,58 @@ func getSecurityManagerRole(client *github.Client, ctx context.Context, orgName 
 	return nil, errors.New("security manager role not found")
 }
 
-func resourceGithubOrganizationSecurityManagerCreate(d *schema.ResourceData, m any) error {
+func resourceGithubOrganizationSecurityManagerCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	orgName := meta.name
 	teamSlug := d.Get("team_slug").(string)
 
 	client := meta.v3client
-	ctx := context.Background()
 
 	team, _, err := client.Teams.GetTeamBySlug(ctx, orgName, teamSlug)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	smRole, err := getSecurityManagerRole(client, ctx, orgName)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	_, err = client.Organizations.AssignOrgRoleToTeam(ctx, orgName, teamSlug, smRole.GetID())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(team.GetID(), 10))
 
-	return resourceGithubOrganizationSecurityManagerRead(d, meta)
+	return resourceGithubOrganizationSecurityManagerRead(ctx, d, meta)
 }
 
-func resourceGithubOrganizationSecurityManagerRead(d *schema.ResourceData, m any) error {
+func resourceGithubOrganizationSecurityManagerRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	orgName := meta.name
 	client := meta.v3client
 
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	teamId, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	smRole, err := getSecurityManagerRole(client, ctx, orgName)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// There is no endpoint for getting a single security manager team, so get the list and filter.
@@ -108,7 +108,7 @@ func resourceGithubOrganizationSecurityManagerRead(d *schema.ResourceData, m any
 	for {
 		smTeams, resp, err := client.Organizations.ListTeamsAssignedToOrgRole(ctx, orgName, smRole.GetID(), options)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		for _, t := range smTeams {
@@ -127,72 +127,72 @@ func resourceGithubOrganizationSecurityManagerRead(d *schema.ResourceData, m any
 	}
 
 	if smTeam == nil {
-		log.Printf("[WARN] Removing organization security manager team %s from state because it no longer exists in GitHub", d.Id())
+		tflog.Warn(ctx, "Removing organization security manager team from state because it no longer exists in GitHub", map[string]any{"resource_id": d.Id()})
 		d.SetId("")
 		return nil
 	}
 
 	if err = d.Set("team_slug", smTeam.GetSlug()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubOrganizationSecurityManagerUpdate(d *schema.ResourceData, m any) error {
+func resourceGithubOrganizationSecurityManagerUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	orgId := meta.id
 	orgName := meta.name
 	teamId, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	client := meta.v3client
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	team, _, err := client.Teams.GetTeamByID(ctx, orgId, teamId)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	smRole, err := getSecurityManagerRole(client, ctx, orgName)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// Adding the same team is a no-op.
 	_, err = client.Organizations.AssignOrgRoleToTeam(ctx, orgName, team.GetSlug(), smRole.GetID())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceGithubOrganizationSecurityManagerRead(d, meta)
+	return resourceGithubOrganizationSecurityManagerRead(ctx, d, meta)
 }
 
-func resourceGithubOrganizationSecurityManagerDelete(d *schema.ResourceData, m any) error {
+func resourceGithubOrganizationSecurityManagerDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	orgName := meta.name
 	teamSlug := d.Get("team_slug").(string)
 
 	client := meta.v3client
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	smRole, err := getSecurityManagerRole(client, ctx, orgName)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	_, err = client.Organizations.RemoveOrgRoleFromTeam(ctx, orgName, teamSlug, smRole.GetID())
-	return err
+	return diag.FromErr(err)
 }

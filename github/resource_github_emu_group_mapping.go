@@ -85,11 +85,7 @@ func resourceGithubEMUGroupMappingCreate(ctx context.Context, d *schema.Resource
 		GroupID: groupID,
 	}
 
-	tflog.Debug(ctx, "Connecting external group to team via GitHub API", map[string]any{
-		"org_name":  orgName,
-		"team_slug": teamSlug,
-		"group_id":  groupID,
-	})
+	tflog.Debug(ctx, "Connecting external group to team via GitHub API", map[string]any{"owner": orgName, "team_slug": teamSlug, "group_id": groupID})
 
 	group, resp, err := client.Teams.UpdateConnectedExternalGroup(ctx, orgName, teamSlug, eg)
 	if err != nil {
@@ -277,22 +273,14 @@ func resourceGithubEMUGroupMappingDelete(ctx context.Context, d *schema.Resource
 	}
 
 	teamSlugStr := teamSlug.(string)
-	tflog.Debug(ctx, "Removing connected external group from team via GitHub API", map[string]any{
-		"org_name":    orgName,
-		"team_slug":   teamSlugStr,
-		"resource_id": d.Id(),
-	})
+	tflog.Debug(ctx, "Removing connected external group from team via GitHub API", map[string]any{"owner": orgName, "team_slug": teamSlugStr, "resource_id": d.Id()})
 
 	_, err = client.Teams.RemoveConnectedExternalGroup(ctx, orgName, teamSlugStr)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	tflog.Debug(ctx, "Successfully removed connected external group from team", map[string]any{
-		"org_name":    orgName,
-		"team_slug":   teamSlugStr,
-		"resource_id": d.Id(),
-	})
+	tflog.Debug(ctx, "Successfully removed connected external group from team", map[string]any{"owner": orgName, "team_slug": teamSlugStr, "resource_id": d.Id()})
 	return nil
 }
 

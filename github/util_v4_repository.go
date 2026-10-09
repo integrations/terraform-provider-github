@@ -8,15 +8,15 @@ import (
 	"github.com/shurcooL/githubv4"
 )
 
-func getRepositoryID(name string, meta any) (githubv4.ID, error) {
+func getRepositoryID(ctx context.Context, name string, meta any) (githubv4.ID, error) {
 	// Interpret `name` as a node ID
-	exists, nodeIDerr := repositoryNodeIDExists(name, meta)
+	exists, nodeIDerr := repositoryNodeIDExists(ctx, name, meta)
 	if exists {
 		return githubv4.ID(name), nil
 	}
 
 	// Interpret `name` as a legacy node ID
-	exists, _ = repositoryLegacyNodeIDExists(name, meta)
+	exists, _ = repositoryLegacyNodeIDExists(ctx, name, meta)
 	if exists {
 		return githubv4.ID(name), nil
 	}
@@ -31,7 +31,7 @@ func getRepositoryID(name string, meta any) (githubv4.ID, error) {
 		"owner": githubv4.String(meta.(*Owner).name),
 		"name":  githubv4.String(name),
 	}
-	ctx := context.Background()
+
 	client := meta.(*Owner).v4client
 	nameErr := client.Query(ctx, &query, variables)
 	if nameErr != nil {
@@ -45,7 +45,7 @@ func getRepositoryID(name string, meta any) (githubv4.ID, error) {
 	return query.Repository.ID, nil
 }
 
-func repositoryNodeIDExists(name string, meta any) (bool, error) {
+func repositoryNodeIDExists(ctx context.Context, name string, meta any) (bool, error) {
 	// API check if node ID exists
 	var query struct {
 		Node struct {
@@ -55,7 +55,7 @@ func repositoryNodeIDExists(name string, meta any) (bool, error) {
 	variables := map[string]any{
 		"id": githubv4.ID(name),
 	}
-	ctx := context.Background()
+
 	client := meta.(*Owner).v4client
 	err := client.Query(ctx, &query, variables)
 	if err != nil {
@@ -67,7 +67,7 @@ func repositoryNodeIDExists(name string, meta any) (bool, error) {
 
 // Maintain compatibility with deprecated Global ID format
 // https://github.blog/2021-02-10-new-global-id-format-coming-to-graphql/
-func repositoryLegacyNodeIDExists(name string, meta any) (bool, error) {
+func repositoryLegacyNodeIDExists(ctx context.Context, name string, meta any) (bool, error) {
 	// Check if the name is a base 64 encoded node ID
 	if _, err := base64.StdEncoding.DecodeString(name); err != nil {
 		var corrErr base64.CorruptInputError
@@ -89,7 +89,6 @@ func repositoryLegacyNodeIDExists(name string, meta any) (bool, error) {
 		"id": githubv4.ID(name),
 	}
 
-	ctx := context.Background()
 	client := meta.(*Owner).v4client
 	if err := client.Query(ctx, &query, variables); err != nil {
 		return false, err
