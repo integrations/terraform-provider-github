@@ -25,4 +25,6 @@ resource "github_organization_settings" "test" {
   dependency_graph_enabled_for_new_repositories                = false
   secret_scanning_enabled_for_new_repositories                 = false
   secret_scanning_push_protection_enabled_for_new_repositories = false
+  secret_scanning_push_protection_custom_link_enabled          = true
+  secret_scanning_push_protection_custom_link                  = "https://example.com/secret-scanning-help"
 }
