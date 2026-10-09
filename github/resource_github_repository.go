@@ -573,6 +573,11 @@ func calculateSecurityAndAnalysis(d *schema.ResourceData) *github.SecurityAndAna
 			Status: new(status),
 		}
 	}
+	if ok, status := tryGetSecurityAndAnalysisSettingStatus(lookup, "code_security"); ok {
+		securityAndAnalysis.CodeSecurity = &github.CodeSecurity{
+			Status: new(status),
+		}
+	}
 	if ok, status := tryGetSecurityAndAnalysisSettingStatus(lookup, "secret_scanning"); ok {
 		securityAndAnalysis.SecretScanning = &github.SecretScanning{
 			Status: new(status),
@@ -1204,6 +1209,13 @@ func flattenSecurityAndAnalysis(securityAndAnalysis *github.SecurityAndAnalysis)
 	if advancedSecurity != nil {
 		securityAndAnalysisMap["advanced_security"] = []any{map[string]any{
 			"status": advancedSecurity.GetStatus(),
+		}}
+	}
+
+	codeSecurity := securityAndAnalysis.GetCodeSecurity()
+	if codeSecurity != nil {
+		securityAndAnalysisMap["code_security"] = []any{map[string]any{
+			"status": codeSecurity.GetStatus(),
 		}}
 	}
 
