@@ -639,7 +639,7 @@ The following resources are deprecated and will be removed in future versions:
 | ---------------------------------- | ------------------------------------ |
 | `getTeamID(ctx, meta, idOrSlug)`   | Resolve team ID from ID or slug      |
 | `getTeamSlug(ctx, meta, idOrSlug)` | Resolve team slug from ID or slug    |
-| `getRepositoryID(name, meta)`      | Resolve repository node ID from name |
+| `getRepositoryID(ctx, name, meta)` | Resolve repository node ID from name |
 
 **Permission Mapping** (`util_permissions.go`):
 
