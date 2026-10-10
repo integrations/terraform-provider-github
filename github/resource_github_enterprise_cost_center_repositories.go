@@ -59,14 +59,8 @@ func resourceGithubEnterpriseCostCenterRepositoriesCreate(ctx context.Context, d
 	if !ok {
 		return diag.Errorf("unexpected provider metadata type %T", meta)
 	}
-	enterpriseSlug, ok := resourceKeysGetOk[string](d, "enterprise_slug")
-	if !ok {
-		return diag.Errorf("expected enterprise_slug to be a non-empty string")
-	}
-	costCenterID, ok := resourceKeysGetOk[string](d, "cost_center_id")
-	if !ok {
-		return diag.Errorf("expected cost_center_id to be a non-empty string")
-	}
+	enterpriseSlug := d.Get("enterprise_slug").(string)
+	costCenterID := d.Get("cost_center_id").(string)
 
 	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID, owner.maxPerPage)
 	if err != nil {
@@ -78,10 +72,7 @@ func resourceGithubEnterpriseCostCenterRepositoriesCreate(ctx context.Context, d
 		}
 	}
 
-	repositories, ok := resourceKeysGetOk[*schema.Set](d, "repository_names")
-	if !ok {
-		return diag.Errorf("expected repository_names to be a non-empty set")
-	}
+	repositories := d.Get("repository_names").(*schema.Set)
 	toAdd := expandStringList(repositories.List())
 
 	tflog.Info(ctx, "Adding repositories to cost center", map[string]any{
@@ -105,14 +96,8 @@ func resourceGithubEnterpriseCostCenterRepositoriesUpdate(ctx context.Context, d
 	if !ok {
 		return diag.Errorf("unexpected provider metadata type %T", meta)
 	}
-	enterpriseSlug, ok := resourceKeysGetOk[string](d, "enterprise_slug")
-	if !ok {
-		return diag.Errorf("expected enterprise_slug to be a non-empty string")
-	}
-	costCenterID, ok := resourceKeysGetOk[string](d, "cost_center_id")
-	if !ok {
-		return diag.Errorf("expected cost_center_id to be a non-empty string")
-	}
+	enterpriseSlug := d.Get("enterprise_slug").(string)
+	costCenterID := d.Get("cost_center_id").(string)
 
 	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID, owner.maxPerPage)
 	if err != nil {
@@ -126,10 +111,7 @@ func resourceGithubEnterpriseCostCenterRepositoriesUpdate(ctx context.Context, d
 		}
 	}
 
-	repositories, ok := resourceKeysGetOk[*schema.Set](d, "repository_names")
-	if !ok {
-		return diag.Errorf("expected repository_names to be a non-empty set")
-	}
+	repositories := d.Get("repository_names").(*schema.Set)
 	desiredRepositories := expandStringList(repositories.List())
 	toAdd, toRemove := caseInsensitiveStringDifference(currentRepositories, desiredRepositories)
 
@@ -169,14 +151,8 @@ func resourceGithubEnterpriseCostCenterRepositoriesRead(ctx context.Context, d *
 	if !ok {
 		return diag.Errorf("unexpected provider metadata type %T", meta)
 	}
-	enterpriseSlug, ok := resourceKeysGetOk[string](d, "enterprise_slug")
-	if !ok {
-		return diag.Errorf("expected enterprise_slug to be a non-empty string")
-	}
-	costCenterID, ok := resourceKeysGetOk[string](d, "cost_center_id")
-	if !ok {
-		return diag.Errorf("expected cost_center_id to be a non-empty string")
-	}
+	enterpriseSlug := d.Get("enterprise_slug").(string)
+	costCenterID := d.Get("cost_center_id").(string)
 
 	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID, owner.maxPerPage)
 	if err != nil {
@@ -218,14 +194,8 @@ func resourceGithubEnterpriseCostCenterRepositoriesDelete(ctx context.Context, d
 	if !ok {
 		return diag.Errorf("unexpected provider metadata type %T", meta)
 	}
-	enterpriseSlug, ok := resourceKeysGetOk[string](d, "enterprise_slug")
-	if !ok {
-		return diag.Errorf("expected enterprise_slug to be a non-empty string")
-	}
-	costCenterID, ok := resourceKeysGetOk[string](d, "cost_center_id")
-	if !ok {
-		return diag.Errorf("expected cost_center_id to be a non-empty string")
-	}
+	enterpriseSlug := d.Get("enterprise_slug").(string)
+	costCenterID := d.Get("cost_center_id").(string)
 
 	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID, owner.maxPerPage)
 	if err != nil {

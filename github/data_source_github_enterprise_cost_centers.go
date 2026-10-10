@@ -66,14 +66,8 @@ func dataSourceGithubEnterpriseCostCentersRead(ctx context.Context, d *schema.Re
 	if !ok {
 		return diag.Errorf("unexpected provider metadata type %T", meta)
 	}
-	enterpriseSlug, ok := resourceKeysGetOk[string](d, "enterprise_slug")
-	if !ok {
-		return diag.Errorf("expected enterprise_slug to be a non-empty string")
-	}
-	stateFilter, ok := resourceKeysGetOk[string](d, "state")
-	if !ok {
-		return diag.Errorf("expected state to be a non-empty string")
-	}
+	enterpriseSlug := d.Get("enterprise_slug").(string)
+	stateFilter := d.Get("state").(string)
 
 	var opts github.ListCostCenterOptions
 	if stateFilter != "all" {

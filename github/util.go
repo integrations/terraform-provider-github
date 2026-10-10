@@ -206,17 +206,6 @@ func flattenStringList(v []string) []any {
 	return c
 }
 
-func resourceKeysGetOk[T any](d *schema.ResourceData, key string) (T, bool) {
-	value, ok := d.GetOk(key)
-	if !ok {
-		var zero T
-		return zero, false
-	}
-
-	typedValue, ok := value.(T)
-	return typedValue, ok
-}
-
 func unconvertibleIdErr(id string, err error) *unconvertibleIdError {
 	return &unconvertibleIdError{OriginalId: id, OriginalError: err}
 }

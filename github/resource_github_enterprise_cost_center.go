@@ -55,14 +55,8 @@ func resourceGithubEnterpriseCostCenterCreate(ctx context.Context, d *schema.Res
 	if !ok {
 		return diag.Errorf("unexpected provider metadata type %T", meta)
 	}
-	enterpriseSlug, ok := resourceKeysGetOk[string](d, "enterprise_slug")
-	if !ok {
-		return diag.Errorf("expected enterprise_slug to be a non-empty string")
-	}
-	name, ok := resourceKeysGetOk[string](d, "name")
-	if !ok {
-		return diag.Errorf("expected name to be a non-empty string")
-	}
+	enterpriseSlug := d.Get("enterprise_slug").(string)
+	name := d.Get("name").(string)
 
 	tflog.Info(ctx, "Creating enterprise cost center", map[string]any{
 		"enterprise_slug": enterpriseSlug,
@@ -94,10 +88,7 @@ func resourceGithubEnterpriseCostCenterRead(ctx context.Context, d *schema.Resou
 	if !ok {
 		return diag.Errorf("unexpected provider metadata type %T", meta)
 	}
-	enterpriseSlug, ok := resourceKeysGetOk[string](d, "enterprise_slug")
-	if !ok {
-		return diag.Errorf("expected enterprise_slug to be a non-empty string")
-	}
+	enterpriseSlug := d.Get("enterprise_slug").(string)
 	costCenterID := d.Id()
 
 	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID, owner.maxPerPage)
@@ -134,17 +125,11 @@ func resourceGithubEnterpriseCostCenterUpdate(ctx context.Context, d *schema.Res
 	if !ok {
 		return diag.Errorf("unexpected provider metadata type %T", meta)
 	}
-	enterpriseSlug, ok := resourceKeysGetOk[string](d, "enterprise_slug")
-	if !ok {
-		return diag.Errorf("expected enterprise_slug to be a non-empty string")
-	}
+	enterpriseSlug := d.Get("enterprise_slug").(string)
 	costCenterID := d.Id()
 
 	if d.HasChange("name") {
-		name, ok := resourceKeysGetOk[string](d, "name")
-		if !ok {
-			return diag.Errorf("expected name to be a non-empty string")
-		}
+		name := d.Get("name").(string)
 		tflog.Info(ctx, "Updating enterprise cost center name", map[string]any{
 			"enterprise_slug": enterpriseSlug,
 			"cost_center_id":  costCenterID,
@@ -164,10 +149,7 @@ func resourceGithubEnterpriseCostCenterDelete(ctx context.Context, d *schema.Res
 	if !ok {
 		return diag.Errorf("unexpected provider metadata type %T", meta)
 	}
-	enterpriseSlug, ok := resourceKeysGetOk[string](d, "enterprise_slug")
-	if !ok {
-		return diag.Errorf("expected enterprise_slug to be a non-empty string")
-	}
+	enterpriseSlug := d.Get("enterprise_slug").(string)
 	costCenterID := d.Id()
 
 	tflog.Info(ctx, "Archiving enterprise cost center", map[string]any{

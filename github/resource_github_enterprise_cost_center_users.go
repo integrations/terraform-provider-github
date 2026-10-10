@@ -59,14 +59,8 @@ func resourceGithubEnterpriseCostCenterUsersCreate(ctx context.Context, d *schem
 	if !ok {
 		return diag.Errorf("unexpected provider metadata type %T", meta)
 	}
-	enterpriseSlug, ok := resourceKeysGetOk[string](d, "enterprise_slug")
-	if !ok {
-		return diag.Errorf("expected enterprise_slug to be a non-empty string")
-	}
-	costCenterID, ok := resourceKeysGetOk[string](d, "cost_center_id")
-	if !ok {
-		return diag.Errorf("expected cost_center_id to be a non-empty string")
-	}
+	enterpriseSlug := d.Get("enterprise_slug").(string)
+	costCenterID := d.Get("cost_center_id").(string)
 
 	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID, owner.maxPerPage)
 	if err != nil {
@@ -78,10 +72,7 @@ func resourceGithubEnterpriseCostCenterUsersCreate(ctx context.Context, d *schem
 		}
 	}
 
-	usernames, ok := resourceKeysGetOk[*schema.Set](d, "usernames")
-	if !ok {
-		return diag.Errorf("expected usernames to be a non-empty set")
-	}
+	usernames := d.Get("usernames").(*schema.Set)
 	toAdd := expandStringList(usernames.List())
 
 	tflog.Info(ctx, "Adding users to cost center", map[string]any{
@@ -105,14 +96,8 @@ func resourceGithubEnterpriseCostCenterUsersUpdate(ctx context.Context, d *schem
 	if !ok {
 		return diag.Errorf("unexpected provider metadata type %T", meta)
 	}
-	enterpriseSlug, ok := resourceKeysGetOk[string](d, "enterprise_slug")
-	if !ok {
-		return diag.Errorf("expected enterprise_slug to be a non-empty string")
-	}
-	costCenterID, ok := resourceKeysGetOk[string](d, "cost_center_id")
-	if !ok {
-		return diag.Errorf("expected cost_center_id to be a non-empty string")
-	}
+	enterpriseSlug := d.Get("enterprise_slug").(string)
+	costCenterID := d.Get("cost_center_id").(string)
 
 	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID, owner.maxPerPage)
 	if err != nil {
@@ -126,10 +111,7 @@ func resourceGithubEnterpriseCostCenterUsersUpdate(ctx context.Context, d *schem
 		}
 	}
 
-	usernames, ok := resourceKeysGetOk[*schema.Set](d, "usernames")
-	if !ok {
-		return diag.Errorf("expected usernames to be a non-empty set")
-	}
+	usernames := d.Get("usernames").(*schema.Set)
 	desiredUsers := expandStringList(usernames.List())
 	toAdd, toRemove := caseInsensitiveStringDifference(currentUsers, desiredUsers)
 
@@ -169,14 +151,8 @@ func resourceGithubEnterpriseCostCenterUsersRead(ctx context.Context, d *schema.
 	if !ok {
 		return diag.Errorf("unexpected provider metadata type %T", meta)
 	}
-	enterpriseSlug, ok := resourceKeysGetOk[string](d, "enterprise_slug")
-	if !ok {
-		return diag.Errorf("expected enterprise_slug to be a non-empty string")
-	}
-	costCenterID, ok := resourceKeysGetOk[string](d, "cost_center_id")
-	if !ok {
-		return diag.Errorf("expected cost_center_id to be a non-empty string")
-	}
+	enterpriseSlug := d.Get("enterprise_slug").(string)
+	costCenterID := d.Get("cost_center_id").(string)
 
 	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID, owner.maxPerPage)
 	if err != nil {
@@ -218,14 +194,8 @@ func resourceGithubEnterpriseCostCenterUsersDelete(ctx context.Context, d *schem
 	if !ok {
 		return diag.Errorf("unexpected provider metadata type %T", meta)
 	}
-	enterpriseSlug, ok := resourceKeysGetOk[string](d, "enterprise_slug")
-	if !ok {
-		return diag.Errorf("expected enterprise_slug to be a non-empty string")
-	}
-	costCenterID, ok := resourceKeysGetOk[string](d, "cost_center_id")
-	if !ok {
-		return diag.Errorf("expected cost_center_id to be a non-empty string")
-	}
+	enterpriseSlug := d.Get("enterprise_slug").(string)
+	costCenterID := d.Get("cost_center_id").(string)
 
 	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID, owner.maxPerPage)
 	if err != nil {

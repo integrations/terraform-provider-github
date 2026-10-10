@@ -60,6 +60,16 @@ func githubClientWithListOptions(client *github.Client, opts github.ListOptions)
 	}))
 }
 
+// getEnterpriseCostCenter fetches a single cost center including all of its assigned resources.
+//
+// Although this returns a single cost center, the "Get a cost center by ID" endpoint paginates the
+// `resources` array (users, organizations and repositories assigned to the cost center) using the
+// `page` and `per_page` query parameters. Cost centers with many assignments are therefore split
+// across multiple responses, and every page must be fetched so the assignment resources can
+// reconcile against the full set. go-github's GetCostCenter does not accept list options, so the
+// page parameters are injected via a cloned client.
+//
+// See https://docs.github.com/en/rest/billing/cost-centers#get-a-cost-center-by-id
 func getEnterpriseCostCenter(ctx context.Context, client *github.Client, enterpriseSlug, costCenterID string, perPage int) (*github.CostCenter, error) {
 	if perPage < 1 {
 		return nil, fmt.Errorf("per-page limit must be at least 1")

@@ -2,10 +2,10 @@ package github
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-testing/compare"
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
@@ -13,32 +13,42 @@ import (
 )
 
 func TestAccGithubEnterpriseCostCenterDataSource(t *testing.T) {
-	randomID := acctest.RandString(5)
+	skipUnlessEnterprise(t)
+	skipUnlessHasOrgUser1(t)
+
+	cc := mustCreateTestEnterpriseCostCenter(t)
+	repo := mustCreateTestRepository(t)
+	mustAddTestEnterpriseCostCenterResources(t, cc, github.CostCenterResourceRequest{
+		Users:         []string{testAccConf.testOrgUser1},
+		Organizations: []string{testAccConf.owner},
+		Repositories:  []string{repo.GetFullName()},
+	})
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { skipUnlessEnterprise(t) },
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{{
 			Config: fmt.Sprintf(`
-				data "github_enterprise" "enterprise" {
-					slug = "%s"
-				}
-
-				resource "github_enterprise_cost_center" "test" {
-					enterprise_slug = data.github_enterprise.enterprise.slug
-					name            = "%s%s"
-				}
-
 				data "github_enterprise_cost_center" "test" {
-					enterprise_slug = data.github_enterprise.enterprise.slug
-					cost_center_id  = github_enterprise_cost_center.test.id
+					enterprise_slug = "%s"
+					cost_center_id  = "%s"
 				}
-			`, testAccConf.enterpriseSlug, testResourcePrefix, randomID),
+			`, testAccConf.enterpriseSlug, cc.ID),
 			ConfigStateChecks: []statecheck.StateCheck{
-				statecheck.CompareValuePairs("data.github_enterprise_cost_center.test", tfjsonpath.New("cost_center_id"), "github_enterprise_cost_center.test", tfjsonpath.New("id"), compare.ValuesSame()),
-				statecheck.CompareValuePairs("data.github_enterprise_cost_center.test", tfjsonpath.New("name"), "github_enterprise_cost_center.test", tfjsonpath.New("name"), compare.ValuesSame()),
+				statecheck.ExpectKnownValue("data.github_enterprise_cost_center.test", tfjsonpath.New("id"), knownvalue.StringExact(cc.ID)),
+				statecheck.ExpectKnownValue("data.github_enterprise_cost_center.test", tfjsonpath.New("enterprise_slug"), knownvalue.StringExact(testAccConf.enterpriseSlug)),
+				statecheck.ExpectKnownValue("data.github_enterprise_cost_center.test", tfjsonpath.New("cost_center_id"), knownvalue.StringExact(cc.ID)),
+				statecheck.ExpectKnownValue("data.github_enterprise_cost_center.test", tfjsonpath.New("name"), knownvalue.StringExact(cc.Name)),
 				statecheck.ExpectKnownValue("data.github_enterprise_cost_center.test", tfjsonpath.New("state"), knownvalue.StringExact("active")),
+				statecheck.ExpectKnownValue("data.github_enterprise_cost_center.test", tfjsonpath.New("azure_subscription"), knownvalue.StringExact(cc.GetAzureSubscription())),
+				statecheck.ExpectKnownValue("data.github_enterprise_cost_center.test", tfjsonpath.New("users"), knownvalue.SetExact([]knownvalue.Check{knownvalue.StringRegexp(caseInsensitiveExactRegexp(testAccConf.testOrgUser1))})),
+				statecheck.ExpectKnownValue("data.github_enterprise_cost_center.test", tfjsonpath.New("organizations"), knownvalue.SetExact([]knownvalue.Check{knownvalue.StringRegexp(caseInsensitiveExactRegexp(testAccConf.owner))})),
+				statecheck.ExpectKnownValue("data.github_enterprise_cost_center.test", tfjsonpath.New("repositories"), knownvalue.SetExact([]knownvalue.Check{knownvalue.StringRegexp(caseInsensitiveExactRegexp(repo.GetFullName()))})),
 			},
 		}},
 	})
+}
+
+func caseInsensitiveExactRegexp(value string) *regexp.Regexp {
+	return regexp.MustCompile("(?i)^" + regexp.QuoteMeta(value) + "$")
 }

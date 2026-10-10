@@ -72,14 +72,8 @@ func dataSourceGithubEnterpriseCostCenterRead(ctx context.Context, d *schema.Res
 	if !ok {
 		return diag.Errorf("unexpected provider metadata type %T", meta)
 	}
-	enterpriseSlug, ok := resourceKeysGetOk[string](d, "enterprise_slug")
-	if !ok {
-		return diag.Errorf("expected enterprise_slug to be a non-empty string")
-	}
-	costCenterID, ok := resourceKeysGetOk[string](d, "cost_center_id")
-	if !ok {
-		return diag.Errorf("expected cost_center_id to be a non-empty string")
-	}
+	enterpriseSlug := d.Get("enterprise_slug").(string)
+	costCenterID := d.Get("cost_center_id").(string)
 
 	cc, err := getEnterpriseCostCenter(ctx, owner.v3client, enterpriseSlug, costCenterID, owner.maxPerPage)
 	if err != nil {
