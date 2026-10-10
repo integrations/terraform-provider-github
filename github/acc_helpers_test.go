@@ -137,6 +137,35 @@ func mustCreateTestOrganizationRepositoryCustomProperty(t *testing.T, valType st
 	return prop
 }
 
+func mustCreateTestEnterpriseRepositoryCustomProperty(t *testing.T, valType string, allowed []string) *github.CustomProperty {
+	t.Helper()
+
+	randomID := acctest.RandString(testRandomIDLength)
+	name := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+
+	req := &github.CustomProperty{
+		PropertyName:  &name,
+		ValueType:     github.PropertyValueType(valType),
+		AllowedValues: allowed,
+	}
+
+	prop, _, err := testAccConf.meta.v3client.Enterprise.CreateOrUpdateCustomProperty(t.Context(), testAccConf.enterpriseSlug, name, req)
+	if err != nil {
+		t.Fatalf("failed to create test enterprise repository custom property: %v", err)
+	}
+
+	t.Cleanup(func() {
+		if _, err := testAccConf.meta.v3client.Enterprise.RemoveCustomProperty(context.Background(), testAccConf.enterpriseSlug, name); err != nil {
+			if err, ok := errors.AsType[*github.ErrorResponse](err); ok && err.Response.StatusCode == 404 {
+				return
+			}
+			t.Logf("failed to delete test enterprise repository custom property %s: %v", name, err)
+		}
+	})
+
+	return prop
+}
+
 func mustGetUser(t *testing.T, username string) *github.User {
 	t.Helper()
 
