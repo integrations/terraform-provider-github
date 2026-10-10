@@ -274,9 +274,20 @@ func resourceGithubRepositoryCustomPropertyImport(ctx context.Context, d *schema
 	}
 	repoID := int(repo.GetID())
 
-	cp, _, err := client.Organizations.GetCustomProperty(ctx, owner, propertyName)
+	customProperties, _, err := client.Organizations.GetAllCustomProperties(ctx, owner)
 	if err != nil {
 		return nil, err
+	}
+
+	var cp *github.CustomProperty
+	for _, prop := range customProperties {
+		if prop.GetPropertyName() == propertyName {
+			cp = prop
+			break
+		}
+	}
+	if cp == nil {
+		return nil, fmt.Errorf("custom property %q not found for organization %q", propertyName, owner)
 	}
 
 	if err := d.Set("repository", repoName); err != nil {
