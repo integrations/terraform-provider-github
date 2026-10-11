@@ -223,7 +223,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 					ResourceName:            "github_actions_hosted_runner.test",
 					ImportState:             true,
 					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"status", "image.0.size_gb", "image_gen"},
+					ImportStateVerifyIgnore: []string{"status", "image_gen"},
 				},
 			},
 		})

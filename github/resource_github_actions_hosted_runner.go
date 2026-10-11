@@ -238,6 +238,12 @@ func resourceGithubActionsHostedRunnerCreate(ctx context.Context, d *schema.Reso
 
 	d.SetId(strconv.Itoa(int(runner.GetID())))
 
+	if imageDetails := runner.GetImageDetails(); imageDetails != nil {
+		if err := d.Set("image", flattenImage(imageDetails)); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
 	if err := d.Set("status", runner.GetStatus()); err != nil {
 		return diag.FromErr(err)
 	}
@@ -387,6 +393,8 @@ func resourceGithubActionsHostedRunnerUpdate(ctx context.Context, d *schema.Reso
 		if _, ok := errors.AsType[*github.AcceptedError](err); !ok {
 			return diag.FromErr(err)
 		}
+		// 202 Accepted carries no runner body; keep current state until the next refresh
+		return nil
 	}
 
 	if err := d.Set("status", runner.GetStatus()); err != nil {

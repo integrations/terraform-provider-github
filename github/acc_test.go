@@ -352,12 +352,15 @@ func sweepOrganizationRunnerGroups(_ string) error {
 	ctx := context.Background()
 
 	fmt.Println("sweeping organization runner groups")
-	runnerGroups, _, err := client.Actions.ListOrganizationRunnerGroups(ctx, owner, &github.ListOrgRunnerGroupOptions{})
-	if err != nil {
-		return err
+	var runnerGroups []*github.RunnerGroup
+	for rg, err := range client.Actions.ListOrganizationRunnerGroupsIter(ctx, owner, &github.ListOrgRunnerGroupOptions{}) {
+		if err != nil {
+			return err
+		}
+		runnerGroups = append(runnerGroups, rg)
 	}
 
-	for _, rg := range runnerGroups.GetRunnerGroups() {
+	for _, rg := range runnerGroups {
 		if name := rg.GetName(); strings.HasPrefix(name, testResourcePrefix) {
 			fmt.Printf("destroying organization runner group %s\n", name)
 
@@ -382,12 +385,15 @@ func sweepRunnerGroupRunners(ctx context.Context, rg *github.RunnerGroup) error 
 	owner := testAccConf.meta.name
 
 	fmt.Printf("cleanup: removing organization hosted runners of runner group '%s'\n", rg.GetName())
-	runners, _, err := client.Actions.ListRunnerGroupHostedRunners(ctx, owner, rg.GetID(), &github.ListOptions{})
-	if err != nil {
-		return err
+	var runners []*github.HostedRunner
+	for r, err := range client.Actions.ListRunnerGroupHostedRunnersIter(ctx, owner, rg.GetID(), &github.ListOptions{}) {
+		if err != nil {
+			return err
+		}
+		runners = append(runners, r)
 	}
 
-	for _, r := range runners.GetRunners() {
+	for _, r := range runners {
 		_, resp, err := client.Actions.DeleteHostedRunner(ctx, owner, r.GetID())
 		if err != nil {
 			if resp != nil && resp.StatusCode == http.StatusNotFound {
