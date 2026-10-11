@@ -3,11 +3,12 @@ package github
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/integrations/terraform-provider-github/v6/internal/tfpluginv2util"
@@ -15,10 +16,10 @@ import (
 
 func resourceGithubIssue() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubIssueCreateOrUpdate,
-		Read:   resourceGithubIssueRead,
-		Update: resourceGithubIssueCreateOrUpdate,
-		Delete: resourceGithubIssueDelete,
+		CreateContext: resourceGithubIssueCreateOrUpdate,
+		ReadContext:   resourceGithubIssueRead,
+		UpdateContext: resourceGithubIssueCreateOrUpdate,
+		DeleteContext: resourceGithubIssueDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -79,13 +80,12 @@ func resourceGithubIssue() *schema.Resource {
 	}
 }
 
-func resourceGithubIssueCreateOrUpdate(d *schema.ResourceData, meta any) error {
-	ctx := context.Background()
+func resourceGithubIssueCreateOrUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
 
 	if err := d.Set("etag", nil); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	repoName := tfpluginv2util.Get[string](d, "repository")
@@ -110,12 +110,10 @@ func resourceGithubIssueCreateOrUpdate(d *schema.ResourceData, meta any) error {
 		if milestone > 0 {
 			req.Milestone = new(milestone)
 		}
-
-		log.Printf("[DEBUG] Creating issue: %s (%s/%s)",
-			title, orgName, repoName)
+		tflog.Debug(ctx, "Creating issue", map[string]any{"owner": orgName, "repository": repoName})
 		issue, resp, err = client.Issues.Create(ctx, orgName, repoName, req)
 		if resp != nil {
-			log.Printf("[DEBUG] Response from creating issue: %#v", *resp)
+			tflog.Debug(ctx, "Response from creating issue", map[string]any{"status_code": resp.StatusCode})
 		}
 	} else {
 		req := github.UpdateIssueRequest{
@@ -130,43 +128,41 @@ func resourceGithubIssueCreateOrUpdate(d *schema.ResourceData, meta any) error {
 		}
 
 		number, _ := d.Get("number").(int)
-		log.Printf("[DEBUG] Updating issue: %d:%s (%s/%s)",
-			number, title, orgName, repoName)
+		tflog.Debug(ctx, "Updating issue", map[string]any{"issue_number": number, "owner": orgName, "repository": repoName})
 		issue, resp, err = client.Issues.Update(ctx, orgName, repoName, number, req)
 		if resp != nil {
-			log.Printf("[DEBUG] Response from updating issue: %#v", *resp)
+			tflog.Debug(ctx, "Response from updating issue", map[string]any{"status_code": resp.StatusCode})
 		}
 	}
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(buildTwoPartID(repoName, strconv.Itoa(issue.GetNumber())))
 	if err = d.Set("issue_id", issue.GetID()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	return resourceGithubIssueRead(d, meta)
+	return resourceGithubIssueRead(ctx, d, meta)
 }
 
-func resourceGithubIssueRead(d *schema.ResourceData, meta any) error {
+func resourceGithubIssueRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	repoName, idNumber, err := parseID2(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	number, err := strconv.Atoi(idNumber)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	orgName := meta.(*Owner).name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
-
-	log.Printf("[DEBUG] Reading issue: %d (%s/%s)", number, orgName, repoName)
+	tflog.Debug(ctx, "Reading issue", map[string]any{"issue_number": number, "owner": orgName, "repository": repoName})
 	issue, resp, err := client.Issues.Get(ctx,
 		orgName, repoName, number)
 	if err != nil {
@@ -175,32 +171,31 @@ func resourceGithubIssueRead(d *schema.ResourceData, meta any) error {
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[WARN] Removing issue %d (%s/%s) from state because it no longer exists in GitHub",
-					number, orgName, repoName)
+				tflog.Warn(ctx, "Removing issue from state because it no longer exists in GitHub", map[string]any{"issue_number": number, "owner": orgName, "repository": repoName})
 				d.SetId("")
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("repository", repoName); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("number", number); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("title", issue.GetTitle()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("body", issue.GetBody()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("milestone_number", issue.GetMilestone().GetNumber()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	var labels []string
@@ -208,7 +203,7 @@ func resourceGithubIssueRead(d *schema.ResourceData, meta any) error {
 		labels = append(labels, v.GetName())
 	}
 	if err = d.Set("labels", flattenStringList(labels)); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	var assignees []string
@@ -216,28 +211,27 @@ func resourceGithubIssueRead(d *schema.ResourceData, meta any) error {
 		assignees = append(assignees, v.GetLogin())
 	}
 	if err = d.Set("assignees", flattenStringList(assignees)); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err = d.Set("issue_id", issue.GetID()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	return nil
 }
 
-func resourceGithubIssueDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubIssueDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	orgName := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	number := d.Get("number").(int)
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-
-	log.Printf("[DEBUG] Deleting issue by closing: %d (%s/%s)", number, orgName, repoName)
+	ctx = context.WithValue(ctx, ctxId, d.Id())
+	tflog.Debug(ctx, "Deleting issue by closing", map[string]any{"issue_number": number, "owner": orgName, "repository": repoName})
 
 	request := github.UpdateIssueRequest{State: new("closed")}
 
 	_, _, err := client.Issues.Update(ctx, orgName, repoName, number, request)
 
-	return err
+	return diag.FromErr(err)
 }

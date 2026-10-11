@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
@@ -14,11 +13,7 @@ import (
 
 // checkRepositoryBranchExists tests if a branch exists in a repository.
 func checkRepositoryBranchExists(ctx context.Context, client *github.Client, owner, repo, branch string) error {
-	tflog.Debug(ctx, "Checking if branch exists", map[string]any{
-		"branch": branch,
-		"owner":  owner,
-		"repo":   repo,
-	})
+	tflog.Debug(ctx, "Checking if branch exists", map[string]any{"branch": branch, "owner": owner, "repository": repo})
 	_, _, err := client.Repositories.GetBranch(ctx, owner, repo, branch, 2)
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
@@ -130,13 +125,13 @@ func isArchivedRepositoryError(err error) bool {
 
 // handleArchivedRepositoryError handles errors for operations on archived repositories.
 // If the repository is archived, it logs a message and returns nil, otherwise, it returns the original error.
-func handleArchivedRepositoryError(err error, operation, resource, owner, repo string) error {
+func handleArchivedRepositoryError(ctx context.Context, err error, operation, resourceType, resourceName, owner, repo string) error {
 	if err == nil {
 		return nil
 	}
 
 	if isArchivedRepositoryError(err) {
-		log.Printf("[INFO] Skipping %s of %s from archived repository %s/%s", operation, resource, owner, repo)
+		tflog.Info(ctx, "Skipping operation on archived repository", map[string]any{"operation": operation, "resource_type": resourceType, "resource_name": resourceName, "owner": owner, "repository": repo})
 		return nil
 	}
 
@@ -145,6 +140,6 @@ func handleArchivedRepositoryError(err error, operation, resource, owner, repo s
 
 // handleArchivedRepoDelete is a convenience wrapper for handleArchivedRepositoryError
 // specifically for delete operations, which is the most common use case.
-func handleArchivedRepoDelete(err error, resourceType, resourceName, owner, repo string) error {
-	return handleArchivedRepositoryError(err, "deletion", fmt.Sprintf("%s %s", resourceType, resourceName), owner, repo)
+func handleArchivedRepoDelete(ctx context.Context, err error, resourceType, resourceName, owner, repo string) error {
+	return handleArchivedRepositoryError(ctx, err, "deletion", resourceType, resourceName, owner, repo)
 }

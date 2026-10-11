@@ -55,7 +55,7 @@ func resourceGithubActionsEnvironmentVariableStateUpgradeV0(ctx context.Context,
 	client := meta.v3client
 	owner := meta.name
 
-	tflog.Debug(ctx, "GitHub Actions Environment Variable migration from v0 to v1 started.", map[string]any{"raw_state": rawState})
+	tflog.Debug(ctx, "GitHub Actions Environment Variable migration from v0 to v1 started.", map[string]any{"repository": rawState["repository"], "repository_id": rawState["repository_id"], "environment": rawState["environment"], "variable_name": rawState["variable_name"], "resource_id": rawState["id"]})
 
 	repoName, ok := rawState["repository"].(string)
 	if !ok {
@@ -86,7 +86,7 @@ func resourceGithubActionsEnvironmentVariableStateUpgradeV0(ctx context.Context,
 	rawState["id"] = id
 	rawState["repository_id"] = repoID
 
-	tflog.Debug(ctx, "GitHub Actions Environment Variable migration from v0 to v1 completed.", map[string]any{"raw_state": rawState})
+	tflog.Debug(ctx, "GitHub Actions Environment Variable migration from v0 to v1 completed.", map[string]any{"repository": rawState["repository"], "repository_id": rawState["repository_id"], "environment": rawState["environment"], "variable_name": rawState["variable_name"], "resource_id": rawState["id"]})
 
 	return rawState, nil
 }

@@ -5,12 +5,12 @@ import (
 	"context"
 	"errors"
 	"io"
-	"log"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 const (
@@ -66,7 +66,7 @@ func (rlt *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, err
 	// Sleep for the delay that the last request defined. This delay might be different
 	// for read and write requests. See isWriteMethod for the distinction between them.
 	if rlt.nextRequestDelay > 0 {
-		log.Printf("[DEBUG] Sleeping %s between operations", rlt.nextRequestDelay)
+		tflog.Debug(req.Context(), "Sleeping between operations", map[string]any{"delay": rlt.nextRequestDelay.String()})
 		sleep(req.Context(), rlt.nextRequestDelay)
 	}
 
@@ -95,8 +95,7 @@ func (rlt *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, err
 	if errors.As(ghErr, &arlErr) {
 		rlt.nextRequestDelay = 0
 		retryAfter := arlErr.GetRetryAfter()
-		log.Printf("[WARN] Abuse detection mechanism triggered, sleeping for %s before retrying",
-			retryAfter)
+		tflog.Warn(req.Context(), "Abuse detection mechanism triggered, sleeping before retrying", map[string]any{"retry_after": retryAfter.String()})
 		sleep(req.Context(), retryAfter)
 		rlt.smartLock(false)
 		return rlt.RoundTrip(req)
@@ -106,8 +105,7 @@ func (rlt *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, err
 	if errors.As(ghErr, &rlErr) {
 		rlt.nextRequestDelay = 0
 		retryAfter := time.Until(rlErr.Rate.Reset.Time)
-		log.Printf("[WARN] Rate limit %d reached, sleeping for %s (until %s) before retrying",
-			rlErr.Rate.Limit, retryAfter, time.Now().Add(retryAfter))
+		tflog.Warn(req.Context(), "Rate limit reached, sleeping before retrying", map[string]any{"rate_limit": rlErr.Rate.Limit, "retry_after": retryAfter.String(), "reset_at": rlErr.Rate.Reset.Time})
 		sleep(req.Context(), retryAfter)
 		rlt.smartLock(false)
 		return rlt.RoundTrip(req)

@@ -4,22 +4,23 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryAutolinkReferenceCreate,
-		Read:   resourceGithubRepositoryAutolinkReferenceRead,
-		Delete: resourceGithubRepositoryAutolinkReferenceDelete,
+		CreateContext: resourceGithubRepositoryAutolinkReferenceCreate,
+		ReadContext:   resourceGithubRepositoryAutolinkReferenceRead,
+		DeleteContext: resourceGithubRepositoryAutolinkReferenceDelete,
 
 		CustomizeDiff: diffETag,
 
@@ -99,7 +100,7 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryAutolinkReferenceCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryAutolinkReferenceCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
@@ -107,7 +108,6 @@ func resourceGithubRepositoryAutolinkReferenceCreate(d *schema.ResourceData, met
 	keyPrefix := d.Get("key_prefix").(string)
 	targetURLTemplate := d.Get("target_url_template").(string)
 	isAlphanumeric := d.Get("is_alphanumeric").(bool)
-	ctx := context.Background()
 
 	opts := github.CreateAutolinkRequest{
 		KeyPrefix:      keyPrefix,
@@ -117,23 +117,23 @@ func resourceGithubRepositoryAutolinkReferenceCreate(d *schema.ResourceData, met
 
 	autolinkRef, _, err := client.Repositories.CreateAutolink(ctx, owner, repoName, opts)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	d.SetId(strconv.FormatInt(autolinkRef.GetID(), 10))
 
-	return resourceGithubRepositoryAutolinkReferenceRead(d, meta)
+	return resourceGithubRepositoryAutolinkReferenceRead(ctx, d, meta)
 }
 
-func resourceGithubRepositoryAutolinkReferenceRead(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryAutolinkReferenceRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	autolinkRefID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
+		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
@@ -142,44 +142,43 @@ func resourceGithubRepositoryAutolinkReferenceRead(d *schema.ResourceData, meta 
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing autolink reference for repository %s/%s from state because it no longer exists in GitHub",
-					owner, repoName)
+				tflog.Info(ctx, "Removing autolink reference for repository from state because it no longer exists in GitHub", map[string]any{"owner": owner, "repository": repoName})
 				d.SetId("")
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	// Set resource fields
 	d.SetId(strconv.FormatInt(autolinkRef.GetID(), 10))
 	if err = d.Set("repository", repoName); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("key_prefix", autolinkRef.KeyPrefix); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("target_url_template", autolinkRef.URLTemplate); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("is_alphanumeric", autolinkRef.IsAlphanumeric); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubRepositoryAutolinkReferenceDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryAutolinkReferenceDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
 	autolinkRefID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
+		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	_, err = client.Repositories.DeleteAutolink(ctx, owner, repoName, autolinkRefID)
-	return err
+	return diag.FromErr(err)
 }

@@ -1,10 +1,10 @@
 package github
 
 import (
+	"context"
 	"crypto/md5"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"regexp"
 	"slices"
@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -218,17 +219,16 @@ func validateSecretNameFunc(v any, path cty.Path) diag.Diagnostics {
 
 // deleteResourceOn404AndSwallow304OtherwiseReturnError will log and delete resource if error is 404 which indicates resource (or any of its ancestors)
 // doesn't exist.
-// resourceDescription represents a formatting string that represents the resource
-// args will be passed to resourceDescription in `log.Printf`.
-func deleteResourceOn404AndSwallow304OtherwiseReturnError(err error, d *schema.ResourceData, resourceDescription string, args ...any) error {
+func deleteResourceOn404AndSwallow304OtherwiseReturnError(ctx context.Context, err error, d *schema.ResourceData, resourceType string, fields map[string]any) error {
+	ctx = tflog.SetField(ctx, "resource_type", resourceType)
+	ctx = tflog.SetField(ctx, "resource_id", d.Id())
 	if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 		if ghErr.Response.StatusCode == http.StatusNotModified {
-			log.Printf("[INFO] Resource %s not modified, skipping", resourceDescription)
+			tflog.Info(ctx, "Resource not modified, skipping", fields)
 			return nil
 		}
 		if ghErr.Response.StatusCode == http.StatusNotFound {
-			log.Printf("[INFO] Removing "+resourceDescription+" from state because it no longer exists in GitHub",
-				args...)
+			tflog.Info(ctx, "Removing resource from state because it no longer exists in GitHub", fields)
 			d.SetId("")
 			return nil
 		}

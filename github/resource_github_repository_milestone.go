@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
@@ -19,12 +20,12 @@ import (
 
 func resourceGithubRepositoryMilestone() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryMilestoneCreate,
-		Read:   resourceGithubRepositoryMilestoneRead,
-		Update: resourceGithubRepositoryMilestoneUpdate,
-		Delete: resourceGithubRepositoryMilestoneDelete,
+		CreateContext: resourceGithubRepositoryMilestoneCreate,
+		ReadContext:   resourceGithubRepositoryMilestoneRead,
+		UpdateContext: resourceGithubRepositoryMilestoneUpdate,
+		DeleteContext: resourceGithubRepositoryMilestoneDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+			StateContext: func(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")
 				if len(parts) != 3 || parts[0] == "" || parts[1] == "" || parts[2] == "" {
 					return nil, fmt.Errorf("invalid ID format, must be provided as OWNER/REPOSITORY/NUMBER")
@@ -96,9 +97,9 @@ const (
 	layoutISO = "2006-01-02"
 )
 
-func resourceGithubRepositoryMilestoneCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryMilestoneCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	conn := meta.(*Owner).v3client
-	ctx := context.Background()
+
 	owner := d.Get("owner").(string)
 	repoName := d.Get("repository").(string)
 
@@ -114,7 +115,7 @@ func resourceGithubRepositoryMilestoneCreate(d *schema.ResourceData, meta any) e
 	if v, ok := tfpluginv2util.GetOk[string](d, "due_date"); ok && len(v) > 0 {
 		dueDate, err := time.Parse(layoutISO, v)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		date := time.Date(dueDate.Year(), dueDate.Month(), dueDate.Day(), 23, 39, 0, 0, time.UTC)
 		req.DueOn = &github.Timestamp{
@@ -127,23 +128,23 @@ func resourceGithubRepositoryMilestoneCreate(d *schema.ResourceData, meta any) e
 
 	milestone, _, err := conn.Issues.CreateMilestone(ctx, owner, repoName, req)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s/%d", owner, repoName, milestone.GetNumber()))
 
-	return resourceGithubRepositoryMilestoneRead(d, meta)
+	return resourceGithubRepositoryMilestoneRead(ctx, d, meta)
 }
 
-func resourceGithubRepositoryMilestoneRead(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryMilestoneRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	conn := meta.(*Owner).v3client
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	owner := d.Get("owner").(string)
 	repoName := d.Get("repository").(string)
 	number, err := parseMilestoneNumber(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	milestone, _, err := conn.Issues.GetMilestone(ctx, owner, repoName, number)
@@ -153,44 +154,43 @@ func resourceGithubRepositoryMilestoneRead(d *schema.ResourceData, meta any) err
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing milestone for %s/%s from state because it no longer exists in GitHub",
-					owner, repoName)
+				tflog.Info(ctx, "Removing milestone from state because it no longer exists in GitHub", map[string]any{"owner": owner, "repository": repoName})
 				d.SetId("")
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err = d.Set("title", milestone.GetTitle()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("description", milestone.GetDescription()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("number", milestone.GetNumber()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("state", milestone.GetState()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if dueOn := milestone.GetDueOn(); !dueOn.IsZero() {
 		if err := d.Set("due_date", milestone.GetDueOn().Format(layoutISO)); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	return nil
 }
 
-func resourceGithubRepositoryMilestoneUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryMilestoneUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	conn := meta.(*Owner).v3client
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	owner := d.Get("owner").(string)
 	repoName := d.Get("repository").(string)
 	number, err := parseMilestoneNumber(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	req := github.UpdateMilestoneRequest{}
@@ -210,7 +210,7 @@ func resourceGithubRepositoryMilestoneUpdate(d *schema.ResourceData, meta any) e
 		_, n := d.GetChange("due_date")
 		dueDate, err := time.Parse(layoutISO, n.(string))
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		date := time.Date(dueDate.Year(), dueDate.Month(), dueDate.Day(), 7, 0, 0, 0, time.UTC)
 		req.DueOn = &github.Timestamp{
@@ -226,25 +226,25 @@ func resourceGithubRepositoryMilestoneUpdate(d *schema.ResourceData, meta any) e
 
 	_, _, err = conn.Issues.UpdateMilestone(ctx, owner, repoName, number, req)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceGithubRepositoryMilestoneRead(d, meta)
+	return resourceGithubRepositoryMilestoneRead(ctx, d, meta)
 }
 
-func resourceGithubRepositoryMilestoneDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryMilestoneDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	conn := meta.(*Owner).v3client
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	owner := d.Get("owner").(string)
 	repoName := d.Get("repository").(string)
 	number, err := parseMilestoneNumber(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	_, err = conn.Issues.DeleteMilestone(ctx, owner, repoName, number)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

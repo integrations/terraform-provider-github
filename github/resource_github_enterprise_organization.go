@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
@@ -26,12 +27,12 @@ func isSAMLEnforcementError(err error) bool {
 
 func resourceGithubEnterpriseOrganization() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubEnterpriseOrganizationCreate,
-		Read:   resourceGithubEnterpriseOrganizationRead,
-		Delete: resourceGithubEnterpriseOrganizationDelete,
-		Update: resourceGithubEnterpriseOrganizationUpdate,
+		CreateContext: resourceGithubEnterpriseOrganizationCreate,
+		ReadContext:   resourceGithubEnterpriseOrganizationRead,
+		DeleteContext: resourceGithubEnterpriseOrganizationDelete,
+		UpdateContext: resourceGithubEnterpriseOrganizationUpdate,
 		Importer: &schema.ResourceImporter{
-			State: resourceGithubEnterpriseOrganizationImport,
+			StateContext: resourceGithubEnterpriseOrganizationImport,
 		},
 		Schema: map[string]*schema.Schema{
 			"enterprise_id": {
@@ -83,7 +84,7 @@ func resourceGithubEnterpriseOrganization() *schema.Resource {
 	}
 }
 
-func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, m any) error {
+func resourceGithubEnterpriseOrganizationCreate(ctx context.Context, data *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	var mutate struct {
 		CreateEnterpriseOrganization struct {
@@ -110,9 +111,9 @@ func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, m any
 		AdminLogins:  adminLogins,
 	}
 
-	err := v4.Mutate(context.Background(), &mutate, input, nil)
+	err := v4.Mutate(ctx, &mutate, input, nil)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	data.SetId(fmt.Sprintf("%s", mutate.CreateEnterpriseOrganization.Organization.ID))
 
@@ -120,7 +121,7 @@ func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, m any
 	// unset until the next refresh, which breaks same-apply references such as
 	// github_enterprise_actions_runner_group.selected_organization_ids.
 	if err := data.Set("database_id", mutate.CreateEnterpriseOrganization.Organization.DatabaseId); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// We use the V3 api to set the description of the org, because there is no mutator in the V4 API to edit the org's
@@ -139,10 +140,9 @@ func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, m any
 
 	description := data.Get("description").(string)
 	displayName := data.Get("display_name").(string)
+	name, _ := data.Get("name").(string)
 	if description != "" || displayName != "" {
-		_, _, err = v3.Organizations.Edit(
-			context.Background(),
-			data.Get("name").(string),
+		_, _, err = v3.Organizations.Edit(ctx, name,
 			&github.Organization{
 				Description: new(description),
 				Name:        new(displayName),
@@ -152,18 +152,18 @@ func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, m any
 			if isSAMLEnforcementError(err) {
 				// The org was created but we can't set description/display_name until the PAT is authorized.
 				// Clear them from state so next plan will show drift and retry after PAT authorization.
-				log.Printf("[WARN] Organization %q created but could not set description/display_name due to SAML enforcement. Authorize the PAT and run apply again.", data.Get("name").(string))
+				tflog.Warn(ctx, "Organization created but could not set description/display_name due to SAML enforcement. Authorize the PAT and run apply again.", map[string]any{"name": name})
 				_ = data.Set("description", "")
 				_ = data.Set("display_name", "")
 				return nil
 			}
-			return err
+			return diag.FromErr(err)
 		}
 	}
 	return nil
 }
 
-func resourceGithubEnterpriseOrganizationRead(data *schema.ResourceData, m any) error {
+func resourceGithubEnterpriseOrganizationRead(ctx context.Context, data *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 
 	var query struct {
@@ -198,14 +198,14 @@ func resourceGithubEnterpriseOrganizationRead(data *schema.ResourceData, m any) 
 
 	for {
 		v4 := meta.v4client
-		err := v4.Query(context.Background(), &query, variables)
+		err := v4.Query(ctx, &query, variables)
 		if err != nil {
 			if strings.Contains(err.Error(), "Could not resolve to a node with the global id") {
-				log.Printf("[INFO] Removing organization (%s) from state because it no longer exists in GitHub", data.Id())
+				tflog.Info(ctx, "Removing organization from state because it no longer exists in GitHub", map[string]any{"resource_id": data.Id()})
 				data.SetId("")
 				return nil
 			}
-			return err
+			return diag.FromErr(err)
 		}
 
 		for _, v := range query.Node.Organization.MembersWithRole.Edges {
@@ -223,40 +223,40 @@ func resourceGithubEnterpriseOrganizationRead(data *schema.ResourceData, m any) 
 
 	err := data.Set("admin_logins", schema.NewSet(schema.HashString, adminLogins))
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = data.Set("name", query.Node.Organization.Login)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if query.Node.Organization.Name != query.Node.Organization.Login {
 		err = data.Set("display_name", query.Node.Organization.Name)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	err = data.Set("billing_email", query.Node.Organization.OrganizationBillingEmail)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = data.Set("database_id", query.Node.Organization.DatabaseId)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = data.Set("description", query.Node.Organization.Description)
-	return err
+	return diag.FromErr(err)
 }
 
-func resourceGithubEnterpriseOrganizationDelete(data *schema.ResourceData, m any) error {
+func resourceGithubEnterpriseOrganizationDelete(ctx context.Context, data *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	v3 := meta.v3client
 
-	ctx := context.WithValue(context.Background(), ctxId, data.Id())
+	ctx = context.WithValue(ctx, ctxId, data.Id())
 
 	_, err := v3.Organizations.Delete(ctx, data.Get("name").(string))
 
@@ -266,10 +266,10 @@ func resourceGithubEnterpriseOrganizationDelete(data *schema.ResourceData, m any
 		return nil
 	}
 
-	return err
+	return diag.FromErr(err)
 }
 
-func resourceGithubEnterpriseOrganizationImport(data *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+func resourceGithubEnterpriseOrganizationImport(ctx context.Context, data *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
 	meta, _ := m.(*Owner)
 	parts := strings.Split(data.Id(), "/")
 	if len(parts) != 2 {
@@ -277,7 +277,6 @@ func resourceGithubEnterpriseOrganizationImport(data *schema.ResourceData, m any
 	}
 
 	v4 := meta.v4client
-	ctx := context.Background()
 
 	enterpriseId, err := getEnterpriseID(ctx, v4, parts[0])
 	if err != nil {
@@ -291,9 +290,8 @@ func resourceGithubEnterpriseOrganizationImport(data *schema.ResourceData, m any
 	}
 	data.SetId(orgId)
 
-	err = resourceGithubEnterpriseOrganizationRead(data, meta)
-	if err != nil {
-		return nil, err
+	if diags := resourceGithubEnterpriseOrganizationRead(ctx, data, meta); diags.HasError() {
+		return nil, errors.New(diags[0].Summary)
 	}
 	return []*schema.ResourceData{data}, nil
 }
@@ -327,7 +325,7 @@ func updateDescription(ctx context.Context, data *schema.ResourceData, v3 *githu
 		if err != nil {
 			if isSAMLEnforcementError(err) {
 				// Reset state to old value so next plan shows drift
-				log.Printf("[WARN] Could not update description for %q due to SAML enforcement. Authorize the PAT and run apply again.", orgName)
+				tflog.Warn(ctx, "Could not update description due to SAML enforcement. Authorize the PAT and run apply again.", map[string]any{"owner": orgName})
 				_ = data.Set("description", oldDesc)
 				return nil
 			}
@@ -352,7 +350,7 @@ func updateDisplayName(ctx context.Context, data *schema.ResourceData, v4 *githu
 		if err != nil {
 			if isSAMLEnforcementError(err) {
 				// Reset state to old value so next plan shows drift
-				log.Printf("[WARN] Could not update display_name for %q due to SAML enforcement. Authorize the PAT and run apply again.", orgName)
+				tflog.Warn(ctx, "Could not update display_name due to SAML enforcement. Authorize the PAT and run apply again.", map[string]any{"owner": orgName})
 				_ = data.Set("display_name", oldDisplayName)
 				return nil
 			}
@@ -435,7 +433,7 @@ func addUsers(ctx context.Context, data *schema.ResourceData, v4 *githubv4.Clien
 		}
 
 		adminRole := githubv4.OrganizationMemberRoleAdmin
-		userIds, err := getUserIds(v4, toAdd)
+		userIds, err := getUserIds(ctx, v4, toAdd)
 		if err != nil {
 			return err
 		}
@@ -473,32 +471,31 @@ func updateBillingEmail(ctx context.Context, data *schema.ResourceData, orgName 
 	return nil
 }
 
-func resourceGithubEnterpriseOrganizationUpdate(data *schema.ResourceData, m any) error {
+func resourceGithubEnterpriseOrganizationUpdate(ctx context.Context, data *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	v3 := meta.v3client
 	v4 := meta.v4client
-	ctx := context.Background()
 
 	err := updateDisplayName(ctx, data, v3)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = updateDescription(ctx, data, v3)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	orgName := data.Get("name").(string)
 	err = updateAdminList(ctx, data, orgName, v3, v4)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return updateBillingEmail(ctx, data, orgName, v3)
+	return diag.FromErr(updateBillingEmail(ctx, data, orgName, v3))
 }
 
-func getUserIds(v4 *githubv4.Client, loginNames []any) ([]githubv4.ID, error) {
+func getUserIds(ctx context.Context, v4 *githubv4.Client, loginNames []any) ([]githubv4.ID, error) {
 	var query struct {
 		User struct {
 			ID githubv4.String
@@ -508,7 +505,8 @@ func getUserIds(v4 *githubv4.Client, loginNames []any) ([]githubv4.ID, error) {
 	var ret []githubv4.ID
 
 	for _, l := range loginNames {
-		err := v4.Query(context.Background(), &query, map[string]any{"login": githubv4.String(l.(string))})
+		login, _ := l.(string)
+		err := v4.Query(ctx, &query, map[string]any{"login": githubv4.String(login)})
 		if err != nil {
 			return nil, err
 		}

@@ -319,7 +319,7 @@ func resourceGithubRepositoryEnvironmentDelete(ctx context.Context, d *schema.Re
 
 	_, err := client.Repositories.DeleteEnvironment(ctx, owner, repoName, envName)
 	if err != nil {
-		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "environment (%s)", envName))
+		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(ctx, err, d, "repository environment", map[string]any{"owner": owner, "repository": repoName, "environment": envName}))
 	}
 
 	return nil

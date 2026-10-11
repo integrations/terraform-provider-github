@@ -2,19 +2,20 @@ package github
 
 import (
 	"context"
-	"log"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubActionsRepositoryPermissions() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsRepositoryPermissionsCreateOrUpdate,
-		Read:   resourceGithubActionsRepositoryPermissionsRead,
-		Update: resourceGithubActionsRepositoryPermissionsCreateOrUpdate,
-		Delete: resourceGithubActionsRepositoryPermissionsDelete,
+		CreateContext: resourceGithubActionsRepositoryPermissionsCreateOrUpdate,
+		ReadContext:   resourceGithubActionsRepositoryPermissionsRead,
+		UpdateContext: resourceGithubActionsRepositoryPermissionsCreateOrUpdate,
+		DeleteContext: resourceGithubActionsRepositoryPermissionsDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -108,19 +109,19 @@ func resourceGithubActionsRepositoryAllowedObject(d *schema.ResourceData) *githu
 	return allowed
 }
 
-func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
 	repoName := d.Get("repository").(string)
-	ctx := context.Background()
+
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxId, d.Id())
 	}
 
 	allowedActions := d.Get("allowed_actions").(string)
 	enabled := d.Get("enabled").(bool)
-	log.Printf("[DEBUG] Actions enabled: %t", enabled)
+	tflog.Debug(ctx, "Actions enabled", map[string]any{"enabled": enabled})
 
 	repoActionPermissions := github.ActionsPermissionsRepository{
 		Enabled: &enabled,
@@ -141,39 +142,40 @@ func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.Resource
 		repoActionPermissions,
 	)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if allowedActions == "selected" {
 		actionsAllowedData := resourceGithubActionsRepositoryAllowedObject(d)
 		if actionsAllowedData != nil {
-			log.Printf("[DEBUG] Allowed actions config is set")
+			tflog.Debug(ctx, "Allowed actions config is set")
+
 			_, _, err = client.Repositories.EditActionsAllowed(ctx,
 				owner,
 				repoName,
 				*actionsAllowedData)
 			if err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 		} else {
-			log.Printf("[DEBUG] Allowed actions config not set, skipping")
+			tflog.Debug(ctx, "Allowed actions config not set, skipping")
 		}
 	}
 
 	d.SetId(repoName)
-	return resourceGithubActionsRepositoryPermissionsRead(d, meta)
+	return resourceGithubActionsRepositoryPermissionsRead(ctx, d, meta)
 }
 
-func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsRepositoryPermissionsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
 	repoName := d.Id()
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	actionsPermissions, _, err := client.Repositories.GetActionsPermissions(ctx, owner, repoName)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// only load and fill allowed_actions_config if allowed_actions_config is also set
@@ -189,7 +191,7 @@ func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta
 	if serverHasAllowedActionsConfig && userWantsAllowedActionsConfig {
 		actionsAllowed, _, err := client.Repositories.GetActionsAllowed(ctx, owner, repoName)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		// If actionsAllowed set to local/all by removing all actions config settings, the response will be empty
@@ -201,38 +203,38 @@ func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta
 					"verified_allowed":     actionsAllowed.GetVerifiedAllowed(),
 				},
 			}); err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 		}
 	} else {
 		if err = d.Set("allowed_actions_config", []any{}); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	if err = d.Set("allowed_actions", actionsPermissions.GetAllowedActions()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("enabled", actionsPermissions.GetEnabled()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("repository", repoName); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err = d.Set("sha_pinning_required", actionsPermissions.GetSHAPinningRequired()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubActionsRepositoryPermissionsDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsRepositoryPermissionsDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 	repoName := d.Id()
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	// Reset the repo to "default" settings
 	repoActionPermissions := github.ActionsPermissionsRepository{
@@ -246,7 +248,7 @@ func resourceGithubActionsRepositoryPermissionsDelete(d *schema.ResourceData, me
 		repoActionPermissions,
 	)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

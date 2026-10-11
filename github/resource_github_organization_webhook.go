@@ -3,11 +3,11 @@ package github
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -139,8 +139,7 @@ func resourceGithubOrganizationWebhookRead(ctx context.Context, d *schema.Resour
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing organization webhook %s/%s from state because it no longer exists in GitHub",
-					orgName, d.Id())
+				tflog.Info(ctx, "Removing organization webhook from state because it no longer exists in GitHub", map[string]any{"owner": orgName, "resource_id": d.Id()})
 				d.SetId("")
 				return nil
 			}

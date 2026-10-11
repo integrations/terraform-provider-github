@@ -3,21 +3,22 @@ package github
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubRepositoryDeployKey() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryDeployKeyCreate,
-		Read:   resourceGithubRepositoryDeployKeyRead,
-		Delete: resourceGithubRepositoryDeployKeyDelete,
+		CreateContext: resourceGithubRepositoryDeployKeyCreate,
+		ReadContext:   resourceGithubRepositoryDeployKeyRead,
+		DeleteContext: resourceGithubRepositoryDeployKeyDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -61,7 +62,7 @@ func resourceGithubRepositoryDeployKey() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryDeployKeyCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	repoName := d.Get("repository").(string)
@@ -69,7 +70,6 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta any) e
 	title := d.Get("title").(string)
 	readOnly := d.Get("read_only").(bool)
 	owner := meta.(*Owner).name
-	ctx := context.Background()
 
 	resultKey, _, err := client.Repositories.CreateKey(ctx, owner, repoName, github.CreateDeployKeyRequest{
 		Key:      key,
@@ -77,30 +77,30 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta any) e
 		ReadOnly: new(readOnly),
 	})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	id := strconv.FormatInt(resultKey.GetID(), 10)
 
 	d.SetId(buildTwoPartID(repoName, id))
 
-	return resourceGithubRepositoryDeployKeyRead(d, meta)
+	return resourceGithubRepositoryDeployKeyRead(ctx, d, meta)
 }
 
-func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryDeployKeyRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
 	repoName, idString, err := parseID2(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	id, err := strconv.ParseInt(idString, 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(idString, err)
+		return diag.FromErr(unconvertibleIdErr(idString, err))
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
@@ -112,51 +112,50 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta any) err
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing repository deploy key %s from state because it no longer exists in GitHub",
-					d.Id())
+				tflog.Info(ctx, "Removing repository deploy key from state because it no longer exists in GitHub", map[string]any{"resource_id": d.Id()})
 				d.SetId("")
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("key", key.GetKey()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("read_only", key.GetReadOnly()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("repository", repoName); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("title", key.GetTitle()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubRepositoryDeployKeyDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryDeployKeyDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
 	owner := meta.(*Owner).name
 	repoName, idString, err := parseID2(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	id, err := strconv.ParseInt(idString, 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(idString, err)
+		return diag.FromErr(unconvertibleIdErr(idString, err))
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	_, err = client.Repositories.DeleteKey(ctx, owner, repoName, id)
-	return handleArchivedRepoDelete(err, "repository deploy key", idString, owner, repoName)
+	return diag.FromErr(handleArchivedRepoDelete(ctx, err, "repository deploy key", idString, owner, repoName))
 }
 
 func suppressDeployKeyDiff(k, oldV, newV string, d *schema.ResourceData) bool {

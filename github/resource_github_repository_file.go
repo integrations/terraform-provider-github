@@ -284,7 +284,7 @@ func resourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceDat
 
 	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repoName, file, opts)
 	if err != nil {
-		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "repository file %s/%s:%s:%s", owner, repoName, file, branch))
+		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(ctx, err, d, "repository file", map[string]any{"owner": owner, "repository": repoName, "file": file, "branch": branch}))
 	}
 	if fc == nil {
 		tflog.Info(ctx, "Removing repository path from state because it no longer exists in GitHub")
@@ -419,7 +419,7 @@ func resourceGithubRepositoryFileDelete(ctx context.Context, d *schema.ResourceD
 	opts.Branch = new(branch)
 
 	_, _, err := client.Repositories.DeleteFile(ctx, owner, repo, file, opts)
-	return diag.FromErr(handleArchivedRepoDelete(err, "repository file", file, owner, repo))
+	return diag.FromErr(handleArchivedRepoDelete(ctx, err, "repository file", file, owner, repo))
 }
 
 func autoBranchDiffSuppressFunc(k, _, _ string, d *schema.ResourceData) bool {

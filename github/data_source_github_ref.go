@@ -55,7 +55,7 @@ func dataSourceGithubRefRead(ctx context.Context, d *schema.ResourceData, meta a
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Debug(ctx, "Missing GitHub ref", map[string]any{"owner": owner, "repoName": repoName, "ref": ref})
+				tflog.Debug(ctx, "Missing GitHub ref", map[string]any{"owner": owner, "repository": repoName, "ref": ref})
 				d.SetId("")
 				return nil
 			}

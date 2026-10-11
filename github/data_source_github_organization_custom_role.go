@@ -3,10 +3,10 @@ package github
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/google/go-github/v92/github"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -64,7 +64,7 @@ func dataSourceGithubOrganizationCustomRoleRead(ctx context.Context, d *schema.R
 	}
 
 	if role == nil {
-		log.Printf("[WARN] GitHub custom repository role (%s) not found.", d.Get("name").(string))
+		tflog.Warn(ctx, "GitHub custom repository role not found.", map[string]any{"name": d.Get("name")})
 		d.SetId("")
 		return nil
 	}

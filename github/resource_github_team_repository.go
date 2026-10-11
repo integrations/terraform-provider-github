@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -137,8 +137,7 @@ func resourceGithubTeamRepositoryRead(ctx context.Context, d *schema.ResourceDat
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing team repository association %s from state because it no longer exists in GitHub",
-					d.Id())
+				tflog.Info(ctx, "Removing team repository association from state because it no longer exists in GitHub", map[string]any{"resource_id": d.Id()})
 				d.SetId("")
 				return nil
 			}
@@ -233,7 +232,7 @@ func resourceGithubTeamRepositoryDelete(ctx context.Context, d *schema.ResourceD
 			return nil
 		}
 
-		return diag.FromErr(handleArchivedRepoDelete(err, "team repository access", fmt.Sprintf("team %s", teamIdString), orgName, repoName))
+		return diag.FromErr(handleArchivedRepoDelete(ctx, err, "team repository access", fmt.Sprintf("team %s", teamIdString), orgName, repoName))
 	}
 
 	return nil

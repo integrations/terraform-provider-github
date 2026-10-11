@@ -51,7 +51,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyStateUpgradeV0(ctx conte
 	client := meta.v3client
 	owner := meta.name
 
-	tflog.Debug(ctx, "Starting state upgrade for GitHub Repository Environment Deployment Policy.", map[string]any{"raw_state": rawState})
+	tflog.Debug(ctx, "Starting state upgrade for GitHub Repository Environment Deployment Policy.", map[string]any{"repository": rawState["repository"], "repository_id": rawState["repository_id"], "environment": rawState["environment"], "policy_id": rawState["policy_id"], "resource_id": rawState["id"]})
 
 	_, _, policyIDStr, err := parseID3(rawState["id"].(string))
 	if err != nil {
@@ -76,7 +76,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyStateUpgradeV0(ctx conte
 	rawState["repository_id"] = int(repo.GetID())
 	rawState["policy_id"] = policyID
 
-	tflog.Debug(ctx, "Completed state upgrade for GitHub Repository Environment Deployment Policy.", map[string]any{"upgraded_state": rawState})
+	tflog.Debug(ctx, "Completed state upgrade for GitHub Repository Environment Deployment Policy.", map[string]any{"repository": rawState["repository"], "repository_id": rawState["repository_id"], "environment": rawState["environment"], "policy_id": rawState["policy_id"], "resource_id": rawState["id"]})
 
 	return rawState, nil
 }

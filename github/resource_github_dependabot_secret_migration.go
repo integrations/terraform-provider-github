@@ -61,7 +61,7 @@ func resourceGithubDependabotSecretStateUpgradeV0(ctx context.Context, rawState 
 	client := meta.v3client
 	owner := meta.name
 
-	tflog.Debug(ctx, "GitHub Dependabot Secret migration from v0 to v1 started.", map[string]any{"raw_state": rawState})
+	tflog.Debug(ctx, "GitHub Dependabot Secret migration from v0 to v1 started.", map[string]any{"repository": rawState["repository"], "repository_id": rawState["repository_id"], "secret_name": rawState["secret_name"]})
 
 	repoName, ok := rawState["repository"].(string)
 	if !ok {
@@ -75,7 +75,7 @@ func resourceGithubDependabotSecretStateUpgradeV0(ctx context.Context, rawState 
 
 	rawState["repository_id"] = int(repo.GetID())
 
-	tflog.Debug(ctx, "GitHub Dependabot Secret migration from v0 to v1 completed.", map[string]any{"raw_state": rawState})
+	tflog.Debug(ctx, "GitHub Dependabot Secret migration from v0 to v1 completed.", map[string]any{"repository": rawState["repository"], "repository_id": rawState["repository_id"], "secret_name": rawState["secret_name"]})
 
 	return rawState, nil
 }

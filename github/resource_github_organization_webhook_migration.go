@@ -2,9 +2,9 @@ package github
 
 import (
 	"context"
-	"log"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -40,7 +40,7 @@ func resourceGithubOrganizationWebhookResourceV0() *schema.Resource {
 }
 
 func resourceGithubOrganizationWebhookInstanceStateUpgradeV0(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
-	log.Printf("[DEBUG] GitHub Organization Webhook State before migration: %#v", rawState)
+	tflog.Debug(ctx, "GitHub Organization Webhook State before migration", map[string]any{"configuration_map_size": rawState["configuration.%"], "configuration_content_type": rawState["configuration.content_type"], "configuration_insecure_ssl": rawState["configuration.insecure_ssl"]})
 
 	prefix := "configuration."
 	delete(rawState, prefix+"%")
@@ -63,8 +63,7 @@ func resourceGithubOrganizationWebhookInstanceStateUpgradeV0(ctx context.Context
 	}
 
 	rawState[prefix+"#"] = "1"
-
-	log.Printf("[DEBUG] GitHub Organization Webhook State after migration: %#v", rawState)
+	tflog.Debug(ctx, "GitHub Organization Webhook State after migration", map[string]any{"configuration_block_count": rawState["configuration.#"], "configuration_content_type": rawState["configuration.0.content_type"], "configuration_insecure_ssl": rawState["configuration.0.insecure_ssl"]})
 
 	return rawState, nil
 }

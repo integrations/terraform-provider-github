@@ -370,7 +370,7 @@ func dataSourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData,
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Debug(ctx, "Missing GitHub repository", map[string]any{"owner": owner, "repo": repoName})
+				tflog.Debug(ctx, "Missing GitHub repository", map[string]any{"owner": owner, "repository": repoName})
 				d.SetId("")
 				return nil
 			}
@@ -441,7 +441,7 @@ func dataSourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData,
 			if ghErr, ok := errors.AsType[*github.ErrorResponse](err); !ok || ghErr.Response.StatusCode != http.StatusNotFound {
 				return diag.FromErr(err)
 			}
-			tflog.Debug(ctx, "Missing GitHub repository license", map[string]any{"owner": owner, "repo": repoName})
+			tflog.Debug(ctx, "Missing GitHub repository license", map[string]any{"owner": owner, "repository": repoName})
 		}
 		if err := d.Set("repository_license", flattenRepositoryLicense(repositoryLicense)); err != nil {
 			return diag.Errorf("error setting repository_license: %v", err)
