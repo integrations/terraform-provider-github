@@ -320,60 +320,6 @@ func resourceGithubOrganizationSettingsCreateOrUpdate(ctx context.Context, d *sc
 	isEnterprise := orgInfo.GetPlan().GetName() == "enterprise"
 	settings := buildOrganizationSettings(d, isEnterprise)
 	tflog.Debug(ctx, "Built organization settings", map[string]any{"owner": org, "is_enterprise": isEnterprise})
-	if settings.HasOrganizationProjects != nil {
-		tflog.Debug(ctx, "HasOrganizationProjects", map[string]any{"settings_has_organization_projects": *settings.HasOrganizationProjects})
-	}
-	if settings.HasRepositoryProjects != nil {
-		tflog.Debug(ctx, "HasRepositoryProjects", map[string]any{"settings_has_repository_projects": *settings.HasRepositoryProjects})
-	}
-	if settings.DefaultRepoPermission != nil {
-		tflog.Debug(ctx, "DefaultRepoPermission", map[string]any{"settings_default_repo_permission": *settings.DefaultRepoPermission})
-	}
-	if settings.MembersCanCreateRepos != nil {
-		tflog.Debug(ctx, "MembersCanCreateRepos", map[string]any{"settings_members_can_create_repos": *settings.MembersCanCreateRepos})
-	}
-	if settings.MembersCanCreatePrivateRepos != nil {
-		tflog.Debug(ctx, "MembersCanCreatePrivateRepos", map[string]any{"settings_members_can_create_private_repos": *settings.MembersCanCreatePrivateRepos})
-	}
-	if settings.MembersCanCreatePublicRepos != nil {
-		tflog.Debug(ctx, "MembersCanCreatePublicRepos", map[string]any{"settings_members_can_create_public_repos": *settings.MembersCanCreatePublicRepos})
-	}
-	if settings.MembersCanCreateInternalRepos != nil {
-		tflog.Debug(ctx, "MembersCanCreateInternalRepos", map[string]any{"settings_members_can_create_internal_repos": *settings.MembersCanCreateInternalRepos})
-	}
-	if settings.MembersCanCreatePages != nil {
-		tflog.Debug(ctx, "MembersCanCreatePages", map[string]any{"settings_members_can_create_pages": *settings.MembersCanCreatePages})
-	}
-	if settings.MembersCanCreatePublicPages != nil {
-		tflog.Debug(ctx, "MembersCanCreatePublicPages", map[string]any{"settings_members_can_create_public_pages": *settings.MembersCanCreatePublicPages})
-	}
-	if settings.MembersCanCreatePrivatePages != nil {
-		tflog.Debug(ctx, "MembersCanCreatePrivatePages", map[string]any{"settings_members_can_create_private_pages": *settings.MembersCanCreatePrivatePages})
-	}
-	if settings.MembersCanForkPrivateRepos != nil {
-		tflog.Debug(ctx, "MembersCanForkPrivateRepos", map[string]any{"settings_members_can_fork_private_repos": *settings.MembersCanForkPrivateRepos})
-	}
-	if settings.WebCommitSignoffRequired != nil {
-		tflog.Debug(ctx, "WebCommitSignoffRequired", map[string]any{"settings_web_commit_signoff_required": *settings.WebCommitSignoffRequired})
-	}
-	if settings.AdvancedSecurityEnabledForNewRepos != nil {
-		tflog.Debug(ctx, "AdvancedSecurityEnabledForNewRepos", map[string]any{"settings_advanced_security_enabled_for_new_repos": *settings.AdvancedSecurityEnabledForNewRepos})
-	}
-	if settings.DependabotAlertsEnabledForNewRepos != nil {
-		tflog.Debug(ctx, "DependabotAlertsEnabledForNewRepos", map[string]any{"settings_dependabot_alerts_enabled_for_new_repos": *settings.DependabotAlertsEnabledForNewRepos})
-	}
-	if settings.DependabotSecurityUpdatesEnabledForNewRepos != nil {
-		tflog.Debug(ctx, "DependabotSecurityUpdatesEnabledForNewRepos", map[string]any{"settings_dependabot_security_updates_enabled_for_new_repos": *settings.DependabotSecurityUpdatesEnabledForNewRepos})
-	}
-	if settings.DependencyGraphEnabledForNewRepos != nil {
-		tflog.Debug(ctx, "DependencyGraphEnabledForNewRepos", map[string]any{"settings_dependency_graph_enabled_for_new_repos": *settings.DependencyGraphEnabledForNewRepos})
-	}
-	if settings.SecretScanningEnabledForNewRepos != nil {
-		tflog.Debug(ctx, "SecretScanningEnabledForNewRepos", map[string]any{"settings_secret_scanning_enabled_for_new_repos": *settings.SecretScanningEnabledForNewRepos})
-	}
-	if settings.SecretScanningPushProtectionEnabledForNewRepos != nil {
-		tflog.Debug(ctx, "SecretScanningPushProtectionEnabledForNewRepos", map[string]any{"settings_secret_scanning_push_protection_enabled_for_new_repos": *settings.SecretScanningPushProtectionEnabledForNewRepos})
-	}
 
 	orgSettings, _, err := client.Organizations.Edit(ctx, org, settings)
 	if err != nil {
