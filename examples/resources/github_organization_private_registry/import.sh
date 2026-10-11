@@ -1,0 +1,1 @@
+terraform import github_organization_private_registry.example registry-name
