@@ -223,19 +223,18 @@ func resourceGithubRepositoryEnvironmentRead(ctx context.Context, d *schema.Reso
 		return diag.FromErr(err)
 	}
 
-	if err := d.Set("wait_timer", nil); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("can_admins_bypass", env.CanAdminsBypass); err != nil {
-		return diag.FromErr(err)
-	}
+	// Protection rules are omitted from the response once removed, so set these
+	// after the loop to avoid keeping stale state.
+	var (
+		waitTimer         int
+		preventSelfReview bool
+	)
+	reviewers := make([]any, 0)
 
 	for _, pr := range env.ProtectionRules {
 		switch pr.GetType() {
 		case "wait_timer":
-			if err = d.Set("wait_timer", pr.WaitTimer); err != nil {
-				return diag.FromErr(err)
-			}
+			waitTimer = pr.GetWaitTimer()
 
 		case "required_reviewers":
 			teams := make([]int64, 0)
@@ -253,19 +252,28 @@ func resourceGithubRepositoryEnvironmentRead(ctx context.Context, d *schema.Reso
 					}
 				}
 			}
-			if err = d.Set("reviewers", []any{
+
+			reviewers = []any{
 				map[string]any{
 					"teams": teams,
 					"users": users,
 				},
-			}); err != nil {
-				return diag.FromErr(err)
 			}
-
-			if err = d.Set("prevent_self_review", pr.PreventSelfReview); err != nil {
-				return diag.FromErr(err)
-			}
+			preventSelfReview = pr.GetPreventSelfReview()
 		}
+	}
+
+	if err := d.Set("wait_timer", waitTimer); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("reviewers", reviewers); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("prevent_self_review", preventSelfReview); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("can_admins_bypass", env.GetCanAdminsBypass()); err != nil {
+		return diag.FromErr(err)
 	}
 
 	if env.DeploymentBranchPolicy != nil {
