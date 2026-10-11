@@ -52,14 +52,14 @@ func resourceGithubRepositoryCustomPropertyStateUpgradeV0(ctx context.Context, r
 	client := meta.v3client
 	owner := meta.name
 
-	tflog.Debug(ctx, "Migrating GitHub Repository Custom Property from v0 to v1.", map[string]any{"field_count": len(rawState)})
+	tflog.Debug(ctx, "Migrating GitHub Repository Custom Property from v0 to v1.", map[string]any{"repository": rawState["repository"], "repository_id": rawState["repository_id"]})
 
 	state, err := migrateRepositoryWithID(ctx, client, owner, rawState)
 	if err != nil {
 		return nil, err
 	}
 
-	tflog.Debug(ctx, "GitHub Repository Custom Property migrated to v1.", map[string]any{"field_count": len(state)})
+	tflog.Debug(ctx, "GitHub Repository Custom Property migrated to v1.", map[string]any{"repository": state["repository"], "repository_id": state["repository_id"]})
 
 	return state, nil
 }

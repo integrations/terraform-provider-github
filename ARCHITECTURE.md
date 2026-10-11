@@ -401,14 +401,14 @@ func resourceGithubExampleResourceV0() *schema.Resource {
 
 // resourceGithubExampleInstanceStateUpgradeV0 migrates from version 0 to 1
 func resourceGithubExampleInstanceStateUpgradeV0(ctx context.Context, rawState map[string]any, m any) (map[string]any, error) {
-    tflog.Debug(ctx, "Starting state migration", map[string]any{"field_count": len(rawState)})
+    tflog.Debug(ctx, "Starting state migration", map[string]any{"new_field": rawState["new_field"]})
 
     // Add new field with default value
     if _, ok := rawState["new_field"]; !ok {
         rawState["new_field"] = "default_value"
     }
 
-    tflog.Debug(ctx, "Completed state migration", map[string]any{"field_count": len(rawState)})
+    tflog.Debug(ctx, "Completed state migration", map[string]any{"new_field": rawState["new_field"]})
     return rawState, nil
 }
 ```
@@ -425,6 +425,8 @@ StateUpgraders: []schema.StateUpgrader{
     },
 },
 ```
+
+Log the before and after values of the non-sensitive fields that a migration changes, along with resource identifiers. These values help diagnose migrations more than a total field count does. Select fields explicitly rather than logging the complete state, which may contain secrets, webhook credentials, or repository file contents.
 
 ### Logging
 

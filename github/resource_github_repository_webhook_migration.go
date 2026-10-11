@@ -45,7 +45,7 @@ func resourceGithubRepositoryWebhookResourceV0() *schema.Resource {
 }
 
 func resourceGithubRepositoryWebhookInstanceStateUpgradeV0(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
-	tflog.Debug(ctx, "GitHub Repository Webhook State before migration", map[string]any{"field_count": len(rawState)})
+	tflog.Debug(ctx, "GitHub Repository Webhook State before migration", map[string]any{"repository": rawState["repository"], "configuration_map_size": rawState["configuration.%"], "configuration_content_type": rawState["configuration.content_type"], "configuration_insecure_ssl": rawState["configuration.insecure_ssl"]})
 
 	prefix := "configuration."
 	delete(rawState, prefix+"%")
@@ -68,7 +68,7 @@ func resourceGithubRepositoryWebhookInstanceStateUpgradeV0(ctx context.Context, 
 	}
 
 	rawState[prefix+"#"] = "1"
-	tflog.Debug(ctx, "GitHub Repository Webhook State after migration", map[string]any{"field_count": len(rawState)})
+	tflog.Debug(ctx, "GitHub Repository Webhook State after migration", map[string]any{"repository": rawState["repository"], "configuration_block_count": rawState["configuration.#"], "configuration_content_type": rawState["configuration.0.content_type"], "configuration_insecure_ssl": rawState["configuration.0.insecure_ssl"]})
 
 	return rawState, nil
 }

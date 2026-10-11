@@ -93,6 +93,9 @@ func TestProviderStructuredLogging(t *testing.T) {
 					ast.Inspect(call.Args[2], func(node ast.Node) bool {
 						value := node
 						if field, ok := node.(*ast.KeyValueExpr); ok {
+							if key, ok := field.Key.(*ast.BasicLit); ok && key.Value == `"field_count"` {
+								t.Errorf("%s: log the fields changed by a migration instead of a total field count", position)
+							}
 							value = field.Value
 						}
 						if ident, ok := value.(*ast.Ident); ok && (node == call.Args[2] || value != node) {
@@ -289,30 +292,140 @@ func TestResourceErrorStructuredLogging(t *testing.T) {
 func TestMigrationLoggingOmitsSecrets(t *testing.T) {
 	t.Parallel()
 
-	for name, upgrade := range map[string]schema.StateUpgradeFunc{
-		"repository webhook":          resourceGithubRepositoryWebhookInstanceStateUpgradeV0,
-		"organization webhook":        resourceGithubOrganizationWebhookInstanceStateUpgradeV0,
-		"actions secret v0":           resourceGithubActionsSecretStateUpgradeV0,
-		"actions secret v1":           resourceGithubActionsSecretStateUpgradeV1,
-		"actions environment secret":  resourceGithubActionsEnvironmentSecretStateUpgradeV0,
-		"actions organization secret": resourceGithubActionsOrganizationSecretStateUpgradeV0,
-		"dependabot secret":           resourceGithubDependabotSecretStateUpgradeV0,
-		"repository file":             resourceGithubRepositoryFileStateUpgradeV0,
+	for name, tc := range map[string]struct {
+		upgrade schema.StateUpgradeFunc
+		state   map[string]any
+		before  map[string]any
+		after   map[string]any
+		logs    int
+	}{
+		"repository webhook": {
+			upgrade: resourceGithubRepositoryWebhookInstanceStateUpgradeV0,
+			before:  map[string]any{"repository": "repo", "configuration_map_size": "4", "configuration_content_type": "json", "configuration_insecure_ssl": "0"},
+			after:   map[string]any{"repository": "repo", "configuration_block_count": "1", "configuration_content_type": "json", "configuration_insecure_ssl": "0"},
+		},
+		"organization webhook": {
+			upgrade: resourceGithubOrganizationWebhookInstanceStateUpgradeV0,
+			before:  map[string]any{"configuration_map_size": "4", "configuration_content_type": "json", "configuration_insecure_ssl": "0"},
+			after:   map[string]any{"configuration_block_count": "1", "configuration_content_type": "json", "configuration_insecure_ssl": "0"},
+		},
+		"actions secret v0": {
+			upgrade: resourceGithubActionsSecretStateUpgradeV0,
+			before:  map[string]any{"repository": "repo", "secret_name": "EXAMPLE", "destroy_on_drift": nil},
+			after:   map[string]any{"repository": "repo", "secret_name": "EXAMPLE", "destroy_on_drift": true},
+		},
+		"actions secret v1": {
+			upgrade: resourceGithubActionsSecretStateUpgradeV1,
+			before:  map[string]any{"repository": "repo", "secret_name": "EXAMPLE", "repository_id": nil},
+			after:   map[string]any{"repository": "repo", "secret_name": "EXAMPLE", "repository_id": float64(123)},
+		},
+		"actions environment secret": {
+			upgrade: resourceGithubActionsEnvironmentSecretStateUpgradeV0,
+			before:  map[string]any{"repository": "repo", "environment": "production", "secret_name": "EXAMPLE", "repository_id": nil, "resource_id": nil},
+			after:   map[string]any{"repository": "repo", "environment": "production", "secret_name": "EXAMPLE", "repository_id": float64(123), "resource_id": "repo:production:EXAMPLE"},
+		},
+		"actions organization secret": {
+			upgrade: resourceGithubActionsOrganizationSecretStateUpgradeV0,
+			before:  map[string]any{"secret_name": "EXAMPLE", "destroy_on_drift": nil},
+			after:   map[string]any{"secret_name": "EXAMPLE", "destroy_on_drift": true},
+		},
+		"dependabot secret": {
+			upgrade: resourceGithubDependabotSecretStateUpgradeV0,
+			before:  map[string]any{"repository": "repo", "secret_name": "EXAMPLE", "repository_id": nil},
+			after:   map[string]any{"repository": "repo", "secret_name": "EXAMPLE", "repository_id": float64(123)},
+		},
+		"repository file": {
+			upgrade: resourceGithubRepositoryFileStateUpgradeV0,
+			before:  map[string]any{"repository": "repo", "repository_id": nil, "file": "config.txt", "branch": nil, "resource_id": nil},
+			after:   map[string]any{"repository": "repo", "repository_id": float64(123), "file": "config.txt", "branch": "main", "resource_id": "repo:config.txt:main"},
+		},
+		"repository": {
+			upgrade: resourceGithubRepositoryInstanceStateUpgradeV0,
+			before:  map[string]any{"repository": "repo", "branches_count": "1"},
+			after:   map[string]any{"repository": "repo", "branches_count": nil},
+		},
+		"actions variable": {
+			upgrade: resourceGithubActionsVariableStateUpgradeV0,
+			before:  map[string]any{"repository": "repo", "variable_name": "EXAMPLE", "repository_id": nil},
+			after:   map[string]any{"repository": "repo", "variable_name": "EXAMPLE", "repository_id": float64(123)},
+		},
+		"actions environment variable": {
+			upgrade: resourceGithubActionsEnvironmentVariableStateUpgradeV0,
+			before:  map[string]any{"repository": "repo", "environment": "production", "variable_name": "EXAMPLE", "repository_id": nil, "resource_id": nil},
+			after:   map[string]any{"repository": "repo", "environment": "production", "variable_name": "EXAMPLE", "repository_id": float64(123), "resource_id": "repo:production:EXAMPLE"},
+		},
+		"repository environment": {
+			upgrade: resourceGithubRepositoryEnvironmentStateUpgradeV0,
+			before:  map[string]any{"repository": "repo", "environment": "production", "repository_id": nil},
+			after:   map[string]any{"repository": "repo", "environment": "production", "repository_id": float64(123)},
+		},
+		"repository environment deployment policy": {
+			upgrade: resourceGithubRepositoryEnvironmentDeploymentPolicyStateUpgradeV0,
+			state:   map[string]any{"id": "repo:production:7"},
+			before:  map[string]any{"repository": "repo", "repository_id": nil, "environment": "production", "policy_id": nil, "resource_id": "repo:production:7"},
+			after:   map[string]any{"repository": "repo", "repository_id": float64(123), "environment": "production", "policy_id": float64(7), "resource_id": "repo:production:7"},
+		},
+		"repository collaborators v0": {
+			upgrade: resourceGithubRepositoryCollaboratorsStateUpgradeV0,
+			before:  map[string]any{"repository": "repo", "repository_id": nil, "resource_id": nil},
+			after:   map[string]any{"repository": "repo", "repository_id": float64(123), "resource_id": "123"},
+		},
+		"repository collaborators v1": {
+			upgrade: resourceGithubRepositoryCollaboratorsStateUpgradeV1,
+			before:  map[string]any{"repository": "repo", "owner_configured": nil},
+			after:   map[string]any{"repository": "repo", "owner_configured": false},
+		},
+		"branch default": {
+			upgrade: resourceGithubBranchDefaultStateUpgradeV0,
+			state:   map[string]any{"branch": "main"},
+			before:  map[string]any{"repository": "repo", "branch": "main", "repository_id": nil},
+			after:   map[string]any{"repository": "repo", "branch": "main", "repository_id": float64(123)},
+			logs:    4,
+		},
+		"repository custom property": {
+			upgrade: resourceGithubRepositoryCustomPropertyStateUpgradeV0,
+			before:  map[string]any{"repository": "repo", "repository_id": nil},
+			after:   map[string]any{"repository": "repo", "repository_id": float64(123)},
+			logs:    4,
+		},
+		"release": {
+			upgrade: resourceGithubReleaseStateUpgradeV0,
+			before:  map[string]any{"repository": "repo", "repository_id": nil},
+			after:   map[string]any{"repository": "repo", "repository_id": float64(123)},
+			logs:    4,
+		},
+		"EMU group mapping v1": {
+			upgrade: resourceGithubEMUGroupMappingStateUpgradeV1,
+			state:   map[string]any{"id": "12:demo-team:34", "team_id": 12, "group_id": 34},
+			before:  map[string]any{"resource_id": "12:demo-team:34", "team_id": float64(12), "group_id": float64(34)},
+			after:   map[string]any{"resource_id": "34:12", "team_id": float64(12), "group_id": float64(34)},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
 			const secret = "test-sensitive-value-not-for-logging"
 			state := map[string]any{
-				"repository":           "repo",
-				"environment":          "production",
-				"secret_name":          "EXAMPLE",
-				"file":                 "config.txt",
-				"content":              secret,
-				"configuration.secret": secret,
-				"plaintext_value":      secret,
-				"encrypted_value":      secret,
+				"name":                       "repo",
+				"repository":                 "repo",
+				"environment":                "production",
+				"secret_name":                "EXAMPLE",
+				"variable_name":              "EXAMPLE",
+				"file":                       "config.txt",
+				"content":                    secret,
+				"value":                      secret,
+				"configuration.%":            "4",
+				"configuration.content_type": "json",
+				"configuration.insecure_ssl": "0",
+				"configuration.secret":       secret,
+				"configuration.url":          "https://example.com/" + secret,
+				"plaintext_value":            secret,
+				"encrypted_value":            secret,
+				"branches.#":                 "1",
+				"branches.0.name":            "main",
+				"branches.0.protected":       "false",
 			}
+			maps.Copy(state, tc.state)
 			var output bytes.Buffer
 			ctx := loggingTestContext(t, &output)
 			client, err := goGithub.NewClient(goGithub.WithTransport(&mockRoundTripper{
@@ -331,12 +444,11 @@ func TestMigrationLoggingOmitsSecrets(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			beforeCount := len(state)
-			migratedState, err := upgrade(ctx, state, &Owner{name: "owner", v3client: client})
+			migratedState, err := tc.upgrade(ctx, state, &Owner{name: "owner", IsOrganization: true, v3client: client})
 			if err != nil {
 				t.Fatal(err)
 			}
-			if migratedState["plaintext_value"] != secret || migratedState["encrypted_value"] != secret || migratedState["content"] != secret {
+			if migratedState["plaintext_value"] != secret || migratedState["encrypted_value"] != secret || migratedState["content"] != secret || migratedState["value"] != secret {
 				t.Fatal("migration did not preserve sensitive state values")
 			}
 			if strings.Contains(output.String(), secret) {
@@ -346,18 +458,30 @@ func TestMigrationLoggingOmitsSecrets(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if len(entries) != 2 {
-				t.Fatalf("expected migration start and completion logs, got %d", len(entries))
+			wantLogs := tc.logs
+			if wantLogs == 0 {
+				wantLogs = 2
 			}
-			for i, fieldCount := range []int{beforeCount, len(migratedState)} {
+			if len(entries) != wantLogs {
+				t.Fatalf("expected %d migration logs, got %d", wantLogs, len(entries))
+			}
+			level := "debug"
+			if name == "EMU group mapping v1" {
+				level = "trace"
+			}
+			for i, fields := range []map[string]any{tc.before, tc.after} {
 				expected := map[string]any{
-					"@level":         "debug",
+					"@level":         level,
 					"@module":        "provider",
 					"correlation_id": "test-operation",
-					"field_count":    float64(fieldCount),
 				}
-				if findLogEntry(entries[i:i+1], expected) == nil {
-					t.Fatalf("migration log is missing expected fields %v; got %v", expected, entries[i])
+				maps.Copy(expected, fields)
+				entry := entries[0]
+				if i == 1 {
+					entry = entries[len(entries)-1]
+				}
+				if findLogEntry([]map[string]any{entry}, expected) == nil {
+					t.Fatalf("migration log is missing expected fields %v; got %v", expected, entry)
 				}
 			}
 		})

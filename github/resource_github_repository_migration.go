@@ -201,7 +201,7 @@ func resourceGithubRepositoryResourceV0() *schema.Resource {
 }
 
 func resourceGithubRepositoryInstanceStateUpgradeV0(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
-	tflog.Debug(ctx, "GitHub Repository State before migration", map[string]any{"field_count": len(rawState)})
+	tflog.Debug(ctx, "GitHub Repository State before migration", map[string]any{"repository": rawState["name"], "branches_count": rawState["branches.#"]})
 
 	prefix := "branches."
 
@@ -210,7 +210,7 @@ func resourceGithubRepositoryInstanceStateUpgradeV0(ctx context.Context, rawStat
 			delete(rawState, k)
 		}
 	}
-	tflog.Debug(ctx, "GitHub Repository State after migration", map[string]any{"field_count": len(rawState)})
+	tflog.Debug(ctx, "GitHub Repository State after migration", map[string]any{"repository": rawState["name"], "branches_count": rawState["branches.#"]})
 
 	return rawState, nil
 }

@@ -88,7 +88,7 @@ func resourceGithubRepositoryCollaboratorsStateUpgradeV0(ctx context.Context, ra
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
-	tflog.Debug(ctx, "GitHub Repository Collaborators Attributes before migration to v1", map[string]any{"field_count": len(rawState)})
+	tflog.Debug(ctx, "GitHub Repository Collaborators Attributes before migration to v1", map[string]any{"repository": rawState["repository"], "repository_id": rawState["repository_id"], "resource_id": rawState["id"]})
 
 	repoName, ok := rawState["repository"].(string)
 	if !ok {
@@ -102,7 +102,7 @@ func resourceGithubRepositoryCollaboratorsStateUpgradeV0(ctx context.Context, ra
 
 	rawState["id"] = strconv.FormatInt(repo.GetID(), 10)
 	rawState["repository_id"] = int(repo.GetID())
-	tflog.Debug(ctx, "GitHub Repository Collaborators Attributes after migration to v1", map[string]any{"field_count": len(rawState)})
+	tflog.Debug(ctx, "GitHub Repository Collaborators Attributes after migration to v1", map[string]any{"repository": rawState["repository"], "repository_id": rawState["repository_id"], "resource_id": rawState["id"]})
 
 	return rawState, nil
 }
@@ -191,7 +191,7 @@ func resourceGithubRepositoryCollaboratorsV1() *schema.Resource {
 
 func resourceGithubRepositoryCollaboratorsStateUpgradeV1(ctx context.Context, rawState map[string]any, m any) (map[string]any, error) {
 	meta, _ := m.(*Owner)
-	tflog.Debug(ctx, "GitHub Repository Collaborators Attributes before migration to v2", map[string]any{"field_count": len(rawState)})
+	tflog.Debug(ctx, "GitHub Repository Collaborators Attributes before migration to v2", map[string]any{"repository": rawState["repository"], "owner_configured": rawState["owner_configured"]})
 
 	if meta.IsOrganization {
 		// If the repository belongs to an organization the owner cannot be a,
@@ -234,7 +234,7 @@ func resourceGithubRepositoryCollaboratorsStateUpgradeV1(ctx context.Context, ra
 
 		rawState["owner_configured"] = ownerConfigured
 	}
-	tflog.Debug(ctx, "GitHub Repository Collaborators Attributes after migration to v2", map[string]any{"field_count": len(rawState)})
+	tflog.Debug(ctx, "GitHub Repository Collaborators Attributes after migration to v2", map[string]any{"repository": rawState["repository"], "owner_configured": rawState["owner_configured"]})
 
 	return rawState, nil
 }
