@@ -173,6 +173,7 @@ func mustCreateTestBranch(t *testing.T, repo *github.Repository) string {
 
 func mustCreateTestOrganizationActionsRunnerGroup(t *testing.T) *github.RunnerGroup {
 	t.Helper()
+	skipUnlessHasPaidOrgs(t)
 
 	randomID := acctest.RandString(testRandomIDLength)
 	name := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
