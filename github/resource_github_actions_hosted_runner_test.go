@@ -76,7 +76,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 				}
 
 				size              = "2-core"
-				runner_group_id = "%d"
+				runner_group_id   = "%d"
 				maximum_runners   = 2
 				public_ip_enabled = true
 			}
@@ -88,6 +88,10 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("maximum_runners"), knownvalue.Int64Exact(2)),
+						statecheck.ExpectKnownValue("github_actions_hosted_runner.test", tfjsonpath.New("public_ip_enabled"), knownvalue.Bool(true)),
+					},
 				},
 			},
 		})
