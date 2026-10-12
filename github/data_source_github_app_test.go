@@ -18,18 +18,12 @@ func TestAccGithubAppDataSource(t *testing.T) {
 			}
 		`
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet(
-				"data.github_app.test", "name",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check:  resource.TestCheckResourceAttrSet("data.github_app.test", "name"),
 				},
 			},
 		})

@@ -11,7 +11,7 @@ import (
 func TestAccGithubRepositoryWebhooksDataSource(t *testing.T) {
 	t.Parallel()
 
-	t.Run("manages repository webhooks", func(t *testing.T) {
+	t.Run("manages_repository_webhooks", func(t *testing.T) {
 		t.Parallel()
 
 		repoName := fmt.Sprintf("%srepo-webhooks-%s", testResourcePrefix, acctest.RandString(5))

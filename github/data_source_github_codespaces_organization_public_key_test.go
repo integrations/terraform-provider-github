@@ -9,7 +9,7 @@ import (
 func TestAccGithubCodespacesOrganizationPublicKeyDataSource(t *testing.T) {
 	t.Parallel()
 
-	t.Run("queries an organization public key without error", func(t *testing.T) {
+	t.Run("queries_an_organization_public_key_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		config := `

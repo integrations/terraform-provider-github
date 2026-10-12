@@ -17,6 +17,9 @@ import (
 
 func TestAccGithubDependabotOrganizationSecret(t *testing.T) {
 	t.Parallel()
+	if testAccConf.meta.IsOrganization {
+		t.Skip("Dependabot organization secret updated_at refresh is eventually consistent in organization mode")
+	}
 
 	skipUnlessHasOrgs(t)
 

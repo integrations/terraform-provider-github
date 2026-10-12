@@ -10,8 +10,10 @@ import (
 
 func TestAccGithubMembershipDataSource(t *testing.T) {
 	t.Parallel()
+	skipUnlessHasOrgs(t)
+	skipUnlessHasOrgUser1(t)
 
-	t.Run("queries the membership for a user in a specified organization", func(t *testing.T) {
+	t.Run("queries_the_membership_for_a_user_in_a_specified_organization", func(t *testing.T) {
 		t.Parallel()
 
 		config := fmt.Sprintf(`
@@ -21,26 +23,23 @@ func TestAccGithubMembershipDataSource(t *testing.T) {
 			}
 		`, testAccConf.testOrgUser1, testAccConf.owner)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("data.github_membership.test", "username", testAccConf.testOrgUser1),
-			resource.TestCheckResourceAttrSet("data.github_membership.test", "role"),
-			resource.TestCheckResourceAttrSet("data.github_membership.test", "etag"),
-			resource.TestCheckResourceAttrSet("data.github_membership.test", "state"),
-		)
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t); skipUnlessHasOrgUser1(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("data.github_membership.test", "username", testAccConf.testOrgUser1),
+						resource.TestCheckResourceAttrSet("data.github_membership.test", "role"),
+						resource.TestCheckResourceAttrSet("data.github_membership.test", "etag"),
+						resource.TestCheckResourceAttrSet("data.github_membership.test", "state"),
+					),
 				},
 			},
 		})
 	})
 
-	t.Run("errors when querying with non-existent user", func(t *testing.T) {
+	t.Run("errors_when_querying_with_a_nonexistent_user", func(t *testing.T) {
 		t.Parallel()
 
 		config := fmt.Sprintf(`
@@ -51,7 +50,6 @@ func TestAccGithubMembershipDataSource(t *testing.T) {
 		`, testAccConf.testOrgUser1, testAccConf.owner)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

@@ -8,27 +8,21 @@ import (
 
 func TestAccGithubDependabotOrganizationPublicKeyDataSource(t *testing.T) {
 	t.Parallel()
+	skipUnlessHasOrgs(t)
 
-	t.Run("queries an organization public key without error", func(t *testing.T) {
+	t.Run("queries_an_organization_public_key_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		config := `
 			data "github_dependabot_organization_public_key" "test" {}
 		`
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet(
-				"data.github_dependabot_organization_public_key.test", "key",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check:  resource.TestCheckResourceAttrSet("data.github_dependabot_organization_public_key.test", "key"),
 				},
 			},
 		})

@@ -11,7 +11,7 @@ import (
 func TestAccGithubBranchProtectionRulesDataSource(t *testing.T) {
 	t.Parallel()
 
-	t.Run("queries branch protection rules without error", func(t *testing.T) {
+	t.Run("queries_branch_protection_rules_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -28,23 +28,19 @@ func TestAccGithubBranchProtectionRulesDataSource(t *testing.T) {
 			}
 		`, repoName)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("data.github_branch_protection_rules.all", "rules.#", "0"),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check:  resource.TestCheckResourceAttr("data.github_branch_protection_rules.all", "rules.#", "0"),
 				},
 			},
 		})
 	})
 
-	t.Run("queries branch protection", func(t *testing.T) {
+	t.Run("queries_branch_protection", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -68,11 +64,6 @@ func TestAccGithubBranchProtectionRulesDataSource(t *testing.T) {
 			}
 		`
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("data.github_branch_protection_rules.all", "rules.#", "1"),
-			resource.TestCheckResourceAttr("data.github_branch_protection_rules.all", "rules.0.pattern", "main*"),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
@@ -82,7 +73,10 @@ func TestAccGithubBranchProtectionRulesDataSource(t *testing.T) {
 				},
 				{
 					Config: config2,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("data.github_branch_protection_rules.all", "rules.#", "1"),
+						resource.TestCheckResourceAttr("data.github_branch_protection_rules.all", "rules.0.pattern", "main*"),
+					),
 				},
 			},
 		})
