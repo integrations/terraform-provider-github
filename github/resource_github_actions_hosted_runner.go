@@ -274,12 +274,12 @@ func resourceGithubActionsHostedRunnerCreate(ctx context.Context, d *schema.Reso
 }
 
 func resourceGithubActionsHostedRunnerRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	err := checkOrganization(m)
-	if err != nil {
-		return diag.FromErr(err)
+	meta, _ := m.(*Owner)
+
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
 	}
 
-	meta, _ := m.(*Owner)
 	client := meta.v3client
 	orgName := meta.name
 
@@ -321,13 +321,12 @@ func resourceGithubActionsHostedRunnerRead(ctx context.Context, d *schema.Resour
 		return diag.FromErr(err)
 	}
 
-	if machineSizeDetails := runner.GetMachineSizeDetails(); machineSizeDetails != nil {
-		if err := d.Set("size", machineSizeDetails.GetID()); err != nil {
-			return diag.FromErr(err)
-		}
-		if err := d.Set("machine_size_details", flattenMachineSizeDetails(machineSizeDetails)); err != nil {
-			return diag.FromErr(err)
-		}
+	machineSizeDetails := runner.GetMachineSizeDetails()
+	if err := d.Set("size", machineSizeDetails.GetID()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("machine_size_details", flattenMachineSizeDetails(machineSizeDetails)); err != nil {
+		return diag.FromErr(err)
 	}
 
 	if err := d.Set("runner_group_id", runner.GetRunnerGroupID()); err != nil {
@@ -349,9 +348,10 @@ func resourceGithubActionsHostedRunnerRead(ctx context.Context, d *schema.Resour
 }
 
 func resourceGithubActionsHostedRunnerUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	err := checkOrganization(m)
-	if err != nil {
-		return diag.FromErr(err)
+	meta, _ := m.(*Owner)
+
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
 	}
 
 	// Only update the runner if any of the configured fields have changed
@@ -359,7 +359,6 @@ func resourceGithubActionsHostedRunnerUpdate(ctx context.Context, d *schema.Reso
 		return nil
 	}
 
-	meta, _ := m.(*Owner)
 	client := meta.v3client
 	orgName := meta.name
 
@@ -427,12 +426,12 @@ func resourceGithubActionsHostedRunnerUpdate(ctx context.Context, d *schema.Reso
 }
 
 func resourceGithubActionsHostedRunnerDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	err := checkOrganization(m)
-	if err != nil {
-		return diag.FromErr(err)
+	meta, _ := m.(*Owner)
+
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
 	}
 
-	meta, _ := m.(*Owner)
 	client := meta.v3client
 	orgName := meta.name
 

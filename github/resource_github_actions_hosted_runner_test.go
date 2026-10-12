@@ -223,7 +223,7 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 					ResourceName:            "github_actions_hosted_runner.test",
 					ImportState:             true,
 					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"status", "image_gen"},
+					ImportStateVerifyIgnore: []string{"status"},
 				},
 			},
 		})
@@ -268,22 +268,23 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 	t.Run("validates_image_version_only_allowed_custom_image", func(t *testing.T) {
 		t.Parallel()
 
-		runnerGroup := mustCreateTestOrganizationActionsRunnerGroup(t)
 		randomID := acctest.RandString(5)
 		hostedRunnerName := fmt.Sprintf("%simage-version-%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
-resource "github_actions_hosted_runner" "test" {
-	name = "%s"
+			resource "github_actions_hosted_runner" "test" {
+				name = "%s"
 
-	image {
-		id     = "2306"
-		source = "github"
-	}
-	image_version = "1.0.0"
-	size            = "4-core"
-				runner_group_id = "%d"
-}`, hostedRunnerName, runnerGroup.GetID())
+				image {
+					id     = "2306"
+					source = "github"
+				}
+
+				image_version   = "1.0.0"
+				size            = "4-core"
+				runner_group_id = 1
+			}
+		`, hostedRunnerName)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
