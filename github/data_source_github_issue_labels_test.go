@@ -12,7 +12,7 @@ import (
 func TestAccGithubIssueLabelsDataSource(t *testing.T) {
 	t.Parallel()
 
-	t.Run("queries the labels for a repository", func(t *testing.T) {
+	t.Run("queries_the_labels_for_a_repository", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)

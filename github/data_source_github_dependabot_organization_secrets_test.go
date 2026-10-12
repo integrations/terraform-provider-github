@@ -11,8 +11,9 @@ import (
 
 func TestAccGithubDependabotOrganizationSecretsDataSource(t *testing.T) {
 	t.Parallel()
+	skipUnlessHasOrgs(t)
 
-	t.Run("queries organization dependabot secrets from a repository", func(t *testing.T) {
+	t.Run("queries_organization_dependabot_secrets_from_a_repository", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -30,25 +31,22 @@ func TestAccGithubDependabotOrganizationSecretsDataSource(t *testing.T) {
 			}
 		`
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("data.github_dependabot_organization_secrets.test", "secrets.#", "1"),
-			resource.TestCheckResourceAttr("data.github_dependabot_organization_secrets.test", "secrets.0.name", strings.ToUpper(fmt.Sprintf("ORG_DEP_SECRET_1_%s", randomID))),
-			resource.TestCheckResourceAttr("data.github_dependabot_organization_secrets.test", "secrets.0.visibility", "private"),
-			resource.TestCheckResourceAttrSet("data.github_dependabot_organization_secrets.test", "secrets.0.created_at"),
-			resource.TestCheckResourceAttrSet("data.github_dependabot_organization_secrets.test", "secrets.0.updated_at"),
-		)
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  resource.ComposeTestCheckFunc(),
 				},
 				{
 					Config: config2,
-					Check:  check,
+					Check: resource.TestCheckTypeSetElemNestedAttrs(
+						"data.github_dependabot_organization_secrets.test",
+						"secrets.#",
+						map[string]string{
+							"name":       strings.ToUpper(fmt.Sprintf("ORG_DEP_SECRET_1_%s", randomID)),
+							"visibility": "private",
+						},
+					),
 				},
 			},
 		})

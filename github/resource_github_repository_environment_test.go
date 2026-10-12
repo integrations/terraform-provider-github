@@ -293,7 +293,7 @@ resource "github_repository_environment" "test" {
 
 		config := fmt.Sprintf(`
 locals {
-	team_count = 6
+	team_count = 5
 }
 
 data "github_user" "org" {

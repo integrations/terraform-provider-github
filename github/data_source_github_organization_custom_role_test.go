@@ -10,8 +10,9 @@ import (
 
 func TestAccGithubOrganizationCustomRoleDataSource(t *testing.T) {
 	t.Parallel()
+	skipUnlessHasPaidOrgs(t)
 
-	t.Run("queries a custom repo role", func(t *testing.T) {
+	t.Run("queries_a_custom_repo_role", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -58,12 +59,10 @@ func TestAccGithubOrganizationCustomRoleDataSource(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  resource.ComposeTestCheckFunc(),
 				},
 				{
 					Config: config2,

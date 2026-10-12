@@ -8,6 +8,8 @@ import (
 
 func TestAccGithubOrganizationAppInstallations(t *testing.T) {
 	t.Parallel()
+	skipUnlessHasOrgs(t)
+	skipUnlessHasAppInstallations(t)
 
 	t.Run("basic", func(t *testing.T) {
 		t.Parallel()
@@ -15,10 +17,6 @@ func TestAccGithubOrganizationAppInstallations(t *testing.T) {
 		config := `data "github_organization_app_installations" "test" {}`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck: func() {
-				skipUnlessHasOrgs(t)
-				skipUnlessHasAppInstallations(t)
-			},
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

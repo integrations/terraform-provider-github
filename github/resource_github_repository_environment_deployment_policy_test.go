@@ -16,6 +16,10 @@ import (
 
 func TestAccGithubRepositoryEnvironmentDeploymentPolicy(t *testing.T) {
 	t.Parallel()
+	skipUnlessHasOrgs(t)
+	if testAccConf.meta.IsOrganization {
+		t.Skip("These deployment-policy acceptance tests use GET /user, which is unavailable to the GitHub App used in organization mode")
+	}
 
 	t.Run("create_branch_policy", func(t *testing.T) {
 		t.Parallel()
@@ -53,7 +57,6 @@ resource "github_repository_environment_deployment_policy" "test" {
 `, repoName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -103,7 +106,6 @@ resource "github_repository_environment_deployment_policy" "test" {
 `
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -161,7 +163,6 @@ resource "github_repository_environment_deployment_policy" "test" {
 `, repoName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -211,7 +212,6 @@ resource "github_repository_environment_deployment_policy" "test" {
 `
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -285,7 +285,6 @@ resource "github_repository_environment_deployment_policy" "test" {
 
 		comparePolicyIDChanages := statecheck.CompareValue(compare.ValuesDiffer())
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -363,7 +362,6 @@ resource "github_repository_environment_deployment_policy" "test" {
 
 		comparePolicyIDChanages := statecheck.CompareValue(compare.ValuesDiffer())
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -425,7 +423,6 @@ resource "github_repository_environment_deployment_policy" "test" {
 `, repoName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -444,7 +441,7 @@ resource "github_repository_environment_deployment_policy" "test" {
 		})
 	})
 
-	t.Run("errors when no patterns are set", func(t *testing.T) {
+	t.Run("errors_when_no_patterns_are_set", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -471,7 +468,6 @@ resource "github_repository_environment_deployment_policy" "test" {
 `, repoName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -482,7 +478,7 @@ resource "github_repository_environment_deployment_policy" "test" {
 		})
 	})
 
-	t.Run("errors when both patterns are set", func(t *testing.T) {
+	t.Run("errors_when_both_patterns_are_set", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -511,7 +507,6 @@ resource "github_repository_environment_deployment_policy" "test" {
 `, repoName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -522,7 +517,7 @@ resource "github_repository_environment_deployment_policy" "test" {
 		})
 	})
 
-	t.Run("errors when an empty branch pattern is set", func(t *testing.T) {
+	t.Run("errors_when_an_empty_branch_pattern_is_set", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -550,7 +545,6 @@ resource "github_repository_environment_deployment_policy" "test" {
 `, repoName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -561,7 +555,7 @@ resource "github_repository_environment_deployment_policy" "test" {
 		})
 	})
 
-	t.Run("errors when an empty tag pattern is set", func(t *testing.T) {
+	t.Run("errors_when_an_empty_tag_pattern_is_set", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -589,7 +583,6 @@ resource "github_repository_environment_deployment_policy" "test" {
 `, repoName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

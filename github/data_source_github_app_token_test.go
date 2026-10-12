@@ -11,7 +11,7 @@ import (
 func TestGithubAppTokenDataSource(t *testing.T) {
 	t.Parallel()
 
-	t.Run("creates a application token without error", func(t *testing.T) {
+	t.Run("creates_a_application_token_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		expectedAccessToken := "W+2e/zjiMTweDAr2b35toCF+h29l7NW92rJIPvFrCJQK"

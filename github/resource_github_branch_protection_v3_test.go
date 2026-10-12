@@ -17,7 +17,7 @@ func TestAccGithubBranchProtectionV3_required_pull_request_reviews(t *testing.T)
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 	teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 	repoName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
-	t.Run("configures required pull request reviews", func(t *testing.T) {
+	t.Run("configures_required_pull_request_reviews", func(t *testing.T) {
 		t.Parallel()
 
 		config := fmt.Sprintf(`
@@ -61,52 +61,49 @@ func TestAccGithubBranchProtectionV3_required_pull_request_reviews(t *testing.T)
 			}
 	`, repoName, teamName)
 
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.#", "1",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.dismiss_stale_reviews", "true",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.require_code_owner_reviews", "true",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.required_approving_review_count", "1",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.require_last_push_approval", "true",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.dismissal_users.#", "1",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.dismissal_teams.#", "1",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.dismissal_apps.#", "1",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.#", "1",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.0.users.#", "1",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.0.teams.#", "1",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.0.apps.#", "1",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeAggregateTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.#", "1",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.0.dismiss_stale_reviews", "true",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.0.require_code_owner_reviews", "true",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.0.required_approving_review_count", "1",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.0.require_last_push_approval", "true",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.0.dismissal_users.#", "1",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.0.dismissal_teams.#", "1",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.0.dismissal_apps.#", "1",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.#", "1",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.0.users.#", "1",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.0.teams.#", "1",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.0.apps.#", "1",
+						),
+					),
 				},
 			},
 		})
@@ -119,7 +116,7 @@ func TestAccGithubBranchProtectionV3RequiredPullRequestReviewsBypassAllowances(t
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 	teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 	repoName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
-	t.Run("configures required pull request reviews with bypass allowances", func(t *testing.T) {
+	t.Run("configures_required_pull_request_reviews_with_bypass_allowances", func(t *testing.T) {
 		t.Parallel()
 
 		config := fmt.Sprintf(`
@@ -154,22 +151,19 @@ func TestAccGithubBranchProtectionV3RequiredPullRequestReviewsBypassAllowances(t
 
 	`, repoName, teamName)
 
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.#", "1",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.#", "1",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeAggregateTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.#", "1",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.#", "1",
+						),
+					),
 				},
 			},
 		})
@@ -182,7 +176,7 @@ func TestAccGithubBranchProtectionV3_branch_push_restrictions(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 	teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 	repoName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
-	t.Run("configures branch push restrictions", func(t *testing.T) {
+	t.Run("configures_branch_push_restrictions", func(t *testing.T) {
 		t.Parallel()
 
 		config := fmt.Sprintf(`
@@ -213,19 +207,12 @@ func TestAccGithubBranchProtectionV3_branch_push_restrictions(t *testing.T) {
 			}
 			`, repoName, teamName)
 
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "restrictions.#", "1",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check:  resource.TestCheckResourceAttr("github_branch_protection_v3.test", "restrictions.#", "1"),
 				},
 			},
 		})
@@ -234,8 +221,9 @@ func TestAccGithubBranchProtectionV3_branch_push_restrictions(t *testing.T) {
 
 func TestAccGithubBranchProtectionV3_computed_status_checks_no_churn(t *testing.T) {
 	t.Parallel()
+	skipUnlessHasOrgs(t)
 
-	t.Run("handles computed status checks without churn", func(t *testing.T) {
+	t.Run("handles_computed_status_checks_without_churn", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -261,36 +249,39 @@ func TestAccGithubBranchProtectionV3_computed_status_checks_no_churn(t *testing.
 			}
 		`, testRepoName)
 
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_status_checks.#", "1",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_status_checks.0.strict", "true",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_status_checks.0.checks.#", "2",
-			),
-			resource.TestCheckTypeSetElemAttr(
-				"github_branch_protection_v3.test", "required_status_checks.0.checks.*", "ci/test",
-			),
-			resource.TestCheckTypeSetElemAttr(
-				"github_branch_protection_v3.test", "required_status_checks.0.checks.*", "ci/build",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeAggregateTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_status_checks.#", "1",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_status_checks.0.strict", "true",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_status_checks.0.checks.#", "2",
+						),
+						resource.TestCheckTypeSetElemAttr(
+							"github_branch_protection_v3.test", "required_status_checks.0.checks.*", "ci/test",
+						),
+						resource.TestCheckTypeSetElemAttr(
+							"github_branch_protection_v3.test", "required_status_checks.0.checks.*", "ci/build",
+						),
+					),
 				},
 				// Re-apply the same config to test for churn
 				{
-					Config:   config,
-					Check:    check,
+					Config: config,
+					Check: resource.ComposeAggregateTestCheckFunc(
+						resource.TestCheckResourceAttr("github_branch_protection_v3.test", "required_status_checks.#", "1"),
+						resource.TestCheckResourceAttr("github_branch_protection_v3.test", "required_status_checks.0.strict", "true"),
+						resource.TestCheckResourceAttr("github_branch_protection_v3.test", "required_status_checks.0.checks.#", "2"),
+						resource.TestCheckTypeSetElemAttr("github_branch_protection_v3.test", "required_status_checks.0.checks.*", "ci/test"),
+						resource.TestCheckTypeSetElemAttr("github_branch_protection_v3.test", "required_status_checks.0.checks.*", "ci/build"),
+					),
 					PlanOnly: true,
 				},
 			},
@@ -300,8 +291,9 @@ func TestAccGithubBranchProtectionV3_computed_status_checks_no_churn(t *testing.
 
 func TestAccGithubBranchProtectionV3_computed_status_contexts_no_churn(t *testing.T) {
 	t.Parallel()
+	skipUnlessHasOrgs(t)
 
-	t.Run("handles computed status contexts without churn", func(t *testing.T) {
+	t.Run("handles_computed_status_contexts_without_churn", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -326,36 +318,39 @@ func TestAccGithubBranchProtectionV3_computed_status_contexts_no_churn(t *testin
 			}
 		`, testRepoName)
 
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_status_checks.#", "1",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_status_checks.0.strict", "true",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_status_checks.0.contexts.#", "2",
-			),
-			resource.TestCheckTypeSetElemAttr(
-				"github_branch_protection_v3.test", "required_status_checks.0.contexts.*", "ci/test",
-			),
-			resource.TestCheckTypeSetElemAttr(
-				"github_branch_protection_v3.test", "required_status_checks.0.contexts.*", "ci/build",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeAggregateTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_status_checks.#", "1",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_status_checks.0.strict", "true",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_status_checks.0.contexts.#", "2",
+						),
+						resource.TestCheckTypeSetElemAttr(
+							"github_branch_protection_v3.test", "required_status_checks.0.contexts.*", "ci/test",
+						),
+						resource.TestCheckTypeSetElemAttr(
+							"github_branch_protection_v3.test", "required_status_checks.0.contexts.*", "ci/build",
+						),
+					),
 				},
 				// Re-apply the same config to test for churn
 				{
-					Config:   config,
-					Check:    check,
+					Config: config,
+					Check: resource.ComposeAggregateTestCheckFunc(
+						resource.TestCheckResourceAttr("github_branch_protection_v3.test", "required_status_checks.#", "1"),
+						resource.TestCheckResourceAttr("github_branch_protection_v3.test", "required_status_checks.0.strict", "true"),
+						resource.TestCheckResourceAttr("github_branch_protection_v3.test", "required_status_checks.0.contexts.#", "2"),
+						resource.TestCheckTypeSetElemAttr("github_branch_protection_v3.test", "required_status_checks.0.contexts.*", "ci/test"),
+						resource.TestCheckTypeSetElemAttr("github_branch_protection_v3.test", "required_status_checks.0.contexts.*", "ci/build"),
+					),
 					PlanOnly: true,
 				},
 			},
@@ -370,7 +365,7 @@ func TestAccGithubBranchProtectionV3_update_with_status_checks(t *testing.T) {
 	// any other setting used to send every required check twice, which GitHub rejects
 	// with "Context must be unique per branch protection".
 	for _, statusChecksField := range []string{"contexts", "checks"} {
-		t.Run(fmt.Sprintf("updates other settings when %s is set", statusChecksField), func(t *testing.T) {
+		t.Run(fmt.Sprintf("updates_other_settings_when_%s_is_set", statusChecksField), func(t *testing.T) {
 			t.Parallel()
 
 			repo := mustCreateTestRepository(t)
@@ -394,7 +389,6 @@ func TestAccGithubBranchProtectionV3_update_with_status_checks(t *testing.T) {
 			}
 
 			resource.Test(t, resource.TestCase{
-				PreCheck:          func() { skipUnauthenticated(t) },
 				ProviderFactories: providerFactories,
 				Steps: []resource.TestStep{
 					{
@@ -415,8 +409,9 @@ func TestAccGithubBranchProtectionV3_update_with_status_checks(t *testing.T) {
 
 func TestAccGithubBranchProtectionV3(t *testing.T) {
 	t.Parallel()
+	skipUnlessHasOrgs(t)
 
-	t.Run("configures default settings when empty", func(t *testing.T) {
+	t.Run("configures_default_settings_when_empty", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -436,7 +431,6 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 		`, testRepoName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -454,7 +448,7 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 		})
 	})
 
-	t.Run("configures conversation resolution", func(t *testing.T) {
+	t.Run("configures_conversation_resolution", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -475,7 +469,6 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 		`, testRepoName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -493,7 +486,7 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 		})
 	})
 
-	t.Run("configures required status checks", func(t *testing.T) {
+	t.Run("configures_required_status_checks", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -521,7 +514,6 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 	`, testRepoName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -538,7 +530,7 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 		})
 	})
 
-	t.Run("configures required status checks context", func(t *testing.T) {
+	t.Run("configures_required_status_checks_context", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -561,7 +553,6 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 		`, testRepoName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -578,7 +569,7 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 		})
 	})
 
-	t.Run("configures required pull request reviews", func(t *testing.T) {
+	t.Run("configures_required_pull_request_reviews", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -624,58 +615,55 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 			}
 	`, testRepoName)
 
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.#", "1",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.dismiss_stale_reviews", "true",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.require_code_owner_reviews", "true",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.required_approving_review_count", "1",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.require_last_push_approval", "true",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.dismissal_users.#", "1",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.dismissal_teams.#", "1",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.dismissal_apps.#", "1",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.#", "1",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.0.users.#", "1",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.0.teams.#", "1",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.0.apps.#", "1",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeAggregateTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.#", "1",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.0.dismiss_stale_reviews", "true",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.0.require_code_owner_reviews", "true",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.0.required_approving_review_count", "1",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.0.require_last_push_approval", "true",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.0.dismissal_users.#", "1",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.0.dismissal_teams.#", "1",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.0.dismissal_apps.#", "1",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.#", "1",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.0.users.#", "1",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.0.teams.#", "1",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.0.apps.#", "1",
+						),
+					),
 				},
 			},
 		})
 	})
 
-	t.Run("configures required pull request reviews with bypass allowances", func(t *testing.T) {
+	t.Run("configures_required_pull_request_reviews_with_bypass_allowances", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -712,28 +700,25 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 
 	`, testResourceName)
 
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.#", "1",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.#", "1",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeAggregateTestCheckFunc(
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.#", "1",
+						),
+						resource.TestCheckResourceAttr(
+							"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.#", "1",
+						),
+					),
 				},
 			},
 		})
 	})
 
-	t.Run("configures branch push restrictions", func(t *testing.T) {
+	t.Run("configures_branch_push_restrictions", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -766,19 +751,12 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 			}
 			`, testResourceName)
 
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "restrictions.#", "1",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check:  resource.TestCheckResourceAttr("github_branch_protection_v3.test", "restrictions.#", "1"),
 				},
 			},
 		})

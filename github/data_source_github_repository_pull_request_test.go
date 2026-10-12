@@ -11,7 +11,7 @@ import (
 func TestAccGithubRepositoryPullRequestDataSource(t *testing.T) {
 	t.Parallel()
 
-	t.Run("manages the pull request lifecycle", func(t *testing.T) {
+	t.Run("manages_the_pull_request_lifecycle", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)

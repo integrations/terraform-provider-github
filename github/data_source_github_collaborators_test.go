@@ -11,7 +11,7 @@ import (
 func TestAccGithubCollaboratorsDataSource(t *testing.T) {
 	t.Parallel()
 
-	t.Run("gets all collaborators", func(t *testing.T) {
+	t.Run("gets_all_collaborators", func(t *testing.T) {
 		t.Parallel()
 
 		repoName := fmt.Sprintf("%srepo-collab-%s", testResourcePrefix, acctest.RandString(5))
@@ -43,7 +43,7 @@ data "github_collaborators" "test" {
 		})
 	})
 
-	t.Run("gets admin collaborators", func(t *testing.T) {
+	t.Run("gets_admin_collaborators", func(t *testing.T) {
 		t.Parallel()
 
 		repoName := fmt.Sprintf("%srepo-collab-%s", testResourcePrefix, acctest.RandString(5))
