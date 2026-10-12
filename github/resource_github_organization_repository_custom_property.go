@@ -25,7 +25,7 @@ var organizationCustomPropertyValuesEditableBy = []string{"org_actors", "org_and
 
 func resourceGithubOrganizationRepositoryCustomProperty() *schema.Resource {
 	return &schema.Resource{
-		Description: "Manages a GitHub organization custom property definition. Custom properties defined here can later be assigned values on individual repositories.",
+		Description: "Manages a repository custom property definition in a GitHub organization. Values can later be assigned to individual repositories.",
 
 		CreateContext: resourceGithubOrganizationRepositoryCustomPropertyCreate,
 		ReadContext:   resourceGithubOrganizationRepositoryCustomPropertyRead,
@@ -139,10 +139,12 @@ func validateOrganizationRepositoryCustomPropertyDefaultValue(d *schema.Resource
 	defaultValueKnown := d.NewValueKnown("default_value")
 	defaultValue, _ := d.Get("default_value").([]any)
 	required := d.NewValueKnown("required") && d.Get("required").(bool)
+	rawConfig := d.GetRawConfig()
+	defaultValueConfigured := !rawConfig.IsNull() && !rawConfig.GetAttr("default_value").IsNull()
 	if err := validateOrganizationRepositoryCustomPropertyDefaultValueUpdate(d, defaultValueKnown, defaultValue); err != nil {
 		return err
 	}
-	if err := validateRequiredOrganizationRepositoryCustomPropertyDefaultValue(required, defaultValueKnown, defaultValue); err != nil {
+	if err := validateRequiredOrganizationRepositoryCustomPropertyDefaultValue(required, defaultValueKnown, defaultValueConfigured, defaultValue); err != nil {
 		return err
 	}
 	if !defaultValueKnown {
@@ -190,8 +192,8 @@ func validateOrganizationRepositoryCustomPropertyDefaultValueNotRemoved(oldValue
 	return nil
 }
 
-func validateRequiredOrganizationRepositoryCustomPropertyDefaultValue(required, defaultValueKnown bool, defaultValue []any) error {
-	if required && (!defaultValueKnown || len(defaultValue) == 0) {
+func validateRequiredOrganizationRepositoryCustomPropertyDefaultValue(required, defaultValueKnown, defaultValueConfigured bool, defaultValue []any) error {
+	if required && (defaultValueKnown && len(defaultValue) == 0 || !defaultValueKnown && !defaultValueConfigured) {
 		return fmt.Errorf("default_value is required when required is true")
 	}
 
@@ -260,18 +262,18 @@ func resourceGithubOrganizationRepositoryCustomPropertyCreate(ctx context.Contex
 	owner := meta.name
 	propertyName := d.Get("property_name").(string)
 
-	tflog.Debug(ctx, "Creating organization custom property", map[string]any{"org": owner, "property": propertyName})
+	tflog.Debug(ctx, "Creating repository custom property", map[string]any{"org": owner, "property": propertyName})
 
 	cp, _, err := client.Organizations.CreateOrUpdateCustomProperty(ctx, owner, propertyName, buildOrganizationRepositoryCustomProperty(d))
 	if err != nil {
-		return diag.Errorf("error creating organization custom property %q: %v", propertyName, err)
+		return diag.Errorf("error creating repository custom property %q in organization %q: %v", propertyName, owner, err)
 	}
 
 	if cp.GetPropertyName() == "" {
-		return diag.Errorf("organization %q returned a custom property with an empty name when creating %q", owner, propertyName)
+		return diag.Errorf("organization %q returned a repository custom property with an empty name when creating %q", owner, propertyName)
 	}
 
-	return setOrganizationRepositoryCustomPropertyState(d, cp)
+	return setOrganizationRepositoryCustomPropertyState(d, cp, owner)
 }
 
 func resourceGithubOrganizationRepositoryCustomPropertyRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
@@ -287,18 +289,18 @@ func resourceGithubOrganizationRepositoryCustomPropertyRead(ctx context.Context,
 	cp, _, err := client.Organizations.GetCustomProperty(ctx, owner, propertyName)
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == 404 {
-			tflog.Info(ctx, "Removing organization custom property from state because it no longer exists", map[string]any{"org": owner, "property": propertyName})
+			tflog.Info(ctx, "Removing repository custom property from state because it no longer exists", map[string]any{"org": owner, "property": propertyName})
 			d.SetId("")
 			return nil
 		}
-		return diag.Errorf(organizationCustomPropertyReadErrorFormat, propertyName, err)
+		return diag.Errorf(repositoryCustomPropertyReadErrorFormat, propertyName, owner, err)
 	}
 
 	if cp.GetPropertyName() == "" {
-		return diag.Errorf("organization %q returned a custom property with an empty name when reading %q", owner, propertyName)
+		return diag.Errorf("organization %q returned a repository custom property with an empty name when reading %q", owner, propertyName)
 	}
 
-	return setOrganizationRepositoryCustomPropertyState(d, cp)
+	return setOrganizationRepositoryCustomPropertyState(d, cp, owner)
 }
 
 func resourceGithubOrganizationRepositoryCustomPropertyUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
@@ -311,18 +313,18 @@ func resourceGithubOrganizationRepositoryCustomPropertyUpdate(ctx context.Contex
 	owner := meta.name
 	propertyName := d.Get("property_name").(string)
 
-	tflog.Debug(ctx, "Updating organization custom property", map[string]any{"org": owner, "property": propertyName})
+	tflog.Debug(ctx, "Updating repository custom property", map[string]any{"org": owner, "property": propertyName})
 
 	cp, _, err := client.Organizations.CreateOrUpdateCustomProperty(ctx, owner, propertyName, buildOrganizationRepositoryCustomProperty(d))
 	if err != nil {
-		return diag.Errorf("error updating organization custom property %q: %v", propertyName, err)
+		return diag.Errorf("error updating repository custom property %q in organization %q: %v", propertyName, owner, err)
 	}
 
 	if cp.GetPropertyName() == "" {
-		return diag.Errorf("organization %q returned a custom property with an empty name when updating %q", owner, propertyName)
+		return diag.Errorf("organization %q returned a repository custom property with an empty name when updating %q", owner, propertyName)
 	}
 
-	return setOrganizationRepositoryCustomPropertyState(d, cp)
+	return setOrganizationRepositoryCustomPropertyState(d, cp, owner)
 }
 
 func resourceGithubOrganizationRepositoryCustomPropertyDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
@@ -335,13 +337,13 @@ func resourceGithubOrganizationRepositoryCustomPropertyDelete(ctx context.Contex
 	owner := meta.name
 	propertyName := d.Get("property_name").(string)
 
-	tflog.Debug(ctx, "Deleting organization custom property", map[string]any{"org": owner, "property": propertyName})
+	tflog.Debug(ctx, "Deleting repository custom property", map[string]any{"org": owner, "property": propertyName})
 
 	if _, err := client.Organizations.RemoveCustomProperty(ctx, owner, propertyName); err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == 404 {
 			return nil
 		}
-		return diag.Errorf("error deleting organization custom property %q: %v", propertyName, err)
+		return diag.Errorf("error deleting repository custom property %q in organization %q: %v", propertyName, owner, err)
 	}
 
 	return nil

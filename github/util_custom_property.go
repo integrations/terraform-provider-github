@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-const organizationCustomPropertyReadErrorFormat = "error reading organization custom property %q: %v"
+const repositoryCustomPropertyReadErrorFormat = "error reading repository custom property %q in organization %q: %v"
 
 // flattenOrganizationRepositoryCustomPropertyDefaultValue normalises the
 // polymorphic default_value returned by the API into a list of strings. The
@@ -68,10 +68,10 @@ func organizationRepositoryCustomPropertyToMap(cp *github.CustomProperty) (map[s
 
 // setOrganizationRepositoryCustomPropertyState writes an API custom property
 // definition into the resource or data source state.
-func setOrganizationRepositoryCustomPropertyState(d *schema.ResourceData, cp *github.CustomProperty) diag.Diagnostics {
+func setOrganizationRepositoryCustomPropertyState(d *schema.ResourceData, cp *github.CustomProperty, owner string) diag.Diagnostics {
 	values, err := organizationRepositoryCustomPropertyToMap(cp)
 	if err != nil {
-		return diag.Errorf(organizationCustomPropertyReadErrorFormat, cp.GetPropertyName(), err)
+		return diag.Errorf(repositoryCustomPropertyReadErrorFormat, cp.GetPropertyName(), owner, err)
 	}
 
 	d.SetId(cp.GetPropertyName())

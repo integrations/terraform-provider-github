@@ -76,6 +76,7 @@ func TestValidateRequiredOrganizationRepositoryCustomPropertyDefaultValue(t *tes
 		name              string
 		required          bool
 		defaultValueKnown bool
+		defaultConfigured bool
 		defaultValue      []any
 		wantError         bool
 	}{
@@ -83,9 +84,16 @@ func TestValidateRequiredOrganizationRepositoryCustomPropertyDefaultValue(t *tes
 			name: "not required without a default",
 		},
 		{
-			name:      "required with unknown default",
-			required:  true,
-			wantError: true,
+			name:              "required without a configured default",
+			required:          true,
+			defaultValueKnown: false,
+			wantError:         true,
+		},
+		{
+			name:              "required with a configured unknown default",
+			required:          true,
+			defaultValueKnown: false,
+			defaultConfigured: true,
 		},
 		{
 			name:              "required with empty default",
@@ -106,7 +114,7 @@ func TestValidateRequiredOrganizationRepositoryCustomPropertyDefaultValue(t *tes
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			err := validateRequiredOrganizationRepositoryCustomPropertyDefaultValue(testCase.required, testCase.defaultValueKnown, testCase.defaultValue)
+			err := validateRequiredOrganizationRepositoryCustomPropertyDefaultValue(testCase.required, testCase.defaultValueKnown, testCase.defaultConfigured, testCase.defaultValue)
 			if (err != nil) != testCase.wantError {
 				t.Fatalf("validation error = %v, wantError %t", err, testCase.wantError)
 			}
@@ -124,6 +132,7 @@ func TestValidateOrganizationRepositoryCustomPropertyDefaultValueNotRemoved(t *t
 		wantErr bool
 	}{
 		{
+
 			name: "allows an unset default to remain unset",
 		},
 		{
@@ -207,6 +216,64 @@ func TestResourceGithubOrganizationRepositoryCustomPropertyDelete(t *testing.T) 
 			}
 			if testCase.wantError && !strings.Contains(diags[0].Summary+diags[0].Detail, testCase.errorDetail) {
 				t.Fatalf("Delete() diagnostic = %q: %q, want it to contain %q", diags[0].Summary, diags[0].Detail, testCase.errorDetail)
+			}
+		})
+	}
+}
+
+func TestResourceGithubOrganizationRepositoryCustomPropertyRejectsEmptyResponseName(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name   string
+		method string
+		call   func(context.Context, *schema.ResourceData, any) diag.Diagnostics
+	}{
+		{
+			name:   "create",
+			method: http.MethodPut,
+			call:   resourceGithubOrganizationRepositoryCustomPropertyCreate,
+		},
+		{
+			name:   "read",
+			method: http.MethodGet,
+			call:   resourceGithubOrganizationRepositoryCustomPropertyRead,
+		},
+		{
+			name:   "update",
+			method: http.MethodPut,
+			call:   resourceGithubOrganizationRepositoryCustomPropertyUpdate,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			server := githubApiMock([]*mockResponse{{
+				ExpectedUri:    "/orgs/test-org/properties/schema/test-property",
+				ExpectedMethod: testCase.method,
+				StatusCode:     http.StatusOK,
+				ResponseBody:   `{"value_type":"string"}`,
+			}})
+			defer server.Close()
+
+			meta := &Owner{
+				name:           "test-org",
+				v3client:       mustCreateTestGitHubClient(t, server.URL),
+				IsOrganization: true,
+			}
+			data := schema.TestResourceDataRaw(t, resourceGithubOrganizationRepositoryCustomProperty().Schema, map[string]any{
+				"property_name": "test-property",
+				"value_type":    "string",
+			})
+			if testCase.name == "update" {
+				data.SetId("test-property")
+			}
+
+			diags := testCase.call(t.Context(), data, meta)
+			if !diags.HasError() || !strings.Contains(diags[0].Summary+diags[0].Detail, "empty name") {
+				t.Fatalf("%s() diagnostics = %v, want an empty-name response error", testCase.name, diags)
 			}
 		})
 	}
@@ -639,6 +706,44 @@ resource "github_organization_repository_custom_property" "test" {
 				{
 					Config:      config,
 					ExpectError: regexp.MustCompile("default_value is required when required is true"),
+				},
+			},
+		})
+	})
+
+	t.Run("allows a configured unknown default_value when required is true", func(t *testing.T) {
+		t.Parallel()
+
+		name := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
+		config := fmt.Sprintf(`
+resource "terraform_data" "default" {
+  input = ["production"]
+}
+
+resource "github_organization_repository_custom_property" "test" {
+  property_name  = %[1]q
+  value_type     = "string"
+  required       = true
+  default_value  = terraform_data.default.output
+}
+`, name)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectUnknownValue(resourceAddr, tfjsonpath.New("default_value")),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue(resourceAddr, tfjsonpath.New("default_value"), knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.StringExact("production"),
+						})),
+					},
 				},
 			},
 		})

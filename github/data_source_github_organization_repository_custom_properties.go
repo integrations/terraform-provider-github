@@ -9,7 +9,7 @@ import (
 
 func dataSourceGithubOrganizationRepositoryCustomProperties() *schema.Resource {
 	return &schema.Resource{
-		Description: "Lists all custom property definitions for a GitHub organization. See the [GitHub REST API documentation](https://docs.github.com/en/rest/orgs/custom-properties?apiVersion=2022-11-28#get-all-custom-properties-for-an-organization) for required permissions.",
+		Description: "Lists all repository custom property definitions for a GitHub organization. See the [GitHub REST API documentation](https://docs.github.com/en/rest/orgs/custom-properties?apiVersion=2022-11-28#get-all-custom-properties-for-an-organization) for required permissions.",
 		ReadContext: dataSourceGithubOrganizationRepositoryCustomPropertiesRead,
 
 		Schema: map[string]*schema.Schema{
@@ -71,18 +71,18 @@ func dataSourceGithubOrganizationRepositoryCustomPropertiesRead(ctx context.Cont
 
 	properties, _, err := meta.v3client.Organizations.GetAllCustomProperties(ctx, meta.name)
 	if err != nil {
-		return diag.Errorf("error listing organization custom properties: %v", err)
+		return diag.Errorf("error listing repository custom properties for organization %q: %v", meta.name, err)
 	}
 
 	propertyValues := make([]any, 0, len(properties))
 	for _, property := range properties {
 		if property == nil || property.GetPropertyName() == "" {
-			return diag.Errorf("organization %q returned a custom property with an empty name", meta.name)
+			return diag.Errorf("organization %q returned a repository custom property with an empty name", meta.name)
 		}
 
 		values, err := organizationRepositoryCustomPropertyToMap(property)
 		if err != nil {
-			return diag.Errorf(organizationCustomPropertyReadErrorFormat, property.GetPropertyName(), err)
+			return diag.Errorf(repositoryCustomPropertyReadErrorFormat, property.GetPropertyName(), meta.name, err)
 		}
 
 		propertyValues = append(propertyValues, values)
@@ -90,7 +90,7 @@ func dataSourceGithubOrganizationRepositoryCustomPropertiesRead(ctx context.Cont
 
 	d.SetId(meta.name)
 	if err := d.Set("properties", propertyValues); err != nil {
-		return diag.Errorf("error setting organization custom properties: %v", err)
+		return diag.Errorf("error setting repository custom properties for organization %q: %v", meta.name, err)
 	}
 
 	return nil

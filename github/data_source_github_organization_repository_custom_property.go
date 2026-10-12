@@ -13,7 +13,7 @@ import (
 
 func dataSourceGithubOrganizationRepositoryCustomProperty() *schema.Resource {
 	return &schema.Resource{
-		Description: "Looks up a single GitHub organization custom property definition by name.",
+		Description: "Looks up a single repository custom property definition in a GitHub organization by name.",
 		ReadContext: dataSourceGithubOrganizationRepositoryCustomPropertyRead,
 
 		Schema: map[string]*schema.Schema{
@@ -69,19 +69,19 @@ func dataSourceGithubOrganizationRepositoryCustomPropertyRead(ctx context.Contex
 	owner := meta.name
 	propertyName := d.Get("property_name").(string)
 
-	tflog.Debug(ctx, "Reading organization custom property", map[string]any{"org": owner, "property": propertyName})
+	tflog.Debug(ctx, "Reading repository custom property", map[string]any{"org": owner, "property": propertyName})
 
 	cp, _, err := client.Organizations.GetCustomProperty(ctx, owner, propertyName)
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == 404 {
-			return diag.Errorf("organization custom property %q not found in %q", propertyName, owner)
+			return diag.Errorf("repository custom property %q not found in organization %q", propertyName, owner)
 		}
-		return diag.Errorf(organizationCustomPropertyReadErrorFormat, propertyName, err)
+		return diag.Errorf(repositoryCustomPropertyReadErrorFormat, propertyName, owner, err)
 	}
 
 	if cp.GetPropertyName() == "" {
-		return diag.Errorf("organization %q returned a custom property with an empty name when reading %q", owner, propertyName)
+		return diag.Errorf("organization %q returned a repository custom property with an empty name when reading %q", owner, propertyName)
 	}
 
-	return setOrganizationRepositoryCustomPropertyState(d, cp)
+	return setOrganizationRepositoryCustomPropertyState(d, cp, owner)
 }
