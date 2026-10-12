@@ -119,8 +119,8 @@ func resourceGithubOrganizationSettings() *schema.Resource {
 			"members_can_fork_private_repositories": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Default:     false,
-				Description: "Whether or not organization members can fork private repositories.",
+				Computed:    true,
+				Description: "Whether or not organization members can fork private repositories. When an enterprise policy controls this setting, omit this attribute to avoid API validation errors.",
 			},
 			"web_commit_signoff_required": {
 				Type:        schema.TypeBool,
@@ -266,7 +266,11 @@ func buildOrganizationSettings(d *schema.ResourceData, isEnterprise bool) *githu
 	if shouldInclude("members_can_create_private_pages") {
 		settings.MembersCanCreatePrivatePages = new(d.Get("members_can_create_private_pages").(bool))
 	}
-	if shouldInclude("members_can_fork_private_repositories") {
+	if !isUpdate {
+		if _, ok := d.GetOkExists("members_can_fork_private_repositories"); ok { //nolint:staticcheck // SA1019 // GetOkExists needed for Computed+Optional bool fields
+			settings.MembersCanForkPrivateRepos = new(d.Get("members_can_fork_private_repositories").(bool))
+		}
+	} else if d.HasChange("members_can_fork_private_repositories") {
 		settings.MembersCanForkPrivateRepos = new(d.Get("members_can_fork_private_repositories").(bool))
 	}
 	if shouldInclude("web_commit_signoff_required") {
