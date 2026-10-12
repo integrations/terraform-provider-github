@@ -32,7 +32,7 @@ func resourceGithubActionsHostedRunner() *schema.Resource {
 			Delete: schema.DefaultTimeout(10 * time.Minute),
 		},
 
-		Description: "Resource to create and manage GitHub-hosted runners within your GitHub organization.",
+		Description: "Resource to create and manage GitHub-hosted runners within an organization.",
 
 		CustomizeDiff: customdiff.All(resourceGithubActionsHostedRunnerValidation),
 

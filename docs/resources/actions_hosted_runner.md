@@ -2,12 +2,12 @@
 page_title: "github_actions_hosted_runner (Resource) - GitHub"
 subcategory: ""
 description: |-
-  Resource to create and manage GitHub-hosted runners within your GitHub organization.
+  Resource to create and manage GitHub-hosted runners within an organization.
 ---
 
 # github_actions_hosted_runner (Resource)
 
-Resource to create and manage GitHub-hosted runners within your GitHub organization.
+Resource to create and manage GitHub-hosted runners within an organization.
 
 ## Notes
 

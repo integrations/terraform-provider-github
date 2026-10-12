@@ -40,11 +40,11 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
 {{- range .ExampleFiles }}
 
 {{- $parts := split . "resource_" -}}
-{{- $lastItem := index $parts 1 }}
-{{- $fileNameParts := split $lastItem "." }}
-{{- $fileName := index $fileNameParts 0 }}
+{{- if gt (len $parts) 1 }}
+{{- $fileName := index (split (index $parts 1) ".") 0 }}
 
 ### {{ $fileName | title }} Usage
+{{- end }}
 
 {{ tffile . }}
 {{- end }}
