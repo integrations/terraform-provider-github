@@ -4,79 +4,88 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubRefDataSource(t *testing.T) {
 	t.Parallel()
+	skipUnauthenticated(t)
 
-	t.Run("queries an existing branch ref without error", func(t *testing.T) {
+	t.Run("queries_an_existing_branch_ref", func(t *testing.T) {
 		t.Parallel()
 
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%srepo-ref-%s", testResourcePrefix, randomID)
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-			  name = "%[1]s"
-				auto_init = true
-			}
+		repo := mustCreateTestRepository(t)
 
-			data "github_ref" "test" {
-				owner      = "%s"
-				repository = github_repository.test.name
-				ref = "heads/main"
-			}
-		`, repoName, testAccConf.owner)
+		config := fmt.Sprintf(`
+data "github_ref" "test" {
+  repository = "%s"
+  ref        = "heads/main"
+}
+`, repo.GetName())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("data.github_ref.test", "id"),
-						resource.TestCheckResourceAttrSet("data.github_ref.test", "sha"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_ref.test", tfjsonpath.New("id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("data.github_ref.test", tfjsonpath.New("sha"), knownvalue.NotNull()),
+					},
 				},
 			},
 		})
 	})
 
-	// Can't test due to SDK and test framework limitations
-	// t.Run("queries an invalid ref without error", func(t *testing.T) {
-	// 	t.Parallel()
+	t.Run("queries_an_existing_branch_ref_with_owner", func(t *testing.T) {
+		t.Parallel()
 
-	// 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-	//   repoName := fmt.Sprintf("%srepo-invalid-ref-%s", testResourcePrefix, randomID)
-	// 	config := fmt.Sprintf(`
-	// 		resource "github_repository" "test" {
-	// 		  name = "%s"
-	// 			auto_init = true
-	// 		}
+		repo := mustCreateTestRepository(t)
 
-	// 		data "github_ref" "test" {
-	// 			repository = github_repository.test.id
-	// 			ref = "heads/xxxxxx"
-	// 		}
-	// 	`, repoName)
+		config := fmt.Sprintf(`
+	data "github_ref" "test" {
+  owner      = "%s"
+  repository = "%s"
+  ref        = "heads/main"
+	}
+	`, testAccConf.owner, repo.GetName())
 
-	// 	check := resource.ComposeTestCheckFunc(
-	// 		resource.TestCheckNoResourceAttr(
-	// 			"data.github_ref.test", "id",
-	// 		),
-	// 	)
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_ref.test", tfjsonpath.New("id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("data.github_ref.test", tfjsonpath.New("sha"), knownvalue.NotNull()),
+					},
+				},
+			},
+		})
+	})
 
-	// 	resource.Test(t, resource.TestCase{
-	// 		PreCheck:          func() { skipUnauthenticated(t) },
-	// 		ProviderFactories: providerFactories,
-	// 		Steps: []resource.TestStep{
-	// 			{
-	// 				Config: config,
-	// 				Check:  check,
-	// 			},
-	// 		},
-	// 	})
-	// })
+	t.Run("queries_an_invalid_ref_without_error", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+
+		config := fmt.Sprintf(`
+data "github_ref" "test" {
+  repository = "%s"
+  ref        = "heads/xxxxxx"
+}
+`, repo.GetName())
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+				},
+			},
+		})
+	})
 }

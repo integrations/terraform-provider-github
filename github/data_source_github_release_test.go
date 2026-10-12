@@ -12,7 +12,7 @@ import (
 func TestAccGithubReleaseDataSource(t *testing.T) {
 	t.Parallel()
 
-	t.Run("queries latest release", func(t *testing.T) {
+	t.Run("queries_latest_release", func(t *testing.T) {
 		t.Parallel()
 
 		config := fmt.Sprintf(`
@@ -38,7 +38,7 @@ func TestAccGithubReleaseDataSource(t *testing.T) {
 		})
 	})
 
-	t.Run("queries release by id or tag", func(t *testing.T) {
+	t.Run("queries_release_by_id_or_tag", func(t *testing.T) {
 		t.Parallel()
 
 		config := fmt.Sprintf(`
@@ -77,7 +77,7 @@ func TestAccGithubReleaseDataSource(t *testing.T) {
 		})
 	})
 
-	t.Run("errors when querying with non-existent id", func(t *testing.T) {
+	t.Run("errors_when_querying_with_non_existent_id", func(t *testing.T) {
 		t.Parallel()
 
 		config := fmt.Sprintf(`
@@ -99,7 +99,7 @@ func TestAccGithubReleaseDataSource(t *testing.T) {
 		})
 	})
 
-	t.Run("errors when querying with non-existent tag", func(t *testing.T) {
+	t.Run("errors_when_querying_with_non_existent_tag", func(t *testing.T) {
 		t.Parallel()
 
 		config := fmt.Sprintf(`
@@ -121,7 +121,7 @@ func TestAccGithubReleaseDataSource(t *testing.T) {
 		})
 	})
 
-	t.Run("errors when querying with non-existent repository", func(t *testing.T) {
+	t.Run("errors_when_querying_with_non_existent_repository", func(t *testing.T) {
 		t.Parallel()
 
 		config := `

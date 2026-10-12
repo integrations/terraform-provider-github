@@ -10,8 +10,9 @@ import (
 
 func TestAccGithubRepositoryCustomPropertiesDataSource(t *testing.T) {
 	t.Parallel()
+	skipUnlessHasOrgs(t)
 
-	t.Run("creates custom property of type single_select without error", func(t *testing.T) {
+	t.Run("creates_custom_property_of_type_single_select_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -40,27 +41,24 @@ func TestAccGithubRepositoryCustomPropertiesDataSource(t *testing.T) {
 			}
 		`, propertyName, repoName)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckTypeSetElemNestedAttrs("data.github_repository_custom_properties.test", "property.*", map[string]string{
-				"property_name":    propertyName,
-				"property_value.#": "1",
-				"property_value.0": "option1",
-			}),
-		)
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckTypeSetElemNestedAttrs("data.github_repository_custom_properties.test", "property.*", map[string]string{
+							"property_name":    propertyName,
+							"property_value.#": "1",
+							"property_value.0": "option1",
+						}),
+					),
 				},
 			},
 		})
 	})
 
-	t.Run("creates custom property of type multi_select without error", func(t *testing.T) {
+	t.Run("creates_custom_property_of_type_multi_select_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -89,28 +87,25 @@ func TestAccGithubRepositoryCustomPropertiesDataSource(t *testing.T) {
 			}
 		`, propertyName, repoName)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckTypeSetElemNestedAttrs("data.github_repository_custom_properties.test", "property.*", map[string]string{
-				"property_name":    propertyName,
-				"property_value.#": "2",
-				"property_value.0": "option1",
-				"property_value.1": "option2",
-			}),
-		)
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckTypeSetElemNestedAttrs("data.github_repository_custom_properties.test", "property.*", map[string]string{
+							"property_name":    propertyName,
+							"property_value.#": "2",
+							"property_value.0": "option1",
+							"property_value.1": "option2",
+						}),
+					),
 				},
 			},
 		})
 	})
 
-	t.Run("creates custom property of type true_false without error", func(t *testing.T) {
+	t.Run("creates_custom_property_of_type_true_false_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -138,27 +133,24 @@ func TestAccGithubRepositoryCustomPropertiesDataSource(t *testing.T) {
 			}
 		`, propertyName, repoName)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckTypeSetElemNestedAttrs("data.github_repository_custom_properties.test", "property.*", map[string]string{
-				"property_name":    propertyName,
-				"property_value.#": "1",
-				"property_value.0": "true",
-			}),
-		)
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckTypeSetElemNestedAttrs("data.github_repository_custom_properties.test", "property.*", map[string]string{
+							"property_name":    propertyName,
+							"property_value.#": "1",
+							"property_value.0": "true",
+						}),
+					),
 				},
 			},
 		})
 	})
 
-	t.Run("creates custom property of type string without error", func(t *testing.T) {
+	t.Run("creates_custom_property_of_type_string_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -186,21 +178,18 @@ func TestAccGithubRepositoryCustomPropertiesDataSource(t *testing.T) {
 			}
 		`, propertyName, repoName)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckTypeSetElemNestedAttrs("data.github_repository_custom_properties.test", "property.*", map[string]string{
-				"property_name":    propertyName,
-				"property_value.#": "1",
-				"property_value.0": "text",
-			}),
-		)
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckTypeSetElemNestedAttrs("data.github_repository_custom_properties.test", "property.*", map[string]string{
+							"property_name":    propertyName,
+							"property_value.#": "1",
+							"property_value.0": "text",
+						}),
+					),
 				},
 			},
 		})

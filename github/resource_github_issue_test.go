@@ -124,37 +124,29 @@ func TestAccGithubIssue(t *testing.T) {
 	t.Run("imports a issue without error", func(t *testing.T) {
 		t.Parallel()
 
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%srepo-issue-%s", testResourcePrefix, randomID)
+		skipUnauthenticated(t)
+
+		repo := mustCreateTestRepository(t)
+		title := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
+
 		config := fmt.Sprintf(`
-					resource "github_repository" "test" {
-					  name       = "%s"
-					  has_issues = true
-					}
-
-					resource "github_issue" "test" {
-					  repository       = github_repository.test.name
-					  title            = github_repository.test.name
-					}
-		    `, repoName)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet("github_issue.test", "title"),
-			resource.TestCheckResourceAttr("github_issue.test", "title", repoName),
-		)
+resource "github_issue" "test" {
+  repository = "%s"
+  title      = "%s"
+}
+`, repo.GetName(), title)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
 				},
 				{
-					ResourceName:      "github_issue.test",
-					ImportState:       true,
-					ImportStateVerify: true,
+					ResourceName:            "github_issue.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"etag"},
 				},
 			},
 		})

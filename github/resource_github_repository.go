@@ -1024,11 +1024,24 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 		repoReq.AllowForking = allowForking
 
 		log.Printf("[DEBUG] Updating repository visibility from %s to %s", repo.GetVisibility(), visibility)
-		_, resp, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
-		if err != nil {
-			if resp.StatusCode != 422 || !strings.Contains(err.Error(), fmt.Sprintf("Visibility is already %s", visibility)) {
-				return diag.FromErr(err)
+		_, err := retryUntilOK(ctx, func() (struct{}, bool, error) {
+			_, _, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
+			if err != nil {
+				if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusUnprocessableEntity {
+					// A template generation or other repository operation may still be running.
+					if strings.Contains(ghErr.Error(), "A previous repository operation is still in progress") {
+						return struct{}{}, false, nil
+					}
+					if strings.Contains(ghErr.Error(), fmt.Sprintf("Visibility is already %s", visibility)) {
+						return struct{}{}, true, nil
+					}
+				}
+				return struct{}{}, false, err
 			}
+			return struct{}{}, true, nil
+		}, nil)
+		if err != nil {
+			return diag.FromErr(err)
 		}
 	}
 

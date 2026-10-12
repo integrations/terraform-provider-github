@@ -65,7 +65,7 @@ resource "github_dependabot_secret" "test" {
 		t.Parallel()
 
 		repo := mustCreateTestRepository(t)
-		key := mustGetRepositoryDependabotPublicKey(t, repo)
+		key := mustGetDependabotRepositorPublicKey(t, repo)
 
 		config := fmt.Sprintf(`
 resource "github_dependabot_secret" "test" {
@@ -216,7 +216,7 @@ resource "github_dependabot_secret" "test" {
 				},
 				{
 					PreConfig: func() {
-						mustUpdateRepositoryDependabotSecret(t, repo, secretName, "super_secret_value_2")
+						mustUpdateDependabotRepositorySecret(t, repo, secretName, "super_secret_value_2")
 					},
 					Config: config,
 					ConfigPlanChecks: resource.ConfigPlanChecks{
@@ -255,7 +255,7 @@ resource "github_dependabot_secret" "test" {
 				},
 				{
 					PreConfig: func() {
-						mustUpdateRepositoryDependabotSecret(t, repo, secretName, "super_secret_value_2")
+						mustUpdateDependabotRepositorySecret(t, repo, secretName, "super_secret_value_2")
 					},
 					Config: config,
 					ConfigPlanChecks: resource.ConfigPlanChecks{

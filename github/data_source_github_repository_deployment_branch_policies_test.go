@@ -11,7 +11,7 @@ import (
 func TestAccGithubRepositoryDeploymentBranchPolicies(t *testing.T) {
 	t.Parallel()
 
-	t.Run("queries deployment branch policies", func(t *testing.T) {
+	t.Run("queries_deployment_branch_policies", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)

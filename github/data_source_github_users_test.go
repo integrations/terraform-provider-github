@@ -15,7 +15,7 @@ func TestAccGithubUsersDataSource(t *testing.T) {
 		t.Skip("No external user provided")
 	}
 
-	t.Run("queries multiple accounts", func(t *testing.T) {
+	t.Run("queries_multiple_accounts", func(t *testing.T) {
 		t.Parallel()
 
 		config := fmt.Sprintf(`
@@ -44,7 +44,7 @@ func TestAccGithubUsersDataSource(t *testing.T) {
 		})
 	})
 
-	t.Run("does not fail if called with empty list of usernames", func(t *testing.T) {
+	t.Run("does_not_fail_if_called_with_empty_list_of_usernames", func(t *testing.T) {
 		t.Parallel()
 
 		config := `

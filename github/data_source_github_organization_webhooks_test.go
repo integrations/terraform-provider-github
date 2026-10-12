@@ -7,10 +7,12 @@ import (
 )
 
 func TestAccGithubOrganizationWebhooksDataSource(t *testing.T) {
+	skipUnlessHasOrgs(t)
+
 	// TODO: Make this test parallel once we can ignore non-direct teams.
 	// t.Parallel()
 
-	t.Run("manages organization webhooks", func(t *testing.T) {
+	t.Run("manages_organization_webhooks", func(t *testing.T) {
 		config := `
 		resource "github_organization_webhook" "test" {
 			configuration {
@@ -28,7 +30,6 @@ func TestAccGithubOrganizationWebhooksDataSource(t *testing.T) {
 		`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

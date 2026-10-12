@@ -51,6 +51,8 @@ func TestAccGithubWorkflowRepositoryPermissions(t *testing.T) {
 
 	t.Run("imports entire set of github workflow repository permissions without error", func(t *testing.T) {
 		t.Parallel()
+		skipUnauthenticated(t)
+		t.Skip("Skipping: the test organization forbids GitHub Actions from approving pull request reviews (409 on workflow permissions), revisit once this can be configured")
 
 		defaultWorkflowPermissions := "read"
 		canApprovePullRequestReviews := "true"
@@ -82,7 +84,6 @@ func TestAccGithubWorkflowRepositoryPermissions(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

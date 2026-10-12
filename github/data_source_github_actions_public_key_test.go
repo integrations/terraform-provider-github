@@ -12,6 +12,7 @@ import (
 
 func TestAccGithubActionsPublicKeyDataSource(t *testing.T) {
 	t.Parallel()
+	skipUnauthenticated(t)
 
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
@@ -25,7 +26,6 @@ data "github_actions_public_key" "test" {
 `, repo.GetName())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
