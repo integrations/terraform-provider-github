@@ -8,6 +8,17 @@ description: |-
 
 ~> **Deprecated:** Use the singular [`github_organization_repository_custom_property`](organization_repository_custom_property) resource instead. This resource will be removed in a future major release.
 
+## Migrating State
+
+The replacement resource uses a different schema, so do not apply the configuration change before migrating its state. Update the resource type and arguments first: set `value_type` explicitly, and change a scalar `default_value` to a one-element list (for example, `default_value = ["production"]`). Then remove the old state binding without deleting the GitHub property and import it under the new address:
+
+```shell
+terraform state rm github_organization_custom_properties.environment
+terraform import github_organization_repository_custom_property.environment environment
+```
+
+Run `terraform plan` after import and review the result before applying.
+
 This resource allows you to create and manage custom properties for a GitHub organization.
 
 Custom properties enable you to add metadata to repositories within your organization. You can use custom properties to add context about repositories, such as who owns them, when they expire, or compliance requirements.

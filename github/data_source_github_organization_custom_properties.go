@@ -9,7 +9,7 @@ import (
 
 func dataSourceGithubOrganizationCustomProperties() *schema.Resource {
 	return &schema.Resource{
-		DeprecationMessage: "This data source is deprecated and will be removed in a future release. Use github_organization_repository_custom_properties instead.",
+		DeprecationMessage: "This data source is deprecated and will be removed in a future release. Use github_organization_repository_custom_property to look up one property or github_organization_repository_custom_properties to list all properties.",
 		ReadContext:        dataSourceGithubOrganizationCustomPropertiesRead,
 
 		Schema: map[string]*schema.Schema{

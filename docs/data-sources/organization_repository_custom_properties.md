@@ -2,12 +2,12 @@
 page_title: "github_organization_repository_custom_properties (Data Source) - GitHub"
 subcategory: ""
 description: |-
-  Lists all custom property definitions for a GitHub organization. See the GitHub REST API documentation https://docs.github.com/en/rest/orgs/custom-properties?apiVersion=2022-11-28#get-all-custom-properties-for-an-organization for required permissions.
+  Lists all repository custom property definitions for a GitHub organization. See the GitHub REST API documentation https://docs.github.com/en/rest/orgs/custom-properties?apiVersion=2022-11-28#get-all-custom-properties-for-an-organization for required permissions.
 ---
 
 # github_organization_repository_custom_properties (Data Source)
 
-Lists all custom property definitions for a GitHub organization. See the [GitHub REST API documentation](https://docs.github.com/en/rest/orgs/custom-properties?apiVersion=2022-11-28#get-all-custom-properties-for-an-organization) for required permissions.
+Lists all repository custom property definitions for a GitHub organization. See the [GitHub REST API documentation](https://docs.github.com/en/rest/orgs/custom-properties?apiVersion=2022-11-28#get-all-custom-properties-for-an-organization) for required permissions.
 
 ## Example Usage
 

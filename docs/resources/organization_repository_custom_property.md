@@ -2,12 +2,12 @@
 page_title: "github_organization_repository_custom_property (Resource) - GitHub"
 subcategory: ""
 description: |-
-  Manages a GitHub organization custom property definition. Custom properties defined here can later be assigned values on individual repositories.
+  Manages a repository custom property definition in a GitHub organization. Values can later be assigned to individual repositories.
 ---
 
 # github_organization_repository_custom_property (Resource)
 
-Manages a GitHub organization custom property definition. Custom properties defined here can later be assigned values on individual repositories.
+Manages a repository custom property definition in a GitHub organization. Values can later be assigned to individual repositories.
 
 ## Example Usage
 
