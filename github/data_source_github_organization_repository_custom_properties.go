@@ -76,8 +76,8 @@ func dataSourceGithubOrganizationRepositoryCustomPropertiesRead(ctx context.Cont
 
 	propertyValues := make([]any, 0, len(properties))
 	for _, property := range properties {
-		if property == nil || property.GetPropertyName() == "" {
-			return diag.Errorf("organization %q returned a repository custom property with an empty name", meta.name)
+		if property == nil {
+			return diag.Errorf("organization %q returned a nil repository custom property", meta.name)
 		}
 
 		values, err := organizationRepositoryCustomPropertyToMap(property)

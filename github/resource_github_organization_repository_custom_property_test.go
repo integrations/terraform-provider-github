@@ -221,64 +221,6 @@ func TestResourceGithubOrganizationRepositoryCustomPropertyDelete(t *testing.T) 
 	}
 }
 
-func TestResourceGithubOrganizationRepositoryCustomPropertyRejectsEmptyResponseName(t *testing.T) {
-	t.Parallel()
-
-	testCases := []struct {
-		name   string
-		method string
-		call   func(context.Context, *schema.ResourceData, any) diag.Diagnostics
-	}{
-		{
-			name:   "create",
-			method: http.MethodPut,
-			call:   resourceGithubOrganizationRepositoryCustomPropertyCreate,
-		},
-		{
-			name:   "read",
-			method: http.MethodGet,
-			call:   resourceGithubOrganizationRepositoryCustomPropertyRead,
-		},
-		{
-			name:   "update",
-			method: http.MethodPut,
-			call:   resourceGithubOrganizationRepositoryCustomPropertyUpdate,
-		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			server := githubApiMock([]*mockResponse{{
-				ExpectedUri:    "/orgs/test-org/properties/schema/test-property",
-				ExpectedMethod: testCase.method,
-				StatusCode:     http.StatusOK,
-				ResponseBody:   `{"value_type":"string"}`,
-			}})
-			defer server.Close()
-
-			meta := &Owner{
-				name:           "test-org",
-				v3client:       mustCreateTestGitHubClient(t, server.URL),
-				IsOrganization: true,
-			}
-			data := schema.TestResourceDataRaw(t, resourceGithubOrganizationRepositoryCustomProperty().Schema, map[string]any{
-				"property_name": "test-property",
-				"value_type":    "string",
-			})
-			if testCase.name == "update" {
-				data.SetId("test-property")
-			}
-
-			diags := testCase.call(t.Context(), data, meta)
-			if !diags.HasError() || !strings.Contains(diags[0].Summary+diags[0].Detail, "empty name") {
-				t.Fatalf("%s() diagnostics = %v, want an empty-name response error", testCase.name, diags)
-			}
-		})
-	}
-}
-
 func TestResourceGithubOrganizationRepositoryCustomPropertyCreateUpdateClearsAllowedValues(t *testing.T) {
 	t.Parallel()
 

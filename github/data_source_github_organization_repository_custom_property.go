@@ -79,9 +79,5 @@ func dataSourceGithubOrganizationRepositoryCustomPropertyRead(ctx context.Contex
 		return diag.Errorf(repositoryCustomPropertyReadErrorFormat, propertyName, owner, err)
 	}
 
-	if cp.GetPropertyName() == "" {
-		return diag.Errorf("organization %q returned a repository custom property with an empty name when reading %q", owner, propertyName)
-	}
-
 	return setOrganizationRepositoryCustomPropertyState(d, cp, owner)
 }

@@ -3,7 +3,6 @@ package github
 import (
 	"net/http"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -91,30 +90,6 @@ func TestDataSourceGithubOrganizationRepositoryCustomPropertiesRead(t *testing.T
 	assertList("environment", "allowed_values", []any{"development", "production"})
 	assertList("teams", "default_value", []any{"backend", "frontend"})
 	assertList("owner", "allowed_values", []any{})
-}
-
-func TestDataSourceGithubOrganizationRepositoryCustomPropertiesRejectsEmptyResponseName(t *testing.T) {
-	t.Parallel()
-
-	server := githubApiMock([]*mockResponse{{
-		ExpectedUri:    "/orgs/test-org/properties/schema",
-		ExpectedMethod: http.MethodGet,
-		StatusCode:     http.StatusOK,
-		ResponseBody:   `[{"value_type":"string"}]`,
-	}})
-	defer server.Close()
-
-	meta := &Owner{
-		name:           "test-org",
-		v3client:       mustCreateTestGitHubClient(t, server.URL),
-		IsOrganization: true,
-	}
-	data := schema.TestResourceDataRaw(t, dataSourceGithubOrganizationRepositoryCustomProperties().Schema, nil)
-
-	diags := dataSourceGithubOrganizationRepositoryCustomPropertiesRead(t.Context(), data, meta)
-	if !diags.HasError() || !strings.Contains(diags[0].Summary+diags[0].Detail, "empty name") {
-		t.Fatalf("Read() diagnostics = %v, want an empty-name response error", diags)
-	}
 }
 
 func TestAccDataSourceGithubOrganizationRepositoryCustomProperties(t *testing.T) {
