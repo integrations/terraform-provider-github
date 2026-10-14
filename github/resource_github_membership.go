@@ -23,7 +23,7 @@ func resourceGithubMembership() *schema.Resource {
 		UpdateContext: resourceGithubMembershipCreateOrUpdate,
 		DeleteContext: resourceGithubMembershipDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: resourceGithubMembershipImport,
 		},
 
 		CustomizeDiff: customdiff.All(
@@ -196,20 +196,16 @@ func resourceGithubMembershipRead(ctx context.Context, d *schema.ResourceData, m
 	client := owner.v3client
 
 	orgName := owner.name
-	_, usernameOrEmail, err := parseID2(d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
+
+	if email, ok := d.Get("email").(string); ok && email != "" {
+		return resourceGithubMembershipReadInvitation(ctx, d, owner, email)
+	}
+
+	_, username, err := parseID2(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	ctx = context.WithValue(ctx, ctxId, d.Id())
-
-	// GitHub usernames cannot contain "@", so an "@" in the ID means this
-	// membership is an email-based invitation. The ID is the only reliable
-	// indicator here because imported resources start with an empty state.
-	if strings.Contains(usernameOrEmail, "@") {
-		return resourceGithubMembershipReadInvitation(ctx, d, owner, usernameOrEmail)
-	}
-
-	username := usernameOrEmail
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
@@ -245,11 +241,23 @@ func resourceGithubMembershipRead(ctx context.Context, d *schema.ResourceData, m
 	return nil
 }
 
-func resourceGithubMembershipReadInvitation(ctx context.Context, d *schema.ResourceData, owner *Owner, email string) diag.Diagnostics {
-	if err := d.Set("email", email); err != nil {
-		return diag.FromErr(err)
+// resourceGithubMembershipImport maps the import ID onto the attribute that
+// Read dispatches on. GitHub usernames cannot contain "@", so an "@" in the
+// ID means the membership is an email-based invitation.
+func resourceGithubMembershipImport(_ context.Context, d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
+	_, usernameOrEmail, err := parseID2(d.Id())
+	if err != nil {
+		return nil, err
 	}
+	if strings.Contains(usernameOrEmail, "@") {
+		if err := d.Set("email", usernameOrEmail); err != nil {
+			return nil, err
+		}
+	}
+	return []*schema.ResourceData{d}, nil
+}
 
+func resourceGithubMembershipReadInvitation(ctx context.Context, d *schema.ResourceData, owner *Owner, email string) diag.Diagnostics {
 	invitation, err := findPendingOrgInvitationByEmail(ctx, owner, email)
 	if err != nil {
 		return diag.FromErr(err)
