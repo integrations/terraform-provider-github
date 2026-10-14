@@ -29,6 +29,11 @@ resource "github_actions_repository_oidc_subject_claim_customization_template" "
   repository         = github_repository.example.name
   use_default        = false
   include_claim_keys = ["actor", "context", "repository_owner"]
+
+  # Opt this repository into immutable subject claims (owner and repository IDs)
+  # ahead of an org-wide rollout.
+  use_immutable_subject = true
+  sub_claim_prefix      = "custom-prefix"
 }
 ```
 
@@ -38,6 +43,8 @@ The following arguments are supported:
 
 - `use_default` - (Required) Whether to use the default template or not. If `true`, `include_claim_keys` must not be set.
 - `include_claim_keys` - (Optional) A list of OpenID Connect claims.
+- `use_immutable_subject` - (Optional) Whether to use immutable subject claims, which include the immutable repository and owner IDs, for this repository.
+- `sub_claim_prefix` - (Optional) An optional prefix to add to the repository's subject claim.
 
 ## Import
 
