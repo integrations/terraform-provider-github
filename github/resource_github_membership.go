@@ -153,40 +153,29 @@ func resourceGithubMembershipInvite(ctx context.Context, d *schema.ResourceData,
 	if !ok {
 		return diag.Errorf("expected role to be a string")
 	}
-	// Inviting an email that already has a pending invitation fails, so adopt
-	// an existing pending invitation when it matches the configured role.
-	invitation, err := findPendingOrgInvitationByEmail(ctx, owner, email)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	if invitation != nil && invitationRoleToMembershipRole(invitation.GetRole()) != roleName {
-		if _, err := owner.v3client.Organizations.CancelInvite(ctx, orgName, invitation.GetID()); err != nil {
-			return diag.FromErr(err)
-		}
-		invitation = nil
-	}
-
-	if invitation == nil {
-		// A lingering failed invitation for the same address would also make
-		// the new invitation fail, so remove it first.
-		failed, err := findFailedOrgInvitationByEmail(ctx, owner, email)
+	// Invitations cannot be edited, so a role change means cancelling the
+	// pending invitation and sending a new one.
+	if !d.IsNewResource() {
+		invitation, err := findPendingOrgInvitationByEmail(ctx, owner, email)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		if failed != nil {
-			if _, err := owner.v3client.Organizations.CancelInvite(ctx, orgName, failed.GetID()); err != nil {
+		if invitation != nil {
+			if invitationRoleToMembershipRole(invitation.GetRole()) == roleName {
+				return nil
+			}
+			if _, err := owner.v3client.Organizations.CancelInvite(ctx, orgName, invitation.GetID()); err != nil {
 				return diag.FromErr(err)
 			}
 		}
+	}
 
-		_, _, err = owner.v3client.Organizations.CreateOrgInvitation(ctx, orgName, &github.CreateOrgInvitationOptions{
-			Email: new(email),
-			Role:  new(membershipRoleToInvitationRole(roleName)),
-		})
-		if err != nil {
-			return diag.Errorf("inviting %s to %s: %s (if this person already accepted an earlier invitation, manage their membership with 'username' instead of 'email')", email, orgName, err)
-		}
+	_, _, err := owner.v3client.Organizations.CreateOrgInvitation(ctx, orgName, &github.CreateOrgInvitationOptions{
+		Email: new(email),
+		Role:  new(membershipRoleToInvitationRole(roleName)),
+	})
+	if err != nil {
+		return diag.Errorf("inviting %s to %s: %s (if this person already has a pending invitation, import the membership instead; if they already accepted one, manage the membership with 'username' instead of 'email')", email, orgName, err)
 	}
 
 	d.SetId(buildTwoPartID(orgName, email))
