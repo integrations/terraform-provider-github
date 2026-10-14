@@ -75,6 +75,48 @@ func TestAccGithubMembership(t *testing.T) {
 		})
 	})
 
+	t.Run("invites a person by email", func(t *testing.T) {
+		// IMPORTANT: Do not run this sub test in parallel is it uses shared state.
+
+		if len(testAccConf.testInvitationEmail) == 0 {
+			t.Skip("No invitation email provided")
+		}
+
+		ctx := t.Context()
+
+		rn := "github_membership.test_org_membership"
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubMembershipInvitationDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccGithubMembershipConfigEmail(testAccConf.testInvitationEmail, "member"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(rn, "email", testAccConf.testInvitationEmail),
+						resource.TestCheckResourceAttr(rn, "role", "member"),
+						testAccCheckGithubMembershipInvitationExists(ctx, rn),
+					),
+				},
+				{
+					// Changing the role cancels the pending invitation and sends a new one.
+					Config: testAccGithubMembershipConfigEmail(testAccConf.testInvitationEmail, "admin"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(rn, "email", testAccConf.testInvitationEmail),
+						resource.TestCheckResourceAttr(rn, "role", "admin"),
+						testAccCheckGithubMembershipInvitationExists(ctx, rn),
+					),
+				},
+				{
+					ResourceName:      rn,
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
+		})
+	})
+
 	t.Run("creates organization membership with case insensitivity", func(t *testing.T) {
 		// IMPORTANT: Do not run this sub test in parallel is it uses shared state.
 
@@ -102,41 +144,6 @@ func TestAccGithubMembership(t *testing.T) {
 					Check: resource.ComposeTestCheckFunc(
 						testAccCheckGithubMembershipExists(ctx, rn, &otherMembership),
 						testAccGithubMembershipTheSame(&membership, &otherMembership),
-					),
-				},
-				{
-					ResourceName:      rn,
-					ImportState:       true,
-					ImportStateVerify: true,
-				},
-			},
-		})
-	})
-}
-
-func TestAccGithubMembershipEmailInvitation(t *testing.T) {
-	t.Parallel()
-
-	if len(testAccConf.testInvitationEmail) == 0 {
-		t.Skip("No invitation email provided")
-	}
-
-	t.Run("invites a person by email", func(t *testing.T) {
-		ctx := t.Context()
-
-		rn := "github_membership.test_org_membership"
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
-			ProviderFactories: providerFactories,
-			CheckDestroy:      testAccCheckGithubMembershipInvitationDestroy,
-			Steps: []resource.TestStep{
-				{
-					Config: testAccGithubMembershipConfigEmail(testAccConf.testInvitationEmail),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr(rn, "email", testAccConf.testInvitationEmail),
-						resource.TestCheckResourceAttr(rn, "role", "member"),
-						testAccCheckGithubMembershipInvitationExists(ctx, rn),
 					),
 				},
 				{
@@ -339,13 +346,13 @@ func testAccGithubMembershipConfigDowngradable(username string) string {
 `, username, true)
 }
 
-func testAccGithubMembershipConfigEmail(email string) string {
+func testAccGithubMembershipConfigEmail(email, role string) string {
 	return fmt.Sprintf(`
   resource "github_membership" "test_org_membership" {
     email = "%s"
-    role = "member"
+    role = "%s"
   }
-`, email)
+`, email, role)
 }
 
 func testAccGithubMembershipTheSame(orig, other *github.Membership) resource.TestCheckFunc {
