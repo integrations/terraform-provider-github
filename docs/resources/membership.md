@@ -22,8 +22,6 @@ resource "github_membership" "membership_for_some_user" {
 }
 ```
 
-Inviting by email address:
-
 ```terraform
 # Invite someone to the organization by email, e.g. when they
 # do not have a GitHub account yet

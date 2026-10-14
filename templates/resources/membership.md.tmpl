@@ -12,13 +12,14 @@ This resource allows you to add/remove users from your organization. When applie
 
 Users can be addressed by their GitHub username, or invited by email address when they may not have a GitHub account yet.
 
+{{ if .HasExamples -}}
 ## Example Usage
 
-{{ tffile "examples/resources/membership/example_1.tf" }}
+{{- range .ExampleFiles }}
 
-Inviting by email address:
-
-{{ tffile "examples/resources/membership/example_2.tf" }}
+{{ tffile . }}
+{{- end }}
+{{- end }}
 
 ## Argument Reference
 
