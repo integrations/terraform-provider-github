@@ -19,10 +19,10 @@ func TestAccGithubRepositoryTeamsDataSource(t *testing.T) {
 		t.Parallel()
 
 		repo := mustCreateTestRepository(t)
-		team1 := mustCreateTestTeam(t, nil)
-		mustAddRepositoryTeam(t, repo, team1)
-		team2 := mustCreateTestTeam(t, nil)
-		mustAddRepositoryTeam(t, repo, team2)
+		team1 := mustCreateTestTeam(t)
+		mustAddRepositoryToTeam(t, team1, repo)
+		team2 := mustCreateTestTeam(t)
+		mustAddRepositoryToTeam(t, team2, repo)
 
 		config := fmt.Sprintf(`
 data "github_repository_teams" "test" {

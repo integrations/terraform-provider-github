@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )

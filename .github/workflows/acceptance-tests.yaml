@@ -102,7 +102,7 @@ jobs:
         shell: bash
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ needs.setup.outputs.repository }}
           ref: ${{ needs.setup.outputs.ref }}
@@ -209,6 +209,7 @@ jobs:
           TF_ACC_TERRAFORM_PATH: ${{ steps.tf.outputs.path }}
           TF_ACC: "1"
           TF_LOG: WARN
+          GITHUB_AUTH_MODE: ${{ case(matrix.mode == 'anonymous', 'none', matrix.mode == 'individual', 'token', 'app') }}
           GITHUB_APP_ID: ${{ steps.credentials.outputs.app_id }}
           GITHUB_APP_INSTALLATION_ID: ${{ steps.credentials.outputs.app_installation_id }}
           GITHUB_APP_PEM_FILE: ${{ steps.credentials.outputs.app_pem }}

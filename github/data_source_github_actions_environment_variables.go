@@ -2,9 +2,8 @@ package github
 
 import (
 	"context"
-	"net/url"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -89,7 +88,7 @@ func dataSourceGithubActionsEnvironmentVariablesRead(ctx context.Context, d *sch
 
 	var all_variables []map[string]string
 	for {
-		variables, resp, err := client.Actions.ListEnvVariables(ctx, owner, repoName, url.PathEscape(envName), &options)
+		variables, resp, err := client.Actions.ListEnvVariables(ctx, owner, repoName, envName, &options)
 		if err != nil {
 			return diag.FromErr(err)
 		}

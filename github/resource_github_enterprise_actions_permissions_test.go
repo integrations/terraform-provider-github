@@ -57,12 +57,16 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 		desc := "Initial org description"
 
 		config := fmt.Sprintf(`
+			data "github_enterprise" "enterprise" {
+				slug = "%s"
+			}
+
 			data "github_user" "current" {
 				username = ""
 			}
 
 			resource "github_enterprise_organization" "org" {
-				enterprise_slug = "%s"
+				enterprise_id   = data.github_enterprise.enterprise.id
 				name            = "%s"
 				display_name    = "%s"
 				description     = "%s"
@@ -73,7 +77,7 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 			}
 
 			resource "github_enterprise_actions_permissions" "test" {
-				enterprise_slug = "%s"
+				enterprise_slug = data.github_enterprise.enterprise.slug
 				allowed_actions = "%s"
 				enabled_organizations = "%s"
 				allowed_actions_config {
@@ -82,10 +86,10 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 					verified_allowed     = %t
 				}
 				enabled_organizations_config {
-					organization_ids       = [github_enterprise_organization.org.id]
+					organization_ids       = [github_enterprise_organization.org.database_id]
 				}
 			}
-		`, testAccConf.enterpriseSlug, orgName, displayName, desc, testAccConf.enterpriseSlug, allowedActions, enabledOrganizations, githubOwnedAllowed, verifiedAllowed)
+		`, testAccConf.enterpriseSlug, orgName, displayName, desc, allowedActions, enabledOrganizations, githubOwnedAllowed, verifiedAllowed)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -177,11 +181,14 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 		desc2 := fmt.Sprintf("Initial org description %s", randomID2)
 
 		config := fmt.Sprintf(`
+			data "github_enterprise" "enterprise" {
+				slug = "%s"
+			}
 			data "github_user" "current" {
 				username = ""
 			}
 			resource "github_enterprise_organization" "org" {
-				enterprise_slug = "%s"
+				enterprise_id   = data.github_enterprise.enterprise.id
 				name            = "%s"
 				display_name    = "%s"
 				description     = "%s"
@@ -191,7 +198,7 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 				]
 			}
 			resource "github_enterprise_organization" "org2" {
-				enterprise_slug = "%s"
+				enterprise_id   = data.github_enterprise.enterprise.id
 				name            = "%s"
 				display_name    = "%s"
 				description     = "%s"
@@ -201,14 +208,14 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 				]
 			}
 			resource "github_enterprise_actions_permissions" "test" {
-				enterprise_slug = "%s"
+				enterprise_slug = data.github_enterprise.enterprise.slug
 				allowed_actions = "%s"
 				enabled_organizations = "%s"
 				enabled_organizations_config {
-					organization_ids       = [github_enterprise_organization.org.id, github_enterprise_organization.org2.id]
+					organization_ids       = [github_enterprise_organization.org.database_id, github_enterprise_organization.org2.database_id]
 				}
 			}
-		`, testAccConf.enterpriseSlug, orgName, displayName, desc, testAccConf.enterpriseSlug, orgName2, displayName2, desc2, testAccConf.enterpriseSlug, allowedActions, enabledOrganizations)
+		`, testAccConf.enterpriseSlug, orgName, displayName, desc, orgName2, displayName2, desc2, allowedActions, enabledOrganizations)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(

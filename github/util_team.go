@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 )
 
 // teamIdentity represents a GitHub team.
@@ -22,7 +23,7 @@ func newLegacyTeamIdentity(teamID string) teamIdentity {
 	if id, ok := parseTeamID(teamID); ok {
 		t.id = &id
 	} else {
-		t.slug = &teamID
+		t.slug = new(strings.ToLower(teamID))
 	}
 
 	return t

@@ -18,6 +18,8 @@ func resourceGithubProjectColumn() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 
+		CustomizeDiff: diffETag,
+
 		Schema: map[string]*schema.Schema{
 			"project_id": {
 				Type:        schema.TypeString,
@@ -36,8 +38,9 @@ func resourceGithubProjectColumn() *schema.Resource {
 				Description: "The ID of the column.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the project column.",
 			},
 		},
 	}

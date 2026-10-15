@@ -1,51 +1,43 @@
 package ghclient
 
 import (
-	"io"
+	"fmt"
 	"net/http"
-	"sync"
 
 	"golang.org/x/sync/semaphore"
 )
 
-// throttlerReadCloser is a wrapper around an io.ReadCloser that releases a semaphore weight when the ReadCloser is closed. This is used to ensure that the semaphore controlling concurrent requests is properly released after the response body has been fully read and closed, preventing resource leaks and allowing other requests to proceed.
-type throttlerReadCloser struct {
-	io.ReadCloser
-	sema *semaphore.Weighted
-	once sync.Once
+// newThrottleTransport returns a [throttleTransport] that wraps the given [http.RoundTripper] using the given [ConcurrencyOptions] to configure the concurrency.
+func newThrottleTransport(inner http.RoundTripper, opts ConcurrencyOptions) (http.RoundTripper, error) {
+	if opts.Max == 0 {
+		return inner, nil
+	}
+
+	if opts.Max < 0 {
+		return nil, fmt.Errorf("max must be positive")
+	}
+
+	if opts.sema == nil {
+		opts.sema = semaphore.NewWeighted(opts.Max)
+	}
+
+	return &throttleTransport{
+		inner: inner,
+		sema:  opts.sema,
+	}, nil
 }
 
-// Close releases the semaphore weight when the ReadCloser is closed. It ensures that the release operation is only performed once, even if Close is called multiple times, preventing potential double-release issues that could lead to incorrect semaphore state.
-func (c *throttlerReadCloser) Close() error {
-	err := c.ReadCloser.Close()
-	c.once.Do(func() {
-		c.sema.Release(1)
-	})
-	return err
-}
-
-// throttler is an HTTP RoundTripper that limits the number of concurrent requests to a specified maximum. It uses a weighted semaphore to control access to the underlying RoundTripper, ensuring that no more than the allowed number of requests are in flight at any given time. This is useful for preventing overwhelming a server or API with too many simultaneous requests.
-type throttler struct {
-	sema  *semaphore.Weighted
+// throttleTransport is a [http.RoundTripper] that wraps another http.RoundTripper and limits the number of concurrent requests using a [semaphore.Weighted].
+type throttleTransport struct {
 	inner http.RoundTripper
+	sema  *semaphore.Weighted
 }
 
-// RoundTrip implements the http.RoundTripper interface for the throttler. It acquires a semaphore weight before proceeding with the request, ensuring that the number of concurrent requests does not exceed the specified limit. After the request is completed, it releases the semaphore weight, allowing other requests to proceed. If acquiring the semaphore fails, it returns an error.
-func (t *throttler) RoundTrip(req *http.Request) (*http.Response, error) {
+// RoundTrip implements the [http.RoundTripper] interface for the [throttleTransport]. It throttles the number of concurrent requests using the semaphore and delegates to the inner http.RoundTripper.
+func (t *throttleTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if err := t.sema.Acquire(req.Context(), 1); err != nil {
 		return nil, err
 	}
-
-	res, err := t.inner.RoundTrip(req)
-	if err != nil {
-		t.sema.Release(1)
-		return nil, err
-	}
-
-	res.Body = &throttlerReadCloser{
-		ReadCloser: res.Body,
-		sema:       t.sema,
-	}
-
-	return res, nil
+	defer t.sema.Release(1)
+	return t.inner.RoundTrip(req)
 }
