@@ -34,7 +34,7 @@ resource "github_repository" "some_repo" {
 resource "github_team_repository" "some_team_repo" {
   team_id    = github_team.some_team.id
   repository = github_repository.some_repo.name
-  permission = "pull"
+  permission = "read"
 }
 ```
 
@@ -44,7 +44,7 @@ The following arguments are supported:
 
 - `team_id` - (Required) The GitHub team id or the GitHub team slug
 - `repository` - (Required) The repository to add to the team.
-- `permission` - (Optional) The permissions of team members regarding the repository. Must be one of `pull`, `triage`, `push`, `maintain`, `admin` or the name of an existing [custom repository role](https://docs.github.com/en/enterprise-cloud@latest/organizations/managing-peoples-access-to-your-organization-with-roles/managing-custom-repository-roles-for-an-organization) within the organisation. Defaults to `pull`.
+- `permission` - (Optional) The permissions of team members regarding the repository. Must be one of `read` (equivalent to `pull`), `triage`, `write` (equivalent to `push`), `maintain`, `admin` or the name of an existing [custom repository role](https://docs.github.com/en/enterprise-cloud@latest/organizations/managing-peoples-access-to-your-organization-with-roles/managing-custom-repository-roles-for-an-organization) within the organisation. Defaults to `read`.
 
 ## Import
 
