@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubRepositoryEnvironmentDeploymentProtectionRule() *schema.Resource {
@@ -35,10 +36,11 @@ func resourceGithubRepositoryEnvironmentDeploymentProtectionRule() *schema.Resou
 				ForceNew:    true,
 			},
 			"integration_id": {
-				Description: "The ID of the GitHub App to enable as a custom deployment protection rule. The App must be installed on the repository and available as a custom deployment protection rule for the environment.",
-				Type:        schema.TypeInt,
-				Required:    true,
-				ForceNew:    true,
+				Description:      "The ID of the GitHub App to enable as a custom deployment protection rule. The App must be installed on the repository and available as a custom deployment protection rule for the environment.",
+				Type:             schema.TypeInt,
+				Required:         true,
+				ForceNew:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(1)),
 			},
 			"protection_rule_id": {
 				Description: "The ID of the custom deployment protection rule.",
@@ -124,11 +126,25 @@ func resourceGithubRepositoryEnvironmentDeploymentProtectionRuleRead(ctx context
 	return nil
 }
 
-// Update only runs for a repository rename (see diffRepository); every other argument forces a new resource.
-func resourceGithubRepositoryEnvironmentDeploymentProtectionRuleUpdate(_ context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
+// Update only runs when repository changes without diffRepository forcing a new resource. That is a rename, or a
+// repository diffRepository could not look up at plan time, so check the new name is still the same repository.
+func resourceGithubRepositoryEnvironmentDeploymentProtectionRuleUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
 	repoName, _ := d.Get("repository").(string)
 	envName, _ := d.Get("environment").(string)
 	ruleID, _ := d.Get("protection_rule_id").(int)
+	repoID, _ := d.Get("repository_id").(int)
+
+	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	if repo.GetID() != int64(repoID) {
+		return diag.Errorf("repository %q (ID %d) is not the repository this protection rule was created in (ID %d); replace the resource to move the rule to another repository", repoName, repo.GetID(), repoID)
+	}
 
 	id, err := buildID(repoName, escapeIDPart(envName), strconv.Itoa(ruleID))
 	if err != nil {

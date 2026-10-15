@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"testing"
@@ -140,7 +141,10 @@ func mustFindDeploymentProtectionRuleApp(t *testing.T, repo *github.Repository, 
 	t.Helper()
 
 	meta := testAccConf.meta
-	res, _, err := meta.v3client.Repositories.ListCustomDeploymentRuleIntegrations(context.Background(), meta.name, repo.GetName(), env.GetName(), nil)
+	res, _, err := meta.v3client.Repositories.ListCustomDeploymentRuleIntegrations(t.Context(), meta.name, repo.GetName(), env.GetName(), nil)
+	if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusForbidden {
+		t.Skip("Skipping as the test credentials cannot list custom deployment protection rule apps")
+	}
 	if err != nil {
 		t.Fatalf("failed to list custom deployment protection rule integrations: %v", err)
 	}
@@ -300,6 +304,81 @@ func Test_resourceGithubRepositoryEnvironmentDeploymentProtectionRuleDelete(t *t
 
 			if diags.HasError() != tt.wantErr {
 				t.Fatalf("expected error to be %v, got %v", tt.wantErr, diags)
+			}
+		})
+	}
+}
+
+func Test_resourceGithubRepositoryEnvironmentDeploymentProtectionRuleUpdate(t *testing.T) {
+	t.Parallel()
+
+	const (
+		owner       = "test-org"
+		oldRepoName = "test-repo"
+		newRepoName = "test-repo-renamed"
+		envName     = "environment/test"
+		repoID      = 100
+		ruleID      = 42
+	)
+
+	repoURI := fmt.Sprintf("/repos/%s/%s", owner, newRepoName)
+
+	for _, tt := range []struct {
+		name    string
+		status  int
+		body    any
+		wantErr bool
+	}{
+		{
+			name:   "updates the ID after a rename",
+			status: http.StatusOK,
+			body:   &github.Repository{ID: new(int64(repoID)), Name: new(newRepoName)},
+		},
+		{
+			name:    "errors when the name now belongs to another repository",
+			status:  http.StatusOK,
+			body:    &github.Repository{ID: new(int64(repoID + 1)), Name: new(newRepoName)},
+			wantErr: true,
+		},
+		{
+			name:    "errors when the repository does not exist",
+			status:  http.StatusNotFound,
+			wantErr: true,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ts := githubApiMock([]*mockResponse{
+				mustGetTestMockResponse(t, repoURI, tt.status, tt.body),
+			})
+			t.Cleanup(ts.Close)
+
+			d := schema.TestResourceDataRaw(t, resourceGithubRepositoryEnvironmentDeploymentProtectionRule().Schema, map[string]any{
+				"repository":         newRepoName,
+				"repository_id":      repoID,
+				"environment":        envName,
+				"integration_id":     1234,
+				"protection_rule_id": ruleID,
+			})
+			oldID := fmt.Sprintf("%s:%s:%d", oldRepoName, envName, ruleID)
+			d.SetId(oldID)
+
+			meta := &Owner{name: owner, v3client: mustCreateTestGitHubClient(t, ts.URL)}
+
+			diags := resourceGithubRepositoryEnvironmentDeploymentProtectionRuleUpdate(t.Context(), d, meta)
+
+			if diags.HasError() != tt.wantErr {
+				t.Fatalf("expected error to be %v, got %v", tt.wantErr, diags)
+			}
+			if tt.wantErr {
+				if d.Id() != oldID {
+					t.Errorf("expected ID to stay %q on error, got %q", oldID, d.Id())
+				}
+				return
+			}
+			if want := fmt.Sprintf("%s:%s:%d", newRepoName, escapeIDPart(envName), ruleID); d.Id() != want {
+				t.Errorf("expected ID to be %q, got %q", want, d.Id())
 			}
 		})
 	}
