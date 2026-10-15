@@ -3,68 +3,41 @@ package github
 import (
 	"context"
 	"errors"
-	"log"
+	"fmt"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubActionsOrganizationPermissions() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsOrganizationPermissionsCreateOrUpdate,
-		Read:   resourceGithubActionsOrganizationPermissionsRead,
-		Update: resourceGithubActionsOrganizationPermissionsCreateOrUpdate,
-		Delete: resourceGithubActionsOrganizationPermissionsDelete,
+		CreateContext: resourceGithubActionsOrganizationPermissionsCreate,
+		ReadContext:   resourceGithubActionsOrganizationPermissionsRead,
+		UpdateContext: resourceGithubActionsOrganizationPermissionsUpdate,
+		DeleteContext: resourceGithubActionsOrganizationPermissionsDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: resourceGithubActionsOrganizationPermissionsImport,
 		},
 
+		CustomizeDiff: diffGithubActionsOrganizationPermissions,
+
+		Description: "Resource to manage the GitHub Actions organization permissions.",
+
 		Schema: map[string]*schema.Schema{
-			"allowed_actions": {
-				Type:             schema.TypeString,
-				Optional:         true,
-				Description:      "The permissions policy that controls the actions that are allowed to run. Can be one of: 'all', 'local_only', or 'selected'.",
-				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"all", "local_only", "selected"}, false)),
-			},
 			"enabled_repositories": {
 				Type:             schema.TypeString,
 				Required:         true,
-				Description:      "The policy that controls the repositories in the organization that are allowed to run GitHub Actions. Can be one of: 'all', 'none', or 'selected'.",
+				Description:      "Policy that controls the repositories in the organization that are allowed to run GitHub Actions; this can be one of `all`, `none`, or `selected`.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"all", "none", "selected"}, false)),
-			},
-			"allowed_actions_config": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				MaxItems:    1,
-				Description: "Sets the actions that are allowed in an organization. Only available when 'allowed_actions' = 'selected'",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"github_owned_allowed": {
-							Type:        schema.TypeBool,
-							Required:    true,
-							Description: "Whether GitHub-owned actions are allowed in the organization.",
-						},
-						"patterns_allowed": {
-							Type:        schema.TypeSet,
-							Optional:    true,
-							Description: "Specifies a list of string-matching patterns to allow specific action(s). Wildcards, tags, and SHAs are allowed. For example, 'monalisa/octocat@', 'monalisa/octocat@v2', 'monalisa/'.",
-							Elem:        &schema.Schema{Type: schema.TypeString},
-							Set:         schema.HashString,
-						},
-						"verified_allowed": {
-							Type:        schema.TypeBool,
-							Optional:    true,
-							Description: "Whether actions in GitHub Marketplace from verified creators are allowed. Set to 'true' to allow all GitHub Marketplace actions by verified creators.",
-						},
-					},
-				},
 			},
 			"enabled_repositories_config": {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Sets the list of selected repositories that are enabled for GitHub Actions in an organization. Only available when 'enabled_repositories' = 'selected'.",
+				Description: "Configure the repositories that are enabled for GitHub Actions in an organization; this is only supported when `enabled_repositories` is set to `selected`.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"repository_ids": {
@@ -76,256 +49,430 @@ func resourceGithubActionsOrganizationPermissions() *schema.Resource {
 					},
 				},
 			},
+			"allowed_actions": {
+				Type:             schema.TypeString,
+				Optional:         true,
+				Description:      "Policy that controls the actions that are allowed to run; this can be one of `all`, `local_only`, or `selected`.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"all", "local_only", "selected"}, false)),
+			},
+			"allowed_actions_config": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				MaxItems:    1,
+				Description: "Configure the actions that are allowed in an organization; this is only supported when `allowed_actions` is set to `selected`.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"github_owned_allowed": {
+							Type:        schema.TypeBool,
+							Required:    true, // TODO: Make optional in v7
+							Description: "If GitHub-owned actions are allowed.",
+						},
+						"verified_allowed": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "If actions in GitHub Marketplace from verified creators are allowed.",
+						},
+						"patterns_allowed": {
+							Type:        schema.TypeSet,
+							Optional:    true,
+							Description: "List of string-matching patterns to allow specific actions; wildcards, tags, and SHAs are allowed. For example, `monalisa/octocat@*`, `monalisa/octocat@v2`, `monalisa/*`.",
+							Elem:        &schema.Schema{Type: schema.TypeString},
+							Set:         schema.HashString,
+						},
+					},
+				},
+			},
 			"sha_pinning_required": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Computed:    true,
-				Description: "Whether pinning to a specific SHA is required for all actions and reusable workflows in an organization.",
+				Computed:    true, // TODO: Remove computed in v7
+				Description: "If all actions and reusable workflows in an organization require pinning to a specific SHA.",
 			},
 		},
 	}
 }
 
-func resourceGithubActionsOrganizationAllowedObject(d *schema.ResourceData) *github.ActionsAllowed {
-	allowed := &github.ActionsAllowed{}
-
-	config := d.Get("allowed_actions_config").([]any)
-	if len(config) > 0 {
-		data := config[0].(map[string]any)
-		switch x := data["github_owned_allowed"].(type) {
-		case bool:
-			allowed.GithubOwnedAllowed = &x
-		}
-
-		switch x := data["verified_allowed"].(type) {
-		case bool:
-			allowed.VerifiedAllowed = &x
-		}
-
-		patternsAllowed := []string{}
-
-		switch t := data["patterns_allowed"].(type) {
-		case *schema.Set:
-			for _, value := range t.List() {
-				patternsAllowed = append(patternsAllowed, value.(string))
-			}
-		}
-
-		allowed.PatternsAllowed = patternsAllowed
-	} else {
+func diffGithubActionsOrganizationPermissions(ctx context.Context, diff *schema.ResourceDiff, m any) error {
+	if !diff.NewValueKnown("enabled_repositories") || !diff.NewValueKnown("enabled_repositories_config") || !diff.NewValueKnown("allowed_actions") || !diff.NewValueKnown("allowed_actions_config") {
 		return nil
 	}
 
-	return allowed
-}
+	enabledRepos, _ := diff.Get("enabled_repositories").(string)
+	enabledReposConfig := false
 
-func resourceGithubActionsEnabledRepositoriesObject(d *schema.ResourceData) ([]int64, error) {
-	var enabled []int64
-
-	config := d.Get("enabled_repositories_config").([]any)
-	if len(config) > 0 {
-		data := config[0].(map[string]any)
-		switch x := data["repository_ids"].(type) {
-		case *schema.Set:
-			for _, value := range x.List() {
-				enabled = append(enabled, int64(value.(int)))
-			}
+	if v, ok := diff.GetOk("enabled_repositories_config"); ok {
+		if p, ok := v.([]any); ok && len(p) > 0 {
+			enabledReposConfig = true
 		}
-	} else {
-		return nil, errors.New("the enabled_repositories_config {} block must be specified if enabled_repositories == 'selected'")
 	}
-	return enabled, nil
+
+	if enabledRepos != "selected" && enabledReposConfig {
+		return fmt.Errorf("enabled_repositories_config is only valid when enabled_repositories is set to selected")
+	}
+
+	if enabledRepos == "selected" && !enabledReposConfig {
+		return fmt.Errorf("enabled_repositories_config is required when enabled_repositories is set to selected")
+	}
+
+	allowedActions, _ := diff.Get("allowed_actions").(string)
+	allowedActionsConfig := false
+
+	if v, ok := diff.GetOk("allowed_actions_config"); ok {
+		if p, ok := v.([]any); ok && len(p) > 0 {
+			allowedActionsConfig = true
+		}
+	}
+
+	if allowedActions != "" && enabledRepos == "none" {
+		return fmt.Errorf("allowed_actions is only valid when enabled_repositories is set to all or selected")
+	}
+
+	if allowedActions != "selected" && allowedActionsConfig {
+		return fmt.Errorf("allowed_actions_config is only valid when allowed_actions is set to selected")
+	}
+
+	if allowedActions == "selected" && !allowedActionsConfig {
+		return fmt.Errorf("allowed_actions_config is required when allowed_actions is set to selected")
+	}
+
+	return nil
 }
 
-func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.ResourceData, m any) error {
+func resourceGithubActionsOrganizationPermissionsCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
-	client := meta.v3client
-	orgName := meta.name
-	ctx := context.Background()
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxId, d.Id())
+
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
 	}
 
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
+	enabledRepositories, _ := d.Get("enabled_repositories").(string)
 
-	allowedActions := d.Get("allowed_actions").(string)
-	enabledRepositories := d.Get("enabled_repositories").(string)
-
-	actionsPermissions := github.ActionsPermissions{
-		AllowedActions:      &allowedActions,
+	req := github.ActionsPermissions{
 		EnabledRepositories: &enabledRepositories,
 	}
 
-	if v, ok := d.GetOk("sha_pinning_required"); ok {
-		actionsPermissions.SHAPinningRequired = new(v.(bool))
+	if v, ok := d.GetOk("allowed_actions"); ok {
+		s, _ := v.(string)
+		req.AllowedActions = &s
 	}
 
-	_, _, err = client.Actions.UpdateActionsPermissions(ctx,
-		orgName,
-		actionsPermissions)
-	if err != nil {
-		return err
+	if v, ok := d.GetOkExists("sha_pinning_required"); ok { //nolint:staticcheck // SA1019: d.GetOkExists is deprecated but necessary for bool fields
+		b, _ := v.(bool)
+		req.SHAPinningRequired = &b
 	}
 
-	if allowedActions == "selected" {
-		actionsAllowedData := resourceGithubActionsOrganizationAllowedObject(d)
-		if actionsAllowedData != nil {
-			log.Printf("[DEBUG] Allowed actions config is set")
-			_, _, err = client.Actions.UpdateActionsAllowed(ctx,
-				orgName,
-				*actionsAllowedData)
-			if err != nil {
-				return err
-			}
-		} else {
-			log.Printf("[DEBUG] Allowed actions config not set, skipping")
+	if _, _, err := meta.v3client.Actions.UpdateActionsPermissions(ctx, meta.name, req); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if req.SHAPinningRequired == nil {
+		perm, _, err := meta.v3client.Actions.GetActionsPermissions(ctx, meta.name)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if err := d.Set("sha_pinning_required", perm.GetSHAPinningRequired()); err != nil {
+			return diag.FromErr(err)
 		}
 	}
 
+	if *req.EnabledRepositories == "selected" {
+		if v, ok := d.GetOk("enabled_repositories_config"); ok {
+			if p, ok := v.([]any); ok && len(p) > 0 && p[0] != nil {
+				block, _ := p[0].(map[string]any)
+				col, _ := block["repository_ids"].(*schema.Set)
+
+				repoIDs := make([]int64, col.Len())
+				for i, a := range col.List() {
+					id, _ := a.(int)
+					repoIDs[i] = int64(id)
+				}
+
+				if _, err := meta.v3client.Actions.SetEnabledReposInOrg(ctx, meta.name, repoIDs); err != nil {
+					return diag.FromErr(err)
+				}
+			}
+		}
+	}
+
+	if req.AllowedActions != nil && *req.AllowedActions == "selected" {
+		if v, ok := d.GetOk("allowed_actions_config"); ok {
+			if p, ok := v.([]any); ok && len(p) > 0 && p[0] != nil {
+				block, _ := p[0].(map[string]any)
+
+				ownerAllowed, _ := block["github_owned_allowed"].(bool)
+
+				req := github.ActionsAllowed{
+					GithubOwnedAllowed: &ownerAllowed,
+				}
+
+				if v, ok := block["verified_allowed"]; ok {
+					if b, ok := v.(bool); ok {
+						req.VerifiedAllowed = &b
+					}
+				}
+
+				if v, ok := block["patterns_allowed"]; ok {
+					if p, ok := v.(*schema.Set); ok {
+						patterns := make([]string, p.Len())
+						for i, a := range p.List() {
+							patterns[i], _ = a.(string)
+						}
+						req.PatternsAllowed = patterns
+					}
+				}
+
+				if _, _, err := meta.v3client.Actions.UpdateActionsAllowed(ctx, meta.name, req); err != nil {
+					return diag.FromErr(err)
+				}
+			}
+		}
+	}
+
+	d.SetId(meta.name)
+
+	return nil
+}
+
+func resourceGithubActionsOrganizationPermissionsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
+	}
+
+	perm, _, err := meta.v3client.Actions.GetActionsPermissions(ctx, meta.name)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	enabledRepositories := perm.GetEnabledRepositories()
+	if err := d.Set("enabled_repositories", enabledRepositories); err != nil {
+		return diag.FromErr(err)
+	}
+
+	var reposCfg []any
 	if enabledRepositories == "selected" {
-		enabledReposData, err := resourceGithubActionsEnabledRepositoriesObject(d)
-		if err != nil {
-			return err
-		}
-		_, err = client.Actions.SetEnabledReposInOrg(ctx,
-			orgName,
-			enabledReposData)
-		if err != nil {
-			return err
-		}
-	}
+		repoIDs := []int{}
 
-	d.SetId(orgName)
-	return resourceGithubActionsOrganizationPermissionsRead(d, meta)
-}
-
-func resourceGithubActionsOrganizationPermissionsRead(d *schema.ResourceData, m any) error {
-	meta, _ := m.(*Owner)
-	client := meta.v3client
-	ctx := context.Background()
-
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-
-	actionsPermissions, _, err := client.Actions.GetActionsPermissions(ctx, d.Id())
-	if err != nil {
-		return err
-	}
-
-	// only load and fill allowed_actions_config if allowed_actions_config is also set
-	// in the TF code. (see #2105)
-	// on initial import there might not be any value in the state, then we have to import the data
-	// -> but we can only load an existing state if the current config is set to "selected" (see #2182)
-	allowedActions := d.Get("allowed_actions").(string)
-	allowedActionsConfig := d.Get("allowed_actions_config").([]any)
-
-	serverHasAllowedActionsConfig := actionsPermissions.GetAllowedActions() == "selected"
-	userWantsAllowedActionsConfig := (allowedActions == "selected" && len(allowedActionsConfig) > 0) || allowedActions == ""
-
-	if serverHasAllowedActionsConfig && userWantsAllowedActionsConfig {
-		actionsAllowed, _, err := client.Actions.GetActionsAllowed(ctx, d.Id())
-		if err != nil {
-			return err
-		}
-
-		// If actionsAllowed set to local/all by removing all actions config settings, the response will be empty
-		if actionsAllowed != nil {
-			if err = d.Set("allowed_actions_config", []any{
-				map[string]any{
-					"github_owned_allowed": actionsAllowed.GetGithubOwnedAllowed(),
-					"patterns_allowed":     actionsAllowed.PatternsAllowed,
-					"verified_allowed":     actionsAllowed.GetVerifiedAllowed(),
-				},
-			}); err != nil {
-				return err
-			}
-		}
-	} else {
-		if err = d.Set("allowed_actions_config", []any{}); err != nil {
-			return err
-		}
-	}
-
-	if actionsPermissions.GetEnabledRepositories() == "selected" {
-		opts := github.ListOptions{PerPage: meta.maxPerPage}
-		var repoList []int64
-		var allRepos []*github.Repository
-
-		for {
-			enabledRepos, resp, err := client.Actions.ListEnabledReposInOrg(ctx, d.Id(), &opts)
+		for repo, err := range meta.v3client.Actions.ListEnabledReposInOrgIter(ctx, meta.name, &github.ListOptions{PerPage: meta.maxPerPage}) {
 			if err != nil {
-				return err
+				return diag.FromErr(err)
 			}
-			allRepos = append(allRepos, enabledRepos.Repositories...)
 
-			opts.Page = resp.NextPage
+			repoIDs = append(repoIDs, int(repo.GetID()))
+		}
 
-			if resp.NextPage == 0 {
-				break
-			}
+		reposCfg = []any{map[string]any{
+			"repository_ids": repoIDs,
+		}}
+	}
+
+	if err := d.Set("enabled_repositories_config", reposCfg); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if _, ok := d.GetOk("allowed_actions"); ok {
+		allowedActions := perm.GetAllowedActions()
+		if err := d.Set("allowed_actions", allowedActions); err != nil {
+			return diag.FromErr(err)
 		}
-		for index := range allRepos {
-			repoList = append(repoList, *allRepos[index].ID)
-		}
-		if allRepos != nil {
-			if err = d.Set("enabled_repositories_config", []any{
-				map[string]any{
-					"repository_ids": repoList,
-				},
-			}); err != nil {
-				return err
+
+		var actionsCfg []any
+		if allowedActions == "selected" {
+			act, _, err := meta.v3client.Actions.GetActionsAllowed(ctx, meta.name)
+			if err != nil {
+				return diag.FromErr(err)
 			}
-		} else {
-			if err = d.Set("enabled_repositories_config", []any{}); err != nil {
-				return err
-			}
+
+			actionsCfg = []any{map[string]any{
+				"github_owned_allowed": act.GetGithubOwnedAllowed(),
+				"patterns_allowed":     act.GetPatternsAllowed(),
+				"verified_allowed":     act.GetVerifiedAllowed(),
+			}}
 		}
-	} else {
-		if err = d.Set("enabled_repositories_config", []any{}); err != nil {
-			return err
+
+		if err = d.Set("allowed_actions_config", actionsCfg); err != nil {
+			return diag.FromErr(err)
 		}
 	}
 
-	if err = d.Set("allowed_actions", actionsPermissions.GetAllowedActions()); err != nil {
-		return err
-	}
-	if err = d.Set("enabled_repositories", actionsPermissions.GetEnabledRepositories()); err != nil {
-		return err
-	}
-
-	if err = d.Set("sha_pinning_required", actionsPermissions.GetSHAPinningRequired()); err != nil {
-		return err
+	if err := d.Set("sha_pinning_required", perm.GetSHAPinningRequired()); err != nil {
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubActionsOrganizationPermissionsDelete(d *schema.ResourceData, m any) error {
+func resourceGithubActionsOrganizationPermissionsUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
-	client := meta.v3client
-	orgName := meta.name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
 	}
 
-	// This will nullify any allowedActions elements
-	_, _, err = client.Actions.UpdateActionsPermissions(ctx,
-		orgName,
-		github.ActionsPermissions{
-			AllowedActions:      new("all"),
-			EnabledRepositories: new("all"),
-		})
-	if err != nil {
-		return err
+	enabledRepositories, _ := d.Get("enabled_repositories").(string)
+	shaPinningRequired, _ := d.Get("sha_pinning_required").(bool) // TODO: Update for v7 when no longer computed
+
+	req := github.ActionsPermissions{
+		EnabledRepositories: &enabledRepositories,
+		SHAPinningRequired:  &shaPinningRequired,
+	}
+
+	if v, ok := d.GetOk("allowed_actions"); ok {
+		s, _ := v.(string)
+		req.AllowedActions = &s
+	}
+
+	if _, _, err := meta.v3client.Actions.UpdateActionsPermissions(ctx, meta.name, req); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if *req.EnabledRepositories == "selected" {
+		if v, ok := d.GetOk("enabled_repositories_config"); ok {
+			if p, ok := v.([]any); ok && len(p) > 0 && p[0] != nil {
+				block, _ := p[0].(map[string]any)
+				col, _ := block["repository_ids"].(*schema.Set)
+
+				repoIDs := make([]int64, col.Len())
+				for i, a := range col.List() {
+					id, _ := a.(int)
+					repoIDs[i] = int64(id)
+				}
+
+				if _, err := meta.v3client.Actions.SetEnabledReposInOrg(ctx, meta.name, repoIDs); err != nil {
+					return diag.FromErr(err)
+				}
+			}
+		}
+	}
+
+	if req.AllowedActions != nil && *req.AllowedActions == "selected" {
+		if v, ok := d.GetOk("allowed_actions_config"); ok {
+			if p, ok := v.([]any); ok && len(p) > 0 && p[0] != nil {
+				block, _ := p[0].(map[string]any)
+
+				ownerAllowed, _ := block["github_owned_allowed"].(bool)
+
+				req := github.ActionsAllowed{
+					GithubOwnedAllowed: &ownerAllowed,
+				}
+
+				if v, ok := block["verified_allowed"]; ok {
+					if b, ok := v.(bool); ok {
+						req.VerifiedAllowed = &b
+					}
+				}
+
+				if v, ok := block["patterns_allowed"]; ok {
+					if p, ok := v.(*schema.Set); ok {
+						patterns := make([]string, p.Len())
+						for i, a := range p.List() {
+							patterns[i], _ = a.(string)
+						}
+						req.PatternsAllowed = patterns
+					}
+				}
+
+				if _, _, err := meta.v3client.Actions.UpdateActionsAllowed(ctx, meta.name, req); err != nil {
+					return diag.FromErr(err)
+				}
+			}
+		}
 	}
 
 	return nil
+}
+
+func resourceGithubActionsOrganizationPermissionsDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
+	}
+
+	req := github.ActionsPermissions{
+		AllowedActions:      new("all"),
+		EnabledRepositories: new("all"),
+	}
+
+	if _, _, err := meta.v3client.Actions.UpdateActionsPermissions(ctx, meta.name, req); err != nil {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
+			if ghErr.Response.StatusCode == 409 {
+				tflog.Info(ctx, "Organization actions permissions couldn't be unset as they're already configured at enterprise level.")
+				return nil
+			}
+		}
+		return diag.FromErr(err)
+	}
+
+	return nil
+}
+
+func resourceGithubActionsOrganizationPermissionsImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+	meta, _ := m.(*Owner)
+
+	if d.Id() != meta.name {
+		return nil, fmt.Errorf("invalid id %q, expected %q", d.Id(), meta.name)
+	}
+
+	perm, _, err := meta.v3client.Actions.GetActionsPermissions(ctx, meta.name)
+	if err != nil {
+		return nil, err
+	}
+
+	enabledRepositories := perm.GetEnabledRepositories()
+	if err := d.Set("enabled_repositories", enabledRepositories); err != nil {
+		return nil, err
+	}
+
+	var reposCfg []any
+	if enabledRepositories == "selected" {
+		repoIDs := []int{}
+
+		for repo, err := range meta.v3client.Actions.ListEnabledReposInOrgIter(ctx, meta.name, &github.ListOptions{PerPage: meta.maxPerPage}) {
+			if err != nil {
+				return nil, err
+			}
+
+			repoIDs = append(repoIDs, int(repo.GetID()))
+		}
+
+		reposCfg = []any{map[string]any{
+			"repository_ids": repoIDs,
+		}}
+	}
+
+	if err := d.Set("enabled_repositories_config", reposCfg); err != nil {
+		return nil, err
+	}
+
+	allowedActions := perm.GetAllowedActions()
+	if err := d.Set("allowed_actions", allowedActions); err != nil {
+		return nil, err
+	}
+
+	var actionsCfg []any
+	if allowedActions == "selected" {
+		act, _, err := meta.v3client.Actions.GetActionsAllowed(ctx, meta.name)
+		if err != nil {
+			return nil, err
+		}
+
+		actionsCfg = []any{map[string]any{
+			"github_owned_allowed": act.GetGithubOwnedAllowed(),
+			"patterns_allowed":     act.GetPatternsAllowed(),
+			"verified_allowed":     act.GetVerifiedAllowed(),
+		}}
+	}
+
+	if err = d.Set("allowed_actions_config", actionsCfg); err != nil {
+		return nil, err
+	}
+
+	if err := d.Set("sha_pinning_required", perm.GetSHAPinningRequired()); err != nil {
+		return nil, err
+	}
+
+	return []*schema.ResourceData{d}, nil
 }
