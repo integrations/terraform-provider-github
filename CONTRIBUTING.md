@@ -267,6 +267,9 @@ export GITHUB_ENTERPRISE_SLUG=
 # Configure test options
 export GH_TEST_ADVANCED_SECURITY=
 
+# Configure the ID of a GitHub App, installed on the owner under test, that is available as a custom deployment protection rule
+export GH_TEST_DEPLOYMENT_PROTECTION_RULE_APP_ID=
+
 # Configure if the enterprise is an EMU enterprise
 export GH_TEST_ENTERPRISE_IS_EMU=
 ```
@@ -291,6 +294,7 @@ To run acceptance tests the `TF_ACC` environment variable must be set. Below is 
     "GH_TEST_EXTERNAL_USER1_TOKEN": "",
     "GH_TEST_EXTERNAL_USER2": "",
     "GH_TEST_ADVANCED_SECURITY": "false",
+    "GH_TEST_DEPLOYMENT_PROTECTION_RULE_APP_ID": "",
   },
   "go.testTimeout": "3600s",
   "go.testFlags": [

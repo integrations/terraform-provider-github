@@ -81,6 +81,9 @@ type testAccConfig struct {
 	// Test options
 	testAdvancedSecurity bool
 
+	// ID of a GitHub App installed on the test owner that is available as a custom deployment protection rule
+	testDeploymentProtectionRuleAppID int
+
 	// Test repository configuration
 	testRepositoryVisibility string
 
@@ -171,6 +174,10 @@ func TestMain(m *testing.M) {
 			fmt.Println("App auth configured without all required parameters")
 			os.Exit(1)
 		}
+	}
+
+	if i, err := strconv.Atoi(os.Getenv("GH_TEST_DEPLOYMENT_PROTECTION_RULE_APP_ID")); err == nil {
+		conf.testDeploymentProtectionRuleAppID = i
 	}
 
 	if conf.authMode != anonymous && conf.authMode != individual {
@@ -392,6 +399,12 @@ func skipIfEMUEnterprise(t *testing.T) {
 func skipUnlessMode(t *testing.T, testModes ...testMode) {
 	if !slices.Contains(testModes, testAccConf.authMode) {
 		t.Skip("Skipping as not supported test mode")
+	}
+}
+
+func skipUnlessHasDeploymentProtectionRuleApp(t *testing.T) {
+	if testAccConf.testDeploymentProtectionRuleAppID == 0 {
+		t.Skip("Skipping as no deployment protection rule app is configured")
 	}
 }
 

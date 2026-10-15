@@ -227,6 +227,7 @@ jobs:
           GH_TEST_EXTERNAL_USER1_TOKEN: ${{ secrets.GH_TEST_EXTERNAL_USER1_TOKEN }}
           GH_TEST_EXTERNAL_USER2: ${{ vars.GH_TEST_EXTERNAL_USER2 }}
           GH_TEST_ADVANCED_SECURITY: ${{ vars.GH_TEST_ADVANCED_SECURITY || 'false' }}
+          GH_TEST_DEPLOYMENT_PROTECTION_RULE_APP_ID: ${{ vars.GH_TEST_DEPLOYMENT_PROTECTION_RULE_APP_ID }}
         run: |
           set -eou pipefail
 
