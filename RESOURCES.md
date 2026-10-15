@@ -193,6 +193,7 @@ The overall status of each resource or data source is captured in this document 
 | `github_repository_deployment_branch_policy` (🚫) | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_repository_environment` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_repository_environment_deployment_policy` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
+| `github_repository_environment_deployment_protection_rule` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_repository_file` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_repository_milestone` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_repository_pages` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
