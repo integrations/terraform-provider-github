@@ -6,30 +6,26 @@ description: |-
 
 # github_repository_environment_deployment_protection_rule (Resource)
 
-This resource enables a custom deployment protection rule — a GitHub App that gates
-deployments to an environment — on a GitHub repository environment. When a workflow job
-targets the environment, GitHub sends the App a `deployment_protection_rule` webhook and
-waits for the App to approve or reject the deployment.
+Manages a custom deployment protection rule for a GitHub repository environment. A custom deployment protection rule is a GitHub App that approves or rejects deployments to the environment.
 
-The App must be installed on the repository and available as a custom deployment
-protection rule for the environment before it can be enabled.
+When a workflow job targets the environment, GitHub sends the App a `deployment_protection_rule` webhook and waits for the App to approve or reject the deployment. The App must be installed on the repository and available as a custom deployment protection rule for the environment before it can be enabled.
 
 ## Example Usage
 
 ```terraform
-resource "github_repository" "test" {
-  name = "tf-acc-test"
+resource "github_repository" "example" {
+  name = "example"
 }
 
-resource "github_repository_environment" "test" {
-  repository  = github_repository.test.name
-  environment = "prod"
+resource "github_repository_environment" "example" {
+  repository  = github_repository.example.name
+  environment = "production"
 }
 
-resource "github_repository_environment_deployment_protection_rule" "test" {
-  repository     = github_repository.test.name
-  environment    = github_repository_environment.test.environment
-  integration_id = 4358979 # the GitHub App's ID
+resource "github_repository_environment_deployment_protection_rule" "example" {
+  repository     = github_repository.example.name
+  environment    = github_repository_environment.example.environment
+  integration_id = 123456 # The ID of the GitHub App
 }
 ```
 
@@ -41,17 +37,20 @@ The following arguments are supported:
 
 - `environment` - (Required) The name of the environment. Changing this forces a new resource.
 
-- `integration_id` - (Required) The ID of the custom deployment protection rule integration — the GitHub App that gates deployments. Changing this forces a new resource.
+- `integration_id` - (Required) The ID of the GitHub App to enable as a custom deployment protection rule. Changing this forces a new resource.
 
 ## Attributes Reference
 
-- `id` - An ID made of the repository name, environment name, and deployment protection rule ID, separated by `:`.
+- `repository_id` - The ID of the repository.
+- `protection_rule_id` - The ID of the custom deployment protection rule.
 
 ## Import
 
-This resource can be imported using an ID made of the repository name, environment name (any `:` in the environment name needs to be escaped as `??`), and deployment protection rule ID, all separated by a `:`.
+This resource can be imported using an ID made of the repository name, environment name (any `:` in the environment name needs to be escaped as `??`), and custom deployment protection rule ID, all separated by a `:`.
 
 ### Import Block
+
+The following import block imports a custom deployment protection rule with the ID `123456` for the repo `myrepo` and environment `myenv` to a `github_repository_environment_deployment_protection_rule` resource named `example`.
 
 ```terraform
 import {
@@ -61,6 +60,8 @@ import {
 ```
 
 ### Import Command
+
+The following command imports a custom deployment protection rule with the ID `123456` for the repo `myrepo` and environment `myenv` to a `github_repository_environment_deployment_protection_rule` resource named `example`.
 
 ```shell
 terraform import github_repository_environment_deployment_protection_rule.example myrepo:myenv:123456
