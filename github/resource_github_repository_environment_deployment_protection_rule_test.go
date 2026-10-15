@@ -20,7 +20,6 @@ func TestAccGithubRepositoryEnvironmentDeploymentProtectionRule(t *testing.T) {
 	t.Parallel()
 
 	skipUnauthenticated(t)
-	skipUnlessHasDeploymentProtectionRuleApp(t)
 
 	config := `
 resource "github_repository_environment_deployment_protection_rule" "test" {
@@ -35,7 +34,7 @@ resource "github_repository_environment_deployment_protection_rule" "test" {
 
 		repo := mustCreateTestRepository(t)
 		env := mustCreateTestRepositoryEnvironment(t, repo, withTestCreateName("environment/test"))
-		appID := testAccConf.testDeploymentProtectionRuleAppID
+		appID := mustFindDeploymentProtectionRuleApp(t, repo, env)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -46,7 +45,7 @@ resource "github_repository_environment_deployment_protection_rule" "test" {
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_repository_environment_deployment_protection_rule.test", tfjsonpath.New("repository_id"), knownvalue.Int64Exact(repo.GetID())),
 						statecheck.ExpectKnownValue("github_repository_environment_deployment_protection_rule.test", tfjsonpath.New("protection_rule_id"), knownvalue.NotNull()),
-						statecheck.ExpectKnownValue("github_repository_environment_deployment_protection_rule.test", tfjsonpath.New("integration_id"), knownvalue.Int64Exact(int64(appID))),
+						statecheck.ExpectKnownValue("github_repository_environment_deployment_protection_rule.test", tfjsonpath.New("integration_id"), knownvalue.Int64Exact(appID)),
 					},
 				},
 			},
@@ -58,12 +57,13 @@ resource "github_repository_environment_deployment_protection_rule" "test" {
 
 		repo := mustCreateTestRepository(t)
 		env := mustCreateTestRepositoryEnvironment(t, repo)
+		appID := mustFindDeploymentProtectionRuleApp(t, repo, env)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: fmt.Sprintf(config, repo.GetName(), env.GetName(), testAccConf.testDeploymentProtectionRuleAppID),
+					Config: fmt.Sprintf(config, repo.GetName(), env.GetName(), appID),
 				},
 				{
 					ResourceName:      "github_repository_environment_deployment_protection_rule.test",
@@ -80,7 +80,7 @@ resource "github_repository_environment_deployment_protection_rule" "test" {
 		repo := mustCreateTestRepository(t)
 		env := mustCreateTestRepositoryEnvironment(t, repo)
 		newRepoName := fmt.Sprintf("%s-updated", repo.GetName())
-		appID := testAccConf.testDeploymentProtectionRuleAppID
+		appID := mustFindDeploymentProtectionRuleApp(t, repo, env)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -113,7 +113,7 @@ resource "github_repository_environment_deployment_protection_rule" "test" {
 		env := mustCreateTestRepositoryEnvironment(t, repo)
 		repo2 := mustCreateTestRepository(t)
 		_ = mustCreateTestRepositoryEnvironment(t, repo2, withTestCreateName(env.GetName()))
-		appID := testAccConf.testDeploymentProtectionRuleAppID
+		appID := mustFindDeploymentProtectionRuleApp(t, repo, env)
 
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
@@ -132,6 +132,23 @@ resource "github_repository_environment_deployment_protection_rule" "test" {
 			},
 		})
 	})
+}
+
+// mustFindDeploymentProtectionRuleApp returns the first app the test owner can use as a custom deployment
+// protection rule on the environment, and skips the test when there is none.
+func mustFindDeploymentProtectionRuleApp(t *testing.T, repo *github.Repository, env *github.Environment) int64 {
+	t.Helper()
+
+	meta := testAccConf.meta
+	res, _, err := meta.v3client.Repositories.ListCustomDeploymentRuleIntegrations(context.Background(), meta.name, repo.GetName(), env.GetName(), nil)
+	if err != nil {
+		t.Fatalf("failed to list custom deployment protection rule integrations: %v", err)
+	}
+	if len(res.AvailableIntegrations) == 0 {
+		t.Skip("Skipping as no app is available as a custom deployment protection rule")
+	}
+
+	return res.AvailableIntegrations[0].GetID()
 }
 
 func testAccCheckGithubRepositoryEnvironmentDeploymentProtectionRuleDestroy(repoName, envName string) resource.TestCheckFunc {
