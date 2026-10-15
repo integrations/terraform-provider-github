@@ -44,6 +44,40 @@ func Test_resourceGithubTeamRepositoryDelete_nilResponseDoesNotPanic(t *testing.
 	}
 }
 
+func Test_resourceGithubTeamRepositoryPermissionAliases(t *testing.T) {
+	t.Parallel()
+
+	for _, testCase := range []struct {
+		permission string
+		want       string
+	}{
+		{permission: "read", want: "pull"},
+		{permission: "write", want: "push"},
+		{permission: "pull", want: "pull"},
+		{permission: "push", want: "push"},
+		{permission: "triage", want: "triage"},
+	} {
+		t.Run(testCase.permission, func(t *testing.T) {
+			t.Parallel()
+
+			if got := getPermission(testCase.permission); got != testCase.want {
+				t.Errorf("getPermission(%q) = %q, want %q", testCase.permission, got, testCase.want)
+			}
+		})
+	}
+
+	permissionSchema := resourceGithubTeamRepository().Schema["permission"]
+	if !permissionSchema.DiffSuppressFunc("permission", "pull", "read", nil) {
+		t.Error("expected read and pull permissions to suppress a diff")
+	}
+	if !permissionSchema.DiffSuppressFunc("permission", "push", "write", nil) {
+		t.Error("expected write and push permissions to suppress a diff")
+	}
+	if permissionSchema.DiffSuppressFunc("permission", "pull", "push", nil) {
+		t.Error("expected read and write permissions to remain distinct")
+	}
+}
+
 func TestAccGithubTeamRepository(t *testing.T) {
 	t.Parallel()
 
@@ -67,7 +101,7 @@ func TestAccGithubTeamRepository(t *testing.T) {
 			resource "github_team_repository" "test" {
 				team_id    = "${github_team.test.id}"
 				repository = "${github_repository.test.name}"
-				permission = "pull"
+				permission = "read"
 			}
 		`, teamName, repoName)
 
@@ -114,25 +148,37 @@ func TestAccGithubTeamRepository(t *testing.T) {
 				},
 				{
 					Config: strings.Replace(config,
-						`permission = "pull"`,
+						`permission = "read"`,
+						`permission = "pull"`, 1),
+					Check: checks["pull"],
+				},
+				{
+					Config: strings.Replace(config,
+						`permission = "read"`,
 						`permission = "triage"`, 1),
 					Check: checks["triage"],
 				},
 				{
 					Config: strings.Replace(config,
-						`permission = "pull"`,
+						`permission = "read"`,
+						`permission = "write"`, 1),
+					Check: checks["push"],
+				},
+				{
+					Config: strings.Replace(config,
+						`permission = "read"`,
 						`permission = "push"`, 1),
 					Check: checks["push"],
 				},
 				{
 					Config: strings.Replace(config,
-						`permission = "pull"`,
+						`permission = "read"`,
 						`permission = "maintain"`, 1),
 					Check: checks["maintain"],
 				},
 				{
 					Config: strings.Replace(config,
-						`permission = "pull"`,
+						`permission = "read"`,
 						`permission = "admin"`, 1),
 					Check: checks["admin"],
 				},
