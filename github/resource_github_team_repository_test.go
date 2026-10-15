@@ -67,6 +67,9 @@ func Test_resourceGithubTeamRepositoryPermissionAliases(t *testing.T) {
 	}
 
 	permissionSchema := resourceGithubTeamRepository().Schema["permission"]
+	if permissionSchema.Default != "read" {
+		t.Errorf("permission default = %q, want %q", permissionSchema.Default, "read")
+	}
 	if !permissionSchema.DiffSuppressFunc("permission", "pull", "read", nil) {
 		t.Error("expected read and pull permissions to suppress a diff")
 	}

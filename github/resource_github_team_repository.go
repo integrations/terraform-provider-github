@@ -55,11 +55,11 @@ func resourceGithubTeamRepository() *schema.Resource {
 			"permission": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     "pull",
+				Default:     "read",
 				DiffSuppressFunc: func(_, oldValue, newValue string, _ *schema.ResourceData) bool {
 					return getPermission(oldValue) == getPermission(newValue)
 				},
-				Description: "The permissions of team members regarding the repository. Must be one of 'read' (equivalent to 'pull'), 'triage', 'write' (equivalent to 'push'), 'maintain', 'admin' or the name of an existing custom repository role within the organisation. Defaults to 'pull'.",
+				Description: "The permissions of team members regarding the repository. Must be one of 'read' (equivalent to 'pull'), 'triage', 'write' (equivalent to 'push'), 'maintain', 'admin' or the name of an existing custom repository role within the organisation. Defaults to 'read'.",
 			},
 			"etag": {
 				Type:        schema.TypeString,
