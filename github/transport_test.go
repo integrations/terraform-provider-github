@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-github/v92/github"
+	"github.com/google/go-github/v93/github"
 )
 
 func TestEtagTransport(t *testing.T) {
@@ -217,8 +217,8 @@ func TestRateLimitTransport_abuseLimit_post(t *testing.T) {
 	client := mustCreateTestGitHubClient(t, ts.URL, github.WithTransport(NewRateLimitTransport(http.DefaultTransport)))
 
 	ctx := context.WithValue(t.Context(), ctxId, t.Name())
-	r, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
-		Name:        new("radek-example-48"),
+	r, _, err := client.Repositories.Create(ctx, "tada", github.CreateRepositoryRequest{
+		Name:        "radek-example-48",
 		Description: new(""),
 	})
 	if err != nil {
@@ -274,8 +274,8 @@ func TestRateLimitTransport_abuseLimit_post_error(t *testing.T) {
 	client := mustCreateTestGitHubClient(t, ts.URL, github.WithTransport(NewRateLimitTransport(http.DefaultTransport)))
 
 	ctx := context.WithValue(t.Context(), ctxId, t.Name())
-	_, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
-		Name:        new("radek-example-48"),
+	_, _, err := client.Repositories.Create(ctx, "tada", github.CreateRepositoryRequest{
+		Name:        "radek-example-48",
 		Description: new(""),
 	})
 	if err == nil {
@@ -406,8 +406,8 @@ func TestRetryTransport_retry_post_error(t *testing.T) {
 	client := mustCreateTestGitHubClient(t, ts.URL, github.WithTransport(NewRetryTransport(http.DefaultTransport, WithMaxRetries(1))))
 
 	ctx := context.WithValue(t.Context(), ctxId, t.Name())
-	_, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
-		Name:        new("radek-example-48"),
+	_, _, err := client.Repositories.Create(ctx, "tada", github.CreateRepositoryRequest{
+		Name:        "radek-example-48",
 		Description: new(""),
 	})
 	if err == nil {
@@ -466,8 +466,8 @@ func TestRetryTransport_retry_post_success(t *testing.T) {
 	client := mustCreateTestGitHubClient(t, ts.URL, github.WithTransport(NewRetryTransport(http.DefaultTransport, WithMaxRetries(2), WithRetryDelay(time.Second))))
 
 	ctx := context.WithValue(t.Context(), ctxId, t.Name())
-	_, _, err := client.Repositories.Create(ctx, "tada", &github.Repository{
-		Name:        new("radek-example-48"),
+	_, _, err := client.Repositories.Create(ctx, "tada", github.CreateRepositoryRequest{
+		Name:        "radek-example-48",
 		Description: new(""),
 	})
 	if err != nil {

@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v92/github"
+	"github.com/google/go-github/v93/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
@@ -391,7 +391,7 @@ func updateTeamMembers(ctx context.Context, meta *Owner, slug string, wantMember
 		if current, ok := lookup[login]; !ok || current.role != member.role {
 			tflog.Debug(ctx, "Adding/updating team member.", map[string]any{"team_slug": slug, "username": login, "role": member.role})
 
-			if _, _, err := client.Teams.AddTeamMembershipBySlug(ctx, orgName, slug, login, &github.TeamAddTeamMembershipOptions{Role: member.role}); err != nil {
+			if _, _, err := client.Teams.AddTeamMembershipBySlug(ctx, orgName, slug, login, github.AddTeamMembershipRequest{Role: github.Ptr(member.role)}); err != nil {
 				return fmt.Errorf("could not add team member %q: %w", login, err)
 			}
 		}
