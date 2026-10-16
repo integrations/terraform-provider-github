@@ -94,7 +94,7 @@ func resourceGithubTeamRepositoryCreate(ctx context.Context, d *schema.ResourceD
 		orgName,
 		repoName,
 		github.AddTeamRepoRequest{
-			Permission: github.Ptr(permission),
+			Permission: new(permission),
 		},
 	)
 	if err != nil {
@@ -197,7 +197,7 @@ func resourceGithubTeamRepositoryUpdate(ctx context.Context, d *schema.ResourceD
 		orgName,
 		repoName,
 		github.AddTeamRepoRequest{
-			Permission: github.Ptr(permission),
+			Permission: new(permission),
 		},
 	)
 	if err != nil {

@@ -741,11 +741,11 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 
 		// Create the fork using the GitHub client library
 		opts := github.CreateForkRequest{
-			Name: github.Ptr(requestedName),
+			Name: new(requestedName),
 		}
 
 		if meta.(*Owner).IsOrganization {
-			opts.Organization = github.Ptr(owner)
+			opts.Organization = new(owner)
 		}
 
 		fork, resp, err := client.Repositories.CreateFork(ctx, sourceOwner, sourceRepo, opts)

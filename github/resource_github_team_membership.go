@@ -91,7 +91,7 @@ func resourceGithubTeamMembershipCreateOrUpdate(ctx context.Context, d *schema.R
 		teamId,
 		username,
 		github.AddTeamMembershipRequest{
-			Role: github.Ptr(role),
+			Role: new(role),
 		},
 	)
 	if err != nil {

@@ -320,7 +320,7 @@ func resourceGithubActionsOrganizationPermissionsDelete(d *schema.ResourceData, 
 	_, _, err = client.Actions.UpdateActionsPermissions(ctx,
 		orgName,
 		github.ActionsPermissions{
-			AllowedActions:      github.Ptr("all"),
+			AllowedActions:      new("all"),
 			EnabledRepositories: "all",
 		})
 	if err != nil {

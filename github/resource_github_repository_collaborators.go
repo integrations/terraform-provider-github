@@ -866,7 +866,7 @@ func updateUserCollaboratorsAndInvites(ctx context.Context, meta *Owner, owner, 
 
 			if ghUser.permission != inUser.permission {
 				tflog.Info(ctx, fmt.Sprintf("Updating user %s permission from %s to %s for repo %s.", inUser.login, ghUser.permission, inUser.permission, repoName))
-				_, _, err := meta.v3client.Repositories.AddCollaborator(ctx, owner, repoName, inUser.login, github.AddCollaboratorRequest{Permission: github.Ptr(inUser.permission)})
+				_, _, err := meta.v3client.Repositories.AddCollaborator(ctx, owner, repoName, inUser.login, github.AddCollaboratorRequest{Permission: new(inUser.permission)})
 				if err != nil {
 					return nil, err
 				}
@@ -908,7 +908,7 @@ func updateUserCollaboratorsAndInvites(ctx context.Context, meta *Owner, owner, 
 		}
 
 		tflog.Info(ctx, fmt.Sprintf("Inviting user %s to repo %s with permission %s.", inUser.login, repoName, inUser.permission))
-		inv, _, err := meta.v3client.Repositories.AddCollaborator(ctx, owner, repoName, inUser.login, github.AddCollaboratorRequest{Permission: github.Ptr(inUser.permission)})
+		inv, _, err := meta.v3client.Repositories.AddCollaborator(ctx, owner, repoName, inUser.login, github.AddCollaboratorRequest{Permission: new(inUser.permission)})
 		if err != nil {
 			return nil, err
 		}
@@ -964,7 +964,7 @@ func updateTeamCollaborators(ctx context.Context, meta *Owner, orgID int64, orgN
 			if ghTeam.permission != inTeam.permission {
 				tflog.Info(ctx, fmt.Sprintf("Updating team %s permission from %s to %s for repo %s.", slug, ghTeam.permission, inTeam.permission, repoName))
 				_, err := meta.v3client.Teams.AddTeamRepoBySlug(ctx, orgName, slug, orgName, repoName, github.AddTeamRepoRequest{
-					Permission: github.Ptr(inTeam.permission),
+					Permission: new(inTeam.permission),
 				})
 				if err != nil {
 					return err
@@ -983,12 +983,12 @@ func updateTeamCollaborators(ctx context.Context, meta *Owner, orgID int64, orgN
 
 		tflog.Info(ctx, fmt.Sprintf("Adding team %s to repo %s with permission %s.", teamID, repoName, inTeam.permission))
 		if slug, ok := inTeam.getSlugOK(); ok {
-			_, err := meta.v3client.Teams.AddTeamRepoBySlug(ctx, orgName, slug, orgName, repoName, github.AddTeamRepoRequest{Permission: github.Ptr(inTeam.permission)})
+			_, err := meta.v3client.Teams.AddTeamRepoBySlug(ctx, orgName, slug, orgName, repoName, github.AddTeamRepoRequest{Permission: new(inTeam.permission)})
 			if err != nil {
 				return err
 			}
 		} else {
-			_, err := meta.v3client.Teams.AddTeamRepoByID(ctx, orgID, inTeam.getID(), orgName, repoName, github.AddTeamRepoRequest{Permission: github.Ptr(inTeam.permission)})
+			_, err := meta.v3client.Teams.AddTeamRepoByID(ctx, orgID, inTeam.getID(), orgName, repoName, github.AddTeamRepoRequest{Permission: new(inTeam.permission)})
 			if err != nil {
 				return err
 			}

@@ -304,7 +304,7 @@ func resourceGithubActionsEnterpriseRunnerGroupUpdate(d *schema.ResourceData, m 
 	}
 
 	options := github.UpdateEnterpriseRunnerGroupRequest{
-		Name:                     github.Ptr(name),
+		Name:                     new(name),
 		Visibility:               &visibility,
 		RestrictedToWorkflows:    &restrictedToWorkflows,
 		SelectedWorkflows:        selectedWorkflows,

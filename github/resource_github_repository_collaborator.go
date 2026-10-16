@@ -83,7 +83,7 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, m any) e
 		repoNameWithoutOwner,
 		username,
 		github.AddCollaboratorRequest{
-			Permission: github.Ptr(d.Get("permission").(string)),
+			Permission: new(d.Get("permission").(string)),
 		})
 	if err != nil {
 		return err

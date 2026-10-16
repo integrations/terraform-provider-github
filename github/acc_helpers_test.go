@@ -174,7 +174,7 @@ func mustCreateTestBranch(t *testing.T, repo *github.Repository) string {
 func mustAddRepositoryCollaborator(t *testing.T, repo *github.Repository, username string) {
 	t.Helper()
 
-	_, _, err := testAccConf.meta.v3client.Repositories.AddCollaborator(t.Context(), testAccConf.meta.name, repo.GetName(), username, github.AddCollaboratorRequest{Permission: github.Ptr("push")})
+	_, _, err := testAccConf.meta.v3client.Repositories.AddCollaborator(t.Context(), testAccConf.meta.name, repo.GetName(), username, github.AddCollaboratorRequest{Permission: new("push")})
 	if err != nil {
 		t.Fatalf("failed to add collaborator %s to test repository %s: %v", username, repo.GetName(), err)
 	}
