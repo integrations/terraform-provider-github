@@ -655,30 +655,35 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 }
 
 // repositoryCreateRequest maps a repository onto the body the create endpoint
-// accepts. Four of the fields set on the repository have no place in it:
-// topics are sent by ReplaceAllTopics, and archived, has_downloads and
-// security_and_analysis by the update that create delegates to once the
-// repository exists. The create endpoint has never accepted any of them.
+// accepts. The request has no field for five of the settings on the
+// repository: topics are sent by ReplaceAllTopics, and archived,
+// has_downloads, security_and_analysis and web_commit_signoff_required by the
+// update that create delegates to once the repository exists.
 func repositoryCreateRequest(repo *github.Repository) github.CreateRepositoryRequest {
 	return github.CreateRepositoryRequest{
-		Name:                repo.GetName(),
-		Description:         repo.Description,
-		Homepage:            repo.Homepage,
-		Visibility:          repo.Visibility,
-		HasIssues:           repo.HasIssues,
-		HasProjects:         repo.HasProjects,
-		HasWiki:             repo.HasWiki,
-		HasDiscussions:      repo.HasDiscussions,
-		IsTemplate:          repo.IsTemplate,
-		AutoInit:            repo.AutoInit,
-		GitignoreTemplate:   repo.GitignoreTemplate,
-		LicenseTemplate:     repo.LicenseTemplate,
-		AllowSquashMerge:    repo.AllowSquashMerge,
-		AllowMergeCommit:    repo.AllowMergeCommit,
-		AllowRebaseMerge:    repo.AllowRebaseMerge,
-		AllowUpdateBranch:   repo.AllowUpdateBranch,
-		AllowAutoMerge:      repo.AllowAutoMerge,
-		DeleteBranchOnMerge: repo.DeleteBranchOnMerge,
+		Name:                     repo.GetName(),
+		Description:              repo.Description,
+		Homepage:                 repo.Homepage,
+		Visibility:               repo.Visibility,
+		HasIssues:                repo.HasIssues,
+		HasProjects:              repo.HasProjects,
+		HasWiki:                  repo.HasWiki,
+		HasDiscussions:           repo.HasDiscussions,
+		IsTemplate:               repo.IsTemplate,
+		AutoInit:                 repo.AutoInit,
+		GitignoreTemplate:        repo.GitignoreTemplate,
+		LicenseTemplate:          repo.LicenseTemplate,
+		AllowSquashMerge:         repo.AllowSquashMerge,
+		AllowMergeCommit:         repo.AllowMergeCommit,
+		AllowRebaseMerge:         repo.AllowRebaseMerge,
+		AllowUpdateBranch:        repo.AllowUpdateBranch,
+		AllowAutoMerge:           repo.AllowAutoMerge,
+		AllowForking:             repo.AllowForking,
+		DeleteBranchOnMerge:      repo.DeleteBranchOnMerge,
+		SquashMergeCommitTitle:   repo.SquashMergeCommitTitle,
+		SquashMergeCommitMessage: repo.SquashMergeCommitMessage,
+		MergeCommitTitle:         repo.MergeCommitTitle,
+		MergeCommitMessage:       repo.MergeCommitMessage,
 	}
 }
 
