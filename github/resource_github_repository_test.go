@@ -1,10 +1,17 @@
 package github
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -1808,4 +1815,182 @@ func TestGithubRepositoryNameFailsValidationWithSpace(t *testing.T) {
 	if expectedFailure != actualFailure {
 		t.Error(fmt.Errorf("unexpected name validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
 	}
+}
+
+// newRepositoryCreateResourceData is a configuration setting every field
+// resourceGithubRepositoryObject reads, several of them to false so that the
+// tests can tell an explicit false from an omitted field.
+func newRepositoryCreateResourceData(t *testing.T) *schema.ResourceData {
+	t.Helper()
+
+	d := schema.TestResourceDataRaw(t, resourceGithubRepository().Schema, map[string]any{
+		"name":                        "repo",
+		"description":                 "a repository",
+		"homepage_url":                "https://example.com",
+		"visibility":                  "private",
+		"has_issues":                  false,
+		"has_discussions":             false,
+		"has_projects":                false,
+		"has_wiki":                    false,
+		"has_downloads":               true,
+		"is_template":                 false,
+		"allow_merge_commit":          true,
+		"merge_commit_title":          "PR_TITLE",
+		"merge_commit_message":        "PR_BODY",
+		"allow_squash_merge":          true,
+		"squash_merge_commit_title":   "PR_TITLE",
+		"squash_merge_commit_message": "COMMIT_MESSAGES",
+		"allow_rebase_merge":          false,
+		"allow_auto_merge":            true,
+		"allow_update_branch":         true,
+		"allow_forking":               false,
+		"delete_branch_on_merge":      true,
+		"web_commit_signoff_required": true,
+		"auto_init":                   true,
+		"gitignore_template":          "Go",
+		"license_template":            "mit",
+		"archived":                    true,
+		"topics":                      []any{"go", "terraform"},
+		"security_and_analysis": []any{map[string]any{
+			"secret_scanning": []any{map[string]any{"status": "enabled"}},
+		}},
+	})
+	d.MarkNewResource()
+
+	return d
+}
+
+// expectedRepositoryCreateBody is the create request body for
+// newRepositoryCreateResourceData.
+var expectedRepositoryCreateBody = map[string]any{
+	"name":                        "repo",
+	"description":                 "a repository",
+	"homepage":                    "https://example.com",
+	"visibility":                  "private",
+	"has_issues":                  false,
+	"has_discussions":             false,
+	"has_projects":                false,
+	"has_wiki":                    false,
+	"is_template":                 false,
+	"allow_merge_commit":          true,
+	"merge_commit_title":          "PR_TITLE",
+	"merge_commit_message":        "PR_BODY",
+	"allow_squash_merge":          true,
+	"squash_merge_commit_title":   "PR_TITLE",
+	"squash_merge_commit_message": "COMMIT_MESSAGES",
+	"allow_rebase_merge":          false,
+	"allow_auto_merge":            true,
+	"allow_update_branch":         true,
+	"allow_forking":               false,
+	"delete_branch_on_merge":      true,
+	"auto_init":                   true,
+	"gitignore_template":          "Go",
+	"license_template":            "mit",
+}
+
+func Test_repositoryCreateRequest(t *testing.T) {
+	d := newRepositoryCreateResourceData(t)
+
+	body, err := json.Marshal(repositoryCreateRequest(resourceGithubRepositoryObject(d)))
+	if err != nil {
+		t.Fatalf("failed to marshal create request: %v", err)
+	}
+
+	var got map[string]any
+	if err := json.Unmarshal(body, &got); err != nil {
+		t.Fatalf("failed to unmarshal create request: %v", err)
+	}
+
+	if diff := cmp.Diff(expectedRepositoryCreateBody, got); diff != "" {
+		t.Errorf("create request body mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestGithubRepositoryCreate(t *testing.T) {
+	t.Run("sends settings the create request has no field for once the repository exists", func(t *testing.T) {
+		type request struct {
+			method string
+			path   string
+			body   map[string]any
+		}
+
+		var mu sync.Mutex
+		var requests []request
+
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var body map[string]any
+			if raw, _ := io.ReadAll(r.Body); len(raw) > 0 {
+				if err := json.Unmarshal(raw, &body); err != nil {
+					t.Errorf("failed to unmarshal %s %s body: %v", r.Method, r.URL.Path, err)
+				}
+			}
+
+			mu.Lock()
+			requests = append(requests, request{method: r.Method, path: r.URL.Path, body: body})
+			mu.Unlock()
+
+			w.Header().Set("Content-Type", "application/json")
+			switch r.Method + " " + r.URL.Path {
+			case "POST /orgs/owner/repos":
+				w.WriteHeader(http.StatusCreated)
+				fmt.Fprint(w, `{"name": "repo"}`)
+			case "PUT /repos/owner/repo/topics":
+				fmt.Fprint(w, `{"names": ["go", "terraform"]}`)
+			case "PATCH /repos/owner/repo", "GET /repos/owner/repo":
+				fmt.Fprint(w, `{"name": "repo", "full_name": "owner/repo"}`)
+			default:
+				t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+				w.WriteHeader(http.StatusNotFound)
+			}
+		}))
+		defer ts.Close()
+
+		meta := &Owner{name: "owner", v3client: mustCreateTestGitHubClient(t, ts.URL), IsOrganization: true}
+
+		if diags := resourceGithubRepositoryCreate(t.Context(), newRepositoryCreateResourceData(t), meta); diags.HasError() {
+			t.Fatalf("expected no error, got: %v", diags)
+		}
+
+		find := func(method, path string) (request, bool) {
+			for _, r := range requests {
+				if r.method == method && r.path == path {
+					return r, true
+				}
+			}
+			return request{}, false
+		}
+
+		create, ok := find("POST", "/orgs/owner/repos")
+		if !ok {
+			t.Fatal("expected the repository to be created")
+		}
+		if diff := cmp.Diff(expectedRepositoryCreateBody, create.body); diff != "" {
+			t.Errorf("create request body mismatch (-want +got):\n%s", diff)
+		}
+
+		topics, ok := find("PUT", "/repos/owner/repo/topics")
+		if !ok {
+			t.Fatal("expected topics to be replaced")
+		}
+		if diff := cmp.Diff([]any{"go", "terraform"}, topics.body["names"], cmpopts.SortSlices(func(a, b any) bool { return fmt.Sprint(a) < fmt.Sprint(b) })); diff != "" {
+			t.Errorf("topics mismatch (-want +got):\n%s", diff)
+		}
+
+		edit, ok := find("PATCH", "/repos/owner/repo")
+		if !ok {
+			t.Fatal("expected the repository to be edited after create")
+		}
+		for field, want := range map[string]any{
+			"archived":                    true,
+			"has_downloads":               true,
+			"web_commit_signoff_required": true,
+			"security_and_analysis": map[string]any{
+				"secret_scanning": map[string]any{"status": "enabled"},
+			},
+		} {
+			if diff := cmp.Diff(want, edit.body[field]); diff != "" {
+				t.Errorf("edit request %s mismatch (-want +got):\n%s", field, diff)
+			}
+		}
+	})
 }
