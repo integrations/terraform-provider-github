@@ -75,6 +75,48 @@ func TestAccGithubMembership(t *testing.T) {
 		})
 	})
 
+	t.Run("invites a person by email", func(t *testing.T) {
+		// IMPORTANT: Do not run this sub test in parallel is it uses shared state.
+
+		if len(testAccConf.testInvitationEmail) == 0 {
+			t.Skip("No invitation email provided")
+		}
+
+		ctx := t.Context()
+
+		rn := "github_membership.test_org_membership"
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubMembershipInvitationDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccGithubMembershipConfigEmail(testAccConf.testInvitationEmail, "member"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(rn, "email", testAccConf.testInvitationEmail),
+						resource.TestCheckResourceAttr(rn, "role", "member"),
+						testAccCheckGithubMembershipInvitationExists(ctx, rn),
+					),
+				},
+				{
+					// Changing the role cancels the pending invitation and sends a new one.
+					Config: testAccGithubMembershipConfigEmail(testAccConf.testInvitationEmail, "admin"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(rn, "email", testAccConf.testInvitationEmail),
+						resource.TestCheckResourceAttr(rn, "role", "admin"),
+						testAccCheckGithubMembershipInvitationExists(ctx, rn),
+					),
+				},
+				{
+					ResourceName:      rn,
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
+		})
+	})
+
 	t.Run("creates organization membership with case insensitivity", func(t *testing.T) {
 		// IMPORTANT: Do not run this sub test in parallel is it uses shared state.
 
@@ -112,6 +154,22 @@ func TestAccGithubMembership(t *testing.T) {
 			},
 		})
 	})
+}
+
+func TestGithubMembershipInvitationRoleMapping(t *testing.T) {
+	t.Parallel()
+
+	for membershipRole, invitationRole := range map[string]string{
+		"member": "direct_member",
+		"admin":  "admin",
+	} {
+		if got := membershipRoleToInvitationRole(membershipRole); got != invitationRole {
+			t.Errorf("membershipRoleToInvitationRole(%q) = %q, want %q", membershipRole, got, invitationRole)
+		}
+		if got := invitationRoleToMembershipRole(invitationRole); got != membershipRole {
+			t.Errorf("invitationRoleToMembershipRole(%q) = %q, want %q", invitationRole, got, membershipRole)
+		}
+	}
 }
 
 func testAccCheckGithubMembershipDestroy(s *terraform.State) error {
@@ -218,6 +276,57 @@ func testAccCheckGithubMembershipRoleState(ctx context.Context, n string, member
 	}
 }
 
+func testAccCheckGithubMembershipInvitationDestroy(s *terraform.State) error {
+	ctx := context.Background()
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "github_membership" {
+			continue
+		}
+
+		_, email, err := parseID2(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+
+		invitation, err := findPendingOrgInvitationByEmail(ctx, testAccConf.meta, email)
+		if err != nil {
+			return err
+		}
+		if invitation != nil {
+			return fmt.Errorf("organization invitation %q still exists", rs.Primary.ID)
+		}
+	}
+	return nil
+}
+
+func testAccCheckGithubMembershipInvitationExists(ctx context.Context, n string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("not Found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("no membership ID is set")
+		}
+
+		_, email, err := parseID2(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+
+		invitation, err := findPendingOrgInvitationByEmail(ctx, testAccConf.meta, email)
+		if err != nil {
+			return err
+		}
+		if invitation == nil {
+			return fmt.Errorf("no pending organization invitation found for %q", email)
+		}
+		return nil
+	}
+}
+
 func testAccGithubMembershipConfig(username string) string {
 	return fmt.Sprintf(`
   resource "github_membership" "test_org_membership" {
@@ -235,6 +344,15 @@ func testAccGithubMembershipConfigDowngradable(username string) string {
     downgrade_on_destroy = %t
   }
 `, username, true)
+}
+
+func testAccGithubMembershipConfigEmail(email, role string) string {
+	return fmt.Sprintf(`
+  resource "github_membership" "test_org_membership" {
+    email = "%s"
+    role = "%s"
+  }
+`, email, role)
 }
 
 func testAccGithubMembershipTheSame(orig, other *github.Membership) resource.TestCheckFunc {
