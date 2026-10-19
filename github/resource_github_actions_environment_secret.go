@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/google/go-github/v92/github"
-	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
@@ -170,7 +169,7 @@ func resourceGithubActionsEnvironmentSecretCreate(ctx context.Context, d *schema
 	}
 
 	if len(encryptedValue) == 0 {
-		plaintextValue, diags := getEnvironmentSecretPlaintext(d)
+		plaintextValue, diags := getSecretPlaintext(d)
 		if diags.HasError() {
 			return diags
 		}
@@ -290,7 +289,7 @@ func resourceGithubActionsEnvironmentSecretUpdate(ctx context.Context, d *schema
 	}
 
 	if len(encryptedValue) == 0 {
-		plaintextValue, diags := getEnvironmentSecretPlaintext(d)
+		plaintextValue, diags := getSecretPlaintext(d)
 		if diags.HasError() {
 			return diags
 		}
@@ -415,24 +414,4 @@ func getEnvironmentPublicKeyDetails(ctx context.Context, meta *Owner, owner, rep
 	}
 
 	return publicKey.GetKeyID(), publicKey.GetKey(), nil
-}
-
-// getEnvironmentSecretPlaintext returns the plaintext secret from the configuration. A write-only value is
-// absent from state and the diff, so it can only be read from the raw configuration.
-func getEnvironmentSecretPlaintext(d *schema.ResourceData) (string, diag.Diagnostics) {
-	value, diags := d.GetRawConfigAt(cty.GetAttrPath("value_wo"))
-	if diags.HasError() {
-		return "", diags
-	}
-
-	if value.IsNull() {
-		plaintextValue, _ := tfpluginv2util.GetKeysOk[string](d, "value", "plaintext_value")
-		return plaintextValue, nil
-	}
-
-	if !value.IsKnown() {
-		return "", diag.Errorf("value_wo is unknown at apply time, refusing to write an empty secret")
-	}
-
-	return value.AsString(), nil
 }

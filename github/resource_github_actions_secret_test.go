@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
@@ -334,4 +336,94 @@ resource "github_actions_secret" "test" {
 			},
 		})
 	})
+}
+
+type testSecretConfigData struct {
+	values    map[string]any
+	rawConfig cty.Value
+}
+
+func (d testSecretConfigData) GetOk(key string) (any, bool) {
+	v, ok := d.values[key]
+	return v, ok && v != ""
+}
+
+func (d testSecretConfigData) Get(key string) any {
+	return d.values[key]
+}
+
+func (d testSecretConfigData) GetRawConfig() cty.Value {
+	return d.rawConfig
+}
+
+func (d testSecretConfigData) GetRawConfigAt(path cty.Path) (cty.Value, diag.Diagnostics) {
+	v, err := path.Apply(d.rawConfig)
+	if err != nil {
+		return cty.DynamicVal, diag.FromErr(err)
+	}
+
+	return v, nil
+}
+
+func Test_getSecretPlaintext(t *testing.T) {
+	t.Parallel()
+
+	for _, d := range []struct {
+		testName  string
+		values    map[string]any
+		valueWO   cty.Value
+		expected  string
+		expectErr bool
+	}{
+		{
+			testName: "value",
+			values:   map[string]any{"value": "plain"},
+			valueWO:  cty.NullVal(cty.String),
+			expected: "plain",
+		},
+		{
+			testName: "plaintext_value",
+			values:   map[string]any{"plaintext_value": "legacy"},
+			valueWO:  cty.NullVal(cty.String),
+			expected: "legacy",
+		},
+		{
+			testName: "value_wo",
+			values:   map[string]any{},
+			valueWO:  cty.StringVal("write-only"),
+			expected: "write-only",
+		},
+		{
+			testName:  "value_wo_unknown",
+			values:    map[string]any{},
+			valueWO:   cty.UnknownVal(cty.String),
+			expectErr: true,
+		},
+	} {
+		t.Run(d.testName, func(t *testing.T) {
+			t.Parallel()
+
+			data := testSecretConfigData{
+				values:    d.values,
+				rawConfig: cty.ObjectVal(map[string]cty.Value{"value_wo": d.valueWO}),
+			}
+
+			got, diags := getSecretPlaintext(data)
+
+			if d.expectErr {
+				if !diags.HasError() {
+					t.Fatal("expected an error but got none")
+				}
+				return
+			}
+
+			if diags.HasError() {
+				t.Fatalf("unexpected error: %v", diags)
+			}
+
+			if got != d.expected {
+				t.Fatalf("expected plaintext %q but got %q", d.expected, got)
+			}
+		})
+	}
 }
