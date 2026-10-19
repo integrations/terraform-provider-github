@@ -1,6 +1,8 @@
 package ghclient
 
 import (
+	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -10,6 +12,12 @@ import (
 
 	"golang.org/x/oauth2"
 )
+
+type fakeHTTPResponse struct {
+	statusCode int
+	headers    map[string]string
+	body       []byte
+}
 
 // sequentialTokenSource is an oauth2.TokenSource that returns a different token on each call,
 // following the order of the provided tokens. Once exhausted, it keeps returning the last token.
@@ -84,4 +92,24 @@ func mustCreateRequest(t *testing.T, method, url string) *http.Request {
 	}
 
 	return req
+}
+
+type nonSeekableReader struct {
+	r io.Reader
+}
+
+func (n *nonSeekableReader) Read(p []byte) (int, error) {
+	return n.r.Read(p)
+}
+
+type errorReadSeeker struct {
+	io.Closer
+}
+
+func (rs *errorReadSeeker) Read(p []byte) (n int, err error) {
+	return 0, fmt.Errorf("error reading")
+}
+
+func (rs *errorReadSeeker) Seek(offset int64, whence int) (int64, error) {
+	return 0, fmt.Errorf("error seeking")
 }
