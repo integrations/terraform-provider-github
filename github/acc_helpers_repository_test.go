@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-github/v92/github"
+	"github.com/google/go-github/v93/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 )
 
@@ -34,7 +34,7 @@ func mustCreateTestRepository(t *testing.T, f ...createTestRepositoryOptionsFunc
 		org = testAccConf.meta.name
 	}
 
-	repo, _, err := testAccConf.meta.v3client.Repositories.Create(t.Context(), org, req)
+	repo, _, err := testAccConf.meta.v3client.Repositories.Create(t.Context(), org, repositoryCreateRequest(req))
 	if err != nil {
 		t.Fatalf("failed to create test repository: %v", err)
 	}

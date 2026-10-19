@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v92/github"
+	"github.com/google/go-github/v93/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -140,7 +140,7 @@ func resourceGithubActionsEnterpriseRunnerGroupCreate(ctx context.Context, d *sc
 	}
 
 	createOptions := github.CreateEnterpriseRunnerGroupRequest{
-		Name:                     &name,
+		Name:                     name,
 		Visibility:               &visibility,
 		SelectedOrganizationIDs:  selectedOrganizationIDs,
 		AllowsPublicRepositories: &allowsPublicRepositories,
@@ -324,7 +324,7 @@ func resourceGithubActionsEnterpriseRunnerGroupUpdate(ctx context.Context, d *sc
 	}
 
 	options := github.UpdateEnterpriseRunnerGroupRequest{
-		Name:                     &name,
+		Name:                     new(name),
 		Visibility:               &visibility,
 		RestrictedToWorkflows:    &restrictedToWorkflows,
 		SelectedWorkflows:        selectedWorkflows,

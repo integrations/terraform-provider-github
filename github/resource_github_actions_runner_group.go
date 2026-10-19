@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v92/github"
+	"github.com/google/go-github/v93/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -149,7 +149,7 @@ func resourceGithubActionsRunnerGroupCreate(ctx context.Context, d *schema.Resou
 	}
 
 	createOptions := github.CreateRunnerGroupRequest{
-		Name:                     &name,
+		Name:                     name,
 		Visibility:               &visibility,
 		RestrictedToWorkflows:    &restrictedToWorkflows,
 		SelectedRepositoryIDs:    selectedRepositoryIDs,
@@ -350,7 +350,7 @@ func resourceGithubActionsRunnerGroupUpdate(ctx context.Context, d *schema.Resou
 	}
 
 	options := github.UpdateRunnerGroupRequest{
-		Name:                     &name,
+		Name:                     name,
 		Visibility:               &visibility,
 		RestrictedToWorkflows:    &restrictedToWorkflows,
 		SelectedWorkflows:        selectedWorkflows,
