@@ -773,8 +773,11 @@ func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.Resource
 	if err := d.Set("enforcement", ruleset.Enforcement); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("bypass_actors", flattenBypassActors(ctx, ruleset.BypassActors)); err != nil {
-		return diag.FromErr(err)
+	// GitHub omits bypass_actors for callers who cannot administer the ruleset.
+	if ruleset.BypassActors != nil {
+		if err := d.Set("bypass_actors", flattenBypassActors(ctx, ruleset.BypassActors)); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if err := d.Set("conditions", flattenConditions(ctx, ruleset.GetConditions(), false)); err != nil {
 		return diag.FromErr(err)

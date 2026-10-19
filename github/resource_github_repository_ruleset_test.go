@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-log/tflogtest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
@@ -1176,5 +1177,62 @@ func importRepositoryRulesetByResourcePaths(repoLogicalName, rulesetLogicalName 
 		}
 
 		return fmt.Sprintf("%s:%s", repoID, rulesetID), nil
+	}
+}
+
+func Test_resourceGithubRepositoryRulesetRead_bypassActors(t *testing.T) {
+	t.Parallel()
+
+	const rulesetBody = `"id": 123, "name": "main", "target": "branch", "source_type": "Repository", "source": "owner/repo", "enforcement": "active", "node_id": "RRS_1", "rules": [{"type": "deletion"}]`
+
+	for _, tc := range []struct {
+		name         string
+		responseBody string
+		wantCount    int
+	}{
+		{
+			name:         "keeps_state_when_api_omits_bypass_actors",
+			responseBody: `{` + rulesetBody + `, "current_user_can_bypass": "never"}`,
+			wantCount:    1,
+		},
+		{
+			name:         "clears_state_when_api_returns_no_bypass_actors",
+			responseBody: `{` + rulesetBody + `, "bypass_actors": []}`,
+			wantCount:    0,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ts := githubApiMock([]*mockResponse{
+				{
+					ExpectedUri:    "/repos/owner/repo/rulesets/123?includes_parents=false",
+					ExpectedMethod: "GET",
+					StatusCode:     200,
+					ResponseBody:   tc.responseBody,
+				},
+			})
+			defer ts.Close()
+
+			meta := &Owner{name: "owner", v3client: mustCreateTestGitHubClient(t, ts.URL)}
+			d := schema.TestResourceDataRaw(t, resourceGithubRepositoryRuleset().Schema, map[string]any{
+				"repository":  "repo",
+				"name":        "main",
+				"target":      "branch",
+				"enforcement": "active",
+				"bypass_actors": []any{
+					map[string]any{"actor_type": "OrganizationAdmin", "bypass_mode": "pull_request"},
+				},
+			})
+			d.SetId("123")
+
+			if diags := resourceGithubRepositoryRulesetRead(t.Context(), d, meta); diags.HasError() {
+				t.Fatalf("expected no error, got: %v", diags)
+			}
+
+			if got := len(d.Get("bypass_actors").([]any)); got != tc.wantCount {
+				t.Fatalf("expected %d bypass actors in state, got %d", tc.wantCount, got)
+			}
+		})
 	}
 }
