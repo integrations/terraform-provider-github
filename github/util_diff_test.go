@@ -18,20 +18,20 @@ func TestRunnerGroupNetworkingDiff(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			for _, change := range []struct {
-				name        string
-				oldID       string
-				newID       cty.Value
-				omitted     bool
-				wantReplace bool
+				name    string
+				oldID   string
+				newID   cty.Value
+				omitted bool
+				wantNew *string
 			}{
 				{name: "retained", oldID: "network-1", newID: cty.StringVal("network-1")},
-				{name: "changed", oldID: "network-1", newID: cty.StringVal("network-2")},
-				{name: "assigned", newID: cty.StringVal("network-1")},
+				{name: "changed", oldID: "network-1", newID: cty.StringVal("network-2"), wantNew: new("network-2")},
+				{name: "assigned", newID: cty.StringVal("network-1"), wantNew: new("network-1")},
 				{name: "omitted", oldID: "network-1", omitted: true},
 				{name: "null", oldID: "network-1", newID: cty.NullVal(cty.String)},
 				{name: "unknown", oldID: "network-1", newID: cty.UnknownVal(cty.String)},
 				{name: "unassigned", omitted: true},
-				{name: "cleared", oldID: "network-1", newID: cty.StringVal(""), wantReplace: true},
+				{name: "cleared", oldID: "network-1", newID: cty.StringVal(""), wantNew: new("")},
 				{name: "already cleared", newID: cty.StringVal("")},
 			} {
 				t.Run(change.name, func(t *testing.T) {
@@ -68,8 +68,17 @@ func TestRunnerGroupNetworkingDiff(t *testing.T) {
 					if diff == nil || diff.Empty() {
 						t.Fatal("expected a diff")
 					}
-					if diff.RequiresNew() != change.wantReplace {
-						t.Errorf("replacement = %t, want %t", diff.RequiresNew(), change.wantReplace)
+					if diff.RequiresNew() {
+						t.Error("network assignment changes must not replace the runner group")
+					}
+					if change.wantNew != nil {
+						networkDiff := diff.Attributes["network_configuration_id"]
+						if networkDiff == nil {
+							t.Fatalf("expected network assignment diff to %q", *change.wantNew)
+						}
+						if networkDiff.New != *change.wantNew || networkDiff.NewComputed != (*change.wantNew == "") || networkDiff.NewRemoved {
+							t.Errorf("network assignment diff = %+v, want value %q", networkDiff, *change.wantNew)
+						}
 					}
 					if change.omitted || change.newID.IsNull() {
 						if networkDiff, ok := diff.Attributes["network_configuration_id"]; ok {

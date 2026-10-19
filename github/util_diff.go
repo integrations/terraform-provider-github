@@ -299,13 +299,7 @@ func diffETag(_ context.Context, diff *schema.ResourceDiff, _ any) error {
 }
 
 func diffRunnerGroupNetworkConfiguration(_ context.Context, diff *schema.ResourceDiff, _ any) error {
-	config := diff.GetRawConfig()
-	if diff.Id() == "" || config.IsNull() || !config.IsKnown() {
-		return nil
-	}
-
-	networkID, ok := config.AsValueMap()["network_configuration_id"]
-	if !ok || networkID.IsNull() || !networkID.IsKnown() || networkID.AsString() != "" {
+	if diff.Id() == "" || !runnerGroupNetworkConfigurationCleared(diff.GetRawConfig()) {
 		return nil
 	}
 
@@ -316,11 +310,7 @@ func diffRunnerGroupNetworkConfiguration(_ context.Context, diff *schema.Resourc
 	}
 
 	// SDKv2 treats empty Optional+Computed strings as unset unless the diff is customized.
-	if err := diff.SetNew("network_configuration_id", ""); err != nil {
-		return err
-	}
-
-	return diff.ForceNew("network_configuration_id")
+	return diff.SetNew("network_configuration_id", "")
 }
 
 // suppressUnorderedListDiff returns a schema.SchemaDiffSuppressFunc that suppresses diffs for unordered lists of any type.

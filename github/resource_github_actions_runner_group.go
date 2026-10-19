@@ -68,7 +68,7 @@ func resourceGithubActionsRunnerGroup() *schema.Resource {
 					validation.StringInSlice([]string{""}, false),
 					validation.StringIsNotWhiteSpace,
 				)),
-				Description: "The identifier of a hosted compute network configuration to assign to the runner group. When omitted, the existing assignment is retained. Setting an empty string clears the assignment by replacing the runner group because the GitHub client library cannot encode the explicit null required for in-place removal.",
+				Description: "The identifier of a hosted compute network configuration to assign to the runner group. When omitted or set to null, the existing assignment is retained. Setting an empty string clears the assignment in place without replacing the runner group.",
 			},
 			"runners_url": {
 				Type:        schema.TypeString,
@@ -356,7 +356,9 @@ func resourceGithubActionsRunnerGroupUpdate(ctx context.Context, d *schema.Resou
 		SelectedWorkflows:        selectedWorkflows,
 		AllowsPublicRepositories: &allowsPublicRepositories,
 	}
-	if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
+	if runnerGroupNetworkConfigurationCleared(d.GetRawConfig()) {
+		options.RemoveNetworkConfiguration = true
+	} else if networkConfigurationID, ok := d.GetOk("network_configuration_id"); ok {
 		networkConfigurationIDValue, _ := networkConfigurationID.(string)
 		options.NetworkConfigurationID = new(networkConfigurationIDValue)
 	}
@@ -369,6 +371,11 @@ func resourceGithubActionsRunnerGroupUpdate(ctx context.Context, d *schema.Resou
 
 	if _, _, err := client.Actions.UpdateOrganizationRunnerGroup(ctx, orgName, runnerGroupID, options); err != nil {
 		return diag.FromErr(err)
+	}
+	if options.RemoveNetworkConfiguration {
+		if err := d.Set("network_configuration_id", ""); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	selectedRepositories, hasSelectedRepositories := d.GetOk("selected_repository_ids")

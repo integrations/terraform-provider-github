@@ -7,11 +7,22 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/google/go-github/v92/github"
+	"github.com/google/go-github/v93/github"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 var networkConfigurationNamePattern = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
+
+func runnerGroupNetworkConfigurationCleared(config cty.Value) bool {
+	if config.IsNull() || !config.IsKnown() {
+		return false
+	}
+
+	// SDKv2 can return the old computed ID from GetOk even when config explicitly clears it.
+	networkID, ok := config.AsValueMap()["network_configuration_id"]
+	return ok && !networkID.IsNull() && networkID.IsKnown() && networkID.AsString() == ""
+}
 
 func setNetworkConfigurationState(d *schema.ResourceData, configuration *github.NetworkConfiguration) error {
 	if err := d.Set("name", configuration.GetName()); err != nil {

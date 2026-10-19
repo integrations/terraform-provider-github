@@ -1,10 +1,15 @@
 package github
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"reflect"
+	"strings"
 	"testing"
 
+	"github.com/google/go-github/v93/github"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/compare"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -110,6 +115,130 @@ func TestGithubActionsRunnerGroupReadErrors(t *testing.T) {
 	}
 }
 
+func TestRunnerGroupNetworkConfigurationUpdate(t *testing.T) {
+	for _, scope := range []struct {
+		name      string
+		path      string
+		accessKey string
+		resource  *schema.Resource
+	}{
+		{"organization", "/orgs/test-org/actions/runner-groups/42", "selected_repository_ids", resourceGithubActionsRunnerGroup()},
+		{"enterprise", "/enterprises/test-enterprise/actions/runner-groups/42", "selected_organization_ids", resourceGithubActionsEnterpriseRunnerGroup()},
+	} {
+		for _, tc := range []struct {
+			name         string
+			config       cty.Value
+			oldID        string
+			patchStatus  int
+			accessStatus int
+			wantID       string
+			wantJSON     string
+		}{
+			{"detach", cty.StringVal(""), "network-1", 200, 204, "", "null"},
+			{"omit", cty.NilVal, "network-1", 200, 204, "network-1", `"network-1"`},
+			{"null", cty.NullVal(cty.String), "network-1", 200, 204, "network-1", `"network-1"`},
+			{"unassigned", cty.NilVal, "", 200, 204, "", ""},
+			{"forbidden", cty.StringVal(""), "network-1", 403, 204, "network-1", "null"},
+			{"not found", cty.StringVal(""), "network-1", 404, 204, "network-1", "null"},
+			{"invalid", cty.StringVal(""), "network-1", 422, 204, "network-1", "null"},
+			{"server error", cty.StringVal(""), "network-1", 500, 204, "network-1", "null"},
+			{"access failure after detach", cty.StringVal(""), "network-1", 200, 403, "", "null"},
+		} {
+			t.Run(scope.name+"/"+tc.name, func(t *testing.T) {
+				d := schema.TestResourceDataRaw(t, scope.resource.Schema, map[string]any{
+					"name":                       "test-group",
+					"enterprise_slug":            "test-enterprise",
+					"visibility":                 "selected",
+					"allows_public_repositories": true,
+					"restricted_to_workflows":    true,
+					"selected_workflows":         []any{"test-org/repo/.github/workflows/build.yml@refs/heads/main"},
+					scope.accessKey:              []any{7, 8},
+					"network_configuration_id":   tc.oldID,
+				})
+				d.SetId("42")
+				config := map[string]cty.Value{}
+				if tc.config != cty.NilVal {
+					config["network_configuration_id"] = tc.config
+				}
+				state := d.State()
+				state.RawConfig = cty.ObjectVal(config)
+				d = scope.resource.Data(state)
+
+				var calls []string
+				client, err := github.NewClient(github.WithTransport(localRoundTripper{handler: http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+					calls = append(calls, req.Method)
+					w.Header().Set("Content-Type", "application/json")
+					var body map[string]json.RawMessage
+					if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+						t.Fatal(err)
+					}
+					switch req.Method {
+					case http.MethodPatch:
+						if req.URL.Path != scope.path {
+							t.Errorf("PATCH path = %q, want %q", req.URL.Path, scope.path)
+						}
+						if got := string(body["network_configuration_id"]); got != tc.wantJSON {
+							t.Errorf("network_configuration_id JSON = %q, want %q", got, tc.wantJSON)
+						}
+						for key, want := range map[string]string{
+							"name":                       `"test-group"`,
+							"visibility":                 `"selected"`,
+							"allows_public_repositories": "true",
+							"restricted_to_workflows":    "true",
+							"selected_workflows":         `["test-org/repo/.github/workflows/build.yml@refs/heads/main"]`,
+						} {
+							if got := string(body[key]); got != want {
+								t.Errorf("%s JSON = %s, want %s", key, got, want)
+							}
+						}
+						if _, exists := body["runners"]; exists {
+							t.Error("network update must not modify runner membership")
+						}
+						w.WriteHeader(tc.patchStatus)
+						mustWrite(w, `{"id":42,"message":"request rejected"}`)
+					case http.MethodPut:
+						wantPath := scope.path + "/repositories"
+						if scope.name == "enterprise" {
+							wantPath = scope.path + "/organizations"
+						}
+						if req.URL.Path != wantPath || string(body[scope.accessKey]) != "[7,8]" {
+							t.Errorf("access request changed: %s %s", req.URL.Path, body[scope.accessKey])
+						}
+						w.WriteHeader(tc.accessStatus)
+						if tc.accessStatus != http.StatusNoContent {
+							mustWrite(w, `{"message":"access update rejected"}`)
+						}
+					default:
+						t.Errorf("unexpected request %s %s", req.Method, req.URL.Path)
+						w.WriteHeader(http.StatusMethodNotAllowed)
+					}
+				})}))
+				if err != nil {
+					t.Fatal(err)
+				}
+				diags := scope.resource.UpdateContext(t.Context(), d, &Owner{name: "test-org", IsOrganization: true, v3client: client})
+				wantError := tc.patchStatus != http.StatusOK || tc.accessStatus != http.StatusNoContent
+				if diags.HasError() != wantError {
+					t.Fatalf("diagnostics = %v, want error = %t", diags, wantError)
+				}
+				if wantError && !strings.Contains(fmt.Sprint(diags), "rejected") {
+					t.Errorf("API error was lost: %v", diags)
+				}
+				wantCalls := []string{http.MethodPatch, http.MethodPut}
+				if tc.patchStatus != http.StatusOK {
+					wantCalls = wantCalls[:1]
+				}
+				if !reflect.DeepEqual(calls, wantCalls) {
+					t.Errorf("requests = %v, want %v (no read-after-write)", calls, wantCalls)
+				}
+				if d.Id() != "42" || d.Get("network_configuration_id") != tc.wantID {
+					t.Errorf("unexpected state: ID=%s network_configuration_id=%v", d.Id(), d.Get("network_configuration_id"))
+				}
+			})
+		}
+	}
+}
+
 func TestAccGithubActionsRunnerGroup(t *testing.T) {
 	t.Parallel()
 
@@ -118,7 +247,6 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 		groupName := fmt.Sprintf("%srunner-group-%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
 		resourceName := "github_actions_runner_group.test"
 		groupIDUnchanged := statecheck.CompareValue(compare.ValuesSame())
-		groupIDReplaced := statecheck.CompareValue(compare.ValuesDiffer())
 
 		configWithoutNetworking := fmt.Sprintf(`
 			resource "github_actions_runner_group" "test" {
@@ -162,14 +290,13 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 					Config: configWithoutNetworking,
 					ConfigStateChecks: []statecheck.StateCheck{
 						groupIDUnchanged.AddStateValue(resourceName, tfjsonpath.New("id")),
-						groupIDReplaced.AddStateValue(resourceName, tfjsonpath.New("id")),
 						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.StringExact(networkConfiguration.GetID())),
 					},
 				},
 				{
 					Config: configWithNetworkingCleared,
 					ConfigStateChecks: []statecheck.StateCheck{
-						groupIDReplaced.AddStateValue(resourceName, tfjsonpath.New("id")),
+						groupIDUnchanged.AddStateValue(resourceName, tfjsonpath.New("id")),
 						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.StringExact("")),
 					},
 				},

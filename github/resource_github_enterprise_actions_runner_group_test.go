@@ -281,7 +281,6 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 		resourceName := "github_enterprise_actions_runner_group.test"
 		groupName := fmt.Sprintf("tf-acc-test-%s", randomID)
 		groupIDUnchanged := statecheck.CompareValue(compare.ValuesSame())
-		groupIDReplaced := statecheck.CompareValue(compare.ValuesDiffer())
 
 		configWithoutNetworking := fmt.Sprintf(`
 			resource "github_enterprise_actions_runner_group" "test" {
@@ -329,14 +328,13 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 					Config: configWithoutNetworking,
 					ConfigStateChecks: []statecheck.StateCheck{
 						groupIDUnchanged.AddStateValue(resourceName, tfjsonpath.New("id")),
-						groupIDReplaced.AddStateValue(resourceName, tfjsonpath.New("id")),
 						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.StringExact(networkConfiguration.GetID())),
 					},
 				},
 				{
 					Config: configWithNetworkingCleared,
 					ConfigStateChecks: []statecheck.StateCheck{
-						groupIDReplaced.AddStateValue(resourceName, tfjsonpath.New("id")),
+						groupIDUnchanged.AddStateValue(resourceName, tfjsonpath.New("id")),
 						statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.StringExact("")),
 					},
 				},

@@ -8,12 +8,13 @@ import (
 	"maps"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
 	"testing"
 
-	"github.com/google/go-github/v92/github"
+	"github.com/google/go-github/v93/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/compare"
@@ -124,9 +125,19 @@ func testRunnerGroupNetworkingLifecycle(t *testing.T, runnerGroup func() *schema
 	t.Helper()
 
 	path := scope + "/actions/runner-groups"
+	accessKind := "repositories"
+	selectedIDs := "selected_repository_ids"
+	if enterpriseSlug != "" {
+		accessKind = "organizations"
+		selectedIDs = "selected_organization_ids"
+	}
 	var mu sync.Mutex
 	groups := map[string]map[string]any{}
 	nextID := 41
+	detachRequests := 0
+	wantAccess := []any{float64(7), float64(8)}
+	wantWorkflows := []any{"test-org/repo/.github/workflows/build.yml@refs/heads/main"}
+	wantRunners := []any{float64(101), float64(102)}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		defer mu.Unlock()
@@ -145,17 +156,35 @@ func testRunnerGroupNetworkingLifecycle(t *testing.T, runnerGroup func() *schema
 				"default":                  false,
 				"inherited":                false,
 				"runners_url":              path + "/" + id + "/runners",
+				"runners":                  wantRunners,
 			}
 			groups[id] = group
 		case group == nil:
 			w.WriteHeader(http.StatusNotFound)
 			fmt.Fprint(w, `{"message":"Not Found"}`)
 			return
-		case len(parts) == 2 && (parts[1] == "repositories" || parts[1] == "organizations"):
+		case len(parts) == 2 && parts[1] == accessKind:
 			switch r.Method {
 			case http.MethodGet:
-				fmt.Fprint(w, `{"repositories":[],"organizations":[]}`)
+				ids, _ := group[selectedIDs].([]any)
+				items := make([]map[string]any, 0, len(ids))
+				for _, id := range ids {
+					items = append(items, map[string]any{"id": id})
+				}
+				if err := json.NewEncoder(w).Encode(map[string]any{accessKind: items}); err != nil {
+					t.Errorf("encode runner group access: %v", err)
+				}
 			case http.MethodPut:
+				var request map[string]any
+				if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+					t.Errorf("decode runner group access: %v", err)
+					w.WriteHeader(http.StatusBadRequest)
+					return
+				}
+				if !reflect.DeepEqual(request[selectedIDs], wantAccess) {
+					t.Errorf("runner group access changed: %v", request)
+				}
+				group[selectedIDs] = request[selectedIDs]
 				w.WriteHeader(http.StatusNoContent)
 			default:
 				t.Errorf("unexpected access request: %s %s", r.Method, r.URL.Path)
@@ -163,6 +192,9 @@ func testRunnerGroupNetworkingLifecycle(t *testing.T, runnerGroup func() *schema
 			}
 			return
 		case r.Method == http.MethodDelete:
+			if !reflect.DeepEqual(group["runners"], wantRunners) {
+				t.Errorf("attached runners changed before destroy: %v", group["runners"])
+			}
 			delete(groups, id)
 			w.WriteHeader(http.StatusNoContent)
 			return
@@ -181,6 +213,25 @@ func testRunnerGroupNetworkingLifecycle(t *testing.T, runnerGroup func() *schema
 			}
 			if request["network_configuration_id"] == "" {
 				t.Errorf("provider sent an empty-string network_configuration_id in a %s request", r.Method)
+			}
+			if networkID, present := request["network_configuration_id"]; present && networkID == nil {
+				if r.Method != http.MethodPatch {
+					t.Errorf("network detachment must use PATCH, got %s", r.Method)
+				}
+				detachRequests++
+			}
+			for key, want := range map[string]any{
+				"visibility":                 "selected",
+				"allows_public_repositories": true,
+				"restricted_to_workflows":    true,
+				"selected_workflows":         wantWorkflows,
+			} {
+				if !reflect.DeepEqual(request[key], want) {
+					t.Errorf("%s request changed %s: got %v, want %v", r.Method, key, request[key], want)
+				}
+			}
+			if _, present := request["runners"]; present {
+				t.Error("network update must not modify attached runners")
 			}
 			maps.Copy(group, request)
 		}
@@ -205,15 +256,29 @@ func testRunnerGroupNetworkingLifecycle(t *testing.T, runnerGroup func() *schema
 	config := fmt.Sprintf(`
 		resource %q "test" {
 		  %s
-		  name       = "test-group"
-		  visibility = "all"
+		  name                       = "test-group"
+		  visibility                 = "selected"
+		  %s                         = [7, 8]
+		  allows_public_repositories = true
+		  restricted_to_workflows    = true
+		  selected_workflows         = ["test-org/repo/.github/workflows/build.yml@refs/heads/main"]
 		  %%s
 		}
-	`, resourceType, enterpriseConfig)
+	`, resourceType, enterpriseConfig, selectedIDs)
 	resourceName := resourceType + ".test"
 	unchangedID := statecheck.CompareValue(compare.ValuesSame())
-	replacedID := statecheck.CompareValue(compare.ValuesDiffer())
 	attachedConfig := fmt.Sprintf(config, `network_configuration_id = "network-1"`)
+	checkState := func(networkID string) []statecheck.StateCheck {
+		return []statecheck.StateCheck{
+			unchangedID.AddStateValue(resourceName, tfjsonpath.New("id")),
+			statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.StringExact(networkID)),
+			statecheck.ExpectKnownValue(resourceName, tfjsonpath.New(selectedIDs), knownvalue.SetExact([]knownvalue.Check{knownvalue.Int64Exact(7), knownvalue.Int64Exact(8)})),
+			statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("visibility"), knownvalue.StringExact("selected")),
+			statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("allows_public_repositories"), knownvalue.Bool(true)),
+			statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("restricted_to_workflows"), knownvalue.Bool(true)),
+			statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("selected_workflows"), knownvalue.ListExact([]knownvalue.Check{knownvalue.StringExact("test-org/repo/.github/workflows/build.yml@refs/heads/main")})),
+		}
+	}
 
 	resource.UnitTest(t, resource.TestCase{
 		ProviderFactories: map[string]func() (*schema.Provider, error){
@@ -229,18 +294,12 @@ func testRunnerGroupNetworkingLifecycle(t *testing.T, runnerGroup func() *schema
 		},
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(config, ""),
-				ConfigStateChecks: []statecheck.StateCheck{
-					unchangedID.AddStateValue(resourceName, tfjsonpath.New("id")),
-					statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.StringExact("")),
-				},
+				Config:            fmt.Sprintf(config, ""),
+				ConfigStateChecks: checkState(""),
 			},
 			{
-				Config: attachedConfig,
-				ConfigStateChecks: []statecheck.StateCheck{
-					unchangedID.AddStateValue(resourceName, tfjsonpath.New("id")),
-					statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.StringExact("network-1")),
-				},
+				Config:            attachedConfig,
+				ConfigStateChecks: checkState("network-1"),
 			},
 			{
 				ResourceName:        resourceName,
@@ -249,18 +308,39 @@ func testRunnerGroupNetworkingLifecycle(t *testing.T, runnerGroup func() *schema
 				ImportStateIdPrefix: importPrefix,
 			},
 			{
-				Config: fmt.Sprintf(config, ""),
-				ConfigStateChecks: []statecheck.StateCheck{
-					unchangedID.AddStateValue(resourceName, tfjsonpath.New("id")),
-					statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.StringExact("network-1")),
-				},
+				Config: fmt.Sprintf(`
+					removed {
+					  from = %s
+					  lifecycle { destroy = false }
+					}
+				`, resourceName),
 			},
 			{
-				Config: fmt.Sprintf(config, `network_configuration_id = null`),
-				ConfigStateChecks: []statecheck.StateCheck{
-					unchangedID.AddStateValue(resourceName, tfjsonpath.New("id")),
-					statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.StringExact("network-1")),
-				},
+				Config:             attachedConfig,
+				ResourceName:       resourceName,
+				ImportState:        true,
+				ImportStatePersist: true,
+				ImportStateId:      importPrefix + "42",
+			},
+			{
+				Config:            fmt.Sprintf(config, `network_configuration_id = ""`),
+				ConfigStateChecks: checkState(""),
+			},
+			{
+				Config:   fmt.Sprintf(config, `network_configuration_id = ""`),
+				PlanOnly: true,
+			},
+			{
+				Config:            attachedConfig,
+				ConfigStateChecks: checkState("network-1"),
+			},
+			{
+				Config:            strings.Replace(fmt.Sprintf(config, ""), `"test-group"`, `"renamed-group"`, 1),
+				ConfigStateChecks: checkState("network-1"),
+			},
+			{
+				Config:            fmt.Sprintf(config, `network_configuration_id = null`),
+				ConfigStateChecks: checkState("network-1"),
 			},
 			{
 				PreConfig: func() {
@@ -270,25 +350,22 @@ func testRunnerGroupNetworkingLifecycle(t *testing.T, runnerGroup func() *schema
 						group["network_configuration_id"] = "network-external"
 					}
 				},
-				Config: strings.Replace(fmt.Sprintf(config, ""), `"test-group"`, `"renamed-group"`, 1),
-				ConfigStateChecks: []statecheck.StateCheck{
-					unchangedID.AddStateValue(resourceName, tfjsonpath.New("id")),
-					statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.StringExact("network-external")),
-				},
+				Config:            strings.Replace(fmt.Sprintf(config, ""), `"test-group"`, `"renamed-group"`, 1),
+				ConfigStateChecks: checkState("network-external"),
 			},
 			{
-				Config: fmt.Sprintf(config, `network_configuration_id = "network-2"`),
-				ConfigStateChecks: []statecheck.StateCheck{
-					unchangedID.AddStateValue(resourceName, tfjsonpath.New("id")),
-					replacedID.AddStateValue(resourceName, tfjsonpath.New("id")),
-				},
+				Config:            fmt.Sprintf(config, `network_configuration_id = "network-2"`),
+				ConfigStateChecks: checkState("network-2"),
 			},
 			{
-				Config: fmt.Sprintf(config, `network_configuration_id = ""`),
-				ConfigStateChecks: []statecheck.StateCheck{
-					replacedID.AddStateValue(resourceName, tfjsonpath.New("id")),
-					statecheck.ExpectKnownValue(resourceName, tfjsonpath.New("network_configuration_id"), knownvalue.StringExact("")),
-				},
+				Config:            fmt.Sprintf(config, `network_configuration_id = ""`),
+				ConfigStateChecks: checkState(""),
+			},
+			{
+				ResourceName:        resourceName,
+				ImportState:         true,
+				ImportStateVerify:   true,
+				ImportStateIdPrefix: importPrefix,
 			},
 		},
 	})
@@ -296,6 +373,12 @@ func testRunnerGroupNetworkingLifecycle(t *testing.T, runnerGroup func() *schema
 	defer mu.Unlock()
 	if len(groups) != 0 {
 		t.Errorf("runner groups remain after destroy: %v", groups)
+	}
+	if nextID != 42 {
+		t.Errorf("runner group was replaced: last ID = %d, want 42", nextID)
+	}
+	if detachRequests != 2 {
+		t.Errorf("explicit-null PATCH requests = %d, want 2", detachRequests)
 	}
 }
 
