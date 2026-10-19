@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v92/github"
+	"github.com/google/go-github/v93/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -296,6 +296,21 @@ func diffTeamCheck(ctx context.Context, client *github.Client, owner string, tea
 // diffETag clears the etag field from the diff to prevent unnecessary updates when the ETag changes.
 func diffETag(_ context.Context, diff *schema.ResourceDiff, _ any) error {
 	return diff.Clear("etag")
+}
+
+func diffRunnerGroupNetworkConfiguration(_ context.Context, diff *schema.ResourceDiff, _ any) error {
+	if diff.Id() == "" || !runnerGroupNetworkConfigurationCleared(diff.GetRawConfig()) {
+		return nil
+	}
+
+	oldValue, _ := diff.GetChange("network_configuration_id")
+	oldID, _ := oldValue.(string)
+	if oldID == "" {
+		return nil
+	}
+
+	// SDKv2 treats empty Optional+Computed strings as unset unless the diff is customized.
+	return diff.SetNew("network_configuration_id", "")
 }
 
 // suppressUnorderedListDiff returns a schema.SchemaDiffSuppressFunc that suppresses diffs for unordered lists of any type.
