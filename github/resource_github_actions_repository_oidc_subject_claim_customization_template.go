@@ -3,8 +3,10 @@ package github
 import (
 	"context"
 	"errors"
+	"net/http"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -91,7 +93,12 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead(ct
 
 	template, _, err := client.Actions.GetRepoOIDCSubjectClaimCustomTemplate(ctx, owner, repository)
 	if err != nil {
-		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(ctx, err, d, "actions repository oidc subject claim customization template", map[string]any{"owner": owner, "repository": repository}))
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Removing OIDC subject claim customization template from state because the repository no longer exists in GitHub", map[string]any{"owner": owner, "repository": repository})
+			d.SetId("")
+			return nil
+		}
+		return diag.FromErr(err)
 	}
 
 	if err = d.Set("repository", repository); err != nil {

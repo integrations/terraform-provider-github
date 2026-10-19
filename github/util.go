@@ -1,19 +1,14 @@
 package github
 
 import (
-	"context"
 	"crypto/md5"
-	"errors"
 	"fmt"
-	"net/http"
 	"regexp"
 	"slices"
 	"sort"
 	"strings"
 
-	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/go-cty/cty"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -215,25 +210,6 @@ func validateSecretNameFunc(v any, path cty.Path) diag.Diagnostics {
 	}
 
 	return diags
-}
-
-// deleteResourceOn404AndSwallow304OtherwiseReturnError will log and delete resource if error is 404 which indicates resource (or any of its ancestors)
-// doesn't exist.
-func deleteResourceOn404AndSwallow304OtherwiseReturnError(ctx context.Context, err error, d *schema.ResourceData, resourceType string, fields map[string]any) error {
-	ctx = tflog.SetField(ctx, "resource_type", resourceType)
-	ctx = tflog.SetField(ctx, "resource_id", d.Id())
-	if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
-		if ghErr.Response.StatusCode == http.StatusNotModified {
-			tflog.Info(ctx, "Resource not modified, skipping", fields)
-			return nil
-		}
-		if ghErr.Response.StatusCode == http.StatusNotFound {
-			tflog.Info(ctx, "Removing resource from state because it no longer exists in GitHub", fields)
-			d.SetId("")
-			return nil
-		}
-	}
-	return err
 }
 
 // Helper function to safely convert interface{} to int, handling both int and float64.

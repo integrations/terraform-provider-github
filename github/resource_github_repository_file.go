@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -276,7 +277,7 @@ func resourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceDat
 	ctx = tflog.SetField(ctx, "repository", repoName)
 	ctx = tflog.SetField(ctx, "file", file)
 	ctx = tflog.SetField(ctx, "owner", owner)
-	ctx = tflog.SetField(ctx, "owner", owner)
+	ctx = tflog.SetField(ctx, "branch", branch)
 
 	opts := &github.RepositoryContentGetOptions{}
 
@@ -284,7 +285,12 @@ func resourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceDat
 
 	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repoName, file, opts)
 	if err != nil {
-		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(ctx, err, d, "repository file", map[string]any{"owner": owner, "repository": repoName, "file": file, "branch": branch}))
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Removing repository file from state because it no longer exists in GitHub")
+			d.SetId("")
+			return nil
+		}
+		return diag.FromErr(err)
 	}
 	if fc == nil {
 		tflog.Info(ctx, "Removing repository path from state because it no longer exists in GitHub")
