@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -446,13 +446,8 @@ func resourceGithubRepository() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the repository object.",
-				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
-					return true
-				},
-				DiffSuppressOnRefresh: true,
 			},
 			"primary_language": {
 				Type:        schema.TypeString,
@@ -506,6 +501,7 @@ func resourceGithubRepository() *schema.Resource {
 			customdiff.ForceNewIfChange("fork", valueChangedButNotEmpty),
 			customdiff.ForceNewIfChange("source_repo", valueChangedButNotEmpty),
 			customdiff.ForceNewIfChange("source_owner", valueChangedButNotEmpty),
+			diffETag,
 		),
 	}
 }
@@ -686,7 +682,7 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 			private := repoReq.GetVisibility() != "public"
 
 			templateRepoReq := github.TemplateRepoRequest{
-				Name:               &repoName,
+				Name:               repoName,
 				Owner:              &owner,
 				Description:        new(d.Get("description").(string)),
 				Private:            new(private),
@@ -696,7 +692,7 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 			repo, _, err := client.Repositories.CreateFromTemplate(ctx,
 				templateRepoOwner,
 				templateRepo,
-				&templateRepoReq,
+				templateRepoReq,
 			)
 			if err != nil {
 				return diag.FromErr(err)
@@ -934,6 +930,10 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 	}
 
 	client := meta.(*Owner).v3client
+
+	if err := d.Set("etag", nil); err != nil {
+		return diag.FromErr(err)
+	}
 
 	repoReq := resourceGithubRepositoryObject(d)
 

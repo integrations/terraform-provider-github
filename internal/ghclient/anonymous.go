@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/sync/semaphore"
 )
@@ -18,12 +18,12 @@ type anonymousSource struct {
 
 // NewAnonymousSource creates a new anonymousSource that provides an unauthenticated GitHub client. This client will have limited access to public resources and will be subject to stricter rate limits compared to authenticated clients.
 func NewAnonymousSource(opts SourceOptions) (*anonymousSource, error) {
-	if opts.Cache && opts.CacheBasePath == "" {
+	if opts.Cache.Enabled && opts.Cache.BasePath == "" {
 		s, err := os.MkdirTemp("", "*")
 		if err != nil {
 			return nil, fmt.Errorf("failed to create temporary cache directory: %w", err)
 		}
-		opts.CacheBasePath = s
+		opts.Cache.BasePath = s
 	}
 
 	sema := semaphore.NewWeighted(maxConcurrentRequests)

@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -26,6 +26,8 @@ func resourceGithubTeamSyncGroupMapping() *schema.Resource {
 				return []*schema.ResourceData{d}, nil
 			},
 		},
+
+		CustomizeDiff: diffETag,
 
 		Schema: map[string]*schema.Schema{
 			"team_slug": {
@@ -60,13 +62,8 @@ func resourceGithubTeamSyncGroupMapping() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the team sync group mapping.",
-				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
-					return true
-				},
-				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -145,6 +142,11 @@ func resourceGithubTeamSyncGroupMappingUpdate(d *schema.ResourceData, meta any) 
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
+
+	if err := d.Set("etag", nil); err != nil {
+		return err
+	}
+
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	slug := d.Get("team_slug").(string)
 

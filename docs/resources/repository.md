@@ -63,7 +63,6 @@ resource "github_repository" "forked_repo" {
 - `default_branch` (String, Deprecated) The name of the default branch of the repository. NOTE: This can only be set after a repository has already been created, and after a correct reference has been created for the target branch inside the repository. This means a user will have to omit this parameter from the initial repository creation and create the target branch inside of the repository prior to setting this attribute.
 - `delete_branch_on_merge` (Boolean) Automatically delete head branch after a pull request is merged. Defaults to 'false'.
 - `description` (String) A description of the repository.
-- `etag` (String) An etag representing the repository object.
 - `fork` (String) Set to 'true' to create a fork of an existing repository. When set to 'true', both 'source_owner' and 'source_repo' must also be specified.
 - `gitignore_template` (String) Use the name of the template without the extension. For example, 'Haskell'.
 - `has_discussions` (Boolean) Set to 'true' to enable GitHub Discussions on the repository. Defaults to 'false'.
@@ -92,6 +91,7 @@ resource "github_repository" "forked_repo" {
 
 ### Read-Only
 
+- `etag` (String) An etag representing the repository object.
 - `full_name` (String) A string of the form 'orgname/reponame'.
 - `git_clone_url` (String) URL that can be provided to 'git clone' to clone the repository anonymously via the git protocol.
 - `html_url` (String) URL to the repository on the web.

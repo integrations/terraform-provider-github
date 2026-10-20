@@ -2,9 +2,8 @@ package github
 
 import (
 	"context"
-	"net/url"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -78,7 +77,7 @@ func dataSourceGithubActionsEnvironmentSecretsRead(ctx context.Context, d *schem
 	}
 
 	var all_secrets []map[string]string
-	for secret, err := range client.Actions.ListEnvSecretsIter(ctx, owner, repoName, url.PathEscape(envName), &github.ListOptions{PerPage: meta.maxPerPage}) {
+	for secret, err := range client.Actions.ListEnvSecretsIter(ctx, owner, repoName, envName, &github.ListOptions{PerPage: meta.maxPerPage}) {
 		if err != nil {
 			return diag.FromErr(err)
 		}

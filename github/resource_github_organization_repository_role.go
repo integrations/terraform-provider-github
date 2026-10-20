@@ -8,23 +8,27 @@ import (
 	"slices"
 	"strconv"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/integrations/terraform-provider-github/v6/internal/tfpluginv2util"
 )
 
 func resourceGithubOrganizationRepositoryRole() *schema.Resource {
 	return &schema.Resource{
-		Description: "Manage a custom organization repository role.",
-
 		CreateContext: resourceGithubOrganizationRepositoryRoleCreate,
 		ReadContext:   resourceGithubOrganizationRepositoryRoleRead,
 		UpdateContext: resourceGithubOrganizationRepositoryRoleUpdate,
 		DeleteContext: resourceGithubOrganizationRepositoryRoleDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: resourceGithubOrganizationRepositoryRoleImport,
 		},
+
+		CustomizeDiff: resourceGithubOrganizationRepositoryRoleCustomizeDiff,
+
+		Description: "Resource to manage a custom organization repository role.",
 
 		Schema: map[string]*schema.Schema{
 			"role_id": {
@@ -56,32 +60,47 @@ func resourceGithubOrganizationRepositoryRole() *schema.Resource {
 				MinItems:    1,
 			},
 		},
-
-		CustomizeDiff: resourceGithubOrganizationRepositoryRoleCustomizeDiff,
 	}
 }
 
-func resourceGithubOrganizationRepositoryRoleCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	err := checkOrganization(meta)
-	if err != nil {
-		return diag.FromErr(err)
+func resourceGithubOrganizationRepositoryRoleCustomizeDiff(ctx context.Context, d *schema.ResourceDiff, m any) error {
+	tflog.Debug(ctx, "Customizing diff for GitHub organization repository role", map[string]any{"permissionsChanged": d.HasChange("permissions")})
+	if d.HasChange("permissions") {
+		s, _ := d.Get("permissions").(*schema.Set)
+		newPermissions := s.List()
+		tflog.Debug(ctx, "Validating permissions values", map[string]any{"newPermissions": newPermissions})
+		for _, v := range newPermissions {
+			permission, _ := v.(string)
+			if !slices.Contains(validRolePermissions, permission) {
+				return fmt.Errorf("invalid permission: %+v", permission)
+			}
+		}
+	}
+	return nil
+}
+
+func resourceGithubOrganizationRepositoryRoleCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
+
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	name, _ := d.Get("name").(string)
+	description, _ := d.Get("description").(string)
+	baseRole, _ := d.Get("base_role").(string)
+	permissions := tfpluginv2util.GetSet[string](d, "permissions", false)
 
-	permissions := d.Get("permissions").(*schema.Set).List()
-	permissionsStr := make([]string, len(permissions))
-	for i, v := range permissions {
-		permissionsStr[i] = v.(string)
+	req := github.CreateCustomRepoRoleRequest{
+		Name:        name,
+		Description: new(description),
+		BaseRole:    baseRole,
+		Permissions: permissions,
 	}
 
-	role, _, err := client.Organizations.CreateCustomRepoRole(ctx, orgName, &github.CreateOrUpdateCustomRepoRoleOptions{
-		Name:        new(d.Get("name").(string)),
-		Description: new(d.Get("description").(string)),
-		BaseRole:    new(d.Get("base_role").(string)),
-		Permissions: permissionsStr,
-	})
+	role, _, err := client.Organizations.CreateCustomRepoRole(ctx, orgName, req)
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("error creating GitHub organization repository role (%s/%s): %w", orgName, d.Get("name").(string), err))
 	}
@@ -94,109 +113,131 @@ func resourceGithubOrganizationRepositoryRoleCreate(ctx context.Context, d *sche
 	return nil
 }
 
-func resourceGithubOrganizationRepositoryRoleRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	err := checkOrganization(meta)
-	if err != nil {
-		return diag.FromErr(err)
+func resourceGithubOrganizationRepositoryRoleRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
+
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	roleIDInt, _ := d.Get("role_id").(int)
+	roleID := int64(roleIDInt)
 
-	roleId, err := strconv.ParseInt(d.Id(), 10, 64)
+	role, _, err := client.Organizations.GetCustomRepoRole(ctx, orgName, roleID)
 	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	role, _, err := client.Organizations.GetCustomRepoRole(ctx, orgName, roleId)
-	if err != nil {
-		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Warn(ctx, "GitHub organization repository role not found, removing from state", map[string]any{
-					"orgName": orgName,
-					"roleId":  roleId,
-				})
-				d.SetId("")
-				return nil
-			}
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Warn(ctx, "GitHub organization repository role not found, removing from state", map[string]any{"orgName": orgName, "roleId": roleID})
+			d.SetId("")
+			return nil
 		}
 		return diag.FromErr(err)
 	}
 
+	if err = d.Set("name", role.GetName()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err = d.Set("description", role.GetDescription()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err = d.Set("base_role", role.GetBaseRole()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err = d.Set("permissions", role.GetPermissions()); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
+}
+
+func resourceGithubOrganizationRepositoryRoleUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
+
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
+	}
+
+	roleIDInt, _ := d.Get("role_id").(int)
+	roleID := int64(roleIDInt)
+
+	name, _ := d.Get("name").(string)
+	description, _ := d.Get("description").(string)
+	baseRole, _ := d.Get("base_role").(string)
+	permissions := tfpluginv2util.GetSet[string](d, "permissions", false)
+
+	req := github.UpdateCustomRepoRoleRequest{
+		Name:        new(name),
+		Description: new(description),
+		BaseRole:    new(baseRole),
+		Permissions: permissions,
+	}
+
+	if _, _, err := client.Organizations.UpdateCustomRepoRole(ctx, orgName, roleID, req); err != nil {
+		return diag.FromErr(fmt.Errorf("error updating GitHub organization repository role (%s/%s): %w", orgName, name, err))
+	}
+
+	return nil
+}
+
+func resourceGithubOrganizationRepositoryRoleDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
+
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
+	}
+
+	roleIDInt, _ := d.Get("role_id").(int)
+	roleID := int64(roleIDInt)
+
+	if _, err := client.Organizations.DeleteCustomRepoRole(ctx, orgName, roleID); err != nil {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Warn(ctx, "Organization repository role not found, skipping delete", map[string]any{"orgName": orgName, "roleId": roleID})
+			return nil
+		}
+
+		return diag.FromErr(fmt.Errorf("Error deleting organization repository role %d: %w", roleID, err))
+	}
+
+	return nil
+}
+
+func resourceGithubOrganizationRepositoryRoleImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
+
+	roleID, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	role, _, err := client.Organizations.GetCustomRepoRole(ctx, orgName, roleID)
+	if err != nil {
+		return nil, err
+	}
+
 	if err = d.Set("role_id", role.GetID()); err != nil {
-		return diag.FromErr(err)
+		return nil, err
 	}
-	if err = d.Set("name", role.Name); err != nil {
-		return diag.FromErr(err)
+	if err = d.Set("name", role.GetName()); err != nil {
+		return nil, err
 	}
-	if err = d.Set("description", role.Description); err != nil {
-		return diag.FromErr(err)
+	if err = d.Set("description", role.GetDescription()); err != nil {
+		return nil, err
 	}
-	if err = d.Set("base_role", role.BaseRole); err != nil {
-		return diag.FromErr(err)
+	if err = d.Set("base_role", role.GetBaseRole()); err != nil {
+		return nil, err
 	}
-	if err = d.Set("permissions", role.Permissions); err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
-}
-
-func resourceGithubOrganizationRepositoryRoleUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	err := checkOrganization(meta)
-	if err != nil {
-		return diag.FromErr(err)
+	if err = d.Set("permissions", role.GetPermissions()); err != nil {
+		return nil, err
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
-
-	roleId, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	permissions := d.Get("permissions").(*schema.Set).List()
-	permissionsStr := make([]string, len(permissions))
-	for i, v := range permissions {
-		permissionsStr[i] = v.(string)
-	}
-
-	update := &github.CreateOrUpdateCustomRepoRoleOptions{
-		Name:        new(d.Get("name").(string)),
-		Description: new(d.Get("description").(string)),
-		BaseRole:    new(d.Get("base_role").(string)),
-		Permissions: permissionsStr,
-	}
-
-	_, _, err = client.Organizations.UpdateCustomRepoRole(ctx, orgName, roleId, update)
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("error updating GitHub organization repository role (%s/%s): %w", orgName, d.Get("name").(string), err))
-	}
-
-	return nil
-}
-
-func resourceGithubOrganizationRepositoryRoleDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	err := checkOrganization(meta)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
-
-	roleId, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	_, err = client.Organizations.DeleteCustomRepoRole(ctx, orgName, roleId)
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("Error deleting organization repository role %d: %w", roleId, err))
-	}
-
-	return nil
+	return []*schema.ResourceData{d}, nil
 }
 
 // Snapshot of the response to https://docs.github.com/en/enterprise-cloud@latest/rest/orgs/custom-roles?apiVersion=2022-11-28#list-repository-fine-grained-permissions-for-an-organization
@@ -255,18 +296,4 @@ var validRolePermissions = []string{
 	"write_repository_actions_secrets",
 	"write_repository_actions_settings",
 	"write_repository_actions_variables",
-}
-
-func resourceGithubOrganizationRepositoryRoleCustomizeDiff(ctx context.Context, d *schema.ResourceDiff, m any) error {
-	tflog.Debug(ctx, "Customizing diff for GitHub organization repository role", map[string]any{"permissionsChanged": d.HasChange("permissions")})
-	if d.HasChange("permissions") {
-		newPermissions := d.Get("permissions").(*schema.Set).List()
-		tflog.Debug(ctx, "Validating permissions values", map[string]any{"newPermissions": newPermissions})
-		for _, permission := range newPermissions {
-			if !slices.Contains(validRolePermissions, permission.(string)) {
-				return fmt.Errorf("invalid permission: %+v", permission)
-			}
-		}
-	}
-	return nil
 }

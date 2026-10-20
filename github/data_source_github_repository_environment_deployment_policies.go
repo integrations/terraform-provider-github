@@ -2,9 +2,8 @@ package github
 
 import (
 	"context"
-	"net/url"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -56,7 +55,7 @@ func dataSourceGithubRepositoryEnvironmentDeploymentPoliciesRead(ctx context.Con
 	results := make([]map[string]any, 0)
 	listOptions := &github.ListOptions{PerPage: meta.maxPerPage}
 	for {
-		policies, resp, err := client.Repositories.ListDeploymentBranchPolicies(ctx, owner, repoName, url.PathEscape(envName), listOptions)
+		policies, resp, err := client.Repositories.ListDeploymentBranchPolicies(ctx, owner, repoName, envName, listOptions)
 		if err != nil {
 			return diag.FromErr(err)
 		}

@@ -7,8 +7,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/integrations/terraform-provider-github/v6/internal/tfpluginv2util"
 )
 
 func resourceGithubIssue() *schema.Resource {
@@ -20,6 +22,7 @@ func resourceGithubIssue() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
+		CustomizeDiff: diffETag,
 		Schema: map[string]*schema.Schema{
 			"repository": {
 				Type:        schema.TypeString,
@@ -69,13 +72,8 @@ func resourceGithubIssue() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the issue.",
-				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
-					return true
-				},
-				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -85,32 +83,34 @@ func resourceGithubIssueCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	ctx := context.Background()
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
-	title := d.Get("title").(string)
-	milestone := d.Get("milestone_number").(int)
 
-	req := &github.IssueRequest{
-		Title: new(title),
+	if err := d.Set("etag", nil); err != nil {
+		return err
 	}
 
-	if v, ok := d.GetOk("body"); ok {
-		req.Body = new(v.(string))
-	}
+	repoName := tfpluginv2util.Get[string](d, "repository")
+	title := tfpluginv2util.Get[string](d, "title")
+	body := tfpluginv2util.Get[string](d, "body")
+	milestone := tfpluginv2util.Get[int](d, "milestone_number")
 
-	labels := expandStringList(d.Get("labels").(*schema.Set).List())
-	req.Labels = &labels
-
-	assignees := expandStringList(d.Get("assignees").(*schema.Set).List())
-	req.Assignees = &assignees
-
-	if milestone > 0 {
-		req.Milestone = new(milestone)
-	}
+	labels := tfpluginv2util.GetSet[string](d, "labels", true)
+	asignees := tfpluginv2util.GetSet[string](d, "assignees", true)
 
 	var issue *github.Issue
 	var resp *github.Response
 	var err error
 	if d.IsNewResource() {
+		req := github.CreateIssueRequest{
+			Title:     title,
+			Body:      new(body),
+			Labels:    labels,
+			Assignees: asignees,
+		}
+
+		if milestone > 0 {
+			req.Milestone = new(milestone)
+		}
+
 		log.Printf("[DEBUG] Creating issue: %s (%s/%s)",
 			title, orgName, repoName)
 		issue, resp, err = client.Issues.Create(ctx, orgName, repoName, req)
@@ -118,10 +118,21 @@ func resourceGithubIssueCreateOrUpdate(d *schema.ResourceData, meta any) error {
 			log.Printf("[DEBUG] Response from creating issue: %#v", *resp)
 		}
 	} else {
-		number := d.Get("number").(int)
+		req := github.UpdateIssueRequest{
+			Title:     new(title),
+			Body:      new(body),
+			Labels:    labels,
+			Assignees: asignees,
+		}
+
+		if milestone > 0 {
+			req.Milestone = new(milestone)
+		}
+
+		number, _ := d.Get("number").(int)
 		log.Printf("[DEBUG] Updating issue: %d:%s (%s/%s)",
 			number, title, orgName, repoName)
-		issue, resp, err = client.Issues.Edit(ctx, orgName, repoName, number, req)
+		issue, resp, err = client.Issues.Update(ctx, orgName, repoName, number, req)
 		if resp != nil {
 			log.Printf("[DEBUG] Response from updating issue: %#v", *resp)
 		}
@@ -224,9 +235,9 @@ func resourceGithubIssueDelete(d *schema.ResourceData, meta any) error {
 
 	log.Printf("[DEBUG] Deleting issue by closing: %d (%s/%s)", number, orgName, repoName)
 
-	request := &github.IssueRequest{State: new("closed")}
+	request := github.UpdateIssueRequest{State: new("closed")}
 
-	_, _, err := client.Issues.Edit(ctx, orgName, repoName, number, request)
+	_, _, err := client.Issues.Update(ctx, orgName, repoName, number, request)
 
 	return err
 }

@@ -6,12 +6,14 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+
+	"github.com/integrations/terraform-provider-github/v6/internal/tfpluginv2util"
 )
 
 func resourceGithubActionsOrganizationSecret() *schema.Resource {
@@ -135,7 +137,7 @@ func resourceGithubActionsOrganizationSecretCreate(ctx context.Context, d *schem
 
 	secretName := d.Get("secret_name").(string)
 	keyID := d.Get("key_id").(string)
-	encryptedValue, _ := resourceKeysGetOk[string](d, "value_encrypted", "encrypted_value")
+	encryptedValue, _ := tfpluginv2util.GetKeysOk[string](d, "value_encrypted", "encrypted_value")
 	visibility := d.Get("visibility").(string)
 
 	var repoIDs []int64
@@ -160,7 +162,7 @@ func resourceGithubActionsOrganizationSecretCreate(ctx context.Context, d *schem
 	}
 
 	if len(encryptedValue) == 0 {
-		plaintextValue, _ := resourceKeysGetOk[string](d, "value", "plaintext_value")
+		plaintextValue, _ := tfpluginv2util.GetKeysOk[string](d, "value", "plaintext_value")
 
 		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
 		if err != nil {
@@ -169,7 +171,7 @@ func resourceGithubActionsOrganizationSecretCreate(ctx context.Context, d *schem
 		encryptedValue = base64.StdEncoding.EncodeToString(encryptedBytes)
 	}
 
-	secretReq := github.OrgSecretRequest{
+	secretReq := github.SecretOrgRequest{
 		KeyID:                 keyID,
 		EncryptedValue:        encryptedValue,
 		Visibility:            visibility,
@@ -272,7 +274,7 @@ func resourceGithubActionsOrganizationSecretUpdate(ctx context.Context, d *schem
 
 	secretName, _ := d.Get("secret_name").(string)
 	keyID, _ := d.Get("key_id").(string)
-	encryptedValue, _ := resourceKeysGetOk[string](d, "value_encrypted", "encrypted_value")
+	encryptedValue, _ := tfpluginv2util.GetKeysOk[string](d, "value_encrypted", "encrypted_value")
 	visibility, _ := d.Get("visibility").(string)
 
 	var repoIDs []int64
@@ -297,7 +299,7 @@ func resourceGithubActionsOrganizationSecretUpdate(ctx context.Context, d *schem
 	}
 
 	if len(encryptedValue) == 0 {
-		plaintextValue, _ := resourceKeysGetOk[string](d, "value", "plaintext_value")
+		plaintextValue, _ := tfpluginv2util.GetKeysOk[string](d, "value", "plaintext_value")
 
 		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
 		if err != nil {
@@ -306,7 +308,7 @@ func resourceGithubActionsOrganizationSecretUpdate(ctx context.Context, d *schem
 		encryptedValue = base64.StdEncoding.EncodeToString(encryptedBytes)
 	}
 
-	secretReq := github.OrgSecretRequest{
+	secretReq := github.SecretOrgRequest{
 		KeyID:                 keyID,
 		EncryptedValue:        encryptedValue,
 		Visibility:            visibility,

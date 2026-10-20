@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -121,8 +121,8 @@ func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, m any) erro
 			if hasLabel.GetDescription() != description || hasLabel.GetColor() != color {
 				log.Printf("[DEBUG] Updating GitHub issue label %s/%s/%s", owner, repository, name)
 
-				_, _, err := client.Issues.EditLabel(ctx, owner, repository, name, &github.Label{
-					Name:        new(name),
+				_, _, err := client.Issues.UpdateLabel(ctx, owner, repository, name, github.UpdateIssueLabelRequest{
+					NewName:     new(name),
 					Description: new(description),
 					Color:       new(color),
 				})
@@ -144,16 +144,19 @@ func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, m any) erro
 
 	for _, l := range wantLabels {
 		labelData := l.(map[string]any)
-		name := labelData["name"].(string)
+		name, _ := labelData["name"].(string)
 
 		_, found := hasLabelsMap[name]
 		if !found {
 			log.Printf("[DEBUG] Creating GitHub issue label %s/%s/%s", owner, repository, name)
 
-			_, _, err := client.Issues.CreateLabel(ctx, owner, repository, &github.Label{
-				Name:        new(name),
-				Description: new(labelData["description"].(string)),
-				Color:       new(labelData["color"].(string)),
+			description, _ := labelData["description"].(string)
+			color, _ := labelData["color"].(string)
+
+			_, _, err := client.Issues.CreateLabel(ctx, owner, repository, github.CreateIssueLabelRequest{
+				Name:        name,
+				Description: new(description),
+				Color:       new(color),
 			})
 			if err != nil {
 				return err

@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -20,6 +20,8 @@ func resourceGithubUserSshKey() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
+
+		CustomizeDiff: diffETag,
 
 		Schema: map[string]*schema.Schema{
 			"title": {
@@ -45,13 +47,8 @@ func resourceGithubUserSshKey() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the SSH key.",
-				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
-					return true
-				},
-				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -64,9 +61,9 @@ func resourceGithubUserSshKeyCreate(d *schema.ResourceData, meta any) error {
 	key := d.Get("key").(string)
 	ctx := context.Background()
 
-	userKey, _, err := client.Users.CreateKey(ctx, &github.Key{
+	userKey, _, err := client.Users.CreateKey(ctx, github.CreateUserKeyRequest{
 		Title: new(title),
-		Key:   new(key),
+		Key:   key,
 	})
 	if err != nil {
 		return err

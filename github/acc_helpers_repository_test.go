@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 )
 
@@ -57,5 +57,22 @@ func mustRenameTestRepository(t *testing.T, repo *github.Repository, newName str
 	_, _, err := testAccConf.meta.v3client.Repositories.Edit(t.Context(), testAccConf.meta.name, repo.GetName(), &github.Repository{Name: &newName})
 	if err != nil {
 		t.Fatalf("failed to rename test repository %s to %s: %v", repo.GetName(), newName, err)
+	}
+}
+
+func mustDeleteRepositoryFile(t *testing.T, repo *github.Repository, path string) {
+	t.Helper()
+
+	file, _, _, err := testAccConf.meta.v3client.Repositories.GetContents(t.Context(), testAccConf.meta.name, repo.GetName(), path, nil)
+	if err != nil {
+		t.Fatalf("failed to read %s of test repository %s: %v", path, repo.GetName(), err)
+	}
+
+	_, _, err = testAccConf.meta.v3client.Repositories.DeleteFile(t.Context(), testAccConf.meta.name, repo.GetName(), path, &github.RepositoryContentFileOptions{
+		Message: new(fmt.Sprintf("Remove %s", path)),
+		SHA:     file.SHA,
+	})
+	if err != nil {
+		t.Fatalf("failed to delete %s of test repository %s: %v", path, repo.GetName(), err)
 	}
 }

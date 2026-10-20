@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -80,7 +80,7 @@ func resourceGithubActionsVariableCreate(ctx context.Context, d *schema.Resource
 	varName, _ := d.Get("variable_name").(string)
 	varValue, _ := d.Get("value").(string)
 
-	varReq := github.ActionsVariableCreateRequest{
+	varReq := github.ActionsCreateVariableRequest{
 		Name:  varName,
 		Value: varValue,
 	}
@@ -161,7 +161,7 @@ func resourceGithubActionsVariableUpdate(ctx context.Context, d *schema.Resource
 	varName, _ := d.Get("variable_name").(string)
 	varValue, _ := d.Get("value").(string)
 
-	varReq := github.ActionsVariableUpdateRequest{
+	varReq := github.ActionsUpdateVariableRequest{
 		Name:  new(varName),
 		Value: new(varValue),
 	}

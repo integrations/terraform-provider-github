@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -36,6 +36,8 @@ func resourceGithubTeamMembership() *schema.Resource {
 			},
 		},
 
+		CustomizeDiff: diffETag,
+
 		Schema: map[string]*schema.Schema{
 			"team_id": {
 				Type:        schema.TypeString,
@@ -59,13 +61,8 @@ func resourceGithubTeamMembership() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the team membership.",
-				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
-					return true
-				},
-				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -75,6 +72,10 @@ func resourceGithubTeamMembershipCreateOrUpdate(ctx context.Context, d *schema.R
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	orgId := meta.id
+
+	if err := d.Set("etag", nil); err != nil {
+		return diag.FromErr(err)
+	}
 
 	teamIdString := d.Get("team_id").(string)
 	teamId, err := getTeamID(ctx, meta, teamIdString)
