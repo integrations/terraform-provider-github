@@ -39,6 +39,18 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate() *sch
 					Type: schema.TypeString,
 				},
 			},
+			"use_immutable_subject": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether to use immutable subject claims, which include the immutable repository and owner IDs, for this repository.",
+			},
+			"sub_claim_prefix": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "An optional prefix to add to the repository's subject claim.",
+			},
 		},
 	}
 }
@@ -73,6 +85,14 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateCreateO
 		customOIDCSubjectClaimTemplate.IncludeClaimKeys = claimsStr
 	}
 
+	if v, ok := d.GetOk("use_immutable_subject"); ok {
+		customOIDCSubjectClaimTemplate.UseImmutableSubject = new(v.(bool))
+	}
+
+	if v, ok := d.GetOk("sub_claim_prefix"); ok {
+		customOIDCSubjectClaimTemplate.SubClaimPrefix = new(v.(string))
+	}
+
 	ctx := context.Background()
 	_, err := client.Actions.SetRepoOIDCSubjectClaimCustomTemplate(ctx, owner, repository, customOIDCSubjectClaimTemplate)
 	if err != nil {
@@ -102,6 +122,12 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead(d 
 		return err
 	}
 	if err = d.Set("include_claim_keys", template.IncludeClaimKeys); err != nil {
+		return err
+	}
+	if err = d.Set("use_immutable_subject", template.UseImmutableSubject); err != nil {
+		return err
+	}
+	if err = d.Set("sub_claim_prefix", template.SubClaimPrefix); err != nil {
 		return err
 	}
 
