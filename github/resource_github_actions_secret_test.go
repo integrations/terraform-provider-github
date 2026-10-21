@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
+	"github.com/hashicorp/terraform-plugin-testing/tfversion"
 )
 
 func TestAccGithubActionsSecret(t *testing.T) {
@@ -56,6 +59,65 @@ resource "github_actions_secret" "test" {
 					ImportState:             true,
 					ImportStateVerify:       true,
 					ImportStateVerifyIgnore: []string{"key_id", "value"},
+				},
+			},
+		})
+	})
+
+	t.Run("with_value_wo", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+
+		config := fmt.Sprintf(`
+resource "github_actions_secret" "test" {
+  repository       = "%s"
+  secret_name      = "TEST"
+  value_wo         = "%%s"
+  value_wo_version = %%d
+}
+`, repo.GetName())
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+				tfversion.SkipBelow(tfversion.Version1_11_0),
+			},
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, "super_secret_value", 1),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_secret.test", tfjsonpath.New("value_wo"), knownvalue.Null()),
+						statecheck.ExpectKnownValue("github_actions_secret.test", tfjsonpath.New("value_wo_version"), knownvalue.Int64Exact(1)),
+						statecheck.ExpectKnownValue("github_actions_secret.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_secret.test", tfjsonpath.New("key_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_secret.test", tfjsonpath.New("created_at"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_secret.test", tfjsonpath.New("updated_at"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_secret.test", tfjsonpath.New("remote_updated_at"), knownvalue.NotNull()),
+					},
+				},
+				{
+					// A changed write-only value is invisible to Terraform until value_wo_version changes.
+					Config: fmt.Sprintf(config, "super_secret_value_2", 1),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_secret.test", plancheck.ResourceActionNoop),
+						},
+					},
+				},
+				{
+					Config: fmt.Sprintf(config, "super_secret_value_2", 2),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_secret.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+				{
+					ResourceName:            "github_actions_secret.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"key_id", "value_wo", "value_wo_version"},
 				},
 			},
 		})
@@ -334,4 +396,94 @@ resource "github_actions_secret" "test" {
 			},
 		})
 	})
+}
+
+type testSecretConfigData struct {
+	values    map[string]any
+	rawConfig cty.Value
+}
+
+func (d testSecretConfigData) GetOk(key string) (any, bool) {
+	v, ok := d.values[key]
+	return v, ok && v != ""
+}
+
+func (d testSecretConfigData) Get(key string) any {
+	return d.values[key]
+}
+
+func (d testSecretConfigData) GetRawConfig() cty.Value {
+	return d.rawConfig
+}
+
+func (d testSecretConfigData) GetRawConfigAt(path cty.Path) (cty.Value, diag.Diagnostics) {
+	v, err := path.Apply(d.rawConfig)
+	if err != nil {
+		return cty.DynamicVal, diag.FromErr(err)
+	}
+
+	return v, nil
+}
+
+func Test_getSecretPlaintext(t *testing.T) {
+	t.Parallel()
+
+	for _, d := range []struct {
+		testName  string
+		values    map[string]any
+		valueWO   cty.Value
+		expected  string
+		expectErr bool
+	}{
+		{
+			testName: "value",
+			values:   map[string]any{"value": "plain"},
+			valueWO:  cty.NullVal(cty.String),
+			expected: "plain",
+		},
+		{
+			testName: "plaintext_value",
+			values:   map[string]any{"plaintext_value": "legacy"},
+			valueWO:  cty.NullVal(cty.String),
+			expected: "legacy",
+		},
+		{
+			testName: "value_wo",
+			values:   map[string]any{},
+			valueWO:  cty.StringVal("write-only"),
+			expected: "write-only",
+		},
+		{
+			testName:  "value_wo_unknown",
+			values:    map[string]any{},
+			valueWO:   cty.UnknownVal(cty.String),
+			expectErr: true,
+		},
+	} {
+		t.Run(d.testName, func(t *testing.T) {
+			t.Parallel()
+
+			data := testSecretConfigData{
+				values:    d.values,
+				rawConfig: cty.ObjectVal(map[string]cty.Value{"value_wo": d.valueWO}),
+			}
+
+			got, diags := getSecretPlaintext(data)
+
+			if d.expectErr {
+				if !diags.HasError() {
+					t.Fatal("expected an error but got none")
+				}
+				return
+			}
+
+			if diags.HasError() {
+				t.Fatalf("unexpected error: %v", diags)
+			}
+
+			if got != d.expected {
+				t.Fatalf("expected plaintext %q but got %q", d.expected, got)
+			}
+		})
+	}
 }

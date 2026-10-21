@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
@@ -72,21 +73,36 @@ func resourceGithubActionsSecret() *schema.Resource {
 				Optional:      true,
 				Computed:      true,
 				RequiredWith:  []string{"value_encrypted"},
-				ConflictsWith: []string{"value", "plaintext_value"},
+				ConflictsWith: []string{"value", "value_wo", "plaintext_value"},
 				Description:   "ID of the public key used to encrypt the secret.",
 			},
 			"value": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Sensitive:    true,
-				ExactlyOneOf: []string{"value", "value_encrypted", "encrypted_value", "plaintext_value"},
+				ExactlyOneOf: []string{"value", "value_wo", "value_encrypted", "encrypted_value", "plaintext_value"},
 				Description:  "Plaintext value to be encrypted.",
+			},
+			"value_wo": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Sensitive:    true,
+				WriteOnly:    true,
+				ExactlyOneOf: []string{"value", "value_wo", "value_encrypted", "encrypted_value", "plaintext_value"},
+				RequiredWith: []string{"value_wo_version"},
+				Description:  "Plaintext value to be encrypted, never persisted to state.",
+			},
+			"value_wo_version": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				RequiredWith: []string{"value_wo"},
+				Description:  "Version of value_wo. Increment this to write a changed value_wo to GitHub, as write-only values cannot be detected in state.",
 			},
 			"value_encrypted": {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Sensitive:        true,
-				ExactlyOneOf:     []string{"value", "value_encrypted", "encrypted_value", "plaintext_value"},
+				ExactlyOneOf:     []string{"value", "value_wo", "value_encrypted", "encrypted_value", "plaintext_value"},
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsBase64),
 				Description:      "Value encrypted with the GitHub public key, defined by key_id, in Base64 format.",
 			},
@@ -94,7 +110,7 @@ func resourceGithubActionsSecret() *schema.Resource {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Sensitive:        true,
-				ExactlyOneOf:     []string{"value", "value_encrypted", "encrypted_value", "plaintext_value"},
+				ExactlyOneOf:     []string{"value", "value_wo", "value_encrypted", "encrypted_value", "plaintext_value"},
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsBase64),
 				Description:      "Encrypted value of the secret using the GitHub public key in Base64 format.",
 				Deprecated:       "Use value_encrypted and key_id.",
@@ -103,7 +119,7 @@ func resourceGithubActionsSecret() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Sensitive:    true,
-				ExactlyOneOf: []string{"value", "value_encrypted", "encrypted_value", "plaintext_value"},
+				ExactlyOneOf: []string{"value", "value_wo", "value_encrypted", "encrypted_value", "plaintext_value"},
 				Description:  "Plaintext value of the secret to be encrypted.",
 				Deprecated:   "Use value.",
 			},
@@ -159,7 +175,10 @@ func resourceGithubActionsSecretCreate(ctx context.Context, d *schema.ResourceDa
 	}
 
 	if len(encryptedValue) == 0 {
-		plaintextValue, _ := tfpluginv2util.GetKeysOk[string](d, "value", "plaintext_value")
+		plaintextValue, diags := getSecretPlaintext(d)
+		if diags.HasError() {
+			return diags
+		}
 
 		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
 		if err != nil {
@@ -274,7 +293,10 @@ func resourceGithubActionsSecretUpdate(ctx context.Context, d *schema.ResourceDa
 	}
 
 	if len(encryptedValue) == 0 {
-		plaintextValue, _ := tfpluginv2util.GetKeysOk[string](d, "value", "plaintext_value")
+		plaintextValue, diags := getSecretPlaintext(d)
+		if diags.HasError() {
+			return diags
+		}
 
 		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
 		if err != nil {
@@ -413,4 +435,24 @@ func encryptPlaintext(plaintext, publicKeyB64 string) ([]byte, error) {
 	}
 
 	return cipherText, nil
+}
+
+// getSecretPlaintext returns the plaintext secret from the configuration, preferring value_wo. A write-only value is
+// absent from state and the diff, so it can only be read from the raw configuration.
+func getSecretPlaintext(d tfpluginv2util.ConfigDataGetter) (string, diag.Diagnostics) {
+	value, diags := d.GetRawConfigAt(cty.GetAttrPath("value_wo"))
+	if diags.HasError() {
+		return "", diags
+	}
+
+	if value.IsNull() {
+		plaintextValue, _ := tfpluginv2util.GetKeysOk[string](d, "value", "plaintext_value")
+		return plaintextValue, nil
+	}
+
+	if !value.IsKnown() {
+		return "", diag.Errorf("value_wo is unknown at apply time, refusing to write an empty secret")
+	}
+
+	return value.AsString(), nil
 }
