@@ -69,6 +69,7 @@ resource "github_repository" "forked_repo" {
 - `has_downloads` (Boolean, Deprecated) Set to 'true' to enable the (deprecated) downloads features on the repository.
 - `has_issues` (Boolean) Set to 'true' to enable the GitHub Issues features on the repository.
 - `has_projects` (Boolean) Set to 'true' to enable the GitHub Projects features on the repository. Per the GitHub [documentation](https://developer.github.com/v3/repos/#create) when in an organization that has disabled repository projects it will default to 'false' and will otherwise default to 'true'. If you specify 'true' when it has been disabled it will return an error.
+- `has_pull_requests` (Boolean) Set to 'false' to disable pull requests on the repository, hiding the pull requests tab. Defaults to 'true'.
 - `has_wiki` (Boolean) Set to 'true' to enable the GitHub Wiki features on the repository.
 - `homepage_url` (String) URL of a page describing the project.
 - `ignore_vulnerability_alerts_during_read` (Boolean, Deprecated) This is ignored as the provider now handles lack of permissions automatically. This field will be removed in a future version.
@@ -78,6 +79,7 @@ resource "github_repository" "forked_repo" {
 - `merge_commit_title` (String) Can be 'PR_TITLE' or 'MERGE_MESSAGE' for a default merge commit title. Applicable only if 'allow_merge_commit' is 'true'.
 - `pages` (Block List, Max: 1, Deprecated) The repository's GitHub Pages configuration. (see [below for nested schema](#nestedblock--pages))
 - `private` (Boolean, Deprecated) Set to 'true' to create a private repository. Repositories are created as public (e.g. open source) by default. Deprecated: use visibility instead.
+- `pull_request_creation_policy` (String) Restricts who can create pull requests on the repository. Can be 'all' (default) to allow any user, or 'collaborators_only' to restrict creation to collaborators with write access. Applicable only if 'has_pull_requests' is 'true'.
 - `security_and_analysis` (Block List, Max: 1) The repository's [security and analysis](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-security-and-analysis-settings-for-your-repository) configuration. To use this parameter you must have admin permissions for the repository or be an owner or security manager for the organization that owns the repository. (see [below for nested schema](#nestedblock--security_and_analysis))
 - `source_owner` (String) The GitHub username or organization that owns the repository being forked. Required when 'fork' is 'true'.
 - `source_repo` (String) The name of the repository to fork. Required when 'fork' is 'true'.
