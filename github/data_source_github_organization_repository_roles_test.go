@@ -1,10 +1,8 @@
 package github
 
 import (
-	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
@@ -14,41 +12,31 @@ import (
 func TestAccDataSourceGithubOrganizationRepositoryRoles(t *testing.T) {
 	t.Parallel()
 
-	t.Run("success", func(t *testing.T) {
+	skipUnlessEnterprise(t)
+
+	t.Run("queries_all_roles", func(t *testing.T) {
 		t.Parallel()
 
-		name := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(5))
+		role := mustCreateTestOrganizationRepositoryRole(t)
 
-		config := fmt.Sprintf(`
-resource "github_organization_repository_role" "test" {
-  name        = "%s"
-  description = "Test role description"
-  base_role   = "read"
-  permissions = [
-     "reopen_issue",
-    "reopen_pull_request",
-  ]
-}
-
-data "github_organization_repository_roles" "test" {
-  depends_on = [ github_organization_repository_role.test ]
-}
-`, name)
+		config := `
+data "github_organization_repository_roles" "test" {}
+`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("data.github_organization_repository_roles.test", tfjsonpath.New("roles"), knownvalue.ListPartial(map[int]knownvalue.Check{
-							0: knownvalue.MapExact(map[string]knownvalue.Check{
-								"role_id":     knownvalue.NotNull(),
-								"name":        knownvalue.NotNull(),
-								"description": knownvalue.NotNull(),
-								"base_role":   knownvalue.NotNull(),
-								"permissions": knownvalue.NotNull(),
+						statecheck.ExpectKnownValue("data.github_organization_repository_roles.test", tfjsonpath.New("roles"), knownvalue.SetPartial([]knownvalue.Check{
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"id":          knownvalue.Int32Exact(int32(role.GetID())),
+								"role_id":     knownvalue.Int32Exact(int32(role.GetID())),
+								"name":        knownvalue.StringExact(role.GetName()),
+								"description": knownvalue.StringExact(role.GetDescription()),
+								"base_role":   knownvalue.StringExact(role.GetBaseRole()),
+								"permissions": knownvalue.ListSizeExact(len(role.GetPermissions())),
 							}),
 						})),
 					},

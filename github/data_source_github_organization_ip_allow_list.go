@@ -49,14 +49,15 @@ func dataSourceGithubOrganizationIpAllowList() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationIpAllowListRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func dataSourceGithubOrganizationIpAllowListRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v4client
-	orgName := meta.(*Owner).name
+	client := meta.v4client
+	orgName := meta.name
 
 	type IpAllowListEntry struct {
 		ID             githubv4.String
@@ -76,12 +77,13 @@ func dataSourceGithubOrganizationIpAllowListRead(ctx context.Context, d *schema.
 	var query struct {
 		Organization struct {
 			ID                 githubv4.String
-			IpAllowListEntries IpAllowListEntries `graphql:"ipAllowListEntries(first: 100, after: $entriesCursor)"`
+			IpAllowListEntries IpAllowListEntries `graphql:"ipAllowListEntries(first: $first, after: $entriesCursor)"`
 		} `graphql:"organization(login: $login)"`
 	}
 
 	variables := map[string]any{
 		"login":         githubv4.String(orgName),
+		"first":         githubv4.Int(meta.maxPerPage),
 		"entriesCursor": (*githubv4.String)(nil),
 	}
 

@@ -51,6 +51,11 @@ func TestAccGithubOrganizationRepositoryRole(t *testing.T) {
 						resource.TestCheckResourceAttr("github_organization_repository_role.test", "permissions.1", permission1),
 					),
 				},
+				{
+					ResourceName:      "github_organization_repository_role.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
 			},
 		})
 	})
