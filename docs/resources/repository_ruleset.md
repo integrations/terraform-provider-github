@@ -9,6 +9,22 @@ description: |-
 
 Resource to manage GitHub repository rulesets.
 
+This resource allows you to create and manage rulesets on the repository level. When applied, a new ruleset will be created. When destroyed, that ruleset will be removed.
+
+~> **Note:** Rules are target-specific. `branch` and `tag` targets support rules like `creation`, `deletion`, `pull_request`, `required_status_checks`, etc. `push` targets only support `file_path_restriction`, `max_file_size`, `max_file_path_length`, and `file_extension_restriction`. Using the wrong rules for a target will result in a validation error.
+
+~> **Note:** For `push` targets, do not include `ref_name` in conditions. Push rulesets operate on file content, not on refs. The `conditions` block is optional for push targets.
+
+~> **Note:** `update_allows_fetch_and_merge` is affected by a known bug on the GitHub side which may cause issues when using this argument.
+
+~> Note: at the time of writing this, the following actor types correspond to the following actor IDs:
+
+- `RepositoryRole` (This is the actor type, the following are the base repository roles and their associated IDs.)
+  - `maintain` -> `2`
+  - `write` -> `4`
+  - `admin` -> `5`
+- `User` -> the numeric GitHub user ID
+
 ## Example Usage
 
 ```terraform
@@ -99,10 +115,10 @@ resource "github_repository_ruleset" "example_push" {
 
 - `bypass_actors` (Block List) The actors that can bypass the rules in this ruleset. (see [below for nested schema](#nestedblock--bypass_actors))
 - `conditions` (Block List, Max: 1) Parameters for a repository ruleset ref name condition. (see [below for nested schema](#nestedblock--conditions))
-- `etag` (String) An etag representing the ruleset.
 
 ### Read-Only
 
+- `etag` (String) An etag representing the ruleset.
 - `id` (String) The ID of this resource.
 - `node_id` (String) GraphQL global node id for use with v4 API.
 - `ruleset_id` (Number) GitHub ID for the ruleset.
