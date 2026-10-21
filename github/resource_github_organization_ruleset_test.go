@@ -1630,3 +1630,59 @@ func TestOrganizationPushRulesetSupport(t *testing.T) {
 		t.Errorf("Expected 4 restricted file extensions, got %d", len(restrictedExts))
 	}
 }
+
+func Test_resourceGithubOrganizationRulesetRead_bypassActors(t *testing.T) {
+	t.Parallel()
+
+	const rulesetBody = `"id": 123, "name": "main", "target": "branch", "source_type": "Organization", "source": "org", "enforcement": "active", "node_id": "RRS_1", "rules": [{"type": "deletion"}]`
+
+	for _, tc := range []struct {
+		name         string
+		responseBody string
+		wantCount    int
+	}{
+		{
+			name:         "keeps_state_when_api_omits_bypass_actors",
+			responseBody: `{` + rulesetBody + `}`,
+			wantCount:    1,
+		},
+		{
+			name:         "clears_state_when_api_returns_no_bypass_actors",
+			responseBody: `{` + rulesetBody + `, "bypass_actors": []}`,
+			wantCount:    0,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ts := githubApiMock([]*mockResponse{
+				{
+					ExpectedUri:    "/orgs/org/rulesets/123",
+					ExpectedMethod: "GET",
+					StatusCode:     200,
+					ResponseBody:   tc.responseBody,
+				},
+			})
+			defer ts.Close()
+
+			meta := &Owner{name: "org", v3client: mustCreateTestGitHubClient(t, ts.URL), IsOrganization: true}
+			d := schema.TestResourceDataRaw(t, resourceGithubOrganizationRuleset().Schema, map[string]any{
+				"name":        "main",
+				"target":      "branch",
+				"enforcement": "active",
+				"bypass_actors": []any{
+					map[string]any{"actor_type": "OrganizationAdmin", "bypass_mode": "pull_request"},
+				},
+			})
+			d.SetId("123")
+
+			if diags := resourceGithubOrganizationRulesetRead(t.Context(), d, meta); diags.HasError() {
+				t.Fatalf("expected no error, got: %v", diags)
+			}
+
+			if got := len(d.Get("bypass_actors").([]any)); got != tc.wantCount {
+				t.Fatalf("expected %d bypass actors in state, got %d", tc.wantCount, got)
+			}
+		})
+	}
+}
