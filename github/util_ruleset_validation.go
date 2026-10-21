@@ -103,6 +103,8 @@ func validateRules(ctx context.Context, d *schema.ResourceDiff, allowedRules []g
 			ruleName = string(github.RulesetRuleTypeCodeScanning)
 		case "required_workflows":
 			ruleName = string(github.RulesetRuleTypeWorkflows)
+		case "update_allows_fetch_and_merge":
+			continue // This is a boolean field that is not a rule, so we skip it.
 		}
 		switch ruleValue := ruleValue.(type) {
 		case []any:
