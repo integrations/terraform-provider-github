@@ -73,6 +73,9 @@ type testAccConfig struct {
 	testExternalUser2      string
 
 	// Enterprise test configuration
+	testEnterpriseOrg             string
+	testEnterpriseOrg2            string
+	testEnterpriseUser            string
 	testEnterpriseEMUGroupId      int
 	testExternalGroup1ID          int
 	testExternalGroup1DisplayName string
@@ -181,6 +184,9 @@ func TestMain(m *testing.M) {
 
 	if conf.authMode == enterprise {
 		conf.enterpriseSlug = os.Getenv("GITHUB_ENTERPRISE_SLUG")
+		conf.testEnterpriseOrg = os.Getenv("GH_TEST_ENTERPRISE_ORG")
+		conf.testEnterpriseOrg2 = os.Getenv("GH_TEST_ENTERPRISE_ORG_2")
+		conf.testEnterpriseUser = os.Getenv("GH_TEST_ENTERPRISE_USER")
 
 		if len(conf.enterpriseSlug) == 0 {
 			fmt.Println("GITHUB_ENTERPRISE_SLUG environment variable not set")
@@ -361,6 +367,16 @@ func skipUnlessHasPaidOrgs(t *testing.T) {
 func skipUnlessEnterprise(t *testing.T) {
 	if testAccConf.authMode != enterprise {
 		t.Skip("Skipping as test mode is not enterprise")
+	}
+}
+
+// skipWithoutAccConf skips tests that dereference testAccConf at test-body
+// level, since it is only populated when TF_ACC is set and resource.Test only
+// skips on TF_ACC after the test body has run.
+func skipWithoutAccConf(t *testing.T) {
+	t.Helper()
+	if testAccConf == nil {
+		t.Skip("Skipping because acceptance test configuration is unavailable (TF_ACC not set)")
 	}
 }
 

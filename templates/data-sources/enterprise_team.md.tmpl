@@ -1,0 +1,19 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Gets information about a GitHub enterprise team.
+---
+
+# {{.Name}} ({{.Type}})
+
+{{.Description}}
+
+See the [GitHub REST API documentation](https://docs.github.com/en/rest/enterprise-teams) for required enterprise permissions and supported authentication.
+
+Specify exactly one of `slug` or `team_id`.
+
+## Example Usage
+
+{{ tffile "examples/data-sources/enterprise_team/data-source.tf" }}
+
+{{.SchemaMarkdown}}

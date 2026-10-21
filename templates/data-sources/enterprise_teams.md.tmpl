@@ -1,0 +1,17 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Lists all enterprise teams in a GitHub enterprise.
+---
+
+# {{.Name}} ({{.Type}})
+
+{{.Description}}
+
+See the [GitHub REST API documentation](https://docs.github.com/en/rest/enterprise-teams) for required enterprise permissions and supported authentication.
+
+## Example Usage
+
+{{ tffile "examples/data-sources/enterprise_teams/data-source.tf" }}
+
+{{.SchemaMarkdown}}

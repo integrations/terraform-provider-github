@@ -1,0 +1,17 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Checks if a user is a member of a GitHub enterprise team.
+---
+
+# {{.Name}} ({{.Type}})
+
+{{.Description}}
+
+See the [GitHub REST API documentation](https://docs.github.com/en/rest/enterprise-teams) for required enterprise permissions and supported authentication.
+
+## Example Usage
+
+{{ tffile "examples/data-sources/enterprise_team_membership/data-source.tf" }}
+
+{{.SchemaMarkdown}}
