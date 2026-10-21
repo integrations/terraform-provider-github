@@ -1,9 +1,12 @@
 package github
 
 import (
+	"fmt"
+	"net/http"
 	"testing"
 	"unicode"
 
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/go-cty/cty"
 )
 
@@ -529,5 +532,56 @@ func TestGithubUtilValidateSecretName_invalid_input(t *testing.T) {
 				t.Fatalf("unexpected error(s): %v (%s)", diags, tc.Name)
 			}
 		}
+	}
+}
+
+func ghErrorResponse(statusCode int) *github.ErrorResponse {
+	return &github.ErrorResponse{
+		Response: &http.Response{StatusCode: statusCode},
+	}
+}
+
+func Test_errIs404(t *testing.T) {
+	t.Parallel()
+
+	for _, d := range []struct {
+		testName string
+		err      error
+		expected bool
+	}{
+		{
+			testName: "nil_error",
+			err:      nil,
+			expected: false,
+		},
+		{
+			testName: "plain_error",
+			err:      fmt.Errorf("some error"),
+			expected: false,
+		},
+		{
+			testName: "github_404",
+			err:      ghErrorResponse(http.StatusNotFound),
+			expected: true,
+		},
+		{
+			testName: "github_403",
+			err:      ghErrorResponse(http.StatusForbidden),
+			expected: false,
+		},
+		{
+			testName: "github_500",
+			err:      ghErrorResponse(http.StatusInternalServerError),
+			expected: false,
+		},
+	} {
+		t.Run(d.testName, func(t *testing.T) {
+			t.Parallel()
+
+			got := errIs404(d.err)
+			if got != d.expected {
+				t.Fatalf("expected errIs404 %v but got %v", d.expected, got)
+			}
+		})
 	}
 }
