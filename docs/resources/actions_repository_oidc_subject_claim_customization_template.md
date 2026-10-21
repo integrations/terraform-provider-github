@@ -36,8 +36,13 @@ resource "github_actions_repository_oidc_subject_claim_customization_template" "
 
 The following arguments are supported:
 
+- `repository` - (Required) The name of the repository.
 - `use_default` - (Required) Whether to use the default template or not. If `true`, `include_claim_keys` must not be set.
 - `include_claim_keys` - (Optional) A list of OpenID Connect claims.
+
+## Attributes Reference
+
+- `repository_id` - The ID of the repository.
 
 ## Import
 
