@@ -121,11 +121,11 @@ func validateRules(ctx context.Context, d *schema.ResourceDiff, allowedRules []g
 		if slices.Contains(allowedRules, github.RepositoryRuleType(ruleName)) {
 			continue
 		} else {
-			tflog.Debug(ctx, fmt.Sprintf("Invalid rule for %s target", target), map[string]any{"rule": ruleName, "value": ruleValue})
+			tflog.Debug(ctx, "Invalid rule for target", map[string]any{"target": target, "rule": ruleName, "value": ruleValue})
 			return fmt.Errorf("rule %q is not valid for %[2]s target; %[2]s targets only support: %v", ruleName, target, allowedRules)
 		}
 	}
-	tflog.Debug(ctx, fmt.Sprintf("Rules validation passed for %s target", target))
+	tflog.Debug(ctx, "Rules validation passed for target", map[string]any{"target": target})
 	return nil
 }
 
@@ -164,14 +164,13 @@ func validateRulesetRules(ctx context.Context, d *schema.ResourceDiff) error {
 }
 
 func validateConditionsFieldForBranchAndTagTargets(ctx context.Context, target github.RulesetTarget, conditions map[string]any, isOrg bool) error {
-	tflog.Debug(ctx, fmt.Sprintf("Validating conditions field for %s target", target), map[string]any{"target": target, "conditions": conditions, "isOrg": isOrg})
+	tflog.Debug(ctx, "Validating conditions field for target", map[string]any{"target": target, "conditions": conditions, "isOrg": isOrg})
 
 	if conditions["ref_name"] == nil || len(conditions["ref_name"].([]any)) == 0 {
-		tflog.Debug(ctx, fmt.Sprintf("Missing ref_name for %s target", target), map[string]any{"target": target})
+		tflog.Debug(ctx, "Missing ref_name for target", map[string]any{"target": target})
 		return fmt.Errorf("ref_name must be set for %s target", target)
 	}
-
-	tflog.Debug(ctx, fmt.Sprintf("Conditions validation passed for %s target", target))
+	tflog.Debug(ctx, "Conditions validation passed for target", map[string]any{"target": target})
 	return nil
 }
 

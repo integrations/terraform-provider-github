@@ -2,18 +2,19 @@ package github
 
 import (
 	"context"
-	"log"
 	"strconv"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubAppInstallationRepository() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubAppInstallationRepositoryCreate,
-		Read:   resourceGithubAppInstallationRepositoryRead,
-		Delete: resourceGithubAppInstallationRepositoryDelete,
+		CreateContext: resourceGithubAppInstallationRepositoryCreate,
+		ReadContext:   resourceGithubAppInstallationRepositoryRead,
+		DeleteContext: resourceGithubAppInstallationRepositoryDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -39,65 +40,65 @@ func resourceGithubAppInstallationRepository() *schema.Resource {
 	}
 }
 
-func resourceGithubAppInstallationRepositoryCreate(d *schema.ResourceData, m any) error {
+func resourceGithubAppInstallationRepositoryCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	installationIDString := d.Get("installation_id").(string)
 	installationID, err := strconv.ParseInt(installationIDString, 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(installationIDString, err)
+		return diag.FromErr(unconvertibleIdErr(installationIDString, err))
 	}
 
 	client := meta.v3client
 	owner := meta.name
-	ctx := context.Background()
+
 	repoName := d.Get("repository").(string)
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	repoID := repo.GetID()
 
 	_, _, err = client.Apps.AddRepository(ctx, installationID, repoID)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(buildTwoPartID(installationIDString, repoName))
-	return resourceGithubAppInstallationRepositoryRead(d, meta)
+	return resourceGithubAppInstallationRepositoryRead(ctx, d, meta)
 }
 
-func resourceGithubAppInstallationRepositoryRead(d *schema.ResourceData, m any) error {
+func resourceGithubAppInstallationRepositoryRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	installationIDString, repoName, err := parseID2(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	installationID, err := strconv.ParseInt(installationIDString, 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(installationIDString, err)
+		return diag.FromErr(unconvertibleIdErr(installationIDString, err))
 	}
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 	opt := &github.ListOptions{PerPage: meta.maxPerPage}
 
 	for {
 		repos, resp, err := client.Apps.ListUserRepos(ctx, installationID, opt)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		for _, r := range repos.Repositories {
 			if r.GetName() == repoName {
 				if err = d.Set("installation_id", installationIDString); err != nil {
-					return err
+					return diag.FromErr(err)
 				}
 				if err = d.Set("repository", repoName); err != nil {
-					return err
+					return diag.FromErr(err)
 				}
 				if err = d.Set("repo_id", r.GetID()); err != nil {
-					return err
+					return diag.FromErr(err)
 				}
 				return nil
 			}
@@ -108,29 +109,26 @@ func resourceGithubAppInstallationRepositoryRead(d *schema.ResourceData, m any) 
 		}
 		opt.Page = resp.NextPage
 	}
-
-	log.Printf("[INFO] Removing app installation repository association %s from state because it no longer exists in GitHub",
-		d.Id())
+	tflog.Info(ctx, "Removing app installation repository association from state because it no longer exists in GitHub", map[string]any{"resource_id": d.Id()})
 	d.SetId("")
 	return nil
 }
 
-func resourceGithubAppInstallationRepositoryDelete(d *schema.ResourceData, m any) error {
+func resourceGithubAppInstallationRepositoryDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	installationIDString := d.Get("installation_id").(string)
 	installationID, err := strconv.ParseInt(installationIDString, 10, 64)
 	if err != nil {
-		return unconvertibleIdErr(installationIDString, err)
+		return diag.FromErr(unconvertibleIdErr(installationIDString, err))
 	}
 
 	client := meta.v3client
-	ctx := context.Background()
 
 	repoID := d.Get("repo_id").(int)
 
 	_, err = client.Apps.RemoveRepository(ctx, installationID, int64(repoID))
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	return nil
 }

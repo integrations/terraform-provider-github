@@ -130,14 +130,14 @@ func resourceGithubReleaseStateUpgradeV0(ctx context.Context, rawState map[strin
 	client := meta.v3client
 	owner := meta.name
 
-	tflog.Debug(ctx, "Migrating GitHub Release from v0 to v1.", map[string]any{"raw_state": rawState})
+	tflog.Debug(ctx, "Migrating GitHub Release from v0 to v1.", map[string]any{"repository": rawState["repository"], "repository_id": rawState["repository_id"]})
 
 	state, err := migrateRepositoryWithID(ctx, client, owner, rawState)
 	if err != nil {
 		return nil, err
 	}
 
-	tflog.Debug(ctx, "GitHub Release migrated to v1.", map[string]any{"raw_state": state})
+	tflog.Debug(ctx, "GitHub Release migrated to v1.", map[string]any{"repository": state["repository"], "repository_id": state["repository_id"]})
 
 	return state, nil
 }

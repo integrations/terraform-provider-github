@@ -2,8 +2,8 @@ package github
 
 import (
 	"context"
-	"log"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -32,7 +32,7 @@ func dataSourceGithubDependabotPublicKey() *schema.Resource {
 func dataSourceGithubDependabotPublicKeyRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	repository := d.Get("repository").(string)
 	owner := meta.(*Owner).name
-	log.Printf("[INFO] Refreshing GitHub Dependabot Public Key from: %s/%s", owner, repository)
+	tflog.Info(ctx, "Reading GitHub Dependabot public key", map[string]any{"owner": owner, "repository": repository})
 
 	client := meta.(*Owner).v3client
 

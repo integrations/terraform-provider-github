@@ -3,11 +3,11 @@ package github
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -140,8 +140,7 @@ func resourceGithubTeamMembershipRead(ctx context.Context, d *schema.ResourceDat
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing team membership %s from state because it no longer exists in GitHub",
-					d.Id())
+				tflog.Info(ctx, "Removing team membership from state because it no longer exists in GitHub", map[string]any{"resource_id": d.Id()})
 				d.SetId("")
 				return nil
 			}

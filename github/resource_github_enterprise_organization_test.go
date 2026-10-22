@@ -610,8 +610,8 @@ func TestResourceGithubEnterpriseOrganizationCreateSetsDatabaseID(t *testing.T) 
 		"admin_logins":  []any{"octocat"},
 	})
 
-	if err := resourceGithubEnterpriseOrganizationCreate(data, meta); err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	if diags := resourceGithubEnterpriseOrganizationCreate(t.Context(), data, meta); diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
 	}
 
 	if got, want := data.Id(), "O_kgDOCg7Zxw"; got != want {

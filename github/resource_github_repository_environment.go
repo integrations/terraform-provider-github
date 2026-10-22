@@ -319,7 +319,11 @@ func resourceGithubRepositoryEnvironmentDelete(ctx context.Context, d *schema.Re
 
 	_, err := client.Repositories.DeleteEnvironment(ctx, owner, repoName, envName)
 	if err != nil {
-		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "environment (%s)", envName))
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Repository environment already deleted in GitHub", map[string]any{"owner": owner, "repository": repoName, "environment": envName})
+			return nil
+		}
+		return diag.FromErr(err)
 	}
 
 	return nil

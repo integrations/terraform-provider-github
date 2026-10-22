@@ -131,7 +131,7 @@ func resourceGithubIssueLabelRead(ctx context.Context, d *schema.ResourceData, m
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "Removing label from state because it no longer exists in GitHub", map[string]any{"name": name, "org_name": orgName, "repo_name": repoName})
+				tflog.Info(ctx, "Removing label from state because it no longer exists in GitHub", map[string]any{"name": name, "owner": orgName, "repository": repoName})
 				d.SetId("")
 				return nil
 			}
@@ -237,7 +237,7 @@ func resourceGithubIssueLabelDelete(ctx context.Context, d *schema.ResourceData,
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusForbidden {
-				tflog.Info(ctx, "Ignoring delete of issue label in archived repository", map[string]any{"name": name, "org_name": orgName, "repo_name": repoName})
+				tflog.Info(ctx, "Ignoring delete of issue label in archived repository", map[string]any{"name": name, "owner": orgName, "repository": repoName})
 				return nil
 			}
 		}

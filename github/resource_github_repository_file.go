@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -276,7 +277,7 @@ func resourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceDat
 	ctx = tflog.SetField(ctx, "repository", repoName)
 	ctx = tflog.SetField(ctx, "file", file)
 	ctx = tflog.SetField(ctx, "owner", owner)
-	ctx = tflog.SetField(ctx, "owner", owner)
+	ctx = tflog.SetField(ctx, "branch", branch)
 
 	opts := &github.RepositoryContentGetOptions{}
 
@@ -284,7 +285,12 @@ func resourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceDat
 
 	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repoName, file, opts)
 	if err != nil {
-		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "repository file %s/%s:%s:%s", owner, repoName, file, branch))
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Removing repository file from state because it no longer exists in GitHub")
+			d.SetId("")
+			return nil
+		}
+		return diag.FromErr(err)
 	}
 	if fc == nil {
 		tflog.Info(ctx, "Removing repository path from state because it no longer exists in GitHub")
@@ -419,7 +425,7 @@ func resourceGithubRepositoryFileDelete(ctx context.Context, d *schema.ResourceD
 	opts.Branch = new(branch)
 
 	_, _, err := client.Repositories.DeleteFile(ctx, owner, repo, file, opts)
-	return diag.FromErr(handleArchivedRepoDelete(err, "repository file", file, owner, repo))
+	return diag.FromErr(handleArchivedRepoDelete(ctx, err, "repository file", file, owner, repo))
 }
 
 func autoBranchDiffSuppressFunc(k, _, _ string, d *schema.ResourceData) bool {

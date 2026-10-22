@@ -3,9 +3,9 @@ package github
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
@@ -121,11 +121,12 @@ type BranchProtectionResourceData struct {
 	LockBranch                     bool
 }
 
-func branchProtectionResourceData(d *schema.ResourceData, meta any) (BranchProtectionResourceData, error) {
+func branchProtectionResourceData(ctx context.Context, d *schema.ResourceData, meta any) (BranchProtectionResourceData, error) {
 	data := BranchProtectionResourceData{}
 
 	if v, ok := d.GetOk(REPOSITORY_ID); ok {
-		repoID, err := getRepositoryID(v.(string), meta)
+		repositoryID, _ := v.(string)
+		repoID, err := getRepositoryID(ctx, repositoryID, meta)
 		if err != nil {
 			return data, err
 		}
@@ -558,7 +559,7 @@ func setForcePushBypassers(protection BranchProtectionRule, data BranchProtectio
 	return bypassForcePushActors
 }
 
-func getBranchProtectionID(repoID githubv4.ID, pattern string, m any) (githubv4.ID, error) {
+func getBranchProtectionID(ctx context.Context, repoID githubv4.ID, pattern string, m any) (githubv4.ID, error) {
 	meta, _ := m.(*Owner)
 	var query struct {
 		Node struct {
@@ -580,7 +581,6 @@ func getBranchProtectionID(repoID githubv4.ID, pattern string, m any) (githubv4.
 		"cursor": (*githubv4.String)(nil),
 	}
 
-	ctx := context.Background()
 	client := meta.v4client
 
 	var allRules []struct {
@@ -610,14 +610,14 @@ func getBranchProtectionID(repoID githubv4.ID, pattern string, m any) (githubv4.
 	return nil, fmt.Errorf("could not find a branch protection rule with the pattern '%s'", pattern)
 }
 
-func getActorIds(data []string, meta any) ([]string, error) {
+func getActorIds(ctx context.Context, data []string, meta any) ([]string, error) {
 	var actors []string
 	for _, v := range data {
-		id, err := getNodeIDv4(v, meta)
+		id, err := getNodeIDv4(ctx, v, meta)
 		if err != nil {
 			return []string{}, err
 		}
-		log.Printf("[DEBUG] Retrieved node ID for user/team : %s - node ID : %s", v, id)
+		tflog.Debug(ctx, "Retrieved node ID for actor", map[string]any{"actor": v, "node_id": id})
 		actors = append(actors, id)
 	}
 
@@ -629,9 +629,9 @@ func getActorIds(data []string, meta any) ([]string, error) {
 // with the organization name as prefix (Ex.: exampleorg/exampleteam). Usernames
 // must be provided with the "/" prefix otherwise getNodeIDv4 assumes that
 // the provided string is a node ID.
-func getNodeIDv4(userOrSlug string, meta any) (string, error) {
+func getNodeIDv4(ctx context.Context, userOrSlug string, meta any) (string, error) {
 	orgName := meta.(*Owner).name
-	ctx := context.Background()
+
 	client := meta.(*Owner).v4client
 
 	if strings.HasPrefix(userOrSlug, orgName+"/") {
@@ -652,7 +652,7 @@ func getNodeIDv4(userOrSlug string, meta any) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		log.Printf("[DEBUG] Retrieved node ID for team %s. ID is %s", userOrSlug, queryTeam.Organization.Team.ID)
+		tflog.Debug(ctx, "Retrieved node ID for team", map[string]any{"actor": userOrSlug, "node_id": queryTeam.Organization.Team.ID})
 		return queryTeam.Organization.Team.ID, nil
 	} else if strings.HasPrefix(userOrSlug, "/") {
 		// The "/" prefix indicates a username
@@ -670,7 +670,7 @@ func getNodeIDv4(userOrSlug string, meta any) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		log.Printf("[DEBUG] Retrieved node ID for user %s. ID is %s", userOrSlug, queryUser.User.ID)
+		tflog.Debug(ctx, "Retrieved node ID for user", map[string]any{"actor": userOrSlug, "node_id": queryUser.User.ID})
 		return queryUser.User.ID, nil
 	} else {
 		// If userOrSlug does not contain the team or username prefix, assume it is a node ID

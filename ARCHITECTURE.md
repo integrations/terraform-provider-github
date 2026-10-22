@@ -401,14 +401,14 @@ func resourceGithubExampleResourceV0() *schema.Resource {
 
 // resourceGithubExampleInstanceStateUpgradeV0 migrates from version 0 to 1
 func resourceGithubExampleInstanceStateUpgradeV0(ctx context.Context, rawState map[string]any, m any) (map[string]any, error) {
-    tflog.Debug(ctx, "State before migration", rawState)
+    tflog.Debug(ctx, "Starting state migration", map[string]any{"new_field": rawState["new_field"]})
 
     // Add new field with default value
     if _, ok := rawState["new_field"]; !ok {
         rawState["new_field"] = "default_value"
     }
 
-    tflog.Debug(ctx, "State after migration", rawState)
+    tflog.Debug(ctx, "Completed state migration", map[string]any{"new_field": rawState["new_field"]})
     return rawState, nil
 }
 ```
@@ -426,9 +426,11 @@ StateUpgraders: []schema.StateUpgrader{
 },
 ```
 
+Log the before and after values of the non-sensitive fields that a migration changes, along with resource identifiers. These values help diagnose migrations more than a total field count does. Select fields explicitly rather than logging the complete state, which may contain secrets, webhook credentials, or repository file contents.
+
 ### Logging
 
-Use `tflog` for structured logging (replacing `log` package):
+Use `tflog` for structured logging with the SDK-provided context:
 
 ```go
 import "github.com/hashicorp/terraform-plugin-log/tflog"
@@ -439,7 +441,7 @@ func resourceExampleCreate(ctx context.Context, d *schema.ResourceData, m any) d
 }
 ```
 
-**Note:** Migration from `log` to `tflog` is in progress. New code should use `tflog`.
+Keep messages static and put identifiers in structured fields, using names such as `owner`, `repository`, and `team_slug`. Pass the context through helpers and API calls so logging fields, filtering, and cancellation are preserved. Never log secret values, complete state maps, or raw API responses.
 
 ---
 
@@ -639,7 +641,7 @@ The following resources are deprecated and will be removed in future versions:
 | ---------------------------------- | ------------------------------------ |
 | `getTeamID(ctx, meta, idOrSlug)`   | Resolve team ID from ID or slug      |
 | `getTeamSlug(ctx, meta, idOrSlug)` | Resolve team slug from ID or slug    |
-| `getRepositoryID(name, meta)`      | Resolve repository node ID from name |
+| `getRepositoryID(ctx, name, meta)` | Resolve repository node ID from name |
 
 **Permission Mapping** (`util_permissions.go`):
 

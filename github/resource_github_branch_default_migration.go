@@ -34,7 +34,7 @@ func resourceGithubBranchDefaultV0() *schema.Resource {
 }
 
 func resourceGithubBranchDefaultStateUpgradeV0(ctx context.Context, rawState map[string]any, m any) (map[string]any, error) {
-	tflog.Debug(ctx, "Migrating GitHub Branch Default from v0 to v1.", rawState)
+	tflog.Debug(ctx, "Migrating GitHub Branch Default from v0 to v1.", map[string]any{"repository": rawState["repository"], "repository_id": rawState["repository_id"], "branch": rawState["branch"]})
 
 	meta, _ := m.(*Owner)
 	client := meta.v3client
@@ -45,6 +45,6 @@ func resourceGithubBranchDefaultStateUpgradeV0(ctx context.Context, rawState map
 		return nil, err
 	}
 
-	tflog.Debug(ctx, "Migrated GitHub Branch Default from v1.", migratedState)
+	tflog.Debug(ctx, "Migrated GitHub Branch Default from v1.", map[string]any{"repository": migratedState["repository"], "repository_id": migratedState["repository_id"], "branch": migratedState["branch"]})
 	return migratedState, nil
 }
