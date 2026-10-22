@@ -8,6 +8,18 @@ description: |-
 
 This resource allows you to create and manage a GitHub enterprise organization.
 
+## Authentication
+
+Refreshing this resource reads the billing email through the REST API's
+[Get an organization](https://docs.github.com/en/rest/orgs/orgs#get-an-organization)
+endpoint. The configured credentials must be authorized to read the organization's
+billing email and members. For GitHub App installations, this requires organization
+Administration and Members read permissions.
+
+Organization creation requires enterprise authorization. An enterprise installation
+does not automatically grant organization access; installing an app on an organization
+does not extend the permissions of its enterprise installation token.
+
 ## Example Usage
 
 ```hcl

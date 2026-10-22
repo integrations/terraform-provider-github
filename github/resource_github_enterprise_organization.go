@@ -169,13 +169,12 @@ func resourceGithubEnterpriseOrganizationRead(data *schema.ResourceData, m any) 
 	var query struct {
 		Node struct {
 			Organization struct {
-				ID                       githubv4.ID
-				DatabaseId               githubv4.Int
-				Name                     githubv4.String
-				Login                    githubv4.String
-				Description              githubv4.String
-				OrganizationBillingEmail githubv4.String
-				MembersWithRole          struct {
+				ID              githubv4.ID
+				DatabaseId      githubv4.Int
+				Name            githubv4.String
+				Login           githubv4.String
+				Description     githubv4.String
+				MembersWithRole struct {
 					Edges []struct {
 						User struct {
 							Login githubv4.String
@@ -221,7 +220,15 @@ func resourceGithubEnterpriseOrganizationRead(data *schema.ResourceData, m any) 
 		variables["cursor"] = new(query.Node.Organization.MembersWithRole.PageInfo.EndCursor)
 	}
 
-	err := data.Set("admin_logins", schema.NewSet(schema.HashString, adminLogins))
+	organization, _, err := meta.v3client.Organizations.Get(context.Background(), string(query.Node.Organization.Login))
+	if err != nil {
+		return err
+	}
+	if organization.BillingEmail == nil {
+		return fmt.Errorf("billing_email was not returned for organization %q; check organization administration permissions", query.Node.Organization.Login)
+	}
+
+	err = data.Set("admin_logins", schema.NewSet(schema.HashString, adminLogins))
 	if err != nil {
 		return err
 	}
@@ -238,7 +245,7 @@ func resourceGithubEnterpriseOrganizationRead(data *schema.ResourceData, m any) 
 		}
 	}
 
-	err = data.Set("billing_email", query.Node.Organization.OrganizationBillingEmail)
+	err = data.Set("billing_email", organization.GetBillingEmail())
 	if err != nil {
 		return err
 	}
