@@ -10,7 +10,12 @@ import (
 func TestAccGithubOrganizationSettings(t *testing.T) {
 	// IMPORTANT: Do not run these tests in parallel as they modify the organization state.
 
-	t.Skip("TODO: Make this test cleanup correctly")
+	skipUnlessHasOrgs(t)
+
+	// The resource's delete reverts to hardcoded defaults rather than the
+	// organization's prior state, so snapshot the settings and put them back
+	// once every subtest has run.
+	mustSnapshotOrganizationSettings(t)
 
 	t.Run("creates organization settings without error", func(t *testing.T) {
 		config := `
@@ -217,6 +222,44 @@ func TestAccGithubOrganizationSettings(t *testing.T) {
 				{
 					Config: config,
 					Check:  check,
+				},
+			},
+		})
+	})
+
+	t.Run("sends booleans configured as false on create", func(t *testing.T) {
+		// These attributes default to true, so a false value used to be dropped
+		// from the create payload and only reached the API on a second apply
+		// (#3493). The plan-only step fails if the first apply did not converge.
+		config := `
+		resource "github_organization_settings" "test" {
+			billing_email = "test@example.com"
+			has_organization_projects = false
+			has_repository_projects = false
+			members_can_create_pages = false
+			members_can_create_public_pages = false
+			members_can_create_private_pages = false
+		}`
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr("github_organization_settings.test", "has_organization_projects", "false"),
+			resource.TestCheckResourceAttr("github_organization_settings.test", "has_repository_projects", "false"),
+			resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_pages", "false"),
+			resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_public_pages", "false"),
+			resource.TestCheckResourceAttr("github_organization_settings.test", "members_can_create_private_pages", "false"),
+		)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
+				},
+				{
+					Config:   config,
+					PlanOnly: true,
 				},
 			},
 		})
