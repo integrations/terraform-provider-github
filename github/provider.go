@@ -601,6 +601,24 @@ func configureProviderMeta(ctx context.Context, version string, c *Config) (*Own
 			}
 			owner.name = user.GetLogin()
 		}
+
+		if c.AppID != nil {
+			appSource, err := ghclient.NewAppSource(*c.AppID, c.AppPEM, ghclient.SourceOptions{
+				BaseURL:   c.BaseURL.String(),
+				IsGHES:    c.IsGHES,
+				UserAgent: fmt.Sprintf("%s/%s (+%s; go/%s; os/%s; arch/%s)", providerName, version, providerURL, runtime.Version(), runtime.GOOS, runtime.GOARCH),
+				Retry: ghclient.RetryOptions{
+					Max:     c.MaxRetries,
+					WaitMin: c.RetryDelay,
+					WaitMax: c.RetryDelay,
+					Jitter:  c.RetryDelay / 2,
+				},
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to create app source: %w", err)
+			}
+			owner.appSource = appSource
+		}
 	} else {
 		if !c.Anonymous() && owner.name == "" {
 			return nil, fmt.Errorf("owner must be set when authenticating using the new client implementation")
@@ -634,6 +652,7 @@ func configureProviderMeta(ctx context.Context, version string, c *Config) (*Own
 				return nil, fmt.Errorf("failed to create app source: %w", err)
 			}
 			source = appSource
+			owner.appSource = appSource
 		} else if c.Token != "" {
 			tokenSource, err := ghclient.NewTokenSource(c.Token, options)
 			if err != nil {
