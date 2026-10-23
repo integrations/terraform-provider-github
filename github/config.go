@@ -43,6 +43,7 @@ type Owner struct {
 	StopContext    context.Context
 	IsOrganization bool
 	maxPerPage     int
+	storeEtag      bool
 }
 
 const (

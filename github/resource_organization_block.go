@@ -94,8 +94,10 @@ func resourceOrganizationBlockRead(d *schema.ResourceData, meta any) error {
 	if err = d.Set("username", username); err != nil {
 		return err
 	}
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
+	if meta.(*Owner).storeEtag {
+		if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return err
+		}
 	}
 
 	return nil

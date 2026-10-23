@@ -143,8 +143,10 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta any) error {
 	}
 
 	d.SetId(buildTwoPartID(repoName, branchName))
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
+	if meta.(*Owner).storeEtag {
+		if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return err
+		}
 	}
 	if err = d.Set("repository", repoName); err != nil {
 		return err

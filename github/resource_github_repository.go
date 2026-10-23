@@ -821,7 +821,9 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 		return diag.FromErr(err)
 	}
 
-	_ = d.Set("etag", resp.Header.Get("ETag"))
+	if meta.(*Owner).storeEtag {
+		_ = d.Set("etag", resp.Header.Get("ETag"))
+	}
 	_ = d.Set("name", repoName)
 	_ = d.Set("description", repo.GetDescription())
 	_ = d.Set("primary_language", repo.GetLanguage())

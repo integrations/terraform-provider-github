@@ -218,8 +218,10 @@ func resourceGithubTeamCreate(ctx context.Context, d *schema.ResourceData, m any
 	if err = d.Set("node_id", team.GetNodeID()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	return nil
@@ -310,8 +312,10 @@ func resourceGithubTeamRead(ctx context.Context, d *schema.ResourceData, m any) 
 	if err = d.Set("node_id", team.GetNodeID()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	return nil
@@ -396,8 +400,10 @@ func resourceGithubTeamUpdate(ctx context.Context, d *schema.ResourceData, m any
 	if err = d.Set("node_id", team.GetNodeID()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	return nil

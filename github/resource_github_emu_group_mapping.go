@@ -124,8 +124,10 @@ func resourceGithubEMUGroupMappingCreate(ctx context.Context, d *schema.Resource
 	tflog.Trace(ctx, "Setting state attribute: etag", map[string]any{
 		"etag": etag,
 	})
-	if err := d.Set("etag", etag); err != nil {
-		return diag.FromErr(err)
+	if meta.(*Owner).storeEtag {
+		if err := d.Set("etag", etag); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	tflog.Trace(ctx, "Setting group_name", map[string]any{
@@ -192,8 +194,10 @@ func resourceGithubEMUGroupMappingRead(ctx context.Context, d *schema.ResourceDa
 	}
 
 	etag := resp.Header.Get("ETag")
-	if err := d.Set("etag", etag); err != nil {
-		return diag.FromErr(err)
+	if meta.(*Owner).storeEtag {
+		if err := d.Set("etag", etag); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	if err := d.Set("group_id", int(group.GetGroupID())); err != nil {
@@ -245,8 +249,10 @@ func resourceGithubEMUGroupMappingUpdate(ctx context.Context, d *schema.Resource
 		tflog.Trace(ctx, "Setting state attribute: etag", map[string]any{
 			"etag": etag,
 		})
-		if err := d.Set("etag", etag); err != nil {
-			return diag.FromErr(err)
+		if meta.(*Owner).storeEtag {
+			if err := d.Set("etag", etag); err != nil {
+				return diag.FromErr(err)
+			}
 		}
 
 		if err := d.Set("group_name", group.GetGroupName()); err != nil {

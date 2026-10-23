@@ -127,8 +127,10 @@ func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta any) er
 	if err = d.Set("group", groups); err != nil {
 		return fmt.Errorf("error setting groups: %w", err)
 	}
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return fmt.Errorf("error setting etag: %w", err)
+	if meta.(*Owner).storeEtag {
+		if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return fmt.Errorf("error setting etag: %w", err)
+		}
 	}
 
 	return nil

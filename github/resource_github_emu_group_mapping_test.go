@@ -38,7 +38,6 @@ func TestAccGithubEMUGroupMapping(t *testing.T) {
 					Config: testAccGithubEMUGroupMappingConfig(teamName, groupID),
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_emu_group_mapping.test", tfjsonpath.New("group_id"), knownvalue.NotNull()),
-						statecheck.ExpectKnownValue("github_emu_group_mapping.test", tfjsonpath.New("etag"), knownvalue.NotNull()),
 						statecheck.ExpectKnownValue("github_emu_group_mapping.test", tfjsonpath.New("team_id"), knownvalue.NotNull()),
 						statecheck.CompareValuePairs("github_emu_group_mapping.test", tfjsonpath.New("team_slug"), "github_team.test", tfjsonpath.New("slug"), compare.ValuesSame()),
 					},
@@ -63,11 +62,10 @@ func TestAccGithubEMUGroupMapping(t *testing.T) {
 					Config: testAccGithubEMUGroupMappingConfig(teamName, groupID),
 				},
 				{
-					ResourceName:            rn,
-					ImportState:             true,
-					ImportStateIdFunc:       testAccGithubEMUGroupMappingImportStateIdFunc(rn),
-					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"etag"},
+					ResourceName:      rn,
+					ImportState:       true,
+					ImportStateIdFunc: testAccGithubEMUGroupMappingImportStateIdFunc(rn),
+					ImportStateVerify: true,
 				},
 			},
 		})
@@ -107,11 +105,10 @@ func TestAccGithubEMUGroupMapping(t *testing.T) {
 					Config: config,
 				},
 				{
-					ResourceName:            rn,
-					ImportState:             true,
-					ImportStateIdFunc:       testAccGithubEMUGroupMappingImportStateIdFunc(rn),
-					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"etag"},
+					ResourceName:      rn,
+					ImportState:       true,
+					ImportStateIdFunc: testAccGithubEMUGroupMappingImportStateIdFunc(rn),
+					ImportStateVerify: true,
 				},
 			},
 		})
@@ -135,7 +132,6 @@ func TestAccGithubEMUGroupMapping(t *testing.T) {
 					ConfigStateChecks: []statecheck.StateCheck{
 						compareIDSame.AddStateValue("github_emu_group_mapping.test", tfjsonpath.New("id")),
 						statecheck.ExpectKnownValue("github_emu_group_mapping.test", tfjsonpath.New("group_id"), knownvalue.NotNull()),
-						statecheck.ExpectKnownValue("github_emu_group_mapping.test", tfjsonpath.New("etag"), knownvalue.NotNull()),
 						statecheck.CompareValuePairs("github_emu_group_mapping.test", tfjsonpath.New("team_slug"), "github_team.test", tfjsonpath.New("slug"), compare.ValuesSame()),
 						statecheck.ExpectKnownValue("github_emu_group_mapping.test", tfjsonpath.New("team_id"), knownvalue.NotNull()),
 					},
@@ -189,7 +185,6 @@ resource "github_emu_group_mapping" "test" {
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_emu_group_mapping.test", tfjsonpath.New("group_id"), knownvalue.NotNull()),
 						statecheck.ExpectKnownValue("github_emu_group_mapping.test", tfjsonpath.New("team_id"), knownvalue.NotNull()),
-						statecheck.ExpectKnownValue("github_emu_group_mapping.test", tfjsonpath.New("etag"), knownvalue.NotNull()),
 						statecheck.CompareValuePairs("github_emu_group_mapping.test", tfjsonpath.New("team_slug"), "github_team.test1", tfjsonpath.New("slug"), compare.ValuesSame()),
 					},
 				},
@@ -204,7 +199,6 @@ resource "github_emu_group_mapping" "test" {
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_emu_group_mapping.test", tfjsonpath.New("group_id"), knownvalue.NotNull()),
 						statecheck.ExpectKnownValue("github_emu_group_mapping.test", tfjsonpath.New("team_id"), knownvalue.NotNull()),
-						statecheck.ExpectKnownValue("github_emu_group_mapping.test", tfjsonpath.New("etag"), knownvalue.NotNull()),
 						statecheck.CompareValuePairs("github_emu_group_mapping.test", tfjsonpath.New("team_slug"), "github_team.test2", tfjsonpath.New("slug"), compare.ValuesSame()),
 					},
 				},

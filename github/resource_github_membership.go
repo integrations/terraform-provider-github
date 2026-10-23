@@ -86,8 +86,10 @@ func resourceGithubMembershipCreateOrUpdate(ctx context.Context, d *schema.Resou
 
 	d.SetId(buildTwoPartID(orgName, username))
 
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return diag.FromErr(err)
+	if meta.(*Owner).storeEtag {
+		if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	return nil
@@ -129,8 +131,10 @@ func resourceGithubMembershipRead(ctx context.Context, d *schema.ResourceData, m
 		return diag.FromErr(err)
 	}
 
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return diag.FromErr(err)
+	if meta.(*Owner).storeEtag {
+		if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if err = d.Set("username", username); err != nil {
 		return diag.FromErr(err)
