@@ -61,6 +61,63 @@ Some API operations may not be available when using a GitHub App installation co
 
 {{ tffile "examples/provider/app_auth_mixed/main.tf" }}
 
+### Opt-In Enterprise App Lifecycle
+
+The optional `enterprise_app_auth` block enables an App-only path for
+`github_enterprise_organization`. It does not change default/PAT authentication
+or route other organization resources dynamically. Use a separate normally
+configured provider for repositories, teams, and other organization resources.
+This feature requires a provider build containing this opt-in implementation.
+
+Set `auth_mode = "app"`. The existing `app_auth` credentials are the enterprise
+creation App; its installation must target the configured enterprise. `owner`
+is not required or looked up in this mode. No PAT or GitHub CLI fallback is
+allowed: remove `token` and the environment variable selected by `token_env_name`
+(normally `GITHUB_TOKEN`). Clients renew installation tokens automatically.
+
+{{ tffile "examples/provider/enterprise_app_auth/main.tf" }}
+
+Supply the new block's credentials as attributes or with these dedicated
+environment defaults. Environment variables alone do not enable the feature;
+the block with `enterprise_slug` must be present.
+
+| Attribute | Environment Default |
+| --- | --- |
+| `installer_app_id` | `INSTALLER_APP_CLIENT_ID` |
+| `installer_installation_id` | `INSTALLER_APP_INSTALLATION_ID` |
+| `installer_pem_file` | `INSTALLER_APP_PRIVATE_KEY` |
+| `automation_app_id` | `ORG_APP_ID` |
+| `automation_client_id` | `ORG_APP_CLIENT_ID` |
+| `automation_pem_file` | `ORG_APP_PRIVATE_KEY` |
+
+`installer_app_id` accepts the numeric App ID or client ID JWT issuer.
+`automation_app_id` is the numeric App ID; `automation_client_id` must identify
+the same App. PEM attributes/environment variables contain private key content,
+not file paths. Keep all private key inputs sensitive in HCP Terraform.
+All installer and automation credentials are required, whether supplied as
+attributes or environment variables. Missing credentials fail configuration.
+
+The installer must have access to the enterprise's installable organization
+inventory and permission to install organization Apps. The automation App must
+have `organization_administration = write` and `members = read` (or `write`).
+Repository permissions other than metadata are rejected because bootstrap uses
+`repository_selection = "none"`. The creation App needs the enterprise
+organization-creation permission. See the GitHub
+[enterprise organization APIs](https://docs.github.com/en/rest/enterprise-admin/organizations)
+and [App installation APIs](https://docs.github.com/en/rest/apps/installations)
+for endpoint permission requirements.
+
+Read/import never install, update, or unsuspend Apps. Creation installs the
+automation App only if its organization installation is absent. Existing
+installations must be active and already have the required permissions; this
+provider does not upgrade them. The `automation_installation_id` resource
+attribute exposes the discovered installation ID, but does not configure other
+provider instances in the same run.
+
+Updates and deletion of enterprise organizations are explicitly blocked in
+this mode. For partial-create recovery and import behavior, see
+[github_enterprise_organization](resources/enterprise_organization).
+
 ### OAuth or Personal Access Token (PAT)
 
 To authenticate using OAuth tokens, ensure that the `token` argument or the `GITHUB_TOKEN` environment variable is set.

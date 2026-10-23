@@ -34,6 +34,7 @@ func NewProvider(version, commit string) func() *schema.Provider {
 	return func() *schema.Provider {
 		return &schema.Provider{
 			Schema: map[string]*schema.Schema{
+				"enterprise_app_auth": enterpriseAppAuthSchema(),
 				"base_url": {
 					Type:        schema.TypeString,
 					Optional:    true,
@@ -365,6 +366,10 @@ func configureProvider(version, commit string) func(context.Context, *schema.Res
 		config := &Config{
 			BaseURL: baseURL,
 		}
+		config.EnterpriseApp, err = parseEnterpriseAppAuth(d)
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
 
 		if v, ok := d.GetOk("legacy_client"); ok {
 			if b, ok := v.(bool); ok {
@@ -421,7 +426,7 @@ func configureProvider(version, commit string) func(context.Context, *schema.Res
 				config.AppPEM = appPEM
 			}
 
-			if config.AppID != nil && config.Owner == "" {
+			if config.AppID != nil && config.Owner == "" && config.EnterpriseApp == nil {
 				return nil, diag.Errorf("owner must be set for github app authentication")
 			}
 		}
@@ -451,6 +456,14 @@ func configureProvider(version, commit string) func(context.Context, *schema.Res
 					}
 				}
 			}
+		}
+
+		if config.EnterpriseApp != nil {
+			tokenEnvName, _ := d.Get("token_env_name").(string)
+			if config.AppID == nil || authMode != "app" || d.Get("token").(string) != "" || os.Getenv(tokenEnvName) != "" {
+				return nil, diag.Errorf("enterprise_app_auth requires auth_mode = app, complete creation app_auth credentials, and no token attribute or token environment variable")
+			}
+			config.LegacyClient = false
 		}
 
 		if config.LegacyClient {
@@ -569,6 +582,9 @@ func configureProvider(version, commit string) func(context.Context, *schema.Res
 
 // configureProviderMeta initializes the provider metadata, including setting up the GitHub API clients based on the provided configuration. It returns the initialized metadata or an error if the configuration is invalid or if there are issues initializing the clients.
 func configureProviderMeta(ctx context.Context, version string, c *Config) (*Owner, error) {
+	if c.EnterpriseApp != nil {
+		return configureEnterpriseApp(ctx, version, c)
+	}
 	owner := &Owner{
 		name:       c.Owner,
 		maxPerPage: c.MaxPerPage,
