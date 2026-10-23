@@ -62,7 +62,9 @@ func newTransport(tokenSource oauth2.TokenSource, opts ClientOptions) (http.Roun
 		tr = ghct.NewTransport(store, tr)
 	}
 
-	if tokenSource != nil {
+	if source, ok := tokenSource.(*installationTokenSource); ok {
+		tr = &installationTransport{base: tr, source: source}
+	} else if tokenSource != nil {
 		tr = &oauth2.Transport{
 			Base:   tr,
 			Source: tokenSource,
