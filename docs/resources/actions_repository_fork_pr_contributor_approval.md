@@ -1,0 +1,42 @@
+---
+page_title: "github_actions_repository_fork_pr_contributor_approval (Resource) - GitHub"
+description: |-
+  Manages the fork PR contributor approval policy for a GitHub repository
+---
+
+# github_actions_repository_fork_pr_contributor_approval (Resource)
+
+This resource allows you to set the fork pull request contributor approval policy on a GitHub repository. This controls which fork PR contributors need maintainer approval before their workflows can run on the repository. You must have admin access to a repository to use this resource.
+
+This setting governs fork PRs from outside contributors. On private repositories, the [`fork-pr-workflows-private-repos`](https://docs.github.com/en/rest/actions/permissions?apiVersion=2022-11-28#set-private-repo-fork-pr-workflow-settings-for-a-repository) org/repo settings control whether fork PR workflows run at all; if fork PR workflows are disabled at that level, configuring `approval_policy` via this resource may return `422 Unprocessable Entity`.
+
+The GitHub API for this setting does not expose an "off" state — the policy is always one of the three strictness values. On Delete, this resource resets the policy to GitHub's documented default (`first_time_contributors`).
+
+## Example Usage
+
+```terraform
+resource "github_repository" "example" {
+  name       = "my-repository"
+  visibility = "public"
+}
+
+resource "github_actions_repository_fork_pr_contributor_approval" "test" {
+  approval_policy = "all_external_contributors"
+  repository      = github_repository.example.name
+}
+```
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `repository` - (Required) The GitHub repository.
+- `approval_policy` - (Required) The policy controlling which fork PR contributors need maintainer approval. Possible values are `first_time_contributors_new_to_github`, `first_time_contributors`, or `all_external_contributors`.
+
+## Import
+
+This resource can be imported using the name of the GitHub repository:
+
+```shell
+terraform import github_actions_repository_fork_pr_contributor_approval.test my-repository
+```
