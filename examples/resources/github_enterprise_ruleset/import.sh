@@ -1,0 +1,1 @@
+terraform import github_enterprise_ruleset.example my-enterprise:12345
