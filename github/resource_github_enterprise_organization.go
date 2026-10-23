@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
 )
@@ -26,14 +28,23 @@ func isSAMLEnforcementError(err error) bool {
 
 func resourceGithubEnterpriseOrganization() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubEnterpriseOrganizationCreate,
-		Read:   resourceGithubEnterpriseOrganizationRead,
-		Delete: resourceGithubEnterpriseOrganizationDelete,
-		Update: resourceGithubEnterpriseOrganizationUpdate,
+		CreateContext: enterpriseOrganizationCreateContext,
+		ReadContext:   enterpriseOrganizationReadContext,
+		DeleteContext: enterpriseOrganizationDeleteContext,
+		UpdateContext: enterpriseOrganizationUpdateContext,
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Read:   schema.DefaultTimeout(5 * time.Minute),
+		},
 		Importer: &schema.ResourceImporter{
-			State: resourceGithubEnterpriseOrganizationImport,
+			StateContext: enterpriseOrganizationImportContext,
 		},
 		Schema: map[string]*schema.Schema{
+			"automation_installation_id": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "Automation App installation ID discovered in opt-in enterprise_app_auth mode. Not populated in legacy mode.",
+			},
 			"enterprise_id": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -81,6 +92,41 @@ func resourceGithubEnterpriseOrganization() *schema.Resource {
 			},
 		},
 	}
+}
+
+func enterpriseOrganizationCreateContext(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
+	if owner := meta.(*Owner); owner.enterpriseApp != nil {
+		return diag.FromErr(owner.enterpriseApp.create(ctx, data, owner))
+	}
+	return diag.FromErr(resourceGithubEnterpriseOrganizationCreate(data, meta))
+}
+
+func enterpriseOrganizationReadContext(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
+	if owner := meta.(*Owner); owner.enterpriseApp != nil {
+		return diag.FromErr(owner.enterpriseApp.read(ctx, data))
+	}
+	return diag.FromErr(resourceGithubEnterpriseOrganizationRead(data, meta))
+}
+
+func enterpriseOrganizationUpdateContext(_ context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
+	if meta.(*Owner).enterpriseApp != nil {
+		return diag.Errorf("enterprise_app_auth organization updates are not supported; no API request was made. Restore the previous configuration or manage the change outside this resource")
+	}
+	return diag.FromErr(resourceGithubEnterpriseOrganizationUpdate(data, meta))
+}
+
+func enterpriseOrganizationDeleteContext(_ context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
+	if meta.(*Owner).enterpriseApp != nil {
+		return diag.Errorf("enterprise_app_auth organization deletion is blocked pending an approved permission and API contract; no API request was made. Keep the resource or explicitly remove it from Terraform management without destroying the organization")
+	}
+	return diag.FromErr(resourceGithubEnterpriseOrganizationDelete(data, meta))
+}
+
+func enterpriseOrganizationImportContext(ctx context.Context, data *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+	if owner := meta.(*Owner); owner.enterpriseApp != nil {
+		return owner.enterpriseApp.importOrganization(ctx, data, owner)
+	}
+	return resourceGithubEnterpriseOrganizationImport(data, meta)
 }
 
 func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, m any) error {
