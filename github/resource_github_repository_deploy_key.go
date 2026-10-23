@@ -121,8 +121,10 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta any) err
 		return err
 	}
 
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
+	if meta.(*Owner).storeEtag {
+		if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return err
+		}
 	}
 	if err = d.Set("key", key.GetKey()); err != nil {
 		return err

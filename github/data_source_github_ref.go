@@ -64,9 +64,11 @@ func dataSourceGithubRefRead(ctx context.Context, d *schema.ResourceData, meta a
 	}
 
 	d.SetId(buildTwoPartID(repoName, ref))
-	err = d.Set("etag", resp.Header.Get("ETag"))
-	if err != nil {
-		return diag.FromErr(err)
+	if meta.(*Owner).storeEtag {
+		err = d.Set("etag", resp.Header.Get("ETag"))
+		if err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	err = d.Set("sha", *refData.Object.SHA)
 	if err != nil {

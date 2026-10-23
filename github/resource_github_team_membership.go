@@ -149,8 +149,10 @@ func resourceGithubTeamMembershipRead(ctx context.Context, d *schema.ResourceDat
 		return diag.FromErr(err)
 	}
 
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if err = d.Set("role", membership.GetRole()); err != nil {
 		return diag.FromErr(err)

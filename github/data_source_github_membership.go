@@ -62,9 +62,11 @@ func dataSourceGithubMembershipRead(ctx context.Context, d *schema.ResourceData,
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	err = d.Set("etag", resp.Header.Get("ETag"))
-	if err != nil {
-		return diag.FromErr(err)
+	if meta.(*Owner).storeEtag {
+		err = d.Set("etag", resp.Header.Get("ETag"))
+		if err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	err = d.Set("state", membership.GetState())
 	if err != nil {

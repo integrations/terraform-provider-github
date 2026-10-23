@@ -53,9 +53,6 @@ func TestAccGithubRepositoryDeploymentBranchPolicy(t *testing.T) {
 			resource.TestCheckResourceAttr(
 				"github_repository_deployment_branch_policy.br", "name", "main",
 			),
-			resource.TestCheckResourceAttrSet(
-				"github_repository_deployment_branch_policy.br", "etag",
-			),
 		)
 
 		check2 := resource.ComposeTestCheckFunc(

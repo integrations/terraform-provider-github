@@ -152,10 +152,9 @@ func TestAccGithubIssue(t *testing.T) {
 					Check:  check,
 				},
 				{
-					ResourceName:            "github_issue.test",
-					ImportState:             true,
-					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"etag"},
+					ResourceName:      "github_issue.test",
+					ImportState:       true,
+					ImportStateVerify: true,
 				},
 			},
 		})

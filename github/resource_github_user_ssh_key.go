@@ -102,8 +102,10 @@ func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta any) error {
 		return err
 	}
 
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
+	if meta.(*Owner).storeEtag {
+		if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return err
+		}
 	}
 	if err = d.Set("title", key.GetTitle()); err != nil {
 		return err

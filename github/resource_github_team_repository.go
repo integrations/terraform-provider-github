@@ -146,8 +146,10 @@ func resourceGithubTeamRepositoryRead(ctx context.Context, d *schema.ResourceDat
 		return diag.FromErr(repoErr)
 	}
 
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if d.Get("team_id") == "" {
 		// If team_id is empty, that means we are importing the resource.
