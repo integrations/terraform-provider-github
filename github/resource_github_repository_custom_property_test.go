@@ -3,8 +3,11 @@ package github
 import (
 	"fmt"
 	"regexp"
+	"strings"
 	"testing"
 
+	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
@@ -221,6 +224,41 @@ resource "github_repository_custom_property" "test" {
 		})
 	})
 
+	t.Run("enterprise_scoped_schema", func(t *testing.T) {
+		t.Parallel()
+
+		skipUnlessEnterprise(t)
+
+		prop := mustCreateTestEnterpriseRepositoryCustomProperty(t, "true_false", nil)
+		repo := mustCreateTestRepository(t)
+
+		config := fmt.Sprintf(`
+resource "github_repository_custom_property" "test" {
+  repository    = "%s"
+  property_name = "%s"
+  property_type = "%s"
+  property_value = %%s
+}
+`, repo.GetName(), prop.GetPropertyName(), prop.GetValueType())
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, `["true"]`),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_custom_property.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
+					},
+				},
+				{
+					ResourceName:      "github_repository_custom_property.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
+		})
+	})
+
 	t.Run("string", func(t *testing.T) {
 		t.Parallel()
 
@@ -271,5 +309,96 @@ resource "github_repository_custom_property" "test" {
 				},
 			},
 		})
+	})
+}
+
+func Test_resourceGithubRepositoryCustomPropertyImport(t *testing.T) {
+	t.Run("succeeds_for_property_sourced_from_enterprise", func(t *testing.T) {
+		ts := githubApiMock([]*mockResponse{
+			mustGetTestMockResponse(t, "/repos/my-org/my-repo", 200, &github.Repository{
+				ID: new(int64(123456)),
+			}),
+			mustGetTestMockResponse(t, "/orgs/my-org/properties/schema", 200, []*github.CustomProperty{
+				{
+					PropertyName: new("hcp_prod"),
+					ValueType:    github.PropertyValueTypeTrueFalse,
+					SourceType:   new("enterprise"),
+				},
+			}),
+		})
+		defer ts.Close()
+
+		meta := &Owner{
+			name:     "my-org",
+			v3client: mustCreateTestGitHubClient(t, ts.URL),
+		}
+
+		d := resourceGithubRepositoryCustomProperty().Data(&terraform.InstanceState{
+			ID: "my-org:my-repo:hcp_prod",
+		})
+
+		got, err := resourceGithubRepositoryCustomPropertyImport(t.Context(), d, meta)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		if len(got) != 1 {
+			t.Fatalf("expected 1 resource data, got %d", len(got))
+		}
+
+		if v := got[0].Get("repository"); v != "my-repo" {
+			t.Errorf("repository = %v, want my-repo", v)
+		}
+		if v := got[0].Get("repository_id"); v != 123456 {
+			t.Errorf("repository_id = %v, want 123456", v)
+		}
+		if v := got[0].Get("property_name"); v != "hcp_prod" {
+			t.Errorf("property_name = %v, want hcp_prod", v)
+		}
+		if v := got[0].Get("property_type"); v != string(github.PropertyValueTypeTrueFalse) {
+			t.Errorf("property_type = %v, want %v", v, github.PropertyValueTypeTrueFalse)
+		}
+	})
+
+	t.Run("fails_when_property_not_found", func(t *testing.T) {
+		ts := githubApiMock([]*mockResponse{
+			mustGetTestMockResponse(t, "/repos/my-org/my-repo", 200, &github.Repository{
+				ID: new(int64(123456)),
+			}),
+			mustGetTestMockResponse(t, "/orgs/my-org/properties/schema", 200, []*github.CustomProperty{}),
+		})
+		defer ts.Close()
+
+		meta := &Owner{
+			name:     "my-org",
+			v3client: mustCreateTestGitHubClient(t, ts.URL),
+		}
+
+		d := resourceGithubRepositoryCustomProperty().Data(&terraform.InstanceState{
+			ID: "my-org:my-repo:hcp_prod",
+		})
+
+		_, err := resourceGithubRepositoryCustomPropertyImport(t.Context(), d, meta)
+		if err == nil {
+			t.Fatal("expected error, got none")
+		}
+		if !strings.Contains(err.Error(), "not found") {
+			t.Fatalf("unexpected error: %s", err)
+		}
+	})
+
+	t.Run("fails_when_owner_does_not_match_authenticated_owner", func(t *testing.T) {
+		meta := &Owner{name: "my-org"}
+
+		d := resourceGithubRepositoryCustomProperty().Data(&terraform.InstanceState{
+			ID: "other-org:my-repo:hcp_prod",
+		})
+
+		_, err := resourceGithubRepositoryCustomPropertyImport(t.Context(), d, meta)
+		if err == nil {
+			t.Fatal("expected error, got none")
+		}
+		if !strings.Contains(err.Error(), "owner in id must match authenticated owner") {
+			t.Fatalf("unexpected error: %s", err)
+		}
 	})
 }
