@@ -1,0 +1,1 @@
+terraform import github_repository_immutable_releases.example repo-name
