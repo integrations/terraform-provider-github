@@ -94,13 +94,13 @@ func TestGenerateAppJWT(t *testing.T) {
 
 		expectedIssuedAt := testEpochTime.Add(time.Duration(-60) * time.Second)
 		if claims.IssuedAt.Time() != expectedIssuedAt {
-			t.Logf("Unexpected 'iss' claim - Expected: %d - Found: %d", expectedIssuedAt.Unix(), claims.IssuedAt)
+			t.Logf("Unexpected 'iss' claim - Expected: %d - Found: %d", expectedIssuedAt.Unix(), claims.IssuedAt.Time().Unix())
 			t.Fail()
 		}
 
 		expectedExpiration := testEpochTime.Add(time.Duration(5) * time.Minute)
 		if claims.Expiry.Time() != expectedExpiration {
-			t.Logf("Unexpected 'exp' claim - Expected: %d - Found: %d", expectedExpiration.Unix(), claims.Expiry)
+			t.Logf("Unexpected 'exp' claim - Expected: %d - Found: %d", expectedExpiration.Unix(), claims.Expiry.Time().Unix())
 			t.Fail()
 		}
 
