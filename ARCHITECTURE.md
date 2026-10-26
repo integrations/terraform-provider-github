@@ -580,6 +580,7 @@ The following resources are deprecated and will be removed in future versions:
 | `github_project_card`                        | None (Classic Projects API removed)               |
 | `github_project_column`                      | None (Classic Projects API removed)               |
 | `github_repository_project`                  | None (Classic Projects API removed)               |
+| `github_organization_custom_properties`      | `github_organization_repository_custom_property`  |
 
 ### Deprecated Data Sources
 
@@ -587,7 +588,10 @@ The following resources are deprecated and will be removed in future versions:
 | ---------------------------------------------- | --------------------------------------------------- |
 | `github_organization_custom_role`              | `github_organization_repository_role`               |
 | `github_organization_security_managers`        | `github_organization_role_teams`                    |
+| `github_organization_custom_properties`        | `github_organization_repository_custom_property` for one lookup, or `github_organization_repository_custom_properties` for all properties |
 | `github_repository_deployment_branch_policies` | `github_repository_environment_deployment_policies` |
+
+The deprecated organization custom properties data source requires `property_name` and exposes one property's attributes at the top level. The replacement singular data source keeps that lookup shape, but `default_value` is a list; use the plural data source when all definitions are needed, where the results are nested under `properties`.
 
 ### Known Limitations
 
