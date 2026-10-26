@@ -53,7 +53,7 @@ func TestGetValue(t *testing.T) {
 
 			v, ok, typeOK := GetValue[string](d, tt.key)
 			if v != tt.expected || ok != tt.ok || typeOK != tt.typeOK {
-				t.Errorf("GetValue() = (%v, %v, %v), want (%v, %v, %v)", v, ok, typeOK, tt.expected, tt.ok, tt.typeOK)
+				t.Errorf("got (%v, %v, %v), want (%v, %v, %v)", v, ok, typeOK, tt.expected, tt.ok, tt.typeOK)
 			}
 		})
 	}
@@ -102,7 +102,7 @@ func TestGetOk(t *testing.T) {
 
 			v, ok := GetOk[string](d, tt.key)
 			if v != tt.expected || ok != tt.ok {
-				t.Errorf("GetOk() = (%v, %v), want (%v, %v)", v, ok, tt.expected, tt.ok)
+				t.Errorf("got (%v, %v), want (%v, %v)", v, ok, tt.expected, tt.ok)
 			}
 		})
 	}
@@ -147,7 +147,7 @@ func TestGet(t *testing.T) {
 
 			v := Get[string](d, tt.key)
 			if v != tt.expected {
-				t.Errorf("Get() = %v, want %v", v, tt.expected)
+				t.Errorf("got %v, want %v", v, tt.expected)
 			}
 		})
 	}
@@ -204,7 +204,7 @@ func TestGetKeysOk(t *testing.T) {
 
 			v, ok := GetKeysOk[string](d, tt.keys...)
 			if v != tt.expected || ok != tt.ok {
-				t.Errorf("GetKeysOk() = (%v, %v), want (%v, %v)", v, ok, tt.expected, tt.ok)
+				t.Errorf("got (%v, %v), want (%v, %v)", v, ok, tt.expected, tt.ok)
 			}
 		})
 	}

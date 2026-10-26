@@ -25,8 +25,8 @@ Before judging Go code, anchor on the versions this repo actually uses.
 Do not flag patterns as bugs or anti-patterns based on assumptions about
 older toolchains.
 
-- **Go version: 1.26** (see `go 1.26` in `go.mod`). Treat anything
-  available in Go ≤ 1.26 as in-scope and idiomatic.
+- **Go version: 1.27** (see `go 1.27` in `go.mod`). Treat anything
+  available in Go ≤ 1.27 as in-scope and idiomatic.
 - **Loop variable scoping (Go 1.22+).** Each iteration of `for` loops has
   its own copy of the loop variable. Do **not** suggest the pre-1.22
   `x := x` shadowing pattern inside loops, and do **not** flag goroutines

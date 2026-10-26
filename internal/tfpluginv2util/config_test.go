@@ -50,7 +50,7 @@ func TestIsSet(t *testing.T) {
 			got := IsSet(d, tt.path)
 
 			if got != tt.want {
-				t.Errorf("IsSet() = %v, want %v", got, tt.want)
+				t.Errorf("got %v, want %v", got, tt.want)
 			}
 		})
 	}

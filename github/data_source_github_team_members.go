@@ -84,9 +84,7 @@ func dataSourceGithubTeamMembersRead(ctx context.Context, d *schema.ResourceData
 	}
 
 	opts := &github.TeamListTeamMembersOptions{
-		ListOptions: github.ListOptions{
-			PerPage: meta.maxPerPage,
-		},
+		PerPage: meta.maxPerPage,
 	}
 
 	var iter iter.Seq2[*github.User, error]
