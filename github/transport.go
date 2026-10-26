@@ -244,6 +244,15 @@ func (t *RetryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	var dataBuffer *bytes.Reader
 
 	for retry := 0; retry <= t.maxRetries; retry++ {
+		if err := req.Context().Err(); err != nil {
+			// Before the first attempt we still own the request body. Once
+			// sent, the underlying transport is responsible for closing it.
+			if retry == 0 && req.Body != nil {
+				_ = req.Body.Close()
+			}
+			return nil, err
+		}
+
 		// Reset the body
 		// Code from httpretry (https://github.com/ybbus/httpretry/blob/master/roundtripper.go#L60)
 		// if request provides GetBody() we use it as Body,
@@ -279,14 +288,35 @@ func (t *RetryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		}
 
 		resp, err = t.transport.RoundTrip(req)
-		if resp != nil && !t.retryableErrors[resp.StatusCode] {
-			return resp, err
+		if err != nil {
+			// A RoundTripper must not return a response alongside an error,
+			// but discard it if one is returned so it cannot leak.
+			drainResponseBody(resp)
+			resp = nil
+		} else if !t.retryableErrors[resp.StatusCode] {
+			return resp, nil
 		}
 
-		time.Sleep(t.retryDelay)
+		if retry < t.maxRetries {
+			// Drain and close the intermediate response body before retrying,
+			// otherwise its connection and resources are leaked.
+			drainResponseBody(resp)
+			resp = nil
+			sleep(req.Context(), t.retryDelay)
+		}
 	}
 
 	return resp, err
+}
+
+// drainResponseBody reads up to 4KB and closes a discarded response body.
+// Reaching EOF allows the underlying connection to be reused.
+func drainResponseBody(resp *http.Response) {
+	if resp == nil || resp.Body == nil {
+		return
+	}
+	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4*1024))
+	_ = resp.Body.Close()
 }
 
 // WithMaxRetries is used to set the max number of retries when encountering an error.
