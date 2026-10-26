@@ -78,7 +78,20 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, m any) e
 
 	ctx := context.Background()
 
-	_, _, err := client.Repositories.AddCollaborator(ctx,
+	// An expired invitation blocks a fresh one, so remove it before inviting again
+	invitation, err := findRepoInvitation(meta, ctx, owner, repoNameWithoutOwner, username)
+	if err != nil {
+		return err
+	}
+	if invitation != nil && invitation.GetExpired() {
+		log.Printf("[INFO] Deleting expired invitation %d for repository collaborator %s (%s/%s)",
+			invitation.GetID(), username, owner, repoNameWithoutOwner)
+		if _, err = client.Repositories.DeleteInvitation(ctx, owner, repoNameWithoutOwner, invitation.GetID()); err != nil {
+			return err
+		}
+	}
+
+	_, _, err = client.Repositories.AddCollaborator(ctx,
 		owner,
 		repoNameWithoutOwner,
 		username,
@@ -117,6 +130,12 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, m any) err
 			return nil
 		}
 		return err
+	}
+	// An expired invitation can no longer be accepted, so it does not count as pending
+	if invitation != nil && invitation.GetExpired() {
+		log.Printf("[INFO] Ignoring expired invitation %d for repository collaborator %s (%s/%s)",
+			invitation.GetID(), username, owner, repoNameWithoutOwner)
+		invitation = nil
 	}
 	if invitation != nil {
 		username = invitation.GetInvitee().GetLogin()

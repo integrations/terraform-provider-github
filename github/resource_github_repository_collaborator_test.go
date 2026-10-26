@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
@@ -208,4 +209,82 @@ func TestParseRepoName(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGithubRepositoryCollaboratorExpiredInvitation(t *testing.T) {
+	expiredInvitation := `[{"id": 7, "invitee": {"login": "user"}, "permissions": "write", "expired": true}]`
+
+	t.Run("read removes collaborator with only an expired invitation from state", func(t *testing.T) {
+		ts := githubApiMock([]*mockResponse{
+			{
+				ExpectedUri:    "/repos/owner/repo/invitations",
+				ExpectedMethod: "GET",
+				StatusCode:     200,
+				ResponseBody:   expiredInvitation,
+			},
+			{
+				ExpectedUri:    "/repos/owner/repo/collaborators",
+				ExpectedMethod: "GET",
+				StatusCode:     200,
+				ResponseBody:   `[]`,
+			},
+		})
+		defer ts.Close()
+
+		meta := &Owner{name: "owner", v3client: mustCreateTestGitHubClient(t, ts.URL)}
+		d := schema.TestResourceDataRaw(t, resourceGithubRepositoryCollaborator().Schema, map[string]any{
+			"repository": "repo",
+			"username":   "user",
+		})
+		d.SetId(buildTwoPartID("repo", "user"))
+
+		if err := resourceGithubRepositoryCollaboratorRead(d, meta); err != nil {
+			t.Fatalf("expected no error, got: %v", err)
+		}
+		if d.Id() != "" {
+			t.Fatalf("expected collaborator to be removed from state, got id %q", d.Id())
+		}
+	})
+
+	t.Run("create deletes an expired invitation before inviting again", func(t *testing.T) {
+		ts := githubApiMock([]*mockResponse{
+			{
+				ExpectedUri:    "/repos/owner/repo/invitations",
+				ExpectedMethod: "GET",
+				StatusCode:     200,
+				ResponseBody:   expiredInvitation,
+			},
+			{
+				ExpectedUri:    "/repos/owner/repo/invitations/7",
+				ExpectedMethod: "DELETE",
+				StatusCode:     204,
+			},
+			{
+				ExpectedUri:    "/repos/owner/repo/collaborators/user",
+				ExpectedMethod: "PUT",
+				StatusCode:     201,
+				ResponseBody:   `{"id": 8, "invitee": {"login": "user"}, "permissions": "write"}`,
+			},
+			{
+				ExpectedUri:    "/repos/owner/repo/invitations",
+				ExpectedMethod: "GET",
+				StatusCode:     200,
+				ResponseBody:   `[{"id": 8, "invitee": {"login": "user"}, "permissions": "write", "expired": false}]`,
+			},
+		})
+		defer ts.Close()
+
+		meta := &Owner{name: "owner", v3client: mustCreateTestGitHubClient(t, ts.URL)}
+		d := schema.TestResourceDataRaw(t, resourceGithubRepositoryCollaborator().Schema, map[string]any{
+			"repository": "repo",
+			"username":   "user",
+		})
+
+		if err := resourceGithubRepositoryCollaboratorCreate(d, meta); err != nil {
+			t.Fatalf("expected no error, got: %v", err)
+		}
+		if got := d.Get("invitation_id").(string); got != "8" {
+			t.Fatalf("expected new invitation id 8, got %q", got)
+		}
+	})
 }
