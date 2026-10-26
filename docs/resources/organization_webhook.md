@@ -11,13 +11,21 @@ This resource allows you to create and manage webhooks for GitHub organization.
 ## Example Usage
 
 ```terraform
+variable "webhook_secret" {
+  type      = string
+  sensitive = true
+  ephemeral = true
+}
+
 resource "github_organization_webhook" "foo" {
   name = "web"
 
   configuration {
-    url          = "https://google.de/"
-    content_type = "form"
-    insecure_ssl = false
+    url               = "https://google.de/"
+    content_type      = "form"
+    insecure_ssl      = false
+    secret_wo         = var.webhook_secret
+    secret_wo_version = 1
   }
 
   active = false
@@ -32,11 +40,25 @@ The following arguments are supported:
 
 - `events` - (Required) A list of events which should trigger the webhook. See a list of [available events](https://developer.github.com/v3/activity/events/types/)
 
-- `configuration` - (Required) key/value pair of configuration for this webhook. Available keys are `url`, `content_type`, `secret` and `insecure_ssl`.
+- `configuration` - (Required) Configuration block for this webhook. Available arguments are detailed below.
 
 - `active` - (Optional) Indicate of the webhook should receive events. Defaults to `true`.
 
 - `name` - (Optional) The type of the webhook. `web` is the default and the only option.
+
+### configuration
+
+- `url` - (Required) The URL of the webhook.
+
+- `content_type` - (Optional) The content type for the payload. Valid values are either `form` or `json`.
+
+- `secret` - (Optional) The shared secret for the webhook. It conflicts with `secret_wo`.
+
+- `secret_wo` - (Optional, Write-only) The shared secret for the webhook (write-only variant). Requires Terraform 1.11 or later and must be paired with `secret_wo_version`. It accepts ephemeral or ordinary values and is omitted from Terraform plan and state. It conflicts with `secret`.
+
+- `secret_wo_version` - (Optional) Version of `secret_wo`. It must be at least `1` and must be paired with `secret_wo`. Change this value whenever the secret is rotated; changing the secret value alone does not trigger an update.
+
+- `insecure_ssl` - (Optional) Insecure SSL boolean toggle. Defaults to `false`.
 
 ## Attributes Reference
 
@@ -52,4 +74,4 @@ Organization webhooks can be imported using the `id` of the webhook. The `id` of
 terraform import github_organization_webhook.terraform 123456789
 ```
 
-If secret is populated in the webhook's configuration, the value will be imported as "********".
+Webhook secrets cannot be recovered during import, so neither `secret` nor `secret_wo` is populated in imported state. To establish a write-only secret after import, configure `secret_wo` and `secret_wo_version`; Terraform updates the existing webhook in place.
