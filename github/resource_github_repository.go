@@ -788,10 +788,11 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 	return resourceGithubRepositoryUpdate(ctx, d, meta)
 }
 
-func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	owner := meta.(*Owner).name
+	owner := meta.name
 	repoName := d.Id()
 
 	// When the user has not authenticated the provider, AnonymousHTTPClient is used, therefore owner == "". In this
@@ -821,7 +822,11 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 		return diag.FromErr(err)
 	}
 
-	_ = d.Set("etag", resp.Header.Get("ETag"))
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
+	}
 	_ = d.Set("name", repoName)
 	_ = d.Set("description", repo.GetDescription())
 	_ = d.Set("primary_language", repo.GetLanguage())

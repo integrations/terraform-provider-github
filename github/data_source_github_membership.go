@@ -36,11 +36,12 @@ func dataSourceGithubMembership() *schema.Resource {
 	}
 }
 
-func dataSourceGithubMembershipRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func dataSourceGithubMembershipRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 	username := d.Get("username").(string)
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 
 	if configuredOrg := d.Get("organization").(string); configuredOrg != "" {
 		orgName = configuredOrg
@@ -62,9 +63,10 @@ func dataSourceGithubMembershipRead(ctx context.Context, d *schema.ResourceData,
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	err = d.Set("etag", resp.Header.Get("ETag"))
-	if err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	err = d.Set("state", membership.GetState())
 	if err != nil {

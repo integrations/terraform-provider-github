@@ -148,8 +148,9 @@ func resourceGithubIssueCreateOrUpdate(d *schema.ResourceData, meta any) error {
 	return resourceGithubIssueRead(d, meta)
 }
 
-func resourceGithubIssueRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubIssueRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	repoName, idNumber, err := parseID2(d.Id())
 	if err != nil {
 		return err
@@ -160,7 +161,7 @@ func resourceGithubIssueRead(d *schema.ResourceData, meta any) error {
 		return err
 	}
 
-	orgName := meta.(*Owner).name
+	orgName := meta.name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
@@ -184,8 +185,10 @@ func resourceGithubIssueRead(d *schema.ResourceData, meta any) error {
 		return err
 	}
 
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return err
+		}
 	}
 	if err = d.Set("repository", repoName); err != nil {
 		return err

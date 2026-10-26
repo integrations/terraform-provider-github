@@ -165,8 +165,10 @@ func resourceGithubBranchDefaultCreate(ctx context.Context, d *schema.ResourceDa
 	if err := d.Set("repository_id", int(repository.GetID())); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("etag", etag); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err := d.Set("etag", etag); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	tflog.Trace(ctx, "Finished creating default branch resource", map[string]any{"resource_id": d.Id()})
@@ -213,8 +215,10 @@ func resourceGithubBranchDefaultRead(ctx context.Context, d *schema.ResourceData
 		return diag.FromErr(err)
 	}
 
-	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	if err := d.Set("branch", repository.GetDefaultBranch()); err != nil {
@@ -279,8 +283,10 @@ func resourceGithubBranchDefaultUpdate(ctx context.Context, d *schema.ResourceDa
 		d.SetId(repoName)
 	}
 
-	if err := d.Set("etag", etag); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err := d.Set("etag", etag); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	tflog.Trace(ctx, "Finished updating default branch resource")
@@ -319,8 +325,10 @@ func resourceGithubBranchDefaultImport(ctx context.Context, d *schema.ResourceDa
 	if err := d.Set("repository_id", int(repository.GetID())); err != nil {
 		return nil, err
 	}
-	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return nil, err
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return nil, err
+		}
 	}
 
 	return []*schema.ResourceData{d}, nil

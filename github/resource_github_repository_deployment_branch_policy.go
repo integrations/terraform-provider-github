@@ -100,14 +100,15 @@ func resourceGithubRepositoryDeploymentBranchPolicyCreate(d *schema.ResourceData
 	return resourceGithubRepositoryDeploymentBranchPolicyRead(d, meta)
 }
 
-func resourceGithubRepositoryDeploymentBranchPolicyRead(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryDeploymentBranchPolicyRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+	client := meta.v3client
+	owner := meta.name
 	repoName := d.Get("repository").(string)
 	environmentName := d.Get("environment_name").(string)
 
@@ -132,8 +133,10 @@ func resourceGithubRepositoryDeploymentBranchPolicyRead(d *schema.ResourceData, 
 		return err
 	}
 
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return err
+		}
 	}
 	if err = d.Set("repository", repoName); err != nil {
 		return err

@@ -91,14 +91,15 @@ func resourceGithubTeamSyncGroupMappingCreate(d *schema.ResourceData, meta any) 
 	return resourceGithubTeamSyncGroupMappingRead(d, meta)
 }
 
-func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta any) error {
+func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 	slug := d.Get("team_slug").(string)
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
@@ -127,8 +128,10 @@ func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta any) er
 	if err = d.Set("group", groups); err != nil {
 		return fmt.Errorf("error setting groups: %w", err)
 	}
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return fmt.Errorf("error setting etag: %w", err)
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return fmt.Errorf("error setting etag: %w", err)
+		}
 	}
 
 	return nil

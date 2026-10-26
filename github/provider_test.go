@@ -256,6 +256,10 @@ func Test_configureProviderMeta(t *testing.T) {
 				t.Errorf("expected IsOrganization to be %v, got %v", tt.wantIsOrg, meta.IsOrganization)
 			}
 
+			if meta.storeEtag != tt.conf.LegacyClient {
+				t.Errorf("expected storeEtag to be %v, got %v", tt.conf.LegacyClient, meta.storeEtag)
+			}
+
 			if meta.id != tt.wantOrgId {
 				t.Errorf("expected owner id to be %d, got %d", tt.wantOrgId, meta.id)
 			}
