@@ -681,6 +681,14 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Description: "Prevent commits that include changes in specified file paths from being pushed to the commit graph.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
+									"ignored_file_paths": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										Description: "File path patterns that are allowed even when they match a restricted path. Uses fnmatch syntax.",
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
 									"restricted_file_paths": {
 										Type:        schema.TypeList,
 										MinItems:    1,
@@ -700,6 +708,14 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Description: "Prevent pushes based on file size.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
+									"ignored_file_paths": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										Description: "File path patterns that may exceed the maximum file size. Uses fnmatch syntax.",
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
 									"max_file_size": {
 										Type:             schema.TypeInt,
 										Required:         true,
@@ -766,9 +782,9 @@ func resourceGithubOrganizationRulesetCreate(ctx context.Context, d *schema.Reso
 		"name":  name,
 	})
 
-	rulesetReq := resourceGithubRulesetObject(d, owner)
+	rulesetReq := expandRulesetWithPathExceptions(d, owner)
 
-	ruleset, resp, err := client.Organizations.CreateRepositoryRuleset(ctx, owner, rulesetReq)
+	ruleset, resp, err := doRulesetRequest(ctx, client, http.MethodPost, fmt.Sprintf("orgs/%s/rulesets", owner), rulesetReq)
 	if err != nil {
 		tflog.Error(ctx, fmt.Sprintf("Failed to create organization ruleset: %s/%s", owner, name), map[string]any{
 			"owner": owner,
@@ -788,7 +804,7 @@ func resourceGithubOrganizationRulesetCreate(ctx context.Context, d *schema.Reso
 	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("rules", flattenRules(ctx, ruleset.Rules, true)); err != nil {
+	if err := d.Set("rules", flattenRulesWithPathExceptions(ctx, ruleset.Rules, true)); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -824,7 +840,7 @@ func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.Resour
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	ruleset, resp, err := client.Organizations.GetRepositoryRuleset(ctx, owner, rulesetID)
+	ruleset, resp, err := doRulesetRequest(ctx, client, http.MethodGet, fmt.Sprintf("orgs/%s/rulesets/%d", owner, rulesetID), nil)
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
@@ -869,7 +885,7 @@ func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.Resour
 	if err := d.Set("conditions", flattenConditions(ctx, ruleset.GetConditions(), true)); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("rules", flattenRules(ctx, ruleset.Rules, true)); err != nil {
+	if err := d.Set("rules", flattenRulesWithPathExceptions(ctx, ruleset.Rules, true)); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
@@ -913,9 +929,9 @@ func resourceGithubOrganizationRulesetUpdate(ctx context.Context, d *schema.Reso
 		"name":       name,
 	})
 
-	rulesetReq := resourceGithubRulesetObject(d, owner)
+	rulesetReq := expandRulesetWithPathExceptions(d, owner)
 
-	ruleset, resp, err := client.Organizations.UpdateRepositoryRuleset(ctx, owner, rulesetID, rulesetReq)
+	ruleset, resp, err := doRulesetRequest(ctx, client, http.MethodPut, fmt.Sprintf("orgs/%s/rulesets/%d", owner, rulesetID), rulesetReq)
 	if err != nil {
 		tflog.Error(ctx, fmt.Sprintf("Failed to update organization ruleset: %s/%d", owner, rulesetID), map[string]any{
 			"owner":      owner,

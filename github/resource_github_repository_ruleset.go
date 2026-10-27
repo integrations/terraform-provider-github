@@ -588,6 +588,14 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Description: "Prevent commits that include changes in specified file paths from being pushed to the commit graph.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
+									"ignored_file_paths": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										Description: "File path patterns that are allowed even when they match a restricted path. Uses fnmatch syntax.",
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
 									"restricted_file_paths": {
 										Type:        schema.TypeList,
 										MinItems:    1,
@@ -607,6 +615,14 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Description: "Prevent pushes based on file size.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
+									"ignored_file_paths": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										Description: "File path patterns that may exceed the maximum file size. Uses fnmatch syntax.",
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
 									"max_file_size": {
 										Type:             schema.TypeInt,
 										Required:         true,
@@ -688,7 +704,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 func resourceGithubRepositoryRulesetCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
-	rulesetReq := resourceGithubRulesetObject(d, "")
+	rulesetReq := expandRulesetWithPathExceptions(d, "")
 
 	owner := meta.(*Owner).name
 
@@ -703,7 +719,7 @@ func resourceGithubRepositoryRulesetCreate(ctx context.Context, d *schema.Resour
 		return diag.Errorf("cannot create ruleset on archived repository %s/%s", owner, repoName)
 	}
 
-	ruleset, resp, err := client.Repositories.CreateRuleset(ctx, owner, repoName, rulesetReq)
+	ruleset, resp, err := doRulesetRequest(ctx, client, http.MethodPost, fmt.Sprintf("repos/%s/%s/rulesets", owner, repoName), rulesetReq)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -718,7 +734,7 @@ func resourceGithubRepositoryRulesetCreate(ctx context.Context, d *schema.Resour
 	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("rules", flattenRules(ctx, ruleset.Rules, false)); err != nil {
+	if err := d.Set("rules", flattenRulesWithPathExceptions(ctx, ruleset.Rules, false)); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -740,7 +756,7 @@ func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.Resource
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	ruleset, resp, err := client.Repositories.GetRuleset(ctx, owner, repoName, rulesetID, false)
+	ruleset, resp, err := doRulesetRequest(ctx, client, http.MethodGet, fmt.Sprintf("repos/%s/%s/rulesets/%d?includes_parents=false", owner, repoName, rulesetID), nil)
 	if err != nil {
 		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
@@ -779,7 +795,7 @@ func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.Resource
 	if err := d.Set("conditions", flattenConditions(ctx, ruleset.GetConditions(), false)); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("rules", flattenRules(ctx, ruleset.GetRules(), false)); err != nil {
+	if err := d.Set("rules", flattenRulesWithPathExceptions(ctx, ruleset.Rules, false)); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
@@ -801,7 +817,7 @@ func resourceGithubRepositoryRulesetUpdate(ctx context.Context, d *schema.Resour
 		return diag.FromErr(err)
 	}
 
-	rulesetReq := resourceGithubRulesetObject(d, "")
+	rulesetReq := expandRulesetWithPathExceptions(d, "")
 
 	repoName := d.Get("repository").(string)
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -819,7 +835,7 @@ func resourceGithubRepositoryRulesetUpdate(ctx context.Context, d *schema.Resour
 		return nil
 	}
 
-	ruleset, resp, err := client.Repositories.UpdateRuleset(ctx, owner, repoName, rulesetID, rulesetReq)
+	ruleset, resp, err := doRulesetRequest(ctx, client, http.MethodPut, fmt.Sprintf("repos/%s/%s/rulesets/%d", owner, repoName, rulesetID), rulesetReq)
 	if err != nil {
 		return diag.FromErr(err)
 	}
