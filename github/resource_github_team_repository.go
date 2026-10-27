@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v92/github"
+	"github.com/google/go-github/v93/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -93,8 +93,8 @@ func resourceGithubTeamRepositoryCreate(ctx context.Context, d *schema.ResourceD
 		teamId,
 		orgName,
 		repoName,
-		&github.TeamAddTeamRepoOptions{
-			Permission: permission,
+		github.AddTeamRepoRequest{
+			Permission: new(permission),
 		},
 	)
 	if err != nil {
@@ -196,8 +196,8 @@ func resourceGithubTeamRepositoryUpdate(ctx context.Context, d *schema.ResourceD
 		teamId,
 		orgName,
 		repoName,
-		&github.TeamAddTeamRepoOptions{
-			Permission: permission,
+		github.AddTeamRepoRequest{
+			Permission: new(permission),
 		},
 	)
 	if err != nil {

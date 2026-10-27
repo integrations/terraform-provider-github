@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/google/go-github/v92/github"
+	"github.com/google/go-github/v93/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -123,7 +123,7 @@ func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.Resource
 	log.Printf("[DEBUG] Actions enabled: %t", enabled)
 
 	repoActionPermissions := github.ActionsPermissionsRepository{
-		Enabled: &enabled,
+		Enabled: enabled,
 	}
 
 	// Only specify `allowed_actions` if actions are enabled
@@ -237,7 +237,7 @@ func resourceGithubActionsRepositoryPermissionsDelete(d *schema.ResourceData, me
 	// Reset the repo to "default" settings
 	repoActionPermissions := github.ActionsPermissionsRepository{
 		AllowedActions: new("all"),
-		Enabled:        new(true),
+		Enabled:        true,
 	}
 
 	_, _, err := client.Repositories.UpdateActionsPermissions(ctx,

@@ -2,9 +2,11 @@ package github
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/google/go-github/v93/github"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -1808,4 +1810,78 @@ func TestGithubRepositoryNameFailsValidationWithSpace(t *testing.T) {
 	if expectedFailure != actualFailure {
 		t.Error(fmt.Errorf("unexpected name validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
 	}
+}
+
+func TestExpandCreateRepositoryRequest(t *testing.T) {
+	t.Parallel()
+
+	t.Run("maps every field shared with the repository object", func(t *testing.T) {
+		t.Parallel()
+
+		repo := &github.Repository{
+			Name:             new("test-repo"),
+			CustomProperties: map[string]any{"team": "platform"},
+		}
+
+		// Populate every pointer field that the create request also has, so a field that is
+		// not mapped shows up as a mismatch.
+		repoValue := reflect.ValueOf(repo).Elem()
+		reqType := reflect.TypeFor[github.CreateRepositoryRequest]()
+		for i := range reqType.NumField() {
+			field := repoValue.FieldByName(reqType.Field(i).Name)
+			if !field.IsValid() || field.Kind() != reflect.Pointer || !field.IsNil() {
+				continue
+			}
+
+			value := reflect.New(field.Type().Elem())
+			switch value.Elem().Kind() {
+			case reflect.Bool:
+				value.Elem().SetBool(true)
+			case reflect.String:
+				value.Elem().SetString(reqType.Field(i).Name)
+			case reflect.Int64:
+				value.Elem().SetInt(int64(i + 1))
+			default:
+				t.Fatalf("unhandled field %s of type %s", reqType.Field(i).Name, field.Type())
+			}
+			field.Set(value)
+		}
+
+		req := expandCreateRepositoryRequest(repo)
+
+		if req.Name != repo.GetName() {
+			t.Errorf("got name %q; want %q", req.Name, repo.GetName())
+		}
+
+		reqValue := reflect.ValueOf(req)
+		for i := range reqType.NumField() {
+			name := reqType.Field(i).Name
+			if name == "Name" {
+				continue
+			}
+
+			repoField := repoValue.FieldByName(name)
+			if !repoField.IsValid() {
+				t.Errorf("field %s has no matching repository field to map from", name)
+				continue
+			}
+
+			if !reflect.DeepEqual(reqValue.Field(i).Interface(), repoField.Interface()) {
+				t.Errorf("field %s was not mapped: got %v; want %v", name, reqValue.Field(i).Interface(), repoField.Interface())
+			}
+		}
+	})
+
+	t.Run("leaves unset fields nil", func(t *testing.T) {
+		t.Parallel()
+
+		req := expandCreateRepositoryRequest(&github.Repository{Name: new("test-repo")})
+
+		if req.Name != "test-repo" {
+			t.Errorf("got name %q; want %q", req.Name, "test-repo")
+		}
+		if req.Description != nil || req.Visibility != nil || req.AllowForking != nil {
+			t.Errorf("expected unset fields to be nil, got description=%v visibility=%v allow_forking=%v", req.Description, req.Visibility, req.AllowForking)
+		}
+	})
 }
