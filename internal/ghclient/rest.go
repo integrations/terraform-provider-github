@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/google/go-github/v92/github"
+	"github.com/google/go-github/v93/github"
 )
 
 // NewRESTClient creates a new GitHub REST client with the provided options. If a token source is provided, the client will be authenticated; otherwise, it will be unauthenticated.

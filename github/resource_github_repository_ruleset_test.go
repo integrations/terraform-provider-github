@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/google/go-github/v92/github"
+	"github.com/google/go-github/v93/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-log/tflogtest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -916,8 +916,8 @@ resource "github_repository_ruleset" "test" {
 
 		repo := mustCreateTestRepository(t)
 		team := mustCreateTestTeam(t)
-		mustAddRepositoryToTeam(t, team, repo, func(opts *github.TeamAddTeamRepoOptions) {
-			opts.Permission = "push"
+		mustAddRepositoryToTeam(t, team, repo, func(opts *github.AddTeamRepoRequest) {
+			opts.Permission = new("push")
 		})
 
 		rulesetName := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))

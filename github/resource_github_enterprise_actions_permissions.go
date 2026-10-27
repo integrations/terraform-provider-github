@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/google/go-github/v92/github"
+	"github.com/google/go-github/v93/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -153,7 +153,7 @@ func resourceGithubActionsEnterprisePermissionsCreateOrUpdate(d *schema.Resource
 		enterpriseId,
 		github.ActionsPermissionsEnterprise{
 			AllowedActions:       &allowedActions,
-			EnabledOrganizations: &enabledOrganizations,
+			EnabledOrganizations: enabledOrganizations,
 		})
 	if err != nil {
 		return err
@@ -281,7 +281,7 @@ func resourceGithubActionsEnterprisePermissionsDelete(d *schema.ResourceData, me
 		d.Get("enterprise_slug").(string),
 		github.ActionsPermissionsEnterprise{
 			AllowedActions:       new("all"),
-			EnabledOrganizations: new("all"),
+			EnabledOrganizations: "all",
 		})
 	if err != nil {
 		return err
