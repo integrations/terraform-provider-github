@@ -2,6 +2,8 @@ package github
 
 import (
 	"context"
+	"fmt"
+	"reflect"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -73,6 +75,12 @@ func resourceGithubTeamSettings() *schema.Resource {
 							Description:   "whether to notify the entire team when at least one member is also assigned to the pull request.",
 							Deprecated:    "Use the top-level notify attribute instead.",
 							ConflictsWith: []string{"notify"},
+						},
+						"excluded_members": {
+							Type:        schema.TypeSet,
+							Optional:    true,
+							Description: "A list of team member usernames to exclude from the PR review process.",
+							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
 					},
 				},
@@ -159,8 +167,13 @@ func resourceGithubTeamSettingsCreate(ctx context.Context, d *schema.ResourceDat
 			TeamMemberCount: new(githubv4.Int(settings["member_count"].(int))),
 			NotifyTeam:      new(githubv4.Boolean(notify)),
 		}
+		excludedIDs, err := excludedTeamMemberIDs(ctx, meta, settings)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		updateTeamReviewAssignmentInput.ExcludedTeamMemberIDs = excludedIDs
 
-		err := graphql.Mutate(ctx, &mutation, updateTeamReviewAssignmentInput, nil)
+		err = graphql.Mutate(ctx, &mutation, updateTeamReviewAssignmentInput, nil)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -212,6 +225,15 @@ func resourceGithubTeamSettingsRead(ctx context.Context, d *schema.ResourceData,
 		if usesDeprecatedNotify {
 			reviewRequestDelegation["notify"] = notifyValue
 		}
+		// GitHub accepts excluded members in the mutation but does not expose
+		// them on the Team query, so preserve the configured value in state.
+		if currentDelegation := d.Get("review_request_delegation").([]any); len(currentDelegation) > 0 {
+			if currentSettings, ok := currentDelegation[0].(map[string]any); ok {
+				if excludedMembers, exists := currentSettings["excluded_members"]; exists {
+					reviewRequestDelegation["excluded_members"] = excludedMembers
+				}
+			}
+		}
 		if err = d.Set("review_request_delegation", []any{reviewRequestDelegation}); err != nil {
 			return diag.FromErr(err)
 		}
@@ -262,7 +284,12 @@ func resourceGithubTeamSettingsUpdate(ctx context.Context, d *schema.ResourceDat
 				TeamMemberCount: new(githubv4.Int(settings["member_count"].(int))),
 				NotifyTeam:      new(githubv4.Boolean(notify)),
 			}
-			err := graphql.Mutate(ctx, &mutation, updateTeamReviewAssignmentInput, nil)
+			excludedIDs, err := excludedTeamMemberIDs(ctx, meta, settings)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			updateTeamReviewAssignmentInput.ExcludedTeamMemberIDs = excludedIDs
+			err = graphql.Mutate(ctx, &mutation, updateTeamReviewAssignmentInput, nil)
 			if err != nil {
 				return diag.FromErr(err)
 			}
@@ -270,6 +297,60 @@ func resourceGithubTeamSettingsUpdate(ctx context.Context, d *schema.ResourceDat
 	}
 
 	return nil
+}
+
+func getBatchUserNodeIDs(ctx context.Context, meta *Owner, usernames []string) (map[string]githubv4.ID, error) {
+	if len(usernames) == 0 {
+		return map[string]githubv4.ID{}, nil
+	}
+	type user struct{ ID githubv4.ID }
+	fields := make([]reflect.StructField, 0, len(usernames))
+	variables := make(map[string]any, len(usernames))
+	for index, username := range usernames {
+		label := fmt.Sprintf("User%d", index)
+		fields = append(fields, reflect.StructField{
+			Name: label,
+			Type: reflect.TypeFor[user](),
+			Tag:  reflect.StructTag(fmt.Sprintf(`graphql:"%[1]s: user(login: $%[1]s)"`, label)),
+		})
+		variables[label] = githubv4.String(username)
+	}
+	query := reflect.New(reflect.StructOf(fields)).Interface()
+	if err := meta.v4client.Query(ctx, query, variables); err != nil {
+		return nil, fmt.Errorf("failed to query users in batch: %w", err)
+	}
+	result := make(map[string]githubv4.ID, len(usernames))
+	value := reflect.ValueOf(query).Elem()
+	for index, username := range usernames {
+		id := value.Field(index).FieldByName("ID").Interface().(githubv4.ID)
+		if id == "" {
+			return nil, fmt.Errorf("failed to get node ID for user %s: user not found", username)
+		}
+		result[username] = id
+	}
+	return result, nil
+}
+
+func excludedTeamMemberIDs(ctx context.Context, meta *Owner, settings map[string]any) (*[]githubv4.ID, error) {
+	values := settings["excluded_members"]
+	if values == nil {
+		return new([]githubv4.ID), nil
+	}
+	usernames := make([]string, 0)
+	for _, value := range values.(*schema.Set).List() {
+		if value != nil {
+			usernames = append(usernames, value.(string))
+		}
+	}
+	nodeIDs, err := getBatchUserNodeIDs(ctx, meta, usernames)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]githubv4.ID, 0, len(usernames))
+	for _, username := range usernames {
+		ids = append(ids, nodeIDs[username])
+	}
+	return &ids, nil
 }
 
 func resourceGithubTeamSettingsDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
