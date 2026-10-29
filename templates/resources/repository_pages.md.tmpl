@@ -10,6 +10,8 @@ This resource allows you to manage GitHub Pages for a repository. See the [docum
 
 The authenticated user must be a repository administrator, maintainer, or have the 'manage GitHub Pages settings' permission. OAuth app tokens and personal access tokens (classic) need the repo scope to use this resource.
 
+If GitHub Pages is already enabled on the repository, this resource adopts the existing site on create and applies the configured values. You do not need to import it first.
+
 ## Example Usage
 
 ### Legacy Build Type

@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -152,9 +153,20 @@ func resourceGithubRepositoryPagesCreate(ctx context.Context, d *schema.Resource
 		}
 	}
 
+	adopted := false
 	pages, _, err := client.Repositories.EnablePages(ctx, owner, repoName, pagesReq)
 	if err != nil {
-		return diag.FromErr(err)
+		ghErr, ok := errors.AsType[*github.ErrorResponse](err)
+		if !ok || ghErr.Response.StatusCode != http.StatusConflict {
+			return diag.FromErr(err)
+		}
+
+		tflog.Info(ctx, "GitHub Pages is already enabled, adopting the existing site", map[string]any{"owner": owner, "repository": repoName})
+		pages, _, err = client.Repositories.GetPagesInfo(ctx, owner, repoName)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		adopted = true
 	}
 
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
@@ -168,11 +180,13 @@ func resourceGithubRepositoryPagesCreate(ctx context.Context, d *schema.Resource
 		return diag.FromErr(err)
 	}
 
-	if err := d.Set("build_type", pages.GetBuildType()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("cname", pages.GetCNAME()); err != nil {
-		return diag.FromErr(err)
+	if !adopted {
+		if err := d.Set("build_type", pages.GetBuildType()); err != nil {
+			return diag.FromErr(err)
+		}
+		if err := d.Set("cname", pages.GetCNAME()); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if err := d.Set("custom_404", pages.GetCustom404()); err != nil {
 		return diag.FromErr(err)
@@ -202,8 +216,19 @@ func resourceGithubRepositoryPagesCreate(ctx context.Context, d *schema.Resource
 		"cname_ok":              cnameOK,
 	})
 
-	if cnameOK || publicOKExists || httpsEnforcedExists {
+	if adopted || cnameOK || publicOKExists || httpsEnforcedExists {
 		update := &github.PagesUpdate{}
+
+		// The existing site can have a different build type or source, so send the configured values.
+		if adopted {
+			update.BuildType = new(buildType)
+			if buildType == "legacy" {
+				update.Source = &github.PagesSource{
+					Branch: pagesReq.Source.Branch,
+					Path:   new(d.Get("source.0.path").(string)),
+				}
+			}
+		}
 
 		if cnameOK {
 			update.CNAME = new(cname.(string))
