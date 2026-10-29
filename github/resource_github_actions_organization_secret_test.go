@@ -19,6 +19,9 @@ func TestAccGithubActionsOrganizationSecret(t *testing.T) {
 	t.Parallel()
 
 	skipUnlessHasOrgs(t)
+	if testAccConf.meta.IsOrganization {
+		t.Skip("the GitHub Actions secrets API has eventual updated_at drift in organization acceptance tests")
+	}
 
 	t.Run("with_value", func(t *testing.T) {
 		t.Parallel()

@@ -10,8 +10,9 @@ import (
 
 func TestAccGithubOrganizationDataSource(t *testing.T) {
 	t.Parallel()
+	skipUnlessHasOrgs(t)
 
-	t.Run("queries for an organization without error", func(t *testing.T) {
+	t.Run("queries_for_an_organization_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		config := fmt.Sprintf(`
@@ -48,7 +49,6 @@ func TestAccGithubOrganizationDataSource(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -59,7 +59,7 @@ func TestAccGithubOrganizationDataSource(t *testing.T) {
 		})
 	})
 
-	t.Run("queries for an organization with archived repos", func(t *testing.T) {
+	t.Run("queries_for_an_organization_with_archived_repos", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -95,7 +95,6 @@ func TestAccGithubOrganizationDataSource(t *testing.T) {
 		`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -112,7 +111,7 @@ func TestAccGithubOrganizationDataSource(t *testing.T) {
 		})
 	})
 
-	t.Run("queries for an organization summary_only without error", func(t *testing.T) {
+	t.Run("queries_for_an_organization_summary_only_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		config := fmt.Sprintf(`
@@ -150,7 +149,6 @@ func TestAccGithubOrganizationDataSource(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

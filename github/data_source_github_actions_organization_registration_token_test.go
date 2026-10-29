@@ -11,6 +11,7 @@ import (
 
 func TestAccGithubActionsOrganizationRegistrationTokenDataSource(t *testing.T) {
 	t.Parallel()
+	skipUnlessHasOrgs(t)
 
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
@@ -20,7 +21,6 @@ data "github_actions_organization_registration_token" "test" {}
 `
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

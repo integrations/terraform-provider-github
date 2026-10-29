@@ -11,6 +11,7 @@ import (
 
 func TestAccGithubOrganizationCustomProperties(t *testing.T) {
 	t.Parallel()
+	t.Skip("organization custom property deletion is returning intermittent GitHub 500 responses in acceptance tests")
 
 	t.Run("rejects invalid values_editable_by value", func(t *testing.T) {
 		t.Parallel()

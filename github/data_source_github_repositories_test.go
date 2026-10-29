@@ -14,7 +14,7 @@ func TestAccGithubRepositoriesDataSource(t *testing.T) {
 	// FIXME: Find a way to reduce amount of `GET /search/repositories`
 	// t.Skip("Skipping due to API rate limits exceeding")
 
-	t.Run("queries a list of repositories without error", func(t *testing.T) {
+	t.Run("queries_a_list_of_repositories_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		config := fmt.Sprintf(`
@@ -52,7 +52,7 @@ func TestAccGithubRepositoriesDataSource(t *testing.T) {
 		})
 	})
 
-	t.Run("queries a list of repositories with repo_ids and results_per_page without error", func(t *testing.T) {
+	t.Run("queries_a_list_of_repositories_with_repo_ids_and_results_per_page_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		config := fmt.Sprintf(`
@@ -92,7 +92,7 @@ func TestAccGithubRepositoriesDataSource(t *testing.T) {
 		})
 	})
 
-	t.Run("returns an empty list given an invalid query", func(t *testing.T) {
+	t.Run("returns_an_empty_list_given_an_invalid_query", func(t *testing.T) {
 		t.Parallel()
 
 		// FIXME: Find a way to reduce amount of `GET /search/repositories`

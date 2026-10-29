@@ -11,7 +11,7 @@ import (
 func TestAccGithubRefDataSource(t *testing.T) {
 	t.Parallel()
 
-	t.Run("queries an existing branch ref without error", func(t *testing.T) {
+	t.Run("queries_an_existing_branch_ref_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -45,7 +45,7 @@ func TestAccGithubRefDataSource(t *testing.T) {
 	})
 
 	// Can't test due to SDK and test framework limitations
-	// t.Run("queries an invalid ref without error", func(t *testing.T) {
+	// t.Run("queries_an_invalid_ref_without_error", func(t *testing.T) {
 	// 	t.Parallel()
 
 	// 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)

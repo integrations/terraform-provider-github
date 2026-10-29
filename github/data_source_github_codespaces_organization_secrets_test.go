@@ -11,7 +11,7 @@ import (
 func TestAccGithubCodespacesOrganizationSecretsDataSource(t *testing.T) {
 	t.Parallel()
 
-	t.Run("queries organization codespaces secrets from a repository", func(t *testing.T) {
+	t.Run("queries_organization_codespaces_secrets_from_a_repository", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)

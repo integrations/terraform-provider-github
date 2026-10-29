@@ -11,7 +11,7 @@ import (
 func TestAccGithubRepositoryFileDataSource(t *testing.T) {
 	t.Parallel()
 
-	t.Run("reads a file with a branch name provided without erroring", func(t *testing.T) {
+	t.Run("reads_a_file_with_a_branch_name_provided_without_erroring", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -64,7 +64,7 @@ func TestAccGithubRepositoryFileDataSource(t *testing.T) {
 		})
 	})
 
-	t.Run("reads a file from a short repo name without erroring", func(t *testing.T) {
+	t.Run("reads_a_file_from_a_short_repo_name_without_erroring", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -119,7 +119,7 @@ func TestAccGithubRepositoryFileDataSource(t *testing.T) {
 		})
 	})
 
-	t.Run("create and read a file without providing a branch name", func(t *testing.T) {
+	t.Run("create_and_read_a_file_without_providing_a_branch_name", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -174,7 +174,7 @@ func TestAccGithubRepositoryFileDataSource(t *testing.T) {
 	})
 
 	// Can't test due to SDK and test framework limitations
-	// t.Run("try reading a non-existent file without an error", func(t *testing.T) {
+	// t.Run("try_reading_a_non_existent_file_without_an_error", func(t *testing.T) {
 	// 	t.Parallel()
 
 	// 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -216,7 +216,7 @@ func TestAccGithubRepositoryFileDataSource(t *testing.T) {
 	// 	})
 	// })
 
-	t.Run("reads a directory without erroring", func(t *testing.T) {
+	t.Run("reads_a_directory_without_erroring", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)

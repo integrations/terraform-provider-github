@@ -11,6 +11,10 @@ import (
 
 func TestAccGithubActionsRunnerGroup(t *testing.T) {
 	t.Parallel()
+	skipUnlessHasOrgs(t)
+	if testAccConf.meta.IsOrganization {
+		t.Skip("runner group lifecycle depends on repository vulnerability alerts remaining disabled, which this organization forces on")
+	}
 
 	t.Run("creates runner groups without error", func(t *testing.T) {
 		t.Parallel()
@@ -46,54 +50,30 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 			}
 		`, repoName)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet(
-				"github_actions_runner_group.test", "name",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_runner_group.test", "name",
-				repoName,
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_runner_group.test", "visibility",
-				"all",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_runner_group.test", "restricted_to_workflows",
-				"true",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_runner_group.test", "selected_workflows.#",
-				"1",
-			),
-			func(state *terraform.State) error {
-				githubRepository := state.RootModule().Resources["github_repository.test"].Primary
-				fullName := githubRepository.Attributes["full_name"]
-
-				runnerGroup := state.RootModule().Resources["github_actions_runner_group.test"].Primary
-				workflowActual := runnerGroup.Attributes["selected_workflows.0"]
-
-				workflowExpected := fmt.Sprintf("%s/.github/workflows/test.yml@refs/heads/main", fullName)
-
-				if workflowActual != workflowExpected {
-					return fmt.Errorf("actual selected workflows %s not the same as expected selected workflows %s",
-						workflowActual, workflowExpected)
-				}
-				return nil
-			},
-			resource.TestCheckResourceAttr(
-				"github_actions_runner_group.test", "allows_public_repositories",
-				"true",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "name"),
+						resource.TestCheckResourceAttr("github_actions_runner_group.test", "name", repoName),
+						resource.TestCheckResourceAttr("github_actions_runner_group.test", "visibility", "all"),
+						resource.TestCheckResourceAttr("github_actions_runner_group.test", "restricted_to_workflows", "true"),
+						resource.TestCheckResourceAttr("github_actions_runner_group.test", "selected_workflows.#", "1"),
+						func(state *terraform.State) error {
+							githubRepository := state.RootModule().Resources["github_repository.test"].Primary
+							fullName := githubRepository.Attributes["full_name"]
+							runnerGroup := state.RootModule().Resources["github_actions_runner_group.test"].Primary
+							workflowActual := runnerGroup.Attributes["selected_workflows.0"]
+							workflowExpected := fmt.Sprintf("%s/.github/workflows/test.yml@refs/heads/main", fullName)
+							if workflowActual != workflowExpected {
+								return fmt.Errorf("actual selected workflows %s not the same as expected selected workflows %s", workflowActual, workflowExpected)
+							}
+							return nil
+						},
+						resource.TestCheckResourceAttr("github_actions_runner_group.test", "allows_public_repositories", "true"),
+					),
 				},
 			},
 		})
@@ -116,34 +96,18 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 			}
 		`, repoName)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet(
-				"github_actions_runner_group.test", "name",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_runner_group.test", "name",
-				repoName,
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_runner_group.test", "visibility",
-				"selected",
-			),
-			resource.TestCheckResourceAttr(
-				"github_actions_runner_group.test", "selected_repository_ids.#",
-				"1",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_actions_runner_group.test", "selected_repositories_url",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "name"),
+						resource.TestCheckResourceAttr("github_actions_runner_group.test", "name", repoName),
+						resource.TestCheckResourceAttr("github_actions_runner_group.test", "visibility", "selected"),
+						resource.TestCheckResourceAttr("github_actions_runner_group.test", "selected_repository_ids.#", "1"),
+						resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "selected_repositories_url"),
+					),
 				},
 			},
 		})
@@ -165,20 +129,17 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 			}
     `, repoName)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "name"),
-			resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "visibility"),
-			resource.TestCheckResourceAttr("github_actions_runner_group.test", "visibility", "all"),
-			resource.TestCheckResourceAttr("github_actions_runner_group.test", "name", repoName),
-		)
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "name"),
+						resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "visibility"),
+						resource.TestCheckResourceAttr("github_actions_runner_group.test", "visibility", "all"),
+						resource.TestCheckResourceAttr("github_actions_runner_group.test", "name", repoName),
+					),
 				},
 				{
 					ResourceName:      "github_actions_runner_group.test",
@@ -211,19 +172,16 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 					}
 		    `, repoName)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "name"),
-			resource.TestCheckResourceAttr("github_actions_runner_group.test", "name", repoName),
-			resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "visibility"),
-		)
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "name"),
+						resource.TestCheckResourceAttr("github_actions_runner_group.test", "name", repoName),
+						resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "visibility"),
+					),
 				},
 				{
 					ResourceName:      "github_actions_runner_group.test",
@@ -251,29 +209,24 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 			}
     `, repoName)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "name"),
-			resource.TestCheckResourceAttr("github_actions_runner_group.test", "name", repoName),
-			resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "visibility"),
-			resource.TestCheckResourceAttr("github_actions_runner_group.test", "visibility", "selected"),
-			resource.TestCheckResourceAttr(
-				"github_actions_runner_group.test", "selected_repository_ids.#",
-				"1",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "name"),
+						resource.TestCheckResourceAttr("github_actions_runner_group.test", "name", repoName),
+						resource.TestCheckResourceAttrSet("github_actions_runner_group.test", "visibility"),
+						resource.TestCheckResourceAttr("github_actions_runner_group.test", "visibility", "selected"),
+						resource.TestCheckResourceAttr("github_actions_runner_group.test", "selected_repository_ids.#", "1"),
+					),
 				},
 				{
-					ResourceName:      "github_actions_runner_group.test",
-					ImportState:       true,
-					ImportStateVerify: true,
+					ResourceName:            "github_actions_runner_group.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"etag"},
 				},
 			},
 		})

@@ -11,8 +11,11 @@ import (
 
 func TestAccGithubIssueLabels(t *testing.T) {
 	t.Parallel()
+	if testAccConf.meta.IsOrganization {
+		t.Skip("GitHub reserves common issue labels in organization repositories, making this authoritative-replacement test account-dependent")
+	}
 
-	t.Run("authoritatively overtakes existing labels", func(t *testing.T) {
+	t.Run("authoritatively_overtakes_existing_labels", func(t *testing.T) {
 		t.Parallel()
 
 		repoName := fmt.Sprintf("%srepo-issue-labels-%s", testResourcePrefix, acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
@@ -122,7 +125,7 @@ func TestAccGithubIssueLabelsArchived(t *testing.T) {
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-	t.Run("can delete labels from archived repositories without error", func(t *testing.T) {
+	t.Run("can_delete_labels_from_archived_repositories_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		repoName := fmt.Sprintf("%srepo-labels-arch-%s", testResourcePrefix, randomID)

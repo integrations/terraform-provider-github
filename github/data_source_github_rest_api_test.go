@@ -12,7 +12,7 @@ import (
 func TestAccGithubRestApiDataSource(t *testing.T) {
 	t.Parallel()
 
-	t.Run("queries an existing branch without error", func(t *testing.T) {
+	t.Run("queries_an_existing_branch_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -52,7 +52,7 @@ func TestAccGithubRestApiDataSource(t *testing.T) {
 		})
 	})
 
-	t.Run("queries a collection without error", func(t *testing.T) {
+	t.Run("queries_a_collection_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -85,7 +85,7 @@ func TestAccGithubRestApiDataSource(t *testing.T) {
 		})
 	})
 
-	t.Run("queries an invalid branch without error", func(t *testing.T) {
+	t.Run("queries_an_invalid_branch_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -125,7 +125,7 @@ func TestAccGithubRestApiDataSource(t *testing.T) {
 		})
 	})
 
-	// t.Run("fails for invalid endpoint", func(t *testing.T) {
+	// t.Run("fails_for_invalid_endpoint", func(t *testing.T) {
 	// 	t.Parallel()
 
 	// 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)

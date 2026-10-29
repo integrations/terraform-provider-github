@@ -12,7 +12,7 @@ import (
 func TestAccGithubCodespacesUserSecretsDataSource(t *testing.T) {
 	t.Parallel()
 
-	t.Run("queries user codespaces secrets from a repository", func(t *testing.T) {
+	t.Run("queries_user_codespaces_secrets_from_a_repository", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -29,24 +29,21 @@ func TestAccGithubCodespacesUserSecretsDataSource(t *testing.T) {
 			}
 		`
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("data.github_codespaces_user_secrets.test", "secrets.#", "1"),
-			resource.TestCheckResourceAttr("data.github_codespaces_user_secrets.test", "secrets.0.name", strings.ToUpper(fmt.Sprintf("USER_CS_SECRET_1_%s", randomID))),
-			resource.TestCheckResourceAttrSet("data.github_codespaces_user_secrets.test", "secrets.0.created_at"),
-			resource.TestCheckResourceAttrSet("data.github_codespaces_user_secrets.test", "secrets.0.updated_at"),
-		)
-
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessMode(t, individual) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  resource.ComposeTestCheckFunc(),
 				},
 				{
 					Config: config2,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("data.github_codespaces_user_secrets.test", "secrets.#", "1"),
+						resource.TestCheckResourceAttr("data.github_codespaces_user_secrets.test", "secrets.0.name", strings.ToUpper(fmt.Sprintf("USER_CS_SECRET_1_%s", randomID))),
+						resource.TestCheckResourceAttrSet("data.github_codespaces_user_secrets.test", "secrets.0.created_at"),
+						resource.TestCheckResourceAttrSet("data.github_codespaces_user_secrets.test", "secrets.0.updated_at"),
+					),
 				},
 			},
 		})

@@ -61,7 +61,7 @@ Here are some concrete guidelines for using LLMs as part of your communication w
 2. Create a new branch: `git switch -c my-branch-name`.
 3. Make your change, add tests, and make sure the tests still pass.
 4. Make sure the [documentation has been updated](#documentation-update-checklist)
-5. Ensure formatting and linting are passing. (`make fmt` and `make lint` can be used to check this locally.)
+5. Ensure formatting and linting are passing. Formatting and linting use `golangci-lint`; run `make fmt` and `make lint` to check this locally.
 6. Push to your fork and submit a pull request.
 7. Pat yourself on the back and wait for your pull request to be reviewed and merged.
 

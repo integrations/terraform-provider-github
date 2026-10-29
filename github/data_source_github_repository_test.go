@@ -17,7 +17,7 @@ import (
 func TestAccDataSourceGithubRepository(t *testing.T) {
 	t.Parallel()
 
-	t.Run("queries a public repository without error", func(t *testing.T) {
+	t.Run("queries_a_public_repository_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		config := fmt.Sprintf(`
@@ -39,7 +39,7 @@ data "github_repository" "test" {
 		})
 	})
 
-	t.Run("queries repository belonging to owner without error", func(t *testing.T) {
+	t.Run("queries_repository_belonging_to_owner_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		repo := mustCreateTestRepository(t)
@@ -65,7 +65,7 @@ data "github_repository" "test" {
 		})
 	})
 
-	t.Run("queries a repository with pages configured", func(t *testing.T) {
+	t.Run("queries_a_repository_with_pages_configured", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -106,7 +106,7 @@ data "github_repository" "test" {
 		})
 	})
 
-	t.Run("checks defaults on a new repository", func(t *testing.T) {
+	t.Run("checks_defaults_on_a_new_repository", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -144,7 +144,7 @@ data "github_repository" "test" {
 		})
 	})
 
-	t.Run("queries a public repository that is a template", func(t *testing.T) {
+	t.Run("queries_a_public_repository_that_is_a_template", func(t *testing.T) {
 		t.Parallel()
 
 		config := fmt.Sprintf(`
@@ -172,7 +172,7 @@ data "github_repository" "test" {
 		})
 	})
 
-	t.Run("queries an org repository that is a template", func(t *testing.T) {
+	t.Run("queries_an_org_repository_that_is_a_template", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -209,7 +209,7 @@ data "github_repository" "test" {
 		})
 	})
 
-	t.Run("queries a repository that was generated from a template", func(t *testing.T) {
+	t.Run("queries_a_repository_that_was_generated_from_a_template", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -252,7 +252,7 @@ data "github_repository" "test" {
 		})
 	})
 
-	t.Run("queries a repository that has no primary_language", func(t *testing.T) {
+	t.Run("queries_a_repository_that_has_no_primary_language", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -287,7 +287,7 @@ data "github_repository" "test" {
 		})
 	})
 
-	// t.Run("queries a repository that has go as primary_language", func(t *testing.T) {
+	// t.Run("queries_a_repository_that_has_go_as_primary_language", func(t *testing.T) {
 	// 	t.Parallel()
 
 	// 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -331,7 +331,7 @@ data "github_repository" "test" {
 	// 	})
 	// })
 
-	t.Run("queries a repository that has a license", func(t *testing.T) {
+	t.Run("queries_a_repository_that_has_a_license", func(t *testing.T) {
 		t.Parallel()
 
 		t.Skip("TODO: Fix this test.")
@@ -380,7 +380,7 @@ data "github_repository" "test" {
 		})
 	})
 
-	t.Run("tolerates a license the API cannot serve", func(t *testing.T) {
+	t.Run("tolerates_a_license_the_api_cannot_serve", func(t *testing.T) {
 		t.Parallel()
 
 		// Removing a LICENSE file leaves the repository classified as `other` with a null license

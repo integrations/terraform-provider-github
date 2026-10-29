@@ -11,6 +11,7 @@ import (
 
 func TestAccGithubActionsOrganizationSecretRepositories(t *testing.T) {
 	t.Parallel()
+	skipUnlessHasOrgs(t)
 
 	t.Run("create", func(t *testing.T) {
 		t.Parallel()
@@ -48,7 +49,6 @@ resource "github_actions_organization_secret_repositories" "test" {
 `, secretName, secretValue, repoName0, repoName1)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

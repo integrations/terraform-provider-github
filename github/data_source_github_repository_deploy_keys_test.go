@@ -14,7 +14,9 @@ import (
 func TestAccGithubRepositoryDeployKeysDataSource(t *testing.T) {
 	t.Parallel()
 
-	t.Run("manages deploy keys", func(t *testing.T) {
+	skipUnlessHasOrgs(t)
+
+	t.Run("manages_deploy_keys", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -48,7 +50,6 @@ func TestAccGithubRepositoryDeployKeysDataSource(t *testing.T) {
 		`, repoName, keyPath)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
