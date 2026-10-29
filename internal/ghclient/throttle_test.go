@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 	"testing"
 	"testing/synctest"
@@ -13,16 +14,94 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-func Test_throttler_RoundTrip(t *testing.T) {
+func Test_newThrottleTransport(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name    string
+		opts    ConcurrencyOptions
+		wantErr *string
+	}{
+		{
+			name: "disabled",
+			opts: ConcurrencyOptions{},
+		},
+		{
+			name: "enabled",
+			opts: ConcurrencyOptions{
+				Max: 10,
+			},
+		},
+		{
+			name: "enabled_with_sema",
+			opts: ConcurrencyOptions{
+				Max:  10,
+				sema: semaphore.NewWeighted(10),
+			},
+		},
+		{
+			name: "errors_if_max_is_negative",
+			opts: ConcurrencyOptions{
+				Max: -1,
+			},
+			wantErr: new("max must be positive"),
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			inner := &testRoundTripper{}
+
+			got, err := newThrottleTransport(inner, tt.opts)
+			if err != nil {
+				if tt.wantErr == nil {
+					t.Fatalf("expected no error, got %v", err)
+				}
+
+				if !regexp.MustCompile(regexp.QuoteMeta(*tt.wantErr)).MatchString(err.Error()) {
+					t.Fatalf("expected error %q, got %q", *tt.wantErr, err.Error())
+				}
+
+				return
+			}
+
+			if tt.wantErr != nil {
+				t.Fatalf("expected error %q, got nil", *tt.wantErr)
+			}
+
+			if got == nil {
+				t.Fatal("expected non-nil transport")
+			}
+
+			if tt.opts.Max == 0 {
+				if got != inner {
+					t.Error("expected transport to be the inner transport when max concurrency is 0")
+				}
+				return
+			}
+
+			ttr, ok := got.(*throttleTransport)
+			if !ok {
+				t.Fatal("expected throttleTransport")
+			}
+
+			if ttr.inner != inner {
+				t.Fatal("expected inner transport to be set")
+			}
+		})
+	}
+}
+
+func Test_throttleTransport_RoundTrip(t *testing.T) {
 	t.Parallel()
 
 	t.Run("handles_acquire_error", func(t *testing.T) {
 		t.Parallel()
 
 		inner := &testRoundTripper{}
-		tr := &throttler{
-			sema:  semaphore.NewWeighted(1),
+		tr := &throttleTransport{
 			inner: inner,
+			sema:  semaphore.NewWeighted(1),
 		}
 
 		ctx, cancel := context.WithCancel(t.Context())
@@ -55,9 +134,9 @@ func Test_throttler_RoundTrip(t *testing.T) {
 		t.Parallel()
 
 		inner := &testRoundTripper{err: errors.New("boom")}
-		tr := &throttler{
-			sema:  semaphore.NewWeighted(1),
+		tr := &throttleTransport{
 			inner: inner,
+			sema:  semaphore.NewWeighted(1),
 		}
 
 		req := mustCreateRequest(t, http.MethodGet, "https://example.com")
@@ -84,9 +163,9 @@ func Test_throttler_RoundTrip(t *testing.T) {
 		t.Parallel()
 
 		inner := &testRoundTripper{resp: &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader("ok"))}}
-		tr := &throttler{
-			sema:  semaphore.NewWeighted(1),
+		tr := &throttleTransport{
 			inner: inner,
+			sema:  semaphore.NewWeighted(1),
 		}
 
 		req := mustCreateRequest(t, http.MethodGet, "https://example.com")
@@ -111,9 +190,9 @@ func Test_throttler_RoundTrip(t *testing.T) {
 
 		inner := &testRoundTripper{err: errors.New("boom")}
 		sema := semaphore.NewWeighted(1)
-		tr := &throttler{
-			sema:  sema,
+		tr := &throttleTransport{
 			inner: inner,
+			sema:  sema,
 		}
 
 		req := mustCreateRequest(t, http.MethodGet, "https://example.com")
@@ -134,9 +213,9 @@ func Test_throttler_RoundTrip(t *testing.T) {
 		synctest.Test(t, func(t *testing.T) {
 			reqs := 5
 			inner := &testRoundTripper{delay: 1 * time.Second, resp: &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader("ok"))}}
-			tr := &throttler{
-				sema:  semaphore.NewWeighted(1),
+			tr := &throttleTransport{
 				inner: inner,
+				sema:  semaphore.NewWeighted(1),
 			}
 
 			for i := range reqs {

@@ -2,35 +2,48 @@ package ghclient
 
 import (
 	"fmt"
+	"net"
 	"net/http"
+	"time"
 
 	ghct "github.com/bored-engineer/github-conditional-http-transport"
-	ratelimit "github.com/gofri/go-github-ratelimit/v2/github_ratelimit"
-	ratelimitp "github.com/gofri/go-github-ratelimit/v2/github_ratelimit/github_primary_ratelimit"
-	ratelimits "github.com/gofri/go-github-ratelimit/v2/github_ratelimit/github_secondary_ratelimit"
-	"github.com/hashicorp/go-retryablehttp"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	"golang.org/x/oauth2"
 )
 
-// cloneTransport attempts to clone the given http.RoundTripper if it is an *http.Transport, otherwise it returns the original RoundTripper. Cloning the transport is important to avoid sharing state (such as idle connections) between different clients that use the same base transport.
-func cloneTransport(tr http.RoundTripper, opts ClientOptions) http.RoundTripper {
-	if dtr, ok := tr.(*http.Transport); ok {
-		htr := dtr.Clone()
-		htr.ForceAttemptHTTP2 = true
-		htr.MaxIdleConns = opts.MaxIdleConns
-		htr.MaxIdleConnsPerHost = opts.MaxIdleConns
-		htr.IdleConnTimeout = opts.IdleConnTimeout
-		return htr
+// getHTTPTransport returns an HTTP transport configured with the given options, including idle connection pooling and retry logic. If the [http.DefaultTransport] is a [*http.Transport], it is cloned and configured with the given options; otherwise, a new transport is created with the default settings and the given options are applied.
+func getHTTPTransport(t http.RoundTripper, opts ClientOptions) *http.Transport {
+	if dtr, ok := t.(*http.Transport); ok {
+		tr := dtr.Clone()
+		tr.ForceAttemptHTTP2 = true
+		tr.MaxIdleConns = opts.MaxIdleConns
+		tr.MaxIdleConnsPerHost = opts.MaxIdleConns
+		tr.IdleConnTimeout = opts.IdleConnTimeout
+		return tr
 	}
 
-	return tr
+	dialer := &net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+
+	return &http.Transport{
+		Proxy:                 http.ProxyFromEnvironment,
+		DialContext:           dialer.DialContext,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          opts.MaxIdleConns,
+		MaxIdleConnsPerHost:   opts.MaxIdleConns,
+		IdleConnTimeout:       opts.IdleConnTimeout,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
 }
 
 // newTransport creates a new HTTP RoundTripper that wraps the provided token source with OAuth2 authentication, adds conditional request caching, logging, and retry logic based on the provided options. The resulting RoundTripper is designed to be used with GitHub API clients to handle authentication, caching, rate limiting, and retries in a consistent manner.
 func newTransport(tokenSource oauth2.TokenSource, opts ClientOptions) (http.RoundTripper, error) {
-	tr := cloneTransport(http.DefaultTransport, opts)
+	var tr http.RoundTripper
+
+	tr = getHTTPTransport(http.DefaultTransport, opts)
 
 	// The cache transport must be wrapped directly around the base transport, before the
 	// OAuth2 transport is applied. The OAuth2 transport injects the Authorization header on a
@@ -40,8 +53,8 @@ func newTransport(tokenSource oauth2.TokenSource, opts ClientOptions) (http.Roun
 	// on the request's Authorization header (see the Vary handling in
 	// github.com/bored-engineer/github-conditional-http-transport), placing it outside of the
 	// OAuth2 transport silently breaks per-token cache validation for authenticated requests.
-	if opts.Cache {
-		store, err := createCacheStore(opts.CachePath)
+	if opts.Cache.Enabled {
+		store, err := createCacheStore(opts.Cache)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create cache store: %w", err)
 		}
@@ -58,32 +71,29 @@ func newTransport(tokenSource oauth2.TokenSource, opts ClientOptions) (http.Roun
 
 	tr = logging.NewLoggingHTTPTransport(tr)
 
-	if opts.RetryMax > 0 {
-		retryClient := retryablehttp.NewClient()
-		retryClient.Logger = nil
-		retryClient.HTTPClient = &http.Client{Transport: tr, Timeout: clientTimeout}
-		retryClient.RetryMax = opts.RetryMax
-		retryClient.RetryWaitMin = opts.RetryWaitMin
-		retryClient.RetryWaitMax = opts.RetryWaitMax
+	rtr, err := newRewindableTransport(tr, 0)
+	if err != nil {
+		return nil, err
+	}
+	tr = rtr
 
-		tr = &retryablehttp.RoundTripper{Client: retryClient}
+	if opts.Retry.Max > 0 {
+		rtr, err := newRetryTransport(tr, opts.Retry)
+		if err != nil {
+			return nil, err
+		}
+		tr = rtr
 	}
 
-	if opts.Sema != nil {
-		tr = &throttler{sema: opts.Sema, inner: tr}
-	}
+	tr = newRateLimitTransport(tr)
 
-	tr = ratelimit.New(tr, ratelimitp.WithLimitDetectedCallback(primaryRateLimitCallback), ratelimits.WithLimitDetectedCallback(secondaryRateLimitCallback))
+	if opts.Concurrency.Max > 0 {
+		ctr, err := newThrottleTransport(tr, opts.Concurrency)
+		if err != nil {
+			return nil, err
+		}
+		tr = ctr
+	}
 
 	return tr, nil
-}
-
-// primaryRateLimitCallback is a callback function that is called when the GitHub API primary rate limit is detected. It logs a warning message with the category of the rate limit and the reset time.
-func primaryRateLimitCallback(cb *ratelimitp.CallbackContext) {
-	tflog.Warn(cb.Request.Context(), "GitHub API primary rate limit detected.", map[string]any{"category": cb.Category, "reset_time": cb.ResetTime})
-}
-
-// secondaryRateLimitCallback is a callback function that is called when the GitHub API secondary rate limit is detected. It logs a warning message with the reset time.
-func secondaryRateLimitCallback(cb *ratelimits.CallbackContext) {
-	tflog.Warn(cb.Request.Context(), "GitHub API secondary rate limit detected.", map[string]any{"reset_time": cb.ResetTime})
 }
