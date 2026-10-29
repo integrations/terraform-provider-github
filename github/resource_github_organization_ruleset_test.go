@@ -1537,7 +1537,7 @@ func TestOrganizationPushRulesetSupport(t *testing.T) {
 	input := []any{rulesMap}
 
 	// Test expand functionality (organization rulesets use org=true)
-	expandedRules := expandRules(input, true)
+	expandedRules := expandRules(input, rulesetLevelOrganization)
 
 	if expandedRules == nil {
 		t.Fatalf("expected expanded rules to not be nil")
@@ -1584,7 +1584,7 @@ func TestOrganizationPushRulesetSupport(t *testing.T) {
 	}
 
 	// Test flatten functionality (organization rulesets use org=true)
-	flattenedResult := flattenRules(t.Context(), expandedRules, true)
+	flattenedResult := flattenRules(t.Context(), expandedRules, rulesetLevelOrganization)
 
 	if len(flattenedResult) != 1 {
 		t.Fatalf("Expected 1 flattened result, got %d", len(flattenedResult))
