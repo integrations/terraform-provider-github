@@ -44,7 +44,7 @@ func resourceGithubBranchProtection() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
-				Description: "Setting this to 'true' enforces status checks for repository administrators.",
+				Description: "Setting this to 'true' applies the branch protection to repository administrators, except for 'restrict_pushes'.",
 			},
 			PROTECTION_REQUIRES_COMMIT_SIGNATURES: {
 				Type:        schema.TypeBool,
@@ -107,7 +107,7 @@ func resourceGithubBranchProtection() *schema.Resource {
 						PROTECTION_PULL_REQUESTS_BYPASSERS: {
 							Type:        schema.TypeSet,
 							Optional:    true,
-							Description: "The list of actor Names/IDs that are allowed to bypass pull request requirements. Actor names must either begin with a '/' for users or the organization name followed by a '/' for teams.",
+							Description: "The list of actor Names/IDs that are allowed to bypass pull request requirements, even when 'enforce_admins' is 'true'. Actor names must either begin with a '/' for users or the organization name followed by a '/' for teams.",
 							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
 						PROTECTION_REQUIRE_LAST_PUSH_APPROVAL: {
@@ -163,7 +163,7 @@ func resourceGithubBranchProtection() *schema.Resource {
 			PROTECTION_FORCE_PUSHES_BYPASSERS: {
 				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: "The list of actor Names/IDs that are allowed to bypass force push restrictions. Actor names must either begin with a '/' for users or the organization name followed by a '/' for teams.",
+				Description: "The list of actor Names/IDs that are allowed to bypass force push restrictions, even when 'enforce_admins' is 'true'. Actor names must either begin with a '/' for users or the organization name followed by a '/' for teams.",
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 		},

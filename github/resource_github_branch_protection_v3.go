@@ -199,7 +199,7 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
-				Description: "Setting this to 'true' enforces status checks for repository administrators.",
+				Description: "Setting this to 'true' applies the branch protection to repository administrators, except for 'restrictions'.",
 			},
 			"require_signed_commits": {
 				Type:        schema.TypeBool,
