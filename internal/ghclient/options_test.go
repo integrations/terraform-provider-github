@@ -12,7 +12,7 @@ func TestClientOptions_getRESTURL(t *testing.T) {
 		name    string
 		opts    ClientOptions
 		wantURL *string
-		wantErr string
+		wantErr *string
 	}{
 		{
 			name:    "default",
@@ -54,7 +54,7 @@ func TestClientOptions_getRESTURL(t *testing.T) {
 			opts: ClientOptions{
 				BaseURL: "https://api.github.com/%%%",
 			},
-			wantErr: "unable to parse base url",
+			wantErr: new("unable to parse base url"),
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -62,17 +62,19 @@ func TestClientOptions_getRESTURL(t *testing.T) {
 
 			gotURL, err := tt.opts.getRESTURL()
 			if err != nil {
-				if tt.wantErr == "" {
-					t.Fatalf("unexpected error: %v", err)
+				if tt.wantErr == nil {
+					t.Fatalf("expected no error, got %v", err)
 				}
-				if !regexp.MustCompile(regexp.QuoteMeta(tt.wantErr)).MatchString(err.Error()) {
-					t.Fatalf("expected error to match %q, got %v", tt.wantErr, err)
+
+				if !regexp.MustCompile(regexp.QuoteMeta(*tt.wantErr)).MatchString(err.Error()) {
+					t.Fatalf("expected error %q, got %q", *tt.wantErr, err.Error())
 				}
+
 				return
 			}
 
-			if tt.wantErr != "" {
-				t.Fatalf("expected error %q, got nil", tt.wantErr)
+			if tt.wantErr != nil {
+				t.Fatalf("expected error %q, got nil", *tt.wantErr)
 			}
 
 			if gotURL == nil && tt.wantURL != nil {
@@ -97,7 +99,7 @@ func TestClientOptions_getGraphQLURL(t *testing.T) {
 		name    string
 		opts    ClientOptions
 		wantURL *string
-		wantErr string
+		wantErr *string
 	}{
 		{
 			name:    "default",
@@ -139,7 +141,7 @@ func TestClientOptions_getGraphQLURL(t *testing.T) {
 			opts: ClientOptions{
 				BaseURL: "https://api.github.com/%%%",
 			},
-			wantErr: "unable to parse base url",
+			wantErr: new("unable to parse base url"),
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -147,17 +149,19 @@ func TestClientOptions_getGraphQLURL(t *testing.T) {
 
 			gotURL, err := tt.opts.getGraphQLURL()
 			if err != nil {
-				if tt.wantErr == "" {
-					t.Fatalf("unexpected error: %v", err)
+				if tt.wantErr == nil {
+					t.Fatalf("expected no error, got %v", err)
 				}
-				if !regexp.MustCompile(regexp.QuoteMeta(tt.wantErr)).MatchString(err.Error()) {
-					t.Fatalf("expected error to match %q, got %v", tt.wantErr, err)
+
+				if !regexp.MustCompile(regexp.QuoteMeta(*tt.wantErr)).MatchString(err.Error()) {
+					t.Fatalf("expected error %q, got %q", *tt.wantErr, err.Error())
 				}
+
 				return
 			}
 
-			if tt.wantErr != "" {
-				t.Fatalf("expected error %q, got nil", tt.wantErr)
+			if tt.wantErr != nil {
+				t.Fatalf("expected error %q, got nil", *tt.wantErr)
 			}
 
 			if gotURL == nil && tt.wantURL != nil {
