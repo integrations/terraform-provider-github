@@ -61,7 +61,7 @@ func resourceGithubMembership() *schema.Resource {
 				Optional:         true,
 				ValidateDiagFunc: validateValueFunc([]string{membershipDowngradeToMember, membershipDowngradeToOutsideCollaborator}),
 				Default:          membershipDowngradeToMember,
-				Description:      "The target membership state when downgrade_on_destroy is true. Must be one of 'member' or 'outside_collaborator'.",
+				Description:      "The target membership state when downgrade_on_destroy is true. Must be one of 'member' or 'outside_collaborator'. When set to 'outside_collaborator', the user must be an active organization member when the resource is destroyed; pending organization invitations cannot be converted to outside collaborators.",
 			},
 		},
 	}
