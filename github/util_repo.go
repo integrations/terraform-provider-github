@@ -32,19 +32,37 @@ func checkRepositoryBranchExists(ctx context.Context, client *github.Client, own
 	return nil
 }
 
+// getFileCommit returns the most recent non-merge commit on branch that changed file. It reads the
+// file's history one page at a time and stops at the first match, so a long history costs no more
+// requests than a short one.
 func getFileCommit(ctx context.Context, client *github.Client, owner, repo, file, branch string) (*github.RepositoryCommit, error) {
 	opts := &github.CommitsListOptions{
 		SHA:  branch,
 		Path: file,
 	}
-	allCommits := []*github.RepositoryCommit{}
 	for {
 		commits, resp, err := client.Repositories.ListCommits(ctx, owner, repo, opts)
 		if err != nil {
 			return nil, err
 		}
 
-		allCommits = append(allCommits, commits...)
+		for _, c := range commits {
+			// Skip merge commits
+			if strings.Contains(c.Commit.GetMessage(), "Merge branch") {
+				continue
+			}
+
+			rc, files, err := getCommitWithFiles(ctx, client, owner, repo, c.GetSHA())
+			if err != nil {
+				return nil, err
+			}
+
+			for _, f := range files {
+				if f.GetFilename() == file && f.GetStatus() != "removed" {
+					return rc, nil
+				}
+			}
+		}
 
 		if resp.NextPage == 0 {
 			break
@@ -53,42 +71,27 @@ func getFileCommit(ctx context.Context, client *github.Client, owner, repo, file
 		opts.Page = resp.NextPage
 	}
 
-	for _, c := range allCommits {
-		sha := c.GetSHA()
-
-		// Skip merge commits
-		if strings.Contains(c.Commit.GetMessage(), "Merge branch") {
-			continue
-		}
-
-		opts := &github.ListOptions{}
-		allFiles := []*github.CommitFile{}
-		var rc *github.RepositoryCommit
-		var resp *github.Response
-		var err error
-		for {
-			rc, resp, err = client.Repositories.GetCommit(ctx, owner, repo, sha, opts)
-			if err != nil {
-				return nil, err
-			}
-
-			allFiles = append(allFiles, rc.Files...)
-
-			if resp.NextPage == 0 {
-				break
-			}
-
-			opts.Page = resp.NextPage
-		}
-
-		for _, f := range allFiles {
-			if f.GetFilename() == file && f.GetStatus() != "removed" {
-				return rc, nil
-			}
-		}
-	}
-
 	return nil, fmt.Errorf("cannot find file %s in repo %s/%s", file, owner, repo)
+}
+
+// getCommitWithFiles reads a commit and every page of the files it changed.
+func getCommitWithFiles(ctx context.Context, client *github.Client, owner, repo, sha string) (*github.RepositoryCommit, []*github.CommitFile, error) {
+	opts := &github.ListOptions{}
+	var files []*github.CommitFile
+	for {
+		rc, resp, err := client.Repositories.GetCommit(ctx, owner, repo, sha, opts)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		files = append(files, rc.Files...)
+
+		if resp.NextPage == 0 {
+			return rc, files, nil
+		}
+
+		opts.Page = resp.NextPage
+	}
 }
 
 // getAutolinkByKeyPrefix returns a single autolink reference by key prefix that was configured for the given repository.
