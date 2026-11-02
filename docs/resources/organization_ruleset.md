@@ -38,6 +38,19 @@ resource "github_organization_ruleset" "example" {
     required_linear_history = true
     required_signatures     = true
 
+    pull_request {
+      required_approving_review_count                 = 1
+      require_extra_approval_for_unattributed_changes = true
+
+      dismissal_restriction {
+        enabled = true
+        allowed_actors {
+          actor_id   = 1234
+          actor_type = "Team"
+        }
+      }
+    }
+
     branch_name_pattern {
       name     = "example"
       negate   = false
@@ -208,6 +221,10 @@ The `rules` block supports the following:
 
 - `require_code_owner_review` - (Optional) (Boolean) Require an approving review in pull requests that modify files that have a designated code owner. Defaults to `false`.
 
+- `require_extra_approval_for_unattributed_changes` - (Optional) (Boolean) Require one additional approval when Copilot opens a pull request without a human collaborator and a non-zero approval count is required. Defaults to `false`.
+
+- `dismissal_restriction` - (Optional) (Block List, Max: 1) Restrict who may dismiss reviews. Omit the block to leave dismissal unrestricted. (see [below](#rulespull_requestdismissal_restriction))
+
 - `require_last_push_approval` - (Optional) (Boolean) Whether the most recent reviewable push must be approved by someone other than the person who pushed it. Defaults to `false`.
 
 - `required_approving_review_count` - (Optional) (Number) The number of approving reviews that are required before a pull request can be merged. Defaults to `0`.
@@ -223,6 +240,16 @@ The `rules` block supports the following:
 - `allowed_merge_methods` - (Required) (List of String, Min: 1) Array of merge methods to be allowed. Allowed values include `merge`, `squash`, and `rebase`. At least one must be enabled.
 
 - `required_reviewers` - (Optional) (Block List) Require specific reviewers to approve pull requests. Note: This feature is in beta. (see [below for nested schema](#rulespull_requestrequired_reviewers))
+
+#### rules.pull_request.dismissal_restriction
+
+- `enabled` - (Optional) (Boolean) Whether review dismissal is restricted. Defaults to `true`.
+- `allowed_actors` - (Optional) (Block List) Actors allowed to dismiss reviews. An empty list restricts dismissal to ruleset bypass actors.
+
+#### rules.pull_request.dismissal_restriction.allowed_actors
+
+- `actor_id` - (Required) (Number) Actor ID.
+- `actor_type` - (Required) (String) One of `User`, `Team`, `IntegrationInstallation`, `RepositoryRole`. Apps use `IntegrationInstallation`, not the bypass type `Integration`.
 
 #### rules.pull_request.required_reviewers
 
