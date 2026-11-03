@@ -1,0 +1,1 @@
+terraform import github_repository_code_quality.example my-repo
