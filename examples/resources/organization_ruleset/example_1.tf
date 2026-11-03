@@ -23,6 +23,19 @@ resource "github_organization_ruleset" "example" {
     required_linear_history = true
     required_signatures     = true
 
+    pull_request {
+      required_approving_review_count                 = 1
+      require_extra_approval_for_unattributed_changes = true
+
+      dismissal_restriction {
+        enabled = true
+        allowed_actors {
+          actor_id   = 1234
+          actor_type = "Team"
+        }
+      }
+    }
+
     branch_name_pattern {
       name     = "example"
       negate   = false
