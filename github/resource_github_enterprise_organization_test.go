@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -626,5 +627,80 @@ func TestResourceGithubEnterpriseOrganizationCreateSetsDatabaseID(t *testing.T) 
 	}
 	if want := 168828871; got != want {
 		t.Errorf("database_id = %d, want %d", got, want)
+	}
+}
+
+func TestResourceGithubEnterpriseOrganizationReadListsOnlyAdmins(t *testing.T) {
+	t.Parallel()
+
+	const readResponse = `{
+  "data": {
+    "node": {
+      "id": "O_kgDOCg7Zxw",
+      "databaseId": 168828871,
+      "name": "Some Awesome Org",
+      "login": "some-awesome-org",
+      "description": "An org",
+      "organizationBillingEmail": "octocat@octo.cat"
+    }
+  }
+}`
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/graphql", func(w http.ResponseWriter, req *http.Request) {
+		body := mustRead(req.Body)
+		if strings.Contains(body, "membersWithRole") {
+			t.Errorf("read must not page through all organization members: %s", body)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		mustWrite(w, readResponse)
+	})
+	mux.HandleFunc("/orgs/some-awesome-org/members", func(w http.ResponseWriter, req *http.Request) {
+		if got, want := req.URL.Query().Get("role"), "admin"; got != want {
+			t.Errorf("role = %q, want %q", got, want)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		switch req.URL.Query().Get("page") {
+		case "", "1":
+			w.Header().Set("Link", `<https://api.github.com/orgs/some-awesome-org/members?role=admin&page=2>; rel="next"`)
+			mustWrite(w, `[{"login": "octocat"}]`)
+		case "2":
+			mustWrite(w, `[{"login": "hubot"}]`)
+		default:
+			t.Errorf("unexpected page %q", req.URL.Query().Get("page"))
+		}
+	})
+
+	v3client, err := github.NewClient(github.WithTransport(localRoundTripper{handler: mux}))
+	if err != nil {
+		t.Fatalf("unexpected error creating client: %s", err)
+	}
+
+	meta := &Owner{
+		v3client:   v3client,
+		v4client:   newTestGraphQLClient(mux),
+		maxPerPage: 100,
+	}
+
+	data := schema.TestResourceDataRaw(t, resourceGithubEnterpriseOrganization().Schema, map[string]any{})
+	data.SetId("O_kgDOCg7Zxw")
+
+	if err := resourceGithubEnterpriseOrganizationRead(data, meta); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	var gotAdmins []string
+	for _, v := range data.Get("admin_logins").(*schema.Set).List() {
+		gotAdmins = append(gotAdmins, v.(string))
+	}
+	slices.Sort(gotAdmins)
+	if want := []string{"hubot", "octocat"}; !slices.Equal(gotAdmins, want) {
+		t.Errorf("admin_logins = %v, want %v", gotAdmins, want)
+	}
+	if got, want := data.Get("name").(string), "some-awesome-org"; got != want {
+		t.Errorf("name = %q, want %q", got, want)
+	}
+	if got, want := data.Get("display_name").(string), "Some Awesome Org"; got != want {
+		t.Errorf("display_name = %q, want %q", got, want)
 	}
 }

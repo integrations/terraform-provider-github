@@ -175,53 +175,41 @@ func resourceGithubEnterpriseOrganizationRead(data *schema.ResourceData, m any) 
 				Login                    githubv4.String
 				Description              githubv4.String
 				OrganizationBillingEmail githubv4.String
-				MembersWithRole          struct {
-					Edges []struct {
-						User struct {
-							Login githubv4.String
-						} `graphql:"node"`
-						Role githubv4.String
-					} `graphql:"edges"`
-					PageInfo PageInfo
-				} `graphql:"membersWithRole(first:$first, after:$cursor)"`
 			} `graphql:"... on Organization"`
 		} `graphql:"node(id: $id)"`
 	}
 
 	variables := map[string]any{
-		"id":     data.Id(),
-		"first":  githubv4.Int(meta.maxPerPage),
-		"cursor": (*githubv4.String)(nil),
+		"id": data.Id(),
 	}
 
-	var adminLogins []any
+	ctx := context.Background()
+	err := meta.v4client.Query(ctx, &query, variables)
+	if err != nil {
+		if strings.Contains(err.Error(), "Could not resolve to a node with the global id") {
+			log.Printf("[INFO] Removing organization (%s) from state because it no longer exists in GitHub", data.Id())
+			data.SetId("")
+			return nil
+		}
+		return err
+	}
 
-	for {
-		v4 := meta.v4client
-		err := v4.Query(context.Background(), &query, variables)
+	// Use the REST API to list only the organization's admins. The GraphQL membersWithRole connection
+	// cannot be filtered by role, so reading admins through it requires paging through every member of
+	// the organization, which does not scale to organizations with tens of thousands of members.
+	adminLogins := []any{}
+	opts := &github.ListMembersOptions{
+		Role:        "admin",
+		ListOptions: github.ListOptions{PerPage: meta.maxPerPage},
+	}
+	for member, err := range meta.v3client.Organizations.ListMembersIter(ctx, string(query.Node.Organization.Login), opts) {
 		if err != nil {
-			if strings.Contains(err.Error(), "Could not resolve to a node with the global id") {
-				log.Printf("[INFO] Removing organization (%s) from state because it no longer exists in GitHub", data.Id())
-				data.SetId("")
-				return nil
-			}
 			return err
 		}
-
-		for _, v := range query.Node.Organization.MembersWithRole.Edges {
-			if v.Role == "ADMIN" {
-				adminLogins = append(adminLogins, string(v.User.Login))
-			}
-		}
-
-		if !query.Node.Organization.MembersWithRole.PageInfo.HasNextPage {
-			break
-		}
-
-		variables["cursor"] = new(query.Node.Organization.MembersWithRole.PageInfo.EndCursor)
+		adminLogins = append(adminLogins, member.GetLogin())
 	}
 
-	err := data.Set("admin_logins", schema.NewSet(schema.HashString, adminLogins))
+	err = data.Set("admin_logins", schema.NewSet(schema.HashString, adminLogins))
 	if err != nil {
 		return err
 	}
