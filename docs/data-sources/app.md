@@ -26,7 +26,11 @@ data "github_app" "foobar" {
 
 ### Read-Only
 
+- `client_id` (String) The OAuth client ID of the app.
 - `description` (String) The app's description.
+- `events` (List of String) The webhook events the app subscribes to.
+- `external_url` (String) The app's homepage URL.
 - `id` (String) The ID of the app.
 - `name` (String) The app's full name.
 - `node_id` (String) The Node ID of the app.
+- `permissions` (Map of String) The permissions the app requests, keyed by permission name.
