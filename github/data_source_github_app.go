@@ -39,6 +39,28 @@ func dataSourceGithubApp() *schema.Resource {
 				Computed:    true,
 				Description: "The Node ID of the app.",
 			},
+			"client_id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The OAuth client ID of the app.",
+			},
+			"external_url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The app's homepage URL.",
+			},
+			"permissions": {
+				Type:        schema.TypeMap,
+				Computed:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Description: "The permissions the app requests, keyed by permission name.",
+			},
+			"events": {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Description: "The webhook events the app subscribes to.",
+			},
 		},
 	}
 }
@@ -53,18 +75,30 @@ func dataSourceGithubAppRead(ctx context.Context, d *schema.ResourceData, meta a
 		return diag.FromErr(err)
 	}
 
+	permissions, err := flattenInstallationPermissions(app.Permissions)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	events := app.Events
+	if events == nil {
+		events = []string{}
+	}
+
 	d.SetId(strconv.FormatInt(app.GetID(), 10))
-	err = d.Set("description", app.GetDescription())
-	if err != nil {
-		return diag.FromErr(err)
+	values := map[string]any{
+		"description":  app.GetDescription(),
+		"name":         app.GetName(),
+		"node_id":      app.GetNodeID(),
+		"client_id":    app.GetClientID(),
+		"external_url": app.GetExternalURL(),
+		"permissions":  permissions,
+		"events":       events,
 	}
-	err = d.Set("name", app.GetName())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = d.Set("node_id", app.GetNodeID())
-	if err != nil {
-		return diag.FromErr(err)
+	for k, v := range values {
+		if err := d.Set(k, v); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	return nil

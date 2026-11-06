@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -111,7 +112,11 @@ func dataSourceGithubOrganizationAppInstallationsRead(ctx context.Context, d *sc
 			return diag.FromErr(err)
 		}
 
-		results = append(results, flattenGitHubAppInstallations(appInstallations.Installations)...)
+		installations, err := flattenGitHubAppInstallations(appInstallations.Installations)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		results = append(results, installations...)
 		if resp.NextPage == 0 {
 			break
 		}
@@ -127,11 +132,11 @@ func dataSourceGithubOrganizationAppInstallationsRead(ctx context.Context, d *sc
 	return nil
 }
 
-func flattenGitHubAppInstallations(orgAppInstallations []*github.Installation) []map[string]any {
+func flattenGitHubAppInstallations(orgAppInstallations []*github.Installation) ([]map[string]any, error) {
 	results := make([]map[string]any, 0)
 
 	if orgAppInstallations == nil {
-		return results
+		return results, nil
 	}
 
 	for _, appInstallation := range orgAppInstallations {
@@ -151,7 +156,11 @@ func flattenGitHubAppInstallations(orgAppInstallations []*github.Installation) [
 			result["events"] = []string{}
 		}
 
-		result["permissions"] = flattenInstallationPermissions(appInstallation.Permissions)
+		permissions, err := flattenInstallationPermissions(appInstallation.Permissions)
+		if err != nil {
+			return nil, err
+		}
+		result["permissions"] = permissions
 
 		if appInstallation.SingleFilePaths != nil {
 			result["single_file_paths"] = appInstallation.SingleFilePaths
@@ -165,105 +174,23 @@ func flattenGitHubAppInstallations(orgAppInstallations []*github.Installation) [
 		results = append(results, result)
 	}
 
-	return results
+	return results, nil
 }
 
-func flattenInstallationPermissions(perms *github.InstallationPermissions) map[string]string {
+// Round-tripping through JSON keeps every permission go-github knows about instead of a hand-picked subset.
+func flattenInstallationPermissions(perms *github.InstallationPermissions) (map[string]string, error) {
 	permissions := make(map[string]string)
 	if perms == nil {
-		return permissions
+		return permissions, nil
 	}
 
-	if v := perms.GetActions(); v != "" {
-		permissions["actions"] = v
+	raw, err := json.Marshal(perms)
+	if err != nil {
+		return nil, err
 	}
-	if v := perms.GetAdministration(); v != "" {
-		permissions["administration"] = v
-	}
-	if v := perms.GetChecks(); v != "" {
-		permissions["checks"] = v
-	}
-	if v := perms.GetContents(); v != "" {
-		permissions["contents"] = v
-	}
-	if v := perms.GetDeployments(); v != "" {
-		permissions["deployments"] = v
-	}
-	if v := perms.GetEnvironments(); v != "" {
-		permissions["environments"] = v
-	}
-	if v := perms.GetIssues(); v != "" {
-		permissions["issues"] = v
-	}
-	if v := perms.GetMetadata(); v != "" {
-		permissions["metadata"] = v
-	}
-	if v := perms.GetMembers(); v != "" {
-		permissions["members"] = v
-	}
-	if v := perms.GetOrganizationAdministration(); v != "" {
-		permissions["organization_administration"] = v
-	}
-	if v := perms.GetOrganizationHooks(); v != "" {
-		permissions["organization_hooks"] = v
-	}
-	if v := perms.GetOrganizationPlan(); v != "" {
-		permissions["organization_plan"] = v
-	}
-	if v := perms.GetOrganizationProjects(); v != "" {
-		permissions["organization_projects"] = v
-	}
-	if v := perms.GetOrganizationSecrets(); v != "" {
-		permissions["organization_secrets"] = v
-	}
-	if v := perms.GetOrganizationSelfHostedRunners(); v != "" {
-		permissions["organization_self_hosted_runners"] = v
-	}
-	if v := perms.GetOrganizationUserBlocking(); v != "" {
-		permissions["organization_user_blocking"] = v
-	}
-	if v := perms.GetPackages(); v != "" {
-		permissions["packages"] = v
-	}
-	if v := perms.GetPages(); v != "" {
-		permissions["pages"] = v
-	}
-	if v := perms.GetPullRequests(); v != "" {
-		permissions["pull_requests"] = v
-	}
-	if v := perms.GetRepositoryHooks(); v != "" {
-		permissions["repository_hooks"] = v
-	}
-	if v := perms.GetRepositoryProjects(); v != "" {
-		permissions["repository_projects"] = v
-	}
-	if v := perms.GetRepositoryPreReceiveHooks(); v != "" {
-		permissions["repository_pre_receive_hooks"] = v
-	}
-	if v := perms.GetSecrets(); v != "" {
-		permissions["secrets"] = v
-	}
-	if v := perms.GetSecretScanningAlerts(); v != "" {
-		permissions["secret_scanning_alerts"] = v
-	}
-	if v := perms.GetSecurityEvents(); v != "" {
-		permissions["security_events"] = v
-	}
-	if v := perms.GetSingleFile(); v != "" {
-		permissions["single_file"] = v
-	}
-	if v := perms.GetStatuses(); v != "" {
-		permissions["statuses"] = v
-	}
-	if v := perms.GetTeamDiscussions(); v != "" {
-		permissions["team_discussions"] = v
-	}
-	if v := perms.GetVulnerabilityAlerts(); v != "" {
-		permissions["vulnerability_alerts"] = v
-	}
-	if v := perms.GetWorkflows(); v != "" {
-		permissions["workflows"] = v
+	if err := json.Unmarshal(raw, &permissions); err != nil {
+		return nil, err
 	}
 
-	return permissions
+	return permissions, nil
 }
