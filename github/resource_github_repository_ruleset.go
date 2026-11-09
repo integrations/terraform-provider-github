@@ -73,8 +73,8 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 						"actor_type": {
 							Type:             schema.TypeString,
 							Required:         true,
-							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"RepositoryRole", "Team", "Integration", "OrganizationAdmin", "DeployKey", "EnterpriseOwner", "User"}, false)),
-							Description:      "The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`, `DeployKey`, `EnterpriseOwner`, or `User`. See https://docs.github.com/en/rest/repos/rules for more information.",
+							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"RepositoryRole", "Team", "Integration", "OrganizationAdmin", "OrganizationRole", "DeployKey", "EnterpriseOwner", "User"}, false)),
+							Description:      "The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`, `OrganizationRole`, `DeployKey`, `EnterpriseOwner`, or `User`. See https://docs.github.com/en/rest/repos/rules for more information.",
 						},
 						"bypass_mode": {
 							Type:             schema.TypeString,
