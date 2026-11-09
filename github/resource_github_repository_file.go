@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -331,6 +332,19 @@ func resourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceDat
 		commit, err = getFileCommit(ctx, client, owner, repoName, file, ref)
 	}
 	if err != nil {
+		// The commit recorded in state, or any commit still containing the file,
+		// may be unreachable because the repository, branch or history is gone.
+		// That is "the resource no longer exists", not a failure to read it.
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response != nil && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Removing repository file from state because its commit no longer exists in GitHub")
+			d.SetId("")
+			return nil
+		}
+		if errors.Is(err, errFileCommitNotFound) {
+			tflog.Info(ctx, "Removing repository file from state because no commit contains it")
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 	tflog.Debug(ctx, "Found file in commit", map[string]any{
