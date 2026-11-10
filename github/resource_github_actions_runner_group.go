@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v92/github"
+	"github.com/google/go-github/v93/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -141,7 +141,7 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, m any) error
 		ctx,
 		orgName,
 		github.CreateRunnerGroupRequest{
-			Name:                     &name,
+			Name:                     name,
 			Visibility:               &visibility,
 			RestrictedToWorkflows:    &restrictedToWorkflows,
 			SelectedRepositoryIDs:    selectedRepositoryIDs,
@@ -331,7 +331,7 @@ func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, m any) error
 	}
 
 	options := github.UpdateRunnerGroupRequest{
-		Name:                     &name,
+		Name:                     name,
 		Visibility:               &visibility,
 		RestrictedToWorkflows:    &restrictedToWorkflows,
 		SelectedWorkflows:        selectedWorkflows,

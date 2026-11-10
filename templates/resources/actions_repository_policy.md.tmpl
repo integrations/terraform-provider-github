@@ -1,0 +1,46 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Manages a GitHub Actions policy for a repository
+---
+
+# {{.Name}} ({{.Type}})
+
+This resource allows you to manage a GitHub Actions policy (workflow execution protection) for a repository. Actions policies restrict which events and actors can trigger workflows, optionally scoped to specific workflow files. You must have admin access to the repository to use this resource.
+
+## Example Usage
+
+{{ tffile "examples/resources/actions_repository_policy/example_1.tf" }}
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `repository` - (Required) The name of the repository. Changing this forces a new resource.
+- `name` - (Required) The name of the policy.
+- `enforcement` - (Required) The enforcement level of the policy. Can be one of `disabled`, `active`, or `evaluate`. `evaluate` is only available with GitHub Enterprise.
+- `workflow_path` - (Optional) Restrict the policy to matching workflow files. If omitted, the policy applies to all workflows. See [Workflow Path](#workflow-path) below for details.
+- `allowed_events` - (Optional) The events that are allowed to trigger matching workflows, for example `pull_request` or `pull_request_target`.
+- `allowed_actor` - (Optional) The actors that are allowed to trigger matching workflows. Can be specified multiple times. See [Allowed Actor](#allowed-actor) below for details.
+
+### Workflow Path
+
+- `include` - (Optional) Workflow file paths or glob patterns to include. An empty list includes all workflows not matched by `exclude`.
+- `exclude` - (Optional) Workflow file paths or glob patterns to exclude.
+
+### Allowed Actor
+
+- `id` - (Required) The ID of the actor.
+- `type` - (Required) The type of the actor. Can be one of `User`, `Bot`, `Team`, `BusinessTeam`, `EnterpriseTeam`, `IntegrationInstallation`, `App`, or `RepositoryRole`.
+
+## Attributes Reference
+
+- `policy_id` - The ID of the policy.
+
+## Import
+
+This resource can be imported using the repository name and policy ID, separated by a colon:
+
+```shell
+terraform import github_actions_repository_policy.example my-repository:123
+```
