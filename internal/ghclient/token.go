@@ -18,12 +18,12 @@ type tokenSource struct {
 
 // NewTokenSource creates a new tokenSource that provides a GitHub client authenticated with the provided personal access token.
 func NewTokenSource(token string, opts SourceOptions) (*tokenSource, error) {
-	if opts.Cache && opts.CacheBasePath == "" {
+	if opts.Cache.Enabled && opts.Cache.BasePath == "" {
 		s, err := os.MkdirTemp("", "*")
 		if err != nil {
 			return nil, fmt.Errorf("failed to create temporary cache directory: %w", err)
 		}
-		opts.CacheBasePath = s
+		opts.Cache.BasePath = s
 	}
 
 	sema := semaphore.NewWeighted(maxConcurrentRequests)
