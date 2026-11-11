@@ -26,10 +26,11 @@ func dataSourceGithubActionsRepositoryForkPRContributorApproval() *schema.Resour
 	}
 }
 
-func dataSourceGithubActionsRepositoryForkPRContributorApprovalRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	repository := d.Get("repository").(string)
+func dataSourceGithubActionsRepositoryForkPRContributorApprovalRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+	repository, _ := d.Get("repository").(string)
 
 	policy, _, err := client.Actions.GetForkPRContributorApprovalPermissions(ctx, owner, repository)
 	if err != nil {

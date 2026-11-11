@@ -21,13 +21,14 @@ func dataSourceGithubActionsOrganizationForkPRContributorApproval() *schema.Reso
 	}
 }
 
-func dataSourceGithubActionsOrganizationForkPRContributorApprovalRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	if err := checkOrganization(meta); err != nil {
+func dataSourceGithubActionsOrganizationForkPRContributorApprovalRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	if err := checkOrganization(m); err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 
 	policy, _, err := client.Actions.GetOrganizationForkPRContributorApprovalPermissions(ctx, orgName)
 	if err != nil {

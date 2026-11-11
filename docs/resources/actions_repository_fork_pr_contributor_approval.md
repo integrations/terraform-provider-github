@@ -33,6 +33,16 @@ The following arguments are supported:
 - `repository` - (Required) The GitHub repository.
 - `approval_policy` - (Required) The policy controlling which fork PR contributors need maintainer approval. Possible values are `first_time_contributors_new_to_github`, `first_time_contributors`, or `all_external_contributors`.
 
+## Attribute Reference
+
+In addition to the above arguments, the following attributes are exported:
+
+- `repository_id` - The ID of the repository.
+
+## Notes
+
+Renaming the repository updates this resource in place; pointing it at a different repository replaces it. When the repository no longer exists, this resource is removed from Terraform state on the next `plan`/`apply` instead of returning an error.
+
 ## Import
 
 This resource can be imported using the name of the GitHub repository:

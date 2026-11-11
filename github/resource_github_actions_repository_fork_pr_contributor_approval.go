@@ -2,8 +2,12 @@ package github
 
 import (
 	"context"
+	"errors"
+	"net/http"
+	"strconv"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -11,15 +15,26 @@ import (
 
 func resourceGithubActionsRepositoryForkPRContributorApproval() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceGithubActionsRepositoryForkPRContributorApprovalCreateOrUpdate,
+		CreateContext: resourceGithubActionsRepositoryForkPRContributorApprovalCreate,
 		ReadContext:   resourceGithubActionsRepositoryForkPRContributorApprovalRead,
-		UpdateContext: resourceGithubActionsRepositoryForkPRContributorApprovalCreateOrUpdate,
+		UpdateContext: resourceGithubActionsRepositoryForkPRContributorApprovalUpdate,
 		DeleteContext: resourceGithubActionsRepositoryForkPRContributorApprovalDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: resourceGithubActionsRepositoryForkPRContributorApprovalImport,
 		},
 
 		Schema: map[string]*schema.Schema{
+			"repository": {
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "The GitHub repository.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 100)),
+			},
+			"repository_id": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The ID of the GitHub repository.",
+			},
 			"approval_policy": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -30,46 +45,52 @@ func resourceGithubActionsRepositoryForkPRContributorApproval() *schema.Resource
 					"all_external_contributors",
 				}, false)),
 			},
-			"repository": {
-				Type:             schema.TypeString,
-				Required:         true,
-				Description:      "The GitHub repository.",
-				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 100)),
-			},
 		},
+
+		CustomizeDiff: diffRepository,
 	}
 }
 
-func resourceGithubActionsRepositoryForkPRContributorApprovalCreateOrUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
+func resourceGithubActionsRepositoryForkPRContributorApprovalCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+	repoName, _ := d.Get("repository").(string)
 
-	policy := github.ContributorApprovalPermissions{
-		ApprovalPolicy: d.Get("approval_policy").(string),
-	}
-
-	if _, err := client.Actions.UpdateForkPRContributorApprovalPermissions(ctx, owner, repoName, policy); err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId(repoName)
-	return resourceGithubActionsRepositoryForkPRContributorApprovalRead(ctx, d, meta)
-}
-
-func resourceGithubActionsRepositoryForkPRContributorApprovalRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	repoName := d.Id()
-
-	policy, _, err := client.Actions.GetForkPRContributorApprovalPermissions(ctx, owner, repoName)
+	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	if err := d.Set("repository", repoName); err != nil {
+	approvalPolicy, _ := d.Get("approval_policy").(string)
+	if err := updateRepositoryForkPRContributorApproval(ctx, client, owner, repoName, approvalPolicy); err != nil {
 		return diag.FromErr(err)
 	}
+
+	d.SetId(strconv.FormatInt(repo.GetID(), 10))
+	if err := d.Set("repository_id", int(repo.GetID())); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return resourceGithubActionsRepositoryForkPRContributorApprovalRead(ctx, d, m)
+}
+
+func resourceGithubActionsRepositoryForkPRContributorApprovalRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+	repoName, _ := d.Get("repository").(string)
+
+	policy, _, err := client.Actions.GetForkPRContributorApprovalPermissions(ctx, owner, repoName)
+	if err != nil {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Removing fork PR contributor approval from state because the repository no longer exists", map[string]any{"owner": owner, "repository": repoName})
+			d.SetId("")
+			return nil
+		}
+		return diag.FromErr(err)
+	}
+
 	if err := d.Set("approval_policy", policy.ApprovalPolicy); err != nil {
 		return diag.FromErr(err)
 	}
@@ -77,20 +98,61 @@ func resourceGithubActionsRepositoryForkPRContributorApprovalRead(ctx context.Co
 	return nil
 }
 
-func resourceGithubActionsRepositoryForkPRContributorApprovalDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	repoName := d.Id()
+func resourceGithubActionsRepositoryForkPRContributorApprovalUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+	repoName, _ := d.Get("repository").(string)
 
-	// The API has no "off" state for this policy. Reset to the GitHub-documented
-	// default (first_time_contributors) on Delete so the resource leaves no
-	// residual non-default state behind.
-	policy := github.ContributorApprovalPermissions{
-		ApprovalPolicy: "first_time_contributors",
-	}
-	if _, err := client.Actions.UpdateForkPRContributorApprovalPermissions(ctx, owner, repoName, policy); err != nil {
+	approvalPolicy, _ := d.Get("approval_policy").(string)
+	if err := updateRepositoryForkPRContributorApproval(ctx, client, owner, repoName, approvalPolicy); err != nil {
 		return diag.FromErr(err)
 	}
 
-	return nil
+	return resourceGithubActionsRepositoryForkPRContributorApprovalRead(ctx, d, m)
+}
+
+func resourceGithubActionsRepositoryForkPRContributorApprovalDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+	repoName, _ := d.Get("repository").(string)
+
+	// The API has no "off" state for this policy, so deleting the resource
+	// restores GitHub's default.
+	err := updateRepositoryForkPRContributorApproval(ctx, client, owner, repoName, "first_time_contributors")
+	if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+		return nil
+	}
+
+	return diag.FromErr(handleArchivedRepoDelete(err, "fork PR contributor approval", d.Id(), owner, repoName))
+}
+
+func resourceGithubActionsRepositoryForkPRContributorApprovalImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+	repoName := d.Id()
+
+	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
+	if err != nil {
+		return nil, err
+	}
+
+	d.SetId(strconv.FormatInt(repo.GetID(), 10))
+	if err := d.Set("repository", repoName); err != nil {
+		return nil, err
+	}
+	if err := d.Set("repository_id", int(repo.GetID())); err != nil {
+		return nil, err
+	}
+
+	return []*schema.ResourceData{d}, nil
+}
+
+func updateRepositoryForkPRContributorApproval(ctx context.Context, client *github.Client, owner, repoName, approvalPolicy string) error {
+	_, err := client.Actions.UpdateForkPRContributorApprovalPermissions(ctx, owner, repoName, github.ContributorApprovalPermissions{
+		ApprovalPolicy: approvalPolicy,
+	})
+	return err
 }

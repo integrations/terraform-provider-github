@@ -34,16 +34,18 @@ func resourceGithubActionsOrganizationForkPRContributorApproval() *schema.Resour
 	}
 }
 
-func resourceGithubActionsOrganizationForkPRContributorApprovalCreateOrUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	if err := checkOrganization(meta); err != nil {
+func resourceGithubActionsOrganizationForkPRContributorApprovalCreateOrUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	if err := checkOrganization(m); err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 
+	approvalPolicy, _ := d.Get("approval_policy").(string)
 	policy := github.ContributorApprovalPermissions{
-		ApprovalPolicy: d.Get("approval_policy").(string),
+		ApprovalPolicy: approvalPolicy,
 	}
 
 	if _, err := client.Actions.UpdateOrganizationForkPRContributorApprovalPermissions(ctx, orgName, policy); err != nil {
@@ -51,16 +53,17 @@ func resourceGithubActionsOrganizationForkPRContributorApprovalCreateOrUpdate(ct
 	}
 
 	d.SetId(orgName)
-	return resourceGithubActionsOrganizationForkPRContributorApprovalRead(ctx, d, meta)
+	return resourceGithubActionsOrganizationForkPRContributorApprovalRead(ctx, d, m)
 }
 
-func resourceGithubActionsOrganizationForkPRContributorApprovalRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	if err := checkOrganization(meta); err != nil {
+func resourceGithubActionsOrganizationForkPRContributorApprovalRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	if err := checkOrganization(m); err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 
 	policy, _, err := client.Actions.GetOrganizationForkPRContributorApprovalPermissions(ctx, orgName)
 	if err != nil {
@@ -74,13 +77,14 @@ func resourceGithubActionsOrganizationForkPRContributorApprovalRead(ctx context.
 	return nil
 }
 
-func resourceGithubActionsOrganizationForkPRContributorApprovalDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	if err := checkOrganization(meta); err != nil {
+func resourceGithubActionsOrganizationForkPRContributorApprovalDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	if err := checkOrganization(m); err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 
 	// The API has no "off" state for this policy. Reset to the GitHub-documented
 	// default (first_time_contributors) on Delete so the resource leaves no
