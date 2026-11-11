@@ -1,0 +1,1 @@
+terraform import github_organization_ruleset.example 12345
