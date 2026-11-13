@@ -281,6 +281,7 @@ func NewProvider(version, commit string) func() *schema.Provider {
 				"github_branch":                                                         dataSourceGithubBranch(),
 				"github_branch_protection_rules":                                        dataSourceGithubBranchProtectionRules(),
 				"github_collaborators":                                                  dataSourceGithubCollaborators(),
+				"github_copilot_enterprise_seats":                                       dataSourceGithubCopilotEnterpriseSeats(),
 				"github_codespaces_organization_public_key":                             dataSourceGithubCodespacesOrganizationPublicKey(),
 				"github_codespaces_organization_secrets":                                dataSourceGithubCodespacesOrganizationSecrets(),
 				"github_codespaces_public_key":                                          dataSourceGithubCodespacesPublicKey(),
