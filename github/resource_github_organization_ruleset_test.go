@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-testing/compare"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
@@ -1498,6 +1499,69 @@ resource "github_organization_ruleset" "test" {
 						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("enforcement"), knownvalue.StringExact("active")),
 						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("actor_type"), knownvalue.StringExact("EnterpriseOwner")),
 						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("bypass_mode"), knownvalue.StringExact("always")),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("create_branch_ruleset_with_organization_role_bypass", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		rulesetName := fmt.Sprintf("%s-branch-ruleset-%s", testResourcePrefix, randomID)
+		roleName := fmt.Sprintf("%sorg-role-%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_organization_role" "test" {
+	name        = "%s"
+	permissions = []
+}
+
+resource "github_organization_ruleset" "test" {
+	name        = "%s"
+	target      = "branch"
+	enforcement = "active"
+
+	conditions {
+		ref_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+
+		repository_name {
+			include = ["~ALL"]
+			exclude = []
+		}
+	}
+
+	bypass_actors {
+		actor_id    = github_organization_role.test.role_id
+		actor_type  = "OrganizationRole"
+		bypass_mode = "always"
+	}
+
+	rules {
+		branch_name_pattern {
+			name     = "test"
+			negate   = false
+			operator = "starts_with"
+			pattern  = "test"
+		}
+	}
+}
+`, roleName, rulesetName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessEnterprise(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("actor_type"), knownvalue.StringExact("OrganizationRole")),
+						statecheck.ExpectKnownValue("github_organization_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("bypass_mode"), knownvalue.StringExact("always")),
+						statecheck.CompareValuePairs("github_organization_ruleset.test", tfjsonpath.New("bypass_actors").AtSliceIndex(0).AtMapKey("actor_id"), "github_organization_role.test", tfjsonpath.New("role_id"), compare.ValuesSame()),
 					},
 				},
 			},
