@@ -92,6 +92,31 @@ func flattenRequiredReviewers(reviewers []*github.RulesetRequiredReviewer) []map
 	return reviewersList
 }
 
+func expandDismissalRestriction(input map[string]any) *github.DismissalRestriction {
+	restriction := &github.DismissalRestriction{Enabled: input["enabled"].(bool)}
+	if actors, ok := input["allowed_actors"].([]any); ok {
+		for _, item := range actors {
+			actor := item.(map[string]any)
+			restriction.AllowedActors = append(restriction.AllowedActors, &github.DismissalRestrictionActor{
+				ID: toInt64(actor["actor_id"]), Type: github.DismissalRestrictionActorType(actor["actor_type"].(string)),
+			})
+		}
+	}
+	return restriction
+}
+
+func flattenDismissalRestriction(restriction *github.DismissalRestriction) []map[string]any {
+	// GitHub returns disabled/empty restrictions even when none was configured.
+	if restriction == nil || (!restriction.Enabled && len(restriction.AllowedActors) == 0) {
+		return nil
+	}
+	actors := make([]map[string]any, 0, len(restriction.AllowedActors))
+	for _, actor := range restriction.AllowedActors {
+		actors = append(actors, map[string]any{"actor_id": int(actor.ID), "actor_type": string(actor.Type)})
+	}
+	return []map[string]any{{"enabled": restriction.Enabled, "allowed_actors": actors}}
+}
+
 func resourceGithubRulesetObject(d *schema.ResourceData, org string) github.RepositoryRuleset {
 	isOrgLevel := len(org) > 0
 
@@ -447,6 +472,13 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 			AllowedMergeMethods:            toPullRequestMergeMethods(allowedMergeMethods),
 		}
 
+		if extraApproval, ok := pullRequestMap["require_extra_approval_for_unattributed_changes"].(bool); ok {
+			params.RequireExtraApprovalForUnattributedChanges = extraApproval
+		}
+		if restriction, ok := pullRequestMap["dismissal_restriction"].([]any); ok && len(restriction) != 0 && restriction[0] != nil {
+			params.DismissalRestriction = expandDismissalRestriction(restriction[0].(map[string]any))
+		}
+
 		// Add required reviewers if provided
 		if reqReviewers, ok := pullRequestMap["required_reviewers"].([]any); ok && len(reqReviewers) != 0 {
 			params.RequiredReviewers = expandRequiredReviewers(reqReviewers)
@@ -696,13 +728,15 @@ func flattenRules(ctx context.Context, rules *github.RepositoryRulesetRules, org
 	if rules.PullRequest != nil {
 		pullRequestSlice := make([]map[string]any, 0)
 		pullRequestSlice = append(pullRequestSlice, map[string]any{
-			"dismiss_stale_reviews_on_push":     rules.PullRequest.DismissStaleReviewsOnPush,
-			"require_code_owner_review":         rules.PullRequest.RequireCodeOwnerReview,
-			"require_last_push_approval":        rules.PullRequest.RequireLastPushApproval,
-			"required_approving_review_count":   rules.PullRequest.RequiredApprovingReviewCount,
-			"required_review_thread_resolution": rules.PullRequest.RequiredReviewThreadResolution,
-			"allowed_merge_methods":             rules.PullRequest.AllowedMergeMethods,
-			"required_reviewers":                flattenRequiredReviewers(rules.PullRequest.RequiredReviewers),
+			"require_extra_approval_for_unattributed_changes": rules.PullRequest.RequireExtraApprovalForUnattributedChanges,
+			"dismissal_restriction":                           flattenDismissalRestriction(rules.PullRequest.DismissalRestriction),
+			"dismiss_stale_reviews_on_push":                   rules.PullRequest.DismissStaleReviewsOnPush,
+			"require_code_owner_review":                       rules.PullRequest.RequireCodeOwnerReview,
+			"require_last_push_approval":                      rules.PullRequest.RequireLastPushApproval,
+			"required_approving_review_count":                 rules.PullRequest.RequiredApprovingReviewCount,
+			"required_review_thread_resolution":               rules.PullRequest.RequiredReviewThreadResolution,
+			"allowed_merge_methods":                           rules.PullRequest.AllowedMergeMethods,
+			"required_reviewers":                              flattenRequiredReviewers(rules.PullRequest.RequiredReviewers),
 		})
 		tflog.Debug(ctx, "Flattened Pull Request rules slice", map[string]any{"pull_request": pullRequestSlice})
 		rulesMap["pull_request"] = pullRequestSlice
