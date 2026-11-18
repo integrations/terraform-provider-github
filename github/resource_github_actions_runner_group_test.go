@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	sdkterraform "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -278,4 +280,91 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 			},
 		})
 	})
+}
+
+func TestGithubActionsRunnerGroupUpdate(t *testing.T) {
+	const (
+		groupURI = "/orgs/owner/actions/runner-groups/1"
+		reposURI = groupURI + "/repositories"
+	)
+
+	readResponses := []*mockResponse{
+		{
+			ExpectedUri:    groupURI,
+			ExpectedMethod: "GET",
+			StatusCode:     200,
+			ResponseBody:   `{"id": 1, "name": "test", "visibility": "selected"}`,
+		},
+		{
+			ExpectedUri:    reposURI + "?per_page=100",
+			ExpectedMethod: "GET",
+			StatusCode:     200,
+			ResponseBody:   `{"total_count": 2, "repositories": [{"id": 10}, {"id": 20}]}`,
+		},
+	}
+	setRepositories := &mockResponse{ExpectedUri: reposURI, ExpectedMethod: "PUT", StatusCode: 204}
+	updateGroup := &mockResponse{
+		ExpectedUri:    groupURI,
+		ExpectedMethod: "PATCH",
+		StatusCode:     200,
+		ResponseBody:   `{"id": 1, "name": "renamed", "visibility": "selected"}`,
+	}
+
+	repositoryKey := func(id int) string {
+		return fmt.Sprintf("selected_repository_ids.%d", schema.HashInt(id))
+	}
+	state := func() *sdkterraform.InstanceState {
+		return &sdkterraform.InstanceState{
+			ID: "1",
+			Attributes: map[string]string{
+				"name":                       "test",
+				"visibility":                 "selected",
+				"allows_public_repositories": "false",
+				"restricted_to_workflows":    "false",
+				"selected_repository_ids.#":  "1",
+				repositoryKey(10):            "10",
+			},
+		}
+	}
+	addRepository := map[string]*sdkterraform.ResourceAttrDiff{
+		"selected_repository_ids.#": {Old: "1", New: "2"},
+		repositoryKey(20):           {Old: "", New: "20"},
+	}
+
+	// The mock server answers 400 to any request that is not the next expected one,
+	// which makes the update fail.
+	for name, tc := range map[string]struct {
+		diff      map[string]*sdkterraform.ResourceAttrDiff
+		responses []*mockResponse
+	}{
+		"does_not_update_group_when_only_repositories_change": {
+			diff:      addRepository,
+			responses: append([]*mockResponse{setRepositories}, readResponses...),
+		},
+		"sets_repositories_after_updating_group": {
+			diff:      map[string]*sdkterraform.ResourceAttrDiff{"name": {Old: "test", New: "renamed"}},
+			responses: append([]*mockResponse{updateGroup, setRepositories}, readResponses...),
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			ts := githubApiMock(tc.responses)
+			defer ts.Close()
+
+			meta := &Owner{
+				name:           "owner",
+				IsOrganization: true,
+				maxPerPage:     100,
+				v3client:       mustCreateTestGitHubClient(t, ts.URL),
+			}
+
+			d, err := schema.InternalMap(resourceGithubActionsRunnerGroup().Schema).Data(state(), &sdkterraform.InstanceDiff{Attributes: tc.diff})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if err := resourceGithubActionsRunnerGroupUpdate(d, meta); err != nil {
+				t.Fatalf("expected no error, got: %v", err)
+			}
+		})
+	}
 }

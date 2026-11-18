@@ -344,8 +344,11 @@ func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, m any) error
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	if _, _, err := client.Actions.UpdateOrganizationRunnerGroup(ctx, orgName, runnerGroupID, options); err != nil {
-		return err
+	// Updating the group clears its selected repositories, so skip it when only the repository list changed.
+	if d.HasChanges("name", "visibility", "restricted_to_workflows", "selected_workflows", "allows_public_repositories") {
+		if _, _, err := client.Actions.UpdateOrganizationRunnerGroup(ctx, orgName, runnerGroupID, options); err != nil {
+			return err
+		}
 	}
 
 	selectedRepositories, hasSelectedRepositories := d.GetOk("selected_repository_ids")
