@@ -115,6 +115,41 @@ func caseInsensitive() schema.SchemaDiffSuppressFunc {
 	}
 }
 
+func caseInsensitiveStringState(value any) string {
+	stringValue, ok := value.(string)
+	if !ok {
+		return ""
+	}
+
+	return strings.ToLower(stringValue)
+}
+
+func caseInsensitiveStringHash(value any) int {
+	return schema.HashString(caseInsensitiveStringState(value))
+}
+
+func caseInsensitiveStringDifference(current, desired []string) (toAdd, toRemove []string) {
+	currentByKey := make(map[string]string, len(current))
+	for _, value := range current {
+		currentByKey[strings.ToLower(value)] = value
+	}
+
+	for _, value := range desired {
+		key := strings.ToLower(value)
+		if _, exists := currentByKey[key]; exists {
+			delete(currentByKey, key)
+			continue
+		}
+		toAdd = append(toAdd, value)
+	}
+
+	for _, value := range currentByKey {
+		toRemove = append(toRemove, value)
+	}
+
+	return toAdd, toRemove
+}
+
 func validateValueFunc(values []string) schema.SchemaValidateDiagFunc {
 	return func(v any, k cty.Path) diag.Diagnostics {
 		value := v.(string)
@@ -183,6 +218,14 @@ type unconvertibleIdError struct {
 func (e *unconvertibleIdError) Error() string {
 	return fmt.Sprintf("Unexpected ID format (%q), expected numerical ID. %s",
 		e.OriginalId, e.OriginalError.Error())
+}
+
+// errIs404 checks if the error is a GitHub 404 Not Found response.
+func errIs404(err error) bool {
+	if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response != nil {
+		return ghErr.Response.StatusCode == http.StatusNotFound
+	}
+	return false
 }
 
 // https://docs.github.com/en/actions/reference/encrypted-secrets#naming-your-secrets

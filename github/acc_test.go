@@ -243,6 +243,7 @@ func getTestMeta(conf *testAccConfig) (*Owner, error) {
 		BaseURL:      conf.baseURL,
 		IsGHES:       conf.isGHES,
 		Owner:        conf.owner,
+		MaxPerPage:   100,
 	}
 
 	if conf.authMode != anonymous {
