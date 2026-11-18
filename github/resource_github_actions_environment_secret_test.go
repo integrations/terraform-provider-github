@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
+	"github.com/hashicorp/terraform-plugin-testing/tfversion"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
@@ -59,6 +60,66 @@ resource "github_actions_environment_secret" "test" {
 					ImportState:             true,
 					ImportStateVerify:       true,
 					ImportStateVerifyIgnore: []string{"key_id", "value"},
+				},
+			},
+		})
+	})
+
+	t.Run("with_value_wo", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+		env := mustCreateTestRepositoryEnvironment(t, repo)
+
+		config := fmt.Sprintf(`
+resource "github_actions_environment_secret" "test" {
+  repository       = "%s"
+  environment      = "%s"
+  secret_name      = "TEST"
+  value_wo         = "%%s"
+  value_wo_version = %%d
+}
+`, repo.GetName(), env.GetName())
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+				tfversion.SkipBelow(tfversion.Version1_11_0),
+			},
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, "super_secret_value", 1),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_environment_secret.test", tfjsonpath.New("value_wo"), knownvalue.Null()),
+						statecheck.ExpectKnownValue("github_actions_environment_secret.test", tfjsonpath.New("value_wo_version"), knownvalue.Int64Exact(1)),
+						statecheck.ExpectKnownValue("github_actions_environment_secret.test", tfjsonpath.New("key_id"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_environment_secret.test", tfjsonpath.New("created_at"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_environment_secret.test", tfjsonpath.New("updated_at"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_actions_environment_secret.test", tfjsonpath.New("remote_updated_at"), knownvalue.NotNull()),
+					},
+				},
+				{
+					// A changed write-only value is invisible to Terraform until value_wo_version changes.
+					Config: fmt.Sprintf(config, "super_secret_value_2", 1),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_environment_secret.test", plancheck.ResourceActionNoop),
+						},
+					},
+				},
+				{
+					Config: fmt.Sprintf(config, "super_secret_value_2", 2),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_environment_secret.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+				{
+					ResourceName:            "github_actions_environment_secret.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"key_id", "value_wo", "value_wo_version"},
 				},
 			},
 		})

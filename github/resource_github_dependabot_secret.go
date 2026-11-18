@@ -65,21 +65,36 @@ func resourceGithubDependabotSecret() *schema.Resource {
 				Optional:      true,
 				Computed:      true,
 				RequiredWith:  []string{"value_encrypted"},
-				ConflictsWith: []string{"value", "plaintext_value"},
+				ConflictsWith: []string{"value", "value_wo", "plaintext_value"},
 				Description:   "ID of the public key used to encrypt the secret.",
 			},
 			"value": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Sensitive:    true,
-				ExactlyOneOf: []string{"value", "value_encrypted", "encrypted_value", "plaintext_value"},
+				ExactlyOneOf: []string{"value", "value_wo", "value_encrypted", "encrypted_value", "plaintext_value"},
 				Description:  "Plaintext value to be encrypted.",
+			},
+			"value_wo": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Sensitive:    true,
+				WriteOnly:    true,
+				ExactlyOneOf: []string{"value", "value_wo", "value_encrypted", "encrypted_value", "plaintext_value"},
+				RequiredWith: []string{"value_wo_version"},
+				Description:  "Plaintext value to be encrypted, never persisted to state.",
+			},
+			"value_wo_version": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				RequiredWith: []string{"value_wo"},
+				Description:  "Version of value_wo. Increment this to write a changed value_wo to GitHub, as write-only values cannot be detected in state.",
 			},
 			"value_encrypted": {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Sensitive:        true,
-				ExactlyOneOf:     []string{"value", "value_encrypted", "encrypted_value", "plaintext_value"},
+				ExactlyOneOf:     []string{"value", "value_wo", "value_encrypted", "encrypted_value", "plaintext_value"},
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsBase64),
 				Description:      "Value encrypted with the GitHub public key, defined by key_id, in Base64 format.",
 			},
@@ -87,7 +102,7 @@ func resourceGithubDependabotSecret() *schema.Resource {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Sensitive:        true,
-				ExactlyOneOf:     []string{"value", "value_encrypted", "encrypted_value", "plaintext_value"},
+				ExactlyOneOf:     []string{"value", "value_wo", "value_encrypted", "encrypted_value", "plaintext_value"},
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringIsBase64),
 				Description:      "Encrypted value of the secret using the GitHub public key in Base64 format.",
 				Deprecated:       "Use value_encrypted and key_id.",
@@ -96,7 +111,7 @@ func resourceGithubDependabotSecret() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Sensitive:    true,
-				ExactlyOneOf: []string{"value", "value_encrypted", "encrypted_value", "plaintext_value"},
+				ExactlyOneOf: []string{"value", "value_wo", "value_encrypted", "encrypted_value", "plaintext_value"},
 				Description:  "Plaintext value of the secret to be encrypted.",
 				Deprecated:   "Use value.",
 			},
@@ -147,7 +162,10 @@ func resourceGithubDependabotSecretCreate(ctx context.Context, d *schema.Resourc
 	}
 
 	if len(encryptedValue) == 0 {
-		plaintextValue, _ := tfpluginv2util.GetKeysOk[string](d, "value", "plaintext_value")
+		plaintextValue, diags := getSecretPlaintext(d)
+		if diags.HasError() {
+			return diags
+		}
 
 		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
 		if err != nil {
@@ -263,7 +281,10 @@ func resourceGithubDependabotSecretUpdate(ctx context.Context, d *schema.Resourc
 	}
 
 	if len(encryptedValue) == 0 {
-		plaintextValue, _ := tfpluginv2util.GetKeysOk[string](d, "value", "plaintext_value")
+		plaintextValue, diags := getSecretPlaintext(d)
+		if diags.HasError() {
+			return diags
+		}
 
 		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
 		if err != nil {
