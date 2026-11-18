@@ -42,11 +42,12 @@ func dataSourceGithubRef() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRefRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func dataSourceGithubRefRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	owner, ok := d.Get("owner").(string)
 	if !ok {
-		owner = meta.(*Owner).name
+		owner = meta.name
 	}
 	repoName := d.Get("repository").(string)
 	ref := d.Get("ref").(string)
@@ -64,9 +65,10 @@ func dataSourceGithubRefRead(ctx context.Context, d *schema.ResourceData, meta a
 	}
 
 	d.SetId(buildTwoPartID(repoName, ref))
-	err = d.Set("etag", resp.Header.Get("ETag"))
-	if err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	err = d.Set("sha", *refData.Object.SHA)
 	if err != nil {

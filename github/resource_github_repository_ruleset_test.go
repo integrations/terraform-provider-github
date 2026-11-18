@@ -579,11 +579,10 @@ resource "github_repository_ruleset" "test" {
 					Config: config,
 				},
 				{
-					ResourceName:            "github_repository_ruleset.test",
-					ImportState:             true,
-					ImportStateVerify:       true,
-					ImportStateIdFunc:       importRepositoryRulesetByResourcePaths("github_repository.test", "github_repository_ruleset.test"),
-					ImportStateVerifyIgnore: []string{"etag"},
+					ResourceName:      "github_repository_ruleset.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+					ImportStateIdFunc: importRepositoryRulesetByResourcePaths("github_repository.test", "github_repository_ruleset.test"),
 				},
 			},
 		})
@@ -1049,11 +1048,10 @@ resource "github_repository_ruleset" "test" {
 					),
 				},
 				{
-					ResourceName:            "github_repository_ruleset.test",
-					ImportState:             true,
-					ImportStateVerify:       true,
-					ImportStateIdFunc:       importRepositoryRulesetByResourcePaths("github_repository.test", "github_repository_ruleset.test"),
-					ImportStateVerifyIgnore: []string{"etag"},
+					ResourceName:      "github_repository_ruleset.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+					ImportStateIdFunc: importRepositoryRulesetByResourcePaths("github_repository.test", "github_repository_ruleset.test"),
 				},
 			},
 		})

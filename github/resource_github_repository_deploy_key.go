@@ -87,10 +87,11 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta any) e
 	return resourceGithubRepositoryDeployKeyRead(d, meta)
 }
 
-func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	owner := meta.(*Owner).name
+	owner := meta.name
 	repoName, idString, err := parseID2(d.Id())
 	if err != nil {
 		return err
@@ -121,8 +122,10 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta any) err
 		return err
 	}
 
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return err
+		}
 	}
 	if err = d.Set("key", key.GetKey()); err != nil {
 		return err
