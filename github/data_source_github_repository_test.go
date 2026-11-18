@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/google/go-github/v92/github"
+	"github.com/google/go-github/v93/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -386,7 +386,7 @@ data "github_repository" "test" {
 		// Removing a LICENSE file leaves the repository classified as `other` with a null license
 		// URL, while the license endpoint starts answering 404. Reading such a repository used to
 		// fail the whole data source. See #2092.
-		repo := mustCreateTestRepository(t, func(repo *github.Repository) {
+		repo := mustCreateTestRepository(t, func(repo *github.CreateRepositoryRequest) {
 			repo.LicenseTemplate = new("mit")
 		})
 		mustDeleteRepositoryFile(t, repo, "LICENSE")
