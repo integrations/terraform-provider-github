@@ -11,6 +11,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubRepository(t *testing.T) {
@@ -72,6 +75,80 @@ func TestAccGithubRepository(t *testing.T) {
 				{
 					Config: config,
 					Check:  check,
+				},
+			},
+		})
+	})
+
+	t.Run("manages pull request settings without error", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%spr-settings-%s", testResourcePrefix, randomID)
+
+		configRestricted := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name                         = "%s"
+				description                  = "Terraform acceptance tests %[1]s"
+				has_pull_requests            = true
+				pull_request_creation_policy = "collaborators_only"
+				visibility                   = "%s"
+			}
+		`, testRepoName, testAccConf.testRepositoryVisibility)
+
+		configDisabled := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name              = "%s"
+				description       = "Terraform acceptance tests %[1]s"
+				has_pull_requests = false
+				visibility        = "%s"
+			}
+		`, testRepoName, testAccConf.testRepositoryVisibility)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: configRestricted,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("has_pull_requests"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("pull_request_creation_policy"), knownvalue.StringExact("collaborators_only")),
+					},
+				},
+				{
+					Config: configDisabled,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("has_pull_requests"), knownvalue.Bool(false)),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("defaults pull request settings without error", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testRepoName := fmt.Sprintf("%spr-defaults-%s", testResourcePrefix, randomID)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name         = "%s"
+				description  = "Terraform acceptance tests %[1]s"
+				visibility   = "%s"
+			}
+		`, testRepoName, testAccConf.testRepositoryVisibility)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("has_pull_requests"), knownvalue.Bool(true)),
+						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("pull_request_creation_policy"), knownvalue.StringExact("all")),
+					},
 				},
 			},
 		})
@@ -1706,6 +1783,26 @@ func TestGithubRepositoryTopicFailsValidationWhenOverMaxCharacters(t *testing.T)
 	actualFailure := diags[0].Summary
 	if expectedFailure != actualFailure {
 		t.Error(fmt.Errorf("unexpected topic validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
+	}
+}
+
+func TestGithubRepositoryPullRequestCreationPolicyDiffSuppression(t *testing.T) {
+	t.Parallel()
+
+	resourceSchema := resourceGithubRepository().Schema
+	suppress := resourceSchema["pull_request_creation_policy"].DiffSuppressFunc
+	if suppress == nil {
+		t.Fatal("expected pull_request_creation_policy to have a DiffSuppressFunc")
+	}
+
+	disabled := schema.TestResourceDataRaw(t, resourceSchema, map[string]any{"name": "test", "has_pull_requests": false})
+	if !suppress("pull_request_creation_policy", "collaborators_only", "all", disabled) {
+		t.Error("expected the diff to be suppressed when pull requests are disabled")
+	}
+
+	enabled := schema.TestResourceDataRaw(t, resourceSchema, map[string]any{"name": "test", "has_pull_requests": true})
+	if suppress("pull_request_creation_policy", "collaborators_only", "all", enabled) {
+		t.Error("expected the diff not to be suppressed when pull requests are enabled")
 	}
 }
 
