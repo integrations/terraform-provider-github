@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-github/v92/github"
+	"github.com/google/go-github/v93/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 )
 
-type createTestRepositoryOptionsFunc func(*github.Repository)
+type createTestRepositoryOptionsFunc func(*github.CreateRepositoryRequest)
 
 func mustCreateTestRepository(t *testing.T, f ...createTestRepositoryOptionsFunc) *github.Repository {
 	t.Helper()
@@ -18,14 +18,14 @@ func mustCreateTestRepository(t *testing.T, f ...createTestRepositoryOptionsFunc
 	randomID := acctest.RandString(testRandomIDLength)
 	name := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
-	req := &github.Repository{
-		Name:     &name,
+	req := github.CreateRepositoryRequest{
+		Name:     name,
 		AutoInit: new(true),
 	}
 
 	for _, fn := range f {
 		if fn != nil {
-			fn(req)
+			fn(&req)
 		}
 	}
 

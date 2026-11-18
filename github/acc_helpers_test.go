@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v92/github"
+	"github.com/google/go-github/v93/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 )
 
@@ -174,7 +174,7 @@ func mustCreateTestBranch(t *testing.T, repo *github.Repository) string {
 func mustAddRepositoryCollaborator(t *testing.T, repo *github.Repository, username string) {
 	t.Helper()
 
-	_, _, err := testAccConf.meta.v3client.Repositories.AddCollaborator(t.Context(), testAccConf.meta.name, repo.GetName(), username, &github.RepositoryAddCollaboratorOptions{Permission: "push"})
+	_, _, err := testAccConf.meta.v3client.Repositories.AddCollaborator(t.Context(), testAccConf.meta.name, repo.GetName(), username, github.AddCollaboratorRequest{Permission: new("push")})
 	if err != nil {
 		t.Fatalf("failed to add collaborator %s to test repository %s: %v", username, repo.GetName(), err)
 	}
