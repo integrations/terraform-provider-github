@@ -52,11 +52,13 @@ resource "github_repository_ruleset" "example_push" {
 
   rules {
     file_path_restriction {
-      restricted_file_paths = [".github/workflows/*", "*.env"]
+      restricted_file_paths = [".github/workflows/*", "*.env", "**/*.jsonl"]
+      ignored_file_paths    = ["**/*mock*.jsonl"]
     }
 
     max_file_size {
-      max_file_size = 100 # 100 MB
+      max_file_size      = 10 # 10 MB
+      ignored_file_paths = ["fixtures/**"]
     }
 
     max_file_path_length {

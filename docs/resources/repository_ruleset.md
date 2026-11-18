@@ -67,11 +67,13 @@ resource "github_repository_ruleset" "example_push" {
 
   rules {
     file_path_restriction {
-      restricted_file_paths = [".github/workflows/*", "*.env"]
+      restricted_file_paths = [".github/workflows/*", "*.env", "**/*.jsonl"]
+      ignored_file_paths    = ["**/*mock*.jsonl"]
     }
 
     max_file_size {
-      max_file_size = 100 # 100 MB
+      max_file_size      = 10 # 10 MB
+      ignored_file_paths = ["fixtures/**"]
     }
 
     max_file_path_length {
@@ -282,9 +284,13 @@ The `rules` block supports the following:
 
 - `restricted_file_paths` - (Required) (Block Set, Min: 1) The file paths that are restricted from being pushed to the commit graph.
 
+- `ignored_file_paths` - (Optional) (List of String) File path patterns that are allowed even when they match a restricted path. Uses `fnmatch` syntax. An empty list removes all exceptions for this rule.
+
 #### rules.max_file_size
 
 - `max_file_size` - (Required) (Integer) The maximum allowed size, in megabytes (MB), of a file. Valid range is 1-100 MB.
+
+- `ignored_file_paths` - (Optional) (List of String) File path patterns that may exceed the maximum file size. Uses `fnmatch` syntax. An empty list removes all exceptions for this rule.
 
 #### rules.max_file_path_length
 
