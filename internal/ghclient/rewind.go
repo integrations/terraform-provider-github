@@ -28,11 +28,14 @@ type rewindableTransport struct {
 
 // RoundTrip implements the [http.RoundTripper] interface for the [rewindableTransport]. It sets [request.GetBody] if it's unset and can either be rewound or fully buffered within the memory limit provided.
 func (t *rewindableTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	if err := ensureRequestGetBody(req, t.maxBufferBytes); err != nil {
+	// Shallow copy so we never mutate the caller's Request
+	reqCopy := *req
+
+	if err := ensureRequestGetBody(&reqCopy, t.maxBufferBytes); err != nil {
 		return nil, err
 	}
 
-	return t.inner.RoundTrip(req)
+	return t.inner.RoundTrip(&reqCopy)
 }
 
 // ensureRequestGetBody sets [request.GetBody] if it's unset and can either be rewound or fully buffered within the memory limit provided.

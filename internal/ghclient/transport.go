@@ -69,14 +69,6 @@ func newTransport(tokenSource oauth2.TokenSource, opts ClientOptions) (http.Roun
 		}
 	}
 
-	tr = logging.NewLoggingHTTPTransport(tr)
-
-	rtr, err := newRewindableTransport(tr, 0)
-	if err != nil {
-		return nil, err
-	}
-	tr = rtr
-
 	if opts.Retry.Max > 0 {
 		rtr, err := newRetryTransport(tr, opts.Retry)
 		if err != nil {
@@ -87,6 +79,12 @@ func newTransport(tokenSource oauth2.TokenSource, opts ClientOptions) (http.Roun
 
 	tr = newRateLimitTransport(tr)
 
+	rtr, err := newRewindableTransport(tr, 0)
+	if err != nil {
+		return nil, err
+	}
+	tr = rtr
+
 	if opts.Concurrency.Max > 0 {
 		ctr, err := newThrottleTransport(tr, opts.Concurrency)
 		if err != nil {
@@ -94,6 +92,8 @@ func newTransport(tokenSource oauth2.TokenSource, opts ClientOptions) (http.Roun
 		}
 		tr = ctr
 	}
+
+	tr = logging.NewLoggingHTTPTransport(tr)
 
 	return tr, nil
 }

@@ -36,24 +36,37 @@ type retryTransport struct {
 
 // RoundTrip implements the [http.RoundTripper] interface for the [retryTransport]. It retries failed requests using the configured backoff strategy.
 func (t *retryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	var resp *http.Response
-
 	backoff, err := newBackoff(t.opts)
 	if err != nil {
 		return nil, err
 	}
 
+	var resp *http.Response
+	tries := 0
+
 	err = retry.Do(req.Context(), backoff, func(ctx context.Context) error {
-		// If there was a previous response, drain it and reset the body
+		// If there was a previous response, drain it so the connection can be reused
 		if resp != nil {
 			_ = drainResponseBody(resp)
 			resp = nil
 		}
 
+		// Shallow copy so we never mutate the caller's Request
+		reqCopy := *req
+
+		// If this is a retry, rewind the request body so it can be sent again
+		if tries > 0 {
+			if err := rewindRequestBody(&reqCopy); err != nil {
+				return fmt.Errorf("failed to rewind request body: %w", err)
+			}
+		}
+		tries++
+
 		var respErr error
-		resp, respErr = t.inner.RoundTrip(req)
+		resp, respErr = t.inner.RoundTrip(&reqCopy)
 		if respErr != nil {
 			_ = drainResponseBody(resp)
+			resp = nil
 			if isRetryableNetworkError(respErr) {
 				return retry.RetryableError(respErr)
 			}
@@ -64,11 +77,18 @@ func (t *retryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 			return retry.RetryableError(errRetryServerError)
 		}
 
-		return respErr
+		return nil
 	})
 
+	// Cleanup error used for retryable 5xx responses so we don't return a server error when the request was actually successful
 	if errors.Is(err, errRetryServerError) {
 		err = nil
+	}
+
+	// Clean up any lingering 5xx response if the context was canceled during backoff sleep
+	if err != nil && resp != nil {
+		_ = drainResponseBody(resp)
+		resp = nil
 	}
 
 	return resp, err

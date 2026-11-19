@@ -1,8 +1,10 @@
 package ghclient
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -82,58 +84,101 @@ func Test_retryTransport_RoundTrip(t *testing.T) {
 	for _, tt := range []struct {
 		name           string
 		retryMax       int
+		wait           time.Duration
 		failures       []fakeHTTPResponse
 		cancel         bool
+		cancelDelay    time.Duration
 		wantStatusCode int
+		wantCalls      int
 		wantErr        *string
 	}{
 		{
-			name:    "errors_if_context_canceled",
+			name:    "errors_if_context_canceled_early",
 			cancel:  true,
 			wantErr: new("context canceled"),
 		},
 		{
+			name:        "errors_if_context_canceled_in_flight",
+			retryMax:    1,
+			wait:        time.Millisecond * 2,
+			cancel:      true,
+			cancelDelay: time.Millisecond,
+			failures:    []fakeHTTPResponse{{statusCode: http.StatusInternalServerError}},
+			wantErr:     new("context canceled"),
+		},
+		{
 			name:           "no_failures",
 			retryMax:       3,
+			wait:           time.Millisecond,
 			wantStatusCode: http.StatusOK,
+			wantCalls:      1,
 		},
 		{
 			name:           "no_failures_no_retries",
 			retryMax:       0,
+			wait:           time.Millisecond,
 			wantStatusCode: http.StatusOK,
+			wantCalls:      1,
 		},
 		{
 			name:           "failure_no_error",
 			retryMax:       0,
+			wait:           time.Millisecond,
 			failures:       []fakeHTTPResponse{{statusCode: http.StatusInternalServerError}},
 			wantStatusCode: http.StatusInternalServerError,
+			wantCalls:      1,
 		},
 		{
 			name:           "retries_until_success",
 			retryMax:       3,
+			wait:           time.Millisecond,
 			failures:       []fakeHTTPResponse{{statusCode: http.StatusInternalServerError}, {statusCode: http.StatusInternalServerError}},
 			wantStatusCode: http.StatusOK,
+			wantCalls:      3,
 		},
 		{
 			name:           "retries_until_failure",
 			retryMax:       1,
+			wait:           time.Millisecond,
 			failures:       []fakeHTTPResponse{{statusCode: http.StatusInternalServerError}, {statusCode: http.StatusInternalServerError}},
 			wantStatusCode: http.StatusInternalServerError,
+			wantCalls:      2,
+		},
+		{
+			name:           "retries_closed_connection",
+			retryMax:       2,
+			wait:           time.Millisecond,
+			failures:       []fakeHTTPResponse{{statusCode: http.StatusInternalServerError, headers: map[string]string{"Connection": "close"}}},
+			wantStatusCode: http.StatusOK,
+			wantCalls:      2,
 		},
 		{
 			name:           "does_not_retry_on_4xx",
 			retryMax:       3,
+			wait:           time.Millisecond,
 			failures:       []fakeHTTPResponse{{statusCode: http.StatusBadRequest}},
 			wantStatusCode: http.StatusBadRequest,
+			wantCalls:      1,
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+
+			reqBody := "REQUEST"
 			wantBody := "PASS"
 
 			called := atomic.Int32{}
 			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				call := int(called.Add(1))
+
+				by, err := io.ReadAll(r.Body)
+				if err != nil {
+					t.Fatalf("failed to read request body: %v", err)
+				}
+
+				if string(by) != reqBody {
+					t.Fatalf("expected request body %q, got %q", reqBody, string(by))
+				}
 
 				if call <= len(tt.failures) {
 					f := tt.failures[call-1]
@@ -154,7 +199,7 @@ func Test_retryTransport_RoundTrip(t *testing.T) {
 			}))
 			defer ts.Close()
 
-			tr, err := newRetryTransport(ts.Client().Transport, RetryOptions{Max: tt.retryMax, WaitMin: time.Millisecond, WaitMax: time.Millisecond, Jitter: time.Microsecond})
+			tr, err := newRetryTransport(ts.Client().Transport, RetryOptions{Max: tt.retryMax, WaitMin: tt.wait, WaitMax: tt.wait, Jitter: time.Microsecond})
 			if err != nil || tr == nil {
 				t.Fatalf("failed to create retry transport: %v", err)
 			}
@@ -170,13 +215,20 @@ func Test_retryTransport_RoundTrip(t *testing.T) {
 				ctx = t.Context()
 			}
 
-			req, err := http.NewRequestWithContext(ctx, "GET", ts.URL, nil)
+			req, err := http.NewRequestWithContext(ctx, "POST", ts.URL, bytes.NewReader([]byte(reqBody)))
 			if err != nil {
 				t.Fatalf("failed to create request: %v", err)
 			}
 
 			if tt.cancel {
-				cancel()
+				if tt.cancelDelay == 0 {
+					cancel()
+				} else {
+					go func() {
+						time.Sleep(tt.cancelDelay)
+						cancel()
+					}()
+				}
 			}
 
 			res, err := client.Do(req)
@@ -200,6 +252,11 @@ func Test_retryTransport_RoundTrip(t *testing.T) {
 
 			if res.StatusCode != tt.wantStatusCode {
 				t.Fatalf("expected status code %d, got %d", tt.wantStatusCode, res.StatusCode)
+			}
+
+			gotCalls := int(called.Load())
+			if gotCalls != tt.wantCalls {
+				t.Fatalf("expected %d calls, got %d", tt.wantCalls, called.Load())
 			}
 		})
 	}
