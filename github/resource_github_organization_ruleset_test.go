@@ -802,10 +802,9 @@ resource "github_organization_ruleset" "test" {
 					Config: config,
 				},
 				{
-					ResourceName:            "github_organization_ruleset.test",
-					ImportState:             true,
-					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"etag"},
+					ResourceName:      "github_organization_ruleset.test",
+					ImportState:       true,
+					ImportStateVerify: true,
 				},
 			},
 		})
@@ -1355,10 +1354,9 @@ resource "github_organization_ruleset" "test" {
 					),
 				},
 				{
-					ResourceName:            "github_organization_ruleset.test",
-					ImportState:             true,
-					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"etag"},
+					ResourceName:      "github_organization_ruleset.test",
+					ImportState:       true,
+					ImportStateVerify: true,
 				},
 			},
 		})
