@@ -80,6 +80,58 @@ func mustAssignOrganizationRoleToUser(t *testing.T, username string, roleID int6
 	})
 }
 
+func mustSnapshotOrganizationSettings(t *testing.T) {
+	t.Helper()
+
+	org, _, err := testAccConf.meta.v3client.Organizations.Get(t.Context(), testAccConf.meta.name)
+	if err != nil {
+		t.Fatalf("failed to read test organization settings: %v", err)
+	}
+
+	// Organizations.Edit patches the organization and the Get response carries
+	// read-only fields the API rejects, so capture only the attributes that
+	// github_organization_settings manages.
+	settings := &github.Organization{
+		BillingEmail:                       org.BillingEmail,
+		Company:                            org.Company,
+		Email:                              org.Email,
+		TwitterUsername:                    org.TwitterUsername,
+		Location:                           org.Location,
+		Name:                               org.Name,
+		Description:                        org.Description,
+		Blog:                               org.Blog,
+		HasOrganizationProjects:            org.HasOrganizationProjects,
+		HasRepositoryProjects:              org.HasRepositoryProjects,
+		DefaultRepoPermission:              org.DefaultRepoPermission,
+		MembersCanCreateRepos:              org.MembersCanCreateRepos,
+		MembersCanCreatePrivateRepos:       org.MembersCanCreatePrivateRepos,
+		MembersCanCreatePublicRepos:        org.MembersCanCreatePublicRepos,
+		MembersCanCreatePages:              org.MembersCanCreatePages,
+		MembersCanCreatePublicPages:        org.MembersCanCreatePublicPages,
+		MembersCanCreatePrivatePages:       org.MembersCanCreatePrivatePages,
+		MembersCanForkPrivateRepos:         org.MembersCanForkPrivateRepos,
+		WebCommitSignoffRequired:           org.WebCommitSignoffRequired,
+		AdvancedSecurityEnabledForNewRepos: org.AdvancedSecurityEnabledForNewRepos,
+		DependabotAlertsEnabledForNewRepos: org.DependabotAlertsEnabledForNewRepos,
+		DependabotSecurityUpdatesEnabledForNewRepos:    org.DependabotSecurityUpdatesEnabledForNewRepos,
+		DependencyGraphEnabledForNewRepos:              org.DependencyGraphEnabledForNewRepos,
+		SecretScanningEnabledForNewRepos:               org.SecretScanningEnabledForNewRepos,
+		SecretScanningPushProtectionEnabledForNewRepos: org.SecretScanningPushProtectionEnabledForNewRepos,
+	}
+
+	// members_can_create_internal_repositories is only accepted on enterprise
+	// plans, matching the resource's own delete path.
+	if org.GetPlan().GetName() == "enterprise" {
+		settings.MembersCanCreateInternalRepos = org.MembersCanCreateInternalRepos
+	}
+
+	t.Cleanup(func() {
+		if _, _, err := testAccConf.meta.v3client.Organizations.Edit(context.Background(), testAccConf.meta.name, settings); err != nil {
+			t.Logf("failed to restore test organization settings: %v", err)
+		}
+	})
+}
+
 func mustCreateTestOrganizationRepositoryRole(t *testing.T) *github.CustomRepoRoles {
 	t.Helper()
 
