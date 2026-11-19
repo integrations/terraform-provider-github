@@ -198,6 +198,7 @@ The overall status of each resource or data source is captured in this document 
 | `github_repository_pages` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_repository_project` (🚫) | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_repository_pull_request` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
+| `github_repository_pull_request_creation_policy` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `github_repository_ruleset` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_repository_topics` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
 | `github_repository_vulnerability_alerts` | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ |
