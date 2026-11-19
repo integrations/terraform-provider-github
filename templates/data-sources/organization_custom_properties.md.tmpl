@@ -6,7 +6,29 @@ description: |-
 
 # {{.Name}} ({{.Type}})
 
+~> **Deprecated:** Use [`github_organization_repository_custom_property`](organization_repository_custom_property) to look up one property, or [`github_organization_repository_custom_properties`](organization_repository_custom_properties) to list all properties. This data source will be removed in a future major release.
+
 Use this data source to retrieve information about a GitHub organization custom property.
+
+## Migration
+
+For a single-property lookup, replace the data source type and keep `property_name`:
+
+```hcl
+data "github_organization_repository_custom_property" "environment" {
+  property_name = "environment"
+}
+```
+
+The single-property data source keeps the property attributes at the top level. Its `default_value` is now a list of strings; use `default_value[0]` where one value was expected, and keep the full list for `multi_select` properties.
+
+To retrieve every property, use the plural data source, which returns a `properties` set instead of a single property's top-level attributes:
+
+```hcl
+data "github_organization_repository_custom_properties" "all" {}
+```
+
+Reference individual entries through `data.github_organization_repository_custom_properties.all.properties`, filtering or iterating by `property_name` as needed.
 
 ## Example Usage
 

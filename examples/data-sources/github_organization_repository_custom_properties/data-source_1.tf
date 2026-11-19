@@ -1,0 +1,1 @@
+data "github_organization_repository_custom_properties" "all" {}
