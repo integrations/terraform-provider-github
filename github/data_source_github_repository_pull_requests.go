@@ -146,12 +146,12 @@ func dataSourceGithubRepositoryPullRequestsRead(ctx context.Context, d *schema.R
 	direction := d.Get("sort_direction").(string)
 
 	options := &github.PullRequestListOptions{
-		ListOptions: github.ListOptions{PerPage: meta.maxPerPage},
-		State:       state,
-		Head:        head,
-		Base:        base,
-		Sort:        sort,
-		Direction:   direction,
+		PerPage:   meta.maxPerPage,
+		State:     state,
+		Head:      head,
+		Base:      base,
+		Sort:      sort,
+		Direction: direction,
 	}
 
 	results := make([]map[string]any, 0)

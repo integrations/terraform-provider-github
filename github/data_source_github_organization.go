@@ -171,7 +171,7 @@ func dataSourceGithubOrganizationRead(ctx context.Context, d *schema.ResourceDat
 	}
 
 	opts := &github.RepositoryListByOrgOptions{
-		ListOptions: github.ListOptions{PerPage: meta.maxPerPage, Page: 1},
+		PerPage: meta.maxPerPage, Page: 1,
 	}
 
 	summaryOnly := d.Get("summary_only").(bool)
