@@ -4,9 +4,222 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/shurcooL/githubv4"
 )
+
+// isRepositoryNotFoundError reports whether err is the GitHub GraphQL error
+// returned when a repository cannot be resolved by owner and name. The v4
+// client (shurcooL/graphql) discards the structured "type: NOT_FOUND"
+// extension and surfaces only the error message, so matching the stable part
+// of that message is the only signal available. This mirrors how other
+// GraphQL-backed resources in this provider detect out-of-band deletions.
+func isRepositoryNotFoundError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "Could not resolve to a Repository")
+}
+
+// IssueCreationPolicy mirrors the GitHub GraphQL enum type of the same name so
+// we can query and mutate the field even when the vendored client model lags
+// behind the live schema.
+type IssueCreationPolicy string
+
+const (
+	IssueCreationPolicyAll               IssueCreationPolicy = "ALL"
+	IssueCreationPolicyCollaboratorsOnly IssueCreationPolicy = "COLLABORATORS_ONLY"
+)
+
+// PullRequestCreationPolicy mirrors the GitHub GraphQL enum type of the same
+// name so we can query and mutate the field even when the vendored client
+// model lags behind the live schema.
+type PullRequestCreationPolicy string
+
+const (
+	PullRequestCreationPolicyAll               PullRequestCreationPolicy = "ALL"
+	PullRequestCreationPolicyCollaboratorsOnly PullRequestCreationPolicy = "COLLABORATORS_ONLY"
+)
+
+// UpdateRepositoryInput intentionally mirrors the GitHub GraphQL input type
+// name so the graphql client emits the correct variable type in mutations.
+// We only model the fields needed for the creation policy updates.
+type UpdateRepositoryInput struct {
+	RepositoryID              githubv4.ID                `json:"repositoryId"`
+	IssueCreationPolicy       *IssueCreationPolicy       `json:"issueCreationPolicy,omitempty"`
+	PullRequestCreationPolicy *PullRequestCreationPolicy `json:"pullRequestCreationPolicy,omitempty"`
+	ClientMutationID          *githubv4.String           `json:"clientMutationId,omitempty"`
+}
+
+func flattenIssueCreationPolicy(policy IssueCreationPolicy) (string, error) {
+	switch policy {
+	case IssueCreationPolicyAll:
+		return "all", nil
+	case IssueCreationPolicyCollaboratorsOnly:
+		return "collaborators_only", nil
+	case "":
+		return "", errors.New("GitHub returned an empty issue creation policy; the repository may not exist or the token may lack permission to read it")
+	default:
+		return "", fmt.Errorf("unsupported GraphQL issue creation policy %q", policy)
+	}
+}
+
+func expandIssueCreationPolicy(policy string) (IssueCreationPolicy, error) {
+	switch policy {
+	case "all":
+		return IssueCreationPolicyAll, nil
+	case "collaborators_only":
+		return IssueCreationPolicyCollaboratorsOnly, nil
+	default:
+		return "", fmt.Errorf("unsupported Terraform issue creation policy %q", policy)
+	}
+}
+
+func getRepositoryIssueCreationPolicy(ctx context.Context, owner, name string, meta any) (string, int, error) {
+	var query struct {
+		Repository struct {
+			DatabaseID          githubv4.Int
+			IssueCreationPolicy IssueCreationPolicy
+		} `graphql:"repository(owner:$owner, name:$name)"`
+	}
+
+	variables := map[string]any{
+		"owner": githubv4.String(owner),
+		"name":  githubv4.String(name),
+	}
+
+	ownerMeta, _ := meta.(*Owner)
+	if err := ownerMeta.v4client.Query(ctx, &query, variables); err != nil {
+		return "", 0, err
+	}
+
+	policy, err := flattenIssueCreationPolicy(query.Repository.IssueCreationPolicy)
+	if err != nil {
+		return "", 0, err
+	}
+
+	return policy, int(query.Repository.DatabaseID), nil
+}
+
+func updateRepositoryIssueCreationPolicy(ctx context.Context, repositoryID githubv4.ID, policy string, meta any) error {
+	expandedPolicy, err := expandIssueCreationPolicy(policy)
+	if err != nil {
+		return err
+	}
+
+	input := UpdateRepositoryInput{
+		RepositoryID:        repositoryID,
+		IssueCreationPolicy: &expandedPolicy,
+	}
+
+	var mutation struct {
+		UpdateRepository struct {
+			Repository struct {
+				ID githubv4.ID
+			}
+		} `graphql:"updateRepository(input:$input)"`
+	}
+
+	ownerMeta, _ := meta.(*Owner)
+	return ownerMeta.v4client.Mutate(ctx, &mutation, input, nil)
+}
+
+func flattenPullRequestCreationPolicy(policy PullRequestCreationPolicy) (string, error) {
+	switch policy {
+	case PullRequestCreationPolicyAll:
+		return "all", nil
+	case PullRequestCreationPolicyCollaboratorsOnly:
+		return "collaborators_only", nil
+	case "":
+		return "", errors.New("GitHub returned an empty pull request creation policy; the repository may not exist or the token may lack permission to read it")
+	default:
+		return "", fmt.Errorf("unsupported GraphQL pull request creation policy %q", policy)
+	}
+}
+
+func expandPullRequestCreationPolicy(policy string) (PullRequestCreationPolicy, error) {
+	switch policy {
+	case "all":
+		return PullRequestCreationPolicyAll, nil
+	case "collaborators_only":
+		return PullRequestCreationPolicyCollaboratorsOnly, nil
+	default:
+		return "", fmt.Errorf("unsupported Terraform pull request creation policy %q", policy)
+	}
+}
+
+func getRepositoryPullRequestCreationPolicy(ctx context.Context, owner, name string, meta any) (string, int, error) {
+	var query struct {
+		Repository struct {
+			DatabaseID                githubv4.Int
+			PullRequestCreationPolicy PullRequestCreationPolicy
+		} `graphql:"repository(owner:$owner, name:$name)"`
+	}
+
+	variables := map[string]any{
+		"owner": githubv4.String(owner),
+		"name":  githubv4.String(name),
+	}
+
+	ownerMeta, _ := meta.(*Owner)
+	if err := ownerMeta.v4client.Query(ctx, &query, variables); err != nil {
+		return "", 0, err
+	}
+
+	policy, err := flattenPullRequestCreationPolicy(query.Repository.PullRequestCreationPolicy)
+	if err != nil {
+		return "", 0, err
+	}
+
+	return policy, int(query.Repository.DatabaseID), nil
+}
+
+// getRepositoryNodeAndDatabaseID resolves a repository by owner and name to
+// both its GraphQL node ID (used for mutations) and its numeric database ID
+// (stored in state for the rename-safe diff). Resolving by name in a single
+// query avoids the node-ID probe calls that getRepositoryID makes.
+func getRepositoryNodeAndDatabaseID(ctx context.Context, owner, name string, meta any) (githubv4.ID, int, error) {
+	var query struct {
+		Repository struct {
+			ID         githubv4.ID
+			DatabaseID githubv4.Int
+		} `graphql:"repository(owner:$owner, name:$name)"`
+	}
+
+	variables := map[string]any{
+		"owner": githubv4.String(owner),
+		"name":  githubv4.String(name),
+	}
+
+	ownerMeta, _ := meta.(*Owner)
+	if err := ownerMeta.v4client.Query(ctx, &query, variables); err != nil {
+		return nil, 0, err
+	}
+
+	return query.Repository.ID, int(query.Repository.DatabaseID), nil
+}
+
+func updateRepositoryPullRequestCreationPolicy(ctx context.Context, repositoryID githubv4.ID, policy string, meta any) error {
+	expandedPolicy, err := expandPullRequestCreationPolicy(policy)
+	if err != nil {
+		return err
+	}
+
+	input := UpdateRepositoryInput{
+		RepositoryID:              repositoryID,
+		PullRequestCreationPolicy: &expandedPolicy,
+	}
+
+	var mutation struct {
+		UpdateRepository struct {
+			Repository struct {
+				ID githubv4.ID
+			}
+		} `graphql:"updateRepository(input:$input)"`
+	}
+
+	ownerMeta, _ := meta.(*Owner)
+	return ownerMeta.v4client.Mutate(ctx, &mutation, input, nil)
+}
 
 func getRepositoryID(name string, meta any) (githubv4.ID, error) {
 	// Interpret `name` as a node ID
