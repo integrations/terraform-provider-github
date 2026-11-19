@@ -227,6 +227,7 @@ func NewProvider(version, commit string) func() *schema.Provider {
 				"github_release":                                                        resourceGithubRelease(),
 				"github_repository":                                                     resourceGithubRepository(),
 				"github_repository_autolink_reference":                                  resourceGithubRepositoryAutolinkReference(),
+				"github_repository_code_quality":                                        resourceGithubRepositoryCodeQuality(),
 				"github_repository_dependabot_security_updates":                         resourceGithubRepositoryDependabotSecurityUpdates(),
 				"github_repository_collaborator":                                        resourceGithubRepositoryCollaborator(),
 				"github_repository_collaborators":                                       resourceGithubRepositoryCollaborators(),
