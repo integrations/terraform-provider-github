@@ -8,6 +8,8 @@ description: |-
 
 This resource allows you to manage the issue creation policy for a repository. The policy controls who is allowed to create issues in the repository.
 
+~> This resource uses the GitHub GraphQL API because `issueCreationPolicy` is not exposed by the [REST repository API](https://docs.github.com/en/rest/repos/repos). See the [GraphQL reference](https://docs.github.com/en/graphql/reference/repos#issuecreationpolicy).
+
 Destroying this resource does not delete anything on GitHub; it resets the repository's issue creation policy to `all`.
 
 ## Example Usage

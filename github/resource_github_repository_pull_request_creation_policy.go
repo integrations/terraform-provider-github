@@ -9,6 +9,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
+// resourceGithubRepositoryPullRequestCreationPolicy is a GraphQL-backed sibling
+// of resourceGithubRepositoryIssueCreationPolicy. GitHub exposes this setting
+// through REST as well, but both creation policies use the same interface and
+// transport.
 func resourceGithubRepositoryPullRequestCreationPolicy() *schema.Resource {
 	return &schema.Resource{
 		Description:   "Manages the pull request creation policy for a repository.",

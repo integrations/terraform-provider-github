@@ -9,6 +9,18 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
+// resourceGithubRepositoryIssueCreationPolicy manages the repository's
+// issueCreationPolicy setting.
+//
+// GitHub only exposes this setting through the GraphQL API. The REST
+// repository docs and OpenAPI description include pull_request_creation_policy
+// but not issue_creation_policy:
+//
+//   - https://docs.github.com/en/rest/repos/repos
+//   - https://docs.github.com/en/graphql/reference/repos#issuecreationpolicy
+//
+// It is modelled as a separate resource so both creation policies share the
+// same interface and github_repository does not mix REST and GraphQL writes.
 func resourceGithubRepositoryIssueCreationPolicy() *schema.Resource {
 	return &schema.Resource{
 		Description:   "Manages the issue creation policy for a repository.",
