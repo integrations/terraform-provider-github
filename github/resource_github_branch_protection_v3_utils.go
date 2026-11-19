@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -263,8 +264,25 @@ func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusC
 			rscChecks := []*github.RequiredStatusCheck{}
 			rscChecksByContext := make(map[string]*github.RequiredStatusCheck)
 
+			// Refreshed Optional+Computed values can include the other family's stale members.
+			configuredChecks, configuredContexts := false, false
+			if raw := d.GetRawConfig(); !raw.IsNull() && raw.IsKnown() {
+				blocks := raw.GetAttr("required_status_checks")
+				if !blocks.IsNull() && blocks.IsKnown() && blocks.LengthInt() == 1 {
+					block := blocks.Index(cty.NumberIntVal(0))
+					if !block.IsNull() && block.IsKnown() {
+						checks, contexts := block.GetAttr("checks"), block.GetAttr("contexts")
+						configuredChecks = !checks.IsNull() && checks.IsKnown()
+						configuredContexts = !contexts.IsNull() && contexts.IsKnown()
+					}
+				}
+			}
+
 			// Iterate and parse checks
 			checks := expandNestedSet(m, "checks")
+			if configuredContexts {
+				checks = nil
+			}
 			for _, c := range checks {
 
 				// Expect a string of "context:app_id", allowing for the absence of "app_id"
@@ -310,6 +328,11 @@ func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusC
 						// instead would let GitHub pick an app, so keep it explicit.
 						rscCheck.AppID = &appID
 					}
+					continue
+				}
+				// Matching contexts above retain read-back null App metadata even when
+				// checks are configured. Unmatched computed contexts must not add members.
+				if configuredChecks {
 					continue
 				}
 				rscChecks = append(rscChecks, &github.RequiredStatusCheck{
