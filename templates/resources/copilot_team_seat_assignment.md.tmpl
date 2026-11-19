@@ -1,0 +1,29 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Assigns Copilot seats to all members of an organization team.
+---
+
+# {{.Name}} ({{.Type}})
+
+Assigns GitHub Copilot seats to all members of an organization team.
+
+This resource requires the organization to have a Copilot Business or Enterprise subscription with seat management set to **Selected users and teams** (not **All members**).
+
+## Example Usage
+
+{{ tffile "examples/resources/copilot_team_seat_assignment/example_1.tf" }}
+
+## Argument Reference
+
+The following arguments are supported:
+
+- `team` - (Required, Forces new resource) The slug of the team to assign Copilot seats.
+
+## Import
+
+Copilot team seat assignments can be imported using the team slug, e.g.
+
+```shell
+terraform import github_copilot_team_seat_assignment.example my-team
+```
