@@ -1,0 +1,19 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+Requires repository **Agent secrets: read** permission for fine-grained tokens or GitHub Apps. Use this key for agent secrets, not Actions secrets.
+
+## Example Usage
+{{- range .ExampleFiles }}
+
+{{ tffile . }}
+{{- end }}
+
+{{ .SchemaMarkdown | trimspace }}
