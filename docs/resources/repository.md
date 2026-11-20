@@ -9,7 +9,7 @@ description: |-
 
 Resource to create and manage a GitHub repository.
 
-~> When used with GitHub App authentication, even GET requests must have the `contents:write` permission. Without it, the following arguments will be ignored, leading to unexpected behavior and confusing diffs: `allow_merge_commit`, `allow_squash_merge`, `allow_rebase_merge`, `merge_commit_title`, `merge_commit_message`, `squash_merge_commit_title` and `squash_merge_commit_message`.
+~> The REST API omits the merge settings (`allow_auto_merge`, `allow_merge_commit`, `allow_rebase_merge`, `allow_squash_merge`, `allow_update_branch`, `delete_branch_on_merge`, `merge_commit_title`, `merge_commit_message`, `squash_merge_commit_title` and `squash_merge_commit_message`) unless the caller has push access to the repository, as with a GitHub App token without `contents:write`. The provider then reads them over the GraphQL API, which returns them to any caller that can read the repository.
 
 ## Example Usage
 
