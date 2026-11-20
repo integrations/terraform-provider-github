@@ -1,11 +1,16 @@
 package github
 
 import (
+	"context"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
@@ -1807,5 +1812,132 @@ func TestGithubRepositoryNameFailsValidationWithSpace(t *testing.T) {
 	actualFailure := diags[0].Summary
 	if expectedFailure != actualFailure {
 		t.Error(fmt.Errorf("unexpected name validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
+	}
+}
+
+func TestResourceGithubRepositoryRead_mergeSettings(t *testing.T) {
+	t.Parallel()
+
+	const restWithMergeSettings = `{"id":1,"name":"test","full_name":"test-owner/test",
+		"allow_auto_merge":true,"allow_merge_commit":false,"allow_rebase_merge":true,"allow_squash_merge":true,
+		"allow_update_branch":true,"delete_branch_on_merge":true,
+		"merge_commit_title":"PR_TITLE","merge_commit_message":"PR_BODY",
+		"squash_merge_commit_title":"PR_TITLE","squash_merge_commit_message":"BLANK"}`
+	const restWithoutMergeSettings = `{"id":1,"name":"test","full_name":"test-owner/test"}`
+	const graphQLMergeSettings = `{"data":{"repository":{
+		"autoMergeAllowed":true,"mergeCommitAllowed":true,"rebaseMergeAllowed":false,"squashMergeAllowed":true,
+		"allowUpdateBranch":false,"deleteBranchOnMerge":true,
+		"mergeCommitTitle":"MERGE_MESSAGE","mergeCommitMessage":"PR_TITLE",
+		"squashMergeCommitTitle":"COMMIT_OR_PR_TITLE","squashMergeCommitMessage":"COMMIT_MESSAGES"}}}`
+
+	for _, tt := range []struct {
+		name          string
+		restBody      string
+		graphQLStatus int
+		wantGraphQL   bool
+		wantWarning   bool
+		want          map[string]any
+	}{
+		{
+			name:     "uses REST values when the response includes them",
+			restBody: restWithMergeSettings,
+			want: map[string]any{
+				"allow_auto_merge":            true,
+				"allow_merge_commit":          false,
+				"allow_rebase_merge":          true,
+				"allow_squash_merge":          true,
+				"allow_update_branch":         true,
+				"delete_branch_on_merge":      true,
+				"merge_commit_title":          "PR_TITLE",
+				"merge_commit_message":        "PR_BODY",
+				"squash_merge_commit_title":   "PR_TITLE",
+				"squash_merge_commit_message": "BLANK",
+			},
+		},
+		{
+			name:          "falls back to GraphQL when REST omits them",
+			restBody:      restWithoutMergeSettings,
+			graphQLStatus: http.StatusOK,
+			wantGraphQL:   true,
+			want: map[string]any{
+				"allow_auto_merge":            true,
+				"allow_merge_commit":          true,
+				"allow_rebase_merge":          false,
+				"allow_squash_merge":          true,
+				"allow_update_branch":         false,
+				"delete_branch_on_merge":      true,
+				"merge_commit_title":          "MERGE_MESSAGE",
+				"merge_commit_message":        "PR_TITLE",
+				"squash_merge_commit_title":   "COMMIT_OR_PR_TITLE",
+				"squash_merge_commit_message": "COMMIT_MESSAGES",
+			},
+		},
+		{
+			name:          "warns and keeps the previous behaviour when GraphQL fails",
+			restBody:      restWithoutMergeSettings,
+			graphQLStatus: http.StatusUnauthorized,
+			wantGraphQL:   true,
+			wantWarning:   true,
+			want: map[string]any{
+				"allow_auto_merge":            false,
+				"allow_merge_commit":          false,
+				"allow_rebase_merge":          false,
+				"allow_squash_merge":          false,
+				"allow_update_branch":         false,
+				"delete_branch_on_merge":      false,
+				"merge_commit_title":          "",
+				"merge_commit_message":        "",
+				"squash_merge_commit_title":   "",
+				"squash_merge_commit_message": "",
+			},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			rest := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", "application/json; charset=utf-8")
+				mustWrite(w, tt.restBody)
+			}))
+			defer rest.Close()
+
+			restClient, err := github.NewClient(github.WithURLs(new(rest.URL+"/"), nil))
+			if err != nil {
+				t.Fatalf("building REST client: %s", err)
+			}
+
+			graphQLCalled := false
+			graphQLClient := newTestGraphQLClient(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				graphQLCalled = true
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(tt.graphQLStatus)
+				if tt.graphQLStatus == http.StatusOK {
+					mustWrite(w, graphQLMergeSettings)
+				}
+			}))
+
+			d := schema.TestResourceDataRaw(t, resourceGithubRepository().Schema, map[string]any{"name": "test"})
+			d.SetId("test")
+
+			diags := resourceGithubRepositoryRead(context.Background(), d, &Owner{
+				name:     "test-owner",
+				v3client: restClient,
+				v4client: graphQLClient,
+			})
+			if diags.HasError() {
+				t.Fatalf("read returned errors: %v", diags)
+			}
+			if gotWarning := len(diags) > 0 && diags[0].Severity == diag.Warning; gotWarning != tt.wantWarning {
+				t.Errorf("warning = %v, want %v (diags: %v)", gotWarning, tt.wantWarning, diags)
+			}
+			if graphQLCalled != tt.wantGraphQL {
+				t.Errorf("GraphQL called = %v, want %v", graphQLCalled, tt.wantGraphQL)
+			}
+			for key, want := range tt.want {
+				if got := d.Get(key); got != want {
+					t.Errorf("%s = %v, want %v", key, got, want)
+				}
+			}
+		})
 	}
 }
