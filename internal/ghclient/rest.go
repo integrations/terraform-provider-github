@@ -30,7 +30,7 @@ func NewAppRESTClient(clientID string, privateKey []byte, installationID *int64,
 			authOpts = append(authOpts, githubauth.WithBaseURL(*u))
 		}
 
-		tokenSource = githubauth.NewInstallationTokenSource(*installationID, tokenSource, authOpts...)
+		tokenSource = newInstallationTokenSource(*installationID, tokenSource, opts, authOpts...)
 	}
 
 	return newRESTClient(tokenSource, opts)

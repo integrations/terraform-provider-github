@@ -16,6 +16,7 @@ import (
 )
 
 type Config struct {
+	EnterpriseApp     *enterpriseAppConfig
 	AppID             *string
 	AppInstallationID *string
 	AppPEM            []byte
@@ -36,6 +37,7 @@ type Config struct {
 }
 
 type Owner struct {
+	enterpriseApp  *enterpriseAppLifecycle
 	name           string
 	id             int64
 	v3client       *github.Client

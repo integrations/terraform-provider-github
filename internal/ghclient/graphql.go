@@ -31,7 +31,7 @@ func NewAppGraphQLClient(clientID string, privateKey []byte, installationID *int
 			authOpts = append(authOpts, githubauth.WithBaseURL(*u))
 		}
 
-		tokenSource = githubauth.NewInstallationTokenSource(*installationID, tokenSource, authOpts...)
+		tokenSource = newInstallationTokenSource(*installationID, tokenSource, opts, authOpts...)
 	}
 
 	return newGraphQLClient(tokenSource, opts)

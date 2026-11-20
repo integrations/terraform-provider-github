@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
@@ -65,5 +66,9 @@ func getEnterpriseID(ctx context.Context, client *githubv4.Client, enterpriseSlu
 		return "", err
 	}
 
-	return query.Enterprise.ID.(string), nil
+	enterpriseID, ok := query.Enterprise.ID.(string)
+	if !ok || enterpriseID == "" {
+		return "", fmt.Errorf("enterprise %q returned no node ID", enterpriseSlug)
+	}
+	return enterpriseID, nil
 }
