@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/compare"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -376,4 +378,85 @@ source {
 			},
 		})
 	})
+}
+
+func TestGithubRepositoryPagesUpdate(t *testing.T) {
+	state := &terraform.InstanceState{
+		ID: "42",
+		Attributes: map[string]string{
+			"id":              "42",
+			"repository":      "repo",
+			"build_type":      "legacy",
+			"cname":           "www.example.com",
+			"https_enforced":  "true",
+			"public":          "true",
+			"source.#":        "1",
+			"source.0.branch": "main",
+			"source.0.path":   "/",
+		},
+	}
+
+	for _, tc := range []struct {
+		name         string
+		config       map[string]any
+		expectedBody string
+	}{
+		{
+			name: "keeps_unchanged_cname_when_build_type_changes",
+			config: map[string]any{
+				"repository": "repo",
+				"build_type": "workflow",
+				"cname":      "www.example.com",
+			},
+			expectedBody: `{"cname":"www.example.com","build_type":"workflow"}`,
+		},
+		{
+			name: "keeps_unchanged_cname_when_https_enforced_changes",
+			config: map[string]any{
+				"repository":     "repo",
+				"build_type":     "legacy",
+				"cname":          "www.example.com",
+				"https_enforced": false,
+				"source":         []any{map[string]any{"branch": "main", "path": "/"}},
+			},
+			expectedBody: `{"cname":"www.example.com","build_type":"legacy","source":{"branch":"main","path":"/"},"https_enforced":false}`,
+		},
+		{
+			name: "removes_cname_when_unset",
+			config: map[string]any{
+				"repository": "repo",
+				"build_type": "legacy",
+				"source":     []any{map[string]any{"branch": "main", "path": "/"}},
+			},
+			expectedBody: `{"cname":"","build_type":"legacy","source":{"branch":"main","path":"/"}}`,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ts := githubApiMock([]*mockResponse{
+				{
+					ExpectedUri:    "/repos/owner/repo/pages",
+					ExpectedMethod: "PUT",
+					ExpectedBody:   []byte(tc.expectedBody + "\n"),
+					StatusCode:     204,
+				},
+			})
+			defer ts.Close()
+
+			meta := &Owner{name: "owner", v3client: mustCreateTestGitHubClient(t, ts.URL+"/")}
+
+			schemaMap := schema.InternalMap(resourceGithubRepositoryPages().Schema)
+			diff, err := schemaMap.Diff(t.Context(), state, terraform.NewResourceConfigRaw(tc.config), nil, nil, true)
+			if err != nil {
+				t.Fatalf("failed to diff: %s", err)
+			}
+			d, err := schemaMap.Data(state, diff)
+			if err != nil {
+				t.Fatalf("failed to build resource data: %s", err)
+			}
+
+			if diags := resourceGithubRepositoryPagesUpdate(t.Context(), d, meta); diags.HasError() {
+				t.Fatalf("expected no error, got: %v", diags)
+			}
+		})
+	}
 }

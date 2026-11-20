@@ -316,11 +316,9 @@ func resourceGithubRepositoryPagesUpdate(ctx context.Context, d *schema.Resource
 
 	update := &github.PagesUpdate{}
 
-	// Sending a null value for `cname` will remove the custom domain in the API, so we make sure to only send the value if it's changed.
-	if d.HasChange("cname") {
-		cname := d.Get("cname").(string)
-		update.CNAME = new(cname)
-	}
+	// The API removes the custom domain when `cname` is null, and `PagesUpdate.CNAME` has no `omitempty`, so always send the configured value.
+	cname, _ := d.Get("cname").(string)
+	update.CNAME = new(cname)
 
 	// Sending the `public` value on updates will return an error if the repository doesn't have public pages enabled.
 	// Hence we make sure to only send the value if it's changed.
