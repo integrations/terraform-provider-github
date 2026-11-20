@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/shurcooL/githubv4"
 )
 
 func resourceGithubRepository() *schema.Resource {
@@ -852,20 +853,24 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 
 	// TODO: Validate this behavior as I can see these fields being returned even when archived
 	// GitHub API doesn't respond following parameters when repository is archived
+	var diags diag.Diagnostics
 	if !d.Get("archived").(bool) {
-		_ = d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
-		_ = d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
-		_ = d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
-		_ = d.Set("allow_squash_merge", repo.GetAllowSquashMerge())
-		_ = d.Set("allow_update_branch", repo.GetAllowUpdateBranch())
+		mergeSettings, ok := repositoryMergeSettingsFromREST(repo)
+		if !ok {
+			mergeSettings, err = readRepositoryMergeSettingsGraphQL(ctx, meta, owner, repoName)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Warning,
+					Summary:  "Could not read repository merge settings",
+					Detail:   fmt.Sprintf("The REST API omitted the merge settings of %s/%s, and reading them over GraphQL failed: %s", owner, repoName, err),
+				})
+			}
+		}
+		mergeSettings.set(d)
+
 		_ = d.Set("allow_forking", repo.GetAllowForking())
-		_ = d.Set("delete_branch_on_merge", repo.GetDeleteBranchOnMerge())
 		_ = d.Set("web_commit_signoff_required", repo.GetWebCommitSignoffRequired())
 		_ = d.Set("has_downloads", repo.GetHasDownloads())
-		_ = d.Set("merge_commit_message", repo.GetMergeCommitMessage())
-		_ = d.Set("merge_commit_title", repo.GetMergeCommitTitle())
-		_ = d.Set("squash_merge_commit_message", repo.GetSquashMergeCommitMessage())
-		_ = d.Set("squash_merge_commit_title", repo.GetSquashMergeCommitTitle())
 	}
 
 	_, isPagesConfigured := d.GetOk("pages")
@@ -923,7 +928,7 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 		}
 	}
 
-	return nil
+	return diags
 }
 
 func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
@@ -1257,4 +1262,94 @@ func updateVulnerabilityAlerts(ctx context.Context, client *github.Client, owner
 	}
 
 	return nil
+}
+
+type repositoryMergeSettings struct {
+	AllowAutoMerge           bool
+	AllowMergeCommit         bool
+	AllowRebaseMerge         bool
+	AllowSquashMerge         bool
+	AllowUpdateBranch        bool
+	DeleteBranchOnMerge      bool
+	MergeCommitTitle         string
+	MergeCommitMessage       string
+	SquashMergeCommitTitle   string
+	SquashMergeCommitMessage string
+}
+
+func (s repositoryMergeSettings) set(d *schema.ResourceData) {
+	_ = d.Set("allow_auto_merge", s.AllowAutoMerge)
+	_ = d.Set("allow_merge_commit", s.AllowMergeCommit)
+	_ = d.Set("allow_rebase_merge", s.AllowRebaseMerge)
+	_ = d.Set("allow_squash_merge", s.AllowSquashMerge)
+	_ = d.Set("allow_update_branch", s.AllowUpdateBranch)
+	_ = d.Set("delete_branch_on_merge", s.DeleteBranchOnMerge)
+	_ = d.Set("merge_commit_title", s.MergeCommitTitle)
+	_ = d.Set("merge_commit_message", s.MergeCommitMessage)
+	_ = d.Set("squash_merge_commit_title", s.SquashMergeCommitTitle)
+	_ = d.Set("squash_merge_commit_message", s.SquashMergeCommitMessage)
+}
+
+// repositoryMergeSettingsFromREST reports false when the response omits the merge settings,
+// which the REST API does for callers without push access to the repository.
+func repositoryMergeSettingsFromREST(repo *github.Repository) (repositoryMergeSettings, bool) {
+	if repo.AllowAutoMerge == nil || repo.AllowMergeCommit == nil || repo.AllowRebaseMerge == nil ||
+		repo.AllowSquashMerge == nil || repo.AllowUpdateBranch == nil || repo.DeleteBranchOnMerge == nil ||
+		repo.MergeCommitTitle == nil || repo.MergeCommitMessage == nil ||
+		repo.SquashMergeCommitTitle == nil || repo.SquashMergeCommitMessage == nil {
+		return repositoryMergeSettings{}, false
+	}
+
+	return repositoryMergeSettings{
+		AllowAutoMerge:           repo.GetAllowAutoMerge(),
+		AllowMergeCommit:         repo.GetAllowMergeCommit(),
+		AllowRebaseMerge:         repo.GetAllowRebaseMerge(),
+		AllowSquashMerge:         repo.GetAllowSquashMerge(),
+		AllowUpdateBranch:        repo.GetAllowUpdateBranch(),
+		DeleteBranchOnMerge:      repo.GetDeleteBranchOnMerge(),
+		MergeCommitTitle:         repo.GetMergeCommitTitle(),
+		MergeCommitMessage:       repo.GetMergeCommitMessage(),
+		SquashMergeCommitTitle:   repo.GetSquashMergeCommitTitle(),
+		SquashMergeCommitMessage: repo.GetSquashMergeCommitMessage(),
+	}, true
+}
+
+// readRepositoryMergeSettingsGraphQL reads the merge settings over GraphQL, which returns them
+// to any caller that can read the repository. Its enum values match the REST API's strings.
+func readRepositoryMergeSettingsGraphQL(ctx context.Context, meta *Owner, owner, repoName string) (repositoryMergeSettings, error) {
+	var query struct {
+		Repository struct {
+			AutoMergeAllowed         bool
+			MergeCommitAllowed       bool
+			RebaseMergeAllowed       bool
+			SquashMergeAllowed       bool
+			AllowUpdateBranch        bool
+			DeleteBranchOnMerge      bool
+			MergeCommitTitle         string
+			MergeCommitMessage       string
+			SquashMergeCommitTitle   string
+			SquashMergeCommitMessage string
+		} `graphql:"repository(owner: $owner, name: $name)"`
+	}
+	variables := map[string]any{
+		"owner": githubv4.String(owner),
+		"name":  githubv4.String(repoName),
+	}
+	if err := meta.v4client.Query(ctx, &query, variables); err != nil {
+		return repositoryMergeSettings{}, err
+	}
+
+	r := query.Repository
+	return repositoryMergeSettings{
+		AllowAutoMerge:           r.AutoMergeAllowed,
+		AllowMergeCommit:         r.MergeCommitAllowed,
+		AllowRebaseMerge:         r.RebaseMergeAllowed,
+		AllowSquashMerge:         r.SquashMergeAllowed,
+		AllowUpdateBranch:        r.AllowUpdateBranch,
+		DeleteBranchOnMerge:      r.DeleteBranchOnMerge,
+		MergeCommitTitle:         r.MergeCommitTitle,
+		MergeCommitMessage:       r.MergeCommitMessage,
+		SquashMergeCommitTitle:   r.SquashMergeCommitTitle,
+		SquashMergeCommitMessage: r.SquashMergeCommitMessage,
+	}, nil
 }
