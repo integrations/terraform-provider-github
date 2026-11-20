@@ -22,6 +22,15 @@ func TestAccGithubAppDataSource(t *testing.T) {
 			resource.TestCheckResourceAttrSet(
 				"data.github_app.test", "name",
 			),
+			resource.TestCheckResourceAttrSet(
+				"data.github_app.test", "client_id",
+			),
+			resource.TestCheckResourceAttr(
+				"data.github_app.test", "permissions.metadata", "read",
+			),
+			resource.TestCheckResourceAttrSet(
+				"data.github_app.test", "events.#",
+			),
 		)
 
 		resource.Test(t, resource.TestCase{
