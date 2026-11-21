@@ -942,6 +942,13 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 
 	repoReq := resourceGithubRepositoryObject(d)
 
+	// Archiving makes the repository read-only, so it has to be the last
+	// request. Leave it out of the main update and archive at the end.
+	archiving := d.HasChange("archived") && d.Get("archived").(bool)
+	if archiving {
+		repoReq.Archived = nil
+	}
+
 	// handle visibility updates separately from other fields
 	visibility := repoReq.GetVisibility()
 	repoReq.Visibility = nil
@@ -1029,6 +1036,13 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 			if resp.StatusCode != 422 || !strings.Contains(err.Error(), fmt.Sprintf("Visibility is already %s", visibility)) {
 				return diag.FromErr(err)
 			}
+		}
+	}
+
+	if archiving {
+		log.Printf("[DEBUG] Archiving repository %s/%s", owner, repo.GetName())
+		if _, _, err := client.Repositories.Edit(ctx, owner, repo.GetName(), &github.Repository{Archived: new(true)}); err != nil {
+			return diag.FromErr(err)
 		}
 	}
 
