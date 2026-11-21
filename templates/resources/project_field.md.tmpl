@@ -1,0 +1,23 @@
+---
+page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+description: |-
+  Creates and manages a custom field in a GitHub Projects V2 project.
+---
+
+# {{.Name}} ({{.Type}})
+
+This resource manages text, number, date, single-select, and iteration fields in a GitHub Projects V2 project.
+
+## Example Usage
+
+{{ tffile "examples/resources/project_field/example_1.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+Project fields can be imported using their GraphQL node ID:
+
+```shell
+terraform import github_project_field.example PVTF_lADOExample
+```
