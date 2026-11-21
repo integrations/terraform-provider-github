@@ -135,6 +135,11 @@ func flattenGitHubAppInstallations(orgAppInstallations []*github.Installation) [
 	}
 
 	for _, appInstallation := range orgAppInstallations {
+		// The GitHub API can return a null entry in the installations returned by GET /orgs/{org}/installations.
+		if appInstallation == nil {
+			continue
+		}
+
 		result := make(map[string]any)
 
 		result["id"] = appInstallation.GetID()
