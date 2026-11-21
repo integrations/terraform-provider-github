@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	goGithub "github.com/google/go-github/v89/github"
+	goGithub "github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )

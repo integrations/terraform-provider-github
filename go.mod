@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/bored-engineer/github-conditional-http-transport v0.0.8
 	github.com/bored-engineer/github-conditional-http-transport/bbolt v0.0.3
-	github.com/go-jose/go-jose/v4 v4.1.5
+	github.com/go-jose/go-jose/v4 v4.1.6
 	github.com/gofri/go-github-ratelimit/v2 v2.0.2
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-github/v92 v92.0.0

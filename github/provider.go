@@ -578,6 +578,7 @@ func configureProviderMeta(ctx context.Context, version string, c *Config) (*Own
 	owner := &Owner{
 		name:       c.Owner,
 		maxPerPage: c.MaxPerPage,
+		storeEtag:  c.LegacyClient,
 	}
 
 	if c.LegacyClient {
