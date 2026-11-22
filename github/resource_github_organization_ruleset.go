@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -756,9 +756,10 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 	}
 }
 
-func resourceGithubOrganizationRulesetCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubOrganizationRulesetCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 	name := d.Get("name").(string)
 
 	tflog.Debug(ctx, fmt.Sprintf("Creating organization ruleset: %s/%s", owner, name), map[string]any{
@@ -785,8 +786,10 @@ func resourceGithubOrganizationRulesetCreate(ctx context.Context, d *schema.Reso
 	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if err := d.Set("rules", flattenRules(ctx, ruleset.Rules, true)); err != nil {
 		return diag.FromErr(err)
@@ -801,9 +804,10 @@ func resourceGithubOrganizationRulesetCreate(ctx context.Context, d *schema.Reso
 	return nil
 }
 
-func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
 	tflog.Trace(ctx, fmt.Sprintf("Reading organization ruleset: %s", d.Id()), map[string]any{
 		"owner":      owner,
@@ -826,8 +830,7 @@ func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.Resour
 
 	ruleset, resp, err := client.Organizations.GetRepositoryRuleset(ctx, owner, rulesetID)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				tflog.Debug(ctx, "API responded with StatusNotModified, not refreshing state", map[string]any{
 					"owner":      owner,
@@ -876,8 +879,10 @@ func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.Resour
 	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	tflog.Trace(ctx, fmt.Sprintf("Successfully read organization ruleset: %s/%d", owner, rulesetID), map[string]any{
@@ -889,10 +894,15 @@ func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.Resour
 	return nil
 }
 
-func resourceGithubOrganizationRulesetUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubOrganizationRulesetUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 	name := d.Get("name").(string)
+
+	if err := d.Set("etag", nil); err != nil {
+		return diag.FromErr(err)
+	}
 
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -929,8 +939,10 @@ func resourceGithubOrganizationRulesetUpdate(ctx context.Context, d *schema.Reso
 	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	tflog.Info(ctx, fmt.Sprintf("Updated organization ruleset: %s/%d", owner, rulesetID), map[string]any{
@@ -1025,16 +1037,14 @@ func resourceGithubOrganizationRulesetImport(ctx context.Context, d *schema.Reso
 	return []*schema.ResourceData{d}, nil
 }
 
-func resourceGithubOrganizationRulesetDiff(ctx context.Context, d *schema.ResourceDiff, _ any) error {
-	err := validateRulesetConditions(ctx, d, true)
-	if err != nil {
+func resourceGithubOrganizationRulesetDiff(ctx context.Context, d *schema.ResourceDiff, m any) error {
+	if err := validateRulesetConditions(ctx, d, true); err != nil {
 		return err
 	}
 
-	err = validateRulesetRules(ctx, d)
-	if err != nil {
+	if err := validateRulesetRules(ctx, d); err != nil {
 		return err
 	}
 
-	return nil
+	return diffETag(ctx, d, m)
 }

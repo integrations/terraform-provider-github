@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/sync/semaphore"
@@ -42,12 +42,12 @@ func NewAppSource(clientID string, privateKey []byte, opts SourceOptions) (*appS
 		return nil, err
 	}
 
-	if opts.Cache && opts.CacheBasePath == "" {
+	if opts.Cache.Enabled && opts.Cache.BasePath == "" {
 		s, err := os.MkdirTemp("", "*")
 		if err != nil {
 			return nil, fmt.Errorf("failed to create temporary cache directory: %w", err)
 		}
-		opts.CacheBasePath = s
+		opts.Cache.BasePath = s
 	}
 
 	return &appSource{

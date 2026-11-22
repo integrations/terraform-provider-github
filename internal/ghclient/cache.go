@@ -1,7 +1,6 @@
 package ghclient
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,17 +8,23 @@ import (
 	ghctbbolt "github.com/bored-engineer/github-conditional-http-transport/bbolt"
 )
 
-// createCacheStore creates a new bbolt storage for caching GitHub API responses.
-func createCacheStore(path string) (*ghctbbolt.Storage, error) {
-	if path == "" {
-		return nil, errors.New("cache path cannot be empty")
+// createCacheStore creates a new [ghctbbolt.Storage] for caching GitHub API responses.
+func createCacheStore(opts CacheOptions) (*ghctbbolt.Storage, error) {
+	if opts.BasePath == "" {
+		return nil, fmt.Errorf("cache path cannot be empty")
 	}
 
-	if err := os.MkdirAll(path, 0o700); err != nil {
+	dirPath := filepath.Join(opts.BasePath, opts.Ref)
+
+	if dirPath == "" {
+		return nil, fmt.Errorf("cache path cannot be empty")
+	}
+
+	if err := os.MkdirAll(dirPath, 0o700); err != nil {
 		return nil, fmt.Errorf("failed to create cache directory: %w", err)
 	}
 
-	store, err := ghctbbolt.Open(filepath.Join(path, "cache.db"), 0o600, nil, nil)
+	store, err := ghctbbolt.Open(filepath.Join(dirPath, "cache.db"), 0o600, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open cache storage: %w", err)
 	}

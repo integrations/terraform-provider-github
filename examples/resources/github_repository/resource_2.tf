@@ -1,3 +1,5 @@
+# Forked Repository Example
+
 resource "github_repository" "forked_repo" {
   name         = "forked-repository"
   description  = "This is a fork of another repository"

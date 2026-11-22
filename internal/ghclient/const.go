@@ -37,6 +37,6 @@ const (
 	// idleConnTimeoutGraphQL defines the timeout duration for idle GraphQL API connections.
 	idleConnTimeoutGraphQL = 120 * time.Second
 
-	// clientTimeout defines the timeout duration for GitHub API requests.
-	clientTimeout = 5 * time.Minute
+	// clientTimeout defines the timeout duration for GitHub API requests, this is set to be below the default 20 minutes Terraform context timeout but still long enough for secondary ratelimit retrys.
+	clientTimeout = 10 * time.Minute
 )

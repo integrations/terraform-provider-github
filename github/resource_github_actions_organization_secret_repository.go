@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -76,7 +76,7 @@ func resourceGithubActionsOrganizationSecretRepositoryRead(ctx context.Context, 
 	repoIDInt, _ := d.Get("repository_id").(int)
 	repoID := int64(repoIDInt)
 
-	for repo, err := range client.Actions.ListSelectedReposForOrgSecretIter(ctx, owner, secretName, &github.ListOptions{PerPage: maxPerPage}) {
+	for repo, err := range client.Actions.ListSelectedReposForOrgSecretIter(ctx, owner, secretName, &github.ListOptions{PerPage: meta.maxPerPage}) {
 		if err != nil {
 			return diag.FromErr(err)
 		}

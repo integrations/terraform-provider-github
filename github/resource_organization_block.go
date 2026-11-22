@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -19,6 +19,8 @@ func resourceOrganizationBlock() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 
+		CustomizeDiff: diffETag,
+
 		Schema: map[string]*schema.Schema{
 			"username": {
 				Type:        schema.TypeString,
@@ -28,8 +30,9 @@ func resourceOrganizationBlock() *schema.Resource {
 			},
 
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the organization block.",
 			},
 		},
 	}
@@ -55,9 +58,10 @@ func resourceOrganizationBlockCreate(d *schema.ResourceData, meta any) error {
 	return resourceOrganizationBlockRead(d, meta)
 }
 
-func resourceOrganizationBlockRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+func resourceOrganizationBlockRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
 
 	username := d.Id()
 
@@ -68,8 +72,7 @@ func resourceOrganizationBlockRead(d *schema.ResourceData, meta any) error {
 
 	blocked, resp, err := client.Organizations.IsBlocked(ctx, orgName, username)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -92,8 +95,10 @@ func resourceOrganizationBlockRead(d *schema.ResourceData, meta any) error {
 	if err = d.Set("username", username); err != nil {
 		return err
 	}
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return err
+		}
 	}
 
 	return nil

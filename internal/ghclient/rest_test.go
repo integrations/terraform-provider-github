@@ -32,7 +32,7 @@ func TestNewAppRESTClient(t *testing.T) {
 		privateKey     []byte
 		installationID *int64
 		opts           ClientOptions
-		wantErr        string
+		wantErr        *string
 	}{
 		{
 			name:           "app_client",
@@ -51,30 +51,30 @@ func TestNewAppRESTClient(t *testing.T) {
 			privateKey:     []byte("invalid-private-key"),
 			installationID: nil,
 			opts:           ClientOptions{},
-			wantErr:        "failed to create app token source",
+			wantErr:        new("failed to create app token source"),
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			client, err := NewAppRESTClient("123456789", tt.privateKey, tt.installationID, tt.opts)
+			got, err := NewAppRESTClient("123456789", tt.privateKey, tt.installationID, tt.opts)
 			if err != nil {
-				if tt.wantErr == "" {
-					t.Fatalf("failed to create app rest client: %v", err)
+				if tt.wantErr == nil {
+					t.Fatalf("expected no error, got %v", err)
 				}
 
-				if !regexp.MustCompile(regexp.QuoteMeta(tt.wantErr)).MatchString(err.Error()) {
-					t.Fatalf("expected error to match %q, got %v", tt.wantErr, err)
+				if !regexp.MustCompile(regexp.QuoteMeta(*tt.wantErr)).MatchString(err.Error()) {
+					t.Fatalf("expected error %q, got %q", *tt.wantErr, err.Error())
 				}
 
 				return
 			}
 
-			if tt.wantErr != "" {
-				t.Fatalf("expected error %q, got nil", tt.wantErr)
+			if tt.wantErr != nil {
+				t.Fatalf("expected error %q, got nil", *tt.wantErr)
 			}
 
-			if client == nil {
+			if got == nil {
 				t.Fatal("expected app rest client to be non-nil")
 			}
 		})
@@ -103,7 +103,7 @@ func Test_newRESTClient(t *testing.T) {
 		name        string
 		tokenSource oauth2.TokenSource
 		opts        ClientOptions
-		wantErr     string
+		wantErr     *string
 	}{
 		{
 			name:        "minimal",
@@ -128,8 +128,8 @@ func Test_newRESTClient(t *testing.T) {
 		{
 			name:        "errors_if_transport_cannot_be_created",
 			tokenSource: nil,
-			opts:        ClientOptions{Cache: true, CachePath: "\x00c"},
-			wantErr:     "failed to create transport",
+			opts:        ClientOptions{Cache: CacheOptions{Enabled: true, BasePath: "\x00c"}},
+			wantErr:     new("failed to create transport"),
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -137,19 +137,19 @@ func Test_newRESTClient(t *testing.T) {
 
 			got, err := newRESTClient(tt.tokenSource, tt.opts)
 			if err != nil {
-				if tt.wantErr == "" {
-					t.Fatalf("failed to create rest client: %v", err)
+				if tt.wantErr == nil {
+					t.Fatalf("expected no error, got %v", err)
 				}
 
-				if !regexp.MustCompile(regexp.QuoteMeta(tt.wantErr)).MatchString(err.Error()) {
-					t.Fatalf("expected error to match %q, got %v", tt.wantErr, err)
+				if !regexp.MustCompile(regexp.QuoteMeta(*tt.wantErr)).MatchString(err.Error()) {
+					t.Fatalf("expected error %q, got %q", *tt.wantErr, err.Error())
 				}
 
 				return
 			}
 
-			if tt.wantErr != "" {
-				t.Fatalf("expected error %q, got nil", tt.wantErr)
+			if tt.wantErr != nil {
+				t.Fatalf("expected error %q, got nil", *tt.wantErr)
 			}
 
 			if got == nil {

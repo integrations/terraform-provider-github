@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"net/url"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -41,7 +40,7 @@ func dataSourceGithubActionsEnvironmentPublicKeyRead(ctx context.Context, d *sch
 	repository, _ := d.Get("repository").(string)
 	envName, _ := d.Get("environment").(string)
 
-	publicKey, _, err := client.Actions.GetEnvPublicKey(ctx, owner, repository, url.PathEscape(envName))
+	publicKey, _, err := client.Actions.GetEnvPublicKey(ctx, owner, repository, envName)
 	if err != nil {
 		return diag.FromErr(err)
 	}

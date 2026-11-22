@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -21,6 +21,8 @@ func resourceGithubBranch() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubBranchImport,
 		},
+
+		CustomizeDiff: diffETag,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -50,13 +52,8 @@ func resourceGithubBranch() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "An etag representing the Branch object.",
-				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
-					return true
-				},
-				DiffSuppressOnRefresh: true,
 			},
 			"ref": {
 				Type:        schema.TypeString,
@@ -114,14 +111,15 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta any) error {
 	return resourceGithubBranchRead(d, meta)
 }
 
-func resourceGithubBranchRead(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 	repoName, branchName, err := parseID2(d.Id())
 	if err != nil {
 		return err
@@ -130,8 +128,7 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta any) error {
 
 	ref, resp, err := client.Git.GetRef(ctx, orgName, repoName, branchRefName)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -147,8 +144,10 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta any) error {
 	}
 
 	d.SetId(buildTwoPartID(repoName, branchName))
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return err
+		}
 	}
 	if err = d.Set("repository", repoName); err != nil {
 		return err
@@ -194,6 +193,11 @@ func resourceGithubBranchUpdate(d *schema.ResourceData, meta any) error {
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
+
+	if err := d.Set("etag", nil); err != nil {
+		return err
+	}
+
 	repoName, oldBranchName, err := parseID2(d.Id())
 	if err != nil {
 		return err

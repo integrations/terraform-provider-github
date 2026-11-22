@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -21,7 +22,7 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceGithubEMUGroupMappingImport,
 		},
-		CustomizeDiff: diffTeam,
+		CustomizeDiff: customdiff.All(diffTeam, diffETag),
 		Description:   "Manages the mapping of an external group to a GitHub team.",
 		Schema: map[string]*schema.Schema{
 			"team_id": {
@@ -46,8 +47,9 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 				Description: "Name of the external group.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the EMU group mapping.",
 			},
 		},
 		SchemaVersion: 2,
@@ -66,21 +68,22 @@ func resourceGithubEMUGroupMapping() *schema.Resource {
 	}
 }
 
-func resourceGithubEMUGroupMappingCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubEMUGroupMappingCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 	tflog.Trace(ctx, "Creating EMU group mapping")
 
 	err := checkOrganization(meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 
 	teamSlug := d.Get("team_slug").(string)
 
 	groupID := toInt64(d.Get("group_id"))
-	eg := &github.ExternalGroup{
-		GroupID: new(groupID),
+	eg := github.UpdateConnectedExternalGroupRequest{
+		GroupID: groupID,
 	}
 
 	tflog.Debug(ctx, "Connecting external group to team via GitHub API", map[string]any{
@@ -118,12 +121,13 @@ func resourceGithubEMUGroupMappingCreate(ctx context.Context, d *schema.Resource
 		return diag.FromErr(err)
 	}
 
-	etag := resp.Header.Get("ETag")
-	tflog.Trace(ctx, "Setting state attribute: etag", map[string]any{
-		"etag": etag,
-	})
-	if err := d.Set("etag", etag); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		tflog.Trace(ctx, "Setting state attribute: etag", map[string]any{
+			"etag": resp.Header.Get("ETag"),
+		})
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	tflog.Trace(ctx, "Setting group_name", map[string]any{
@@ -140,7 +144,8 @@ func resourceGithubEMUGroupMappingCreate(ctx context.Context, d *schema.Resource
 	return nil
 }
 
-func resourceGithubEMUGroupMappingRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubEMUGroupMappingRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 	ctx = tflog.SetField(ctx, "resource_id", d.Id())
 	tflog.Trace(ctx, "Reading EMU group mapping")
 
@@ -148,8 +153,8 @@ func resourceGithubEMUGroupMappingRead(ctx context.Context, d *schema.ResourceDa
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 
 	groupID := toInt64(d.Get("group_id"))
 	teamSlug := d.Get("team_slug").(string)
@@ -189,9 +194,10 @@ func resourceGithubEMUGroupMappingRead(ctx context.Context, d *schema.ResourceDa
 		return diag.Errorf("group id mismatch: %d != %d", group.GetGroupID(), groupID)
 	}
 
-	etag := resp.Header.Get("ETag")
-	if err := d.Set("etag", etag); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	if err := d.Set("group_id", int(group.GetGroupID())); err != nil {
@@ -205,7 +211,8 @@ func resourceGithubEMUGroupMappingRead(ctx context.Context, d *schema.ResourceDa
 	return nil
 }
 
-func resourceGithubEMUGroupMappingUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubEMUGroupMappingUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 	ctx = tflog.SetField(ctx, "resource_id", d.Id())
 	tflog.Trace(ctx, "Updating EMU group mapping")
 
@@ -213,14 +220,19 @@ func resourceGithubEMUGroupMappingUpdate(ctx context.Context, d *schema.Resource
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+
+	client := meta.v3client
+	orgName := meta.name
+
+	if err := d.Set("etag", nil); err != nil {
+		return diag.FromErr(err)
+	}
 
 	teamSlug := d.Get("team_slug").(string)
 
 	groupID := toInt64(d.Get("group_id"))
-	eg := &github.ExternalGroup{
-		GroupID: new(groupID),
+	eg := github.UpdateConnectedExternalGroupRequest{
+		GroupID: groupID,
 	}
 
 	if d.HasChange("team_slug") {
@@ -234,12 +246,13 @@ func resourceGithubEMUGroupMappingUpdate(ctx context.Context, d *schema.Resource
 
 		tflog.Debug(ctx, "Successfully updated connected external group")
 
-		etag := resp.Header.Get("ETag")
-		tflog.Trace(ctx, "Setting state attribute: etag", map[string]any{
-			"etag": etag,
-		})
-		if err := d.Set("etag", etag); err != nil {
-			return diag.FromErr(err)
+		if meta.storeEtag {
+			tflog.Trace(ctx, "Setting state attribute: etag", map[string]any{
+				"etag": resp.Header.Get("ETag"),
+			})
+			if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+				return diag.FromErr(err)
+			}
 		}
 
 		if err := d.Set("group_name", group.GetGroupName()); err != nil {

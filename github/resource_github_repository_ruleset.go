@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -677,19 +677,21 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 				},
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the ruleset.",
 			},
 		},
 	}
 }
 
-func resourceGithubRepositoryRulesetCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryRulesetCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
 	rulesetReq := resourceGithubRulesetObject(d, "")
 
-	owner := meta.(*Owner).name
+	owner := meta.name
 
 	repoName := d.Get("repository").(string)
 
@@ -714,8 +716,10 @@ func resourceGithubRepositoryRulesetCreate(ctx context.Context, d *schema.Resour
 	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if err := d.Set("rules", flattenRules(ctx, ruleset.Rules, false)); err != nil {
 		return diag.FromErr(err)
@@ -724,10 +728,11 @@ func resourceGithubRepositoryRulesetCreate(ctx context.Context, d *schema.Resour
 	return nil
 }
 
-func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	owner := meta.(*Owner).name
+	owner := meta.name
 
 	repoName := d.Get("repository").(string)
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -741,8 +746,7 @@ func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.Resource
 
 	ruleset, resp, err := client.Repositories.GetRuleset(ctx, owner, repoName, rulesetID, false)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -785,19 +789,25 @@ func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.Resource
 	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	return nil
 }
 
-func resourceGithubRepositoryRulesetUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryRulesetUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
+	if err := d.Set("etag", nil); err != nil {
+		return diag.FromErr(err)
+	}
 
 	rulesetReq := resourceGithubRulesetObject(d, "")
-
-	owner := meta.(*Owner).name
 
 	repoName := d.Get("repository").(string)
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -826,8 +836,10 @@ func resourceGithubRepositoryRulesetUpdate(ctx context.Context, d *schema.Resour
 	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	return nil
@@ -883,16 +895,14 @@ func resourceGithubRepositoryRulesetImport(ctx context.Context, d *schema.Resour
 	return []*schema.ResourceData{d}, nil
 }
 
-func resourceGithubRepositoryRulesetDiff(ctx context.Context, d *schema.ResourceDiff, meta any) error {
-	err := validateRulesetConditions(ctx, d, false)
-	if err != nil {
+func resourceGithubRepositoryRulesetDiff(ctx context.Context, d *schema.ResourceDiff, m any) error {
+	if err := validateRulesetConditions(ctx, d, false); err != nil {
 		return err
 	}
 
-	err = validateRulesetRules(ctx, d)
-	if err != nil {
+	if err := validateRulesetRules(ctx, d); err != nil {
 		return err
 	}
 
-	return nil
+	return diffETag(ctx, d, m)
 }

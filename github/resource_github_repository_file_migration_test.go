@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 )
 
 func buildMockResponsesForRepositoryFileMigrationV0toV1(mockOwner, mockRepo string, wantRepoID int) []*mockResponse {

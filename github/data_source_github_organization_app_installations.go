@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -101,7 +101,7 @@ func dataSourceGithubOrganizationAppInstallationsRead(ctx context.Context, d *sc
 	client := meta.v3client
 
 	options := &github.ListOptions{
-		PerPage: maxPerPage,
+		PerPage: meta.maxPerPage,
 	}
 
 	results := make([]map[string]any, 0)

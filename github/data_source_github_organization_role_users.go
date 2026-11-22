@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -63,7 +63,7 @@ func dataSourceGithubOrganizationRoleUsersRead(ctx context.Context, d *schema.Re
 	roleID := int64(roleIdInt)
 
 	users := make([]any, 0)
-	for user, err := range meta.v3client.Organizations.ListUsersAssignedToOrgRoleIter(ctx, meta.name, roleID, &github.ListOptions{PerPage: maxPerPage}) {
+	for user, err := range meta.v3client.Organizations.ListUsersAssignedToOrgRoleIter(ctx, meta.name, roleID, &github.ListOptions{PerPage: meta.maxPerPage}) {
 		if err != nil {
 			return diag.FromErr(err)
 		}

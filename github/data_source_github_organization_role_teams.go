@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -113,7 +113,7 @@ func dataSourceGithubOrganizationRoleTeamsRead(ctx context.Context, d *schema.Re
 	roleID := int64(roleIdInt)
 
 	teams := make([]any, 0)
-	for team, err := range meta.v3client.Organizations.ListTeamsAssignedToOrgRoleIter(ctx, meta.name, roleID, &github.ListOptions{PerPage: maxPerPage}) {
+	for team, err := range meta.v3client.Organizations.ListTeamsAssignedToOrgRoleIter(ctx, meta.name, roleID, &github.ListOptions{PerPage: meta.maxPerPage}) {
 		if err != nil {
 			return diag.FromErr(err)
 		}

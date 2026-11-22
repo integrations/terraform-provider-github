@@ -9,10 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/shurcooL/githubv4"
@@ -28,7 +27,7 @@ func resourceGithubTeamMembers() *schema.Resource {
 			StateContext: resourceGithubTeamMembersImport,
 		},
 
-		CustomizeDiff: customdiff.Sequence(diffLegacyTeamID, diffLegacyTeam),
+		CustomizeDiff: resourceGithubTeamMembersDiff,
 
 		SchemaVersion: 1,
 		StateUpgraders: []schema.StateUpgrader{
@@ -63,6 +62,13 @@ func resourceGithubTeamMembers() *schema.Resource {
 				Type:        schema.TypeSet,
 				Required:    true,
 				Description: "List of users that should be members of the team.",
+				// Set identity ignores username case so a case-only config change is a no-op;
+				// duplicates are rejected by diffDuplicateUsernameCheck.
+				Set: func(v any) int {
+					username, _ := v.(map[string]any)["username"].(string)
+					role, _ := v.(map[string]any)["role"].(string)
+					return schema.HashString("username:" + strings.ToLower(username) + ";role:" + strings.ToLower(role))
+				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"username": {
@@ -83,6 +89,24 @@ func resourceGithubTeamMembers() *schema.Resource {
 			},
 		},
 	}
+}
+
+func resourceGithubTeamMembersDiff(ctx context.Context, d *schema.ResourceDiff, m any) error {
+	tflog.Debug(ctx, "diffing team members")
+
+	if err := diffDuplicateUsernameCheck(ctx, d, "members"); err != nil {
+		return fmt.Errorf("error diffing members config: %w", err)
+	}
+
+	if err := diffLegacyTeamID(ctx, d, m); err != nil {
+		return fmt.Errorf("error diffing legacy team ID: %w", err)
+	}
+
+	if err := diffLegacyTeam(ctx, d, m); err != nil {
+		return fmt.Errorf("error diffing legacy team: %w", err)
+	}
+
+	return nil
 }
 
 func resourceGithubTeamMembersCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
@@ -400,11 +424,12 @@ func updateTeamMembers(ctx context.Context, meta *Owner, slug string, wantMember
 	}
 
 	for _, member := range currentMembers {
-		if _, ok := want[member.login]; !ok {
-			tflog.Debug(ctx, "Removing team member.", map[string]any{"team_slug": slug, "username": member.login})
+		login := strings.ToLower(member.login)
+		if _, ok := want[login]; !ok {
+			tflog.Debug(ctx, "Removing team member.", map[string]any{"team_slug": slug, "username": login})
 
-			if _, err := client.Teams.RemoveTeamMembershipBySlug(ctx, orgName, slug, member.login); err != nil {
-				return fmt.Errorf("could not remove existing team member %q: %w", member.login, err)
+			if _, err := client.Teams.RemoveTeamMembershipBySlug(ctx, orgName, slug, login); err != nil {
+				return fmt.Errorf("could not remove existing team member %q: %w", login, err)
 			}
 		}
 	}

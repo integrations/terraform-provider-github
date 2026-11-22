@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/shurcooL/githubv4"
 )
 
@@ -27,14 +27,18 @@ func TestNewAnonymousSource(t *testing.T) {
 		{
 			name: "with_cache_base_path",
 			opts: SourceOptions{
-				Cache:         true,
-				CacheBasePath: mustMkdirTemp(t, cacheBasePath, "*"),
+				Cache: CacheOptions{
+					Enabled:  true,
+					BasePath: mustMkdirTemp(t, cacheBasePath, "*"),
+				},
 			},
 		},
 		{
 			name: "with_cache_no_base_path",
 			opts: SourceOptions{
-				Cache: true,
+				Cache: CacheOptions{
+					Enabled: true,
+				},
 			},
 		},
 	} {

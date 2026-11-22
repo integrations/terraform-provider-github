@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -80,7 +80,7 @@ func resourceGithubActionsOrganizationVariableRepositoryRead(ctx context.Context
 	repoID := int64(d.Get("repository_id").(int))
 
 	opt := &github.ListOptions{
-		PerPage: maxPerPage,
+		PerPage: meta.maxPerPage,
 	}
 
 	for {

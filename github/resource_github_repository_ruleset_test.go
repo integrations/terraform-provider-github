@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-log/tflogtest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -579,11 +579,10 @@ resource "github_repository_ruleset" "test" {
 					Config: config,
 				},
 				{
-					ResourceName:            "github_repository_ruleset.test",
-					ImportState:             true,
-					ImportStateVerify:       true,
-					ImportStateIdFunc:       importRepositoryRulesetByResourcePaths("github_repository.test", "github_repository_ruleset.test"),
-					ImportStateVerifyIgnore: []string{"etag"},
+					ResourceName:      "github_repository_ruleset.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+					ImportStateIdFunc: importRepositoryRulesetByResourcePaths("github_repository.test", "github_repository_ruleset.test"),
 				},
 			},
 		})
@@ -1049,11 +1048,10 @@ resource "github_repository_ruleset" "test" {
 					),
 				},
 				{
-					ResourceName:            "github_repository_ruleset.test",
-					ImportState:             true,
-					ImportStateVerify:       true,
-					ImportStateIdFunc:       importRepositoryRulesetByResourcePaths("github_repository.test", "github_repository_ruleset.test"),
-					ImportStateVerifyIgnore: []string{"etag"},
+					ResourceName:      "github_repository_ruleset.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+					ImportStateIdFunc: importRepositoryRulesetByResourcePaths("github_repository.test", "github_repository_ruleset.test"),
 				},
 			},
 		})

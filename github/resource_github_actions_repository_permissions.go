@@ -2,19 +2,20 @@ package github
 
 import (
 	"context"
-	"log"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceGithubActionsRepositoryPermissions() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsRepositoryPermissionsCreate,
-		Read:   resourceGithubActionsRepositoryPermissionsRead,
-		Update: resourceGithubActionsRepositoryPermissionsUpdate,
-		Delete: resourceGithubActionsRepositoryPermissionsDelete,
+		CreateContext: resourceGithubActionsRepositoryPermissionsCreate,
+		ReadContext:   resourceGithubActionsRepositoryPermissionsRead,
+		UpdateContext: resourceGithubActionsRepositoryPermissionsUpdate,
+		DeleteContext: resourceGithubActionsRepositoryPermissionsDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -108,16 +109,15 @@ func resourceGithubActionsRepositoryAllowedObject(d *schema.ResourceData) *githu
 	return allowed
 }
 
-func resourceGithubActionsRepositoryPermissionsCreate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-
-	owner := meta.(*Owner).name
+func resourceGithubActionsRepositoryPermissionsCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 	repoName := d.Get("repository").(string)
-	ctx := context.Background()
 
 	allowedActions := d.Get("allowed_actions").(string)
 	enabled := d.Get("enabled").(bool)
-	log.Printf("[DEBUG] Actions enabled: %t", enabled)
+	tflog.Debug(ctx, "Setting repository Actions permissions.", map[string]any{"enabled": enabled})
 
 	repoActionPermissions := github.ActionsPermissionsRepository{
 		Enabled: &enabled,
@@ -128,61 +128,46 @@ func resourceGithubActionsRepositoryPermissionsCreate(d *schema.ResourceData, me
 		repoActionPermissions.AllowedActions = &allowedActions
 	}
 
-	// Use `GetOkExists` for `sha_pinning_required` to detect explicit
-	// `false` values.
-	//
-	// The `sha_pinning_required` is an Optional and Computed boolean.
-	//
-	// When a user writes `sha_pinning_required = false`,
-	// `GetOk` returns `(false, false)`. The second `false` argument
-	// means "not set", which is indistinguishable from the user omitting
-	// the field entirely. So the explicit false was silently ignored.
-	//
-	// `GetOkExists` returns `(false, true)`.
-	// The `true` value correctly indicates the user did want to set it.
+	// GetOk cannot tell an explicit false from an omitted value.
 	if v, ok := d.GetOkExists("sha_pinning_required"); ok { //nolint:staticcheck
-		repoActionPermissions.SHAPinningRequired = github.Ptr(v.(bool))
+		repoActionPermissions.SHAPinningRequired = new(v.(bool))
 	}
 
-	_, _, err := client.Repositories.UpdateActionsPermissions(ctx,
-		owner,
-		repoName,
-		repoActionPermissions,
-	)
-	if err != nil {
-		return err
+	if _, _, err := client.Repositories.UpdateActionsPermissions(ctx, owner, repoName, repoActionPermissions); err != nil {
+		return diag.FromErr(err)
 	}
 
-	if allowedActions == "selected" {
-		actionsAllowedData := resourceGithubActionsRepositoryAllowedObject(d)
-		if actionsAllowedData != nil {
-			log.Printf("[DEBUG] Allowed actions config is set")
-			_, _, err = client.Repositories.EditActionsAllowed(ctx,
-				owner,
-				repoName,
-				*actionsAllowedData)
-			if err != nil {
-				return err
-			}
-		} else {
-			log.Printf("[DEBUG] Allowed actions config not set, skipping")
-		}
+	if diags := resourceGithubActionsRepositoryPermissionsApplyAllowed(ctx, d, meta, repoName, allowedActions); diags.HasError() {
+		return diags
 	}
 
 	d.SetId(repoName)
-	return resourceGithubActionsRepositoryPermissionsRead(d, meta)
+	// The computed value is unknown after apply unless it is set here.
+	shaPinningRequired := repoActionPermissions.SHAPinningRequired
+	if shaPinningRequired == nil {
+		current, _, err := client.Repositories.GetActionsPermissions(ctx, owner, repoName)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		shaPinningRequired = new(current.GetSHAPinningRequired())
+	}
+	if err := d.Set("sha_pinning_required", *shaPinningRequired); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
 }
 
-func resourceGithubActionsRepositoryPermissionsUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-
-	owner := meta.(*Owner).name
+func resourceGithubActionsRepositoryPermissionsUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 	repoName := d.Get("repository").(string)
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	allowedActions := d.Get("allowed_actions").(string)
 	enabled := d.Get("enabled").(bool)
-	log.Printf("[DEBUG] Actions enabled: %t", enabled)
+	tflog.Debug(ctx, "Setting repository Actions permissions.", map[string]any{"enabled": enabled})
 
 	repoActionPermissions := github.ActionsPermissionsRepository{
 		Enabled: &enabled,
@@ -193,50 +178,46 @@ func resourceGithubActionsRepositoryPermissionsUpdate(d *schema.ResourceData, me
 		repoActionPermissions.AllowedActions = &allowedActions
 	}
 
-	// Use `HasChange` + `Get` for `sha_pinning_required` to send the
-	// value only when it changes.
 	if d.HasChange("sha_pinning_required") {
-		repoActionPermissions.SHAPinningRequired = github.Ptr(d.Get("sha_pinning_required").(bool))
+		repoActionPermissions.SHAPinningRequired = new(d.Get("sha_pinning_required").(bool))
 	}
 
-	_, _, err := client.Repositories.UpdateActionsPermissions(ctx,
-		owner,
-		repoName,
-		repoActionPermissions,
-	)
-	if err != nil {
-		return err
+	if _, _, err := client.Repositories.UpdateActionsPermissions(ctx, owner, repoName, repoActionPermissions); err != nil {
+		return diag.FromErr(err)
 	}
 
-	if allowedActions == "selected" {
-		actionsAllowedData := resourceGithubActionsRepositoryAllowedObject(d)
-		if actionsAllowedData != nil {
-			log.Printf("[DEBUG] The allowedActions variable is set.")
-			_, _, err = client.Repositories.EditActionsAllowed(ctx,
-				owner,
-				repoName,
-				*actionsAllowedData)
-			if err != nil {
-				return err
-			}
-		} else {
-			log.Printf("[DEBUG] The allowedActions variable is not set, skipping.")
-		}
-	}
-
-	return resourceGithubActionsRepositoryPermissionsRead(d, meta)
+	return resourceGithubActionsRepositoryPermissionsApplyAllowed(ctx, d, meta, repoName, allowedActions)
 }
 
-func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubActionsRepositoryPermissionsApplyAllowed(ctx context.Context, d *schema.ResourceData, meta *Owner, repoName, allowedActions string) diag.Diagnostics {
+	if allowedActions != "selected" {
+		return nil
+	}
 
-	owner := meta.(*Owner).name
+	actionsAllowedData := resourceGithubActionsRepositoryAllowedObject(d)
+	if actionsAllowedData == nil {
+		tflog.Debug(ctx, "Allowed actions configuration is not set, skipping.")
+		return nil
+	}
+
+	tflog.Debug(ctx, "Allowed actions configuration is set.")
+	if _, _, err := meta.v3client.Repositories.EditActionsAllowed(ctx, meta.name, repoName, *actionsAllowedData); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
+}
+
+func resourceGithubActionsRepositoryPermissionsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 	repoName := d.Id()
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	actionsPermissions, _, err := client.Repositories.GetActionsPermissions(ctx, owner, repoName)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// only load and fill allowed_actions_config if allowed_actions_config is also set
@@ -252,7 +233,7 @@ func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta
 	if serverHasAllowedActionsConfig && userWantsAllowedActionsConfig {
 		actionsAllowed, _, err := client.Repositories.GetActionsAllowed(ctx, owner, repoName)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		// If actionsAllowed set to local/all by removing all actions config settings, the response will be empty
@@ -264,38 +245,39 @@ func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta
 					"verified_allowed":     actionsAllowed.GetVerifiedAllowed(),
 				},
 			}); err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 		}
 	} else {
 		if err = d.Set("allowed_actions_config", []any{}); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	if err = d.Set("allowed_actions", actionsPermissions.GetAllowedActions()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("enabled", actionsPermissions.GetEnabled()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err = d.Set("repository", repoName); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err = d.Set("sha_pinning_required", actionsPermissions.GetSHAPinningRequired()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubActionsRepositoryPermissionsDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubActionsRepositoryPermissionsDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 	repoName := d.Id()
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	// Reset the repo to "default" settings
 	repoActionPermissions := github.ActionsPermissionsRepository{
@@ -303,13 +285,8 @@ func resourceGithubActionsRepositoryPermissionsDelete(d *schema.ResourceData, me
 		Enabled:        new(true),
 	}
 
-	_, _, err := client.Repositories.UpdateActionsPermissions(ctx,
-		owner,
-		repoName,
-		repoActionPermissions,
-	)
-	if err != nil {
-		return err
+	if _, _, err := client.Repositories.UpdateActionsPermissions(ctx, owner, repoName, repoActionPermissions); err != nil {
+		return diag.FromErr(err)
 	}
 
 	return nil
