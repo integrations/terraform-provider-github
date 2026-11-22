@@ -9,7 +9,11 @@ import (
 )
 
 func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates repository oidc subject claim customization template without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-act-oidc-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -27,7 +31,8 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *test
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
 				"github_actions_repository_oidc_subject_claim_customization_template.test",
-				"use_default", "false"),
+				"use_default", "false",
+			),
 			resource.TestCheckResourceAttr(
 				"github_actions_repository_oidc_subject_claim_customization_template.test",
 				"include_claim_keys.#", "3",
@@ -58,6 +63,8 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *test
 	})
 
 	t.Run("updates repository oidc subject claim customization template without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-act-oidc-%s", testResourcePrefix, randomID)
 		configTemplate := `
@@ -98,7 +105,8 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *test
 			"before": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
 					"github_actions_repository_oidc_subject_claim_customization_template.test",
-					"use_default", "false"),
+					"use_default", "false",
+				),
 				resource.TestCheckResourceAttr(
 					"github_actions_repository_oidc_subject_claim_customization_template.test",
 					"include_claim_keys.#", "3",
@@ -119,7 +127,8 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *test
 			"after": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
 					"github_actions_repository_oidc_subject_claim_customization_template.test",
-					"use_default", "false"),
+					"use_default", "false",
+				),
 				resource.TestCheckResourceAttr(
 					"github_actions_repository_oidc_subject_claim_customization_template.test",
 					"include_claim_keys.#", "4",
@@ -144,7 +153,8 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *test
 			"reset_to_default": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
 					"github_actions_repository_oidc_subject_claim_customization_template.test",
-					"use_default", "true"),
+					"use_default", "true",
+				),
 				resource.TestCheckResourceAttr(
 					"github_actions_repository_oidc_subject_claim_customization_template.test",
 					"include_claim_keys.#", "0",
@@ -172,6 +182,8 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *test
 	})
 
 	t.Run("imports repository oidc subject claim customization template without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%srepo-act-oidc-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`

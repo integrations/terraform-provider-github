@@ -6,13 +6,20 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubBranchProtectionV3_required_pull_request_reviews(t *testing.T) {
+	t.Parallel()
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 	teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 	repoName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
 	t.Run("configures required pull request reviews", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
@@ -107,10 +114,14 @@ func TestAccGithubBranchProtectionV3_required_pull_request_reviews(t *testing.T)
 }
 
 func TestAccGithubBranchProtectionV3RequiredPullRequestReviewsBypassAllowances(t *testing.T) {
+	t.Parallel()
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 	teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 	repoName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
 	t.Run("configures required pull request reviews with bypass allowances", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
@@ -166,10 +177,14 @@ func TestAccGithubBranchProtectionV3RequiredPullRequestReviewsBypassAllowances(t
 }
 
 func TestAccGithubBranchProtectionV3_branch_push_restrictions(t *testing.T) {
+	t.Parallel()
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 	teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 	repoName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
 	t.Run("configures branch push restrictions", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name      = "%s"
@@ -218,7 +233,11 @@ func TestAccGithubBranchProtectionV3_branch_push_restrictions(t *testing.T) {
 }
 
 func TestAccGithubBranchProtectionV3_computed_status_checks_no_churn(t *testing.T) {
+	t.Parallel()
+
 	t.Run("handles computed status checks without churn", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 
@@ -280,7 +299,11 @@ func TestAccGithubBranchProtectionV3_computed_status_checks_no_churn(t *testing.
 }
 
 func TestAccGithubBranchProtectionV3_computed_status_contexts_no_churn(t *testing.T) {
+	t.Parallel()
+
 	t.Run("handles computed status contexts without churn", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -340,8 +363,62 @@ func TestAccGithubBranchProtectionV3_computed_status_contexts_no_churn(t *testin
 	})
 }
 
+func TestAccGithubBranchProtectionV3_update_with_status_checks(t *testing.T) {
+	t.Parallel()
+
+	// A read populates both `contexts` and `checks` from the API response, so updating
+	// any other setting used to send every required check twice, which GitHub rejects
+	// with "Context must be unique per branch protection".
+	for _, statusChecksField := range []string{"contexts", "checks"} {
+		t.Run(fmt.Sprintf("updates other settings when %s is set", statusChecksField), func(t *testing.T) {
+			t.Parallel()
+
+			repo := mustCreateTestRepository(t)
+
+			config := func(enforceAdmins bool) string {
+				return fmt.Sprintf(`
+				resource "github_branch_protection_v3" "test" {
+					repository     = "%s"
+					branch         = "main"
+					enforce_admins = %t
+
+					required_status_checks {
+						strict = true
+						%s = [
+							"ci/test",
+							"ci/build"
+						]
+					}
+				}
+			`, repo.GetName(), enforceAdmins, statusChecksField)
+			}
+
+			resource.Test(t, resource.TestCase{
+				PreCheck:          func() { skipUnauthenticated(t) },
+				ProviderFactories: providerFactories,
+				Steps: []resource.TestStep{
+					{
+						Config: config(false),
+					},
+					{
+						Config: config(true),
+						ConfigStateChecks: []statecheck.StateCheck{
+							statecheck.ExpectKnownValue("github_branch_protection_v3.test", tfjsonpath.New("enforce_admins"), knownvalue.Bool(true)),
+							statecheck.ExpectKnownValue("github_branch_protection_v3.test", tfjsonpath.New("required_status_checks").AtSliceIndex(0).AtMapKey(statusChecksField), knownvalue.SetSizeExact(2)),
+						},
+					},
+				},
+			})
+		})
+	}
+}
+
 func TestAccGithubBranchProtectionV3(t *testing.T) {
+	t.Parallel()
+
 	t.Run("configures default settings when empty", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -378,6 +455,8 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 	})
 
 	t.Run("configures conversation resolution", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -415,6 +494,8 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 	})
 
 	t.Run("configures required status checks", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -458,6 +539,8 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 	})
 
 	t.Run("configures required status checks context", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -496,6 +579,8 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 	})
 
 	t.Run("configures required pull request reviews", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -591,6 +676,8 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 	})
 
 	t.Run("configures required pull request reviews with bypass allowances", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testResourceName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -647,6 +734,8 @@ func TestAccGithubBranchProtectionV3(t *testing.T) {
 	})
 
 	t.Run("configures branch push restrictions", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testResourceName := fmt.Sprintf("%sbranch-protection-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`

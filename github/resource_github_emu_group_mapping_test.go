@@ -17,11 +17,15 @@ import (
 )
 
 func TestAccGithubEMUGroupMapping(t *testing.T) {
+	t.Parallel()
+
 	groupID := testAccConf.testEnterpriseEMUGroupId
 	if groupID == 0 {
 		t.Skip("Skipping EMU group mapping tests because testEnterpriseEMUGroupId is not set")
 	}
 	t.Run("creates_without_error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-emu-%s", testResourcePrefix, randomID)
 
@@ -34,7 +38,6 @@ func TestAccGithubEMUGroupMapping(t *testing.T) {
 					Config: testAccGithubEMUGroupMappingConfig(teamName, groupID),
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_emu_group_mapping.test", tfjsonpath.New("group_id"), knownvalue.NotNull()),
-						statecheck.ExpectKnownValue("github_emu_group_mapping.test", tfjsonpath.New("etag"), knownvalue.NotNull()),
 						statecheck.ExpectKnownValue("github_emu_group_mapping.test", tfjsonpath.New("team_id"), knownvalue.NotNull()),
 						statecheck.CompareValuePairs("github_emu_group_mapping.test", tfjsonpath.New("team_slug"), "github_team.test", tfjsonpath.New("slug"), compare.ValuesSame()),
 					},
@@ -44,6 +47,8 @@ func TestAccGithubEMUGroupMapping(t *testing.T) {
 	})
 
 	t.Run("imports_without_error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-emu-%s", testResourcePrefix, randomID)
 		rn := "github_emu_group_mapping.test"
@@ -57,16 +62,17 @@ func TestAccGithubEMUGroupMapping(t *testing.T) {
 					Config: testAccGithubEMUGroupMappingConfig(teamName, groupID),
 				},
 				{
-					ResourceName:            rn,
-					ImportState:             true,
-					ImportStateIdFunc:       testAccGithubEMUGroupMappingImportStateIdFunc(rn),
-					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"etag"},
+					ResourceName:      rn,
+					ImportState:       true,
+					ImportStateIdFunc: testAccGithubEMUGroupMappingImportStateIdFunc(rn),
+					ImportStateVerify: true,
 				},
 			},
 		})
 	})
 	t.Run("imports_multiple_teams_without_error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam1-emu-%s", testResourcePrefix, randomID)
 		teamName2 := fmt.Sprintf("%steam2-emu-%s", testResourcePrefix, randomID)
@@ -99,17 +105,18 @@ func TestAccGithubEMUGroupMapping(t *testing.T) {
 					Config: config,
 				},
 				{
-					ResourceName:            rn,
-					ImportState:             true,
-					ImportStateIdFunc:       testAccGithubEMUGroupMappingImportStateIdFunc(rn),
-					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"etag"},
+					ResourceName:      rn,
+					ImportState:       true,
+					ImportStateIdFunc: testAccGithubEMUGroupMappingImportStateIdFunc(rn),
+					ImportStateVerify: true,
 				},
 			},
 		})
 	})
 
 	t.Run("updates_team_slug_without_error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName1 := fmt.Sprintf("%steam-emu-%s", testResourcePrefix, randomID)
 		teamName2 := fmt.Sprintf("%s-upd", teamName1)
@@ -125,7 +132,6 @@ func TestAccGithubEMUGroupMapping(t *testing.T) {
 					ConfigStateChecks: []statecheck.StateCheck{
 						compareIDSame.AddStateValue("github_emu_group_mapping.test", tfjsonpath.New("id")),
 						statecheck.ExpectKnownValue("github_emu_group_mapping.test", tfjsonpath.New("group_id"), knownvalue.NotNull()),
-						statecheck.ExpectKnownValue("github_emu_group_mapping.test", tfjsonpath.New("etag"), knownvalue.NotNull()),
 						statecheck.CompareValuePairs("github_emu_group_mapping.test", tfjsonpath.New("team_slug"), "github_team.test", tfjsonpath.New("slug"), compare.ValuesSame()),
 						statecheck.ExpectKnownValue("github_emu_group_mapping.test", tfjsonpath.New("team_id"), knownvalue.NotNull()),
 					},
@@ -148,6 +154,8 @@ func TestAccGithubEMUGroupMapping(t *testing.T) {
 	})
 
 	t.Run("recreates_when_switching_to_different_team_without_error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandString(5)
 		teamName1 := fmt.Sprintf("%semu1-%s", testResourcePrefix, randomID)
 		teamName2 := fmt.Sprintf("%semu2-%s", testResourcePrefix, randomID)
@@ -177,7 +185,6 @@ resource "github_emu_group_mapping" "test" {
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_emu_group_mapping.test", tfjsonpath.New("group_id"), knownvalue.NotNull()),
 						statecheck.ExpectKnownValue("github_emu_group_mapping.test", tfjsonpath.New("team_id"), knownvalue.NotNull()),
-						statecheck.ExpectKnownValue("github_emu_group_mapping.test", tfjsonpath.New("etag"), knownvalue.NotNull()),
 						statecheck.CompareValuePairs("github_emu_group_mapping.test", tfjsonpath.New("team_slug"), "github_team.test1", tfjsonpath.New("slug"), compare.ValuesSame()),
 					},
 				},
@@ -192,7 +199,6 @@ resource "github_emu_group_mapping" "test" {
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_emu_group_mapping.test", tfjsonpath.New("group_id"), knownvalue.NotNull()),
 						statecheck.ExpectKnownValue("github_emu_group_mapping.test", tfjsonpath.New("team_id"), knownvalue.NotNull()),
-						statecheck.ExpectKnownValue("github_emu_group_mapping.test", tfjsonpath.New("etag"), knownvalue.NotNull()),
 						statecheck.CompareValuePairs("github_emu_group_mapping.test", tfjsonpath.New("team_slug"), "github_team.test2", tfjsonpath.New("slug"), compare.ValuesSame()),
 					},
 				},
@@ -202,12 +208,8 @@ resource "github_emu_group_mapping" "test" {
 }
 
 func testAccCheckGithubEMUGroupMappingDestroy(s *terraform.State) error {
-	meta, err := getTestMeta()
-	if err != nil {
-		return err
-	}
-	conn := meta.v3client
-	orgName := meta.name
+	conn := testAccConf.meta.v3client
+	orgName := testAccConf.meta.name
 	ctx := context.Background()
 
 	for _, rs := range s.RootModule().Resources {

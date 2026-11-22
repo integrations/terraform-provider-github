@@ -89,7 +89,7 @@ func resourceGithubRepositoryFileStateUpgradeV0(ctx context.Context, rawState ma
 		"rawState": rawState,
 	})
 
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 

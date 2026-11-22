@@ -14,7 +14,11 @@ import (
 )
 
 func TestAccGithubRepository(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates and updates repositories without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%screate-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -74,6 +78,8 @@ func TestAccGithubRepository(t *testing.T) {
 	})
 
 	t.Run("updates a repositories name without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		oldName := fmt.Sprintf(`%srename-%s`, testResourcePrefix, randomID)
 		newName := fmt.Sprintf(`%s-renamed`, oldName)
@@ -122,7 +128,8 @@ func TestAccGithubRepository(t *testing.T) {
 					Config: strings.Replace(
 						config,
 						oldName,
-						newName, 1),
+						newName, 1,
+					),
 					Check: checks["after"],
 				},
 			},
@@ -130,6 +137,8 @@ func TestAccGithubRepository(t *testing.T) {
 	})
 
 	t.Run("imports repositories without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -164,6 +173,8 @@ func TestAccGithubRepository(t *testing.T) {
 	})
 
 	t.Run("archives repositories without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
@@ -196,6 +207,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("manages the project feature for a repository", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%sproject-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -241,6 +254,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("manages the default branch feature for a repository", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%sbranch-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -298,6 +313,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("allows setting default_branch on an empty repository", func(t *testing.T) {
+		t.Parallel()
+
 		// Although default_branch is deprecated, for backwards compatibility
 		// we allow setting it to "main".
 
@@ -341,6 +358,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("manages the license and gitignore feature for a repository", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%slicense-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -377,6 +396,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("configures_topics_for_a_repository", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%stopic-%s", testResourcePrefix, randomID)
 		topicsBefore := `["terraform", "testing"]`
@@ -411,6 +432,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("creates a repository using a public template", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%stemplate-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -441,20 +464,30 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("creates a repository using an org template", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		testRepoName := fmt.Sprintf("%stemplate-%s", testResourcePrefix, randomID)
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name        = "%s"
-				description = "Terraform acceptance tests %[1]s"
-				visibility  = "%s"
-				template {
-					owner = "%s"
-					repository = "%s"
-				}
+		t.Parallel()
 
-			}
-		`, testRepoName, testAccConf.testRepositoryVisibility, testAccConf.owner, testAccConf.testOrgTemplateRepository)
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		testTemplateRepoName := fmt.Sprintf("%stemplate-%s", testResourcePrefix, randomID)
+		testRepoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
+
+		config := fmt.Sprintf(`
+resource "github_repository" "test" {
+  name         = "%s"
+  visibility   = "%s"
+  auto_init    = true
+  is_template = true
+}
+
+resource "github_repository" "test" {
+  name        = "%s"
+  description = "Terraform acceptance tests %[1]s"
+  visibility  = "%s"
+  template {
+    owner      = "%s"
+    repository = github_repository.test.name
+  }
+}
+`, testTemplateRepoName, testAccConf.testRepositoryVisibility, testRepoName, testAccConf.testRepositoryVisibility, testAccConf.owner)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:          func() { skipUnlessHasOrgs(t) },
@@ -471,6 +504,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("archives repositories on destroy", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
@@ -505,6 +540,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("create_private_with_forking", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
@@ -533,6 +570,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("create_private_without_forking", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
@@ -561,6 +600,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("create_private_with_forking_unset", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
@@ -587,6 +628,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("update_public_to_private_allow_forking", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%svisibility-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -645,6 +688,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("create_with_vulnerability_alerts", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
@@ -672,6 +717,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("create_without_vulnerability_alerts", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
@@ -699,6 +746,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("create_with_vulnerability_alerts_unset", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
@@ -724,6 +773,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("update_vulnerability_alerts", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
@@ -757,6 +808,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("create and modify merge commit strategy without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%smodify-co-str-%s", testResourcePrefix, randomID)
 		mergeCommitTitle := "PR_TITLE"
@@ -797,6 +850,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("create and modify squash merge commit strategy without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%smodify-sq-str-%s", testResourcePrefix, randomID)
 		testRepoNameAfter := fmt.Sprintf("%s-modified", testRepoName)
@@ -843,6 +898,8 @@ resource "github_repository" "test" {
 	})
 
 	// t.Run("create a repository with go as primary_language", func(t *testing.T) {
+	// 	t.Parallel()
+
 	// 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 	// 	testResourceName := fmt.Sprintf("%srepo-%s", testResourcePrefix, randomID)
 	// 	config := fmt.Sprintf(`
@@ -879,6 +936,8 @@ resource "github_repository" "test" {
 	// })
 
 	t.Run("manages the legacy pages feature for a repository", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%slegacy-pages-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -912,6 +971,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("manages the pages from workflow feature for a repository", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%sworkflow-pages-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -940,6 +1001,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("manages the security feature for a private repository", func(t *testing.T) {
+		t.Parallel()
+
 		if !testAccConf.testAdvancedSecurity {
 			t.Skip("Advanced Security is not enabled for this account")
 		}
@@ -994,6 +1057,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("manages the security feature for a public repository", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%ssecurity-public-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -1032,6 +1097,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("creates repos with private visibility", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%svisibility-private-%s", testResourcePrefix, randomID)
 		config := `
@@ -1056,6 +1123,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("creates repos with internal visibility", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%svisibility-internal-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -1080,6 +1149,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("updates repos to private visibility", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%svisibility-public-%s", testResourcePrefix, randomID)
 		config := `
@@ -1111,6 +1182,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("updates_repos_to_public_visibility", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%spublic-vuln-%s", testResourcePrefix, randomID)
 		config := `
@@ -1141,6 +1214,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("updates repos to internal visibility", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%sinternal-vuln-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -1179,6 +1254,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("sets private visibility for repositories created by a template", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%stemplate-visibility-private-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -1216,6 +1293,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("create_internal_repo_from_template", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -1245,6 +1324,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("check_web_commit_signoff_required_enabled", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%scommit-signoff-%s", testResourcePrefix, randomID)
 		config := `
@@ -1270,6 +1351,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("check_web_commit_signoff_required_disabled", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%scommit-signoff-%s", testResourcePrefix, randomID)
 		config := `
@@ -1295,6 +1378,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("check_web_commit_signoff_required_not_set", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%scommit-signoff-%s", testResourcePrefix, randomID)
 		config := `
@@ -1319,6 +1404,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("check_web_commit_signoff_required_organization_enabled_but_not_set", func(t *testing.T) {
+		t.Parallel()
+
 		t.Skip("This test should be run manually after confirming that the test organization has 'Require contributors to sign off on web-based commits' enabled under Organizations -> Settings -> Repository -> Repository defaults.")
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -1350,6 +1437,8 @@ resource "github_repository" "test" {
 	})
 
 	t.Run("check_allow_forking_not_set", func(t *testing.T) {
+		t.Parallel()
+
 		t.Skip("This test should be run manually after confirming that the test organization has been correctly configured to disable setting forking at the repo level.")
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -1381,6 +1470,8 @@ resource "github_repository" "private" {
 	})
 
 	t.Run("check_vulnerability_alerts_not_set", func(t *testing.T) {
+		t.Parallel()
+
 		t.Skip("This test should be run manually after confirming that the test organization has been correctly configured to disable setting vulnerability alerts at the repo level.")
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -1410,52 +1501,10 @@ resource "github_repository" "private" {
 			},
 		})
 	})
-}
-
-func Test_expandPages(t *testing.T) {
-	t.Run("expand Pages configuration with workflow", func(t *testing.T) {
-		input := []any{map[string]any{
-			"build_type": "workflow",
-			"source":     []any{map[string]any{}},
-		}}
-
-		pages := expandPages(input)
-		if pages == nil {
-			t.Fatal("pages is nil")
-		}
-		if pages.GetBuildType() != "workflow" {
-			t.Errorf("got %q; want %q", pages.GetBuildType(), "workflow")
-		}
-		if pages.GetSource().GetBranch() != "main" {
-			t.Errorf("got %q; want %q", pages.GetSource().GetBranch(), "main")
-		}
-	})
-
-	t.Run("expand Pages configuration with source", func(t *testing.T) {
-		input := []any{map[string]any{
-			"build_type": "legacy",
-			"source": []any{map[string]any{
-				"branch": "main",
-				"path":   "/docs",
-			}},
-		}}
-
-		pages := expandPages(input)
-		if pages == nil {
-			t.Fatal("pages is nil")
-		}
-		if pages.GetBuildType() != "legacy" {
-			t.Errorf("got %q; want %q", pages.GetBuildType(), "legacy")
-		}
-		if pages.GetSource().GetBranch() != "main" {
-			t.Errorf("got %q; want %q", pages.GetSource().GetBranch(), "main")
-		}
-		if pages.GetSource().GetPath() != "/docs" {
-			t.Errorf("got %q; want %q", pages.GetSource().GetPath(), "/docs")
-		}
-	})
 
 	t.Run("forks a repository without error", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%sfork-%s", testResourcePrefix, randomID)
 		config := fmt.Sprintf(`
@@ -1500,6 +1549,8 @@ func Test_expandPages(t *testing.T) {
 	})
 
 	t.Run("can update forked repository properties", func(t *testing.T) {
+		t.Parallel()
+
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%sfork-update-%s", testResourcePrefix, randomID)
 		initialConfig := fmt.Sprintf(`
@@ -1580,7 +1631,59 @@ func Test_expandPages(t *testing.T) {
 	})
 }
 
+func Test_expandPages(t *testing.T) {
+	t.Parallel()
+
+	t.Run("expand Pages configuration with workflow", func(t *testing.T) {
+		t.Parallel()
+
+		input := []any{map[string]any{
+			"build_type": "workflow",
+			"source":     []any{map[string]any{}},
+		}}
+
+		pages := expandPages(input)
+		if pages == nil {
+			t.Fatal("pages is nil")
+		}
+		if pages.GetBuildType() != "workflow" {
+			t.Errorf("got %q; want %q", pages.GetBuildType(), "workflow")
+		}
+		if pages.GetSource().GetBranch() != "main" {
+			t.Errorf("got %q; want %q", pages.GetSource().GetBranch(), "main")
+		}
+	})
+
+	t.Run("expand Pages configuration with source", func(t *testing.T) {
+		t.Parallel()
+
+		input := []any{map[string]any{
+			"build_type": "legacy",
+			"source": []any{map[string]any{
+				"branch": "main",
+				"path":   "/docs",
+			}},
+		}}
+
+		pages := expandPages(input)
+		if pages == nil {
+			t.Fatal("pages is nil")
+		}
+		if pages.GetBuildType() != "legacy" {
+			t.Errorf("got %q; want %q", pages.GetBuildType(), "legacy")
+		}
+		if pages.GetSource().GetBranch() != "main" {
+			t.Errorf("got %q; want %q", pages.GetSource().GetBranch(), "main")
+		}
+		if pages.GetSource().GetPath() != "/docs" {
+			t.Errorf("got %q; want %q", pages.GetSource().GetPath(), "/docs")
+		}
+	})
+}
+
 func TestGithubRepositoryTopicPassesValidation(t *testing.T) {
+	t.Parallel()
+
 	resource := resourceGithubRepository()
 	schema := resource.Schema["topics"].Elem.(*schema.Schema)
 	diags := schema.ValidateDiagFunc("ef69e1a3-66be-40ca-bb62-4f36186aa292", cty.Path{cty.GetAttrStep{Name: "topics"}})
@@ -1590,6 +1693,8 @@ func TestGithubRepositoryTopicPassesValidation(t *testing.T) {
 }
 
 func TestGithubRepositoryTopicFailsValidationWhenOverMaxCharacters(t *testing.T) {
+	t.Parallel()
+
 	resource := resourceGithubRepository()
 	schema := resource.Schema["topics"].Elem.(*schema.Schema)
 
@@ -1612,7 +1717,11 @@ func (d resourceDataLike) GetOk(key string) (any, bool) {
 }
 
 func TestResourceGithubParseFullName(t *testing.T) {
+	t.Parallel()
+
 	t.Run("parses valid full name", func(t *testing.T) {
+		t.Parallel()
+
 		o := "moyorg"
 		r := "myrepo"
 
@@ -1629,6 +1738,8 @@ func TestResourceGithubParseFullName(t *testing.T) {
 	})
 
 	t.Run("handles missing full name", func(t *testing.T) {
+		t.Parallel()
+
 		_, _, ok := resourceGithubParseFullName(resourceDataLike(map[string]any{}))
 		if ok {
 			t.Fatal("expected ok to be false, got true")
@@ -1636,6 +1747,8 @@ func TestResourceGithubParseFullName(t *testing.T) {
 	})
 
 	t.Run("handles malformed full name", func(t *testing.T) {
+		t.Parallel()
+
 		_, _, ok := resourceGithubParseFullName(resourceDataLike(map[string]any{"full_name": "malformed"}))
 		if ok {
 			t.Fatal("expected ok to be false, got true")
@@ -1664,6 +1777,8 @@ func testCheckResourceAttrContains(resourceName, attributeName, substring string
 }
 
 func TestGithubRepositoryNameFailsValidationWhenOverMaxCharacters(t *testing.T) {
+	t.Parallel()
+
 	resource := resourceGithubRepository()
 	schema := resource.Schema["name"]
 
@@ -1679,6 +1794,8 @@ func TestGithubRepositoryNameFailsValidationWhenOverMaxCharacters(t *testing.T) 
 }
 
 func TestGithubRepositoryNameFailsValidationWithSpace(t *testing.T) {
+	t.Parallel()
+
 	resource := resourceGithubRepository()
 	schema := resource.Schema["name"]
 

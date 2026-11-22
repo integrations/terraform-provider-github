@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -60,7 +60,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 			"bypass_actors": {
 				Type:             schema.TypeList,
 				Optional:         true,
-				DiffSuppressFunc: bypassActorsDiffSuppressFunc,
+				DiffSuppressFunc: suppressUnorderedListDiff("bypass_actors", bypassActorCompareIdentity),
 				Description:      "The actors that can bypass the rules in this ruleset.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -68,13 +68,13 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 							Type:        schema.TypeInt,
 							Optional:    true,
 							Default:     nil,
-							Description: "The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `1`. Some resources such as DeployKey do not have an ID and this should be omitted.",
+							Description: "The ID of the actor that can bypass a ruleset. If `actor_type` is `Integration`, `actor_id` is a GitHub App ID. When `actor_type` is `User`, this should be set to the numeric GitHub user ID. Some actor types such as `OrganizationAdmin`, `EnterpriseOwner`, and `DeployKey` do not have an ID — this argument should not be set in those cases as the GitHub API will ignore it.",
 						},
 						"actor_type": {
 							Type:             schema.TypeString,
 							Required:         true,
-							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"RepositoryRole", "Team", "Integration", "OrganizationAdmin", "DeployKey"}, false)),
-							Description:      "The type of actor that can bypass a ruleset. See https://docs.github.com/en/rest/repos/rules for more information.",
+							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"RepositoryRole", "Team", "Integration", "OrganizationAdmin", "DeployKey", "EnterpriseOwner", "User"}, false)),
+							Description:      "The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`, `DeployKey`, `EnterpriseOwner`, or `User`. See https://docs.github.com/en/rest/repos/rules for more information.",
 						},
 						"bypass_mode": {
 							Type:             schema.TypeString,
@@ -677,19 +677,21 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 				},
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the ruleset.",
 			},
 		},
 	}
 }
 
-func resourceGithubRepositoryRulesetCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryRulesetCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
 	rulesetReq := resourceGithubRulesetObject(d, "")
 
-	owner := meta.(*Owner).name
+	owner := meta.name
 
 	repoName := d.Get("repository").(string)
 
@@ -714,8 +716,10 @@ func resourceGithubRepositoryRulesetCreate(ctx context.Context, d *schema.Resour
 	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if err := d.Set("rules", flattenRules(ctx, ruleset.Rules, false)); err != nil {
 		return diag.FromErr(err)
@@ -724,10 +728,11 @@ func resourceGithubRepositoryRulesetCreate(ctx context.Context, d *schema.Resour
 	return nil
 }
 
-func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	owner := meta.(*Owner).name
+	owner := meta.name
 
 	repoName := d.Get("repository").(string)
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -741,8 +746,7 @@ func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.Resource
 
 	ruleset, resp, err := client.Repositories.GetRuleset(ctx, owner, repoName, rulesetID, false)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -773,7 +777,7 @@ func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.Resource
 	if err := d.Set("enforcement", ruleset.Enforcement); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("bypass_actors", flattenBypassActors(ruleset.BypassActors)); err != nil {
+	if err := d.Set("bypass_actors", flattenBypassActors(ctx, ruleset.BypassActors)); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("conditions", flattenConditions(ctx, ruleset.GetConditions(), false)); err != nil {
@@ -785,19 +789,25 @@ func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.Resource
 	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	return nil
 }
 
-func resourceGithubRepositoryRulesetUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryRulesetUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
+	if err := d.Set("etag", nil); err != nil {
+		return diag.FromErr(err)
+	}
 
 	rulesetReq := resourceGithubRulesetObject(d, "")
-
-	owner := meta.(*Owner).name
 
 	repoName := d.Get("repository").(string)
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -826,8 +836,10 @@ func resourceGithubRepositoryRulesetUpdate(ctx context.Context, d *schema.Resour
 	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	return nil
@@ -883,16 +895,14 @@ func resourceGithubRepositoryRulesetImport(ctx context.Context, d *schema.Resour
 	return []*schema.ResourceData{d}, nil
 }
 
-func resourceGithubRepositoryRulesetDiff(ctx context.Context, d *schema.ResourceDiff, meta any) error {
-	err := validateRulesetConditions(ctx, d, false)
-	if err != nil {
+func resourceGithubRepositoryRulesetDiff(ctx context.Context, d *schema.ResourceDiff, m any) error {
+	if err := validateRulesetConditions(ctx, d, false); err != nil {
 		return err
 	}
 
-	err = validateRulesetRules(ctx, d)
-	if err != nil {
+	if err := validateRulesetRules(ctx, d); err != nil {
 		return err
 	}
 
-	return nil
+	return diffETag(ctx, d, m)
 }

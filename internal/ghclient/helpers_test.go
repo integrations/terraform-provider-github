@@ -2,20 +2,77 @@ package ghclient
 
 import (
 	"fmt"
+	"io"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
+	"time"
+
+	"golang.org/x/oauth2"
 )
 
-type staticRoundTripper struct{}
-
-func (s *staticRoundTripper) RoundTrip(_ *http.Request) (*http.Response, error) {
-	return nil, fmt.Errorf("not used")
+type fakeHTTPResponse struct {
+	statusCode int
+	headers    map[string]string
+	body       []byte
 }
 
-func mustReadTestAppPrivateKey(t *testing.T) []byte {
+// sequentialTokenSource is an oauth2.TokenSource that returns a different token on each call,
+// following the order of the provided tokens. Once exhausted, it keeps returning the last token.
+// This is used to simulate multiple distinct callers/tokens sharing the same underlying transport.
+type sequentialTokenSource struct {
+	tokens []string
+	idx    atomic.Int32
+}
+
+func (s *sequentialTokenSource) Token() (*oauth2.Token, error) {
+	i := int(s.idx.Add(1)) - 1
+	if i >= len(s.tokens) {
+		i = len(s.tokens) - 1
+	}
+
+	return &oauth2.Token{AccessToken: s.tokens[i]}, nil
+}
+
+type testRoundTripper struct {
+	delay  time.Duration
+	called atomic.Int32
+	resp   *http.Response
+	err    error
+}
+
+func (tr *testRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	if tr.delay > 0 {
+		ctx := req.Context()
+		select {
+		case <-time.After(tr.delay):
+		case <-ctx.Done():
+		}
+	}
+
+	tr.called.Add(1)
+
+	if tr.err != nil {
+		return nil, tr.err
+	}
+
+	return tr.resp, nil
+}
+
+func mustMkdirTemp(t *testing.T, dir, pattern string) string {
+	t.Helper()
+
+	dir, err := os.MkdirTemp(dir, pattern) //nolint:usetesting
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+
+	return dir
+}
+
+func mustReadAppPrivateKey(t *testing.T) []byte {
 	t.Helper()
 
 	privateKeyData, err := os.ReadFile(filepath.Join("..", "..", "github", "test-fixtures", "github-app-key.pem"))
@@ -26,21 +83,33 @@ func mustReadTestAppPrivateKey(t *testing.T) []byte {
 	return privateKeyData
 }
 
-func mustTestAppSource(t *testing.T, handler http.Handler) *appSource {
+func mustCreateRequest(t *testing.T, method, url string) *http.Request {
 	t.Helper()
 
-	ts := httptest.NewServer(handler)
-	t.Cleanup(ts.Close)
-
-	privateKeyData := mustReadTestAppPrivateKey(t)
-
-	apiURL := ts.URL + "/"
-	uploadURL := ts.URL + "/"
-
-	source, err := NewAppSource("123456789", privateKeyData, Options{RESTAPIURL: &apiURL, RESTUploadURL: &uploadURL})
+	req, err := http.NewRequestWithContext(t.Context(), method, url, nil)
 	if err != nil {
-		t.Fatalf("failed to create app source: %v", err)
+		t.Fatalf("failed to create request: %v", err)
 	}
 
-	return source
+	return req
+}
+
+type nonSeekableReader struct {
+	r io.Reader
+}
+
+func (n *nonSeekableReader) Read(p []byte) (int, error) {
+	return n.r.Read(p)
+}
+
+type errorReadSeeker struct {
+	io.Closer
+}
+
+func (rs *errorReadSeeker) Read(p []byte) (n int, err error) {
+	return 0, fmt.Errorf("error reading")
+}
+
+func (rs *errorReadSeeker) Seek(offset int64, whence int) (int64, error) {
+	return 0, fmt.Errorf("error seeking")
 }

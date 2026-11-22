@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -59,15 +59,15 @@ func resourceGithubIssueLabels() *schema.Resource {
 	}
 }
 
-func resourceGithubIssueLabelsRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubIssueLabelsRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	owner := meta.name
 	repository := d.Id()
 	ctx := context.WithValue(context.Background(), ctxId, repository)
 
 	log.Printf("[DEBUG] Reading GitHub issue labels for %s/%s", owner, repository)
 
-	labels, err := listLabels(client, ctx, owner, repository)
+	labels, err := listLabels(meta, ctx, owner, repository)
 	if err != nil {
 		return err
 	}
@@ -85,9 +85,10 @@ func resourceGithubIssueLabelsRead(d *schema.ResourceData, meta any) error {
 	return nil
 }
 
-func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 	repository := d.Get("repository").(string)
 	ctx := context.WithValue(context.Background(), ctxId, repository)
 
@@ -102,7 +103,7 @@ func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, meta any) e
 		wantLabelsMap[name] = label
 	}
 
-	hasLabels, err := listLabels(client, ctx, owner, repository)
+	hasLabels, err := listLabels(meta, ctx, owner, repository)
 	if err != nil {
 		return err
 	}
@@ -120,8 +121,8 @@ func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, meta any) e
 			if hasLabel.GetDescription() != description || hasLabel.GetColor() != color {
 				log.Printf("[DEBUG] Updating GitHub issue label %s/%s/%s", owner, repository, name)
 
-				_, _, err := client.Issues.EditLabel(ctx, owner, repository, name, &github.Label{
-					Name:        new(name),
+				_, _, err := client.Issues.UpdateLabel(ctx, owner, repository, name, github.UpdateIssueLabelRequest{
+					NewName:     new(name),
 					Description: new(description),
 					Color:       new(color),
 				})
@@ -143,16 +144,19 @@ func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, meta any) e
 
 	for _, l := range wantLabels {
 		labelData := l.(map[string]any)
-		name := labelData["name"].(string)
+		name, _ := labelData["name"].(string)
 
 		_, found := hasLabelsMap[name]
 		if !found {
 			log.Printf("[DEBUG] Creating GitHub issue label %s/%s/%s", owner, repository, name)
 
-			_, _, err := client.Issues.CreateLabel(ctx, owner, repository, &github.Label{
-				Name:        new(name),
-				Description: new(labelData["description"].(string)),
-				Color:       new(labelData["color"].(string)),
+			description, _ := labelData["description"].(string)
+			color, _ := labelData["color"].(string)
+
+			_, _, err := client.Issues.CreateLabel(ctx, owner, repository, github.CreateIssueLabelRequest{
+				Name:        name,
+				Description: new(description),
+				Color:       new(color),
 			})
 			if err != nil {
 				return err
@@ -170,9 +174,10 @@ func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, meta any) e
 	return nil
 }
 
-func resourceGithubIssueLabelsDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubIssueLabelsDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 	repository := d.Get("repository").(string)
 	ctx := context.WithValue(context.Background(), ctxId, repository)
 

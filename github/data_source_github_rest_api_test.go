@@ -10,10 +10,14 @@ import (
 )
 
 func TestAccGithubRestApiDataSource(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-	repoName := fmt.Sprintf("%srepo-rest-api-%s", testResourcePrefix, randomID)
+	t.Parallel()
 
 	t.Run("queries an existing branch without error", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-rest-api-%s", testResourcePrefix, randomID)
+
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name = "%[1]s"
@@ -49,6 +53,11 @@ func TestAccGithubRestApiDataSource(t *testing.T) {
 	})
 
 	t.Run("queries a collection without error", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-rest-api-%s", testResourcePrefix, randomID)
+
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name = "%[1]s"
@@ -77,6 +86,11 @@ func TestAccGithubRestApiDataSource(t *testing.T) {
 	})
 
 	t.Run("queries an invalid branch without error", func(t *testing.T) {
+		t.Parallel()
+
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("%srepo-rest-api-%s", testResourcePrefix, randomID)
+
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name = "%[1]s"
@@ -112,6 +126,10 @@ func TestAccGithubRestApiDataSource(t *testing.T) {
 	})
 
 	// t.Run("fails for invalid endpoint", func(t *testing.T) {
+	// 	t.Parallel()
+
+	// 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	// 	repoName := fmt.Sprintf("%srepo-rest-api-%s", testResourcePrefix, randomID)
 	// 	config := `
 	// 		data "github_rest_api" "test" {
 	// 			endpoint = "/xxx"

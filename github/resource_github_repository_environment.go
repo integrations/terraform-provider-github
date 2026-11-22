@@ -5,9 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
@@ -171,7 +170,7 @@ func resourceGithubRepositoryEnvironmentDiff(_ context.Context, d *schema.Resour
 }
 
 func resourceGithubRepositoryEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -179,7 +178,7 @@ func resourceGithubRepositoryEnvironmentCreate(ctx context.Context, d *schema.Re
 	envName := d.Get("environment").(string)
 	updateData := createUpdateEnvironmentData(d)
 
-	_, _, err := client.Repositories.CreateUpdateEnvironment(ctx, owner, repoName, url.PathEscape(envName), &updateData)
+	_, _, err := client.Repositories.CreateUpdateEnvironment(ctx, owner, repoName, envName, &updateData)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -205,17 +204,16 @@ func resourceGithubRepositoryEnvironmentCreate(ctx context.Context, d *schema.Re
 func resourceGithubRepositoryEnvironmentRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	ctx = tflog.SetField(ctx, "id", d.Id())
 
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
 	repoName := d.Get("repository").(string)
 	envName := d.Get("environment").(string)
 
-	env, _, err := client.Repositories.GetEnvironment(ctx, owner, repoName, url.PathEscape(envName))
+	env, _, err := client.Repositories.GetEnvironment(ctx, owner, repoName, envName)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				tflog.Info(ctx, "Repository environment not found, removing from state.", map[string]any{"repository": repoName, "environment": envName})
 				d.SetId("")
@@ -289,7 +287,7 @@ func resourceGithubRepositoryEnvironmentRead(ctx context.Context, d *schema.Reso
 }
 
 func resourceGithubRepositoryEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -297,7 +295,7 @@ func resourceGithubRepositoryEnvironmentUpdate(ctx context.Context, d *schema.Re
 	envName := d.Get("environment").(string)
 	updateData := createUpdateEnvironmentData(d)
 
-	_, _, err := client.Repositories.CreateUpdateEnvironment(ctx, owner, repoName, url.PathEscape(envName), &updateData)
+	_, _, err := client.Repositories.CreateUpdateEnvironment(ctx, owner, repoName, envName, &updateData)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -312,14 +310,14 @@ func resourceGithubRepositoryEnvironmentUpdate(ctx context.Context, d *schema.Re
 }
 
 func resourceGithubRepositoryEnvironmentDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
 	repoName := d.Get("repository").(string)
 	envName := d.Get("environment").(string)
 
-	_, err := client.Repositories.DeleteEnvironment(ctx, owner, repoName, url.PathEscape(envName))
+	_, err := client.Repositories.DeleteEnvironment(ctx, owner, repoName, envName)
 	if err != nil {
 		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "environment (%s)", envName))
 	}
@@ -328,7 +326,7 @@ func resourceGithubRepositoryEnvironmentDelete(ctx context.Context, d *schema.Re
 }
 
 func resourceGithubRepositoryEnvironmentImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 

@@ -7,6 +7,8 @@ import (
 )
 
 func Test_getBaseURL(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name        string
 		url         string

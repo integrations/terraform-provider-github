@@ -1,28 +1,23 @@
 ---
 page_title: "{{.Name}} ({{.Type}}) - {{.RenderedProviderName}}"
+subcategory: ""
 description: |-
-  Lookup a custom organization repository role.
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
 ---
 
 # {{.Name}} ({{.Type}})
 
-Lookup a custom organization repository role.
+{{ .Description | trimspace }}
 
-~> **Note**: Custom organization repository roles are currently only available in GitHub Enterprise Cloud.
+~> Custom organization repository roles are currently only available for GitHub Enterprise organizations.
 
+{{ if .HasExamples -}}
 ## Example Usage
 
-{{ tffile "examples/data-sources/organization_repository_role/example_1.tf" }}
+{{- range .ExampleFiles }}
 
-## Schema
+{{ tffile . }}
+{{- end }}
+{{- end }}
 
-### Required
-
-- `role_id` (Number) The ID of the organization repository role.
-
-### Read-Only
-
-- `name` (String) The name of the organization repository role.
-- `description` (String) The description of the organization repository role.
-- `base_role` (String) The system role from which this role inherits permissions.
-- `permissions` (Set of String) The permissions included in this role.
+{{ .SchemaMarkdown | trimspace }}

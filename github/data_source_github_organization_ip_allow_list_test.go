@@ -4,23 +4,30 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubOrganizationIpAllowListDataSource(t *testing.T) {
-	t.Run("queries without error", func(t *testing.T) {
+	t.Parallel()
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
 		config := `
-			data "github_organization_ip_allow_list" "all" {}
-		`
+data "github_organization_ip_allow_list" "test" {}
+`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeAggregateTestCheckFunc(
-						resource.TestCheckResourceAttrSet("data.github_organization_ip_allow_list.all", "ip_allow_list.#"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_organization_ip_allow_list.test", tfjsonpath.New("ip_allow_list"), knownvalue.NotNull()),
+					},
 				},
 			},
 		})

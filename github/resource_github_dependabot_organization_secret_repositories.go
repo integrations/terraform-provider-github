@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -40,13 +40,13 @@ func resourceGithubDependabotOrganizationSecretRepositories() *schema.Resource {
 }
 
 func resourceGithubDependabotOrganizationSecretRepositoriesCreateOrUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	if err := checkOrganization(m); err != nil {
-		return diag.FromErr(err)
-	}
-
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
+
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
+	}
 
 	secretName := d.Get("secret_name").(string)
 	repoIDs := []int64{}
@@ -67,19 +67,19 @@ func resourceGithubDependabotOrganizationSecretRepositoriesCreateOrUpdate(ctx co
 }
 
 func resourceGithubDependabotOrganizationSecretRepositoriesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	if err := checkOrganization(m); err != nil {
-		return diag.FromErr(err)
-	}
-
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
+
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
+	}
 
 	secretName := d.Get("secret_name").(string)
 
 	repoIDs := []int64{}
 	opt := &github.ListOptions{
-		PerPage: maxPerPage,
+		PerPage: meta.maxPerPage,
 	}
 	for {
 		results, resp, err := client.Dependabot.ListSelectedReposForOrgSecret(ctx, owner, secretName, opt)
@@ -105,13 +105,13 @@ func resourceGithubDependabotOrganizationSecretRepositoriesRead(ctx context.Cont
 }
 
 func resourceGithubDependabotOrganizationSecretRepositoriesDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	if err := checkOrganization(m); err != nil {
-		return diag.FromErr(err)
-	}
-
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
+
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
+	}
 
 	_, err := client.Dependabot.SetSelectedReposForOrgSecret(ctx, owner, d.Id(), []int64{})
 	if err != nil {
@@ -122,7 +122,7 @@ func resourceGithubDependabotOrganizationSecretRepositoriesDelete(ctx context.Co
 }
 
 func resourceGithubDependabotOrganizationSecretRepositoriesImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -134,7 +134,7 @@ func resourceGithubDependabotOrganizationSecretRepositoriesImport(ctx context.Co
 
 	repoIDs := []int64{}
 	opt := &github.ListOptions{
-		PerPage: maxPerPage,
+		PerPage: meta.maxPerPage,
 	}
 	for {
 		results, resp, err := client.Dependabot.ListSelectedReposForOrgSecret(ctx, owner, secretName, opt)

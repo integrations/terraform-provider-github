@@ -5,10 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strconv"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
@@ -100,7 +99,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyDiff(_ context.Context, 
 }
 
 func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -116,12 +115,12 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(ctx context.Conte
 		pattern = tagPattern
 	}
 
-	createData := github.DeploymentBranchPolicyRequest{
-		Name: new(pattern),
+	createData := github.CreateDeploymentBranchPolicyRequest{
+		Name: pattern,
 		Type: new(policyType),
 	}
 
-	policy, _, err := client.Repositories.CreateDeploymentBranchPolicy(ctx, owner, repoName, url.PathEscape(envName), &createData)
+	policy, _, err := client.Repositories.CreateDeploymentBranchPolicy(ctx, owner, repoName, envName, createData)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -150,7 +149,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(ctx context.Conte
 func resourceGithubRepositoryEnvironmentDeploymentPolicyRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	ctx = tflog.SetField(ctx, "id", d.Id())
 
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -158,10 +157,9 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyRead(ctx context.Context
 	envName := d.Get("environment").(string)
 	policyID := d.Get("policy_id").(int)
 
-	policy, _, err := client.Repositories.GetDeploymentBranchPolicy(ctx, owner, repoName, url.PathEscape(envName), int64(policyID))
+	policy, _, err := client.Repositories.GetDeploymentBranchPolicy(ctx, owner, repoName, envName, int64(policyID))
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -187,7 +185,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyRead(ctx context.Context
 }
 
 func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -202,11 +200,11 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(ctx context.Conte
 		pattern = tagPattern
 	}
 
-	updateData := github.DeploymentBranchPolicyRequest{
-		Name: new(pattern),
+	updateData := github.UpdateDeploymentBranchPolicyRequest{
+		Name: pattern,
 	}
 
-	_, _, err := client.Repositories.UpdateDeploymentBranchPolicy(ctx, owner, repoName, url.PathEscape(envName), int64(policyID), &updateData)
+	_, _, err := client.Repositories.UpdateDeploymentBranchPolicy(ctx, owner, repoName, envName, int64(policyID), updateData)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -221,7 +219,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(ctx context.Conte
 }
 
 func resourceGithubRepositoryEnvironmentDeploymentPolicyDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 
@@ -229,7 +227,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyDelete(ctx context.Conte
 	envName := d.Get("environment").(string)
 	policyID := d.Get("policy_id").(int)
 
-	_, err := client.Repositories.DeleteDeploymentBranchPolicy(ctx, owner, repoName, url.PathEscape(envName), int64(policyID))
+	_, err := client.Repositories.DeleteDeploymentBranchPolicy(ctx, owner, repoName, envName, int64(policyID))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -238,7 +236,7 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyDelete(ctx context.Conte
 }
 
 func resourceGithubRepositoryEnvironmentDeploymentPolicyImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-	meta := m.(*Owner)
+	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
 

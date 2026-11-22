@@ -1,6 +1,6 @@
 SWEEP?=repositories,teams
 PKG_NAME=github
-TEST?=./$(PKG_NAME)/...
+TESTACC?=./$(PKG_NAME)/...
 
 COVERAGEARGS?=-race -coverprofile=coverage.txt -covermode=atomic
 
@@ -42,7 +42,7 @@ fmt:
 # This allows us to start enforcing new linting rules on new code without having to fix all existing issues in the codebase at once.
 # Only executes if either of the source files has changed, to avoid unnecessary work.
 .golangci.new.yml: .golangci.yml .golangci.strict.yml
-	@yq eval-all 'select(fileIndex == 0) *+ select(fileIndex == 1)' .golangci.yml .golangci.strict.yml > .golangci.new.yml 
+	@yq eval-all 'select(fileIndex == 0) *+ select(fileIndex == 1)' .golangci.yml .golangci.strict.yml > .golangci.new.yml
 
 lint:
 	@echo "==> Checking source code against linters and fixing..."
@@ -66,7 +66,7 @@ lintcheck-new: .golangci.new.yml
 test:
 	@branch=$$(git rev-parse --abbrev-ref HEAD); \
 	printf "==> Running unit tests on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
-	CGO_ENABLED=0 go test $(TEST) \
+	CGO_ENABLED=0 go test ./... \
 		-timeout=30s \
 		-parallel=4 \
 		-v \
@@ -77,11 +77,11 @@ test:
 testacc:
 	@branch=$$(git rev-parse --abbrev-ref HEAD); \
 	printf "==> Running acceptance tests on branch: \033[1m%s\033[0m...\n" "🌿 $$branch 🌿"
-	TF_ACC=1 CGO_ENABLED=0 go test $(TEST) -v -run '^TestAcc' $(RUNARGS) $(TESTARGS) -timeout 120m -count=1
+	TF_ACC=1 CGO_ENABLED=0 go test $(TESTACC) -v -run '^TestAcc' $(RUNARGS) $(TESTARGS) -timeout 120m -count=1
 
 sweep:
 	@echo "WARNING: This will destroy infrastructure. Use only in development accounts."
-	go test $(TEST) -v -sweep=$(SWEEP) $(SWEEPARGS)
+	go test $(TESTACC) -v -sweep=$(SWEEP) $(SWEEPARGS)
 
 generatedocs:
 	@cd tools; go generate ./...

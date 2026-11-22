@@ -90,7 +90,7 @@ The following arguments are supported:
 
 - `repo_id` - GitHub ID for the repository
 
-- `repository_license` - An Array of GitHub repository licenses. Each `repository_license` block consists of the fields documented below.
+- `repository_license` - An Array of GitHub repository licenses. Each `repository_license` block consists of the fields documented below. The array is empty when the repository has no license, and also when GitHub reports a license for the repository but cannot serve it, which happens for example after a LICENSE file has been added and later removed.
 
 ---
 

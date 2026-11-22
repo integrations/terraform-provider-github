@@ -9,9 +9,13 @@ import (
 )
 
 func TestAccGithubActionsHostedRunner(t *testing.T) {
+	t.Parallel()
+
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates hosted runners without error", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 			resource "github_actions_runner_group" "test" {
 				name       = "tf-acc-test-group-%s"
@@ -87,6 +91,8 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 	})
 
 	t.Run("creates hosted runner with optional parameters", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 			resource "github_actions_runner_group" "test" {
 				name       = "tf-acc-test-group-%s"
@@ -140,6 +146,8 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 	})
 
 	t.Run("updates hosted runner configuration", func(t *testing.T) {
+		t.Parallel()
+
 		configBefore := fmt.Sprintf(`
 			resource "github_actions_runner_group" "test" {
 				name       = "tf-acc-test-group-%s"
@@ -227,6 +235,8 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 	})
 
 	t.Run("updates size field", func(t *testing.T) {
+		t.Parallel()
+
 		configBefore := fmt.Sprintf(`
 			resource "github_actions_runner_group" "test" {
 				name       = "tf-acc-test-group-%s"
@@ -304,6 +314,8 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 	})
 
 	t.Run("imports hosted runner", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 			resource "github_actions_runner_group" "test" {
 				name       = "tf-acc-test-group-%s"
@@ -352,6 +364,8 @@ func TestAccGithubActionsHostedRunner(t *testing.T) {
 	})
 
 	t.Run("deletes hosted runner", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 			resource "github_actions_runner_group" "test" {
 				name       = "tf-acc-test-group-%s"

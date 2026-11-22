@@ -2,9 +2,8 @@ package github
 
 import (
 	"context"
-	"net/url"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -46,16 +45,17 @@ func dataSourceGithubRepositoryEnvironmentDeploymentPolicies() *schema.Resource 
 	}
 }
 
-func dataSourceGithubRepositoryEnvironmentDeploymentPoliciesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func dataSourceGithubRepositoryEnvironmentDeploymentPoliciesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 	repoName := d.Get("repository").(string)
 	envName := d.Get("environment").(string)
 
 	results := make([]map[string]any, 0)
-	listOptions := &github.ListOptions{PerPage: maxPerPage}
+	listOptions := &github.ListOptions{PerPage: meta.maxPerPage}
 	for {
-		policies, resp, err := client.Repositories.ListDeploymentBranchPolicies(ctx, owner, repoName, url.PathEscape(envName), listOptions)
+		policies, resp, err := client.Repositories.ListDeploymentBranchPolicies(ctx, owner, repoName, envName, listOptions)
 		if err != nil {
 			return diag.FromErr(err)
 		}

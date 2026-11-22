@@ -8,7 +8,11 @@ import (
 )
 
 func TestAccGithubUserExternalIdentity(t *testing.T) {
+	t.Parallel()
+
 	t.Run("queries without error", func(t *testing.T) {
+		t.Parallel()
+
 		config := `data "github_user_external_identity" "test" { username = "%s" }`
 
 		check := resource.ComposeAggregateTestCheckFunc(
@@ -22,7 +26,7 @@ func TestAccGithubUserExternalIdentity(t *testing.T) {
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: fmt.Sprintf(config, testAccConf.testExternalUser),
+					Config: fmt.Sprintf(config, testAccConf.testExternalUser1),
 					Check:  check,
 				},
 			},

@@ -7,9 +7,13 @@ import (
 )
 
 func TestAccGithubCodespacesUserPublicKeyDataSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run("queries an user public key without error", func(t *testing.T) {
+		t.Parallel()
+
 		config := `
-			data "github_codespaces_user_public_key" "test" {}
+data "github_codespaces_user_public_key" "test" {}
 		`
 
 		check := resource.ComposeTestCheckFunc(

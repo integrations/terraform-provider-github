@@ -9,23 +9,27 @@ import (
 
 // TODO: this is failing.
 func TestAccGithubUsersDataSource(t *testing.T) {
-	if len(testAccConf.testExternalUser) == 0 {
+	t.Parallel()
+
+	if len(testAccConf.testExternalUser1) == 0 {
 		t.Skip("No external user provided")
 	}
 
 	t.Run("queries multiple accounts", func(t *testing.T) {
+		t.Parallel()
+
 		config := fmt.Sprintf(`
 			data "github_users" "test" {
 				usernames = ["%[1]s", "!%[1]s"]
 			}
-		`, testAccConf.testExternalUser)
+		`, testAccConf.testExternalUser1)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr("data.github_users.test", "logins.#", "1"),
-			resource.TestCheckResourceAttr("data.github_users.test", "logins.0", testAccConf.testExternalUser),
+			resource.TestCheckResourceAttr("data.github_users.test", "logins.0", testAccConf.testExternalUser1),
 			resource.TestCheckResourceAttr("data.github_users.test", "node_ids.#", "1"),
 			resource.TestCheckResourceAttr("data.github_users.test", "unknown_logins.#", "1"),
-			resource.TestCheckResourceAttr("data.github_users.test", "unknown_logins.0", fmt.Sprintf("!%s", testAccConf.testExternalUser)),
+			resource.TestCheckResourceAttr("data.github_users.test", "unknown_logins.0", fmt.Sprintf("!%s", testAccConf.testExternalUser1)),
 		)
 
 		resource.Test(t, resource.TestCase{
@@ -41,6 +45,8 @@ func TestAccGithubUsersDataSource(t *testing.T) {
 	})
 
 	t.Run("does not fail if called with empty list of usernames", func(t *testing.T) {
+		t.Parallel()
+
 		config := `
 			data "github_users" "test" {
 				usernames = []

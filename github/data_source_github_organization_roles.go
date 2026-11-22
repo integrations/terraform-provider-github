@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -10,9 +9,9 @@ import (
 
 func dataSourceGithubOrganizationRoles() *schema.Resource {
 	return &schema.Resource{
-		Description: "Lookup all custom roles in an organization.",
-
 		ReadContext: dataSourceGithubOrganizationRolesRead,
+
+		Description: "Data source to list all custom roles in an organization.",
 
 		Schema: map[string]*schema.Schema{
 			"roles": {
@@ -21,33 +20,39 @@ func dataSourceGithubOrganizationRoles() *schema.Resource {
 				Computed:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"role_id": {
-							Description: "The ID of the organization role.",
+						"id": {
+							Description: "ID of the organization role.",
 							Type:        schema.TypeInt,
 							Computed:    true,
 						},
+						"role_id": {
+							Description: "ID of the organization role.",
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Deprecated:  "The `role_id` attribute is deprecated and will be removed in a future version of the provider. Use `id` instead.",
+						},
 						"name": {
-							Description: "The name of the organization role.",
+							Description: "Name of the organization role.",
 							Type:        schema.TypeString,
 							Computed:    true,
 						},
 						"description": {
-							Description: "The description of the organization role.",
+							Description: "Description of the organization role.",
 							Type:        schema.TypeString,
 							Computed:    true,
 						},
 						"source": {
-							Description: "The source of this role; one of `Predefined`, `Organization`, or `Enterprise`.",
+							Description: "Source of this role; one of `Predefined`, `Organization`, or `Enterprise`.",
 							Type:        schema.TypeString,
 							Computed:    true,
 						},
 						"base_role": {
-							Description: "The system role from which this role inherits permissions.",
+							Description: "System role from which this role inherits permissions.",
 							Type:        schema.TypeString,
 							Computed:    true,
 						},
 						"permissions": {
-							Description: "A list of permissions included in this role.",
+							Description: "Additional permissions included in this role.",
 							Type:        schema.TypeSet,
 							Elem:        &schema.Schema{Type: schema.TypeString},
 							Computed:    true,
@@ -59,11 +64,14 @@ func dataSourceGithubOrganizationRoles() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationRolesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+func dataSourceGithubOrganizationRolesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 
-	ret, _, err := client.Organizations.ListRoles(ctx, orgName)
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
+	}
+
+	ret, _, err := meta.v3client.Organizations.ListRoles(ctx, meta.name)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -71,6 +79,7 @@ func dataSourceGithubOrganizationRolesRead(ctx context.Context, d *schema.Resour
 	allRoles := make([]any, ret.GetTotalCount())
 	for i, role := range ret.CustomRepoRoles {
 		r := map[string]any{
+			"id":          int(role.GetID()),
 			"role_id":     int(role.GetID()),
 			"name":        role.GetName(),
 			"description": role.GetDescription(),
@@ -81,9 +90,10 @@ func dataSourceGithubOrganizationRolesRead(ctx context.Context, d *schema.Resour
 		allRoles[i] = r
 	}
 
-	d.SetId(fmt.Sprintf("%s/github-org-roles", orgName))
+	d.SetId(meta.name)
+
 	if err := d.Set("roles", allRoles); err != nil {
-		return diag.FromErr(fmt.Errorf("error setting roles: %w", err))
+		return diag.Errorf("error setting roles: %v", err)
 	}
 
 	return nil

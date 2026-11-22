@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -20,6 +20,8 @@ func resourceGithubUserSshKey() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
+
+		CustomizeDiff: diffETag,
 
 		Schema: map[string]*schema.Schema{
 			"title": {
@@ -44,8 +46,9 @@ func resourceGithubUserSshKey() *schema.Resource {
 				Description: "The URL of the SSH key.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the SSH key.",
 			},
 		},
 	}
@@ -58,9 +61,9 @@ func resourceGithubUserSshKeyCreate(d *schema.ResourceData, meta any) error {
 	key := d.Get("key").(string)
 	ctx := context.Background()
 
-	userKey, _, err := client.Users.CreateKey(ctx, &github.Key{
+	userKey, _, err := client.Users.CreateKey(ctx, github.CreateUserKeyRequest{
 		Title: new(title),
-		Key:   new(key),
+		Key:   key,
 	})
 	if err != nil {
 		return err
@@ -71,8 +74,9 @@ func resourceGithubUserSshKeyCreate(d *schema.ResourceData, meta any) error {
 	return resourceGithubUserSshKeyRead(d, meta)
 }
 
-func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubUserSshKeyRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -85,8 +89,7 @@ func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta any) error {
 
 	key, resp, err := client.Users.GetKey(ctx, id)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -100,8 +103,10 @@ func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta any) error {
 		return err
 	}
 
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return err
+		}
 	}
 	if err = d.Set("title", key.GetTitle()); err != nil {
 		return err

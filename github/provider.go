@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -18,12 +20,17 @@ import (
 	"github.com/integrations/terraform-provider-github/v6/internal/ghclient"
 )
 
+const (
+	providerName = "terraform-provider-github"
+	providerURL  = "https://github.com/integrations/terraform-provider-github"
+)
+
 func init() {
 	schema.DescriptionKind = schema.StringMarkdown
 }
 
 // NewProvider returns a function that returns the schema.Provider for this provider.
-func NewProvider() func() *schema.Provider {
+func NewProvider(version, commit string) func() *schema.Provider {
 	return func() *schema.Provider {
 		return &schema.Provider{
 			Schema: map[string]*schema.Schema{
@@ -46,39 +53,52 @@ func NewProvider() func() *schema.Provider {
 					Description: "GitHub organization to manage. This can also be set by the `GITHUB_ORGANIZATION` environment variable.",
 					Deprecated:  "This argument is deprecated and will be removed in a future major release; use `owner` instead.",
 				},
+				"auth_mode": {
+					Type:             schema.TypeString,
+					Optional:         true,
+					DefaultFunc:      schema.EnvDefaultFunc("GITHUB_AUTH_MODE", "auto"),
+					ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"auto", "app", "token", "none"}, false)),
+					Description:      "The authentication mode to use; this can be one of `auto`, `app`, `token` or `none` and defaults to `auto` which will detect the highest priority authentication mode available (`app` -> `token` -> `none`). This can also be set by the `GITHUB_AUTH_MODE` environment variable.",
+				},
+				"token_env_name": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "GITHUB_TOKEN",
+					Description: "The environment variable name for the GitHub token. This defaults to `GITHUB_TOKEN`.",
+				},
 				"token": {
 					Type:        schema.TypeString,
 					Optional:    true,
-					DefaultFunc: schema.EnvDefaultFunc("GITHUB_TOKEN", nil),
-					Description: "GitHub OAuth or Personal Access Token (PAT) to use for authentication. This can also be set by the `GITHUB_TOKEN` environment variable.",
-					// ConflictsWith: []string{"app_auth"}, // TODO: Enable as part of v7.
+					Description: "GitHub OAuth or Personal Access Token (PAT) to use for authentication. This can also be set by the environment variable specified in `token_env_name` which defaults to `GITHUB_TOKEN`.",
+				},
+				"app_auth_env_prefix": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "GITHUB_APP_",
+					Description: "The environment variable prefix for the GitHub App authentication used to determine the environment variable names for the GitHub App's ID (`<PREFIX>_ID`), installation ID (`<PREFIX>_INSTALLATION_ID`), and PEM file content (`<PREFIX>_PEM_FILE`). This defaults to `GITHUB_APP_`.",
 				},
 				"app_auth": {
 					Type:        schema.TypeList,
 					Optional:    true,
 					MaxItems:    1,
 					Description: "Authenticate using a GitHub App.",
-					// ConflictsWith: []string{"token"}, // TODO: Enable as part of v7.
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
 							"id": {
 								Type:        schema.TypeString,
-								Required:    true,
-								DefaultFunc: schema.EnvDefaultFunc("GITHUB_APP_ID", nil),
-								Description: "The GitHub App's identifier. This can also be set by the `GITHUB_APP_ID` environment variable.",
+								Optional:    true,
+								Description: "The GitHub App's identifier. This can also be set by the `GITHUB_APP_ID` environment variable when `app_auth_env_prefix` is `GITHUB_APP_` (modify the prefix as needed).",
 							},
 							"installation_id": {
 								Type:        schema.TypeString,
-								Required:    true,
-								DefaultFunc: schema.EnvDefaultFunc("GITHUB_APP_INSTALLATION_ID", nil),
-								Description: "The GitHub App's installation identifier. This can also be set by the `GITHUB_APP_INSTALLATION_ID` environment variable.",
+								Optional:    true,
+								Description: "The GitHub App's installation identifier. This can also be set by the `GITHUB_APP_INSTALLATION_ID` environment variable when `app_auth_env_prefix` is `GITHUB_APP_` (modify the prefix as needed).",
 							},
 							"pem_file": {
 								Type:        schema.TypeString,
-								Required:    true,
+								Optional:    true,
 								Sensitive:   true,
-								DefaultFunc: schema.EnvDefaultFunc("GITHUB_APP_PEM_FILE", nil),
-								Description: "The GitHub App's PEM file content; `\\n` can be used for newlines. This can also be set by the `GITHUB_APP_PEM_FILE` environment variable.",
+								Description: "The GitHub App's PEM file content; `\\n` can be used for newlines. This can also be set by the `GITHUB_APP_PEM_FILE` environment variable when `app_auth_env_prefix` is `GITHUB_APP_` (modify the prefix as needed).",
 							},
 						},
 					},
@@ -280,6 +300,8 @@ func NewProvider() func() *schema.Provider {
 				"github_organization_custom_properties":                                 dataSourceGithubOrganizationCustomProperties(),
 				"github_organization_external_identities":                               dataSourceGithubOrganizationExternalIdentities(),
 				"github_organization_ip_allow_list":                                     dataSourceGithubOrganizationIpAllowList(),
+				"github_organization_members":                                           dataSourceGithubOrganizationMembers(),
+				"github_organization_repositories":                                      dataSourceGithubOrganizationRepositories(),
 				"github_organization_repository_role":                                   dataSourceGithubOrganizationRepositoryRole(),
 				"github_organization_repository_roles":                                  dataSourceGithubOrganizationRepositoryRoles(),
 				"github_organization_role":                                              dataSourceGithubOrganizationRole(),
@@ -312,6 +334,8 @@ func NewProvider() func() *schema.Provider {
 				"github_rest_api":                                                       dataSourceGithubRestApi(),
 				"github_ssh_keys":                                                       dataSourceGithubSshKeys(),
 				"github_team":                                                           dataSourceGithubTeam(),
+				"github_team_members":                                                   dataSourceGithubTeamMembers(),
+				"github_team_repositories":                                              dataSourceGithubTeamRepositories(),
 				"github_tree":                                                           dataSourceGithubTree(),
 				"github_user":                                                           dataSourceGithubUser(),
 				"github_user_external_identity":                                         dataSourceGithubUserExternalIdentity(),
@@ -320,22 +344,26 @@ func NewProvider() func() *schema.Provider {
 				"github_repository_environment_deployment_policies":                     dataSourceGithubRepositoryEnvironmentDeploymentPolicies(),
 			},
 
-			ConfigureContextFunc: configureProvider(),
+			ConfigureContextFunc: configureProvider(version, commit),
 		}
 	}
 }
 
 // configureProvider initializes the provider meta parameter with the necessary clients and owner information based on the provided configuration. It returns the initialized meta parameter or an error if the configuration is invalid or if there are issues initializing the clients.
-func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.Diagnostics) {
+func configureProvider(version, commit string) func(context.Context, *schema.ResourceData) (any, diag.Diagnostics) {
 	return func(ctx context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
+		tflog.Debug(ctx, "Configuring provider.", map[string]any{"name": providerName, "url": providerURL, "version": version, "commit": commit})
+
 		baseURL, err := url.Parse(DotComAPIURL)
 		if err != nil {
 			return nil, diag.FromErr(err)
 		}
 
+		authMode, _ := d.Get("auth_mode").(string)
+		appAuthEnvPrefix, _ := d.Get("app_auth_env_prefix").(string)
+
 		config := &Config{
-			BaseURL:        baseURL,
-			GraphQLAPIPath: "graphql",
+			BaseURL: baseURL,
 		}
 
 		if v, ok := d.GetOk("legacy_client"); ok {
@@ -353,11 +381,10 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 
 				tflog.Debug(ctx, "Using base URL from provider configuration.", map[string]any{"base_url": baseURL.String()})
 				config.BaseURL = baseURL
+				config.IsGHES = isGHES
 
 				if isGHES {
 					tflog.Debug(ctx, "Base URL indicates GitHub Enterprise Server (GHES) usage; enabling GHES mode.", map[string]any{"base_url": baseURL.String()})
-					config.RESTAPIPath = GHESRESTAPIPath
-					config.GraphQLAPIPath = GHESGraphQLAPIPath
 				}
 			}
 		}
@@ -386,43 +413,68 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 			}
 		}
 
-		if appID, appInstallationID, appPEM, ok := getAppAuth(d); ok {
-			tflog.Debug(ctx, "Using GitHub App authentication.", map[string]any{"app_id": appID, "app_installation_id": appInstallationID})
-			config.AppID = appID
-			config.AppInstallationID = appInstallationID
-			config.AppPEM = appPEM
+		if authMode == "app" || authMode == "auto" {
+			if appID, appInstallationID, appPEM, ok := getAppAuth(d, appAuthEnvPrefix); ok {
+				tflog.Debug(ctx, "Using GitHub App authentication.", map[string]any{"app_id": appID, "app_installation_id": appInstallationID})
+				config.AppID = appID
+				config.AppInstallationID = appInstallationID
+				config.AppPEM = appPEM
+			}
+
+			if config.AppID != nil && config.Owner == "" {
+				return nil, diag.Errorf("owner must be set for github app authentication")
+			}
 		}
 
 		if config.AppID == nil {
+			if authMode == "app" {
+				return nil, diag.Errorf("auth_mode is set to app but required fields for github app authentication are missing or contain empty values")
+			}
+
 			if _, ok := d.GetOk("app_auth"); ok {
 				return nil, diag.Errorf("app_auth block is set but required fields are missing or contains empty values")
 			}
 
-			if v, ok := d.GetOk("token"); ok {
-				if s, ok := v.(string); ok && s != "" {
-					tflog.Debug(ctx, "Using token from provider configuration.")
-					config.Token = s
+			if authMode != "none" {
+				if v, ok := d.GetOk("token"); ok {
+					if s, ok := v.(string); ok && s != "" {
+						tflog.Debug(ctx, "Using token from provider configuration.")
+						config.Token = s
+					}
+				}
+
+				if config.Token == "" {
+					tokenEnvName, _ := d.Get("token_env_name").(string)
+					if s, ok := os.LookupEnv(tokenEnvName); ok && s != "" {
+						tflog.Debug(ctx, "Using token from environment variable.", map[string]any{"token_env_name": tokenEnvName})
+						config.Token = s
+					}
 				}
 			}
 		}
 
-		if config.Owner == "" && config.AppID != nil {
-			return nil, diag.Errorf("owner must be set for github app authentication")
-		}
-
 		if config.LegacyClient {
 			if config.AppID != nil {
-				appToken, err := GenerateOAuthTokenFromApp(config.BaseURL.JoinPath(config.RESTAPIPath), *config.AppID, *config.AppInstallationID, string(config.AppPEM))
+				pathSuffix := RESTAPIPath
+				if config.IsGHES {
+					pathSuffix = GHESRESTAPIPath
+				}
+
+				appToken, err := GenerateOAuthTokenFromApp(config.BaseURL.JoinPath(pathSuffix), *config.AppID, *config.AppInstallationID, string(config.AppPEM))
 				if err != nil {
 					return nil, diag.FromErr(err)
 				}
 				config.Token = appToken
 			}
 
-			if config.Token == "" {
+			if authMode == "auto" && config.Token == "" {
 				tflog.Debug(ctx, "No token found, using GitHub CLI to get token from base URL.", map[string]any{"base_url": config.BaseURL.String()})
 				config.Token = tokenFromGHCLI(ctx, config.BaseURL)
 			}
+		}
+
+		if authMode == "token" && config.Token == "" {
+			return nil, diag.Errorf("auth_mode is set to token but no token was provided")
 		}
 
 		if v, ok := d.GetOk("read_delay_ms"); ok {
@@ -470,14 +522,18 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 			if i, ok := v.(int); ok {
 				tflog.Debug(ctx, "Using max retries from provider configuration.", map[string]any{"max_retries": i})
 				config.MaxRetries = i
+
+				// TODO: Remove this for v7 and set the schema validation for retry_delay_ms to require that it is at least 1ms
+				if config.RetryDelay == 0 {
+					config.RetryDelay = 1 * time.Millisecond
+				}
 			}
 		}
 
 		if v, ok := d.GetOk("max_per_page"); ok {
 			if i, ok := v.(int); ok {
 				tflog.Debug(ctx, "Using max per page from provider configuration.", map[string]any{"max_per_page": i})
-				// TODO: Move max per page to the provider metadata and remove the global variable.
-				maxPerPage = i
+				config.MaxPerPage = i
 			}
 		}
 
@@ -498,11 +554,11 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 		if v, ok := d.GetOk("cache_path"); ok {
 			if s, ok := v.(string); ok && s != "" {
 				tflog.Debug(ctx, "Using cache path from provider configuration.", map[string]any{"cache_path": s})
-				config.CachePath = &s
+				config.CachePath = s
 			}
 		}
 
-		meta, err := configureProviderMeta(ctx, config)
+		meta, err := configureProviderMeta(ctx, version, config)
 		if err != nil {
 			return nil, diag.FromErr(err)
 		}
@@ -512,9 +568,11 @@ func configureProvider() func(context.Context, *schema.ResourceData) (any, diag.
 }
 
 // configureProviderMeta initializes the provider metadata, including setting up the GitHub API clients based on the provided configuration. It returns the initialized metadata or an error if the configuration is invalid or if there are issues initializing the clients.
-func configureProviderMeta(ctx context.Context, c *Config) (*Owner, error) {
+func configureProviderMeta(ctx context.Context, version string, c *Config) (*Owner, error) {
 	owner := &Owner{
-		name: c.Owner,
+		name:       c.Owner,
+		maxPerPage: c.MaxPerPage,
+		storeEtag:  c.LegacyClient,
 	}
 
 	if c.LegacyClient {
@@ -536,14 +594,38 @@ func configureProviderMeta(ctx context.Context, c *Config) (*Owner, error) {
 			return nil, err
 		}
 		owner.v4client = v4client
+
+		if owner.name == "" && c.Token != "" {
+			user, _, err := owner.v3client.Users.Get(ctx, "")
+			if err != nil {
+				return nil, fmt.Errorf("owner cannot be found by token: %w", err)
+			}
+			owner.name = user.GetLogin()
+		}
 	} else {
-		options := ghclient.Options{
-			RESTAPIURL:   new(c.BaseURL.JoinPath(c.RESTAPIPath).String()),
-			GraphQLURL:   new(c.BaseURL.JoinPath(c.GraphQLAPIPath).String()),
-			CachePath:    c.CachePath,
-			RetryMax:     c.MaxRetries,
-			RetryWaitMin: c.RetryDelay,
-			RetryWaitMax: c.RetryDelay,
+		if !c.Anonymous() && owner.name == "" {
+			return nil, fmt.Errorf("owner must be set when authenticating using the new client implementation")
+		}
+
+		var cacheBasePath string
+		if c.CachePath != "" {
+			cacheBasePath = filepath.Join(c.CachePath, "terraform-provider-github")
+		}
+
+		options := ghclient.SourceOptions{
+			BaseURL:   c.BaseURL.String(),
+			IsGHES:    c.IsGHES,
+			UserAgent: fmt.Sprintf("%s/%s (+%s; go/%s; os/%s; arch/%s)", providerName, version, providerURL, runtime.Version(), runtime.GOOS, runtime.GOARCH),
+			Cache: ghclient.CacheOptions{
+				Enabled:  true,
+				BasePath: cacheBasePath,
+			},
+			Retry: ghclient.RetryOptions{
+				Max:     c.MaxRetries,
+				WaitMin: c.RetryDelay,
+				WaitMax: c.RetryDelay,
+				Jitter:  c.RetryDelay / 2,
+			},
 		}
 
 		var source ghclient.Source
@@ -581,18 +663,15 @@ func configureProviderMeta(ctx context.Context, c *Config) (*Owner, error) {
 		owner.v4client = v4client
 	}
 
-	if owner.name == "" && c.Token != "" {
-		user, _, err := owner.v3client.Users.Get(ctx, "")
-		if err != nil {
-			return nil, err
-		}
-		owner.name = user.GetLogin()
-	}
-
 	if owner.name != "" {
-		if org, _, err := owner.v3client.Organizations.Get(ctx, owner.name); err == nil && org != nil {
-			owner.id = org.GetID()
+		o, _, err := owner.v3client.Users.Get(ctx, owner.name)
+		if err != nil {
+			return nil, fmt.Errorf("failed to lookup owner %q: %w", owner.name, err)
+		}
+
+		if o.GetType() == "Organization" {
 			owner.IsOrganization = true
+			owner.id = o.GetID()
 		}
 	}
 
@@ -634,10 +713,12 @@ func tokenFromGHCLI(ctx context.Context, u *url.URL) string {
 }
 
 // getAppAuth retrieves GitHub App authentication parameters from the provider configuration, environment variables, or defaults, and validates them. It returns the app ID, installation ID, PEM file content, and a boolean indicating whether valid app authentication parameters were found.
-func getAppAuth(d *schema.ResourceData) (*string, *string, []byte, bool) {
-	appID := os.Getenv("GITHUB_APP_ID")
-	appInstallationID := os.Getenv("GITHUB_APP_INSTALLATION_ID")
-	appPEM := os.Getenv("GITHUB_APP_PEM_FILE")
+func getAppAuth(d *schema.ResourceData, envPrefix string) (*string, *string, []byte, bool) {
+	envPrefix = strings.TrimSuffix(envPrefix, "_") + "_"
+
+	appID := os.Getenv(envPrefix + "ID")
+	appInstallationID := os.Getenv(envPrefix + "INSTALLATION_ID")
+	appPEM := os.Getenv(envPrefix + "PEM_FILE")
 
 	v, ok := d.GetOk("app_auth")
 	if !ok {

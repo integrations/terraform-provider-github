@@ -9,7 +9,11 @@ import (
 )
 
 func TestAccGithubCodespacesOrganizationSecret(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates and updates secrets without error", func(t *testing.T) {
+		t.Parallel()
+
 		secretValue := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
 		secretValueUpdated := base64.StdEncoding.EncodeToString([]byte("updated_super_secret_value"))
 
@@ -68,6 +72,8 @@ func TestAccGithubCodespacesOrganizationSecret(t *testing.T) {
 	})
 
 	t.Run("deletes secrets without error", func(t *testing.T) {
+		t.Parallel()
+
 		config := `
 		resource "github_codespaces_organization_secret" "plaintext_secret" {
 			secret_name      = "test_plaintext_secret"
@@ -93,6 +99,8 @@ func TestAccGithubCodespacesOrganizationSecret(t *testing.T) {
 	})
 
 	t.Run("imports secrets without error", func(t *testing.T) {
+		t.Parallel()
+
 		secretValue := "super_secret_value"
 
 		config := fmt.Sprintf(`

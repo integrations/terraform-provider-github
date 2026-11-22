@@ -6,42 +6,44 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func dataSourceGithubOrganizationRole() *schema.Resource {
 	return &schema.Resource{
-		Description: "Lookup a custom organization role.",
-
 		ReadContext: dataSourceGithubOrganizationRoleRead,
+
+		Description: "Data source to lookup a custom organization role.",
 
 		Schema: map[string]*schema.Schema{
 			"role_id": {
-				Description: "The ID of the organization role.",
-				Type:        schema.TypeInt,
-				Required:    true,
+				Description:      "ID of the organization role.",
+				Type:             schema.TypeInt,
+				Required:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(1)),
 			},
 			"name": {
-				Description: "The name of the organization role.",
+				Description: "Name of the organization role.",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
 			"description": {
-				Description: "The description of the organization role.",
+				Description: "Description of the organization role.",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
 			"source": {
-				Description: "The source of this role; one of `Predefined`, `Organization`, or `Enterprise`.",
+				Description: "Source of this role; one of `Predefined`, `Organization`, or `Enterprise`.",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
 			"base_role": {
-				Description: "The system role from which this role inherits permissions.",
+				Description: "System role from which this role inherits permissions.",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
 			"permissions": {
-				Description: "A list of permissions included in this role.",
+				Description: "Additional permissions included in this role.",
 				Type:        schema.TypeSet,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 				Computed:    true,
@@ -50,13 +52,17 @@ func dataSourceGithubOrganizationRole() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationRoleRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+func dataSourceGithubOrganizationRoleRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 
-	roleId := int64(d.Get("role_id").(int))
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
+	}
 
-	role, _, err := client.Organizations.GetOrgRole(ctx, orgName, roleId)
+	roleIdInt, _ := d.Get("role_id").(int)
+	roleID := int64(roleIdInt)
+
+	role, _, err := meta.v3client.Organizations.GetOrgRole(ctx, meta.name, roleID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
