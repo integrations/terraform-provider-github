@@ -65,4 +65,38 @@ resource "github_actions_organization_permissions" "test" {
 			},
 		})
 	})
+
+	t.Run("sha_pinning_required", func(t *testing.T) {
+		configTemplate := `
+resource "github_actions_organization_permissions" "test" {
+  allowed_actions      = "all"
+  enabled_repositories = "all"
+  sha_pinning_required = %t
+}
+`
+		shaPinningCheck := func(value bool) []statecheck.StateCheck {
+			return []statecheck.StateCheck{
+				statecheck.ExpectKnownValue("github_actions_organization_permissions.test", tfjsonpath.New("sha_pinning_required"), knownvalue.Bool(value)),
+			}
+		}
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:            fmt.Sprintf(configTemplate, false),
+					ConfigStateChecks: shaPinningCheck(false),
+				},
+				{
+					Config:            fmt.Sprintf(configTemplate, true),
+					ConfigStateChecks: shaPinningCheck(true),
+				},
+				{
+					Config:            fmt.Sprintf(configTemplate, false),
+					ConfigStateChecks: shaPinningCheck(false),
+				},
+			},
+		})
+	})
 }
