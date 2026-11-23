@@ -11,7 +11,6 @@ import (
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -77,38 +76,44 @@ func resourceGithubEnterpriseOrganizationAppInstallation() *schema.Resource {
 			},
 		},
 
-		CustomizeDiff: customdiff.All(
-			// The API can only toggle an existing installation between 'all' and
-			// 'selected'; transitions involving 'none' require a reinstall. An
-			// unknown new value could resolve to 'none' during apply, so it must
-			// also force replacement, or the expanded plan would disagree with
-			// the initial one and Terraform would abort the apply.
-			customdiff.ForceNewIf("repository_selection", func(ctx context.Context, d *schema.ResourceDiff, meta any) bool {
-				if !d.NewValueKnown("repository_selection") {
-					return true
-				}
-				oldValue, newValue := d.GetChange("repository_selection")
-				return oldValue.(string) == "none" || newValue.(string) == "none"
-			}),
-			func(ctx context.Context, d *schema.ResourceDiff, meta any) error {
-				// Unknown values read back as their zero value, which would
-				// fail this check for configurations that are still valid.
-				if !d.NewValueKnown("repository_selection") || !d.NewValueKnown("selected_repositories") {
-					return nil
-				}
-
-				selection := d.Get("repository_selection").(string)
-				repoCount := d.Get("selected_repositories").(*schema.Set).Len()
-				if selection == "selected" && repoCount == 0 {
-					return fmt.Errorf("'selected_repositories' must be set when 'repository_selection' is 'selected'")
-				}
-				if selection != "selected" && repoCount > 0 {
-					return fmt.Errorf("'selected_repositories' can only be set when 'repository_selection' is 'selected'")
-				}
-				return nil
-			},
-		),
+		CustomizeDiff: diffEnterpriseOrganizationAppInstallation,
 	}
+}
+
+// diffEnterpriseOrganizationAppInstallation forces a new installation where the
+// API can't change the existing one, and checks that 'selected_repositories' is
+// set exactly when 'repository_selection' is 'selected'.
+func diffEnterpriseOrganizationAppInstallation(ctx context.Context, d *schema.ResourceDiff, _ any) error {
+	// The API can only toggle an existing installation between 'all' and
+	// 'selected'; transitions involving 'none' require a reinstall. An unknown
+	// new value could resolve to 'none' during apply, so it must also force
+	// replacement, or the expanded plan would disagree with the initial one
+	// and Terraform would abort the apply.
+	if d.HasChange("repository_selection") {
+		oldValue, newValue := d.GetChange("repository_selection")
+		if !d.NewValueKnown("repository_selection") || oldValue.(string) == "none" || newValue.(string) == "none" {
+			if err := d.ForceNew("repository_selection"); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Unknown values read back as their zero value, which would fail this
+	// check for configurations that are still valid.
+	if !d.NewValueKnown("repository_selection") || !d.NewValueKnown("selected_repositories") {
+		return nil
+	}
+
+	selection := d.Get("repository_selection").(string)
+	repoCount := d.Get("selected_repositories").(*schema.Set).Len()
+	if selection == "selected" && repoCount == 0 {
+		return fmt.Errorf("'selected_repositories' must be set when 'repository_selection' is 'selected'")
+	}
+	if selection != "selected" && repoCount > 0 {
+		return fmt.Errorf("'selected_repositories' can only be set when 'repository_selection' is 'selected'")
+	}
+
+	return nil
 }
 
 func resourceGithubEnterpriseOrganizationAppInstallationCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
