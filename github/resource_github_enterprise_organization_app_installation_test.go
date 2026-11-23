@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
@@ -58,15 +59,22 @@ func TestAccGithubEnterpriseOrganizationAppInstallation(t *testing.T) {
 		})
 	})
 
-	t.Run("installs an app on selected repositories and toggles to all", func(t *testing.T) {
+	t.Run("installs an app on selected repositories, replaces one and toggles to all", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-		configSelected := fmt.Sprintf(`
+		repositories := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-eai-%[4]s"
+				name      = "tf-acc-test-eai-%[1]s"
 				auto_init = true
 			}
 
+			resource "github_repository" "other" {
+				name      = "tf-acc-test-eai-other-%[1]s"
+				auto_init = true
+			}
+		`, randomID)
+
+		configSelected := repositories + fmt.Sprintf(`
 			resource "github_enterprise_organization_app_installation" "test" {
 				enterprise_slug       = "%[1]s"
 				organization          = "%[2]s"
@@ -74,21 +82,26 @@ func TestAccGithubEnterpriseOrganizationAppInstallation(t *testing.T) {
 				repository_selection  = "selected"
 				selected_repositories = [github_repository.test.name]
 			}
-		`, testAccConf.enterpriseSlug, testAccConf.owner, appClientID, randomID)
+		`, testAccConf.enterpriseSlug, testAccConf.owner, appClientID)
 
-		configAll := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name      = "tf-acc-test-eai-%[4]s"
-				auto_init = true
+		configReplaced := repositories + fmt.Sprintf(`
+			resource "github_enterprise_organization_app_installation" "test" {
+				enterprise_slug       = "%[1]s"
+				organization          = "%[2]s"
+				client_id             = "%[3]s"
+				repository_selection  = "selected"
+				selected_repositories = [github_repository.other.name]
 			}
+		`, testAccConf.enterpriseSlug, testAccConf.owner, appClientID)
 
+		configAll := repositories + fmt.Sprintf(`
 			resource "github_enterprise_organization_app_installation" "test" {
 				enterprise_slug      = "%[1]s"
 				organization         = "%[2]s"
 				client_id            = "%[3]s"
 				repository_selection = "all"
 			}
-		`, testAccConf.enterpriseSlug, testAccConf.owner, appClientID, randomID)
+		`, testAccConf.enterpriseSlug, testAccConf.owner, appClientID)
 
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() {
@@ -101,7 +114,19 @@ func TestAccGithubEnterpriseOrganizationAppInstallation(t *testing.T) {
 					Config: configSelected,
 					ConfigStateChecks: []statecheck.StateCheck{
 						statecheck.ExpectKnownValue("github_enterprise_organization_app_installation.test", tfjsonpath.New("repository_selection"), knownvalue.StringExact("selected")),
-						statecheck.ExpectKnownValue("github_enterprise_organization_app_installation.test", tfjsonpath.New("selected_repositories"), knownvalue.SetSizeExact(1)),
+						statecheck.ExpectKnownValue("github_enterprise_organization_app_installation.test", tfjsonpath.New("selected_repositories"), knownvalue.SetExact([]knownvalue.Check{knownvalue.StringExact("tf-acc-test-eai-" + randomID)})),
+					},
+				},
+				{
+					Config: configReplaced,
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_enterprise_organization_app_installation.test", plancheck.ResourceActionUpdate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_enterprise_organization_app_installation.test", tfjsonpath.New("repository_selection"), knownvalue.StringExact("selected")),
+						statecheck.ExpectKnownValue("github_enterprise_organization_app_installation.test", tfjsonpath.New("selected_repositories"), knownvalue.SetExact([]knownvalue.Check{knownvalue.StringExact("tf-acc-test-eai-other-" + randomID)})),
 					},
 				},
 				{
