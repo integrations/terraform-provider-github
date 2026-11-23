@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"slices"
 	"strconv"
+	"time"
 
 	"github.com/google/go-github/v89/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -30,6 +31,14 @@ func resourceGithubEnterpriseOrganizationAppInstallation() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceGithubEnterpriseOrganizationAppInstallationImport,
 		},
+
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Update: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
+
+		CustomizeDiff: diffEnterpriseOrganizationAppInstallation,
 
 		Schema: map[string]*schema.Schema{
 			"enterprise_slug": {
@@ -75,8 +84,6 @@ func resourceGithubEnterpriseOrganizationAppInstallation() *schema.Resource {
 				Description: "The slug of the installed app.",
 			},
 		},
-
-		CustomizeDiff: diffEnterpriseOrganizationAppInstallation,
 	}
 }
 

@@ -41,12 +41,22 @@ resource "github_enterprise_organization_app_installation" "selected_repos" {
 ### Optional
 
 - `selected_repositories` (Set of String) The names of the repositories the installation can access when 'repository_selection' is 'selected'.
+- `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
 
 - `app_slug` (String) The slug of the installed app.
 - `id` (String) The ID of this resource.
 - `installation_id` (String) The ID of the installation.
+
+<a id="nestedblock--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- `create` (String)
+- `delete` (String)
+- `update` (String)
 
 ## Import
 
