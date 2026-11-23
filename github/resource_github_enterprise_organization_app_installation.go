@@ -28,7 +28,7 @@ func resourceGithubEnterpriseOrganizationAppInstallation() *schema.Resource {
 		UpdateContext: resourceGithubEnterpriseOrganizationAppInstallationUpdate,
 		DeleteContext: resourceGithubEnterpriseOrganizationAppInstallationDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: resourceGithubEnterpriseOrganizationAppInstallationImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -316,6 +316,25 @@ func resourceGithubEnterpriseOrganizationAppInstallationDelete(ctx context.Conte
 	}
 
 	return nil
+}
+
+func resourceGithubEnterpriseOrganizationAppInstallationImport(ctx context.Context, d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
+	enterpriseSlug, org, clientID, err := parseID3(d.Id())
+	if err != nil {
+		return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <enterprise_slug>:<organization>:<client_id>: %w", err)
+	}
+
+	if err := d.Set("enterprise_slug", enterpriseSlug); err != nil {
+		return nil, err
+	}
+	if err := d.Set("organization", org); err != nil {
+		return nil, err
+	}
+	if err := d.Set("client_id", clientID); err != nil {
+		return nil, err
+	}
+
+	return []*schema.ResourceData{d}, nil
 }
 
 // addEnterpriseOrganizationAppInstallationRepositories grants an installation
