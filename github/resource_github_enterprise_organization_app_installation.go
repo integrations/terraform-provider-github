@@ -111,8 +111,8 @@ func resourceGithubEnterpriseOrganizationAppInstallation() *schema.Resource {
 	}
 }
 
-func resourceGithubEnterpriseOrganizationAppInstallationCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func resourceGithubEnterpriseOrganizationAppInstallationCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	client := m.(*Owner).v3client
 
 	enterpriseSlug := d.Get("enterprise_slug").(string)
 	org := d.Get("organization").(string)
@@ -135,11 +135,7 @@ func resourceGithubEnterpriseOrganizationAppInstallationCreate(ctx context.Conte
 		Repositories:        initial,
 	}
 
-	tflog.Debug(ctx, "Installing app on enterprise-owned organization", map[string]any{
-		"client_id":  clientID,
-		"org":        org,
-		"enterprise": enterpriseSlug,
-	})
+	tflog.Debug(ctx, "Installing app on enterprise-owned organization", map[string]any{"client_id": clientID, "org": org, "enterprise": enterpriseSlug})
 	installation, _, err := client.Enterprise.InstallApp(ctx, enterpriseSlug, org, req)
 	if err != nil {
 		return diag.FromErr(err)
@@ -168,8 +164,8 @@ func resourceGithubEnterpriseOrganizationAppInstallationCreate(ctx context.Conte
 	return nil
 }
 
-func resourceGithubEnterpriseOrganizationAppInstallationRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	owner := meta.(*Owner)
+func resourceGithubEnterpriseOrganizationAppInstallationRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	owner := m.(*Owner)
 	client := owner.v3client
 
 	enterpriseSlug, org, clientID, err := parseID3(d.Id())
@@ -179,20 +175,15 @@ func resourceGithubEnterpriseOrganizationAppInstallationRead(ctx context.Context
 
 	installation, err := findEnterpriseOrganizationAppInstallation(ctx, owner, enterpriseSlug, org, clientID)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
-			tflog.Info(ctx, "Removing enterprise app installation from state because it no longer exists in GitHub", map[string]any{
-				"id": d.Id(),
-			})
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			tflog.Info(ctx, "Removing enterprise app installation from state because it no longer exists in GitHub", map[string]any{"id": d.Id()})
 			d.SetId("")
 			return nil
 		}
 		return diag.FromErr(err)
 	}
 	if installation == nil {
-		tflog.Info(ctx, "Removing enterprise app installation from state because it no longer exists in GitHub", map[string]any{
-			"id": d.Id(),
-		})
+		tflog.Info(ctx, "Removing enterprise app installation from state because it no longer exists in GitHub", map[string]any{"id": d.Id()})
 		d.SetId("")
 		return nil
 	}
@@ -233,8 +224,8 @@ func resourceGithubEnterpriseOrganizationAppInstallationRead(ctx context.Context
 	return nil
 }
 
-func resourceGithubEnterpriseOrganizationAppInstallationUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func resourceGithubEnterpriseOrganizationAppInstallationUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	client := m.(*Owner).v3client
 
 	enterpriseSlug, org, _, err := parseID3(d.Id())
 	if err != nil {
@@ -264,12 +255,7 @@ func resourceGithubEnterpriseOrganizationAppInstallationUpdate(ctx context.Conte
 			}
 		}
 
-		tflog.Debug(ctx, "Updating repository selection for enterprise app installation", map[string]any{
-			"selection":       selection,
-			"installation_id": installationID,
-			"org":             org,
-			"enterprise":      enterpriseSlug,
-		})
+		tflog.Debug(ctx, "Updating repository selection for enterprise app installation", map[string]any{"selection": selection, "installation_id": installationID, "org": org, "enterprise": enterpriseSlug})
 		_, _, err := client.Enterprise.UpdateAppInstallationRepositories(ctx, enterpriseSlug, org, installationID, req)
 		if err != nil {
 			return diag.FromErr(err)
@@ -291,12 +277,7 @@ func resourceGithubEnterpriseOrganizationAppInstallationUpdate(ctx context.Conte
 
 		toRemove := expandStringList(oldSet.Difference(newSet).List())
 		for chunk := range slices.Chunk(toRemove, maxInstallationRepositoriesPerRequest) {
-			tflog.Debug(ctx, "Revoking enterprise app installation access to repositories", map[string]any{
-				"installation_id": installationID,
-				"org":             org,
-				"enterprise":      enterpriseSlug,
-				"repositories":    chunk,
-			})
+			tflog.Debug(ctx, "Revoking enterprise app installation access to repositories", map[string]any{"installation_id": installationID, "org": org, "enterprise": enterpriseSlug, "repositories": chunk})
 			_, _, err := client.Enterprise.RemoveRepositoriesFromAppInstallation(ctx, enterpriseSlug, org, installationID, github.AppInstallationRepositoriesRequest{Repositories: chunk})
 			if err != nil {
 				return diag.FromErr(err)
@@ -307,8 +288,8 @@ func resourceGithubEnterpriseOrganizationAppInstallationUpdate(ctx context.Conte
 	return nil
 }
 
-func resourceGithubEnterpriseOrganizationAppInstallationDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func resourceGithubEnterpriseOrganizationAppInstallationDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	client := m.(*Owner).v3client
 
 	enterpriseSlug, org, clientID, err := parseID3(d.Id())
 	if err != nil {
@@ -320,16 +301,10 @@ func resourceGithubEnterpriseOrganizationAppInstallationDelete(ctx context.Conte
 		return diag.FromErr(unconvertibleIdErr(d.Get("installation_id").(string), err))
 	}
 
-	tflog.Debug(ctx, "Uninstalling app from enterprise-owned organization", map[string]any{
-		"client_id":       clientID,
-		"installation_id": installationID,
-		"org":             org,
-		"enterprise":      enterpriseSlug,
-	})
+	tflog.Debug(ctx, "Uninstalling app from enterprise-owned organization", map[string]any{"client_id": clientID, "installation_id": installationID, "org": org, "enterprise": enterpriseSlug})
 	_, err = client.Enterprise.UninstallApp(ctx, enterpriseSlug, org, installationID)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
 			return nil
 		}
 		return diag.FromErr(err)
@@ -342,12 +317,7 @@ func resourceGithubEnterpriseOrganizationAppInstallationDelete(ctx context.Conte
 // access to the given repositories, in chunks the API accepts.
 func addEnterpriseOrganizationAppInstallationRepositories(ctx context.Context, client *github.Client, enterpriseSlug, org string, installationID int64, repositories []string) error {
 	for chunk := range slices.Chunk(repositories, maxInstallationRepositoriesPerRequest) {
-		tflog.Debug(ctx, "Granting enterprise app installation access to repositories", map[string]any{
-			"installation_id": installationID,
-			"org":             org,
-			"enterprise":      enterpriseSlug,
-			"repositories":    chunk,
-		})
+		tflog.Debug(ctx, "Granting enterprise app installation access to repositories", map[string]any{"installation_id": installationID, "org": org, "enterprise": enterpriseSlug, "repositories": chunk})
 		_, _, err := client.Enterprise.AddRepositoriesToAppInstallation(ctx, enterpriseSlug, org, installationID, github.AppInstallationRepositoriesRequest{Repositories: chunk})
 		if err != nil {
 			return err
