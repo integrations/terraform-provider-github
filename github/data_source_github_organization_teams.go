@@ -214,7 +214,7 @@ func dataSourceGithubOrganizationTeamsRead(ctx context.Context, d *schema.Resour
 		if !summaryOnly {
 			var members, repositories []string
 
-			for member, err := range meta.v3client.Teams.ListTeamMembersBySlugIter(ctx, meta.name, team.GetSlug(), &github.TeamListTeamMembersOptions{ListOptions: github.ListOptions{PerPage: meta.maxPerPage}}) {
+			for member, err := range meta.v3client.Teams.ListTeamMembersBySlugIter(ctx, meta.name, team.GetSlug(), &github.TeamListTeamMembersOptions{PerPage: meta.maxPerPage}) {
 				if err != nil {
 					if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
 						tflog.Warn(ctx, "Team members are not accessible, this is likely because the team has been deleted.", map[string]any{"team": team.GetSlug()})

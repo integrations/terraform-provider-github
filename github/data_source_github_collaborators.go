@@ -133,9 +133,7 @@ func dataSourceGithubCollaboratorsRead(ctx context.Context, d *schema.ResourceDa
 	options := &github.ListCollaboratorsOptions{
 		Affiliation: affiliation,
 		Permission:  permission,
-		ListOptions: github.ListOptions{
-			PerPage: meta.maxPerPage,
-		},
+		PerPage:     meta.maxPerPage,
 	}
 
 	if len(permission) == 0 {

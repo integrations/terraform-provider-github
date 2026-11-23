@@ -1,49 +1,27 @@
 package ghclient
 
 import (
-	"fmt"
-	"net"
 	"net/http"
-	"time"
+	"net/url"
+	"strings"
 
 	ghct "github.com/bored-engineer/github-conditional-http-transport"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	"golang.org/x/oauth2"
+
+	"github.com/integrations/terraform-provider-github/v6/internal/ghratelimit"
+	"github.com/integrations/terraform-provider-github/v6/internal/httpx"
 )
 
-// getHTTPTransport returns an HTTP transport configured with the given options, including idle connection pooling and retry logic. If the [http.DefaultTransport] is a [*http.Transport], it is cloned and configured with the given options; otherwise, a new transport is created with the default settings and the given options are applied.
-func getHTTPTransport(t http.RoundTripper, opts ClientOptions) *http.Transport {
-	if dtr, ok := t.(*http.Transport); ok {
-		tr := dtr.Clone()
-		tr.ForceAttemptHTTP2 = true
-		tr.MaxIdleConns = opts.MaxIdleConns
-		tr.MaxIdleConnsPerHost = opts.MaxIdleConns
-		tr.IdleConnTimeout = opts.IdleConnTimeout
-		return tr
-	}
-
-	dialer := &net.Dialer{
-		Timeout:   30 * time.Second,
-		KeepAlive: 30 * time.Second,
-	}
-
-	return &http.Transport{
-		Proxy:                 http.ProxyFromEnvironment,
-		DialContext:           dialer.DialContext,
-		ForceAttemptHTTP2:     true,
-		MaxIdleConns:          opts.MaxIdleConns,
-		MaxIdleConnsPerHost:   opts.MaxIdleConns,
-		IdleConnTimeout:       opts.IdleConnTimeout,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-	}
-}
-
 // newTransport creates a new HTTP RoundTripper that wraps the provided token source with OAuth2 authentication, adds conditional request caching, logging, and retry logic based on the provided options. The resulting RoundTripper is designed to be used with GitHub API clients to handle authentication, caching, rate limiting, and retries in a consistent manner.
-func newTransport(tokenSource oauth2.TokenSource, opts ClientOptions) (http.RoundTripper, error) {
-	var tr http.RoundTripper
+func newTransport(opts clientOptions) http.RoundTripper {
+	tr := httpx.DefaultHTTPTransport(nil)
+	tr.MaxIdleConns = opts.maxIdleConns
+	tr.MaxIdleConnsPerHost = opts.maxIdleConns
+	tr.IdleConnTimeout = opts.idleConnTimeout
+	tr.ResponseHeaderTimeout = opts.responseHeaderTimeout
 
-	tr = getHTTPTransport(http.DefaultTransport, opts)
+	var rt http.RoundTripper = tr
 
 	// The cache transport must be wrapped directly around the base transport, before the
 	// OAuth2 transport is applied. The OAuth2 transport injects the Authorization header on a
@@ -53,47 +31,44 @@ func newTransport(tokenSource oauth2.TokenSource, opts ClientOptions) (http.Roun
 	// on the request's Authorization header (see the Vary handling in
 	// github.com/bored-engineer/github-conditional-http-transport), placing it outside of the
 	// OAuth2 transport silently breaks per-token cache validation for authenticated requests.
-	if opts.Cache.Enabled {
-		store, err := createCacheStore(opts.Cache)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create cache store: %w", err)
+	//
+	// The store is wrapped so cache failures never fail a request; ghct would otherwise fail the request and, on a failed write, return a response alongside the error.
+	if opts.cacheEnabled {
+		var store ghct.Storage
+		if opts.cacheStore != nil {
+			store = bestEffortStorage{inner: opts.cacheStore}
 		}
 
-		tr = ghct.NewTransport(store, tr)
+		rt = ghct.NewTransport(store, rt)
 	}
 
-	if tokenSource != nil {
-		tr = &oauth2.Transport{
-			Base:   tr,
-			Source: tokenSource,
-		}
+	if opts.tokenSource != nil {
+		rt = &oauth2.Transport{Base: rt, Source: opts.tokenSource}
 	}
 
-	tr = logging.NewLoggingHTTPTransport(tr)
+	rt = logging.NewLoggingHTTPTransport(rt)
 
-	rtr, err := newRewindableTransport(tr, 0)
+	rt = httpx.NewThrottleTransport(rt, opts.throttleLimiter)
+
+	rt = ghratelimit.NewTransport(rt, ghratelimit.WithWaitMax(opts.retryWaitMax), ghratelimit.WithBasePath(rateLimitBasePath(opts.url)), ghratelimit.WithLimiter(opts.rateLimiter))
+
+	rt = httpx.NewRetryTransport(rt, httpx.WithRetryMaxRetries(opts.retryMax), httpx.WithRetryWait(opts.retryWaitMin, opts.retryWaitMax), httpx.WithRetryJitter(opts.retryJitter), httpx.WithRetryNoRetryErrors(ghratelimit.ErrRateLimitWaitExceeded))
+
+	rt = httpx.NewRewindableTransport(rt, httpx.WithRewindBufferBytes(10<<20))
+
+	return rt
+}
+
+// rateLimitBasePath returns the path prefix of the API for the given client URL, such as "/api/v3" for GitHub Enterprise Server REST or "/api" for its GraphQL endpoint. REST URLs are the base path itself whereas GraphQL URLs also include the "/graphql" endpoint, which is not part of the prefix.
+func rateLimitBasePath(u *string) string {
+	if u == nil {
+		return ""
+	}
+
+	pu, err := url.Parse(*u)
 	if err != nil {
-		return nil, err
-	}
-	tr = rtr
-
-	if opts.Retry.Max > 0 {
-		rtr, err := newRetryTransport(tr, opts.Retry)
-		if err != nil {
-			return nil, err
-		}
-		tr = rtr
+		return ""
 	}
 
-	tr = newRateLimitTransport(tr)
-
-	if opts.Concurrency.Max > 0 {
-		ctr, err := newThrottleTransport(tr, opts.Concurrency)
-		if err != nil {
-			return nil, err
-		}
-		tr = ctr
-	}
-
-	return tr, nil
+	return strings.TrimSuffix(strings.TrimRight(pu.Path, "/"), "/graphql")
 }

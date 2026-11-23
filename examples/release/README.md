@@ -14,7 +14,6 @@ export RELEASE_REPOSITORY=
 export RELEASE_TAG=
 ```
 
-
 ```console
 terraform apply \
   -var "organization=${GITHUB_ORG}" \

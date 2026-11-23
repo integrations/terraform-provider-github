@@ -24,7 +24,7 @@ and [`tests.instructions.md`](tests.instructions.md)) - this file does
 > - Do not flag formatting, import ordering, identifier style, comment
 >   prose, or speculative refactors. Those belong to linters (`gofmt`,
 >   `goimports`, `go vet`, `golangci-lint`) and human reviewers, not CCR.
-> - The Go-version anchors in `copilot-instructions.md` (Go 1.26, loop
+> - The Go-version anchors in `copilot-instructions.md` (Go 1.27, loop
 >   variable scoping, `range over int`, etc.) take precedence over any
 >   pre-1.22 patterns implied below.
 > - The repo-specific exception in `schema-and-state.instructions.md`
@@ -66,6 +66,7 @@ Follow idiomatic Go practices and community standards when writing Go code. Thes
 - Package names should be singular, not plural
 
 #### Package Declaration Rules (CRITICAL)
+
 - **NEVER duplicate `package` declarations** - each Go file must have exactly ONE `package` line
 - When editing an existing `.go` file:
   - **PRESERVE** the existing `package` declaration - do not add another one
@@ -119,7 +120,7 @@ Follow idiomatic Go practices and community standards when writing Go code. Thes
 - Write comments in complete sentences in English by default
 - Translate comments to other languages only upon specific user request
 - Start sentences with the name of the thing being described
-- Package comments should start with "Package [name]"
+- Package comments should start with "Package <name>"
 - Use line comments (`//`) for most comments
 - Use block comments (`/* */`) sparingly, mainly for package documentation
 - Document why, not what, unless the what is complex
@@ -207,14 +208,16 @@ Follow idiomatic Go practices and community standards when writing Go code. Thes
 - Choose between channels and mutexes based on the use case: use channels for communication, mutexes for protecting state
 - Use `sync.Once` for one-time initialization
 - WaitGroup usage by Go version:
-	- If `go >= 1.25` in `go.mod`, use the new `WaitGroup.Go` method ([documentation](https://pkg.go.dev/sync#WaitGroup)):
+  - If `go >= 1.25` in `go.mod`, use the new `WaitGroup.Go` method ([documentation](https://pkg.go.dev/sync#WaitGroup)):
+
 		```go
 		var wg sync.WaitGroup
 		wg.Go(task1)
 		wg.Go(task2)
 		wg.Wait()
 		```
-	- If `go < 1.25`, use the classic `Add`/`Done` pattern
+
+  - If `go < 1.25`, use the classic `Add`/`Done` pattern
 
 ## Error Handling Patterns
 
@@ -249,8 +252,8 @@ Follow idiomatic Go practices and community standards when writing Go code. Thes
 - Set appropriate status codes and headers
 - Handle errors gracefully and return appropriate error responses
 - Router usage by Go version:
-	- If `go >= 1.22`, prefer the enhanced `net/http` `ServeMux` with pattern-based routing and method matching
-	- If `go < 1.22`, use the classic `ServeMux` and handle methods/paths manually (or use a third-party router when justified)
+  - If `go >= 1.22`, prefer the enhanced `net/http` `ServeMux` with pattern-based routing and method matching
+  - If `go < 1.22`, use the classic `ServeMux` and handle methods/paths manually (or use a third-party router when justified)
 
 ### JSON APIs
 
@@ -283,28 +286,25 @@ Follow idiomatic Go practices and community standards when writing Go code. Thes
 
 - Most `io.Reader` streams are consumable once; reading advances state. Do not assume a reader can be re-read without special handling
 - If you must read data multiple times, buffer it once and recreate readers on demand:
-	- Use `io.ReadAll` (or a limited read) to obtain `[]byte`, then create fresh readers via `bytes.NewReader(buf)` or `bytes.NewBuffer(buf)` for each reuse
-	- For strings, use `strings.NewReader(s)`; you can `Seek(0, io.SeekStart)` on `*bytes.Reader` to rewind
+  - Use `io.ReadAll` (or a limited read) to obtain `[]byte`, then create fresh readers via `bytes.NewReader(buf)` or `bytes.NewBuffer(buf)` for each reuse
+  - For strings, use `strings.NewReader(s)`; you can `Seek(0, io.SeekStart)` on `*bytes.Reader` to rewind
 - For HTTP requests, do not reuse a consumed `req.Body`. Instead:
-	- Keep the original payload as `[]byte` and set `req.Body = io.NopCloser(bytes.NewReader(buf))` before each send
-	- Prefer configuring `req.GetBody` so the transport can recreate the body for redirects/retries: `req.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(buf)), nil }`
+  - Keep the original payload as `[]byte` and set `req.Body = io.NopCloser(bytes.NewReader(buf))` before each send
+  - Prefer configuring `req.GetBody` so the transport can recreate the body for redirects/retries: `req.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(buf)), nil }`
 - To duplicate a stream while reading, use `io.TeeReader` (copy to a buffer while passing through) or write to multiple sinks with `io.MultiWriter`
 - Reusing buffered readers: call `(*bufio.Reader).Reset(r)` to attach to a new underlying reader; do not expect it to "rewind" unless the source supports seeking
 - For large payloads, avoid unbounded buffering; consider streaming, `io.LimitReader`, or on-disk temporary storage to control memory
-
 - Use `io.Pipe` to stream without buffering the whole payload:
-	- Write to `*io.PipeWriter` in a separate goroutine while the reader consumes
-	- Always close the writer; use `CloseWithError(err)` on failures
-	- `io.Pipe` is for streaming, not rewinding or making readers reusable
-
+  - Write to `*io.PipeWriter` in a separate goroutine while the reader consumes
+  - Always close the writer; use `CloseWithError(err)` on failures
+  - `io.Pipe` is for streaming, not rewinding or making readers reusable
 - **Warning:** When using `io.Pipe` (especially with multipart writers), all writes must be performed in strict, sequential order. Do not write concurrently or out of order - multipart boundaries and chunk order must be preserved. Out-of-order or parallel writes can corrupt the stream and result in errors.
-
 - Streaming multipart/form-data with `io.Pipe`:
-	- `pr, pw := io.Pipe()`; `mw := multipart.NewWriter(pw)`; use `pr` as the HTTP request body
-	- Set `Content-Type` to `mw.FormDataContentType()`
-	- In a goroutine: write all parts to `mw` in the correct order; on error `pw.CloseWithError(err)`; on success `mw.Close()` then `pw.Close()`
-	- Do not store request/in-flight form state on a long-lived client; build per call
-	- Streamed bodies are not rewindable; for retries/redirects, buffer small payloads or provide `GetBody`
+  - `pr, pw := io.Pipe()`; `mw := multipart.NewWriter(pw)`; use `pr` as the HTTP request body
+  - Set `Content-Type` to `mw.FormDataContentType()`
+  - In a goroutine: write all parts to `mw` in the correct order; on error `pw.CloseWithError(err)`; on success `mw.Close()` then `pw.Close()`
+  - Do not store request/in-flight form state on a long-lived client; build per call
+  - Streamed bodies are not rewindable; for retries/redirects, buffer small payloads or provide `GetBody`
 
 ### Profiling
 

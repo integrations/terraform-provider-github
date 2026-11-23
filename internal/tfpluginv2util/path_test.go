@@ -36,7 +36,7 @@ func TestPath(t *testing.T) {
 			got := Path(tt.input)
 
 			if !got.Equals(tt.want) {
-				t.Errorf("Path(%q) = %v; want %v", tt.input, got, tt.want)
+				t.Errorf("got %v, want %v", got, tt.want)
 			}
 		})
 	}
