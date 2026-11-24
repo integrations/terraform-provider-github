@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -16,6 +17,9 @@ func resourceGithubUserGpgKey() *schema.Resource {
 		Create: resourceGithubUserGpgKeyCreate,
 		Read:   resourceGithubUserGpgKeyRead,
 		Delete: resourceGithubUserGpgKeyDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 
 		CustomizeDiff: diffETag,
 
@@ -25,6 +29,9 @@ func resourceGithubUserGpgKey() *schema.Resource {
 				Required:    true,
 				ForceNew:    true,
 				Description: "Your public GPG key, generated in ASCII-armored format.",
+				DiffSuppressFunc: func(k, oldV, newV string, d *schema.ResourceData) bool {
+					return normalizeArmoredKey(oldV) == normalizeArmoredKey(newV)
+				},
 			},
 			"key_id": {
 				Type:        schema.TypeString,
@@ -88,7 +95,21 @@ func resourceGithubUserGpgKeyRead(d *schema.ResourceData, meta any) error {
 		return err
 	}
 
+	// An imported key has no armored_public_key until it is read from GitHub,
+	// which returns the key as it was uploaded.
+	if d.Get("armored_public_key").(string) == "" {
+		if err = d.Set("armored_public_key", key.GetRawKey()); err != nil {
+			return err
+		}
+	}
+
 	return nil
+}
+
+// normalizeArmoredKey ignores line endings and surrounding whitespace, which
+// GitHub keeps as uploaded.
+func normalizeArmoredKey(key string) string {
+	return strings.ReplaceAll(strings.TrimSpace(key), "\r\n", "\n")
 }
 
 func resourceGithubUserGpgKeyDelete(d *schema.ResourceData, meta any) error {

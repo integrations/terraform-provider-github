@@ -29,4 +29,10 @@ The following attributes are exported:
 
 ## Import
 
-GPG keys are not importable due to the fact that [API](https://developer.github.com/v3/users/gpg_keys/#gpg-keys) does not return previously uploaded GPG key.
+GPG keys can be imported using their GitHub ID, e.g.
+
+```shell
+terraform import github_user_gpg_key.example 1234567
+```
+
+An imported key's `armored_public_key` is the key as GitHub returns it, compared with the configured one ignoring line endings and surrounding whitespace.

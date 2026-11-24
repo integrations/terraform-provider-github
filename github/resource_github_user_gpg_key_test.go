@@ -45,6 +45,11 @@ func TestAccGithubUserGpgKey(t *testing.T) {
 					Config: config,
 					Check:  check,
 				},
+				{
+					ResourceName:      "github_user_gpg_key.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
 			},
 		})
 	})
