@@ -76,7 +76,11 @@ func TestDataSourceGithubOrganizationRepositoryCustomPropertiesRead(t *testing.T
 		if !ok {
 			t.Fatalf("property has type %T, want map[string]any", value)
 		}
-		propertiesByName[property["property_name"].(string)] = property
+		name, ok := property["property_name"].(string)
+		if !ok {
+			t.Fatalf("property_name has type %T, want string", property["property_name"])
+		}
+		propertiesByName[name] = property
 	}
 
 	assertList := func(name, attribute string, want []any) {

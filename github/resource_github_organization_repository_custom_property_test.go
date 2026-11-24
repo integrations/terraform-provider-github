@@ -132,7 +132,6 @@ func TestValidateOrganizationRepositoryCustomPropertyDefaultValueNotRemoved(t *t
 		wantErr bool
 	}{
 		{
-
 			name: "allows an unset default to remain unset",
 		},
 		{

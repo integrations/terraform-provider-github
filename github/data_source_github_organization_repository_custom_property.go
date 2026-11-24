@@ -67,7 +67,7 @@ func dataSourceGithubOrganizationRepositoryCustomPropertyRead(ctx context.Contex
 
 	client := meta.v3client
 	owner := meta.name
-	propertyName := d.Get("property_name").(string)
+	propertyName, _ := d.Get("property_name").(string)
 
 	tflog.Debug(ctx, "Reading repository custom property", map[string]any{"org": owner, "property": propertyName})
 

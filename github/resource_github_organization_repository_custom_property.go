@@ -110,7 +110,8 @@ func resourceGithubOrganizationRepositoryCustomPropertyDiff(ctx context.Context,
 		return nil
 	}
 
-	valueType := github.PropertyValueType(d.Get("value_type").(string))
+	valueTypeName, _ := d.Get("value_type").(string)
+	valueType := github.PropertyValueType(valueTypeName)
 	if err := validateOrganizationRepositoryCustomPropertyAllowedValues(d, valueType); err != nil {
 		return err
 	}
@@ -138,7 +139,8 @@ func validateOrganizationRepositoryCustomPropertyAllowedValues(d *schema.Resourc
 func validateOrganizationRepositoryCustomPropertyDefaultValue(d *schema.ResourceDiff, valueType github.PropertyValueType) error {
 	defaultValueKnown := d.NewValueKnown("default_value")
 	defaultValue, _ := d.Get("default_value").([]any)
-	required := d.NewValueKnown("required") && d.Get("required").(bool)
+	requiredValue, _ := d.Get("required").(bool)
+	required := d.NewValueKnown("required") && requiredValue
 	rawConfig := d.GetRawConfig()
 	defaultValueConfigured := !rawConfig.IsNull() && !rawConfig.GetAttr("default_value").IsNull()
 	if err := validateOrganizationRepositoryCustomPropertyDefaultValueUpdate(d, defaultValueKnown, defaultValue); err != nil {
@@ -216,10 +218,11 @@ func validateSelectPropertyDefaultValue(valueType github.PropertyValueType, defa
 }
 
 func buildOrganizationRepositoryCustomProperty(d *schema.ResourceData) *github.CustomProperty {
-	propertyName := d.Get("property_name").(string)
-	valueType := github.PropertyValueType(d.Get("value_type").(string))
-	required := d.Get("required").(bool)
-	description := d.Get("description").(string)
+	propertyName, _ := d.Get("property_name").(string)
+	valueTypeName, _ := d.Get("value_type").(string)
+	valueType := github.PropertyValueType(valueTypeName)
+	required, _ := d.Get("required").(bool)
+	description, _ := d.Get("description").(string)
 
 	cp := &github.CustomProperty{
 		PropertyName: &propertyName,
@@ -229,7 +232,8 @@ func buildOrganizationRepositoryCustomProperty(d *schema.ResourceData) *github.C
 	}
 
 	if v, ok := d.GetOk("default_value"); ok {
-		if defaultValue := expandStringList(v.([]any)); len(defaultValue) > 0 {
+		defaultValues, _ := v.([]any)
+		if defaultValue := expandStringList(defaultValues); len(defaultValue) > 0 {
 			// Only multi_select sends an array; the other types send a bare string.
 			switch valueType {
 			case github.PropertyValueTypeMultiSelect:
@@ -241,11 +245,12 @@ func buildOrganizationRepositoryCustomProperty(d *schema.ResourceData) *github.C
 	}
 
 	if v, ok := d.GetOk("allowed_values"); ok {
-		cp.AllowedValues = expandStringList(v.([]any))
+		allowedValues, _ := v.([]any)
+		cp.AllowedValues = expandStringList(allowedValues)
 	}
 
 	if v, ok := d.GetOk("values_editable_by"); ok {
-		s := v.(string)
+		s, _ := v.(string)
 		cp.ValuesEditableBy = &s
 	}
 
@@ -260,7 +265,7 @@ func resourceGithubOrganizationRepositoryCustomPropertyCreate(ctx context.Contex
 
 	client := meta.v3client
 	owner := meta.name
-	propertyName := d.Get("property_name").(string)
+	propertyName, _ := d.Get("property_name").(string)
 
 	tflog.Debug(ctx, "Creating repository custom property", map[string]any{"org": owner, "property": propertyName})
 
@@ -280,7 +285,7 @@ func resourceGithubOrganizationRepositoryCustomPropertyRead(ctx context.Context,
 
 	client := meta.v3client
 	owner := meta.name
-	propertyName := d.Get("property_name").(string)
+	propertyName, _ := d.Get("property_name").(string)
 
 	cp, _, err := client.Organizations.GetCustomProperty(ctx, owner, propertyName)
 	if err != nil {
@@ -303,7 +308,7 @@ func resourceGithubOrganizationRepositoryCustomPropertyUpdate(ctx context.Contex
 
 	client := meta.v3client
 	owner := meta.name
-	propertyName := d.Get("property_name").(string)
+	propertyName, _ := d.Get("property_name").(string)
 
 	tflog.Debug(ctx, "Updating repository custom property", map[string]any{"org": owner, "property": propertyName})
 
@@ -323,7 +328,7 @@ func resourceGithubOrganizationRepositoryCustomPropertyDelete(ctx context.Contex
 
 	client := meta.v3client
 	owner := meta.name
-	propertyName := d.Get("property_name").(string)
+	propertyName, _ := d.Get("property_name").(string)
 
 	tflog.Debug(ctx, "Deleting repository custom property", map[string]any{"org": owner, "property": propertyName})
 
