@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -108,14 +109,14 @@ func NewProvider(version, commit string) func() *schema.Provider {
 					Optional:         true,
 					Default:          0,
 					ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(0)),
-					Description:      "The delay in milliseconds between read operations; this defaults to `0`. This can be used to mitigate rate limiting issues when performing a large number of read operations. This is ignored for the REST API when `legacy_client` is `false` since the new client implementation is GitHub rate limit aware.",
+					Description:      "The delay in milliseconds between read operations; this defaults to `0`. This can be used to mitigate rate limiting issues when performing a large number of read operations. This is ignored when `legacy_client` is `false` since the new client implementation is GitHub rate limit aware.",
 				},
 				"write_delay_ms": {
 					Type:             schema.TypeInt,
 					Optional:         true,
 					Default:          1000,
 					ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(0)),
-					Description:      "The delay in milliseconds between write operations; this defaults to `1000`. This is used to mitigate the GitHub API's abuse rate limits when writing. Note that **ALL** requests to the GraphQL API are implemented as `POST` requests under the hood, so this setting affects those calls as well. This is ignored for the REST API when `legacy_client` is `false` since the new client implementation is GitHub rate limit aware.",
+					Description:      "The delay in milliseconds between write operations; this defaults to `1000`. This is used to mitigate the GitHub API's abuse rate limits when writing. Note that **ALL** requests to the GraphQL API are implemented as `POST` requests under the hood, so this setting affects those calls as well. This is ignored when `legacy_client` is `false` since the new client implementation is GitHub rate limit aware.",
 				},
 				"retry_delay_ms": {
 					Type:             schema.TypeInt,
@@ -128,7 +129,7 @@ func NewProvider(version, commit string) func() *schema.Provider {
 					Type:        schema.TypeList,
 					Elem:        &schema.Schema{Type: schema.TypeInt},
 					Optional:    true,
-					Description: "List of HTTP status codes that should be retried; if not set this uses the provider defaults. This setting only applies when `max_retries` is greater than `0`. This is ignored for the REST API when `legacy_client` is `false` since the new client implementation handles the retry logic.",
+					Description: "List of HTTP status codes that should be retried; if not set this uses the provider defaults. This setting only applies when `max_retries` is greater than `0`. This is ignored when `legacy_client` is `false` since the new client implementation handles the retry logic.",
 				},
 				"max_retries": {
 					Type:             schema.TypeInt,
@@ -148,7 +149,7 @@ func NewProvider(version, commit string) func() *schema.Provider {
 					Type:        schema.TypeBool,
 					Optional:    true,
 					Default:     false,
-					Description: "Allow the provider to make parallel API calls; this is experimental and may cause concurrency and rate limiting issues. This is ignored for the REST API when `legacy_client` is `false` since the new client implementation is designed to safely handle parallel requests.",
+					Description: "Allow the provider to make parallel API calls; this is experimental and may cause concurrency and rate limiting issues. This is ignored when `legacy_client` is `false` since the new client implementation is designed to safely handle parallel requests.",
 				},
 				"insecure": {
 					Type:        schema.TypeBool,
@@ -167,7 +168,7 @@ func NewProvider(version, commit string) func() *schema.Provider {
 					Type:        schema.TypeString,
 					Optional:    true,
 					DefaultFunc: schema.EnvDefaultFunc("GITHUB_CACHE_PATH", ""),
-					Description: "The path to the cache directory for persisting GitHub API requests between runs; if not set there will be no caching between runs. This can also be set by the `GITHUB_CACHE_PATH` environment variable.",
+					Description: "The path to the cache directory for persisting GitHub API requests between runs; if not set there will be no caching between runs. This can also be set by the `GITHUB_CACHE_PATH` environment variable. The cache can only be used by one provider configuration at a time, so each provider configuration (including aliases) and each concurrent Terraform run must use a unique cache path.",
 				},
 			},
 
@@ -575,6 +576,7 @@ func configureProviderMeta(ctx context.Context, version string, c *Config) (*Own
 	owner := &Owner{
 		name:       c.Owner,
 		maxPerPage: c.MaxPerPage,
+		storeEtag:  c.LegacyClient,
 	}
 
 	if c.LegacyClient {
@@ -609,46 +611,32 @@ func configureProviderMeta(ctx context.Context, version string, c *Config) (*Own
 			return nil, fmt.Errorf("owner must be set when authenticating using the new client implementation")
 		}
 
-		var cacheBasePath string
+		opts := []ghclient.SourceOption{
+			ghclient.WithSourceBaseURL(c.BaseURL, c.IsGHES),
+			ghclient.WithSourceUserAgent(new(fmt.Sprintf("%s/%s (+%s; go/%s; os/%s; arch/%s)", providerName, version, providerURL, runtime.Version(), runtime.GOOS, runtime.GOARCH))),
+			ghclient.WithSourceThrottleLimit(100),
+
+			ghclient.WithSourceRetry(c.MaxRetries, c.RetryDelay, 5*time.Minute, 100*time.Millisecond),
+		}
+
 		if c.CachePath != "" {
-			cacheBasePath = filepath.Join(c.CachePath, "terraform-provider-github")
+			opts = append(opts, ghclient.WithSourceCache(filepath.Join(c.CachePath, "terraform-provider-github")))
 		}
 
-		options := ghclient.SourceOptions{
-			BaseURL:   c.BaseURL.String(),
-			IsGHES:    c.IsGHES,
-			UserAgent: fmt.Sprintf("%s/%s (+%s; go/%s; os/%s; arch/%s)", providerName, version, providerURL, runtime.Version(), runtime.GOOS, runtime.GOARCH),
-			Cache: ghclient.CacheOptions{
-				Enabled:  true,
-				BasePath: cacheBasePath,
-			},
-			Retry: ghclient.RetryOptions{
-				Max:     c.MaxRetries,
-				WaitMin: c.RetryDelay,
-				WaitMax: c.RetryDelay,
-				Jitter:  c.RetryDelay / 2,
-			},
-		}
-
-		var source ghclient.Source
 		if c.AppID != nil {
-			appSource, err := ghclient.NewAppSource(*c.AppID, c.AppPEM, options)
+			signer, err := jwt.ParseRSAPrivateKeyFromPEM(c.AppPEM)
 			if err != nil {
-				return nil, fmt.Errorf("failed to create app source: %w", err)
+				return nil, fmt.Errorf("failed to parse github app pem file: %w", err)
 			}
-			source = appSource
+
+			opts = append(opts, ghclient.WithSourceAppAuth(*c.AppID, signer))
 		} else if c.Token != "" {
-			tokenSource, err := ghclient.NewTokenSource(c.Token, options)
-			if err != nil {
-				return nil, fmt.Errorf("failed to create token source: %w", err)
-			}
-			source = tokenSource
-		} else {
-			anonymousSource, err := ghclient.NewAnonymousSource(options)
-			if err != nil {
-				return nil, fmt.Errorf("failed to create anonymous source: %w", err)
-			}
-			source = anonymousSource
+			opts = append(opts, ghclient.WithSourceToken(c.Token))
+		}
+
+		source, err := ghclient.NewSource(opts...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create source: %w", err)
 		}
 
 		v3client, err := source.OwnerRESTClient(ctx, owner.name)

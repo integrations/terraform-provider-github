@@ -99,17 +99,20 @@ Once you have the repository cloned, there's a couple of additional steps you'll
   - Optional: you may find it beneficial to create a test user as well in order to avoid potential rate-limiting issues on your main account.
   - Your organization _must_ have a repository called `terraform-template-module`. The [terraformtesting/terraform-template-module](https://github.com/terraformtesting/terraform-template-module) repo is a good, re-usable example.
     - You _must_ make sure that the "Template Repository" item in Settings is checked for this repo.
+
 - If you haven't already, generate a Personal Access Token (PAT) for authenticating your test runs.
+
 - Export the necessary configuration for authenticating your provider with GitHub
 
-  ```sh
-  export GH_TEST_AUTH_MODE="organization"
-  export GITHUB_OWNER="<name of an organization>"
-  export GITHUB_TOKEN="<token of a user with an organization account>"
-  export GITHUB_LEGACY_CLIENT="false"
-  ```
+   ```sh
+   export GH_TEST_AUTH_MODE="organization"
+   export GITHUB_OWNER="<name of an organization>"
+   export GITHUB_TOKEN="<token of a user with an organization account>"
+   export GITHUB_LEGACY_CLIENT="false"
+   ```
 
 - Build the project with `make build`
+
 - Try an example test run from the default (`main`) branch, like `TF_LOG=DEBUG make testacc T=TestAccGithubRepositories`. All those tests should pass.
 
 ### Local Development Iteration

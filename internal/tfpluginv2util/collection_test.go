@@ -54,7 +54,7 @@ func TestGetSetValue(t *testing.T) {
 
 			v, ok, typeOK := GetSetValue[string](d, tt.key)
 			if !cmp.Equal(v, tt.expected) || ok != tt.ok || typeOK != tt.typeOK {
-				t.Errorf("GetSetValue() = (%v, %v, %v), want (%v, %v, %v)", v, ok, typeOK, tt.expected, tt.ok, tt.typeOK)
+				t.Errorf("got (%v, %v, %v), want (%v, %v, %v)", v, ok, typeOK, tt.expected, tt.ok, tt.typeOK)
 			}
 		})
 	}
@@ -103,7 +103,7 @@ func TestGetSetOk(t *testing.T) {
 
 			v, ok := GetSetOk[string](d, tt.key)
 			if !cmp.Equal(v, tt.expected) || ok != tt.ok {
-				t.Errorf("GetSetOk() = (%v, %v), want (%v, %v)", v, ok, tt.expected, tt.ok)
+				t.Errorf("got (%v, %v), want (%v, %v)", v, ok, tt.expected, tt.ok)
 			}
 		})
 	}
@@ -159,7 +159,7 @@ func TestGetSet(t *testing.T) {
 
 			v := GetSet[string](d, tt.key, tt.zeroAsEmpty)
 			if !cmp.Equal(v, tt.expected) {
-				t.Errorf("GetSet() = %v, want %v", v, tt.expected)
+				t.Errorf("got %v, want %v", v, tt.expected)
 			}
 		})
 	}

@@ -74,8 +74,9 @@ func resourceGithubUserSshKeyCreate(d *schema.ResourceData, meta any) error {
 	return resourceGithubUserSshKeyRead(d, meta)
 }
 
-func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubUserSshKeyRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -102,8 +103,10 @@ func resourceGithubUserSshKeyRead(d *schema.ResourceData, meta any) error {
 		return err
 	}
 
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return err
+		}
 	}
 	if err = d.Set("title", key.GetTitle()); err != nil {
 		return err

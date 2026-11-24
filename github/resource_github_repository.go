@@ -124,7 +124,7 @@ func resourceGithubRepository() *schema.Resource {
 										Type:             schema.TypeString,
 										Required:         true,
 										ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false)),
-										Description:      "Set to 'enabled' to enable GitHub Code Security on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.",
+										Description:      "Set to `enabled` to enable GitHub Code Security on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.",
 									},
 								},
 							},
@@ -140,7 +140,7 @@ func resourceGithubRepository() *schema.Resource {
 										Type:             schema.TypeString,
 										Required:         true,
 										ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false)),
-										Description:      "Set to 'enabled' to enable secret scanning on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.",
+										Description:      "Set to `enabled` to enable secret scanning on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.",
 									},
 								},
 							},
@@ -156,7 +156,7 @@ func resourceGithubRepository() *schema.Resource {
 										Type:             schema.TypeString,
 										Required:         true,
 										ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false)),
-										Description:      "Set to 'enabled' to enable secret scanning push protection on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.",
+										Description:      "Set to `enabled` to enable secret scanning push protection on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.",
 									},
 								},
 							},
@@ -172,7 +172,7 @@ func resourceGithubRepository() *schema.Resource {
 										Type:             schema.TypeString,
 										Required:         true,
 										ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false)),
-										Description:      "Set to 'enabled' to enable secret scanning AI detection on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.",
+										Description:      "Set to `enabled` to enable secret scanning AI detection on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.",
 									},
 								},
 							},
@@ -188,7 +188,7 @@ func resourceGithubRepository() *schema.Resource {
 										Type:             schema.TypeString,
 										Required:         true,
 										ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false)),
-										Description:      "Set to 'enabled' to enable secret scanning non-provider patterns on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.",
+										Description:      "Set to `enabled` to enable secret scanning non-provider patterns on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.",
 									},
 								},
 							},
@@ -788,10 +788,11 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 	return resourceGithubRepositoryUpdate(ctx, d, meta)
 }
 
-func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	owner := meta.(*Owner).name
+	owner := meta.name
 	repoName := d.Id()
 
 	// When the user has not authenticated the provider, AnonymousHTTPClient is used, therefore owner == "". In this
@@ -821,7 +822,11 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 		return diag.FromErr(err)
 	}
 
-	_ = d.Set("etag", resp.Header.Get("ETag"))
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
+	}
 	_ = d.Set("name", repoName)
 	_ = d.Set("description", repo.GetDescription())
 	_ = d.Set("primary_language", repo.GetLanguage())
