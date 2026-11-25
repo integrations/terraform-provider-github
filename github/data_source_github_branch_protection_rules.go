@@ -37,7 +37,7 @@ func dataSourceGithubBranchProtectionRulesRead(ctx context.Context, d *schema.Re
 	meta, _ := m.(*Owner)
 	client := meta.v4client
 	orgName := meta.name
-	repoName := d.Get("repository").(string)
+	repoName, _ := d.Get("repository").(string)
 
 	var query struct {
 		Repository struct {

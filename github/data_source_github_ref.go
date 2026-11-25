@@ -49,8 +49,8 @@ func dataSourceGithubRefRead(ctx context.Context, d *schema.ResourceData, m any)
 	if owner == "" {
 		owner = meta.name
 	}
-	repoName := d.Get("repository").(string)
-	ref := d.Get("ref").(string)
+	repoName, _ := d.Get("repository").(string)
+	ref, _ := d.Get("ref").(string)
 
 	refData, resp, err := client.Git.GetRef(ctx, owner, repoName, ref)
 	if err != nil {

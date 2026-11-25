@@ -33,11 +33,12 @@ func resourceGithubUserInvitationAccepter() *schema.Resource {
 	}
 }
 
-func resourceGithubUserInvitationAccepterCreate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubUserInvitationAccepterCreate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	invitationIdString := d.Get("invitation_id").(string)
-	allowEmptyId := d.Get("allow_empty_id").(bool)
+	invitationIdString, _ := d.Get("invitation_id").(string)
+	allowEmptyId, _ := d.Get("allow_empty_id").(bool)
 
 	if invitationIdString == "" {
 		if allowEmptyId {

@@ -60,15 +60,17 @@ func dataSourceGithubRepositories() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoriesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func dataSourceGithubRepositoriesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	includeRepoId := d.Get("include_repo_id").(bool)
-	resultsPerPage := d.Get("results_per_page").(int)
+	includeRepoId, _ := d.Get("include_repo_id").(bool)
+	resultsPerPage, _ := d.Get("results_per_page").(int)
 
-	query := d.Get("query").(string)
+	query, _ := d.Get("query").(string)
+	sort, _ := d.Get("sort").(string)
 	opt := &github.SearchOptions{
-		Sort:    d.Get("sort").(string),
+		Sort:    sort,
 		PerPage: resultsPerPage,
 	}
 

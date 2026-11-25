@@ -103,10 +103,10 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyCreate(ctx context.Conte
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	envName := d.Get("environment").(string)
-	branchPattern := d.Get("branch_pattern").(string)
-	tagPattern := d.Get("tag_pattern").(string)
+	repoName, _ := d.Get("repository").(string)
+	envName, _ := d.Get("environment").(string)
+	branchPattern, _ := d.Get("branch_pattern").(string)
+	tagPattern, _ := d.Get("tag_pattern").(string)
 
 	policyType := "branch"
 	pattern := branchPattern
@@ -153,9 +153,9 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyRead(ctx context.Context
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	envName := d.Get("environment").(string)
-	policyID := d.Get("policy_id").(int)
+	repoName, _ := d.Get("repository").(string)
+	envName, _ := d.Get("environment").(string)
+	policyID, _ := d.Get("policy_id").(int)
 
 	policy, _, err := client.Repositories.GetDeploymentBranchPolicy(ctx, owner, repoName, envName, int64(policyID))
 	if err != nil {
@@ -189,11 +189,11 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate(ctx context.Conte
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	envName := d.Get("environment").(string)
-	branchPattern := d.Get("branch_pattern").(string)
-	tagPattern := d.Get("tag_pattern").(string)
-	policyID := d.Get("policy_id").(int)
+	repoName, _ := d.Get("repository").(string)
+	envName, _ := d.Get("environment").(string)
+	branchPattern, _ := d.Get("branch_pattern").(string)
+	tagPattern, _ := d.Get("tag_pattern").(string)
+	policyID, _ := d.Get("policy_id").(int)
 
 	pattern := branchPattern
 	if branchPattern == "" {
@@ -223,9 +223,9 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyDelete(ctx context.Conte
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	envName := d.Get("environment").(string)
-	policyID := d.Get("policy_id").(int)
+	repoName, _ := d.Get("repository").(string)
+	envName, _ := d.Get("environment").(string)
+	policyID, _ := d.Get("policy_id").(int)
 
 	_, err := client.Repositories.DeleteDeploymentBranchPolicy(ctx, owner, repoName, envName, int64(policyID))
 	if err != nil {

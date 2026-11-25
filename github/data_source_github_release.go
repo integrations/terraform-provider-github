@@ -156,27 +156,30 @@ func dataSourceGithubRelease() *schema.Resource {
 	}
 }
 
-func dataSourceGithubReleaseRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	repository := d.Get("repository").(string)
-	owner := d.Get("owner").(string)
+func dataSourceGithubReleaseRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	repository, _ := d.Get("repository").(string)
+	owner, _ := d.Get("owner").(string)
 
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 
 	var err error
 	var release *github.RepositoryRelease
 
-	switch retrieveBy := strings.ToLower(d.Get("retrieve_by").(string)); retrieveBy {
+	retrieveByRaw, _ := d.Get("retrieve_by").(string)
+	switch retrieveBy := strings.ToLower(retrieveByRaw); retrieveBy {
 	case "latest":
 		release, _, err = client.Repositories.GetLatestRelease(ctx, owner, repository)
 	case "id":
-		releaseID := int64(d.Get("release_id").(int))
+		releaseIDVal, _ := d.Get("release_id").(int)
+		releaseID := int64(releaseIDVal)
 		if releaseID == 0 {
 			return diag.Errorf("`release_id` must be set when `retrieve_by` = `id`")
 		}
 
 		release, _, err = client.Repositories.GetRelease(ctx, owner, repository, releaseID)
 	case "tag":
-		tag := d.Get("release_tag").(string)
+		tag, _ := d.Get("release_tag").(string)
 		if tag == "" {
 			return diag.Errorf("`release_tag` must be set when `retrieve_by` = `tag`")
 		}

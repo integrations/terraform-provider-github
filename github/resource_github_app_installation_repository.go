@@ -41,7 +41,7 @@ func resourceGithubAppInstallationRepository() *schema.Resource {
 
 func resourceGithubAppInstallationRepositoryCreate(d *schema.ResourceData, m any) error {
 	meta, _ := m.(*Owner)
-	installationIDString := d.Get("installation_id").(string)
+	installationIDString, _ := d.Get("installation_id").(string)
 	installationID, err := strconv.ParseInt(installationIDString, 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(installationIDString, err)
@@ -50,7 +50,7 @@ func resourceGithubAppInstallationRepositoryCreate(d *schema.ResourceData, m any
 	client := meta.v3client
 	owner := meta.name
 	ctx := context.Background()
-	repoName := d.Get("repository").(string)
+	repoName, _ := d.Get("repository").(string)
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
 		return err
@@ -117,7 +117,7 @@ func resourceGithubAppInstallationRepositoryRead(d *schema.ResourceData, m any) 
 
 func resourceGithubAppInstallationRepositoryDelete(d *schema.ResourceData, m any) error {
 	meta, _ := m.(*Owner)
-	installationIDString := d.Get("installation_id").(string)
+	installationIDString, _ := d.Get("installation_id").(string)
 	installationID, err := strconv.ParseInt(installationIDString, 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(installationIDString, err)
@@ -126,7 +126,7 @@ func resourceGithubAppInstallationRepositoryDelete(d *schema.ResourceData, m any
 	client := meta.v3client
 	ctx := context.Background()
 
-	repoID := d.Get("repo_id").(int)
+	repoID, _ := d.Get("repo_id").(int)
 
 	_, err = client.Apps.RemoveRepository(ctx, installationID, int64(repoID))
 	if err != nil {

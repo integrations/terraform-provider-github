@@ -192,7 +192,8 @@ func resourceGithubBranchProtection() *schema.Resource {
 	}
 }
 
-func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchProtectionCreate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	var mutate struct {
 		CreateBranchProtectionRule struct {
 			BranchProtectionRule struct {
@@ -259,7 +260,7 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta any) erro
 	}
 
 	ctx := context.Background()
-	client := meta.(*Owner).v4client
+	client := meta.v4client
 	err = client.Mutate(ctx, &mutate, input, nil)
 	if err != nil {
 		return err
@@ -270,7 +271,8 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta any) erro
 	return resourceGithubBranchProtectionRead(d, meta)
 }
 
-func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchProtectionRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	var query struct {
 		Node struct {
 			Node BranchProtectionRule `graphql:"... on BranchProtectionRule"`
@@ -280,7 +282,7 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta any) error 
 		"id": d.Id(),
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	client := meta.(*Owner).v4client
+	client := meta.v4client
 	err := client.Query(ctx, &query, variables)
 	if err != nil {
 		if strings.Contains(err.Error(), "Could not resolve to a node with the global id") {
@@ -365,7 +367,8 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta any) error 
 	return nil
 }
 
-func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	var mutate struct {
 		UpdateBranchProtectionRule struct {
 			BranchProtectionRule struct {
@@ -432,7 +435,7 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta any) erro
 	}
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	client := meta.(*Owner).v4client
+	client := meta.v4client
 	err = client.Mutate(ctx, &mutate, input, nil)
 	if err != nil {
 		return err
@@ -443,7 +446,8 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta any) erro
 	return resourceGithubBranchProtectionRead(d, meta)
 }
 
-func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchProtectionDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	var mutate struct {
 		DeleteBranchProtectionRule struct { // Empty struct does not work
 			ClientMutationId githubv4.ID
@@ -454,7 +458,7 @@ func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta any) erro
 	}
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	client := meta.(*Owner).v4client
+	client := meta.v4client
 	err := client.Mutate(ctx, &mutate, input, nil)
 
 	return err

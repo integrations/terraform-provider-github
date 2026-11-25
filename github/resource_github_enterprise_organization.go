@@ -98,15 +98,20 @@ func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, m any
 	v4 := meta.v4client
 
 	var adminLogins []githubv4.String
-	for _, v := range data.Get("admin_logins").(*schema.Set).List() {
-		adminLogins = append(adminLogins, githubv4.String(v.(string)))
+	if s, ok := data.Get("admin_logins").(*schema.Set); ok {
+		for _, v := range s.List() {
+			vStr, _ := v.(string)
+			adminLogins = append(adminLogins, githubv4.String(vStr))
+		}
 	}
 
+	name, _ := data.Get("name").(string)
+	billingEmail, _ := data.Get("billing_email").(string)
 	input := githubv4.CreateEnterpriseOrganizationInput{
 		EnterpriseID: data.Get("enterprise_id"),
-		Login:        githubv4.String(data.Get("name").(string)),
-		ProfileName:  githubv4.String(data.Get("name").(string)),
-		BillingEmail: githubv4.String(data.Get("billing_email").(string)),
+		Login:        githubv4.String(name),
+		ProfileName:  githubv4.String(name),
+		BillingEmail: githubv4.String(billingEmail),
 		AdminLogins:  adminLogins,
 	}
 
@@ -137,12 +142,12 @@ func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, m any
 	//
 	//It would be nice if there was an API available in github to enable a token for SSO.
 
-	description := data.Get("description").(string)
-	displayName := data.Get("display_name").(string)
+	description, _ := data.Get("description").(string)
+	displayName, _ := data.Get("display_name").(string)
 	if description != "" || displayName != "" {
 		_, _, err = v3.Organizations.Edit(
 			context.Background(),
-			data.Get("name").(string),
+			name,
 			&github.Organization{
 				Description: new(description),
 				Name:        new(displayName),
@@ -152,7 +157,7 @@ func resourceGithubEnterpriseOrganizationCreate(data *schema.ResourceData, m any
 			if isSAMLEnforcementError(err) {
 				// The org was created but we can't set description/display_name until the PAT is authorized.
 				// Clear them from state so next plan will show drift and retry after PAT authorization.
-				log.Printf("[WARN] Organization %q created but could not set description/display_name due to SAML enforcement. Authorize the PAT and run apply again.", data.Get("name").(string))
+				log.Printf("[WARN] Organization %q created but could not set description/display_name due to SAML enforcement. Authorize the PAT and run apply again.", name)
 				_ = data.Set("description", "")
 				_ = data.Set("display_name", "")
 				return nil
@@ -258,7 +263,8 @@ func resourceGithubEnterpriseOrganizationDelete(data *schema.ResourceData, m any
 
 	ctx := context.WithValue(context.Background(), ctxId, data.Id())
 
-	_, err := v3.Organizations.Delete(ctx, data.Get("name").(string))
+	orgName, _ := data.Get("name").(string)
+	_, err := v3.Organizations.Delete(ctx, orgName)
 
 	// We expect the delete to return with a 202 Accepted error so ignore those
 	acceptedError := &github.AcceptedError{}
@@ -313,7 +319,7 @@ func getOrganizationId(ctx context.Context, v4 *githubv4.Client, orgName string)
 }
 
 func updateDescription(ctx context.Context, data *schema.ResourceData, v3 *github.Client) error {
-	orgName := data.Get("name").(string)
+	orgName, _ := data.Get("name").(string)
 	oldDesc, newDesc := stringChanges(data.GetChange("description"))
 
 	if oldDesc != newDesc {
@@ -338,7 +344,7 @@ func updateDescription(ctx context.Context, data *schema.ResourceData, v3 *githu
 }
 
 func updateDisplayName(ctx context.Context, data *schema.ResourceData, v4 *github.Client) error {
-	orgName := data.Get("name").(string)
+	orgName, _ := data.Get("name").(string)
 	oldDisplayName, newDisplayName := stringChanges(data.GetChange("display_name"))
 
 	if oldDisplayName != newDisplayName {
@@ -364,7 +370,8 @@ func updateDisplayName(ctx context.Context, data *schema.ResourceData, v4 *githu
 
 func removeUsers(ctx context.Context, v3 *github.Client, v4 *githubv4.Client, toRemove []any, orgName string) error {
 	for _, user := range toRemove {
-		err := removeUser(ctx, v3, v4, user.(string), orgName)
+		userStr, _ := user.(string)
+		err := removeUser(ctx, v3, v4, userStr, orgName)
 		if err != nil {
 			return err
 		}
@@ -489,7 +496,7 @@ func resourceGithubEnterpriseOrganizationUpdate(data *schema.ResourceData, m any
 		return err
 	}
 
-	orgName := data.Get("name").(string)
+	orgName, _ := data.Get("name").(string)
 	err = updateAdminList(ctx, data, orgName, v3, v4)
 	if err != nil {
 		return err
@@ -508,7 +515,8 @@ func getUserIds(v4 *githubv4.Client, loginNames []any) ([]githubv4.ID, error) {
 	var ret []githubv4.ID
 
 	for _, l := range loginNames {
-		err := v4.Query(context.Background(), &query, map[string]any{"login": githubv4.String(l.(string))})
+		loginStr, _ := l.(string)
+		err := v4.Query(context.Background(), &query, map[string]any{"login": githubv4.String(loginStr)})
 		if err != nil {
 			return nil, err
 		}

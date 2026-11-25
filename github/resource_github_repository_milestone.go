@@ -96,11 +96,12 @@ const (
 	layoutISO = "2006-01-02"
 )
 
-func resourceGithubRepositoryMilestoneCreate(d *schema.ResourceData, meta any) error {
-	conn := meta.(*Owner).v3client
+func resourceGithubRepositoryMilestoneCreate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	conn := meta.v3client
 	ctx := context.Background()
-	owner := d.Get("owner").(string)
-	repoName := d.Get("repository").(string)
+	owner, _ := d.Get("owner").(string)
+	repoName, _ := d.Get("repository").(string)
 
 	title, _ := d.Get("title").(string)
 
@@ -135,12 +136,13 @@ func resourceGithubRepositoryMilestoneCreate(d *schema.ResourceData, meta any) e
 	return resourceGithubRepositoryMilestoneRead(d, meta)
 }
 
-func resourceGithubRepositoryMilestoneRead(d *schema.ResourceData, meta any) error {
-	conn := meta.(*Owner).v3client
+func resourceGithubRepositoryMilestoneRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	conn := meta.v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	owner := d.Get("owner").(string)
-	repoName := d.Get("repository").(string)
+	owner, _ := d.Get("owner").(string)
+	repoName, _ := d.Get("repository").(string)
 	number, err := parseMilestoneNumber(d.Id())
 	if err != nil {
 		return err
@@ -183,11 +185,12 @@ func resourceGithubRepositoryMilestoneRead(d *schema.ResourceData, meta any) err
 	return nil
 }
 
-func resourceGithubRepositoryMilestoneUpdate(d *schema.ResourceData, meta any) error {
-	conn := meta.(*Owner).v3client
+func resourceGithubRepositoryMilestoneUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	conn := meta.v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	owner := d.Get("owner").(string)
-	repoName := d.Get("repository").(string)
+	owner, _ := d.Get("owner").(string)
+	repoName, _ := d.Get("repository").(string)
 	number, err := parseMilestoneNumber(d.Id())
 	if err != nil {
 		return err
@@ -208,7 +211,8 @@ func resourceGithubRepositoryMilestoneUpdate(d *schema.ResourceData, meta any) e
 
 	if d.HasChanges("due_date") {
 		_, n := d.GetChange("due_date")
-		dueDate, err := time.Parse(layoutISO, n.(string))
+		dueDateStr, _ := n.(string)
+		dueDate, err := time.Parse(layoutISO, dueDateStr)
 		if err != nil {
 			return err
 		}
@@ -232,11 +236,12 @@ func resourceGithubRepositoryMilestoneUpdate(d *schema.ResourceData, meta any) e
 	return resourceGithubRepositoryMilestoneRead(d, meta)
 }
 
-func resourceGithubRepositoryMilestoneDelete(d *schema.ResourceData, meta any) error {
-	conn := meta.(*Owner).v3client
+func resourceGithubRepositoryMilestoneDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	conn := meta.v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	owner := d.Get("owner").(string)
-	repoName := d.Get("repository").(string)
+	owner, _ := d.Get("owner").(string)
+	repoName, _ := d.Get("repository").(string)
 	number, err := parseMilestoneNumber(d.Id())
 	if err != nil {
 		return err

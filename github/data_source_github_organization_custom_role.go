@@ -38,9 +38,10 @@ func dataSourceGithubOrganizationCustomRole() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationCustomRoleRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+func dataSourceGithubOrganizationCustomRoleRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
 
 	err := checkOrganization(meta)
 	if err != nil {
@@ -55,16 +56,17 @@ func dataSourceGithubOrganizationCustomRoleRead(ctx context.Context, d *schema.R
 		return diag.Errorf("error querying GitHub custom repository roles %s: %v", orgName, err)
 	}
 
+	name, _ := d.Get("name").(string)
 	var role *github.CustomRepoRoles
 	for _, r := range roleList.CustomRepoRoles {
-		if fmt.Sprint(*r.Name) == d.Get("name").(string) {
+		if fmt.Sprint(*r.Name) == name {
 			role = r
 			break
 		}
 	}
 
 	if role == nil {
-		log.Printf("[WARN] GitHub custom repository role (%s) not found.", d.Get("name").(string))
+		log.Printf("[WARN] GitHub custom repository role (%s) not found.", name)
 		d.SetId("")
 		return nil
 	}

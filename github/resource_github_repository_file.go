@@ -136,28 +136,34 @@ func resourceGithubRepositoryFile() *schema.Resource {
 }
 
 func resourceGithubRepositoryFileOptions(d *schema.ResourceData) *github.RepositoryContentFileOptions {
+	content, _ := d.Get("content").(string)
 	opts := &github.RepositoryContentFileOptions{
-		Content: []byte(d.Get("content").(string)),
+		Content: []byte(content),
 	}
 
 	if branch, ok := d.GetOk("branch"); ok {
-		opts.Branch = new(branch.(string))
+		branchStr, _ := branch.(string)
+		opts.Branch = new(branchStr)
 	}
 
 	if commitMessage, hasCommitMessage := d.GetOk("commit_message"); hasCommitMessage {
-		opts.Message = new(commitMessage.(string))
+		commitMessageStr, _ := commitMessage.(string)
+		opts.Message = new(commitMessageStr)
 	}
 
 	if SHA, hasSHA := d.GetOk("sha"); hasSHA {
-		opts.SHA = new(SHA.(string))
+		shaStr, _ := SHA.(string)
+		opts.SHA = new(shaStr)
 	}
 
 	commitAuthor, hasCommitAuthor := d.GetOk("commit_author")
 	commitEmail, hasCommitEmail := d.GetOk("commit_email")
 
 	if hasCommitAuthor && hasCommitEmail {
-		name := new(commitAuthor.(string))
-		mail := new(commitEmail.(string))
+		authorStr, _ := commitAuthor.(string)
+		emailStr, _ := commitEmail.(string)
+		name := new(authorStr)
+		mail := new(emailStr)
 		opts.Author = &github.CommitAuthor{Name: name, Email: mail}
 		opts.Committer = &github.CommitAuthor{Name: name, Email: mail}
 	}
@@ -165,12 +171,13 @@ func resourceGithubRepositoryFileOptions(d *schema.ResourceData) *github.Reposit
 	return opts
 }
 
-func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
-	repo := d.Get("repository").(string)
-	file := d.Get("file").(string)
+	repo, _ := d.Get("repository").(string)
+	file, _ := d.Get("file").(string)
 
 	ctx = tflog.SetField(ctx, "repository", repo)
 	ctx = tflog.SetField(ctx, "file", file)
@@ -185,12 +192,12 @@ func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceD
 	var branch string
 
 	if branchFieldVal, ok := d.GetOk("branch"); ok {
-		branch = branchFieldVal.(string)
+		branch, _ = branchFieldVal.(string)
 		tflog.Debug(ctx, "Using explicitly set branch", map[string]any{
 			"branch": branch,
 		})
 		if err := checkRepositoryBranchExists(ctx, client, owner, repo, branch); err != nil {
-			if d.Get("autocreate_branch").(bool) {
+			if autocreateBranch, _ := d.Get("autocreate_branch").(bool); autocreateBranch {
 				if err := resourceGithubRepositoryFileCreateBranch(ctx, d, meta); err != nil {
 					return diag.FromErr(err)
 				}
@@ -225,7 +232,7 @@ func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceD
 	}
 
 	if fileContent != nil {
-		if d.Get("overwrite_on_create").(bool) {
+		if overwrite, _ := d.Get("overwrite_on_create").(bool); overwrite {
 			// Overwrite existing file if requested by configuring the options for
 			// `client.Repositories.CreateFile` to match the existing file's SHA
 			opts.SHA = fileContent.SHA
@@ -265,13 +272,14 @@ func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceD
 	return resourceGithubRepositoryFileRead(ctx, d, meta)
 }
 
-func resourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	file := d.Get("file").(string)
-	branch := d.Get("branch").(string)
+	repoName, _ := d.Get("repository").(string)
+	file, _ := d.Get("file").(string)
+	branch, _ := d.Get("branch").(string)
 
 	ctx = tflog.SetField(ctx, "repository", repoName)
 	ctx = tflog.SetField(ctx, "file", file)
@@ -322,10 +330,11 @@ func resourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceDat
 
 	// Use the SHA to lookup the commit info if we know it, otherwise loop through commits
 	if sha, ok := d.GetOk("commit_sha"); ok {
+		shaStr, _ := sha.(string)
 		tflog.Debug(ctx, "Using known commit SHA", map[string]any{
-			"commit_sha": sha.(string),
+			"commit_sha": shaStr,
 		})
-		commit, _, err = client.Repositories.GetCommit(ctx, owner, repoName, sha.(string), nil)
+		commit, _, err = client.Repositories.GetCommit(ctx, owner, repoName, shaStr, nil)
 	} else {
 		tflog.Debug(ctx, "Commit SHA unknown for file, looking for commit")
 		commit, err = getFileCommit(ctx, client, owner, repoName, file, ref)
@@ -363,13 +372,14 @@ func resourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceDat
 	return nil
 }
 
-func resourceGithubRepositoryFileUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubRepositoryFileUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
-	repo := d.Get("repository").(string)
-	file := d.Get("file").(string)
-	branch := d.Get("branch").(string)
+	repo, _ := d.Get("repository").(string)
+	file, _ := d.Get("file").(string)
+	branch, _ := d.Get("branch").(string)
 
 	ctx = tflog.SetField(ctx, "repository", repo)
 	ctx = tflog.SetField(ctx, "file", file)
@@ -402,12 +412,13 @@ func resourceGithubRepositoryFileUpdate(ctx context.Context, d *schema.ResourceD
 	return resourceGithubRepositoryFileRead(ctx, d, meta)
 }
 
-func resourceGithubRepositoryFileDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubRepositoryFileDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
-	repo := d.Get("repository").(string)
-	file := d.Get("file").(string)
+	repo, _ := d.Get("repository").(string)
+	file, _ := d.Get("file").(string)
 
 	opts := resourceGithubRepositoryFileOptions(d)
 
@@ -415,7 +426,7 @@ func resourceGithubRepositoryFileDelete(ctx context.Context, d *schema.ResourceD
 		opts.Message = new(fmt.Sprintf("Delete %s", file))
 	}
 
-	branch := d.Get("branch").(string)
+	branch, _ := d.Get("branch").(string)
 	opts.Branch = new(branch)
 
 	_, _, err := client.Repositories.DeleteFile(ctx, owner, repo, file, opts)
@@ -423,7 +434,7 @@ func resourceGithubRepositoryFileDelete(ctx context.Context, d *schema.ResourceD
 }
 
 func autoBranchDiffSuppressFunc(k, _, _ string, d *schema.ResourceData) bool {
-	if !d.Get("autocreate_branch").(bool) {
+	if autocreateBranch, _ := d.Get("autocreate_branch").(bool); !autocreateBranch {
 		switch k {
 		case "autocreate_branch", "autocreate_branch_source_branch", "autocreate_branch_source_sha":
 			return true
@@ -432,7 +443,8 @@ func autoBranchDiffSuppressFunc(k, _, _ string, d *schema.ResourceData) bool {
 	return false
 }
 
-func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+	meta, _ := m.(*Owner)
 	repo, filePathPart, branch, err := parseID3(d.Id())
 	if err != nil {
 		return nil, fmt.Errorf("invalid ID specified. Supplied ID must be written as <repository>:<file path>: (when branch is default) or <repository>:<file path>:<branch>. %w", err)
@@ -440,8 +452,8 @@ func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceD
 
 	filePath := unescapeIDPart(filePathPart)
 
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+	client := meta.v3client
+	owner := meta.name
 
 	opts := &github.RepositoryContentGetOptions{}
 
@@ -492,14 +504,15 @@ func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceD
 	return []*schema.ResourceData{d}, nil
 }
 
-func resourceGithubRepositoryFileCreateBranch(ctx context.Context, d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	branch := d.Get("branch").(string)
-	repo := d.Get("repository").(string)
+func resourceGithubRepositoryFileCreateBranch(ctx context.Context, d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+	branch, _ := d.Get("branch").(string)
+	repo, _ := d.Get("repository").(string)
 
 	branchRefName := "refs/heads/" + branch
-	sourceBranchName := d.Get("autocreate_branch_source_branch").(string)
+	sourceBranchName, _ := d.Get("autocreate_branch_source_branch").(string)
 	sourceBranchRefName := "refs/heads/" + sourceBranchName
 
 	if _, hasSourceSHA := d.GetOk("autocreate_branch_source_sha"); !hasSourceSHA {
@@ -513,7 +526,7 @@ func resourceGithubRepositoryFileCreateBranch(ctx context.Context, d *schema.Res
 			return fmt.Errorf("error setting autocreate_branch_source_sha: %w", err)
 		}
 	}
-	sourceBranchSHA := d.Get("autocreate_branch_source_sha").(string)
+	sourceBranchSHA, _ := d.Get("autocreate_branch_source_sha").(string)
 	branchRef := github.CreateRef{
 		Ref: branchRefName,
 		SHA: sourceBranchSHA,

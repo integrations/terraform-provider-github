@@ -49,16 +49,18 @@ func dataSourceGithubOrganizationCustomProperties() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationCustomPropertiesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+func dataSourceGithubOrganizationCustomPropertiesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
 
 	err := checkOrganization(meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	propertyAttributes, _, err := client.Organizations.GetCustomProperty(ctx, orgName, d.Get("property_name").(string))
+	propertyName, _ := d.Get("property_name").(string)
+	propertyAttributes, _, err := client.Organizations.GetCustomProperty(ctx, orgName, propertyName)
 	if err != nil {
 		return diag.Errorf("error querying GitHub custom properties %s: %v", orgName, err)
 	}

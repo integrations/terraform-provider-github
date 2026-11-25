@@ -48,12 +48,14 @@ func resourceGithubActionsOrganizationSecretRepositoriesCreateOrUpdate(ctx conte
 	client := meta.v3client
 	owner := meta.name
 
-	secretName := d.Get("secret_name").(string)
+	secretName, _ := d.Get("secret_name").(string)
 	repoIDs := []int64{}
 
-	ids := d.Get("selected_repository_ids").(*schema.Set).List()
-	for _, id := range ids {
-		repoIDs = append(repoIDs, int64(id.(int)))
+	if s, ok := d.Get("selected_repository_ids").(*schema.Set); ok {
+		for _, id := range s.List() {
+			idInt, _ := id.(int)
+			repoIDs = append(repoIDs, int64(idInt))
+		}
 	}
 
 	_, err := client.Actions.SetSelectedReposForOrgSecret(ctx, owner, secretName, repoIDs)
@@ -75,7 +77,7 @@ func resourceGithubActionsOrganizationSecretRepositoriesRead(ctx context.Context
 	client := meta.v3client
 	owner := meta.name
 
-	secretName := d.Get("secret_name").(string)
+	secretName, _ := d.Get("secret_name").(string)
 
 	repoIDs := []int64{}
 	opt := &github.ListOptions{

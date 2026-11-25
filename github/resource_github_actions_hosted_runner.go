@@ -188,7 +188,10 @@ func expandImage(imageList []any) map[string]any {
 		return nil
 	}
 
-	imageMap := imageList[0].(map[string]any)
+	imageMap, ok := imageList[0].(map[string]any)
+	if !ok {
+		return nil
+	}
 	result := make(map[string]any)
 
 	if id, ok := imageMap["id"].(string); ok {
@@ -275,38 +278,48 @@ func flattenPublicIPs(ips []any) []any {
 	return result
 }
 
-func resourceGithubActionsHostedRunnerCreate(d *schema.ResourceData, meta any) error {
-	err := checkOrganization(meta)
+func resourceGithubActionsHostedRunnerCreate(d *schema.ResourceData, m any) error {
+	err := checkOrganization(m)
 	if err != nil {
 		return err
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
 	ctx := context.Background()
+
+	name, _ := d.Get("name").(string)
+	image, _ := d.Get("image").([]any)
+	size, _ := d.Get("size").(string)
+	runnerGroupID, _ := d.Get("runner_group_id").(int)
 
 	// Build request payload
 	payload := map[string]any{
-		"name":            d.Get("name").(string),
-		"image":           expandImage(d.Get("image").([]any)),
-		"size":            d.Get("size").(string),
-		"runner_group_id": d.Get("runner_group_id").(int),
+		"name":            name,
+		"image":           expandImage(image),
+		"size":            size,
+		"runner_group_id": runnerGroupID,
 	}
 
 	if v, ok := d.GetOk("maximum_runners"); ok {
-		payload["maximum_runners"] = v.(int)
+		maxRunners, _ := v.(int)
+		payload["maximum_runners"] = maxRunners
 	}
 
 	if v, ok := d.GetOk("public_ip_enabled"); ok {
-		payload["enable_static_ip"] = v.(bool)
+		publicIPEnabled, _ := v.(bool)
+		payload["enable_static_ip"] = publicIPEnabled
 	}
 
 	if v, ok := d.GetOk("image_version"); ok {
-		payload["image_version"] = v.(string)
+		imageVersion, _ := v.(string)
+		payload["image_version"] = imageVersion
 	}
 
 	if v, ok := d.GetOk("image_gen"); ok {
-		payload["image_gen"] = v.(bool)
+		imageGen, _ := v.(bool)
+		payload["image_gen"] = imageGen
 	}
 
 	// Create HTTP request
@@ -334,17 +347,18 @@ func resourceGithubActionsHostedRunnerCreate(d *schema.ResourceData, meta any) e
 		return fmt.Errorf("failed to get runner ID from response: %+v", runner)
 	}
 
-	return resourceGithubActionsHostedRunnerRead(d, meta)
+	return resourceGithubActionsHostedRunnerRead(d, m)
 }
 
-func resourceGithubActionsHostedRunnerRead(d *schema.ResourceData, meta any) error {
-	err := checkOrganization(meta)
+func resourceGithubActionsHostedRunnerRead(d *schema.ResourceData, m any) error {
+	err := checkOrganization(m)
 	if err != nil {
 		return err
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
 	runnerID := d.Id()
 	ctx := context.WithValue(context.Background(), ctxId, runnerID)
 
@@ -439,40 +453,47 @@ func resourceGithubActionsHostedRunnerRead(d *schema.ResourceData, meta any) err
 	return nil
 }
 
-func resourceGithubActionsHostedRunnerUpdate(d *schema.ResourceData, meta any) error {
-	err := checkOrganization(meta)
+func resourceGithubActionsHostedRunnerUpdate(d *schema.ResourceData, m any) error {
+	err := checkOrganization(m)
 	if err != nil {
 		return err
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
 	runnerID := d.Id()
 	ctx := context.WithValue(context.Background(), ctxId, runnerID)
 
 	payload := make(map[string]any)
 
 	if d.HasChange("name") {
-		payload["name"] = d.Get("name").(string)
+		name, _ := d.Get("name").(string)
+		payload["name"] = name
 	}
 	if d.HasChange("size") {
-		payload["size"] = d.Get("size").(string)
+		size, _ := d.Get("size").(string)
+		payload["size"] = size
 	}
 	if d.HasChange("runner_group_id") {
-		payload["runner_group_id"] = d.Get("runner_group_id").(int)
+		runnerGroupID, _ := d.Get("runner_group_id").(int)
+		payload["runner_group_id"] = runnerGroupID
 	}
 	if d.HasChange("maximum_runners") {
-		payload["maximum_runners"] = d.Get("maximum_runners").(int)
+		maxRunners, _ := d.Get("maximum_runners").(int)
+		payload["maximum_runners"] = maxRunners
 	}
 	if d.HasChange("public_ip_enabled") {
-		payload["enable_static_ip"] = d.Get("public_ip_enabled").(bool)
+		publicIPEnabled, _ := d.Get("public_ip_enabled").(bool)
+		payload["enable_static_ip"] = publicIPEnabled
 	}
 	if d.HasChange("image_version") {
-		payload["image_version"] = d.Get("image_version").(string)
+		imageVersion, _ := d.Get("image_version").(string)
+		payload["image_version"] = imageVersion
 	}
 
 	if len(payload) == 0 {
-		return resourceGithubActionsHostedRunnerRead(d, meta)
+		return resourceGithubActionsHostedRunnerRead(d, m)
 	}
 
 	// Create PATCH request
@@ -489,17 +510,18 @@ func resourceGithubActionsHostedRunnerUpdate(d *schema.ResourceData, meta any) e
 		}
 	}
 
-	return resourceGithubActionsHostedRunnerRead(d, meta)
+	return resourceGithubActionsHostedRunnerRead(d, m)
 }
 
-func resourceGithubActionsHostedRunnerDelete(d *schema.ResourceData, meta any) error {
-	err := checkOrganization(meta)
+func resourceGithubActionsHostedRunnerDelete(d *schema.ResourceData, m any) error {
+	err := checkOrganization(m)
 	if err != nil {
 		return err
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
 	ctx := context.Background()
 
 	runnerID := d.Id()

@@ -125,72 +125,79 @@ func branchProtectionResourceData(d *schema.ResourceData, meta any) (BranchProte
 	data := BranchProtectionResourceData{}
 
 	if v, ok := d.GetOk(REPOSITORY_ID); ok {
-		repoID, err := getRepositoryID(v.(string), meta)
+		repoIDStr, _ := v.(string)
+		repoID, err := getRepositoryID(repoIDStr, meta)
 		if err != nil {
 			return data, err
 		}
-		data.RepositoryID = repoID.(string)
+		repoIDVal, ok := repoID.(string)
+		if !ok {
+			return data, fmt.Errorf("unexpected repository ID type: %T", repoID)
+		}
+		data.RepositoryID = repoIDVal
 	}
 
 	if v, ok := d.GetOk(PROTECTION_PATTERN); ok {
-		data.Pattern = v.(string)
+		data.Pattern, _ = v.(string)
 	}
 
 	if v, ok := d.GetOk(PROTECTION_ALLOWS_DELETIONS); ok {
-		data.AllowsDeletions = v.(bool)
+		data.AllowsDeletions, _ = v.(bool)
 	}
 
 	if v, ok := d.GetOk(PROTECTION_ALLOWS_FORCE_PUSHES); ok {
-		data.AllowsForcePushes = v.(bool)
+		data.AllowsForcePushes, _ = v.(bool)
 	}
 
 	if v, ok := d.GetOk(PROTECTION_IS_ADMIN_ENFORCED); ok {
-		data.IsAdminEnforced = v.(bool)
+		data.IsAdminEnforced, _ = v.(bool)
 	}
 
 	if v, ok := d.GetOk(PROTECTION_REQUIRES_COMMIT_SIGNATURES); ok {
-		data.RequiresCommitSignatures = v.(bool)
+		data.RequiresCommitSignatures, _ = v.(bool)
 	}
 
 	if v, ok := d.GetOk(PROTECTION_REQUIRES_LINEAR_HISTORY); ok {
-		data.RequiresLinearHistory = v.(bool)
+		data.RequiresLinearHistory, _ = v.(bool)
 	}
 
 	if v, ok := d.GetOk(PROTECTION_REQUIRES_CONVERSATION_RESOLUTION); ok {
-		data.RequiresConversationResolution = v.(bool)
+		data.RequiresConversationResolution, _ = v.(bool)
 	}
 
 	if v, ok := d.GetOk(PROTECTION_REQUIRES_APPROVING_REVIEWS); ok {
-		vL := v.([]any)
+		vL, _ := v.([]any)
 		if len(vL) > 1 {
 			return BranchProtectionResourceData{},
 				fmt.Errorf("error multiple %s declarations", PROTECTION_REQUIRES_APPROVING_REVIEWS)
 		}
 		for _, v := range vL {
-			if v == nil {
+			m, ok := v.(map[string]any)
+			if !ok {
 				break
 			}
 
 			data.RequiresApprovingReviews = true
 
-			m := v.(map[string]any)
 			if v, ok := m[PROTECTION_REQUIRED_APPROVING_REVIEW_COUNT]; ok {
-				data.RequiredApprovingReviewCount = v.(int)
+				data.RequiredApprovingReviewCount, _ = v.(int)
 			}
 			if v, ok := m[PROTECTION_DISMISSES_STALE_REVIEWS]; ok {
-				data.DismissesStaleReviews = v.(bool)
+				data.DismissesStaleReviews, _ = v.(bool)
 			}
 			if v, ok := m[PROTECTION_REQUIRES_CODE_OWNER_REVIEWS]; ok {
-				data.RequiresCodeOwnerReviews = v.(bool)
+				data.RequiresCodeOwnerReviews, _ = v.(bool)
 			}
 			if v, ok := m[PROTECTION_RESTRICTS_REVIEW_DISMISSALS]; ok {
-				data.RestrictsReviewDismissals = v.(bool)
+				data.RestrictsReviewDismissals, _ = v.(bool)
 			}
 			if v, ok := m[PROTECTION_REVIEW_DISMISSAL_ALLOWANCES]; ok {
 				reviewDismissalActorIDs := make([]string, 0)
-				vL := v.(*schema.Set).List()
-				for _, v := range vL {
-					reviewDismissalActorIDs = append(reviewDismissalActorIDs, v.(string))
+				if s, ok := v.(*schema.Set); ok {
+					for _, v := range s.List() {
+						str, _ := v.(string)
+						reviewDismissalActorIDs = append(reviewDismissalActorIDs, str)
+					}
 				}
 				if len(reviewDismissalActorIDs) > 0 {
 					data.ReviewDismissalActorIDs = reviewDismissalActorIDs
@@ -199,35 +206,37 @@ func branchProtectionResourceData(d *schema.ResourceData, meta any) (BranchProte
 			}
 			if v, ok := m[PROTECTION_PULL_REQUESTS_BYPASSERS]; ok {
 				bypassPullRequestActorIDs := make([]string, 0)
-				vL := v.(*schema.Set).List()
-				for _, v := range vL {
-					bypassPullRequestActorIDs = append(bypassPullRequestActorIDs, v.(string))
+				if s, ok := v.(*schema.Set); ok {
+					for _, v := range s.List() {
+						str, _ := v.(string)
+						bypassPullRequestActorIDs = append(bypassPullRequestActorIDs, str)
+					}
 				}
 				if len(bypassPullRequestActorIDs) > 0 {
 					data.BypassPullRequestActorIDs = bypassPullRequestActorIDs
 				}
 			}
 			if v, ok := m[PROTECTION_REQUIRE_LAST_PUSH_APPROVAL]; ok {
-				data.RequireLastPushApproval = v.(bool)
+				data.RequireLastPushApproval, _ = v.(bool)
 			}
 		}
 	}
 
 	if v, ok := d.GetOk(PROTECTION_REQUIRES_STATUS_CHECKS); ok {
 		data.RequiresStatusChecks = true
-		vL := v.([]any)
+		vL, _ := v.([]any)
 		if len(vL) > 1 {
 			return BranchProtectionResourceData{},
 				fmt.Errorf("error multiple %s declarations", PROTECTION_REQUIRES_STATUS_CHECKS)
 		}
 		for _, v := range vL {
-			if v == nil {
+			m, ok := v.(map[string]any)
+			if !ok {
 				break
 			}
 
-			m := v.(map[string]any)
 			if v, ok := m[PROTECTION_REQUIRES_STRICT_STATUS_CHECKS]; ok {
-				data.RequiresStrictStatusChecks = v.(bool)
+				data.RequiresStrictStatusChecks, _ = v.(bool)
 			}
 
 			data.RequiredStatusCheckContexts = expandNestedSet(m, PROTECTION_REQUIRED_STATUS_CHECK_CONTEXTS)
@@ -235,27 +244,29 @@ func branchProtectionResourceData(d *schema.ResourceData, meta any) (BranchProte
 	}
 
 	if v, ok := d.GetOk(PROTECTION_RESTRICTS_PUSHES); ok {
-		vL := v.([]any)
+		vL, _ := v.([]any)
 		if len(vL) > 1 {
 			return BranchProtectionResourceData{},
 				fmt.Errorf("error multiple %s declarations", PROTECTION_RESTRICTS_PUSHES)
 		}
 		for _, v := range vL {
-			if v == nil {
+			m, ok := v.(map[string]any)
+			if !ok {
 				break
 			}
 
 			data.RestrictsPushes = true
 
-			m := v.(map[string]any)
 			if v, ok := m[PROTECTION_BLOCKS_CREATIONS]; ok {
-				data.BlocksCreations = v.(bool)
+				data.BlocksCreations, _ = v.(bool)
 			}
 			if v, ok := m[PROTECTION_PUSH_ALLOWANCES]; ok {
 				pushActorIDs := make([]string, 0)
-				vL := v.(*schema.Set).List()
-				for _, v := range vL {
-					pushActorIDs = append(pushActorIDs, v.(string))
+				if s, ok := v.(*schema.Set); ok {
+					for _, v := range s.List() {
+						str, _ := v.(string)
+						pushActorIDs = append(pushActorIDs, str)
+					}
 				}
 				if len(pushActorIDs) > 0 {
 					data.PushActorIDs = pushActorIDs
@@ -266,9 +277,11 @@ func branchProtectionResourceData(d *schema.ResourceData, meta any) (BranchProte
 
 	if v, ok := d.GetOk(PROTECTION_FORCE_PUSHES_BYPASSERS); ok {
 		bypassForcePushActorIDs := make([]string, 0)
-		vL := v.(*schema.Set).List()
-		for _, v := range vL {
-			bypassForcePushActorIDs = append(bypassForcePushActorIDs, v.(string))
+		if s, ok := v.(*schema.Set); ok {
+			for _, v := range s.List() {
+				str, _ := v.(string)
+				bypassForcePushActorIDs = append(bypassForcePushActorIDs, str)
+			}
 		}
 		if len(bypassForcePushActorIDs) > 0 {
 			data.BypassForcePushActorIDs = bypassForcePushActorIDs
@@ -277,7 +290,7 @@ func branchProtectionResourceData(d *schema.ResourceData, meta any) (BranchProte
 	}
 
 	if v, ok := d.GetOk(PROTECTION_LOCK_BRANCH); ok {
-		data.LockBranch = v.(bool)
+		data.LockBranch, _ = v.(bool)
 	}
 
 	return data, nil
@@ -286,22 +299,24 @@ func branchProtectionResourceData(d *schema.ResourceData, meta any) (BranchProte
 func branchProtectionResourceDataActors(d *schema.ResourceData) (BranchProtectionResourceData, error) {
 	data := BranchProtectionResourceData{}
 	if v, ok := d.GetOk(PROTECTION_REQUIRES_APPROVING_REVIEWS); ok {
-		vL := v.([]any)
+		vL, _ := v.([]any)
 		if len(vL) > 1 {
 			return BranchProtectionResourceData{},
 				fmt.Errorf("error multiple %s declarations", PROTECTION_REQUIRES_APPROVING_REVIEWS)
 		}
 		for _, v := range vL {
-			if v == nil {
+			m, ok := v.(map[string]any)
+			if !ok {
 				break
 			}
 
-			m := v.(map[string]any)
 			if v, ok := m[PROTECTION_REVIEW_DISMISSAL_ALLOWANCES]; ok {
 				reviewDismissalActorIDs := make([]string, 0)
-				vL := v.(*schema.Set).List()
-				for _, v := range vL {
-					reviewDismissalActorIDs = append(reviewDismissalActorIDs, v.(string))
+				if s, ok := v.(*schema.Set); ok {
+					for _, v := range s.List() {
+						str, _ := v.(string)
+						reviewDismissalActorIDs = append(reviewDismissalActorIDs, str)
+					}
 				}
 				if len(reviewDismissalActorIDs) > 0 {
 					data.ReviewDismissalActorIDs = reviewDismissalActorIDs
@@ -310,9 +325,11 @@ func branchProtectionResourceDataActors(d *schema.ResourceData) (BranchProtectio
 			}
 			if v, ok := m[PROTECTION_PULL_REQUESTS_BYPASSERS]; ok {
 				bypassPullRequestActorIDs := make([]string, 0)
-				vL := v.(*schema.Set).List()
-				for _, v := range vL {
-					bypassPullRequestActorIDs = append(bypassPullRequestActorIDs, v.(string))
+				if s, ok := v.(*schema.Set); ok {
+					for _, v := range s.List() {
+						str, _ := v.(string)
+						bypassPullRequestActorIDs = append(bypassPullRequestActorIDs, str)
+					}
 				}
 				if len(bypassPullRequestActorIDs) > 0 {
 					data.BypassPullRequestActorIDs = bypassPullRequestActorIDs
@@ -322,27 +339,29 @@ func branchProtectionResourceDataActors(d *schema.ResourceData) (BranchProtectio
 	}
 
 	if v, ok := d.GetOk(PROTECTION_RESTRICTS_PUSHES); ok {
-		vL := v.([]any)
+		vL, _ := v.([]any)
 		if len(vL) > 1 {
 			return BranchProtectionResourceData{},
 				fmt.Errorf("error multiple %s declarations", PROTECTION_RESTRICTS_PUSHES)
 		}
 		for _, v := range vL {
-			if v == nil {
+			m, ok := v.(map[string]any)
+			if !ok {
 				break
 			}
 
 			data.RestrictsPushes = true
 
-			m := v.(map[string]any)
 			if v, ok := m[PROTECTION_BLOCKS_CREATIONS]; ok {
-				data.BlocksCreations = v.(bool)
+				data.BlocksCreations, _ = v.(bool)
 			}
 			if v, ok := m[PROTECTION_PUSH_ALLOWANCES]; ok {
 				pushActorIDs := make([]string, 0)
-				vL := v.(*schema.Set).List()
-				for _, v := range vL {
-					pushActorIDs = append(pushActorIDs, v.(string))
+				if s, ok := v.(*schema.Set); ok {
+					for _, v := range s.List() {
+						str, _ := v.(string)
+						pushActorIDs = append(pushActorIDs, str)
+					}
 				}
 				if len(pushActorIDs) > 0 {
 					data.PushActorIDs = pushActorIDs
@@ -353,9 +372,11 @@ func branchProtectionResourceDataActors(d *schema.ResourceData) (BranchProtectio
 
 	if v, ok := d.GetOk(PROTECTION_FORCE_PUSHES_BYPASSERS); ok {
 		bypassForcePushActorIDs := make([]string, 0)
-		vL := v.(*schema.Set).List()
-		for _, v := range vL {
-			bypassForcePushActorIDs = append(bypassForcePushActorIDs, v.(string))
+		if s, ok := v.(*schema.Set); ok {
+			for _, v := range s.List() {
+				str, _ := v.(string)
+				bypassForcePushActorIDs = append(bypassForcePushActorIDs, str)
+			}
 		}
 		if len(bypassForcePushActorIDs) > 0 {
 			data.BypassForcePushActorIDs = bypassForcePushActorIDs
@@ -366,14 +387,18 @@ func branchProtectionResourceDataActors(d *schema.ResourceData) (BranchProtectio
 	return data, nil
 }
 
-func setDismissalActorIDs(actors []DismissalActorTypes, data BranchProtectionResourceData, meta any) []string {
+func setDismissalActorIDs(actors []DismissalActorTypes, data BranchProtectionResourceData, m any) []string {
+	meta, _ := m.(*Owner)
 	dismissalActors := make([]string, 0, len(actors))
-	orgName := meta.(*Owner).name
+	orgName := meta.name
 
 	for _, a := range actors {
 		IsID := false
+		teamID, teamOK := a.Actor.Team.ID.(string)
+		userID, userOK := a.Actor.User.ID.(string)
+		appID, appOK := a.Actor.App.ID.(string)
 		for _, v := range data.ReviewDismissalActorIDs {
-			if (a.Actor.Team.ID != nil && a.Actor.Team.ID.(string) == v) || (a.Actor.User.ID != nil && a.Actor.User.ID.(string) == v) || (a.Actor.App.ID != nil && a.Actor.App.ID.(string) == v) {
+			if (teamOK && teamID == v) || (userOK && userID == v) || (appOK && appID == v) {
 				dismissalActors = append(dismissalActors, v)
 				IsID = true
 				break
@@ -388,23 +413,27 @@ func setDismissalActorIDs(actors []DismissalActorTypes, data BranchProtectionRes
 				dismissalActors = append(dismissalActors, "/"+string(a.Actor.User.Login))
 				continue
 			}
-			if a.Actor.App != (Actor{}) {
-				dismissalActors = append(dismissalActors, a.Actor.App.ID.(string))
+			if a.Actor.App != (Actor{}) && appOK {
+				dismissalActors = append(dismissalActors, appID)
 			}
 		}
 	}
 	return dismissalActors
 }
 
-func setBypassForcePushActorIDs(actors []BypassForcePushActorTypes, data BranchProtectionResourceData, meta any) []string {
+func setBypassForcePushActorIDs(actors []BypassForcePushActorTypes, data BranchProtectionResourceData, m any) []string {
+	meta, _ := m.(*Owner)
 	bypassActors := make([]string, 0, len(actors))
 
-	orgName := meta.(*Owner).name
+	orgName := meta.name
 
 	for _, a := range actors {
 		IsID := false
+		teamID, teamOK := a.Actor.Team.ID.(string)
+		userID, userOK := a.Actor.User.ID.(string)
+		appID, appOK := a.Actor.App.ID.(string)
 		for _, v := range data.BypassForcePushActorIDs {
-			if (a.Actor.Team.ID != nil && a.Actor.Team.ID.(string) == v) || (a.Actor.User.ID != nil && a.Actor.User.ID.(string) == v) || (a.Actor.App.ID != nil && a.Actor.App.ID.(string) == v) {
+			if (teamOK && teamID == v) || (userOK && userID == v) || (appOK && appID == v) {
 				bypassActors = append(bypassActors, v)
 				IsID = true
 				break
@@ -419,23 +448,27 @@ func setBypassForcePushActorIDs(actors []BypassForcePushActorTypes, data BranchP
 				bypassActors = append(bypassActors, "/"+string(a.Actor.User.Login))
 				continue
 			}
-			if a.Actor.App != (Actor{}) {
-				bypassActors = append(bypassActors, a.Actor.App.ID.(string))
+			if a.Actor.App != (Actor{}) && appOK {
+				bypassActors = append(bypassActors, appID)
 			}
 		}
 	}
 	return bypassActors
 }
 
-func setBypassPullRequestActorIDs(actors []BypassPullRequestActorTypes, data BranchProtectionResourceData, meta any) []string {
+func setBypassPullRequestActorIDs(actors []BypassPullRequestActorTypes, data BranchProtectionResourceData, m any) []string {
+	meta, _ := m.(*Owner)
 	bypassActors := make([]string, 0, len(actors))
 
-	orgName := meta.(*Owner).name
+	orgName := meta.name
 
 	for _, a := range actors {
 		IsID := false
+		teamID, teamOK := a.Actor.Team.ID.(string)
+		userID, userOK := a.Actor.User.ID.(string)
+		appID, appOK := a.Actor.App.ID.(string)
 		for _, v := range data.BypassPullRequestActorIDs {
-			if (a.Actor.Team.ID != nil && a.Actor.Team.ID.(string) == v) || (a.Actor.User.ID != nil && a.Actor.User.ID.(string) == v) || (a.Actor.App.ID != nil && a.Actor.App.ID.(string) == v) {
+			if (teamOK && teamID == v) || (userOK && userID == v) || (appOK && appID == v) {
 				bypassActors = append(bypassActors, v)
 				IsID = true
 				break
@@ -450,23 +483,27 @@ func setBypassPullRequestActorIDs(actors []BypassPullRequestActorTypes, data Bra
 				bypassActors = append(bypassActors, "/"+string(a.Actor.User.Login))
 				continue
 			}
-			if a.Actor.App != (Actor{}) {
-				bypassActors = append(bypassActors, a.Actor.App.ID.(string))
+			if a.Actor.App != (Actor{}) && appOK {
+				bypassActors = append(bypassActors, appID)
 			}
 		}
 	}
 	return bypassActors
 }
 
-func setPushActorIDs(actors []PushActorTypes, data BranchProtectionResourceData, meta any) []string {
+func setPushActorIDs(actors []PushActorTypes, data BranchProtectionResourceData, m any) []string {
+	meta, _ := m.(*Owner)
 	pushActors := make([]string, 0, len(actors))
 
-	orgName := meta.(*Owner).name
+	orgName := meta.name
 
 	for _, a := range actors {
 		IsID := false
+		teamID, teamOK := a.Actor.Team.ID.(string)
+		userID, userOK := a.Actor.User.ID.(string)
+		appID, appOK := a.Actor.App.ID.(string)
 		for _, v := range data.PushActorIDs {
-			if (a.Actor.Team.ID != nil && a.Actor.Team.ID.(string) == v) || (a.Actor.User.ID != nil && a.Actor.User.ID.(string) == v) || (a.Actor.App.ID != nil && a.Actor.App.ID.(string) == v) {
+			if (teamOK && teamID == v) || (userOK && userID == v) || (appOK && appID == v) {
 				pushActors = append(pushActors, v)
 				IsID = true
 				break
@@ -481,8 +518,8 @@ func setPushActorIDs(actors []PushActorTypes, data BranchProtectionResourceData,
 				pushActors = append(pushActors, "/"+string(a.Actor.User.Login))
 				continue
 			}
-			if a.Actor.App != (Actor{}) {
-				pushActors = append(pushActors, a.Actor.App.ID.(string))
+			if a.Actor.App != (Actor{}) && appOK {
+				pushActors = append(pushActors, appID)
 			}
 		}
 	}
@@ -629,10 +666,11 @@ func getActorIds(data []string, meta any) ([]string, error) {
 // with the organization name as prefix (Ex.: exampleorg/exampleteam). Usernames
 // must be provided with the "/" prefix otherwise getNodeIDv4 assumes that
 // the provided string is a node ID.
-func getNodeIDv4(userOrSlug string, meta any) (string, error) {
-	orgName := meta.(*Owner).name
+func getNodeIDv4(userOrSlug string, m any) (string, error) {
+	meta, _ := m.(*Owner)
+	orgName := meta.name
 	ctx := context.Background()
-	client := meta.(*Owner).v4client
+	client := meta.v4client
 
 	if strings.HasPrefix(userOrSlug, orgName+"/") {
 		var queryTeam struct {

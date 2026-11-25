@@ -48,12 +48,14 @@ func resourceGithubActionsOrganizationVariableRepositoriesCreateOrUpdate(ctx con
 	client := meta.v3client
 	owner := meta.name
 
-	variableName := d.Get("variable_name").(string)
+	variableName, _ := d.Get("variable_name").(string)
 	repoIDs := []int64{}
 
-	ids := d.Get("selected_repository_ids").(*schema.Set).List()
-	for _, id := range ids {
-		repoIDs = append(repoIDs, int64(id.(int)))
+	if s, ok := d.Get("selected_repository_ids").(*schema.Set); ok {
+		for _, id := range s.List() {
+			idInt, _ := id.(int)
+			repoIDs = append(repoIDs, int64(idInt))
+		}
 	}
 
 	_, err := client.Actions.SetSelectedReposForOrgVariable(ctx, owner, variableName, repoIDs)
@@ -75,7 +77,7 @@ func resourceGithubActionsOrganizationVariableRepositoriesRead(ctx context.Conte
 	client := meta.v3client
 	owner := meta.name
 
-	variableName := d.Get("variable_name").(string)
+	variableName, _ := d.Get("variable_name").(string)
 
 	repoIDs := []int64{}
 	opt := &github.ListOptions{

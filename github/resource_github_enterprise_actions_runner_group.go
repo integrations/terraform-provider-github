@@ -98,17 +98,19 @@ func resourceGithubActionsEnterpriseRunnerGroupCreate(d *schema.ResourceData, m 
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 
-	name := d.Get("name").(string)
-	enterpriseSlug := d.Get("enterprise_slug").(string)
-	restrictedToWorkflows := d.Get("restricted_to_workflows").(bool)
-	visibility := d.Get("visibility").(string)
+	name, _ := d.Get("name").(string)
+	enterpriseSlug, _ := d.Get("enterprise_slug").(string)
+	restrictedToWorkflows, _ := d.Get("restricted_to_workflows").(bool)
+	visibility, _ := d.Get("visibility").(string)
 	selectedOrganizations, hasSelectedOrganizations := d.GetOk("selected_organization_ids")
-	allowsPublicRepositories := d.Get("allows_public_repositories").(bool)
+	allowsPublicRepositories, _ := d.Get("allows_public_repositories").(bool)
 
 	selectedWorkflows := []string{}
 	if workflows, ok := d.GetOk("selected_workflows"); ok {
-		for _, workflow := range workflows.([]any) {
-			selectedWorkflows = append(selectedWorkflows, workflow.(string))
+		workflowsSlice, _ := workflows.([]any)
+		for _, workflow := range workflowsSlice {
+			workflowStr, _ := workflow.(string)
+			selectedWorkflows = append(selectedWorkflows, workflowStr)
 		}
 	}
 
@@ -119,10 +121,11 @@ func resourceGithubActionsEnterpriseRunnerGroupCreate(d *schema.ResourceData, m 
 	selectedOrganizationIDs := []int64{}
 
 	if hasSelectedOrganizations {
-		ids := selectedOrganizations.(*schema.Set).List()
-
-		for _, id := range ids {
-			selectedOrganizationIDs = append(selectedOrganizationIDs, int64(id.(int)))
+		if s, ok := selectedOrganizations.(*schema.Set); ok {
+			for _, id := range s.List() {
+				idInt, _ := id.(int)
+				selectedOrganizationIDs = append(selectedOrganizationIDs, int64(idInt))
+			}
 		}
 	}
 
@@ -198,14 +201,15 @@ func resourceGithubActionsEnterpriseRunnerGroupRead(d *schema.ResourceData, m an
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 
-	enterpriseSlug := d.Get("enterprise_slug").(string)
+	enterpriseSlug, _ := d.Get("enterprise_slug").(string)
 	runnerGroupID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return err
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+		etag, _ := d.Get("etag").(string)
+		ctx = context.WithValue(ctx, ctxEtag, etag)
 	}
 
 	enterpriseRunnerGroup, resp, err := getEnterpriseRunnerGroup(client, ctx, enterpriseSlug, runnerGroupID)
@@ -296,15 +300,17 @@ func resourceGithubActionsEnterpriseRunnerGroupUpdate(d *schema.ResourceData, m 
 		return err
 	}
 
-	name := d.Get("name").(string)
-	enterpriseSlug := d.Get("enterprise_slug").(string)
-	visibility := d.Get("visibility").(string)
-	restrictedToWorkflows := d.Get("restricted_to_workflows").(bool)
+	name, _ := d.Get("name").(string)
+	enterpriseSlug, _ := d.Get("enterprise_slug").(string)
+	visibility, _ := d.Get("visibility").(string)
+	restrictedToWorkflows, _ := d.Get("restricted_to_workflows").(bool)
 	selectedWorkflows := []string{}
-	allowsPublicRepositories := d.Get("allows_public_repositories").(bool)
+	allowsPublicRepositories, _ := d.Get("allows_public_repositories").(bool)
 	if workflows, ok := d.GetOk("selected_workflows"); ok {
-		for _, workflow := range workflows.([]any) {
-			selectedWorkflows = append(selectedWorkflows, workflow.(string))
+		workflowsSlice, _ := workflows.([]any)
+		for _, workflow := range workflowsSlice {
+			workflowStr, _ := workflow.(string)
+			selectedWorkflows = append(selectedWorkflows, workflowStr)
 		}
 	}
 
@@ -330,10 +336,11 @@ func resourceGithubActionsEnterpriseRunnerGroupUpdate(d *schema.ResourceData, m 
 	selectedOrganizationIDs := []int64{}
 
 	if hasSelectedOrganizations {
-		ids := selectedOrganizations.(*schema.Set).List()
-
-		for _, id := range ids {
-			selectedOrganizationIDs = append(selectedOrganizationIDs, int64(id.(int)))
+		if s, ok := selectedOrganizations.(*schema.Set); ok {
+			for _, id := range s.List() {
+				idInt, _ := id.(int)
+				selectedOrganizationIDs = append(selectedOrganizationIDs, int64(idInt))
+			}
 		}
 	}
 
@@ -349,7 +356,7 @@ func resourceGithubActionsEnterpriseRunnerGroupUpdate(d *schema.ResourceData, m 
 func resourceGithubActionsEnterpriseRunnerGroupDelete(d *schema.ResourceData, m any) error {
 	meta, _ := m.(*Owner)
 	client := meta.v3client
-	enterpriseSlug := d.Get("enterprise_slug").(string)
+	enterpriseSlug, _ := d.Get("enterprise_slug").(string)
 	enterpriseRunnerGroupID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return err

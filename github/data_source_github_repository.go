@@ -346,20 +346,22 @@ func dataSourceGithubRepository() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func dataSourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 	var repoName string
 
 	if fullName, ok := d.GetOk("full_name"); ok {
 		var err error
-		owner, repoName, err = splitRepoFullName(fullName.(string))
+		fullNameStr, _ := fullName.(string)
+		owner, repoName, err = splitRepoFullName(fullNameStr)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 	}
 	if name, ok := d.GetOk("name"); ok {
-		repoName = name.(string)
+		repoName, _ = name.(string)
 	}
 
 	if repoName == "" {

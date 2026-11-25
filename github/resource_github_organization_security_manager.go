@@ -55,7 +55,7 @@ func resourceGithubOrganizationSecurityManagerCreate(d *schema.ResourceData, m a
 	}
 
 	orgName := meta.name
-	teamSlug := d.Get("team_slug").(string)
+	teamSlug, _ := d.Get("team_slug").(string)
 
 	client := meta.v3client
 	ctx := context.Background()
@@ -183,7 +183,7 @@ func resourceGithubOrganizationSecurityManagerDelete(d *schema.ResourceData, m a
 	}
 
 	orgName := meta.name
-	teamSlug := d.Get("team_slug").(string)
+	teamSlug, _ := d.Get("team_slug").(string)
 
 	client := meta.v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())

@@ -124,9 +124,9 @@ func resourceGithubDependabotSecretCreate(ctx context.Context, d *schema.Resourc
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	secretName := d.Get("secret_name").(string)
-	keyID := d.Get("key_id").(string)
+	repoName, _ := d.Get("repository").(string)
+	secretName, _ := d.Get("secret_name").(string)
+	keyID, _ := d.Get("key_id").(string)
 	encryptedValue, _ := tfpluginv2util.GetKeysOk[string](d, "value_encrypted", "encrypted_value")
 
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
@@ -203,8 +203,8 @@ func resourceGithubDependabotSecretRead(ctx context.Context, d *schema.ResourceD
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	secretName := d.Get("secret_name").(string)
+	repoName, _ := d.Get("repository").(string)
+	secretName, _ := d.Get("secret_name").(string)
 
 	secret, _, err := client.Dependabot.GetRepoSecret(ctx, owner, repoName, secretName)
 	if err != nil {
@@ -224,12 +224,14 @@ func resourceGithubDependabotSecretRead(ctx context.Context, d *schema.ResourceD
 
 	// Due to the eventually consistent behavior of this API we may not get created_at/updated_at
 	// values on the first read after creation, so we only set them here if they are not already set.
-	if len(d.Get("created_at").(string)) == 0 {
+	createdAt, _ := d.Get("created_at").(string)
+	if len(createdAt) == 0 {
 		if err = d.Set("created_at", secret.CreatedAt.String()); err != nil {
 			return diag.FromErr(err)
 		}
 	}
-	if len(d.Get("updated_at").(string)) == 0 {
+	updatedAt, _ := d.Get("updated_at").(string)
+	if len(updatedAt) == 0 {
 		if err = d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
 			return diag.FromErr(err)
 		}
@@ -246,9 +248,9 @@ func resourceGithubDependabotSecretUpdate(ctx context.Context, d *schema.Resourc
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	secretName := d.Get("secret_name").(string)
-	keyID := d.Get("key_id").(string)
+	repoName, _ := d.Get("repository").(string)
+	secretName, _ := d.Get("secret_name").(string)
+	keyID, _ := d.Get("key_id").(string)
 	encryptedValue, _ := tfpluginv2util.GetKeysOk[string](d, "value_encrypted", "encrypted_value")
 
 	var publicKey string
@@ -316,8 +318,8 @@ func resourceGithubDependabotSecretDelete(ctx context.Context, d *schema.Resourc
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	secretName := d.Get("secret_name").(string)
+	repoName, _ := d.Get("repository").(string)
+	secretName, _ := d.Get("secret_name").(string)
 
 	tflog.Info(ctx, "Deleting Dependabot repo secret.", map[string]any{"secret_name": secretName, "repository": repoName})
 	_, err := client.Dependabot.DeleteRepoSecret(ctx, owner, repoName, secretName)

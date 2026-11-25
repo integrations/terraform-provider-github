@@ -5,5 +5,4 @@
 version: "2"
 
 linters:
-  enable:
-    - forcetypeassert
+  enable: []

@@ -693,7 +693,7 @@ func resourceGithubRepositoryRulesetCreate(ctx context.Context, d *schema.Resour
 
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
+	repoName, _ := d.Get("repository").(string)
 
 	// Check if repository is archived - cannot create rulesets on archived repos (attempts PUT on read-only resource)
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
@@ -734,14 +734,15 @@ func resourceGithubRepositoryRulesetRead(ctx context.Context, d *schema.Resource
 
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
+	repoName, _ := d.Get("repository").(string)
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
 
 	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+		etag, _ := d.Get("etag").(string)
+		ctx = context.WithValue(ctx, ctxEtag, etag)
 	}
 
 	ruleset, resp, err := client.Repositories.GetRuleset(ctx, owner, repoName, rulesetID, false)
@@ -809,7 +810,7 @@ func resourceGithubRepositoryRulesetUpdate(ctx context.Context, d *schema.Resour
 
 	rulesetReq := resourceGithubRulesetObject(d, "")
 
-	repoName := d.Get("repository").(string)
+	repoName, _ := d.Get("repository").(string)
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
@@ -845,11 +846,12 @@ func resourceGithubRepositoryRulesetUpdate(ctx context.Context, d *schema.Resour
 	return nil
 }
 
-func resourceGithubRepositoryRulesetDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubRepositoryRulesetDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
-	repoName := d.Get("repository").(string)
+	repoName, _ := d.Get("repository").(string)
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
@@ -860,7 +862,8 @@ func resourceGithubRepositoryRulesetDelete(ctx context.Context, d *schema.Resour
 	return diag.FromErr(handleArchivedRepoDelete(err, "repository ruleset", strconv.FormatInt(rulesetID, 10), owner, repoName))
 }
 
-func resourceGithubRepositoryRulesetImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubRepositoryRulesetImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+	meta, _ := m.(*Owner)
 	repoName, rulesetIDStr, err := parseID2(d.Id())
 	if err != nil {
 		return []*schema.ResourceData{d}, err
@@ -873,8 +876,8 @@ func resourceGithubRepositoryRulesetImport(ctx context.Context, d *schema.Resour
 	if rulesetID == 0 {
 		return []*schema.ResourceData{d}, fmt.Errorf("`ruleset_id` must be present")
 	}
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+	client := meta.v3client
+	owner := meta.name
 
 	tflog.Debug(ctx, "Importing repository ruleset", map[string]any{"owner": owner, "repo_name": repoName, "ruleset_id": rulesetID})
 

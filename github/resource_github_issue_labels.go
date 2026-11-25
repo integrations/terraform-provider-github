@@ -89,14 +89,18 @@ func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, m any) erro
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
-	repository := d.Get("repository").(string)
+	repository, _ := d.Get("repository").(string)
 	ctx := context.WithValue(context.Background(), ctxId, repository)
 
-	wantLabels := d.Get("label").(*schema.Set).List()
+	var wantLabels []any
+	if s, ok := d.Get("label").(*schema.Set); ok {
+		wantLabels = s.List()
+	}
 
 	wantLabelsMap := make(map[string]any, len(wantLabels))
 	for _, label := range wantLabels {
-		name := label.(map[string]any)["name"].(string)
+		labelData, _ := label.(map[string]any)
+		name, _ := labelData["name"].(string)
 		if _, found := wantLabelsMap[name]; found {
 			return fmt.Errorf("duplicate set label: %s", name)
 		}
@@ -115,9 +119,9 @@ func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, m any) erro
 		name := hasLabel.GetName()
 		wantLabel, found := wantLabelsMap[name]
 		if found {
-			labelData := wantLabel.(map[string]any)
-			description := labelData["description"].(string)
-			color := labelData["color"].(string)
+			labelData, _ := wantLabel.(map[string]any)
+			description, _ := labelData["description"].(string)
+			color, _ := labelData["color"].(string)
 			if hasLabel.GetDescription() != description || hasLabel.GetColor() != color {
 				log.Printf("[DEBUG] Updating GitHub issue label %s/%s/%s", owner, repository, name)
 
@@ -143,7 +147,7 @@ func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, m any) erro
 	}
 
 	for _, l := range wantLabels {
-		labelData := l.(map[string]any)
+		labelData, _ := l.(map[string]any)
 		name, _ := labelData["name"].(string)
 
 		_, found := hasLabelsMap[name]
@@ -178,17 +182,20 @@ func resourceGithubIssueLabelsDelete(d *schema.ResourceData, m any) error {
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
-	repository := d.Get("repository").(string)
+	repository, _ := d.Get("repository").(string)
 	ctx := context.WithValue(context.Background(), ctxId, repository)
 
-	labels := d.Get("label").(*schema.Set).List()
+	var labels []any
+	if s, ok := d.Get("label").(*schema.Set); ok {
+		labels = s.List()
+	}
 
 	log.Printf("[DEBUG] Deleting GitHub issue labels for %s/%s", owner, repository)
 
 	// delete
 	for _, raw := range labels {
-		label := raw.(map[string]any)
-		name := label["name"].(string)
+		label, _ := raw.(map[string]any)
+		name, _ := label["name"].(string)
 
 		log.Printf("[DEBUG] Deleting GitHub issue label %s/%s/%s", owner, repository, name)
 

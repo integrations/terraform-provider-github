@@ -121,18 +121,19 @@ func resourceGithubDependabotOrganizationSecretCreate(ctx context.Context, d *sc
 	client := meta.v3client
 	owner := meta.name
 
-	secretName := d.Get("secret_name").(string)
-	keyID := d.Get("key_id").(string)
+	secretName, _ := d.Get("secret_name").(string)
+	keyID, _ := d.Get("key_id").(string)
 	encryptedValue, _ := tfpluginv2util.GetKeysOk[string](d, "value_encrypted", "encrypted_value")
-	visibility := d.Get("visibility").(string)
+	visibility, _ := d.Get("visibility").(string)
 
 	var repoIDs []int64
 
 	if v, ok := d.GetOk("selected_repository_ids"); ok {
-		ids := v.(*schema.Set).List()
-
-		for _, id := range ids {
-			repoIDs = append(repoIDs, int64(id.(int)))
+		if s, ok := v.(*schema.Set); ok {
+			for _, id := range s.List() {
+				idInt, _ := id.(int)
+				repoIDs = append(repoIDs, int64(idInt))
+			}
 		}
 	}
 
@@ -199,7 +200,7 @@ func resourceGithubDependabotOrganizationSecretRead(ctx context.Context, d *sche
 	client := meta.v3client
 	owner := meta.name
 
-	secretName := d.Get("secret_name").(string)
+	secretName, _ := d.Get("secret_name").(string)
 
 	secret, _, err := client.Dependabot.GetOrgSecret(ctx, owner, secretName)
 	if err != nil {
@@ -213,12 +214,14 @@ func resourceGithubDependabotOrganizationSecretRead(ctx context.Context, d *sche
 
 	// Due to the eventually consistent behavior of this API we may not get created_at/updated_at
 	// values on the first read after creation, so we only set them here if they are not already set.
-	if len(d.Get("created_at").(string)) == 0 {
+	createdAt, _ := d.Get("created_at").(string)
+	if len(createdAt) == 0 {
 		if err = d.Set("created_at", secret.CreatedAt.String()); err != nil {
 			return diag.FromErr(err)
 		}
 	}
-	if len(d.Get("updated_at").(string)) == 0 {
+	updatedAt, _ := d.Get("updated_at").(string)
+	if len(updatedAt) == 0 {
 		if err = d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
 			return diag.FromErr(err)
 		}
@@ -270,18 +273,19 @@ func resourceGithubDependabotOrganizationSecretUpdate(ctx context.Context, d *sc
 	client := meta.v3client
 	owner := meta.name
 
-	secretName := d.Get("secret_name").(string)
-	keyID := d.Get("key_id").(string)
+	secretName, _ := d.Get("secret_name").(string)
+	keyID, _ := d.Get("key_id").(string)
 	encryptedValue, _ := tfpluginv2util.GetKeysOk[string](d, "value_encrypted", "encrypted_value")
-	visibility := d.Get("visibility").(string)
+	visibility, _ := d.Get("visibility").(string)
 
 	var repoIDs []int64
 
 	if v, ok := d.GetOk("selected_repository_ids"); ok {
-		ids := v.(*schema.Set).List()
-
-		for _, id := range ids {
-			repoIDs = append(repoIDs, int64(id.(int)))
+		if s, ok := v.(*schema.Set); ok {
+			for _, id := range s.List() {
+				idInt, _ := id.(int)
+				repoIDs = append(repoIDs, int64(idInt))
+			}
 		}
 	}
 
@@ -346,7 +350,7 @@ func resourceGithubDependabotOrganizationSecretDelete(ctx context.Context, d *sc
 	client := meta.v3client
 	owner := meta.name
 
-	secretName := d.Get("secret_name").(string)
+	secretName, _ := d.Get("secret_name").(string)
 
 	tflog.Info(ctx, "Deleting Dependabot organization secret.", map[string]any{"secret_name": secretName})
 	_, err := client.Dependabot.DeleteOrgSecret(ctx, owner, secretName)

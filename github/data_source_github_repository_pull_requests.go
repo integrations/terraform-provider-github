@@ -135,15 +135,15 @@ func dataSourceGithubRepositoryPullRequestsRead(ctx context.Context, d *schema.R
 	owner := meta.name
 
 	if explicitOwner, ok := d.GetOk("owner"); ok {
-		owner = explicitOwner.(string)
+		owner, _ = explicitOwner.(string)
 	}
 
-	baseRepository := d.Get("base_repository").(string)
-	state := d.Get("state").(string)
-	head := d.Get("head_ref").(string)
-	base := d.Get("base_ref").(string)
-	sort := d.Get("sort_by").(string)
-	direction := d.Get("sort_direction").(string)
+	baseRepository, _ := d.Get("base_repository").(string)
+	state, _ := d.Get("state").(string)
+	head, _ := d.Get("head_ref").(string)
+	base, _ := d.Get("base_ref").(string)
+	sort, _ := d.Get("sort_by").(string)
+	direction, _ := d.Get("sort_direction").(string)
 
 	options := &github.PullRequestListOptions{
 		PerPage:   meta.maxPerPage,

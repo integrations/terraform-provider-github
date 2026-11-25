@@ -43,10 +43,11 @@ func dataSourceGithubApp() *schema.Resource {
 	}
 }
 
-func dataSourceGithubAppRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	slug := d.Get("slug").(string)
+func dataSourceGithubAppRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	slug, _ := d.Get("slug").(string)
 
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 
 	app, _, err := client.Apps.Get(ctx, slug)
 	if err != nil {

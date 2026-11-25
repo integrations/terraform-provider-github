@@ -176,7 +176,7 @@ func resourceGithubTeamCreate(ctx context.Context, d *schema.ResourceData, m any
 		team = t
 	}
 
-	create_default_maintainer := d.Get("create_default_maintainer").(bool)
+	create_default_maintainer, _ := d.Get("create_default_maintainer").(bool)
 	if !create_default_maintainer && membersCount > 0 {
 		log.Printf("[DEBUG] Removing default maintainer from team: %s (%s)", name, ownerName)
 		err := removeTeamMembers(ctx, client, ownerName, slug)
@@ -242,7 +242,8 @@ func resourceGithubTeamRead(ctx context.Context, d *schema.ResourceData, m any) 
 	}
 
 	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+		etag, _ := d.Get("etag").(string)
+		ctx = context.WithValue(ctx, ctxEtag, etag)
 	}
 
 	team, resp, err := client.Teams.GetTeamByID(ctx, orgId, id)

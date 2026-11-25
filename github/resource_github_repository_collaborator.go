@@ -44,7 +44,7 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 				Default:     "push",
 				Description: "The permission of the outside collaborator for the repository. Must be one of 'pull', 'push', 'maintain', 'triage' or 'admin' or the name of an existing custom repository role within the organization for organization-owned repositories. Must be 'push' for personal repositories. Defaults to 'push'.",
 				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
-					if d.Get("permission_diff_suppression").(bool) {
+					if suppress, _ := d.Get("permission_diff_suppression").(bool); suppress {
 						if n == "triage" || n == "maintain" {
 							return true
 						}
@@ -71,19 +71,20 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, m any) e
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 
-	username := d.Get("username").(string)
-	repoName := d.Get("repository").(string)
+	username, _ := d.Get("username").(string)
+	repoName, _ := d.Get("repository").(string)
 
 	owner, repoNameWithoutOwner := parseRepoName(repoName, meta.name)
 
 	ctx := context.Background()
 
+	permission, _ := d.Get("permission").(string)
 	_, _, err := client.Repositories.AddCollaborator(ctx,
 		owner,
 		repoNameWithoutOwner,
 		username,
 		&github.RepositoryAddCollaboratorOptions{
-			Permission: d.Get("permission").(string),
+			Permission: permission,
 		})
 	if err != nil {
 		return err
@@ -187,8 +188,8 @@ func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, m any) e
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 
-	username := d.Get("username").(string)
-	repoName := d.Get("repository").(string)
+	username, _ := d.Get("username").(string)
+	repoName, _ := d.Get("repository").(string)
 
 	owner, repoNameWithoutOwner := parseRepoName(repoName, meta.name)
 

@@ -79,10 +79,11 @@ func resourceGithubIssue() *schema.Resource {
 	}
 }
 
-func resourceGithubIssueCreateOrUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubIssueCreateOrUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	ctx := context.Background()
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 
 	if err := d.Set("etag", nil); err != nil {
 		return err
@@ -164,7 +165,8 @@ func resourceGithubIssueRead(d *schema.ResourceData, m any) error {
 	orgName := meta.name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+		etag, _ := d.Get("etag").(string)
+		ctx = context.WithValue(ctx, ctxEtag, etag)
 	}
 
 	log.Printf("[DEBUG] Reading issue: %d (%s/%s)", number, orgName, repoName)
@@ -228,12 +230,13 @@ func resourceGithubIssueRead(d *schema.ResourceData, m any) error {
 	return nil
 }
 
-func resourceGithubIssueDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubIssueDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	orgName := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
-	number := d.Get("number").(int)
+	orgName := meta.name
+	repoName, _ := d.Get("repository").(string)
+	number, _ := d.Get("number").(int)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting issue by closing: %d (%s/%s)", number, orgName, repoName)

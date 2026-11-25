@@ -53,7 +53,11 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyStateUpgradeV0(ctx conte
 
 	tflog.Debug(ctx, "Starting state upgrade for GitHub Repository Environment Deployment Policy.", map[string]any{"raw_state": rawState})
 
-	_, _, policyIDStr, err := parseID3(rawState["id"].(string))
+	id, ok := rawState["id"].(string)
+	if !ok {
+		return nil, fmt.Errorf("id not found or is not a string")
+	}
+	_, _, policyIDStr, err := parseID3(id)
 	if err != nil {
 		return nil, err
 	}

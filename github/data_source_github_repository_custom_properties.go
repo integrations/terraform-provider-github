@@ -45,12 +45,13 @@ func dataSourceGithubRepositoryCustomProperties() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrgaRepositoryCustomProperties(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func dataSourceGithubOrgaRepositoryCustomProperties(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	owner := meta.(*Owner).name
+	owner := meta.name
 
-	repoName := d.Get("repository").(string)
+	repoName, _ := d.Get("repository").(string)
 
 	allCustomProperties, _, err := client.Repositories.GetAllCustomPropertyValues(ctx, owner, repoName)
 	if err != nil {

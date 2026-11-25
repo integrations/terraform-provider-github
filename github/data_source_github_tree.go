@@ -56,13 +56,14 @@ func dataSourceGithubTree() *schema.Resource {
 	}
 }
 
-func dataSourceGithubTreeRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	owner := meta.(*Owner).name
-	repository := d.Get("repository").(string)
-	sha := d.Get("tree_sha").(string)
-	recursive := d.Get("recursive").(bool)
+func dataSourceGithubTreeRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	owner := meta.name
+	repository, _ := d.Get("repository").(string)
+	sha, _ := d.Get("tree_sha").(string)
+	recursive, _ := d.Get("recursive").(bool)
 
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 
 	tree, _, err := client.Git.GetTree(ctx, owner, repository, sha, recursive)
 	if err != nil {

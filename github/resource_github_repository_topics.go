@@ -50,8 +50,11 @@ func resourceGithubRepositoryTopicsCreateOrUpdate(d *schema.ResourceData, m any)
 	ctx := context.Background()
 
 	owner := meta.name
-	repoName := d.Get("repository").(string)
-	topics := expandStringList(d.Get("topics").(*schema.Set).List())
+	repoName, _ := d.Get("repository").(string)
+	var topics []string
+	if s, ok := d.Get("topics").(*schema.Set); ok {
+		topics = expandStringList(s.List())
+	}
 
 	if len(topics) > 0 {
 		_, _, err := client.Repositories.ReplaceAllTopics(ctx, owner, repoName, topics)
@@ -70,7 +73,7 @@ func resourceGithubRepositoryTopicsRead(d *schema.ResourceData, m any) error {
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	owner := meta.name
-	repoName := d.Get("repository").(string)
+	repoName, _ := d.Get("repository").(string)
 
 	results := make([]string, 0)
 	listOptions := &github.ListOptions{PerPage: meta.maxPerPage}
@@ -113,7 +116,7 @@ func resourceGithubRepositoryTopicsDelete(d *schema.ResourceData, m any) error {
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	owner := meta.name
-	repoName := d.Get("repository").(string)
+	repoName, _ := d.Get("repository").(string)
 
 	_, _, err := client.Repositories.ReplaceAllTopics(ctx, owner, repoName, []string{})
 	if err != nil {

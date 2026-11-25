@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -24,13 +25,19 @@ func resourceGithubBranchProtectionV0() *schema.Resource {
 }
 
 func resourceGithubBranchProtectionUpgradeV0(_ context.Context, rawState map[string]any, meta any) (map[string]any, error) {
-	repoName := rawState["repository"].(string)
+	repoName, ok := rawState["repository"].(string)
+	if !ok {
+		return nil, fmt.Errorf("repository not found or is not a string")
+	}
 	repoID, err := getRepositoryID(repoName, meta)
 	if err != nil {
 		return nil, err
 	}
 
-	branch := rawState["branch"].(string)
+	branch, ok := rawState["branch"].(string)
+	if !ok {
+		return nil, fmt.Errorf("branch not found or is not a string")
+	}
 	protectionRuleID, err := getBranchProtectionID(repoID, branch, meta)
 	if err != nil {
 		return nil, err
@@ -64,7 +71,9 @@ func resourceGithubBranchProtectionUpgradeV1(_ context.Context, rawState map[str
 	blocksCreations := false
 
 	if v, ok := rawState["blocks_creations"]; ok {
-		blocksCreations = v.(bool)
+		if b, ok := v.(bool); ok {
+			blocksCreations = b
+		}
 	}
 
 	if v, ok := rawState["push_restrictions"]; ok {

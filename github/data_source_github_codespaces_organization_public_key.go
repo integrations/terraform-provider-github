@@ -24,14 +24,15 @@ func dataSourceGithubCodespacesOrganizationPublicKey() *schema.Resource {
 	}
 }
 
-func dataSourceGithubCodespacesOrganizationPublicKeyRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func dataSourceGithubCodespacesOrganizationPublicKeyRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+	client := meta.v3client
+	owner := meta.name
 
 	publicKey, _, err := client.Codespaces.GetOrgPublicKey(ctx, owner)
 	if err != nil {

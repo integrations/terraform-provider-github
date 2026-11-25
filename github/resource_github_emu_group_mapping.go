@@ -79,7 +79,7 @@ func resourceGithubEMUGroupMappingCreate(ctx context.Context, d *schema.Resource
 	client := meta.v3client
 	orgName := meta.name
 
-	teamSlug := d.Get("team_slug").(string)
+	teamSlug, _ := d.Get("team_slug").(string)
 
 	groupID := toInt64(d.Get("group_id"))
 	eg := github.UpdateConnectedExternalGroupRequest{
@@ -157,7 +157,7 @@ func resourceGithubEMUGroupMappingRead(ctx context.Context, d *schema.ResourceDa
 	orgName := meta.name
 
 	groupID := toInt64(d.Get("group_id"))
-	teamSlug := d.Get("team_slug").(string)
+	teamSlug, _ := d.Get("team_slug").(string)
 
 	tflog.Debug(ctx, "Querying external groups linked to team from GitHub API")
 
@@ -228,7 +228,7 @@ func resourceGithubEMUGroupMappingUpdate(ctx context.Context, d *schema.Resource
 		return diag.FromErr(err)
 	}
 
-	teamSlug := d.Get("team_slug").(string)
+	teamSlug, _ := d.Get("team_slug").(string)
 
 	groupID := toInt64(d.Get("group_id"))
 	eg := github.UpdateConnectedExternalGroupRequest{
@@ -265,7 +265,8 @@ func resourceGithubEMUGroupMappingUpdate(ctx context.Context, d *schema.Resource
 	return nil
 }
 
-func resourceGithubEMUGroupMappingDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubEMUGroupMappingDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 	tflog.Trace(ctx, "Deleting EMU group mapping", map[string]any{
 		"resource_id": d.Id(),
 	})
@@ -274,15 +275,15 @@ func resourceGithubEMUGroupMappingDelete(ctx context.Context, d *schema.Resource
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 
 	teamSlug, ok := d.GetOk("team_slug")
 	if !ok {
 		return diag.Errorf("could not parse team slug from provided value")
 	}
 
-	teamSlugStr := teamSlug.(string)
+	teamSlugStr, _ := teamSlug.(string)
 	tflog.Debug(ctx, "Removing connected external group from team via GitHub API", map[string]any{
 		"org_name":    orgName,
 		"team_slug":   teamSlugStr,

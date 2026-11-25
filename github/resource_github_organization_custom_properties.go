@@ -72,20 +72,23 @@ func resourceGithubOrganizationCustomProperties() *schema.Resource {
 	}
 }
 
-func resourceGithubCustomPropertiesCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubCustomPropertiesCreate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	ctx := context.Background()
-	client := meta.(*Owner).v3client
-	ownerName := meta.(*Owner).name
+	client := meta.v3client
+	ownerName := meta.name
 
-	propertyName := d.Get("property_name").(string)
-	valueType := github.PropertyValueType(d.Get("value_type").(string))
-	required := d.Get("required").(bool)
-	defaultValue := d.Get("default_value").(string)
-	description := d.Get("description").(string)
-	allowedValues := d.Get("allowed_values").([]any)
+	propertyName, _ := d.Get("property_name").(string)
+	valueTypeStr, _ := d.Get("value_type").(string)
+	valueType := github.PropertyValueType(valueTypeStr)
+	required, _ := d.Get("required").(bool)
+	defaultValue, _ := d.Get("default_value").(string)
+	description, _ := d.Get("description").(string)
+	allowedValues, _ := d.Get("allowed_values").([]any)
 	var allowedValuesString []string
 	for _, v := range allowedValues {
-		allowedValuesString = append(allowedValuesString, v.(string))
+		vStr, _ := v.(string)
+		allowedValuesString = append(allowedValuesString, vStr)
 	}
 
 	customProperty := &github.CustomProperty{
@@ -98,11 +101,11 @@ func resourceGithubCustomPropertiesCreate(d *schema.ResourceData, meta any) erro
 	}
 
 	if val, ok := d.GetOk("values_editable_by"); ok {
-		str := val.(string)
+		str, _ := val.(string)
 		customProperty.ValuesEditableBy = &str
 	}
 
-	customProperty, _, err := client.Organizations.CreateOrUpdateCustomProperty(ctx, ownerName, d.Get("property_name").(string), customProperty)
+	customProperty, _, err := client.Organizations.CreateOrUpdateCustomProperty(ctx, ownerName, propertyName, customProperty)
 	if err != nil {
 		return err
 	}
@@ -111,12 +114,14 @@ func resourceGithubCustomPropertiesCreate(d *schema.ResourceData, meta any) erro
 	return resourceGithubCustomPropertiesRead(d, meta)
 }
 
-func resourceGithubCustomPropertiesRead(d *schema.ResourceData, meta any) error {
+func resourceGithubCustomPropertiesRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	ctx := context.Background()
-	client := meta.(*Owner).v3client
-	ownerName := meta.(*Owner).name
+	client := meta.v3client
+	ownerName := meta.name
 
-	customProperty, _, err := client.Organizations.GetCustomProperty(ctx, ownerName, d.Get("property_name").(string))
+	propertyName, _ := d.Get("property_name").(string)
+	customProperty, _, err := client.Organizations.GetCustomProperty(ctx, ownerName, propertyName)
 	if err != nil {
 		return err
 	}
@@ -143,11 +148,13 @@ func resourceGithubCustomPropertiesUpdate(d *schema.ResourceData, meta any) erro
 	return resourceGithubCustomPropertiesRead(d, meta)
 }
 
-func resourceGithubCustomPropertiesDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	ownerName := meta.(*Owner).name
+func resourceGithubCustomPropertiesDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	ownerName := meta.name
 
-	_, err := client.Organizations.RemoveCustomProperty(context.Background(), ownerName, d.Get("property_name").(string))
+	propertyName, _ := d.Get("property_name").(string)
+	_, err := client.Organizations.RemoveCustomProperty(context.Background(), ownerName, propertyName)
 	if err != nil {
 		return err
 	}

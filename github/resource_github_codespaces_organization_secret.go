@@ -83,16 +83,17 @@ func resourceGithubCodespacesOrganizationSecret() *schema.Resource {
 	}
 }
 
-func resourceGithubCodespacesOrganizationSecretCreateOrUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubCodespacesOrganizationSecretCreateOrUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 	ctx := context.Background()
 
-	secretName := d.Get("secret_name").(string)
-	plaintextValue := d.Get("plaintext_value").(string)
+	secretName, _ := d.Get("secret_name").(string)
+	plaintextValue, _ := d.Get("plaintext_value").(string)
 	var encryptedValue string
 
-	visibility := d.Get("visibility").(string)
+	visibility, _ := d.Get("visibility").(string)
 	selectedRepositories, hasSelectedRepositories := d.GetOk("selected_repository_ids")
 
 	if visibility != "selected" && hasSelectedRepositories {
@@ -102,20 +103,21 @@ func resourceGithubCodespacesOrganizationSecretCreateOrUpdate(d *schema.Resource
 	selectedRepositoryIDs := github.SelectedRepoIDs{}
 
 	if hasSelectedRepositories {
-		ids := selectedRepositories.(*schema.Set).List()
-
-		for _, id := range ids {
-			selectedRepositoryIDs = append(selectedRepositoryIDs, int64(id.(int)))
+		if s, ok := selectedRepositories.(*schema.Set); ok {
+			for _, id := range s.List() {
+				idInt, _ := id.(int)
+				selectedRepositoryIDs = append(selectedRepositoryIDs, int64(idInt))
+			}
 		}
 	}
 
-	keyId, publicKey, err := getCodespacesOrganizationPublicKeyDetails(owner, meta)
+	keyId, publicKey, err := getCodespacesOrganizationPublicKeyDetails(owner, m)
 	if err != nil {
 		return err
 	}
 
 	if encryptedText, ok := d.GetOk("encrypted_value"); ok {
-		encryptedValue = encryptedText.(string)
+		encryptedValue, _ = encryptedText.(string)
 	} else {
 		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
 		if err != nil {
@@ -139,12 +141,13 @@ func resourceGithubCodespacesOrganizationSecretCreateOrUpdate(d *schema.Resource
 	}
 
 	d.SetId(secretName)
-	return resourceGithubCodespacesOrganizationSecretRead(d, meta)
+	return resourceGithubCodespacesOrganizationSecretRead(d, m)
 }
 
-func resourceGithubCodespacesOrganizationSecretRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubCodespacesOrganizationSecretRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 	ctx := context.Background()
 
 	secret, _, err := client.Codespaces.GetOrgSecret(ctx, owner, d.Id())
@@ -227,9 +230,10 @@ func resourceGithubCodespacesOrganizationSecretRead(d *schema.ResourceData, meta
 	return nil
 }
 
-func resourceGithubCodespacesOrganizationSecretDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+func resourceGithubCodespacesOrganizationSecretDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting secret: %s", d.Id())
@@ -237,8 +241,9 @@ func resourceGithubCodespacesOrganizationSecretDelete(d *schema.ResourceData, me
 	return err
 }
 
-func getCodespacesOrganizationPublicKeyDetails(owner string, meta any) (keyId, pkValue string, err error) {
-	client := meta.(*Owner).v3client
+func getCodespacesOrganizationPublicKeyDetails(owner string, m any) (keyId, pkValue string, err error) {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	ctx := context.Background()
 
 	publicKey, _, err := client.Codespaces.GetOrgPublicKey(ctx, owner)

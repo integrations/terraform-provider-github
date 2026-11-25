@@ -44,21 +44,24 @@ func resourceGithubEnterpriseActionsWorkflowPermissions() *schema.Resource {
 	}
 }
 
-func resourceGithubEnterpriseActionsWorkflowPermissionsCreateOrUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubEnterpriseActionsWorkflowPermissionsCreateOrUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	ctx := context.Background()
 
-	enterpriseSlug := d.Get("enterprise_slug").(string)
+	enterpriseSlug, _ := d.Get("enterprise_slug").(string)
 	d.SetId(enterpriseSlug)
 
 	workflowPerms := github.DefaultWorkflowPermissionEnterprise{}
 
 	if v, ok := d.GetOk("default_workflow_permissions"); ok {
-		workflowPerms.DefaultWorkflowPermissions = new(v.(string))
+		s, _ := v.(string)
+		workflowPerms.DefaultWorkflowPermissions = new(s)
 	}
 
 	if v, ok := d.GetOk("can_approve_pull_request_reviews"); ok {
-		workflowPerms.CanApprovePullRequestReviews = new(v.(bool))
+		b, _ := v.(bool)
+		workflowPerms.CanApprovePullRequestReviews = new(b)
 	}
 
 	log.Printf("[DEBUG] Updating workflow permissions for enterprise: %s", enterpriseSlug)
@@ -70,8 +73,9 @@ func resourceGithubEnterpriseActionsWorkflowPermissionsCreateOrUpdate(d *schema.
 	return resourceGithubEnterpriseActionsWorkflowPermissionsRead(d, meta)
 }
 
-func resourceGithubEnterpriseActionsWorkflowPermissionsRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubEnterpriseActionsWorkflowPermissionsRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	ctx := context.Background()
 
 	enterpriseSlug := d.Id()
@@ -95,8 +99,9 @@ func resourceGithubEnterpriseActionsWorkflowPermissionsRead(d *schema.ResourceDa
 	return nil
 }
 
-func resourceGithubEnterpriseActionsWorkflowPermissionsDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubEnterpriseActionsWorkflowPermissionsDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	ctx := context.Background()
 
 	enterpriseSlug := d.Id()

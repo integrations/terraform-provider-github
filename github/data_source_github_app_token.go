@@ -42,9 +42,9 @@ func dataSourceGithubAppToken() *schema.Resource {
 func dataSourceGithubAppTokenRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 
-	appID := d.Get("app_id").(string)
-	installationID := d.Get("installation_id").(string)
-	pemFile := d.Get("pem_file").(string)
+	appID, _ := d.Get("app_id").(string)
+	installationID, _ := d.Get("installation_id").(string)
+	pemFile, _ := d.Get("pem_file").(string)
 
 	// The Go encoding/pem package only decodes PEM formatted blocks
 	// that contain new lines. Some platforms, like Terraform Cloud,

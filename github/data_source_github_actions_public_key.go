@@ -28,11 +28,12 @@ func dataSourceGithubActionsPublicKey() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsPublicKeyRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	repository := d.Get("repository").(string)
-	owner := meta.(*Owner).name
+func dataSourceGithubActionsPublicKeyRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	repository, _ := d.Get("repository").(string)
+	owner := meta.name
 
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 
 	publicKey, _, err := client.Actions.GetRepoPublicKey(ctx, owner, repository)
 	if err != nil {

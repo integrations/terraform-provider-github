@@ -46,8 +46,8 @@ func resourceGithubActionsOrganizationVariableRepositoryCreate(ctx context.Conte
 	client := meta.v3client
 	owner := meta.name
 
-	variableName := d.Get("variable_name").(string)
-	repoID := d.Get("repository_id").(int)
+	variableName, _ := d.Get("variable_name").(string)
+	repoID, _ := d.Get("repository_id").(int)
 
 	repository := &github.Repository{
 		ID: new(int64(repoID)),
@@ -76,8 +76,9 @@ func resourceGithubActionsOrganizationVariableRepositoryRead(ctx context.Context
 	client := meta.v3client
 	owner := meta.name
 
-	variableName := d.Get("variable_name").(string)
-	repoID := int64(d.Get("repository_id").(int))
+	variableName, _ := d.Get("variable_name").(string)
+	repoIDInt, _ := d.Get("repository_id").(int)
+	repoID := int64(repoIDInt)
 
 	opt := &github.ListOptions{
 		PerPage: meta.maxPerPage,
@@ -116,8 +117,8 @@ func resourceGithubActionsOrganizationVariableRepositoryDelete(ctx context.Conte
 	client := meta.v3client
 	owner := meta.name
 
-	variableName := d.Get("variable_name").(string)
-	repoID := d.Get("repository_id").(int)
+	variableName, _ := d.Get("variable_name").(string)
+	repoID, _ := d.Get("repository_id").(int)
 
 	repository := &github.Repository{
 		ID: new(int64(repoID)),

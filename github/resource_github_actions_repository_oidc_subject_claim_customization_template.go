@@ -43,13 +43,14 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate() *sch
 	}
 }
 
-func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateCreateOrUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateCreateOrUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	repository := d.Get("repository").(string)
-	owner := meta.(*Owner).name
+	repository, _ := d.Get("repository").(string)
+	owner := meta.name
 
-	useDefault := d.Get("use_default").(bool)
+	useDefault, _ := d.Get("use_default").(bool)
 	includeClaimKeys, hasClaimKeys := d.GetOk("include_claim_keys")
 
 	if useDefault && hasClaimKeys {
@@ -61,13 +62,13 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateCreateO
 	}
 
 	if includeClaimKeys != nil {
-
-		includeClaimKeysVal := includeClaimKeys.([]any)
+		includeClaimKeysVal, _ := includeClaimKeys.([]any)
 
 		claimsStr := make([]string, len(includeClaimKeysVal))
 
 		for i, v := range includeClaimKeysVal {
-			claimsStr[i] = v.(string)
+			s, _ := v.(string)
+			claimsStr[i] = s
 		}
 
 		customOIDCSubjectClaimTemplate.IncludeClaimKeys = claimsStr
@@ -80,14 +81,15 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateCreateO
 	}
 
 	d.SetId(repository)
-	return resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead(d, meta)
+	return resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead(d, m)
 }
 
-func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
 	repository := d.Id()
-	owner := meta.(*Owner).name
+	owner := meta.name
 
 	ctx := context.Background()
 	template, _, err := client.Actions.GetRepoOIDCSubjectClaimCustomTemplate(ctx, owner, repository)
@@ -108,13 +110,14 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead(d 
 	return nil
 }
 
-func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDelete(d *schema.ResourceData, m any) error {
 	// Reset the repository to use the default claims
 	// https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/about-security-hardening-with-openid-connect#using-the-default-subject-claims
-	client := meta.(*Owner).v3client
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	repository := d.Get("repository").(string)
-	owner := meta.(*Owner).name
+	repository, _ := d.Get("repository").(string)
+	owner := meta.name
 
 	customOIDCSubjectClaimTemplate := github.OIDCSubjectClaimCustomTemplate{
 		UseDefault: new(true),

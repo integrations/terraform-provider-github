@@ -44,16 +44,18 @@ func resourceGithubAppInstallationRepositoriesCreateOrUpdate(d *schema.ResourceD
 	client := meta.v3client
 	owner := meta.name
 
-	installationIDString := d.Get("installation_id").(string)
+	installationIDString, _ := d.Get("installation_id").(string)
 	selectedRepositories := d.Get("selected_repositories")
 
 	ctx := context.WithValue(context.Background(), ctxId, installationIDString)
 
 	selectedRepositoryNames := []string{}
 
-	names := selectedRepositories.(*schema.Set).List()
-	for _, name := range names {
-		selectedRepositoryNames = append(selectedRepositoryNames, name.(string))
+	if s, ok := selectedRepositories.(*schema.Set); ok {
+		for _, name := range s.List() {
+			nameStr, _ := name.(string)
+			selectedRepositoryNames = append(selectedRepositoryNames, nameStr)
+		}
 	}
 
 	currentReposNameIDs, instID, err := getAllAccessibleRepos(meta, installationIDString)
@@ -131,7 +133,7 @@ func resourceGithubAppInstallationRepositoriesRead(d *schema.ResourceData, m any
 func resourceGithubAppInstallationRepositoriesDelete(d *schema.ResourceData, m any) error {
 	meta, _ := m.(*Owner)
 
-	installationIDString := d.Get("installation_id").(string)
+	installationIDString, _ := d.Get("installation_id").(string)
 
 	reposNameIDs, instID, err := getAllAccessibleRepos(meta, installationIDString)
 	if err != nil {

@@ -194,43 +194,51 @@ func buildOrganizationSettings(d *schema.ResourceData, isEnterprise bool) *githu
 
 	// Required field - always include if configured (API requires it even if unchanged)
 	if billingEmail, ok := d.GetOk("billing_email"); ok {
-		settings.BillingEmail = new(billingEmail.(string))
+		s, _ := billingEmail.(string)
+		settings.BillingEmail = new(s)
 	}
 
 	// Optional string fields - only set if should be included
 	if shouldInclude("company") {
 		if company, ok := d.GetOk("company"); ok {
-			settings.Company = new(company.(string))
+			s, _ := company.(string)
+			settings.Company = new(s)
 		}
 	}
 	if shouldInclude("email") {
 		if email, ok := d.GetOk("email"); ok {
-			settings.Email = new(email.(string))
+			s, _ := email.(string)
+			settings.Email = new(s)
 		}
 	}
 	if shouldInclude("twitter_username") {
 		if twitterUsername, ok := d.GetOk("twitter_username"); ok {
-			settings.TwitterUsername = new(twitterUsername.(string))
+			s, _ := twitterUsername.(string)
+			settings.TwitterUsername = new(s)
 		}
 	}
 	if shouldInclude("location") {
 		if location, ok := d.GetOk("location"); ok {
-			settings.Location = new(location.(string))
+			s, _ := location.(string)
+			settings.Location = new(s)
 		}
 	}
 	if shouldInclude("name") {
 		if name, ok := d.GetOk("name"); ok {
-			settings.Name = new(name.(string))
+			s, _ := name.(string)
+			settings.Name = new(s)
 		}
 	}
 	if shouldInclude("description") {
 		if description, ok := d.GetOk("description"); ok {
-			settings.Description = new(description.(string))
+			s, _ := description.(string)
+			settings.Description = new(s)
 		}
 	}
 	if shouldInclude("blog") {
 		if blog, ok := d.GetOk("blog"); ok {
-			settings.Blog = new(blog.(string))
+			s, _ := blog.(string)
+			settings.Blog = new(s)
 		}
 	}
 
@@ -238,77 +246,96 @@ func buildOrganizationSettings(d *schema.ResourceData, isEnterprise bool) *githu
 	// Use d.Get() instead of d.GetOk() when shouldInclude() returns true,
 	// because we already know the field should be included, and d.Get() correctly handles false values
 	if shouldInclude("has_organization_projects") {
-		settings.HasOrganizationProjects = new(d.Get("has_organization_projects").(bool))
+		b, _ := d.Get("has_organization_projects").(bool)
+		settings.HasOrganizationProjects = new(b)
 	}
 	if shouldInclude("has_repository_projects") {
-		settings.HasRepositoryProjects = new(d.Get("has_repository_projects").(bool))
+		b, _ := d.Get("has_repository_projects").(bool)
+		settings.HasRepositoryProjects = new(b)
 	}
 	if shouldInclude("default_repository_permission") {
 		if defaultRepoPermission, ok := d.GetOk("default_repository_permission"); ok {
-			settings.DefaultRepoPermission = new(defaultRepoPermission.(string))
+			s, _ := defaultRepoPermission.(string)
+			settings.DefaultRepoPermission = new(s)
 		}
 	}
 	if shouldInclude("members_can_create_repositories") {
-		settings.MembersCanCreateRepos = new(d.Get("members_can_create_repositories").(bool))
+		b, _ := d.Get("members_can_create_repositories").(bool)
+		settings.MembersCanCreateRepos = new(b)
 	}
 	if shouldInclude("members_can_create_private_repositories") {
-		settings.MembersCanCreatePrivateRepos = new(d.Get("members_can_create_private_repositories").(bool))
+		b, _ := d.Get("members_can_create_private_repositories").(bool)
+		settings.MembersCanCreatePrivateRepos = new(b)
 	}
 	if shouldInclude("members_can_create_public_repositories") {
-		settings.MembersCanCreatePublicRepos = new(d.Get("members_can_create_public_repositories").(bool))
+		b, _ := d.Get("members_can_create_public_repositories").(bool)
+		settings.MembersCanCreatePublicRepos = new(b)
 	}
 	if shouldInclude("members_can_create_pages") {
-		settings.MembersCanCreatePages = new(d.Get("members_can_create_pages").(bool))
+		b, _ := d.Get("members_can_create_pages").(bool)
+		settings.MembersCanCreatePages = new(b)
 	}
 	if shouldInclude("members_can_create_public_pages") {
-		settings.MembersCanCreatePublicPages = new(d.Get("members_can_create_public_pages").(bool))
+		b, _ := d.Get("members_can_create_public_pages").(bool)
+		settings.MembersCanCreatePublicPages = new(b)
 	}
 	if shouldInclude("members_can_create_private_pages") {
-		settings.MembersCanCreatePrivatePages = new(d.Get("members_can_create_private_pages").(bool))
+		b, _ := d.Get("members_can_create_private_pages").(bool)
+		settings.MembersCanCreatePrivatePages = new(b)
 	}
 	if shouldInclude("members_can_fork_private_repositories") {
-		settings.MembersCanForkPrivateRepos = new(d.Get("members_can_fork_private_repositories").(bool))
+		b, _ := d.Get("members_can_fork_private_repositories").(bool)
+		settings.MembersCanForkPrivateRepos = new(b)
 	}
 	if shouldInclude("web_commit_signoff_required") {
-		settings.WebCommitSignoffRequired = new(d.Get("web_commit_signoff_required").(bool))
+		b, _ := d.Get("web_commit_signoff_required").(bool)
+		settings.WebCommitSignoffRequired = new(b)
 	}
 	if shouldInclude("advanced_security_enabled_for_new_repositories") {
-		settings.AdvancedSecurityEnabledForNewRepos = new(d.Get("advanced_security_enabled_for_new_repositories").(bool))
+		b, _ := d.Get("advanced_security_enabled_for_new_repositories").(bool)
+		settings.AdvancedSecurityEnabledForNewRepos = new(b)
 	}
 	if shouldInclude("dependabot_alerts_enabled_for_new_repositories") {
-		settings.DependabotAlertsEnabledForNewRepos = new(d.Get("dependabot_alerts_enabled_for_new_repositories").(bool))
+		b, _ := d.Get("dependabot_alerts_enabled_for_new_repositories").(bool)
+		settings.DependabotAlertsEnabledForNewRepos = new(b)
 	}
 	if shouldInclude("dependabot_security_updates_enabled_for_new_repositories") {
-		settings.DependabotSecurityUpdatesEnabledForNewRepos = new(d.Get("dependabot_security_updates_enabled_for_new_repositories").(bool))
+		b, _ := d.Get("dependabot_security_updates_enabled_for_new_repositories").(bool)
+		settings.DependabotSecurityUpdatesEnabledForNewRepos = new(b)
 	}
 	if shouldInclude("dependency_graph_enabled_for_new_repositories") {
-		settings.DependencyGraphEnabledForNewRepos = new(d.Get("dependency_graph_enabled_for_new_repositories").(bool))
+		b, _ := d.Get("dependency_graph_enabled_for_new_repositories").(bool)
+		settings.DependencyGraphEnabledForNewRepos = new(b)
 	}
 	if shouldInclude("secret_scanning_enabled_for_new_repositories") {
-		settings.SecretScanningEnabledForNewRepos = new(d.Get("secret_scanning_enabled_for_new_repositories").(bool))
+		b, _ := d.Get("secret_scanning_enabled_for_new_repositories").(bool)
+		settings.SecretScanningEnabledForNewRepos = new(b)
 	}
 	if shouldInclude("secret_scanning_push_protection_enabled_for_new_repositories") {
-		settings.SecretScanningPushProtectionEnabledForNewRepos = new(d.Get("secret_scanning_push_protection_enabled_for_new_repositories").(bool))
+		b, _ := d.Get("secret_scanning_push_protection_enabled_for_new_repositories").(bool)
+		settings.SecretScanningPushProtectionEnabledForNewRepos = new(b)
 	}
 
 	// Enterprise-specific field
 	if isEnterprise {
 		if shouldInclude("members_can_create_internal_repositories") {
-			settings.MembersCanCreateInternalRepos = new(d.Get("members_can_create_internal_repositories").(bool))
+			b, _ := d.Get("members_can_create_internal_repositories").(bool)
+			settings.MembersCanCreateInternalRepos = new(b)
 		}
 	}
 
 	return settings
 }
 
-func resourceGithubOrganizationSettingsCreateOrUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationSettingsCreateOrUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	org := meta.(*Owner).name
+	org := meta.name
 
 	orgInfo, _, err := client.Organizations.Get(ctx, org)
 	if err != nil {
@@ -420,14 +447,15 @@ func resourceGithubOrganizationSettingsCreateOrUpdate(d *schema.ResourceData, me
 	return resourceGithubOrganizationSettingsRead(d, meta)
 }
 
-func resourceGithubOrganizationSettingsRead(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationSettingsRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 	ctx := context.Background()
-	org := meta.(*Owner).name
+	org := meta.name
 
 	orgSettings, _, err := client.Organizations.Get(ctx, org)
 	if err != nil {
@@ -515,15 +543,16 @@ func resourceGithubOrganizationSettingsRead(d *schema.ResourceData, meta any) er
 	return nil
 }
 
-func resourceGithubOrganizationSettingsDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubOrganizationSettingsDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	org := meta.(*Owner).name
+	org := meta.name
 
 	log.Printf("[DEBUG] Reverting Organization Settings to default values: %s", org)
 

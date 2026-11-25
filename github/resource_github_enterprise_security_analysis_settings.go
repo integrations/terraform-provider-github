@@ -59,33 +59,39 @@ func resourceGithubEnterpriseSecurityAnalysisSettings() *schema.Resource {
 	}
 }
 
-func resourceGithubEnterpriseSecurityAnalysisSettingsCreateOrUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubEnterpriseSecurityAnalysisSettingsCreateOrUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	ctx := context.Background()
 
-	enterpriseSlug := d.Get("enterprise_slug").(string)
+	enterpriseSlug, _ := d.Get("enterprise_slug").(string)
 	d.SetId(enterpriseSlug)
 
 	settings := &github.EnterpriseSecurityAnalysisSettings{}
 
 	if v, ok := d.GetOk("advanced_security_enabled_for_new_repositories"); ok {
-		settings.AdvancedSecurityEnabledForNewRepositories = new(v.(bool))
+		b, _ := v.(bool)
+		settings.AdvancedSecurityEnabledForNewRepositories = new(b)
 	}
 
 	if v, ok := d.GetOk("secret_scanning_enabled_for_new_repositories"); ok {
-		settings.SecretScanningEnabledForNewRepositories = new(v.(bool))
+		b, _ := v.(bool)
+		settings.SecretScanningEnabledForNewRepositories = new(b)
 	}
 
 	if v, ok := d.GetOk("secret_scanning_push_protection_enabled_for_new_repositories"); ok {
-		settings.SecretScanningPushProtectionEnabledForNewRepositories = new(v.(bool))
+		b, _ := v.(bool)
+		settings.SecretScanningPushProtectionEnabledForNewRepositories = new(b)
 	}
 
 	if v, ok := d.GetOk("secret_scanning_push_protection_custom_link"); ok {
-		settings.SecretScanningPushProtectionCustomLink = new(v.(string))
+		s, _ := v.(string)
+		settings.SecretScanningPushProtectionCustomLink = new(s)
 	}
 
 	if v, ok := d.GetOk("secret_scanning_validity_checks_enabled"); ok {
-		settings.SecretScanningValidityChecksEnabled = new(v.(bool))
+		b, _ := v.(bool)
+		settings.SecretScanningValidityChecksEnabled = new(b)
 	}
 
 	log.Printf("[DEBUG] Updating security analysis settings for enterprise: %s", enterpriseSlug)
@@ -97,8 +103,9 @@ func resourceGithubEnterpriseSecurityAnalysisSettingsCreateOrUpdate(d *schema.Re
 	return resourceGithubEnterpriseSecurityAnalysisSettingsRead(d, meta)
 }
 
-func resourceGithubEnterpriseSecurityAnalysisSettingsRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubEnterpriseSecurityAnalysisSettingsRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	ctx := context.Background()
 
 	enterpriseSlug := d.Id()
@@ -131,8 +138,9 @@ func resourceGithubEnterpriseSecurityAnalysisSettingsRead(d *schema.ResourceData
 	return nil
 }
 
-func resourceGithubEnterpriseSecurityAnalysisSettingsDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubEnterpriseSecurityAnalysisSettingsDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	ctx := context.Background()
 
 	enterpriseSlug := d.Id()

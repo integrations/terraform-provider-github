@@ -31,11 +31,12 @@ func dataSourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate() *s
 	}
 }
 
-func dataSourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func dataSourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	repository := d.Get("name").(string)
-	owner := meta.(*Owner).name
+	repository, _ := d.Get("name").(string)
+	owner := meta.name
 
 	template, _, err := client.Actions.GetRepoOIDCSubjectClaimCustomTemplate(ctx, owner, repository)
 	if err != nil {

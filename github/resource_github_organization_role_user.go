@@ -49,8 +49,9 @@ func resourceGithubOrganizationRoleUserCreate(ctx context.Context, d *schema.Res
 	client := meta.v3client
 	orgName := meta.name
 
-	roleId := int64(d.Get("role_id").(int))
-	login := d.Get("login").(string)
+	roleIdInt, _ := d.Get("role_id").(int)
+	roleId := int64(roleIdInt)
+	login, _ := d.Get("login").(string)
 
 	_, err = client.Organizations.AssignOrgRoleToUser(ctx, orgName, login, roleId)
 	if err != nil {
@@ -132,8 +133,9 @@ func resourceGithubOrganizationRoleUserDelete(ctx context.Context, d *schema.Res
 	client := meta.v3client
 	orgName := meta.name
 
-	roleId := int64(d.Get("role_id").(int))
-	login := d.Get("login").(string)
+	roleIdInt, _ := d.Get("role_id").(int)
+	roleId := int64(roleIdInt)
+	login, _ := d.Get("login").(string)
 
 	_, err = client.Organizations.RemoveOrgRoleFromUser(ctx, orgName, login, roleId)
 	if err != nil {

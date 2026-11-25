@@ -67,7 +67,8 @@ var pushOnlyRules = []github.RepositoryRuleType{
 }
 
 func validateRulesForTarget(ctx context.Context, d *schema.ResourceDiff) error {
-	target := github.RulesetTarget(d.Get("target").(string))
+	targetStr, _ := d.Get("target").(string)
+	target := github.RulesetTarget(targetStr)
 	tflog.Debug(ctx, "Validating rules for target", map[string]any{"target": target})
 
 	switch target {
@@ -90,8 +91,16 @@ func validateRulesForBranchTagTarget(ctx context.Context, d *schema.ResourceDiff
 }
 
 func validateRules(ctx context.Context, d *schema.ResourceDiff, allowedRules []github.RepositoryRuleType) error {
-	target := github.RulesetTarget(d.Get("target").(string))
-	rules := d.Get("rules").([]any)[0].(map[string]any)
+	targetStr, _ := d.Get("target").(string)
+	target := github.RulesetTarget(targetStr)
+	rulesRaw, _ := d.Get("rules").([]any)
+	if len(rulesRaw) == 0 {
+		return nil
+	}
+	rules, ok := rulesRaw[0].(map[string]any)
+	if !ok {
+		return nil
+	}
 	for ruleName := range rules {
 		ruleValue, exists := d.GetOk(fmt.Sprintf("rules.0.%s", ruleName))
 		if !exists {
@@ -130,16 +139,21 @@ func validateRules(ctx context.Context, d *schema.ResourceDiff, allowedRules []g
 }
 
 func validateRulesetConditions(ctx context.Context, d *schema.ResourceDiff, isOrg bool) error {
-	target := github.RulesetTarget(d.Get("target").(string))
+	targetStr, _ := d.Get("target").(string)
+	target := github.RulesetTarget(targetStr)
 	tflog.Debug(ctx, "Validating conditions field based on target", map[string]any{"target": target})
-	conditionsRaw := d.Get("conditions").([]any)
+	conditionsRaw, _ := d.Get("conditions").([]any)
 
 	if len(conditionsRaw) == 0 {
 		tflog.Debug(ctx, "An empty conditions block, skipping validation.", map[string]any{"target": target})
 		return nil
 	}
 
-	conditions := conditionsRaw[0].(map[string]any)
+	conditions, ok := conditionsRaw[0].(map[string]any)
+	if !ok {
+		tflog.Debug(ctx, "An empty conditions block, skipping validation.", map[string]any{"target": target})
+		return nil
+	}
 
 	switch target {
 	case github.RulesetTargetBranch, github.RulesetTargetTag:
@@ -151,10 +165,11 @@ func validateRulesetConditions(ctx context.Context, d *schema.ResourceDiff, isOr
 }
 
 func validateRulesetRules(ctx context.Context, d *schema.ResourceDiff) error {
-	target := github.RulesetTarget(d.Get("target").(string))
+	targetStr, _ := d.Get("target").(string)
+	target := github.RulesetTarget(targetStr)
 	tflog.Debug(ctx, "Validating ruleset rules based on target", map[string]any{"target": target})
 
-	rulesRaw := d.Get("rules").([]any)
+	rulesRaw, _ := d.Get("rules").([]any)
 	if len(rulesRaw) == 0 {
 		tflog.Debug(ctx, "No rules block, skipping validation")
 		return nil
@@ -166,7 +181,8 @@ func validateRulesetRules(ctx context.Context, d *schema.ResourceDiff) error {
 func validateConditionsFieldForBranchAndTagTargets(ctx context.Context, target github.RulesetTarget, conditions map[string]any, isOrg bool) error {
 	tflog.Debug(ctx, fmt.Sprintf("Validating conditions field for %s target", target), map[string]any{"target": target, "conditions": conditions, "isOrg": isOrg})
 
-	if conditions["ref_name"] == nil || len(conditions["ref_name"].([]any)) == 0 {
+	refName, _ := conditions["ref_name"].([]any)
+	if len(refName) == 0 {
 		tflog.Debug(ctx, fmt.Sprintf("Missing ref_name for %s target", target), map[string]any{"target": target})
 		return fmt.Errorf("ref_name must be set for %s target", target)
 	}
@@ -178,7 +194,8 @@ func validateConditionsFieldForBranchAndTagTargets(ctx context.Context, target g
 func validateConditionsFieldForPushTarget(ctx context.Context, conditions map[string]any) error {
 	tflog.Debug(ctx, "Validating conditions field for push target", map[string]any{"target": "push", "conditions": conditions})
 
-	if conditions["ref_name"] != nil && len(conditions["ref_name"].([]any)) > 0 {
+	refName, _ := conditions["ref_name"].([]any)
+	if len(refName) > 0 {
 		tflog.Debug(ctx, "Invalid ref_name for push target", map[string]any{"ref_name": conditions["ref_name"]})
 		return fmt.Errorf("ref_name must not be set for push target")
 	}

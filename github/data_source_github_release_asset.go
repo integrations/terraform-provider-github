@@ -93,13 +93,15 @@ func dataSourceGithubReleaseAsset() *schema.Resource {
 	}
 }
 
-func dataSourceGithubReleaseAssetRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	repository := d.Get("repository").(string)
-	owner := d.Get("owner").(string)
+func dataSourceGithubReleaseAssetRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	repository, _ := d.Get("repository").(string)
+	owner, _ := d.Get("owner").(string)
 
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 
-	assetID := int64(d.Get("asset_id").(int))
+	assetIDVal, _ := d.Get("asset_id").(int)
+	assetID := int64(assetIDVal)
 	asset, _, err := client.Repositories.GetReleaseAsset(ctx, owner, repository, assetID)
 	if err != nil {
 		return diag.FromErr(err)
@@ -135,7 +137,7 @@ func dataSourceGithubReleaseAssetRead(ctx context.Context, d *schema.ResourceDat
 		return diag.FromErr(err)
 	}
 
-	if !d.Get("download_file_contents").(bool) {
+	if downloadFileContents, _ := d.Get("download_file_contents").(bool); !downloadFileContents {
 		return nil
 	}
 

@@ -40,7 +40,8 @@ func dataSourceGithubEnterprise() *schema.Resource {
 	}
 }
 
-func dataSourceGithubEnterpriseRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func dataSourceGithubEnterpriseRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 	var query struct {
 		Enterprise struct {
 			ID          githubv4.String
@@ -52,8 +53,8 @@ func dataSourceGithubEnterpriseRead(ctx context.Context, d *schema.ResourceData,
 		} `graphql:"enterprise(slug: $slug)"`
 	}
 
-	slug := d.Get("slug").(string)
-	client := meta.(*Owner).v4client
+	slug, _ := d.Get("slug").(string)
+	client := meta.v4client
 	variables := map[string]any{
 		"slug": githubv4.String(slug),
 	}

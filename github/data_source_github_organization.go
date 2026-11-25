@@ -174,7 +174,7 @@ func dataSourceGithubOrganizationRead(ctx context.Context, d *schema.ResourceDat
 		PerPage: meta.maxPerPage, Page: 1,
 	}
 
-	summaryOnly := d.Get("summary_only").(bool)
+	summaryOnly, _ := d.Get("summary_only").(bool)
 	if !summaryOnly {
 		var repoList []string
 		var allRepos []*github.Repository
@@ -193,7 +193,7 @@ func dataSourceGithubOrganizationRead(ctx context.Context, d *schema.ResourceDat
 			}
 		}
 
-		ignoreArchiveRepos := d.Get("ignore_archived_repos").(bool)
+		ignoreArchiveRepos, _ := d.Get("ignore_archived_repos").(bool)
 		for index := range allRepos {
 			repo := allRepos[index]
 			if ignoreArchiveRepos && repo.GetArchived() {

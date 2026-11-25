@@ -52,18 +52,19 @@ func resourceGithubRepositoryDeploymentBranchPolicy() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryDeploymentBranchPolicyUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryDeploymentBranchPolicyUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	ctx := context.Background()
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+	client := meta.v3client
+	owner := meta.name
 
 	if err := d.Set("etag", nil); err != nil {
 		return err
 	}
 
-	repoName := d.Get("repository").(string)
-	environmentName := d.Get("environment_name").(string)
-	name := d.Get("name").(string)
+	repoName, _ := d.Get("repository").(string)
+	environmentName, _ := d.Get("environment_name").(string)
+	name, _ := d.Get("name").(string)
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -78,17 +79,18 @@ func resourceGithubRepositoryDeploymentBranchPolicyUpdate(d *schema.ResourceData
 	return resourceGithubRepositoryDeploymentBranchPolicyRead(d, meta)
 }
 
-func resourceGithubRepositoryDeploymentBranchPolicyCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryDeploymentBranchPolicyCreate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	ctx := context.Background()
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxId, d.Id())
 	}
 
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
-	environmentName := d.Get("environment_name").(string)
-	name := d.Get("name").(string)
+	client := meta.v3client
+	owner := meta.name
+	repoName, _ := d.Get("repository").(string)
+	environmentName, _ := d.Get("environment_name").(string)
+	name, _ := d.Get("name").(string)
 
 	policy, _, err := client.Repositories.CreateDeploymentBranchPolicy(ctx, owner, repoName, environmentName, github.CreateDeploymentBranchPolicyRequest{Name: name, Type: new("branch")})
 	if err != nil {
@@ -104,13 +106,14 @@ func resourceGithubRepositoryDeploymentBranchPolicyRead(d *schema.ResourceData, 
 	meta, _ := m.(*Owner)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+		etag, _ := d.Get("etag").(string)
+		ctx = context.WithValue(ctx, ctxEtag, etag)
 	}
 
 	client := meta.v3client
 	owner := meta.name
-	repoName := d.Get("repository").(string)
-	environmentName := d.Get("environment_name").(string)
+	repoName, _ := d.Get("repository").(string)
+	environmentName, _ := d.Get("environment_name").(string)
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -151,13 +154,14 @@ func resourceGithubRepositoryDeploymentBranchPolicyRead(d *schema.ResourceData, 
 	return nil
 }
 
-func resourceGithubRepositoryDeploymentBranchPolicyDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryDeploymentBranchPolicyDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
-	environmentName := d.Get("environment_name").(string)
+	client := meta.v3client
+	owner := meta.name
+	repoName, _ := d.Get("repository").(string)
+	environmentName, _ := d.Get("environment_name").(string)
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {

@@ -75,12 +75,13 @@ func resourceGithubCodespacesUserSecret() *schema.Resource {
 	}
 }
 
-func resourceGithubCodespacesUserSecretCreateOrUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubCodespacesUserSecretCreateOrUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	ctx := context.Background()
 
-	secretName := d.Get("secret_name").(string)
-	plaintextValue := d.Get("plaintext_value").(string)
+	secretName, _ := d.Get("secret_name").(string)
+	plaintextValue, _ := d.Get("plaintext_value").(string)
 	var encryptedValue string
 
 	selectedRepositories, hasSelectedRepositories := d.GetOk("selected_repository_ids")
@@ -88,20 +89,21 @@ func resourceGithubCodespacesUserSecretCreateOrUpdate(d *schema.ResourceData, me
 	selectedRepositoryIDs := github.SelectedRepoIDs{}
 
 	if hasSelectedRepositories {
-		ids := selectedRepositories.(*schema.Set).List()
-
-		for _, id := range ids {
-			selectedRepositoryIDs = append(selectedRepositoryIDs, int64(id.(int)))
+		if s, ok := selectedRepositories.(*schema.Set); ok {
+			for _, id := range s.List() {
+				idInt, _ := id.(int)
+				selectedRepositoryIDs = append(selectedRepositoryIDs, int64(idInt))
+			}
 		}
 	}
 
-	keyId, publicKey, err := getCodespacesUserPublicKeyDetails(meta)
+	keyId, publicKey, err := getCodespacesUserPublicKeyDetails(m)
 	if err != nil {
 		return err
 	}
 
 	if encryptedText, ok := d.GetOk("encrypted_value"); ok {
-		encryptedValue = encryptedText.(string)
+		encryptedValue, _ = encryptedText.(string)
 	} else {
 		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
 		if err != nil {
@@ -124,11 +126,12 @@ func resourceGithubCodespacesUserSecretCreateOrUpdate(d *schema.ResourceData, me
 	}
 
 	d.SetId(secretName)
-	return resourceGithubCodespacesUserSecretRead(d, meta)
+	return resourceGithubCodespacesUserSecretRead(d, m)
 }
 
-func resourceGithubCodespacesUserSecretRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubCodespacesUserSecretRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	ctx := context.Background()
 
 	secret, _, err := client.Codespaces.GetUserSecret(ctx, d.Id())
@@ -206,8 +209,9 @@ func resourceGithubCodespacesUserSecretRead(d *schema.ResourceData, meta any) er
 	return nil
 }
 
-func resourceGithubCodespacesUserSecretDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubCodespacesUserSecretDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	log.Printf("[DEBUG] Deleting secret: %s", d.Id())
@@ -215,8 +219,9 @@ func resourceGithubCodespacesUserSecretDelete(d *schema.ResourceData, meta any) 
 	return err
 }
 
-func getCodespacesUserPublicKeyDetails(meta any) (keyId, pkValue string, err error) {
-	client := meta.(*Owner).v3client
+func getCodespacesUserPublicKeyDetails(m any) (keyId, pkValue string, err error) {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	ctx := context.Background()
 
 	publicKey, _, err := client.Codespaces.GetUserPublicKey(ctx)

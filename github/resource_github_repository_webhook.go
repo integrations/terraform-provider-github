@@ -81,12 +81,14 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 }
 
 func resourceGithubRepositoryWebhookObject(d *schema.ResourceData) *github.Hook {
-	url := d.Get("url").(string)
-	active := d.Get("active").(bool)
+	url, _ := d.Get("url").(string)
+	active, _ := d.Get("active").(bool)
 	events := []string{}
-	eventSet := d.Get("events").(*schema.Set)
-	for _, v := range eventSet.List() {
-		events = append(events, v.(string))
+	if eventSet, ok := d.Get("events").(*schema.Set); ok {
+		for _, v := range eventSet.List() {
+			event, _ := v.(string)
+			events = append(events, event)
+		}
 	}
 
 	hook := &github.Hook{
@@ -95,19 +97,22 @@ func resourceGithubRepositoryWebhookObject(d *schema.ResourceData) *github.Hook 
 		Active: &active,
 	}
 
-	config := d.Get("configuration").([]any)[0].(map[string]any)
-	if len(config) > 0 {
-		hook.Config = webhookConfigFromInterface(config)
+	if configs, ok := d.Get("configuration").([]any); ok && len(configs) > 0 {
+		config, _ := configs[0].(map[string]any)
+		if len(config) > 0 {
+			hook.Config = webhookConfigFromInterface(config)
+		}
 	}
 
 	return hook
 }
 
-func resourceGithubRepositoryWebhookCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryWebhookCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	owner := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
+	owner := meta.name
+	repoName, _ := d.Get("repository").(string)
 	hk := resourceGithubRepositoryWebhookObject(d)
 
 	hook, _, err := client.Repositories.CreateHook(ctx, owner, repoName, hk)
@@ -130,18 +135,20 @@ func resourceGithubRepositoryWebhookCreate(ctx context.Context, d *schema.Resour
 	return resourceGithubRepositoryWebhookRead(ctx, d, meta)
 }
 
-func resourceGithubRepositoryWebhookRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryWebhookRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	owner := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
+	owner := meta.name
+	repoName, _ := d.Get("repository").(string)
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
 	}
 	ctx = context.WithValue(ctx, ctxId, d.Id())
 	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+		etag, _ := d.Get("etag").(string)
+		ctx = context.WithValue(ctx, ctxEtag, etag)
 	}
 
 	hook, _, err := client.Repositories.GetHook(ctx, owner, repoName, hookID)
@@ -173,11 +180,12 @@ func resourceGithubRepositoryWebhookRead(ctx context.Context, d *schema.Resource
 	// We would prefer to store the real secret in state, so we'll
 	// write the configuration secret in state from what we get from
 	// ResourceData
-	if len(d.Get("configuration").([]any)) > 0 {
-		currentSecret := d.Get("configuration").([]any)[0].(map[string]any)["secret"]
+	if configs, ok := d.Get("configuration").([]any); ok && len(configs) > 0 {
+		config, _ := configs[0].(map[string]any)
+		currentSecret, _ := config["secret"].(string)
 
 		if hook.Config.Secret != nil {
-			hook.Config.Secret = new(currentSecret.(string))
+			hook.Config.Secret = new(currentSecret)
 		}
 	}
 
@@ -188,15 +196,16 @@ func resourceGithubRepositoryWebhookRead(ctx context.Context, d *schema.Resource
 	return nil
 }
 
-func resourceGithubRepositoryWebhookUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubRepositoryWebhookUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
 	if err := d.Set("etag", nil); err != nil {
 		return diag.FromErr(err)
 	}
 
-	repoName := d.Get("repository").(string)
+	repoName, _ := d.Get("repository").(string)
 	hk := resourceGithubRepositoryWebhookObject(d)
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -212,11 +221,12 @@ func resourceGithubRepositoryWebhookUpdate(ctx context.Context, d *schema.Resour
 	return resourceGithubRepositoryWebhookRead(ctx, d, meta)
 }
 
-func resourceGithubRepositoryWebhookDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryWebhookDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	owner := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
+	owner := meta.name
+	repoName, _ := d.Get("repository").(string)
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(unconvertibleIdErr(d.Id(), err))

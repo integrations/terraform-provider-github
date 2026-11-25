@@ -66,23 +66,24 @@ func resourceGithubCodespacesSecret() *schema.Resource {
 	}
 }
 
-func resourceGithubCodespacesSecretCreateOrUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubCodespacesSecretCreateOrUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 	ctx := context.Background()
 
-	repo := d.Get("repository").(string)
-	secretName := d.Get("secret_name").(string)
-	plaintextValue := d.Get("plaintext_value").(string)
+	repo, _ := d.Get("repository").(string)
+	secretName, _ := d.Get("secret_name").(string)
+	plaintextValue, _ := d.Get("plaintext_value").(string)
 	var encryptedValue string
 
-	keyId, publicKey, err := getCodespacesPublicKeyDetails(owner, repo, meta)
+	keyId, publicKey, err := getCodespacesPublicKeyDetails(owner, repo, m)
 	if err != nil {
 		return err
 	}
 
 	if encryptedText, ok := d.GetOk("encrypted_value"); ok {
-		encryptedValue = encryptedText.(string)
+		encryptedValue, _ = encryptedText.(string)
 	} else {
 		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
 		if err != nil {
@@ -104,12 +105,13 @@ func resourceGithubCodespacesSecretCreateOrUpdate(d *schema.ResourceData, meta a
 	}
 
 	d.SetId(buildTwoPartID(repo, secretName))
-	return resourceGithubCodespacesSecretRead(d, meta)
+	return resourceGithubCodespacesSecretRead(d, m)
 }
 
-func resourceGithubCodespacesSecretRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubCodespacesSecretRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 	ctx := context.Background()
 
 	repoName, secretName, err := parseID2(d.Id())
@@ -167,9 +169,10 @@ func resourceGithubCodespacesSecretRead(d *schema.ResourceData, meta any) error 
 	return nil
 }
 
-func resourceGithubCodespacesSecretDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+func resourceGithubCodespacesSecretDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	repoName, secretName, err := parseID2(d.Id())
@@ -183,9 +186,10 @@ func resourceGithubCodespacesSecretDelete(d *schema.ResourceData, meta any) erro
 	return err
 }
 
-func resourceGithubCodespacesSecretImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubCodespacesSecretImport(d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 	ctx := context.Background()
 
 	parts := strings.Split(d.Id(), "/")
@@ -224,8 +228,9 @@ func resourceGithubCodespacesSecretImport(d *schema.ResourceData, meta any) ([]*
 	return []*schema.ResourceData{d}, nil
 }
 
-func getCodespacesPublicKeyDetails(owner, repository string, meta any) (keyId, pkValue string, err error) {
-	client := meta.(*Owner).v3client
+func getCodespacesPublicKeyDetails(owner, repository string, m any) (keyId, pkValue string, err error) {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	ctx := context.Background()
 
 	publicKey, _, err := client.Codespaces.GetRepoPublicKey(ctx, owner, repository)

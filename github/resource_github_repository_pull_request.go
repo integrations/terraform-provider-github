@@ -135,20 +135,21 @@ func resourceGithubRepositoryPullRequest() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryPullRequestCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryPullRequestCreate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	ctx := context.Background()
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 
 	// For convenience, by default we expect that the base repository and head
 	// repository owners are the same, and both belong to the caller, indicating
 	// a "PR within the same repo" scenario. The head will *always* belong to
 	// the current caller, the base - not necessarily. The base will belong to
 	// another namespace in case of forks, and this resource supports them.
-	headOwner := meta.(*Owner).name
+	headOwner := meta.name
 
 	baseOwner := headOwner
 	if explicitBaseOwner, ok := d.GetOk("owner"); ok {
-		baseOwner = explicitBaseOwner.(string)
+		baseOwner, _ = explicitBaseOwner.(string)
 	}
 
 	title, _ := d.Get("title").(string)
@@ -179,9 +180,10 @@ func resourceGithubRepositoryPullRequestCreate(d *schema.ResourceData, meta any)
 	return resourceGithubRepositoryPullRequestRead(d, meta)
 }
 
-func resourceGithubRepositoryPullRequestRead(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryPullRequestRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	ctx := context.Background()
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 
 	owner, repository, number, err := parsePullRequestID(d)
 	if err != nil {
@@ -268,24 +270,29 @@ func resourceGithubRepositoryPullRequestRead(d *schema.ResourceData, meta any) e
 	return nil
 }
 
-func resourceGithubRepositoryPullRequestUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryPullRequestUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	ctx := context.Background()
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 
 	owner, repository, number, err := parsePullRequestID(d)
 	if err != nil {
 		return err
 	}
 
+	title, _ := d.Get("title").(string)
+	body, _ := d.Get("body").(string)
+	maintainerCanModify, _ := d.Get("maintainer_can_modify").(bool)
 	update := &github.PullRequest{
-		Title:               new(d.Get("title").(string)),
-		Body:                new(d.Get("body").(string)),
-		MaintainerCanModify: new(d.Get("maintainer_can_modify").(bool)),
+		Title:               new(title),
+		Body:                new(body),
+		MaintainerCanModify: new(maintainerCanModify),
 	}
 
 	if d.HasChange("base_ref") {
+		baseRef, _ := d.Get("base_ref").(string)
 		update.Base = &github.PullRequestBranch{
-			Ref: new(d.Get("base_ref").(string)),
+			Ref: new(baseRef),
 		}
 	}
 
@@ -303,18 +310,19 @@ func resourceGithubRepositoryPullRequestUpdate(d *schema.ResourceData, meta any)
 	return fmt.Errorf("%s", strings.Join(errs, ", "))
 }
 
-func resourceGithubRepositoryPullRequestDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubRepositoryPullRequestDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	// It's not entirely clear how to treat PR deletion according to Terraform's
 	// CRUD semantics. The approach we're taking here is to close the PR unless
 	// it's already closed or merged. Merging it feels intuitively wrong in what
 	// effectively is a destructor.
-	if d.Get("state").(string) != "open" {
+	if state, _ := d.Get("state").(string); state != "open" {
 		d.SetId("")
 		return nil
 	}
 
 	ctx := context.Background()
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 
 	owner, repository, number, err := parsePullRequestID(d)
 	if err != nil {

@@ -125,10 +125,10 @@ func dataSourceGithubCollaboratorsRead(ctx context.Context, d *schema.ResourceDa
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 
-	owner := d.Get("owner").(string)
-	repo := d.Get("repository").(string)
-	affiliation := d.Get("affiliation").(string)
-	permission := d.Get("permission").(string)
+	owner, _ := d.Get("owner").(string)
+	repo, _ := d.Get("repository").(string)
+	affiliation, _ := d.Get("affiliation").(string)
+	permission, _ := d.Get("permission").(string)
 
 	options := &github.ListCollaboratorsOptions{
 		Affiliation: affiliation,

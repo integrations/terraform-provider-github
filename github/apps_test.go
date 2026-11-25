@@ -130,8 +130,13 @@ func TestGenerateAppJWT(t *testing.T) {
 			t.Fail()
 		}
 
+		rsaPublicKey, ok := publicKey.(*rsa.PublicKey)
+		if !ok {
+			t.Fatalf("Expected RSA public key, got %T", publicKey)
+		}
+
 		claims := &jwt.Claims{}
-		err = tok.Claims(publicKey.(*rsa.PublicKey), claims)
+		err = tok.Claims(rsaPublicKey, claims)
 		if err != nil {
 			t.Logf("Failed to decode JWT '%s': %s", appJWT, err)
 			t.Fail()

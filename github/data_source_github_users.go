@@ -55,8 +55,10 @@ func dataSourceGithubUsers() *schema.Resource {
 	}
 }
 
-func dataSourceGithubUsersRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	usernames := expandStringList(d.Get("usernames").([]any))
+func dataSourceGithubUsersRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	rawUsernames, _ := d.Get("usernames").([]any)
+	usernames := expandStringList(rawUsernames)
 
 	// Create GraphQL variables and query struct
 	type (
@@ -78,7 +80,7 @@ func dataSourceGithubUsersRead(ctx context.Context, d *schema.ResourceData, meta
 	query := reflect.New(reflect.StructOf(fields)).Elem()
 
 	if len(usernames) > 0 {
-		client := meta.(*Owner).v4client
+		client := meta.v4client
 		err := client.Query(ctx, query.Addr().Interface(), variables)
 		if err != nil && !strings.Contains(err.Error(), "Could not resolve to a User with the login of") {
 			return diag.FromErr(err)
@@ -88,8 +90,7 @@ func dataSourceGithubUsersRead(ctx context.Context, d *schema.ResourceData, meta
 	var logins, emails, nodeIDs, unknownLogins []string
 	for idx, username := range usernames {
 		label := fmt.Sprintf("User%d", idx)
-		user := query.FieldByName(label).Interface().(UserFragment)
-		if user.Login != "" {
+		if user, ok := reflect.TypeAssert[UserFragment](query.FieldByName(label)); ok && user.Login != "" {
 			logins = append(logins, user.Login)
 			emails = append(emails, user.Email)
 			nodeIDs = append(nodeIDs, user.Id)

@@ -1480,8 +1480,11 @@ func TestGithubRepositoryTopicPassesValidation(t *testing.T) {
 	t.Parallel()
 
 	resource := resourceGithubRepository()
-	schema := resource.Schema["topics"].Elem.(*schema.Schema)
-	diags := schema.ValidateDiagFunc("ef69e1a3-66be-40ca-bb62-4f36186aa292", cty.Path{cty.GetAttrStep{Name: "topics"}})
+	topicSchema, ok := resource.Schema["topics"].Elem.(*schema.Schema)
+	if !ok {
+		t.Fatalf("expected topics Elem to be *schema.Schema, got %T", resource.Schema["topics"].Elem)
+	}
+	diags := topicSchema.ValidateDiagFunc("ef69e1a3-66be-40ca-bb62-4f36186aa292", cty.Path{cty.GetAttrStep{Name: "topics"}})
 	if diags.HasError() {
 		t.Error(fmt.Errorf("unexpected topics validation failure: %s", diags[0].Summary))
 	}
@@ -1491,9 +1494,12 @@ func TestGithubRepositoryTopicFailsValidationWhenOverMaxCharacters(t *testing.T)
 	t.Parallel()
 
 	resource := resourceGithubRepository()
-	schema := resource.Schema["topics"].Elem.(*schema.Schema)
+	topicSchema, ok := resource.Schema["topics"].Elem.(*schema.Schema)
+	if !ok {
+		t.Fatalf("expected topics Elem to be *schema.Schema, got %T", resource.Schema["topics"].Elem)
+	}
 
-	diags := schema.ValidateDiagFunc(strings.Repeat("a", 51), cty.Path{cty.GetAttrStep{Name: "topics"}})
+	diags := topicSchema.ValidateDiagFunc(strings.Repeat("a", 51), cty.Path{cty.GetAttrStep{Name: "topics"}})
 	if len(diags) != 1 {
 		t.Error(fmt.Errorf("unexpected number of topic validation failures; expected=1; actual=%d", len(diags)))
 	}
