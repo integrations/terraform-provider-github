@@ -1,0 +1,1 @@
+terraform import github_repository_custom_properties.example my-repo
