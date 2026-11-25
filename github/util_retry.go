@@ -43,7 +43,11 @@ func retryUntilOK[T any](ctx context.Context, f func() (T, bool, error), opts *r
 				return nil, "", err
 			}
 			if !ok {
-				return nil, "missing", nil
+				// A nil result counts toward StateChangeConf's NotFoundChecks
+				// limit (20 by default), which would abort long waits before
+				// the timeout. Return a non-nil placeholder so the timeout is
+				// the only bound; the value is discarded for pending states.
+				return struct{}{}, "missing", nil
 			}
 			return val, "found", nil
 		},
