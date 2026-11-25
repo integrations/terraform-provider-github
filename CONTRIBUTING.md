@@ -9,7 +9,7 @@ Please note that this project is released with a [Contributor Code of Conduct](C
 Before submitting an issue, please search the repository for existing content. Issues with multiple comments, reactions, and experience reports increase the likelihood of a change being prioritized.
 
 > [!NOTE]
-> **Temporary issue-first contribution model:** To keep maintenance sustainable while we improve the codebase and work through the backlog, pull requests are currently limited to maintainers and collaborators with write access. Pull requests opened by other contributors are automatically closed.
+> **Temporary issue-first contribution model:** To keep maintenance sustainable while we improve the codebase and work through the backlog, pull requests are currently limited to collaborators with write access.
 >
 > You can still help move the project forward by:
 >
@@ -17,7 +17,7 @@ Before submitting an issue, please search the repository for existing content. I
 > - Searching existing issues and adding a 👍 reaction or context to the ones that matter to you.
 > - Joining [GitHub Discussions](https://github.com/integrations/terraform-provider-github/discussions) for usage questions.
 >
-> We plan to reopen community pull requests once the codebase and backlog are in a better place.
+> We will revisit accepting community pull requests later once the codebase and backlog are in a better place.
 
 ## Table of Contents <!-- omit from toc -->
 
