@@ -401,9 +401,17 @@ func TestGithubUtilRole_validation(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		Value    string
+		Value    any
 		ErrCount int
 	}{
+		{
+			Value:    nil,
+			ErrCount: 1,
+		},
+		{
+			Value:    123,
+			ErrCount: 1,
+		},
 		{
 			Value:    "invalid",
 			ErrCount: 1,
@@ -424,7 +432,10 @@ func TestGithubUtilRole_validation(t *testing.T) {
 		diags := validationFunc(tc.Value, cty.Path{cty.GetAttrStep{Name: "test_arg"}})
 
 		if len(diags) != tc.ErrCount {
-			t.Fatalf("Expected 1 validation error")
+			t.Fatalf("expected %d validation error(s) for %#v, got %d: %v", tc.ErrCount, tc.Value, len(diags), diags)
+		}
+		if tc.ErrCount > 0 && !diags.HasError() {
+			t.Fatalf("expected error diagnostic for %#v, got %v", tc.Value, diags)
 		}
 	}
 }

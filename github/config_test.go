@@ -1,6 +1,9 @@
 package github
 
 import (
+	"context"
+	"errors"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -367,4 +370,60 @@ func (m *mockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 		return m.roundTripFunc(req)
 	}
 	return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}, nil
+}
+
+func TestConfig_AnonymousHTTPClient(t *testing.T) {
+	t.Run("preserves custom default transport", func(t *testing.T) {
+		origTransport := http.DefaultTransport
+		t.Cleanup(func() { http.DefaultTransport = origTransport })
+
+		var called bool
+		http.DefaultTransport = &mockRoundTripper{
+			roundTripFunc: func(req *http.Request) (*http.Response, error) {
+				called = true
+				return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}, nil
+			},
+		}
+
+		client := (&Config{}).AnonymousHTTPClient()
+		resp, err := client.Get("https://api.github.com/test")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		_ = resp.Body.Close()
+
+		if !called {
+			t.Fatal("expected request to reach custom default transport")
+		}
+	})
+
+	t.Run("clones standard http.Transport", func(t *testing.T) {
+		origTransport := http.DefaultTransport
+		t.Cleanup(func() { http.DefaultTransport = origTransport })
+
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}))
+		t.Cleanup(srv.Close)
+
+		baseTransport := &http.Transport{}
+		http.DefaultTransport = baseTransport
+
+		client := (&Config{}).AnonymousHTTPClient()
+		t.Cleanup(client.CloseIdleConnections)
+
+		baseTransport.DialContext = func(context.Context, string, string) (net.Conn, error) {
+			return nil, errors.New("shared default transport was mutated")
+		}
+
+		resp, err := client.Get(srv.URL)
+		if err != nil {
+			t.Fatalf("expected cloned transport to ignore mutation of default transport, got: %v", err)
+		}
+		_ = resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected status 200, got %d", resp.StatusCode)
+		}
+	})
 }
