@@ -7,8 +7,8 @@ body:
     attributes:
       value: |
         Hi there,
-        Thank you for opening an issue. Please note that we try to keep the Terraform issue tracker reserved for bug reports and feature requests. 
-        For general usage questions, please see: https://github.com/integrations/terraform-provider-github/discussions.
+        Thank you for opening an issue. We're temporarily using an issue-first model (pull requests are currently limited to maintainers), so clear reproduction steps and configs help us act on your report faster.
+        Please search existing issues first and add a 👍 if yours is already tracked. For general usage questions, please see: https://github.com/integrations/terraform-provider-github/discussions.
 
   - type: textarea
     id: expected-behavior

@@ -2,6 +2,9 @@
 
 |<img src="https://cloud.githubusercontent.com/assets/98681/24211275/c4ebd04e-0ee8-11e7-8606-061d656a42df.png" width="72" height="" alt="GitHub Logo"> | <img src="https://raw.githubusercontent.com/hashicorp/terraform-website/d841a1e5fca574416b5ca24306f85a0f4f41b36d/content/source/assets/images/logo-terraform-main.svg" width="300px" alt="Terraform Logo">|
 
+> [!NOTE]
+> **Temporary contribution model:** To keep maintenance sustainable, this repository is currently using an **issue-first model** and only accepting pull requests from collaborators with write access. Please [open an issue](https://github.com/integrations/terraform-provider-github/issues/new/choose) for bug reports or feature requests, and add 👍 reactions or details to existing issues to help us prioritize. See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
 This provider manages GitHub resources — repositories, teams, branch protections, actions secrets/variables, organization settings, rulesets, deploy keys, webhooks, and more — using Terraform. It supports both GitHub.com and GitHub Enterprise Server via the REST and GraphQL APIs.
 
 See the [GitHub Provider page on the Terraform Registry](https://registry.terraform.io/providers/integrations/github/) for installation and documentation.
