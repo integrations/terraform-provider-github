@@ -37,7 +37,7 @@ func resourceGithubActionsOrganizationPermissions() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Configure the repositories that are enabled for GitHub Actions in an organization; this is only supported when `enabled_repositories` is set to `selected`.",
+				Description: "Configure the repositories that are enabled for GitHub Actions in an organization; this is only supported when `enabled_repositories` is set to `selected`. If this block is omitted the enabled repositories are not managed by Terraform, and an empty `repository_ids` will disable all repositories.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"repository_ids": {
@@ -59,7 +59,7 @@ func resourceGithubActionsOrganizationPermissions() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Configure the actions that are allowed in an organization; this is only supported when `allowed_actions` is set to `selected`.",
+				Description: "Configure the actions that are allowed in an organization; this is only supported when `allowed_actions` is set to `selected`. If this block is omitted the allowed actions are not managed by Terraform.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"github_owned_allowed": {
@@ -170,14 +170,18 @@ func resourceGithubActionsOrganizationPermissionsCreate(ctx context.Context, d *
 
 	if *req.EnabledRepositories == "selected" {
 		if v, ok := d.GetOk("enabled_repositories_config"); ok {
-			if p, ok := v.([]any); ok && len(p) > 0 && p[0] != nil {
-				block, _ := p[0].(map[string]any)
-				col, _ := block["repository_ids"].(*schema.Set)
+			if p, ok := v.([]any); ok && len(p) > 0 {
+				repoIDs := []int64{}
 
-				repoIDs := make([]int64, col.Len())
-				for i, a := range col.List() {
-					id, _ := a.(int)
-					repoIDs[i] = int64(id)
+				if p[0] != nil {
+					block, _ := p[0].(map[string]any)
+					col, _ := block["repository_ids"].(*schema.Set)
+
+					repoIDs = make([]int64, col.Len())
+					for i, a := range col.List() {
+						id, _ := a.(int)
+						repoIDs[i] = int64(id)
+					}
 				}
 
 				if _, err := meta.v3client.Actions.SetEnabledReposInOrg(ctx, meta.name, repoIDs); err != nil {
@@ -246,7 +250,7 @@ func resourceGithubActionsOrganizationPermissionsRead(ctx context.Context, d *sc
 	var reposCfg []any
 	if enabledRepositories == "selected" {
 		if v, ok := d.GetOk("enabled_repositories_config"); ok {
-			if p, ok := v.([]any); ok && len(p) > 0 && p[0] != nil {
+			if p, ok := v.([]any); ok && len(p) > 0 {
 				repoIDs := []int{}
 
 				for repo, err := range meta.v3client.Actions.ListEnabledReposInOrgIter(ctx, meta.name, &github.ListOptions{PerPage: meta.maxPerPage}) {
@@ -276,8 +280,8 @@ func resourceGithubActionsOrganizationPermissionsRead(ctx context.Context, d *sc
 
 		var actionsCfg []any
 		if allowedActions == "selected" {
-			if v, ok := d.GetOk("enabled_repositories_config"); ok {
-				if p, ok := v.([]any); ok && len(p) > 0 && p[0] != nil {
+			if v, ok := d.GetOk("allowed_actions_config"); ok {
+				if p, ok := v.([]any); ok && len(p) > 0 {
 					act, _, err := meta.v3client.Actions.GetActionsAllowed(ctx, meta.name)
 					if err != nil {
 						return diag.FromErr(err)

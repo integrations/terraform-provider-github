@@ -45,8 +45,8 @@ func dataSourceGithubRef() *schema.Resource {
 func dataSourceGithubRefRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	client := meta.v3client
-	owner, ok := d.Get("owner").(string)
-	if !ok {
+	owner, _ := d.Get("owner").(string)
+	if owner == "" {
 		owner = meta.name
 	}
 	repoName := d.Get("repository").(string)

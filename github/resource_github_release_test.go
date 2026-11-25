@@ -14,6 +14,8 @@ import (
 func TestAccGithubReleaseResource(t *testing.T) {
 	t.Parallel()
 
+	skipUnauthenticated(t)
+
 	t.Run("with_defaults", func(t *testing.T) {
 		t.Parallel()
 
@@ -36,7 +38,6 @@ resource "github_release" "test" {
 `, repo.GetName())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -73,7 +74,7 @@ resource "github_release" "test" {
 		t.Parallel()
 
 		repo := mustCreateTestRepository(t)
-		branchName := mustCreateTestBranch(t, repo)
+		branchName := mustCreateTestRepositoryBranch(t, repo)
 
 		config := fmt.Sprintf(`
 resource "github_release" "test" {
@@ -88,7 +89,6 @@ resource "github_release" "test" {
 `, repo.GetName(), branchName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

@@ -3,6 +3,7 @@ package httpx
 import (
 	"net/http"
 	"testing"
+	"testing/synctest"
 	"time"
 )
 
@@ -163,11 +164,11 @@ func TestParseRetryAfter(t *testing.T) {
 	t.Parallel()
 
 	for _, tt := range []struct {
-		name      string
-		raw       string
-		tolerance time.Duration
-		want      time.Duration
-		wantOk    bool
+		name       string
+		raw        string
+		timeOffset *time.Duration
+		want       time.Duration
+		wantOk     bool
 	}{
 		{
 			name:   "seconds",
@@ -176,11 +177,10 @@ func TestParseRetryAfter(t *testing.T) {
 			wantOk: true,
 		},
 		{
-			name:      "http_date",
-			raw:       time.Now().Add(10 * time.Minute).Format(http.TimeFormat),
-			tolerance: time.Second,
-			want:      10 * time.Minute,
-			wantOk:    true,
+			name:       "http_date",
+			timeOffset: new(10 * time.Minute),
+			want:       10 * time.Minute,
+			wantOk:     true,
 		},
 		{
 			name:   "invalid",
@@ -207,10 +207,10 @@ func TestParseRetryAfter(t *testing.T) {
 			wantOk: true,
 		},
 		{
-			name:   "past_http_date",
-			raw:    time.Now().Add(-time.Hour).Format(http.TimeFormat),
-			want:   0,
-			wantOk: true,
+			name:       "past_http_date",
+			timeOffset: new(-time.Hour),
+			want:       0,
+			wantOk:     true,
 		},
 		{
 			name:   "seconds_at_max",
@@ -258,15 +258,22 @@ func TestParseRetryAfter(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, gotOk := ParseRetryAfter(tt.raw)
+			synctest.Test(t, func(t *testing.T) {
+				in := tt.raw
+				if tt.timeOffset != nil {
+					in = time.Now().Add(*tt.timeOffset).Format(http.TimeFormat)
+				}
 
-			if gotOk != tt.wantOk {
-				t.Fatalf("ok: got %v, want %v", gotOk, tt.wantOk)
-			}
+				got, gotOk := ParseRetryAfter(in)
 
-			if diff := (got - tt.want).Abs(); diff > tt.tolerance || (tt.tolerance > 0 && diff == tt.tolerance) {
-				t.Fatalf("duration: got %v, want %v (diff %v, tolerance < %v)", got, tt.want, diff, tt.tolerance)
-			}
+				if gotOk != tt.wantOk {
+					t.Fatalf("ok: got %v, want %v", gotOk, tt.wantOk)
+				}
+
+				if got != tt.want {
+					t.Fatalf("duration: got %v, want %v", got, tt.want)
+				}
+			})
 		})
 	}
 }

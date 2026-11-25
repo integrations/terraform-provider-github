@@ -8,7 +8,7 @@ description: |-
 
 Configures the default branch for a GitHub repository.
 
-~> This resource is incompatible with the `default_branch` option of the [`github_repository`](repository) resource. Using both will result in plans always showing a diff.
+~> This resource is incompatible with the `default_branch` option of the [`github_repository`](./repository) resource. Using both will result in plans always showing a diff.
 
 ## Example Usage
 

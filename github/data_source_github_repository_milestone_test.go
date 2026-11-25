@@ -13,7 +13,7 @@ import (
 func TestAccGithubRepositoryMilestoneDataSource(t *testing.T) {
 	t.Parallel()
 
-	t.Run("queries a repository milestone", func(t *testing.T) {
+	t.Run("queries_a_repository_milestone", func(t *testing.T) {
 		t.Parallel()
 
 		repo := mustCreateTestRepository(t)

@@ -2,59 +2,48 @@ package github
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubDependabotSecretsDataSource(t *testing.T) {
 	t.Parallel()
 
-	t.Run("queries dependabot secrets from a repository", func(t *testing.T) {
+	skipUnlessHasOrgs(t)
+
+	t.Run("queries_dependabot_secrets_from_a_repository", func(t *testing.T) {
 		t.Parallel()
 
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%srepo-dep-secrets-%s", testResourcePrefix, randomID)
+		repo := mustCreateTestRepository(t)
+		secretName := strings.ToUpper(fmt.Sprintf("%s%s", strings.ReplaceAll(testResourcePrefix, "-", "_"), acctest.RandString(testRandomIDLength)))
+		mustUpdateDependabotRepositorySecret(t, repo, secretName, "foo")
 
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name      = "%s"
-				auto_init = true
-			}
-
-			resource "github_dependabot_secret" "test" {
-				secret_name = "dep_secret_1"
-				repository  = github_repository.test.name
-				value       = "foo"
-			}
-		`, repoName)
-
-		config2 := config + `
-			data "github_dependabot_secrets" "test" {
-				name = github_repository.test.name
-			}
-		`
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("data.github_dependabot_secrets.test", "name", repoName),
-			resource.TestCheckResourceAttr("data.github_dependabot_secrets.test", "secrets.#", "1"),
-			resource.TestCheckResourceAttr("data.github_dependabot_secrets.test", "secrets.0.name", "DEP_SECRET_1"),
-			resource.TestCheckResourceAttrSet("data.github_dependabot_secrets.test", "secrets.0.created_at"),
-			resource.TestCheckResourceAttrSet("data.github_dependabot_secrets.test", "secrets.0.updated_at"),
-		)
+data "github_dependabot_secrets" "test" {
+  name = "%s"
+}
+`, repo.GetName())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  resource.ComposeTestCheckFunc(),
-				},
-				{
-					Config: config2,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_dependabot_secrets.test", tfjsonpath.New("secrets"), knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.ObjectExact(map[string]knownvalue.Check{
+								"name":       knownvalue.StringExact(secretName),
+								"created_at": knownvalue.NotNull(),
+								"updated_at": knownvalue.NotNull(),
+							}),
+						})),
+					},
 				},
 			},
 		})

@@ -11,7 +11,7 @@ import (
 func TestAccGithubRepositoryEnvironmentsDataSource(t *testing.T) {
 	t.Parallel()
 
-	t.Run("queries environments", func(t *testing.T) {
+	t.Run("queries_environments", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)

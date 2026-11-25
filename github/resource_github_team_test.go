@@ -92,9 +92,10 @@ resource "github_team" "test" {
 					},
 				},
 				{
-					ResourceName:      "github_team.test",
-					ImportState:       true,
-					ImportStateVerify: true,
+					ResourceName:            "github_team.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"etag"},
 				},
 			},
 		})
@@ -220,9 +221,10 @@ resource "github_team" "test" {
 					},
 				},
 				{
-					ResourceName:      "github_team.test",
-					ImportState:       true,
-					ImportStateVerify: true,
+					ResourceName:            "github_team.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"etag"},
 				},
 			},
 		})
@@ -260,9 +262,10 @@ resource "github_team" "test" {
 					},
 				},
 				{
-					ResourceName:      "github_team.test",
-					ImportState:       true,
-					ImportStateVerify: true,
+					ResourceName:            "github_team.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"etag"},
 				},
 			},
 		})

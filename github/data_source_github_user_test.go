@@ -15,7 +15,7 @@ func TestAccGithubUserDataSource(t *testing.T) {
 		t.Skip("No external user provided")
 	}
 
-	t.Run("queries an existing individual account without error", func(t *testing.T) {
+	t.Run("queries_an_existing_individual_account_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		config := fmt.Sprintf(`
@@ -41,7 +41,7 @@ func TestAccGithubUserDataSource(t *testing.T) {
 		})
 	})
 
-	t.Run("errors when querying a non-existing individual account", func(t *testing.T) {
+	t.Run("errors_when_querying_a_non_existing_individual_account", func(t *testing.T) {
 		t.Parallel()
 
 		config := fmt.Sprintf(`

@@ -4,85 +4,65 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubBranchProtectionRulesDataSource(t *testing.T) {
 	t.Parallel()
+	skipUnauthenticated(t)
 
-	t.Run("queries branch protection rules without error", func(t *testing.T) {
+	t.Run("gets_empty_branch_protection_rules", func(t *testing.T) {
 		t.Parallel()
 
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%srepo-bp-rules-%s", testResourcePrefix, randomID)
+		repo := mustCreateTestRepository(t)
 
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-			  name = "%[1]s"
-				auto_init = true
-			}
-
-			data "github_branch_protection_rules" "all" {
-				repository = github_repository.test.name
-			}
-		`, repoName)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("data.github_branch_protection_rules.all", "rules.#", "0"),
-		)
+data "github_branch_protection_rules" "test" {
+  repository = "%s"
+}
+`, repo.GetName())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_branch_protection_rules.test", tfjsonpath.New("rules"), knownvalue.ListSizeExact(0)),
+					},
 				},
 			},
 		})
 	})
 
-	t.Run("queries branch protection", func(t *testing.T) {
+	t.Run("queries_branch_protection", func(t *testing.T) {
 		t.Parallel()
 
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%srepo-bp-rules2-%s", testResourcePrefix, randomID)
+		pattern := "main"
+		repo := mustCreateTestRepository(t)
+		_ = mustCreateTestRepositoryBranchProtection(t, repo, pattern)
 
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-			  name = "%[1]s"
-				auto_init = true
-			}
-
-			resource "github_branch_protection" "protection" {
-				repository_id = github_repository.test.name
-			 	pattern = "main*"
-			}
-		`, repoName)
-
-		config2 := config + `
-			data "github_branch_protection_rules" "all" {
-				repository = github_repository.test.name
-			}
-		`
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("data.github_branch_protection_rules.all", "rules.#", "1"),
-			resource.TestCheckResourceAttr("data.github_branch_protection_rules.all", "rules.0.pattern", "main*"),
-		)
+data "github_branch_protection_rules" "test" {
+  repository = "%s"
+}
+`, repo.GetName())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-				},
-				{
-					Config: config2,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_branch_protection_rules.test", tfjsonpath.New("rules"), knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.MapExact(map[string]knownvalue.Check{
+								"pattern": knownvalue.StringExact(pattern),
+							}),
+						})),
+					},
 				},
 			},
 		})

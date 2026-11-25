@@ -45,8 +45,8 @@ resource "github_actions_organization_permissions" "example" {
 ### Optional
 
 - `allowed_actions` (String) Policy that controls the actions that are allowed to run; this can be one of `all`, `local_only`, or `selected`.
-- `allowed_actions_config` (Block List, Max: 1) Configure the actions that are allowed in an organization; this is only supported when `allowed_actions` is set to `selected`. (see [below for nested schema](#nestedblock--allowed_actions_config))
-- `enabled_repositories_config` (Block List, Max: 1) Configure the repositories that are enabled for GitHub Actions in an organization; this is only supported when `enabled_repositories` is set to `selected`. (see [below for nested schema](#nestedblock--enabled_repositories_config))
+- `allowed_actions_config` (Block List, Max: 1) Configure the actions that are allowed in an organization; this is only supported when `allowed_actions` is set to `selected`. If this block is omitted the allowed actions are not managed by Terraform. (see [below for nested schema](#nestedblock--allowed_actions_config))
+- `enabled_repositories_config` (Block List, Max: 1) Configure the repositories that are enabled for GitHub Actions in an organization; this is only supported when `enabled_repositories` is set to `selected`. If this block is omitted the enabled repositories are not managed by Terraform, and an empty `repository_ids` will disable all repositories. (see [below for nested schema](#nestedblock--enabled_repositories_config))
 - `sha_pinning_required` (Boolean) If all actions and reusable workflows in an organization require pinning to a specific SHA.
 
 ### Read-Only

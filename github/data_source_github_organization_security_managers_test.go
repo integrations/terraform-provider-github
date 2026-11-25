@@ -9,10 +9,12 @@ import (
 )
 
 func TestAccDataSourceGithubOrganizationSecurityManagers(t *testing.T) {
+	skipUnlessHasOrgs(t)
+
 	// TODO: Make this test parallel once we can ignore non-direct teams.
 	// t.Parallel()
 
-	t.Run("get the organization security managers without error", func(t *testing.T) {
+	t.Run("get_the_organization_security_managers_without_error", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		teamName := fmt.Sprintf("%steam-%s", testResourcePrefix, randomID)
 
@@ -33,7 +35,6 @@ func TestAccDataSourceGithubOrganizationSecurityManagers(t *testing.T) {
 		`, teamName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

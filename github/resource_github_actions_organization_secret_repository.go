@@ -12,6 +12,13 @@ import (
 
 func resourceGithubActionsOrganizationSecretRepository() *schema.Resource {
 	return &schema.Resource{
+		CreateContext: resourceGithubActionsOrganizationSecretRepositoryCreate,
+		ReadContext:   resourceGithubActionsOrganizationSecretRepositoryRead,
+		DeleteContext: resourceGithubActionsOrganizationSecretRepositoryDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: resourceGithubActionsOrganizationSecretRepositoryImport,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"secret_name": {
 				Type:             schema.TypeString,
@@ -27,30 +34,21 @@ func resourceGithubActionsOrganizationSecretRepository() *schema.Resource {
 				Description: "The repository ID that can access the organization secret.",
 			},
 		},
-
-		CreateContext: resourceGithubActionsOrganizationSecretRepositoryCreate,
-		ReadContext:   resourceGithubActionsOrganizationSecretRepositoryRead,
-		DeleteContext: resourceGithubActionsOrganizationSecretRepositoryDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: resourceGithubActionsOrganizationSecretRepositoryImport,
-		},
 	}
 }
 
 func resourceGithubActionsOrganizationSecretRepositoryCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	if err := checkOrganization(m); err != nil {
-		return diag.FromErr(err)
-	}
-
 	meta, _ := m.(*Owner)
-	client := meta.v3client
-	owner := meta.name
+
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
+	}
 
 	secretName, _ := d.Get("secret_name").(string)
 	repoIDInt, _ := d.Get("repository_id").(int)
 	repoID := int64(repoIDInt)
 
-	if _, err := client.Actions.AddSelectedRepoToOrgSecret(ctx, owner, secretName, repoID); err != nil {
+	if _, err := meta.v3client.Actions.AddSelectedRepoToOrgSecret(ctx, meta.name, secretName, repoID); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -64,19 +62,17 @@ func resourceGithubActionsOrganizationSecretRepositoryCreate(ctx context.Context
 }
 
 func resourceGithubActionsOrganizationSecretRepositoryRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	if err := checkOrganization(m); err != nil {
-		return diag.FromErr(err)
-	}
-
 	meta, _ := m.(*Owner)
-	client := meta.v3client
-	owner := meta.name
+
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
+	}
 
 	secretName, _ := d.Get("secret_name").(string)
 	repoIDInt, _ := d.Get("repository_id").(int)
 	repoID := int64(repoIDInt)
 
-	for repo, err := range client.Actions.ListSelectedReposForOrgSecretIter(ctx, owner, secretName, &github.ListOptions{PerPage: meta.maxPerPage}) {
+	for repo, err := range meta.v3client.Actions.ListSelectedReposForOrgSecretIter(ctx, meta.name, secretName, &github.ListOptions{PerPage: meta.maxPerPage}) {
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -93,19 +89,17 @@ func resourceGithubActionsOrganizationSecretRepositoryRead(ctx context.Context, 
 }
 
 func resourceGithubActionsOrganizationSecretRepositoryDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	if err := checkOrganization(m); err != nil {
-		return diag.FromErr(err)
-	}
-
 	meta, _ := m.(*Owner)
-	client := meta.v3client
-	owner := meta.name
+
+	if ok, diags := checkOrganizationOK(meta); !ok {
+		return diags
+	}
 
 	secretName, _ := d.Get("secret_name").(string)
 	repoIDInt, _ := d.Get("repository_id").(int)
 	repoID := int64(repoIDInt)
 
-	if _, err := client.Actions.RemoveSelectedRepoFromOrgSecret(ctx, owner, secretName, repoID); err != nil {
+	if _, err := meta.v3client.Actions.RemoveSelectedRepoFromOrgSecret(ctx, meta.name, secretName, repoID); err != nil {
 		return diag.FromErr(err)
 	}
 

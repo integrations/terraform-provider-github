@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"testing"
@@ -10,13 +11,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 	// IMPORTANT: Do not run these tests in parallel as they modify the organization state.
-
 	skipUnlessHasOrgs(t)
 
 	t.Run("full_lifecycle", func(t *testing.T) {
@@ -109,25 +108,27 @@ resource "github_actions_organization_permissions" "test" {
 resource "github_actions_organization_permissions" "test" {
   enabled_repositories = "selected"
 }`,
-					Check: func(state *terraform.State) error {
-						// Need to wait for GitHub to catch up
-						time.Sleep(5 * time.Second)
+					ConfigStateChecks: []statecheck.StateCheck{
+						ExpectFunc(func(ctx context.Context, _ statecheck.CheckStateRequest) error {
+							// Need to wait for GitHub to catch up
+							time.Sleep(5 * time.Second)
 
-						found := false
-						for _, err := range testAccConf.meta.v3client.Actions.ListEnabledReposInOrgIter(t.Context(), testAccConf.meta.name, &github.ListOptions{PerPage: testAccConf.meta.maxPerPage}) {
-							if err != nil {
-								return err
+							found := false
+							for _, err := range testAccConf.meta.v3client.Actions.ListEnabledReposInOrgIter(ctx, testAccConf.meta.name, &github.ListOptions{PerPage: testAccConf.meta.maxPerPage}) {
+								if err != nil {
+									return err
+								}
+
+								found = true
+								break
 							}
 
-							found = true
-							break
-						}
+							if !found {
+								return fmt.Errorf("seleced repositories no longer set")
+							}
 
-						if !found {
-							return fmt.Errorf("seleced repositories no longer set")
-						}
-
-						return nil
+							return nil
+						}),
 					},
 				},
 				{
@@ -139,26 +140,27 @@ resource "github_actions_organization_permissions" "test" {
     repository_ids = []
   }
 }`,
-					ExpectNonEmptyPlan: true,
-					Check: func(state *terraform.State) error {
-						// Need to wait for GitHub to catch up
-						time.Sleep(5 * time.Second)
+					ConfigStateChecks: []statecheck.StateCheck{
+						ExpectFunc(func(ctx context.Context, _ statecheck.CheckStateRequest) error {
+							// Need to wait for GitHub to catch up
+							time.Sleep(5 * time.Second)
 
-						found := false
-						for _, err := range testAccConf.meta.v3client.Actions.ListEnabledReposInOrgIter(t.Context(), testAccConf.meta.name, &github.ListOptions{PerPage: testAccConf.meta.maxPerPage}) {
-							if err != nil {
-								return err
+							found := false
+							for _, err := range testAccConf.meta.v3client.Actions.ListEnabledReposInOrgIter(ctx, testAccConf.meta.name, &github.ListOptions{PerPage: testAccConf.meta.maxPerPage}) {
+								if err != nil {
+									return err
+								}
+
+								found = true
+								break
 							}
 
-							found = true
-							break
-						}
+							if found {
+								return fmt.Errorf("seleced repositories should be empty")
+							}
 
-						if found {
-							return fmt.Errorf("seleced repositories should be empty")
-						}
-
-						return nil
+							return nil
+						}),
 					},
 				},
 			},
@@ -171,11 +173,11 @@ resource "github_actions_organization_permissions" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config: `
-	resource "github_actions_organization_permissions" "test" {
+resource "github_actions_organization_permissions" "test" {
   enabled_repositories = "all"
 
   allowed_actions = "selected"
-	}`,
+}`,
 				},
 			},
 		})
@@ -282,7 +284,7 @@ resource "github_actions_organization_permissions" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config: `
-			resource "github_actions_organization_permissions" "test" {
+resource "github_actions_organization_permissions" "test" {
   enabled_repositories = "all"
 
   enabled_repositories_config {
@@ -303,7 +305,7 @@ resource "github_actions_organization_permissions" "test" {
 			Steps: []resource.TestStep{
 				{
 					Config: `
-			resource "github_actions_organization_permissions" "test" {
+resource "github_actions_organization_permissions" "test" {
   enabled_repositories = "all"
 
   allowed_actions = "all"
@@ -315,23 +317,6 @@ resource "github_actions_organization_permissions" "test" {
   }
 }`,
 					ExpectError: regexp.MustCompile(regexp.QuoteMeta("allowed_actions_config is only valid when allowed_actions is set to selected")),
-				},
-			},
-		})
-	})
-
-	t.Run("invalid_actions_config_missing", func(t *testing.T) {
-		resource.Test(t, resource.TestCase{
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: `
-resource "github_actions_organization_permissions" "test" {
-  enabled_repositories = "all"
-
-  allowed_actions = "selected"
-}`,
-					ExpectError: regexp.MustCompile(regexp.QuoteMeta("allowed_actions_config is required when allowed_actions is set to selected")),
 				},
 			},
 		})
