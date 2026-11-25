@@ -6,7 +6,18 @@ Contributions to this project are [released](https://help.github.com/articles/gi
 
 Please note that this project is released with a [Contributor Code of Conduct](CODE_OF_CONDUCT.md). By participating in this project you agree to abide by its terms.
 
-Before submitting an issue or a pull request, please search the repository for existing content. Issues and PRs with multiple comments, reactions, and experience reports increase the likelihood of a merged change.
+Before submitting an issue, please search the repository for existing content. Issues with multiple comments, reactions, and experience reports increase the likelihood of a change being prioritized.
+
+> [!NOTE]
+> **Temporary issue-first contribution model:** To keep maintenance sustainable while we improve the codebase and work through the backlog, pull requests are currently limited to maintainers and collaborators with write access. Pull requests opened by other contributors are automatically closed.
+>
+> You can still help move the project forward by:
+>
+> - [Opening an issue](https://github.com/integrations/terraform-provider-github/issues/new/choose) with clear reproduction steps, Terraform configs, or feature use cases.
+> - Searching existing issues and adding a 👍 reaction or context to the ones that matter to you.
+> - Joining [GitHub Discussions](https://github.com/integrations/terraform-provider-github/discussions) for usage questions.
+>
+> We plan to reopen community pull requests once the codebase and backlog are in a better place.
 
 ## Table of Contents <!-- omit from toc -->
 
@@ -56,6 +67,9 @@ Here are some concrete guidelines for using LLMs as part of your communication w
 6. Quoting an LLM answer is usually less helpful than linking to **relevant primary sources**, like source code, or reference materials. If you do need to quote an LLM answer in a discussion, clearly distinguish LLM output from your own thoughts.
 
 ## Submitting a pull request
+
+> [!NOTE]
+> Pull requests are temporarily limited to maintainers and collaborators with write access. If you do not have write access, please [open an issue](https://github.com/integrations/terraform-provider-github/issues/new/choose) instead.
 
 1. Fork and clone the repository.
 2. Create a new branch: `git switch -c my-branch-name`.

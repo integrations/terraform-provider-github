@@ -7,39 +7,77 @@ on:
   pull_request_target:
     types:
       - opened
+      - reopened
 
-permissions: read-all
+permissions: {}
 
 jobs:
   # ──────────────────────────────────────────────
-  # PR Response
+  # PR Allowlist Gate
   # ──────────────────────────────────────────────
   respond-to-pr:
-    name: Respond to PR
+    name: Enforce PR Allowlist
     if: >
       github.event_name == 'pull_request_target' &&
+      github.repository == 'integrations/terraform-provider-github' &&
       github.actor != 'dependabot[bot]' &&
       github.actor != 'renovate[bot]' &&
       github.actor != 'github-actions[bot]' &&
       github.actor != 'octokitbot' &&
-      github.repository == 'integrations/terraform-provider-github'
+      github.actor != 'copilot-swe-agent[bot]' &&
+      github.actor != 'Copilot'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
     steps:
-      - name: Comment on PR
-        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
-        with:
-          issue-number: ${{ github.event.pull_request.number }}
-          body: |
-            👋 Hi, and thank you for this contribution!
+      - name: Check allowlist and close non-allowlisted PR
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          ACTOR: ${{ github.actor }}
+          ACTOR_TYPE: ${{ github.event.sender.type }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          set -euo pipefail
 
-            This repo is maintained by GitHub and community members on a best-effort basis. We'll get to this as soon as we can.
+          # Allowlist known automation bots (defense in depth if reopened by another actor).
+          case "$PR_AUTHOR" in
+            "dependabot[bot]"|"renovate[bot]"|"github-actions[bot]"|"octokitbot"|"copilot-swe-agent[bot]"|"Copilot")
+              echo "::notice::PR author '$PR_AUTHOR' is an allowlisted bot; leaving PR #$PR open."
+              exit 0
+              ;;
+          esac
 
-            You can help us prioritize by joining the discussion on open issues and PRs, sharing details on the changes you need, and reviewing other contributions.
+          # Check whether the actor who opened/reopened the PR has write+ permission.
+          # Non-allowlisted bots are not users on the collaborators endpoint, so skip the lookup.
+          perm="none"
+          if [ "$ACTOR_TYPE" != "Bot" ] && [[ "$ACTOR" != *"[bot]" ]]; then
+            perm=$(gh api "repos/$REPO/collaborators/$ACTOR/permission" --jq '.permission')
+          fi
 
-            ---
-            <sub>🤖 This is an automated message.</sub>
+          case "$perm" in
+            admin|write|maintain)
+              echo "::notice::Actor '$ACTOR' has '$perm' permission; leaving PR #$PR open."
+              exit 0
+              ;;
+          esac
+
+          echo "::notice::Actor '$ACTOR' has '$perm' permission; closing PR #$PR with issue-first guidance."
+          gh pr close "$PR" --repo "$REPO" --comment "$(cat <<'EOF'
+          👋 Hi, and thank you for taking the time to contribute!
+
+          To keep maintenance sustainable while we improve the codebase and work through the backlog, this repository is temporarily using an **issue-first contribution model**. Pull requests are currently limited to allowlisted maintainers and collaborators, so this PR has been automatically closed.
+
+          Please share your bug report, feature request, or improvement using our [issue templates](https://github.com/integrations/terraform-provider-github/issues/new/choose) instead (or add a 👍 and details to an existing issue if one already exists). You're welcome to link back to this PR in the issue for reference.
+
+          See [CONTRIBUTING.md](https://github.com/integrations/terraform-provider-github/blob/main/CONTRIBUTING.md) for more details.
+
+          ---
+          <sub>🤖 This is an automated message.</sub>
+          EOF
+          )"
 
   # ──────────────────────────────────────────────
   # Issue Response
@@ -66,7 +104,7 @@ jobs:
 
             This repo is maintained by GitHub and community members on a best-effort basis. We'll get to this as soon as we can.
 
-            You can help us prioritize by adding details, reproduction steps, or a 👍 to issues that matter to you, and by joining the discussion on open issues and PRs.
+            You can help us prioritize by adding details, reproduction steps, or a 👍 to issues that matter to you, and by joining the discussion on open issues.
 
             ---
             <sub>🤖 This is an automated message.</sub>
