@@ -57,8 +57,8 @@ func dataSourceGithubEnterpriseOrganizationAppAccessibleRepositoriesRead(ctx con
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 
-	enterpriseSlug := d.Get("enterprise_slug").(string)
-	org := d.Get("organization").(string)
+	enterpriseSlug, _ := d.Get("enterprise_slug").(string)
+	org, _ := d.Get("organization").(string)
 
 	opts := &github.ListOptions{
 		PerPage: meta.maxPerPage,

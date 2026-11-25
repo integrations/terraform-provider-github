@@ -98,7 +98,9 @@ func diffEnterpriseOrganizationAppInstallation(ctx context.Context, d *schema.Re
 	// and Terraform would abort the apply.
 	if d.HasChange("repository_selection") {
 		oldValue, newValue := d.GetChange("repository_selection")
-		if !d.NewValueKnown("repository_selection") || oldValue.(string) == "none" || newValue.(string) == "none" {
+		oldSelection, _ := oldValue.(string)
+		newSelection, _ := newValue.(string)
+		if !d.NewValueKnown("repository_selection") || oldSelection == "none" || newSelection == "none" {
 			if err := d.ForceNew("repository_selection"); err != nil {
 				return err
 			}
@@ -111,8 +113,9 @@ func diffEnterpriseOrganizationAppInstallation(ctx context.Context, d *schema.Re
 		return nil
 	}
 
-	selection := d.Get("repository_selection").(string)
-	repoCount := d.Get("selected_repositories").(*schema.Set).Len()
+	selection, _ := d.Get("repository_selection").(string)
+	selected, _ := d.Get("selected_repositories").(*schema.Set)
+	repoCount := selected.Len()
 	if selection == "selected" && repoCount == 0 {
 		return fmt.Errorf("'selected_repositories' must be set when 'repository_selection' is 'selected'")
 	}
@@ -124,13 +127,16 @@ func diffEnterpriseOrganizationAppInstallation(ctx context.Context, d *schema.Re
 }
 
 func resourceGithubEnterpriseOrganizationAppInstallationCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	client := m.(*Owner).v3client
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	enterpriseSlug := d.Get("enterprise_slug").(string)
-	org := d.Get("organization").(string)
-	clientID := d.Get("client_id").(string)
+	enterpriseSlug, _ := d.Get("enterprise_slug").(string)
+	org, _ := d.Get("organization").(string)
+	clientID, _ := d.Get("client_id").(string)
+	selection, _ := d.Get("repository_selection").(string)
 
-	repositories := expandStringList(d.Get("selected_repositories").(*schema.Set).List())
+	selected, _ := d.Get("selected_repositories").(*schema.Set)
+	repositories := expandStringList(selected.List())
 
 	// The install endpoint accepts at most maxInstallationRepositoriesPerRequest
 	// repositories; any remainder is granted with follow-up requests.
@@ -143,7 +149,7 @@ func resourceGithubEnterpriseOrganizationAppInstallationCreate(ctx context.Conte
 
 	req := github.InstallAppRequest{
 		ClientID:            clientID,
-		RepositorySelection: d.Get("repository_selection").(string),
+		RepositorySelection: selection,
 		Repositories:        initial,
 	}
 
@@ -177,7 +183,7 @@ func resourceGithubEnterpriseOrganizationAppInstallationCreate(ctx context.Conte
 }
 
 func resourceGithubEnterpriseOrganizationAppInstallationRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	owner := m.(*Owner)
+	owner, _ := m.(*Owner)
 	client := owner.v3client
 
 	enterpriseSlug, org, clientID, err := parseID3(d.Id())
@@ -237,26 +243,29 @@ func resourceGithubEnterpriseOrganizationAppInstallationRead(ctx context.Context
 }
 
 func resourceGithubEnterpriseOrganizationAppInstallationUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	client := m.(*Owner).v3client
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
 	enterpriseSlug, org, _, err := parseID3(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	installationID, err := strconv.ParseInt(d.Get("installation_id").(string), 10, 64)
+	rawInstallationID, _ := d.Get("installation_id").(string)
+	installationID, err := strconv.ParseInt(rawInstallationID, 10, 64)
 	if err != nil {
-		return diag.FromErr(unconvertibleIdErr(d.Get("installation_id").(string), err))
+		return diag.FromErr(unconvertibleIdErr(rawInstallationID, err))
 	}
 
 	if d.HasChange("repository_selection") {
-		selection := d.Get("repository_selection").(string)
+		selection, _ := d.Get("repository_selection").(string)
 		req := github.UpdateAppInstallationRepositoriesRequest{
 			RepositorySelection: new(selection),
 		}
 		var remainder []string
 		if selection == "selected" {
-			repositories := expandStringList(d.Get("selected_repositories").(*schema.Set).List())
+			selected, _ := d.Get("selected_repositories").(*schema.Set)
+			repositories := expandStringList(selected.List())
 			// The toggle endpoint accepts at most
 			// maxInstallationRepositoriesPerRequest repositories; any remainder
 			// is granted with follow-up requests.
@@ -278,8 +287,8 @@ func resourceGithubEnterpriseOrganizationAppInstallationUpdate(ctx context.Conte
 		}
 	} else if d.HasChange("selected_repositories") {
 		oldRepos, newRepos := d.GetChange("selected_repositories")
-		oldSet := oldRepos.(*schema.Set)
-		newSet := newRepos.(*schema.Set)
+		oldSet, _ := oldRepos.(*schema.Set)
+		newSet, _ := newRepos.(*schema.Set)
 
 		// Add before removing so the installation never has an empty selection.
 		toAdd := expandStringList(newSet.Difference(oldSet).List())
@@ -301,16 +310,18 @@ func resourceGithubEnterpriseOrganizationAppInstallationUpdate(ctx context.Conte
 }
 
 func resourceGithubEnterpriseOrganizationAppInstallationDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	client := m.(*Owner).v3client
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
 	enterpriseSlug, org, clientID, err := parseID3(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	installationID, err := strconv.ParseInt(d.Get("installation_id").(string), 10, 64)
+	rawInstallationID, _ := d.Get("installation_id").(string)
+	installationID, err := strconv.ParseInt(rawInstallationID, 10, 64)
 	if err != nil {
-		return diag.FromErr(unconvertibleIdErr(d.Get("installation_id").(string), err))
+		return diag.FromErr(unconvertibleIdErr(rawInstallationID, err))
 	}
 
 	tflog.Debug(ctx, "Uninstalling app from enterprise-owned organization", map[string]any{"client_id": clientID, "installation_id": installationID, "org": org, "enterprise": enterpriseSlug})

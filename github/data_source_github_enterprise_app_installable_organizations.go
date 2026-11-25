@@ -52,7 +52,7 @@ func dataSourceGithubEnterpriseAppInstallableOrganizationsRead(ctx context.Conte
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 
-	enterpriseSlug := d.Get("enterprise_slug").(string)
+	enterpriseSlug, _ := d.Get("enterprise_slug").(string)
 
 	opts := &github.ListOptions{
 		PerPage: meta.maxPerPage,
