@@ -6,6 +6,10 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *testing.T) {
@@ -232,6 +236,82 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplate(t *test
 					ResourceName:      "github_actions_repository_oidc_subject_claim_customization_template.test",
 					ImportState:       true,
 					ImportStateVerify: true,
+				},
+			},
+		})
+	})
+
+	t.Run("updates_renamed_repo", func(t *testing.T) {
+		t.Parallel()
+		skipUnauthenticated(t)
+
+		repo := mustCreateTestRepository(t)
+		newRepoName := fmt.Sprintf("%s-updated", repo.GetName())
+
+		config := `
+resource "github_actions_repository_oidc_subject_claim_customization_template" "test" {
+  repository         = "%s"
+  use_default        = false
+  include_claim_keys = ["repo", "context"]
+}
+`
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, repo.GetName()),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_repository_oidc_subject_claim_customization_template.test", tfjsonpath.New("repository_id"), knownvalue.Int64Exact(repo.GetID())),
+					},
+				},
+				{
+					PreConfig: func() {
+						mustRenameTestRepository(t, repo, newRepoName)
+					},
+					Config: fmt.Sprintf(config, newRepoName),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_repository_oidc_subject_claim_customization_template.test", plancheck.ResourceActionUpdate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_actions_repository_oidc_subject_claim_customization_template.test", tfjsonpath.New("repository"), knownvalue.StringExact(newRepoName)),
+						statecheck.ExpectKnownValue("github_actions_repository_oidc_subject_claim_customization_template.test", tfjsonpath.New("repository_id"), knownvalue.Int64Exact(repo.GetID())),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("recreates_changed_repo", func(t *testing.T) {
+		t.Parallel()
+		skipUnauthenticated(t)
+
+		repo := mustCreateTestRepository(t)
+		repo2 := mustCreateTestRepository(t)
+
+		config := `
+resource "github_actions_repository_oidc_subject_claim_customization_template" "test" {
+  repository         = "%s"
+  use_default        = false
+  include_claim_keys = ["repo", "context"]
+}
+`
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, repo.GetName()),
+				},
+				{
+					Config: fmt.Sprintf(config, repo2.GetName()),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_actions_repository_oidc_subject_claim_customization_template.test", plancheck.ResourceActionReplace),
+						},
+					},
 				},
 			},
 		})
