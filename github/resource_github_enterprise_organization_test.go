@@ -628,3 +628,124 @@ func TestResourceGithubEnterpriseOrganizationCreateSetsDatabaseID(t *testing.T) 
 		t.Errorf("database_id = %d, want %d", got, want)
 	}
 }
+
+func TestResourceGithubEnterpriseOrganizationReadBillingEmail(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		status       int
+		body         string
+		wantEmail    string
+		wantError    string
+		graphqlError string
+		wantID       string
+	}{
+		{name: "REST billing email", status: http.StatusOK, body: `{"billing_email":"billing@example.com"}`, wantEmail: "billing@example.com", wantID: "O_example"},
+		{name: "empty billing email", status: http.StatusOK, body: `{"billing_email":""}`, wantID: "O_example"},
+		{name: "missing billing email", status: http.StatusOK, body: `{}`, wantError: "billing_email", wantID: "O_example"},
+		{name: "null billing email", status: http.StatusOK, body: `{"billing_email":null}`, wantError: "billing_email", wantID: "O_example"},
+		{name: "REST forbidden", status: http.StatusForbidden, body: `{"message":"Resource not accessible by integration"}`, wantError: "Resource not accessible by integration", wantID: "O_example"},
+		{name: "REST not found after GraphQL success", status: http.StatusNotFound, body: `{"message":"Not Found"}`, wantError: "Not Found", wantID: "O_example"},
+		{name: "GraphQL forbidden", graphqlError: "Resource not accessible by integration", wantError: "Resource not accessible by integration", wantID: "O_example"},
+		{name: "GraphQL node not found", graphqlError: "Could not resolve to a node with the global id of 'O_example'"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			graphqlCalls := 0
+			restCalls := 0
+			mux := http.NewServeMux()
+			mux.HandleFunc("/graphql", func(writer http.ResponseWriter, request *http.Request) {
+				graphqlCalls++
+				writer.Header().Set("Content-Type", "application/json")
+				body := mustRead(request.Body)
+				if strings.Contains(body, "organizationBillingEmail") {
+					mustWrite(writer, `{"errors":[{"message":"Resource not accessible by integration","path":["node","organizationBillingEmail"]}]}`)
+					return
+				}
+				if test.graphqlError != "" {
+					mustWrite(writer, fmt.Sprintf(`{"errors":[{"message":%q}]}`, test.graphqlError))
+					return
+				}
+				if graphqlCalls == 1 {
+					if !strings.Contains(body, `"cursor":null`) {
+						t.Errorf("expected initial null cursor: %s", body)
+					}
+					mustWrite(writer, `{"data":{"node":{"id":"O_example","databaseId":123,"login":"example-org","name":"Example Organization","description":"Example description","membersWithRole":{"edges":[{"node":{"login":"owner-one"},"role":"ADMIN"},{"node":{"login":"member"},"role":"MEMBER"}],"pageInfo":{"hasNextPage":true,"endCursor":"next-page"}}}}}`)
+					return
+				}
+				if graphqlCalls != 2 || !strings.Contains(body, `"cursor":"next-page"`) {
+					t.Errorf("unexpected pagination request: %s", body)
+				}
+				mustWrite(writer, `{"data":{"node":{"id":"O_example","databaseId":123,"login":"example-org","name":"Example Organization","description":"Example description","membersWithRole":{"edges":[{"node":{"login":"owner-two"},"role":"ADMIN"}],"pageInfo":{"hasNextPage":false,"endCursor":"last-page"}}}}}`)
+			})
+			mux.HandleFunc("/orgs/example-org", func(writer http.ResponseWriter, request *http.Request) {
+				restCalls++
+				if request.Method != http.MethodGet {
+					t.Errorf("method = %s, want GET", request.Method)
+				}
+				writer.Header().Set("Content-Type", "application/json")
+				writer.WriteHeader(test.status)
+				mustWrite(writer, test.body)
+			})
+
+			meta := &Owner{
+				v3client:   mustCreateTestGitHubClient(t, "https://api.github.com/", github.WithTransport(localRoundTripper{handler: mux})),
+				v4client:   newTestGraphQLClient(mux),
+				maxPerPage: 100,
+			}
+			data := schema.TestResourceDataRaw(t, resourceGithubEnterpriseOrganization().Schema, map[string]any{
+				"enterprise_id": "E_example",
+				"name":          "stale-org-name",
+				"billing_email": "previous@example.com",
+				"admin_logins":  []any{"previous-owner"},
+			})
+			data.SetId("O_example")
+
+			err := resourceGithubEnterpriseOrganizationRead(data, meta)
+			if test.wantError != "" {
+				if err == nil || !strings.Contains(err.Error(), test.wantError) {
+					t.Fatalf("error = %v, want containing %q", err, test.wantError)
+				}
+				if got := data.Get("billing_email"); got != "previous@example.com" {
+					t.Errorf("billing_email = %q after error, want previous value", got)
+				}
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			if got := data.Id(); got != test.wantID {
+				t.Errorf("id = %q, want %q", got, test.wantID)
+			}
+			if test.graphqlError != "" {
+				if restCalls != 0 {
+					t.Errorf("REST calls = %d after GraphQL error, want 0", restCalls)
+				}
+				return
+			}
+			if graphqlCalls != 2 || restCalls != 1 {
+				t.Errorf("GraphQL calls = %d, REST calls = %d, want 2 and 1", graphqlCalls, restCalls)
+			}
+			if test.wantError != "" {
+				return
+			}
+			for attribute, want := range map[string]any{
+				"billing_email": test.wantEmail,
+				"name":          "example-org",
+				"database_id":   123,
+				"display_name":  "Example Organization",
+				"description":   "Example description",
+			} {
+				if got := data.Get(attribute); got != want {
+					t.Errorf("%s = %v, want %v", attribute, got, want)
+				}
+			}
+			owners := data.Get("admin_logins").(*schema.Set)
+			if owners.Len() != 2 || !owners.Contains("owner-one") || !owners.Contains("owner-two") {
+				t.Errorf("admin_logins = %v, want both owners from pagination", owners.List())
+			}
+		})
+	}
+}
