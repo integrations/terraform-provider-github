@@ -2,8 +2,8 @@ package github
 
 import (
 	"context"
-	"log"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -29,7 +29,9 @@ func dataSourceGithubActionsOrganizationRegistrationTokenRead(ctx context.Contex
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
 
-	log.Printf("[DEBUG] Creating a GitHub Actions organization registration token for %s", owner)
+	tflog.Debug(ctx, "Creating a GitHub Actions organization registration token", map[string]any{
+		"owner": owner,
+	})
 	token, _, err := client.Actions.CreateOrganizationRegistrationToken(ctx, owner)
 	if err != nil {
 		return diag.Errorf("error creating a GitHub Actions organization registration token for %s: %v", owner, err)
