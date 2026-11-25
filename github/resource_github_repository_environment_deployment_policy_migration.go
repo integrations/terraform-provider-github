@@ -47,7 +47,10 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyV0() *schema.Resource {
 }
 
 func resourceGithubRepositoryEnvironmentDeploymentPolicyStateUpgradeV0(ctx context.Context, rawState map[string]any, m any) (map[string]any, error) {
-	meta, _ := m.(*Owner)
+	meta, ok := m.(*Owner)
+	if !ok || meta == nil || meta.v3client == nil {
+		return nil, fmt.Errorf("provider meta is not configured")
+	}
 	client := meta.v3client
 	owner := meta.name
 

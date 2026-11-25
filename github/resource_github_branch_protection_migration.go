@@ -25,6 +25,11 @@ func resourceGithubBranchProtectionV0() *schema.Resource {
 }
 
 func resourceGithubBranchProtectionUpgradeV0(_ context.Context, rawState map[string]any, meta any) (map[string]any, error) {
+	owner, ok := meta.(*Owner)
+	if !ok || owner == nil || owner.v4client == nil {
+		return nil, fmt.Errorf("provider meta is not configured")
+	}
+
 	repoName, ok := rawState["repository"].(string)
 	if !ok {
 		return nil, fmt.Errorf("repository not found or is not a string")
@@ -70,10 +75,12 @@ func resourceGithubBranchProtectionV1() *schema.Resource {
 func resourceGithubBranchProtectionUpgradeV1(_ context.Context, rawState map[string]any, meta any) (map[string]any, error) {
 	blocksCreations := false
 
-	if v, ok := rawState["blocks_creations"]; ok {
-		if b, ok := v.(bool); ok {
-			blocksCreations = b
+	if v, ok := rawState["blocks_creations"]; ok && v != nil {
+		b, ok := v.(bool)
+		if !ok {
+			return nil, fmt.Errorf("blocks_creations is not a bool: %T", v)
 		}
+		blocksCreations = b
 	}
 
 	if v, ok := rawState["push_restrictions"]; ok {

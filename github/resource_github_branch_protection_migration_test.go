@@ -69,6 +69,77 @@ func Test_resourceGithubBranchProtectionStateUpgradeV1(t *testing.T) {
 	}
 }
 
+func Test_resourceGithubBranchProtectionStateUpgradeV1_malformedBlocksCreations(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name  string
+		value any
+	}{
+		{name: "string", value: "true"},
+		{name: "int", value: 1},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			rawState := map[string]any{
+				"blocks_creations":  tt.value,
+				"push_restrictions": []any{"/example-user"},
+			}
+			before := maps.Clone(rawState)
+
+			got, err := resourceGithubBranchProtectionUpgradeV1(t.Context(), rawState, nil)
+			if err == nil {
+				t.Fatal("expected error for malformed blocks_creations, got nil")
+			}
+			if !strings.Contains(err.Error(), "blocks_creations") {
+				t.Fatalf("expected error mentioning blocks_creations, got %q", err.Error())
+			}
+			if got != nil {
+				t.Fatalf("expected nil state, got %#v", got)
+			}
+			if !reflect.DeepEqual(rawState, before) {
+				t.Fatalf("expected input state unchanged: want %#v, got %#v", before, rawState)
+			}
+		})
+	}
+}
+
+func Test_resourceGithubBranchProtectionStateUpgradeV0_unconfiguredMeta(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name string
+		meta any
+	}{
+		{name: "nil meta", meta: nil},
+		{name: "wrong meta type", meta: "not-an-owner"},
+		{name: "nil owner pointer", meta: (*Owner)(nil)},
+		{name: "owner without v4client", meta: &Owner{name: "test-org"}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			rawState := map[string]any{
+				"repository": "my-repo",
+				"branch":     "main",
+			}
+			before := maps.Clone(rawState)
+
+			got, err := resourceGithubBranchProtectionUpgradeV0(t.Context(), rawState, tt.meta)
+			if err == nil {
+				t.Fatal("expected error for unconfigured provider meta, got nil")
+			}
+			if got != nil {
+				t.Fatalf("expected nil state, got %#v", got)
+			}
+			if !reflect.DeepEqual(rawState, before) {
+				t.Fatalf("expected input state unchanged: want %#v, got %#v", before, rawState)
+			}
+		})
+	}
+}
+
 func Test_resourceGithubBranchProtectionStateUpgradeV0_malformedState(t *testing.T) {
 	t.Parallel()
 

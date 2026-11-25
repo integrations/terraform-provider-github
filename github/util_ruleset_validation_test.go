@@ -1,9 +1,12 @@
 package github
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func Test_validateConditionsFieldForPushTarget(t *testing.T) {
@@ -206,5 +209,93 @@ func Test_ruleListsDoNotOverlap(t *testing.T) {
 				t.Errorf("rule %q appears in both pushOnlyRules and branchTagOnlyRules", pushRule)
 			}
 		}
+	}
+}
+
+func Test_validateRulesetConditions_emptyBlockDiff(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name    string
+		res     *schema.Resource
+		raw     map[string]any
+		wantErr string
+	}{
+		{
+			name: "organization branch ruleset with empty conditions block requires ref_name",
+			res:  resourceGithubOrganizationRuleset(),
+			raw: map[string]any{
+				"name":        "test",
+				"target":      "branch",
+				"enforcement": "active",
+				"conditions":  []any{map[string]any{}},
+				"rules":       []any{map[string]any{"creation": true}},
+			},
+			wantErr: "ref_name must be set for branch target",
+		},
+		{
+			name: "organization tag ruleset with empty conditions block requires ref_name",
+			res:  resourceGithubOrganizationRuleset(),
+			raw: map[string]any{
+				"name":        "test",
+				"target":      "tag",
+				"enforcement": "active",
+				"conditions":  []any{map[string]any{}},
+				"rules":       []any{map[string]any{"creation": true}},
+			},
+			wantErr: "ref_name must be set for tag target",
+		},
+		{
+			name: "organization push ruleset with empty conditions block succeeds",
+			res:  resourceGithubOrganizationRuleset(),
+			raw: map[string]any{
+				"name":        "test",
+				"target":      "push",
+				"enforcement": "active",
+				"conditions":  []any{map[string]any{}},
+				"rules":       []any{map[string]any{"max_file_size": []any{map[string]any{"max_file_size": 10}}}},
+			},
+		},
+		{
+			name: "organization branch ruleset with omitted conditions skips condition validation",
+			res:  resourceGithubOrganizationRuleset(),
+			raw: map[string]any{
+				"name":        "test",
+				"target":      "branch",
+				"enforcement": "active",
+				"rules":       []any{map[string]any{"creation": true}},
+			},
+		},
+		{
+			name: "repository branch ruleset with empty conditions block requires ref_name",
+			res:  resourceGithubRepositoryRuleset(),
+			raw: map[string]any{
+				"name":        "test",
+				"repository":  "my-repo",
+				"target":      "branch",
+				"enforcement": "active",
+				"conditions":  []any{map[string]any{}},
+				"rules":       []any{map[string]any{"creation": true}},
+			},
+			wantErr: "ref_name must be set for branch target",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := tt.res.Diff(t.Context(), nil, terraform.NewResourceConfigRaw(tt.raw), nil)
+			if tt.wantErr != "" {
+				if err == nil {
+					t.Fatalf("expected error containing %q, got nil", tt.wantErr)
+				}
+				if !strings.Contains(err.Error(), tt.wantErr) {
+					t.Fatalf("expected error containing %q, got %q", tt.wantErr, err.Error())
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
 	}
 }

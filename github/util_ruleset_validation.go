@@ -150,9 +150,8 @@ func validateRulesetConditions(ctx context.Context, d *schema.ResourceDiff, isOr
 	}
 
 	conditions, ok := conditionsRaw[0].(map[string]any)
-	if !ok {
-		tflog.Debug(ctx, "An empty conditions block, skipping validation.", map[string]any{"target": target})
-		return nil
+	if !ok && conditionsRaw[0] != nil {
+		return fmt.Errorf("unexpected conditions value of type %T", conditionsRaw[0])
 	}
 
 	switch target {
