@@ -791,7 +791,7 @@ func resourceGithubOrganizationRulesetCreate(ctx context.Context, d *schema.Reso
 			return diag.FromErr(err)
 		}
 	}
-	if err := d.Set("rules", flattenRules(ctx, ruleset.Rules, true)); err != nil {
+	if err := d.Set("rules", flattenRules(ctx, ruleset.Rules, rulesetLevelOrganization)); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -870,10 +870,10 @@ func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.Resour
 	if err := d.Set("bypass_actors", flattenBypassActors(ctx, ruleset.BypassActors)); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("conditions", flattenConditions(ctx, ruleset.GetConditions(), true)); err != nil {
+	if err := d.Set("conditions", flattenConditions(ctx, ruleset.GetConditions(), rulesetLevelOrganization)); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("rules", flattenRules(ctx, ruleset.Rules, true)); err != nil {
+	if err := d.Set("rules", flattenRules(ctx, ruleset.Rules, rulesetLevelOrganization)); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("node_id", ruleset.GetNodeID()); err != nil {
@@ -1038,7 +1038,7 @@ func resourceGithubOrganizationRulesetImport(ctx context.Context, d *schema.Reso
 }
 
 func resourceGithubOrganizationRulesetDiff(ctx context.Context, d *schema.ResourceDiff, m any) error {
-	if err := validateRulesetConditions(ctx, d, true); err != nil {
+	if err := validateRulesetConditions(ctx, d); err != nil {
 		return err
 	}
 
