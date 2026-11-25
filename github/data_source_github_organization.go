@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
@@ -171,7 +171,7 @@ func dataSourceGithubOrganizationRead(ctx context.Context, d *schema.ResourceDat
 	}
 
 	opts := &github.RepositoryListByOrgOptions{
-		ListOptions: github.ListOptions{PerPage: meta.maxPerPage, Page: 1},
+		PerPage: meta.maxPerPage, Page: 1,
 	}
 
 	summaryOnly := d.Get("summary_only").(bool)

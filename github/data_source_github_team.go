@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -333,7 +333,7 @@ func dataSourceGithubTeamRead(ctx context.Context, d *schema.ResourceData, m any
 	if !summaryOnly {
 		membershipType, _ := d.Get("membership_type").(string)
 
-		for member, err := range client.Teams.ListTeamMembersBySlugIter(ctx, meta.name, team.GetSlug(), &github.TeamListTeamMembersOptions{ListOptions: github.ListOptions{PerPage: meta.maxPerPage}}) {
+		for member, err := range client.Teams.ListTeamMembersBySlugIter(ctx, meta.name, team.GetSlug(), &github.TeamListTeamMembersOptions{PerPage: meta.maxPerPage}) {
 			if err != nil {
 				return diag.FromErr(err)
 			}

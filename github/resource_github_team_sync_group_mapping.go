@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -26,6 +26,8 @@ func resourceGithubTeamSyncGroupMapping() *schema.Resource {
 				return []*schema.ResourceData{d}, nil
 			},
 		},
+
+		CustomizeDiff: diffETag,
 
 		Schema: map[string]*schema.Schema{
 			"team_slug": {
@@ -59,8 +61,9 @@ func resourceGithubTeamSyncGroupMapping() *schema.Resource {
 				},
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the team sync group mapping.",
 			},
 		},
 	}
@@ -88,14 +91,15 @@ func resourceGithubTeamSyncGroupMappingCreate(d *schema.ResourceData, meta any) 
 	return resourceGithubTeamSyncGroupMappingRead(d, meta)
 }
 
-func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta any) error {
+func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 	slug := d.Get("team_slug").(string)
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
@@ -105,8 +109,7 @@ func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta any) er
 
 	idpGroupList, resp, err := client.Teams.ListIDPGroupsForTeamBySlug(ctx, orgName, slug)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -125,8 +128,10 @@ func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, meta any) er
 	if err = d.Set("group", groups); err != nil {
 		return fmt.Errorf("error setting groups: %w", err)
 	}
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return fmt.Errorf("error setting etag: %w", err)
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return fmt.Errorf("error setting etag: %w", err)
+		}
 	}
 
 	return nil
@@ -140,6 +145,11 @@ func resourceGithubTeamSyncGroupMappingUpdate(d *schema.ResourceData, meta any) 
 
 	client := meta.(*Owner).v3client
 	orgName := meta.(*Owner).name
+
+	if err := d.Set("etag", nil); err != nil {
+		return err
+	}
+
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	slug := d.Get("team_slug").(string)
 

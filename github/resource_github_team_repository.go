@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -37,6 +37,8 @@ func resourceGithubTeamRepository() *schema.Resource {
 			},
 		},
 
+		CustomizeDiff: diffETag,
+
 		Schema: map[string]*schema.Schema{
 			"team_id": {
 				Type:        schema.TypeString,
@@ -57,8 +59,9 @@ func resourceGithubTeamRepository() *schema.Resource {
 				Description: "The permissions of team members regarding the repository. Must be one of 'pull', 'triage', 'push', 'maintain', 'admin' or the name of an existing custom repository role within the organisation.",
 			},
 			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "An etag representing the team repository.",
 			},
 		},
 	}
@@ -129,8 +132,7 @@ func resourceGithubTeamRepositoryRead(ctx context.Context, d *schema.ResourceDat
 
 	repo, resp, repoErr := client.Teams.IsTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
 	if repoErr != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(repoErr, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](repoErr); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
 				return nil
 			}
@@ -144,8 +146,10 @@ func resourceGithubTeamRepositoryRead(ctx context.Context, d *schema.ResourceDat
 		return diag.FromErr(repoErr)
 	}
 
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if d.Get("team_id") == "" {
 		// If team_id is empty, that means we are importing the resource.
@@ -172,6 +176,10 @@ func resourceGithubTeamRepositoryUpdate(ctx context.Context, d *schema.ResourceD
 
 	client := meta.(*Owner).v3client
 	orgId := meta.(*Owner).id
+
+	if err := d.Set("etag", nil); err != nil {
+		return diag.FromErr(err)
+	}
 
 	teamIdString, repoName, err := parseID2(d.Id())
 	if err != nil {

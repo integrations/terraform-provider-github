@@ -128,7 +128,8 @@ func TestAccGithubRepository(t *testing.T) {
 					Config: strings.Replace(
 						config,
 						oldName,
-						newName, 1),
+						newName, 1,
+					),
 					Check: checks["after"],
 				},
 			},

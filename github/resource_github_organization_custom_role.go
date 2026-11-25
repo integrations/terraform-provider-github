@@ -6,8 +6,10 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/integrations/terraform-provider-github/v6/internal/tfpluginv2util"
 )
 
 func resourceGithubOrganizationCustomRole() *schema.Resource {
@@ -60,17 +62,16 @@ func resourceGithubOrganizationCustomRoleCreate(d *schema.ResourceData, meta any
 		return err
 	}
 
-	permissions := d.Get("permissions").(*schema.Set).List()
-	permissionsStr := make([]string, len(permissions))
-	for i, v := range permissions {
-		permissionsStr[i] = v.(string)
-	}
+	name, _ := d.Get("name").(string)
+	description, _ := d.Get("description").(string)
+	baseRole, _ := d.Get("base_role").(string)
+	permissions := tfpluginv2util.GetSet[string](d, "permissions", false)
 
-	role, _, err := client.Organizations.CreateCustomRepoRole(ctx, orgName, &github.CreateOrUpdateCustomRepoRoleOptions{
-		Name:        new(d.Get("name").(string)),
-		Description: new(d.Get("description").(string)),
-		BaseRole:    new(d.Get("base_role").(string)),
-		Permissions: permissionsStr,
+	role, _, err := client.Organizations.CreateCustomRepoRole(ctx, orgName, github.CreateCustomRepoRoleRequest{
+		Name:        name,
+		Description: new(description),
+		BaseRole:    baseRole,
+		Permissions: permissions,
 	})
 	if err != nil {
 		return fmt.Errorf("error creating GitHub custom repository role %s (%s): %w", orgName, d.Get("name").(string), err)
@@ -146,20 +147,19 @@ func resourceGithubOrganizationCustomRoleUpdate(d *schema.ResourceData, meta any
 		return fmt.Errorf("Error converting role ID %s to int64: %w", roleIDStr, err)
 	}
 
-	permissions := d.Get("permissions").(*schema.Set).List()
-	permissionsStr := make([]string, len(permissions))
-	for i, v := range permissions {
-		permissionsStr[i] = v.(string)
+	name, _ := d.Get("name").(string)
+	description, _ := d.Get("description").(string)
+	baseRole, _ := d.Get("base_role").(string)
+	permissions := tfpluginv2util.GetSet[string](d, "permissions", false)
+
+	req := github.UpdateCustomRepoRoleRequest{
+		Name:        new(name),
+		Description: new(description),
+		BaseRole:    new(baseRole),
+		Permissions: permissions,
 	}
 
-	update := &github.CreateOrUpdateCustomRepoRoleOptions{
-		Name:        new(d.Get("name").(string)),
-		Description: new(d.Get("description").(string)),
-		BaseRole:    new(d.Get("base_role").(string)),
-		Permissions: permissionsStr,
-	}
-
-	if _, _, err := client.Organizations.UpdateCustomRepoRole(ctx, orgName, roleID, update); err != nil {
+	if _, _, err := client.Organizations.UpdateCustomRepoRole(ctx, orgName, roleID, req); err != nil {
 		return fmt.Errorf("error updating GitHub custom repository role %s (%d): %w", orgName, roleID, err)
 	}
 

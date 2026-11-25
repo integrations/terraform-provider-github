@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -22,6 +22,8 @@ func resourceGithubActionsRunnerGroup() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
+
+		CustomizeDiff: diffETag,
 
 		Schema: map[string]*schema.Schema{
 			"id": {
@@ -151,8 +153,10 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, m any) error
 		return err
 	}
 	d.SetId(strconv.FormatInt(runnerGroup.GetID(), 10))
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return err
+		}
 	}
 	if err = d.Set("allows_public_repositories", runnerGroup.GetAllowsPublicRepositories()); err != nil {
 		return err
@@ -195,8 +199,7 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, m any) error
 func getOrganizationRunnerGroup(client *github.Client, ctx context.Context, org string, groupID int64) (*github.RunnerGroup, *github.Response, error) {
 	runnerGroup, resp, err := client.Actions.GetOrganizationRunnerGroup(ctx, org, groupID)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if _, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			// ignore error StatusNotModified
 			return runnerGroup, resp, nil
 		}
@@ -225,8 +228,7 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, m any) error {
 
 	runnerGroup, resp, err := getOrganizationRunnerGroup(client, ctx, orgName, runnerGroupID)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				log.Printf("[INFO] Removing organization runner group %s/%s from state because it no longer exists in GitHub",
 					orgName, d.Id())
@@ -242,8 +244,10 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, m any) error {
 		return nil
 	}
 
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return err
+		}
 	}
 	if err = d.Set("allows_public_repositories", runnerGroup.GetAllowsPublicRepositories()); err != nil {
 		return err
@@ -314,6 +318,10 @@ func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, m any) error
 
 	client := meta.v3client
 	orgName := meta.name
+
+	if err := d.Set("etag", nil); err != nil {
+		return err
+	}
 
 	name := d.Get("name").(string)
 	visibility := d.Get("visibility").(string)

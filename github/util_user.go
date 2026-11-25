@@ -106,8 +106,8 @@ func newUserMembers(in []any) (userMembers, error) {
 		}
 
 		members[i] = userMember{
-			userIdentity: userIdentity{login: username},
-			role:         role,
+			login: username,
+			role:  role,
 		}
 	}
 

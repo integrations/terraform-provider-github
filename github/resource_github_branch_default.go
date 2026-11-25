@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -68,7 +69,7 @@ func resourceGithubBranchDefault() *schema.Resource {
 			},
 		},
 
-		CustomizeDiff: diffRepository,
+		CustomizeDiff: customdiff.All(diffRepository, diffETag),
 
 		Description: "Configures the default branch for a GitHub repository.",
 
@@ -102,13 +103,8 @@ func resourceGithubBranchDefault() *schema.Resource {
 			},
 			"etag": {
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: "The ETag header for the repository API response.",
-				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
-					return true
-				},
-				DiffSuppressOnRefresh: true,
 			},
 		},
 	}
@@ -169,8 +165,10 @@ func resourceGithubBranchDefaultCreate(ctx context.Context, d *schema.ResourceDa
 	if err := d.Set("repository_id", int(repository.GetID())); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("etag", etag); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err := d.Set("etag", etag); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	tflog.Trace(ctx, "Finished creating default branch resource", map[string]any{"resource_id": d.Id()})
@@ -217,8 +215,10 @@ func resourceGithubBranchDefaultRead(ctx context.Context, d *schema.ResourceData
 		return diag.FromErr(err)
 	}
 
-	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	if err := d.Set("branch", repository.GetDefaultBranch()); err != nil {
@@ -233,6 +233,10 @@ func resourceGithubBranchDefaultUpdate(ctx context.Context, d *schema.ResourceDa
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
+
+	if err := d.Set("etag", nil); err != nil {
+		return diag.FromErr(err)
+	}
 
 	repoName, _ := d.Get("repository").(string)
 	defaultBranch, _ := d.Get("branch").(string)
@@ -279,8 +283,10 @@ func resourceGithubBranchDefaultUpdate(ctx context.Context, d *schema.ResourceDa
 		d.SetId(repoName)
 	}
 
-	if err := d.Set("etag", etag); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err := d.Set("etag", etag); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	tflog.Trace(ctx, "Finished updating default branch resource")
@@ -319,8 +325,10 @@ func resourceGithubBranchDefaultImport(ctx context.Context, d *schema.ResourceDa
 	if err := d.Set("repository_id", int(repository.GetID())); err != nil {
 		return nil, err
 	}
-	if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return nil, err
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return nil, err
+		}
 	}
 
 	return []*schema.ResourceData{d}, nil

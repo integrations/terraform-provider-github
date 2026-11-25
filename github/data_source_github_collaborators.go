@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -133,9 +133,7 @@ func dataSourceGithubCollaboratorsRead(ctx context.Context, d *schema.ResourceDa
 	options := &github.ListCollaboratorsOptions{
 		Affiliation: affiliation,
 		Permission:  permission,
-		ListOptions: github.ListOptions{
-			PerPage: meta.maxPerPage,
-		},
+		PerPage:     meta.maxPerPage,
 	}
 
 	if len(permission) == 0 {

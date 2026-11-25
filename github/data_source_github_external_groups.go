@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -61,7 +61,7 @@ func dataSourceGithubExternalGroupsRead(ctx context.Context, d *schema.ResourceD
 	}
 
 	groups := make([]map[string]any, 0)
-	for group, err := range meta.v3client.Teams.ListExternalGroupsIter(ctx, meta.name, &github.ListExternalGroupsOptions{DisplayName: filter, ListOptions: github.ListOptions{PerPage: meta.maxPerPage}}) {
+	for group, err := range meta.v3client.Teams.ListExternalGroupsIter(ctx, meta.name, &github.ListExternalGroupsOptions{DisplayName: filter, PerPage: meta.maxPerPage}) {
 		if err != nil {
 			return diag.FromErr(err)
 		}

@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -137,29 +137,8 @@ func resourceGithubRepositoryCollaboratorsDiff(ctx context.Context, d *schema.Re
 
 	meta, _ := m.(*Owner)
 
-	if d.HasChange("user") && d.NewValueKnown("user") {
-		v, diags := d.GetRawConfigAt(cty.GetAttrPath("user"))
-		if diags.HasError() {
-			return fmt.Errorf("error reading user config: %v", diags)
-		}
-
-		if !v.IsNull() && v.IsKnown() {
-			seen := make(map[string]struct{})
-			it := v.ElementIterator()
-			for it.Next() {
-				_, elem := it.Element()
-				val := elem.GetAttr("username")
-				if val.IsNull() || !val.IsKnown() {
-					continue
-				}
-
-				username := strings.ToLower(val.AsString())
-				if _, ok := seen[username]; ok {
-					return fmt.Errorf("duplicate user %s found in user collaborators", username)
-				}
-				seen[username] = struct{}{}
-			}
-		}
+	if err := diffDuplicateUsernameCheck(ctx, d, "user"); err != nil {
+		return fmt.Errorf("error diffing user config: %w", err)
 	}
 
 	if d.HasChange("team") && d.NewValueKnown("team") {
@@ -663,9 +642,7 @@ func getUserCollaborators(col []any) (userCollaborators, error) {
 		}
 
 		uc := userCollaborator{
-			userIdentity: userIdentity{
-				login: username,
-			},
+			login:      username,
 			permission: permission,
 		}
 
@@ -744,7 +721,7 @@ func listUserCollaborators(ctx context.Context, meta *Owner, owner, repoName str
 
 	collaborators := make([]userCollaborator, 0)
 	for _, affiliation := range []string{"direct", "outside"} {
-		for user, err := range meta.v3client.Repositories.ListCollaboratorsIter(ctx, owner, repoName, &github.ListCollaboratorsOptions{Affiliation: affiliation, ListOptions: github.ListOptions{PerPage: meta.maxPerPage}}) {
+		for user, err := range meta.v3client.Repositories.ListCollaboratorsIter(ctx, owner, repoName, &github.ListCollaboratorsOptions{Affiliation: affiliation, PerPage: meta.maxPerPage}) {
 			if err != nil {
 				return nil, err
 			}
@@ -754,9 +731,7 @@ func listUserCollaborators(ctx context.Context, meta *Owner, owner, repoName str
 			}
 
 			collaborators = append(collaborators, userCollaborator{
-				userIdentity: userIdentity{
-					login: user.GetLogin(),
-				},
+				login:      user.GetLogin(),
 				permission: getPermission(user.GetRoleName()),
 			})
 		}
@@ -775,9 +750,7 @@ func listInvitations(ctx context.Context, meta *Owner, owner, repoName string) (
 		}
 
 		collaborators = append(collaborators, userCollaborator{
-			userIdentity: userIdentity{
-				login: user.GetInvitee().GetLogin(),
-			},
+			login:        user.GetInvitee().GetLogin(),
 			permission:   getPermission(user.GetPermissions()),
 			invitationID: new(user.GetID()),
 		})
@@ -831,11 +804,9 @@ func listTeamCollaborators(ctx context.Context, meta *Owner, orgName, repoName s
 		}
 
 		collaborators = append(collaborators, teamCollaborator{
-			teamIdentity: teamIdentity{
-				id:     &id,
-				slug:   &slug,
-				teamID: teamID,
-			},
+			id:         &id,
+			slug:       &slug,
+			teamID:     teamID,
 			permission: getPermission(team.GetPermission()),
 		})
 	}

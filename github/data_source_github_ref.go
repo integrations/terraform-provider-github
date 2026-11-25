@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -42,19 +42,19 @@ func dataSourceGithubRef() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRefRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func dataSourceGithubRefRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	owner, ok := d.Get("owner").(string)
 	if !ok {
-		owner = meta.(*Owner).name
+		owner = meta.name
 	}
 	repoName := d.Get("repository").(string)
 	ref := d.Get("ref").(string)
 
 	refData, resp, err := client.Git.GetRef(ctx, owner, repoName, ref)
 	if err != nil {
-		var ghErr *github.ErrorResponse
-		if errors.As(err, &ghErr) {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				tflog.Debug(ctx, "Missing GitHub ref", map[string]any{"owner": owner, "repoName": repoName, "ref": ref})
 				d.SetId("")
@@ -65,9 +65,10 @@ func dataSourceGithubRefRead(ctx context.Context, d *schema.ResourceData, meta a
 	}
 
 	d.SetId(buildTwoPartID(repoName, ref))
-	err = d.Set("etag", resp.Header.Get("ETag"))
-	if err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	err = d.Set("sha", *refData.Object.SHA)
 	if err != nil {

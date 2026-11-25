@@ -1,4 +1,5 @@
 provider "github" {
   owner = var.github_organization
-  # Credentials come from the `GITHUB_APP_XXX` environment variables.
+
+  auth_mode = "app" # Credentials required to come from the `GITHUB_APP_XXX` environment variables.
 }

@@ -1,154 +1,233 @@
 package ghclient
 
 import (
-	"regexp"
+	"errors"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 
+	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
 )
 
-func TestNewAnonymousGraphQLClient(t *testing.T) {
+func TestNewGraphQLClient(t *testing.T) {
 	t.Parallel()
 
-	opts := ClientOptions{}
+	t.Run("succeeds", func(t *testing.T) {
+		t.Parallel()
 
-	client, err := NewAnonymousGraphQLClient(opts)
-	if err != nil {
-		t.Fatalf("failed to create anonymous graphql client: %v", err)
-	}
+		tests := []struct {
+			name string
+			opts []ClientOption
+		}{
+			{
+				name: "no_options",
+				opts: nil,
+			},
+			{
+				name: "token",
+				opts: []ClientOption{WithClientToken("token")},
+			},
+			{
+				name: "url",
+				opts: []ClientOption{WithClientURL(new("https://ghes.example.com/api/graphql"))},
+			},
+			{
+				name: "retry_disabled",
+				opts: []ClientOption{WithClientRetryOptions(0, 0, 0, 0)},
+			},
+		}
 
-	if client == nil {
-		t.Fatal("expected anonymous graphql client to be non-nil")
-	}
-}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
 
-func TestNewAppGraphQLClient(t *testing.T) {
-	t.Parallel()
-
-	privateKeyData := mustReadAppPrivateKey(t)
-
-	for _, tt := range []struct {
-		name           string
-		privateKey     []byte
-		installationID *int64
-		opts           ClientOptions
-		wantErr        string
-	}{
-		{
-			name:           "app_client",
-			privateKey:     privateKeyData,
-			installationID: nil,
-			opts:           ClientOptions{},
-		},
-		{
-			name:           "installation_client",
-			privateKey:     privateKeyData,
-			installationID: new(int64(8888)),
-			opts:           ClientOptions{},
-		},
-		{
-			name:           "handles_token_source_error",
-			privateKey:     []byte("invalid-private-key"),
-			installationID: nil,
-			opts:           ClientOptions{},
-			wantErr:        "failed to create app token source",
-		},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			client, err := NewAppGraphQLClient("123456789", tt.privateKey, tt.installationID, tt.opts)
-			if err != nil {
-				if tt.wantErr == "" {
-					t.Fatalf("failed to create app graphql client: %v", err)
+				got, err := NewGraphQLClient(tt.opts...)
+				if err != nil {
+					t.Fatalf("unexpected error: %s", err)
 				}
 
-				if !regexp.MustCompile(regexp.QuoteMeta(tt.wantErr)).MatchString(err.Error()) {
-					t.Fatalf("expected error to match %q, got %v", tt.wantErr, err)
+				if got == nil {
+					t.Fatal("client: got nil, want non-nil")
+				}
+			})
+		}
+	})
+
+	t.Run("errors", func(t *testing.T) {
+		t.Parallel()
+
+		tests := []struct {
+			name    string
+			opts    []ClientOption
+			wantErr string
+		}{
+			{
+				name:    "option_error_is_wrapped",
+				opts:    []ClientOption{WithClientToken("")},
+				wantErr: "failed to apply client option: invalid option: token cannot be empty when token authentication is enabled",
+			},
+			{
+				name:    "user_agent_is_not_supported",
+				opts:    []ClientOption{WithClientUserAgent(new("test-agent"))},
+				wantErr: "user agent is not supported for graphql clients",
+			},
+			{
+				// Sets the flag directly so no cache store is opened (and leaked) by the test.
+				name: "cache_is_not_supported",
+				opts: []ClientOption{
+					func(o *clientOptions) error {
+						o.cacheEnabled = true
+
+						return nil
+					},
+				},
+				wantErr: "caching is not supported for graphql clients",
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+
+				got, err := NewGraphQLClient(tt.opts...)
+				if err == nil {
+					t.Fatal("got nil, want error")
 				}
 
-				return
-			}
+				if !strings.Contains(err.Error(), tt.wantErr) {
+					t.Fatalf("got %q, want it to contain %q", err.Error(), tt.wantErr)
+				}
 
-			if tt.wantErr != "" {
-				t.Fatalf("expected error %q, got nil", tt.wantErr)
-			}
+				if !errors.Is(err, ErrInvalidOption) {
+					t.Fatalf("got %v, want %v", err, ErrInvalidOption)
+				}
 
-			if client == nil {
-				t.Fatal("expected app graphql client to be non-nil")
-			}
-		})
-	}
-}
-
-func TestNewTokenGraphQLClient(t *testing.T) {
-	t.Parallel()
-
-	opts := ClientOptions{}
-
-	client, err := NewTokenGraphQLClient("test-token", opts)
-	if err != nil {
-		t.Fatalf("failed to create token graphql client: %v", err)
-	}
-
-	if client == nil {
-		t.Fatal("expected token graphql client to be non-nil")
-	}
+				if got != nil {
+					t.Fatal("client: got non-nil, want nil")
+				}
+			})
+		}
+	})
 }
 
 func Test_newGraphQLClient(t *testing.T) {
 	t.Parallel()
 
-	for _, tt := range []struct {
-		name        string
-		tokenSource oauth2.TokenSource
-		opts        ClientOptions
-		wantErr     string
+	t.Run("returns_client_without_url", func(t *testing.T) {
+		t.Parallel()
+
+		got, err := newGraphQLClient(defaultClientOptions())
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		if got == nil {
+			t.Fatal("client: got nil, want non-nil")
+		}
+	})
+
+	// httptest: the client has no getters, so the URL and authentication can only be observed from a request.
+	t.Run("sends_requests_to_url_with_token", func(t *testing.T) {
+		t.Parallel()
+
+		type seen struct {
+			method string
+			path   string
+			auth   string
+		}
+
+		reqs := make(chan seen, 1)
+
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			reqs <- seen{method: r.Method, path: r.URL.Path, auth: r.Header.Get("Authorization")}
+
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = io.WriteString(w, `{"data":{"viewer":{"login":"octocat"}}}`)
+		}))
+		t.Cleanup(ts.Close)
+
+		opts := defaultClientOptions()
+		opts.url = new(ts.URL + "/api/graphql")
+		opts.tokenSource = oauth2.StaticTokenSource(&oauth2.Token{AccessToken: "token"})
+		opts.retryMax = 0
+
+		client, err := newGraphQLClient(opts)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		var q struct {
+			Viewer struct {
+				Login githubv4.String
+			}
+		}
+		if err := client.Query(t.Context(), &q, nil); err != nil {
+			t.Fatalf("unexpected query error: %s", err)
+		}
+
+		if want := "octocat"; string(q.Viewer.Login) != want {
+			t.Fatalf("login: got %q, want %q", q.Viewer.Login, want)
+		}
+
+		got := <-reqs
+
+		if got.method != http.MethodPost {
+			t.Fatalf("method: got %q, want %q", got.method, http.MethodPost)
+		}
+
+		if want := "/api/graphql"; got.path != want {
+			t.Fatalf("path: got %q, want %q", got.path, want)
+		}
+
+		if want := "Bearer token"; got.auth != want {
+			t.Fatalf("authorization: got %q, want %q", got.auth, want)
+		}
+	})
+}
+
+func Test_graphqlURL(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		base   string
+		isGHES bool
+		want   string
 	}{
 		{
-			name:        "minimal",
-			tokenSource: nil,
-			opts:        ClientOptions{},
+			name:   "dotcom",
+			base:   "",
+			isGHES: false,
+			want:   "https://api.github.com/graphql",
 		},
 		{
-			name:        "with_token_source",
-			tokenSource: oauth2.StaticTokenSource(&oauth2.Token{AccessToken: "test-token"}),
-			opts:        ClientOptions{},
+			name:   "ghes",
+			base:   "https://ghes.example.com",
+			isGHES: true,
+			want:   "https://ghes.example.com/api/graphql",
 		},
-		{
-			name:        "with_url",
-			tokenSource: nil,
-			opts:        ClientOptions{BaseURL: "https://api.github.com/"},
-		},
-		{
-			name:        "errors_if_transport_cannot_be_created",
-			tokenSource: nil,
-			opts:        ClientOptions{Cache: true, CachePath: "\x00c"},
-			wantErr:     "failed to create transport",
-		},
-	} {
+	}
+
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := newGraphQLClient(tt.tokenSource, tt.opts)
+			var base *url.URL
+			if tt.base != "" {
+				base = mustParseURL(t, tt.base)
+			}
+
+			got, err := graphqlURL(base, tt.isGHES)
 			if err != nil {
-				if tt.wantErr == "" {
-					t.Fatalf("failed to create graphql client: %v", err)
-				}
-
-				if !regexp.MustCompile(regexp.QuoteMeta(tt.wantErr)).MatchString(err.Error()) {
-					t.Fatalf("expected error to match %q, got %v", tt.wantErr, err)
-				}
-
-				return
+				t.Fatalf("unexpected error: %s", err)
 			}
 
-			if tt.wantErr != "" {
-				t.Fatalf("expected error %q, got nil", tt.wantErr)
-			}
-
-			if got == nil {
-				t.Fatal("expected graphql client to be non-nil")
+			if got.String() != tt.want {
+				t.Fatalf("url: got %q, want %q", got.String(), tt.want)
 			}
 		})
 	}

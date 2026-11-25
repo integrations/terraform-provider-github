@@ -6,12 +6,14 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+
+	"github.com/integrations/terraform-provider-github/v6/internal/tfpluginv2util"
 )
 
 func resourceGithubDependabotSecret() *schema.Resource {
@@ -125,7 +127,7 @@ func resourceGithubDependabotSecretCreate(ctx context.Context, d *schema.Resourc
 	repoName := d.Get("repository").(string)
 	secretName := d.Get("secret_name").(string)
 	keyID := d.Get("key_id").(string)
-	encryptedValue, _ := resourceKeysGetOk[string](d, "value_encrypted", "encrypted_value")
+	encryptedValue, _ := tfpluginv2util.GetKeysOk[string](d, "value_encrypted", "encrypted_value")
 
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
@@ -145,7 +147,7 @@ func resourceGithubDependabotSecretCreate(ctx context.Context, d *schema.Resourc
 	}
 
 	if len(encryptedValue) == 0 {
-		plaintextValue, _ := resourceKeysGetOk[string](d, "value", "plaintext_value")
+		plaintextValue, _ := tfpluginv2util.GetKeysOk[string](d, "value", "plaintext_value")
 
 		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
 		if err != nil {
@@ -154,13 +156,12 @@ func resourceGithubDependabotSecretCreate(ctx context.Context, d *schema.Resourc
 		encryptedValue = base64.StdEncoding.EncodeToString(encryptedBytes)
 	}
 
-	secret := github.DependabotEncryptedSecret{
-		Name:           secretName,
+	secretReq := github.SecretRequest{
 		KeyID:          keyID,
 		EncryptedValue: encryptedValue,
 	}
 
-	_, err = client.Dependabot.CreateOrUpdateRepoSecret(ctx, owner, repoName, &secret)
+	_, err = client.Dependabot.CreateOrUpdateRepoSecret(ctx, owner, repoName, secretName, secretReq)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -248,7 +249,7 @@ func resourceGithubDependabotSecretUpdate(ctx context.Context, d *schema.Resourc
 	repoName := d.Get("repository").(string)
 	secretName := d.Get("secret_name").(string)
 	keyID := d.Get("key_id").(string)
-	encryptedValue, _ := resourceKeysGetOk[string](d, "value_encrypted", "encrypted_value")
+	encryptedValue, _ := tfpluginv2util.GetKeysOk[string](d, "value_encrypted", "encrypted_value")
 
 	var publicKey string
 	if len(keyID) == 0 || len(encryptedValue) == 0 {
@@ -262,7 +263,7 @@ func resourceGithubDependabotSecretUpdate(ctx context.Context, d *schema.Resourc
 	}
 
 	if len(encryptedValue) == 0 {
-		plaintextValue, _ := resourceKeysGetOk[string](d, "value", "plaintext_value")
+		plaintextValue, _ := tfpluginv2util.GetKeysOk[string](d, "value", "plaintext_value")
 
 		encryptedBytes, err := encryptPlaintext(plaintextValue, publicKey)
 		if err != nil {
@@ -271,13 +272,12 @@ func resourceGithubDependabotSecretUpdate(ctx context.Context, d *schema.Resourc
 		encryptedValue = base64.StdEncoding.EncodeToString(encryptedBytes)
 	}
 
-	secret := github.DependabotEncryptedSecret{
-		Name:           secretName,
+	secretReq := github.SecretRequest{
 		KeyID:          keyID,
 		EncryptedValue: encryptedValue,
 	}
 
-	_, err := client.Dependabot.CreateOrUpdateRepoSecret(ctx, owner, repoName, &secret)
+	_, err := client.Dependabot.CreateOrUpdateRepoSecret(ctx, owner, repoName, secretName, secretReq)
 	if err != nil {
 		return diag.FromErr(err)
 	}
