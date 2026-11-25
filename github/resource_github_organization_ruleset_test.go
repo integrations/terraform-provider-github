@@ -1545,77 +1545,26 @@ func TestOrganizationPushRulesetSupport(t *testing.T) {
 	ruleCount := 0
 	if expandedRules.FilePathRestriction != nil {
 		ruleCount++
-		filePathRuleList, ok := rulesMap["file_path_restriction"].([]any)
-		if !ok || len(filePathRuleList) == 0 {
-			t.Fatalf("expected file_path_restriction to be a non-empty []any, got %T", rulesMap["file_path_restriction"])
-		}
-		filePathRule, ok := filePathRuleList[0].(map[string]any)
-		if !ok {
-			t.Fatalf("expected file_path_restriction[0] to be map[string]any, got %T", filePathRuleList[0])
-		}
-		restrictedFilePaths, ok := filePathRule["restricted_file_paths"].([]any)
-		if !ok {
-			t.Fatalf("expected restricted_file_paths to be []any, got %T", filePathRule["restricted_file_paths"])
-		}
-		expectedFilePaths := len(restrictedFilePaths)
-		if len(expandedRules.FilePathRestriction.RestrictedFilePaths) != expectedFilePaths {
-			t.Errorf("Expected %d restricted file paths, got %d", expectedFilePaths, len(expandedRules.FilePathRestriction.RestrictedFilePaths))
+		if len(expandedRules.FilePathRestriction.RestrictedFilePaths) != 3 {
+			t.Errorf("Expected 3 restricted file paths, got %d", len(expandedRules.FilePathRestriction.RestrictedFilePaths))
 		}
 	}
 	if expandedRules.MaxFileSize != nil {
 		ruleCount++
-		maxFileSizeRuleList, ok := rulesMap["max_file_size"].([]any)
-		if !ok || len(maxFileSizeRuleList) == 0 {
-			t.Fatalf("expected max_file_size to be a non-empty []any, got %T", rulesMap["max_file_size"])
-		}
-		maxFileSizeRule, ok := maxFileSizeRuleList[0].(map[string]any)
-		if !ok {
-			t.Fatalf("expected max_file_size[0] to be map[string]any, got %T", maxFileSizeRuleList[0])
-		}
-		maxFileSizeVal, ok := maxFileSizeRule["max_file_size"].(int)
-		if !ok {
-			t.Fatalf("expected max_file_size value to be int, got %T", maxFileSizeRule["max_file_size"])
-		}
-		expectedMaxFileSize := int64(maxFileSizeVal)
-		if expandedRules.MaxFileSize.MaxFileSize != expectedMaxFileSize {
-			t.Errorf("Expected max file size to be %d, got %d", expectedMaxFileSize, expandedRules.MaxFileSize.MaxFileSize)
+		if expandedRules.MaxFileSize.MaxFileSize != int64(100) {
+			t.Errorf("Expected max file size to be 100, got %d", expandedRules.MaxFileSize.MaxFileSize)
 		}
 	}
 	if expandedRules.MaxFilePathLength != nil {
 		ruleCount++
-		maxPathLengthRuleList, ok := rulesMap["max_file_path_length"].([]any)
-		if !ok || len(maxPathLengthRuleList) == 0 {
-			t.Fatalf("expected max_file_path_length to be a non-empty []any, got %T", rulesMap["max_file_path_length"])
-		}
-		maxPathLengthRule, ok := maxPathLengthRuleList[0].(map[string]any)
-		if !ok {
-			t.Fatalf("expected max_file_path_length[0] to be map[string]any, got %T", maxPathLengthRuleList[0])
-		}
-		expectedMaxPathLength, ok := maxPathLengthRule["max_file_path_length"].(int)
-		if !ok {
-			t.Fatalf("expected max_file_path_length value to be int, got %T", maxPathLengthRule["max_file_path_length"])
-		}
-		if expandedRules.MaxFilePathLength.MaxFilePathLength != expectedMaxPathLength {
-			t.Errorf("Expected max file path length to be %d, got %d", expectedMaxPathLength, expandedRules.MaxFilePathLength.MaxFilePathLength)
+		if expandedRules.MaxFilePathLength.MaxFilePathLength != 250 {
+			t.Errorf("Expected max file path length to be 250, got %d", expandedRules.MaxFilePathLength.MaxFilePathLength)
 		}
 	}
 	if expandedRules.FileExtensionRestriction != nil {
 		ruleCount++
-		fileExtRuleList, ok := rulesMap["file_extension_restriction"].([]any)
-		if !ok || len(fileExtRuleList) == 0 {
-			t.Fatalf("expected file_extension_restriction to be a non-empty []any, got %T", rulesMap["file_extension_restriction"])
-		}
-		fileExtRule, ok := fileExtRuleList[0].(map[string]any)
-		if !ok {
-			t.Fatalf("expected file_extension_restriction[0] to be map[string]any, got %T", fileExtRuleList[0])
-		}
-		extSet, ok := fileExtRule["restricted_file_extensions"].(*schema.Set)
-		if !ok {
-			t.Fatalf("expected restricted_file_extensions to be *schema.Set, got %T", fileExtRule["restricted_file_extensions"])
-		}
-		expectedExtensions := extSet.Len()
-		if len(expandedRules.FileExtensionRestriction.RestrictedFileExtensions) != expectedExtensions {
-			t.Errorf("Expected %d restricted file extensions, got %d", expectedExtensions, len(expandedRules.FileExtensionRestriction.RestrictedFileExtensions))
+		if len(expandedRules.FileExtensionRestriction.RestrictedFileExtensions) != 4 {
+			t.Errorf("Expected 4 restricted file extensions, got %d", len(expandedRules.FileExtensionRestriction.RestrictedFileExtensions))
 		}
 	}
 

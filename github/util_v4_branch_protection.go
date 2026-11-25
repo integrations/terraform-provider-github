@@ -191,30 +191,12 @@ func branchProtectionResourceData(d *schema.ResourceData, meta any) (BranchProte
 			if v, ok := m[PROTECTION_RESTRICTS_REVIEW_DISMISSALS]; ok {
 				data.RestrictsReviewDismissals, _ = v.(bool)
 			}
-			if v, ok := m[PROTECTION_REVIEW_DISMISSAL_ALLOWANCES]; ok {
-				reviewDismissalActorIDs := make([]string, 0)
-				if s, ok := v.(*schema.Set); ok {
-					for _, v := range s.List() {
-						str, _ := v.(string)
-						reviewDismissalActorIDs = append(reviewDismissalActorIDs, str)
-					}
-				}
-				if len(reviewDismissalActorIDs) > 0 {
-					data.ReviewDismissalActorIDs = reviewDismissalActorIDs
-					data.RestrictsReviewDismissals = true
-				}
+			if reviewDismissalActorIDs := expandNestedSet(m, PROTECTION_REVIEW_DISMISSAL_ALLOWANCES); len(reviewDismissalActorIDs) > 0 {
+				data.ReviewDismissalActorIDs = reviewDismissalActorIDs
+				data.RestrictsReviewDismissals = true
 			}
-			if v, ok := m[PROTECTION_PULL_REQUESTS_BYPASSERS]; ok {
-				bypassPullRequestActorIDs := make([]string, 0)
-				if s, ok := v.(*schema.Set); ok {
-					for _, v := range s.List() {
-						str, _ := v.(string)
-						bypassPullRequestActorIDs = append(bypassPullRequestActorIDs, str)
-					}
-				}
-				if len(bypassPullRequestActorIDs) > 0 {
-					data.BypassPullRequestActorIDs = bypassPullRequestActorIDs
-				}
+			if bypassPullRequestActorIDs := expandNestedSet(m, PROTECTION_PULL_REQUESTS_BYPASSERS); len(bypassPullRequestActorIDs) > 0 {
+				data.BypassPullRequestActorIDs = bypassPullRequestActorIDs
 			}
 			if v, ok := m[PROTECTION_REQUIRE_LAST_PUSH_APPROVAL]; ok {
 				data.RequireLastPushApproval, _ = v.(bool)
@@ -260,17 +242,8 @@ func branchProtectionResourceData(d *schema.ResourceData, meta any) (BranchProte
 			if v, ok := m[PROTECTION_BLOCKS_CREATIONS]; ok {
 				data.BlocksCreations, _ = v.(bool)
 			}
-			if v, ok := m[PROTECTION_PUSH_ALLOWANCES]; ok {
-				pushActorIDs := make([]string, 0)
-				if s, ok := v.(*schema.Set); ok {
-					for _, v := range s.List() {
-						str, _ := v.(string)
-						pushActorIDs = append(pushActorIDs, str)
-					}
-				}
-				if len(pushActorIDs) > 0 {
-					data.PushActorIDs = pushActorIDs
-				}
+			if pushActorIDs := expandNestedSet(m, PROTECTION_PUSH_ALLOWANCES); len(pushActorIDs) > 0 {
+				data.PushActorIDs = pushActorIDs
 			}
 		}
 	}
@@ -310,30 +283,12 @@ func branchProtectionResourceDataActors(d *schema.ResourceData) (BranchProtectio
 				break
 			}
 
-			if v, ok := m[PROTECTION_REVIEW_DISMISSAL_ALLOWANCES]; ok {
-				reviewDismissalActorIDs := make([]string, 0)
-				if s, ok := v.(*schema.Set); ok {
-					for _, v := range s.List() {
-						str, _ := v.(string)
-						reviewDismissalActorIDs = append(reviewDismissalActorIDs, str)
-					}
-				}
-				if len(reviewDismissalActorIDs) > 0 {
-					data.ReviewDismissalActorIDs = reviewDismissalActorIDs
-					data.RestrictsReviewDismissals = true
-				}
+			if reviewDismissalActorIDs := expandNestedSet(m, PROTECTION_REVIEW_DISMISSAL_ALLOWANCES); len(reviewDismissalActorIDs) > 0 {
+				data.ReviewDismissalActorIDs = reviewDismissalActorIDs
+				data.RestrictsReviewDismissals = true
 			}
-			if v, ok := m[PROTECTION_PULL_REQUESTS_BYPASSERS]; ok {
-				bypassPullRequestActorIDs := make([]string, 0)
-				if s, ok := v.(*schema.Set); ok {
-					for _, v := range s.List() {
-						str, _ := v.(string)
-						bypassPullRequestActorIDs = append(bypassPullRequestActorIDs, str)
-					}
-				}
-				if len(bypassPullRequestActorIDs) > 0 {
-					data.BypassPullRequestActorIDs = bypassPullRequestActorIDs
-				}
+			if bypassPullRequestActorIDs := expandNestedSet(m, PROTECTION_PULL_REQUESTS_BYPASSERS); len(bypassPullRequestActorIDs) > 0 {
+				data.BypassPullRequestActorIDs = bypassPullRequestActorIDs
 			}
 		}
 	}
@@ -355,17 +310,8 @@ func branchProtectionResourceDataActors(d *schema.ResourceData) (BranchProtectio
 			if v, ok := m[PROTECTION_BLOCKS_CREATIONS]; ok {
 				data.BlocksCreations, _ = v.(bool)
 			}
-			if v, ok := m[PROTECTION_PUSH_ALLOWANCES]; ok {
-				pushActorIDs := make([]string, 0)
-				if s, ok := v.(*schema.Set); ok {
-					for _, v := range s.List() {
-						str, _ := v.(string)
-						pushActorIDs = append(pushActorIDs, str)
-					}
-				}
-				if len(pushActorIDs) > 0 {
-					data.PushActorIDs = pushActorIDs
-				}
+			if pushActorIDs := expandNestedSet(m, PROTECTION_PUSH_ALLOWANCES); len(pushActorIDs) > 0 {
+				data.PushActorIDs = pushActorIDs
 			}
 		}
 	}
