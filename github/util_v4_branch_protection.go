@@ -56,8 +56,9 @@ type PushActorTypes struct {
 
 type BranchProtectionRule struct {
 	Repository struct {
-		ID   githubv4.String
-		Name githubv4.String
+		ID         githubv4.String
+		Name       githubv4.String
+		IsArchived githubv4.Boolean
 	}
 	PushAllowances struct {
 		Nodes []PushActorTypes
