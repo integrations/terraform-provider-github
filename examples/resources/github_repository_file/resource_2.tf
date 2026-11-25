@@ -1,3 +1,4 @@
+# Auto Created Branch Example
 
 resource "github_repository" "bar" {
   name      = "example2"

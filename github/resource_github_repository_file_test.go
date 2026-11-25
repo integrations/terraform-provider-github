@@ -1,6 +1,8 @@
 package github
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"testing"
@@ -65,7 +67,7 @@ resource "github_repository_file" "test" {
 					ResourceName:            "github_repository_file.test",
 					ImportState:             true,
 					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"commit_author", "commit_email"}, // The author and email are only read into state when they are configured.
+					ImportStateVerifyIgnore: []string{"commit_message", "commit_author", "commit_email"},
 				},
 			},
 		})
@@ -98,16 +100,18 @@ resource "github_repository_file" "test" {
 					},
 				},
 				{
-					ResourceName:      "github_repository_file.test",
-					ImportState:       true,
-					ImportStateVerify: true,
+					ResourceName:            "github_repository_file.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"commit_message"},
 				},
 				{
 					// An ID without a branch resolves to the default branch.
-					ResourceName:      "github_repository_file.test",
-					ImportState:       true,
-					ImportStateId:     fmt.Sprintf("%s:test:", repo.GetName()),
-					ImportStateVerify: true,
+					ResourceName:            "github_repository_file.test",
+					ImportState:             true,
+					ImportStateId:           fmt.Sprintf("%s:test:", repo.GetName()),
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"commit_message"},
 				},
 			},
 		})
@@ -142,6 +146,59 @@ resource "github_repository_file" "test" {
 }
 `,
 					ExpectError: regexp.MustCompile("all of `commit_author,commit_email` must be specified"),
+				},
+			},
+		})
+	})
+
+	t.Run("refreshes_commit_sha_when_the_file_is_changed_out_of_band", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+
+		config := fmt.Sprintf(`
+resource "github_repository_file" "test" {
+  repository = "%s"
+  file       = "test"
+  content    = "%%s"
+}
+`, repo.GetName())
+
+		var outOfBandCommitSHA string
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, "foo"),
+				},
+				{
+					// The config matches the out of band change, so the plan is empty and commit_sha can only
+					// be updated by the refresh.
+					PreConfig: func() {
+						outOfBandCommitSHA = mustUpdateTestRepositoryFile(t, repo, "test", "bar").GetSHA()
+					},
+					Config: fmt.Sprintf(config, "bar"),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectEmptyPlan(),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_repository_file.test", tfjsonpath.New("sha"), knownvalue.StringExact("ba0e162e1c47469e3fe4b393a8bf8c569f302116")),
+						ExpectFunc(func(_ context.Context, req statecheck.CheckStateRequest) error {
+							for _, r := range req.State.Values.RootModule.Resources {
+								if r.Address != "github_repository_file.test" {
+									continue
+								}
+								if got, _ := r.AttributeValues["commit_sha"].(string); got != outOfBandCommitSHA {
+									return fmt.Errorf("expected commit_sha to be refreshed to %q, got %q", outOfBandCommitSHA, got)
+								}
+								return nil
+							}
+							return errors.New("github_repository_file.test not found in state")
+						}),
+					},
 				},
 			},
 		})
@@ -283,9 +340,75 @@ resource "github_repository_file" "test" {
 					},
 				},
 				{
-					ResourceName:      "github_repository_file.test",
-					ImportState:       true,
-					ImportStateVerify: true,
+					ResourceName:            "github_repository_file.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"commit_message"},
+				},
+			},
+		})
+	})
+
+	t.Run("does_not_update_the_file_when_only_the_commit_message_changes", func(t *testing.T) {
+		t.Parallel()
+
+		repo := mustCreateTestRepository(t)
+
+		config := fmt.Sprintf(`
+resource "github_repository_file" "test" {
+  repository     = "%s"
+  file           = "test"
+  content        = "%%s"
+  commit_message = "%%s"
+}
+`, repo.GetName())
+
+		expectLatestCommitMessage := func(message string) statecheck.StateCheck {
+			return ExpectFunc(func(ctx context.Context, _ statecheck.CheckStateRequest) error {
+				commit, err := fileCommit(ctx, testAccConf.meta.v3client, testAccConf.meta.name, repo.GetName(), repo.GetDefaultBranch(), "test")
+				if err != nil {
+					return err
+				}
+				if got := commit.GetCommit().GetMessage(); got != message {
+					return fmt.Errorf("expected latest commit message %q, got %q", message, got)
+				}
+
+				return nil
+			})
+		}
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, "foo", "First message"),
+					ConfigStateChecks: []statecheck.StateCheck{
+						expectLatestCommitMessage("First message"),
+					},
+				},
+				{
+					// Only the commit message changes so there is nothing to write.
+					Config: fmt.Sprintf(config, "foo", "Second message"),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectEmptyPlan(),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						expectLatestCommitMessage("First message"),
+					},
+				},
+				{
+					// The new commit message is used when the content changes as well.
+					Config: fmt.Sprintf(config, "bar", "Second message"),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository_file.test", plancheck.ResourceActionUpdate),
+						},
+					},
+					ConfigStateChecks: []statecheck.StateCheck{
+						expectLatestCommitMessage("Second message"),
+					},
 				},
 			},
 		})

@@ -114,6 +114,39 @@ func mustCreateTestRepositoryFile(t *testing.T, repo *github.Repository, path, c
 	return resp
 }
 
+func mustUpdateTestRepositoryFile(t *testing.T, repo *github.Repository, path, content string, f ...createTestRepositoryFileOptionsFunc) *github.RepositoryContentResponse {
+	t.Helper()
+
+	req := &github.RepositoryContentFileOptions{
+		Message: new(fmt.Sprintf("Update %s", path)),
+		Content: []byte(content),
+		Branch:  new(repo.GetDefaultBranch()),
+	}
+
+	for _, fn := range f {
+		if fn != nil {
+			fn(req)
+		}
+	}
+
+	// Unless the caller provides the file's SHA, look it up on the branch being updated.
+	if req.SHA == nil {
+		file, _, _, err := testAccConf.meta.v3client.Repositories.GetContents(t.Context(), testAccConf.meta.name, repo.GetName(), path, &github.RepositoryContentGetOptions{Ref: req.GetBranch()})
+		if err != nil {
+			t.Fatalf("failed to read %s of test repository %s: %v", path, repo.GetName(), err)
+		}
+
+		req.SHA = file.SHA
+	}
+
+	resp, _, err := testAccConf.meta.v3client.Repositories.UpdateFile(t.Context(), testAccConf.meta.name, repo.GetName(), path, req)
+	if err != nil {
+		t.Fatalf("failed to update %s in test repository %s: %v", path, repo.GetName(), err)
+	}
+
+	return resp
+}
+
 func mustDeleteRepositoryFile(t *testing.T, repo *github.Repository, path string) {
 	t.Helper()
 
