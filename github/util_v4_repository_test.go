@@ -225,3 +225,37 @@ func mustWrite(w io.Writer, s string) {
 func newTestGraphQLClient(handler http.Handler) *githubv4.Client {
 	return githubv4.NewClient(&http.Client{Transport: localRoundTripper{handler: handler}})
 }
+
+func TestGetRepositoryIDNullNodeWithoutError(t *testing.T) {
+	t.Parallel()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/graphql", func(w http.ResponseWriter, req *http.Request) {
+		body := mustRead(req.Body)
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case strings.Contains(body, "node(id:$id)"):
+			mustWrite(w, `{"data":{"node":null}}`)
+		case strings.Contains(body, "repository(owner:$owner, name:$name)"):
+			mustWrite(w, `{"data":{"repository":{"id":"R_kgDOGGmaaw"}}}`)
+		default:
+			t.Errorf("unexpected GraphQL query: %s", body)
+			w.WriteHeader(http.StatusBadRequest)
+		}
+	})
+
+	meta := &Owner{
+		v4client: newTestGraphQLClient(mux),
+		name:     "integrations",
+	}
+
+	// "myrepo12" is 8 base64 characters, exercising both repositoryNodeIDExists
+	// and repositoryLegacyNodeIDExists before falling back to repository name lookup.
+	got, err := getRepositoryID("myrepo12", meta)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != githubv4.ID("R_kgDOGGmaaw") {
+		t.Fatalf("got %v, want R_kgDOGGmaaw", got)
+	}
+}

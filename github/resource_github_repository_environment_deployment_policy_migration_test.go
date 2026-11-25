@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -33,9 +34,9 @@ func Test_resourceGithubRepositoryEnvironmentDeploymentPolicyStateUpgradeV0_malf
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			apiCalls := 0
+			var apiCalls atomic.Int32
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				apiCalls++
+				apiCalls.Add(1)
 				w.WriteHeader(http.StatusInternalServerError)
 			}))
 			t.Cleanup(srv.Close)
@@ -59,8 +60,8 @@ func Test_resourceGithubRepositoryEnvironmentDeploymentPolicyStateUpgradeV0_malf
 			if diff := cmp.Diff(before, tt.rawState); diff != "" {
 				t.Fatalf("expected input state unchanged (-want +got):\n%s", diff)
 			}
-			if apiCalls != 0 {
-				t.Fatalf("expected no GitHub API calls, got %d", apiCalls)
+			if gotCalls := apiCalls.Load(); gotCalls != 0 {
+				t.Fatalf("expected no GitHub API calls, got %d", gotCalls)
 			}
 		})
 	}

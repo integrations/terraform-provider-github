@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/shurcooL/githubv4"
@@ -31,14 +32,40 @@ func testGithubBranchProtectionStateDataV2() map[string]any {
 func Test_resourceGithubBranchProtectionStateUpgradeV1(t *testing.T) {
 	// IMPORTANT: This test is not parallelized because it uses global state.
 
-	expected := testGithubBranchProtectionStateDataV2()
-	actual, err := resourceGithubBranchProtectionUpgradeV1(t.Context(), testGithubBranchProtectionStateDataV1(), nil)
-	if err != nil {
-		t.Fatalf("error migrating state: %s", err)
-	}
+	for _, tt := range []struct {
+		name     string
+		rawState map[string]any
+		expected map[string]any
+	}{
+		{
+			name:     "true blocks_creations",
+			rawState: testGithubBranchProtectionStateDataV1(),
+			expected: testGithubBranchProtectionStateDataV2(),
+		},
+		{
+			name: "null blocks_creations defaults to false",
+			rawState: map[string]any{
+				"blocks_creations":  nil,
+				"push_restrictions": [...]string{"/example-user"},
+			},
+			expected: map[string]any{
+				"restrict_pushes": []any{map[string]any{
+					"blocks_creations": false,
+					"push_allowances":  [...]string{"/example-user"},
+				}},
+			},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			actual, err := resourceGithubBranchProtectionUpgradeV1(t.Context(), tt.rawState, nil)
+			if err != nil {
+				t.Fatalf("error migrating state: %s", err)
+			}
 
-	if !reflect.DeepEqual(expected, actual) {
-		t.Fatalf("\n\nexpected:\n\n%#v\n\ngot:\n\n%#v\n\n", expected, actual)
+			if !reflect.DeepEqual(tt.expected, actual) {
+				t.Fatalf("\n\nexpected:\n\n%#v\n\ngot:\n\n%#v\n\n", tt.expected, actual)
+			}
+		})
 	}
 }
 
@@ -91,9 +118,9 @@ func Test_resourceGithubBranchProtectionStateUpgradeV0_malformedState(t *testing
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			apiCalls := 0
+			var apiCalls atomic.Int32
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				apiCalls++
+				apiCalls.Add(1)
 				w.Header().Set("Content-Type", "application/json")
 				_, _ = w.Write([]byte(`{"data":{"node":{"id":"repo-node-id"}}}`))
 			}))
@@ -118,8 +145,8 @@ func Test_resourceGithubBranchProtectionStateUpgradeV0_malformedState(t *testing
 			if !reflect.DeepEqual(tt.rawState, before) {
 				t.Fatalf("expected input state unchanged: want %#v, got %#v", before, tt.rawState)
 			}
-			if apiCalls != tt.wantAPICalls {
-				t.Fatalf("expected %d API call(s), got %d", tt.wantAPICalls, apiCalls)
+			if gotCalls := int(apiCalls.Load()); gotCalls != tt.wantAPICalls {
+				t.Fatalf("expected %d API call(s), got %d", tt.wantAPICalls, gotCalls)
 			}
 		})
 	}

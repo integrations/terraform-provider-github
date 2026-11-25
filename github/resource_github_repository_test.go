@@ -1476,6 +1476,60 @@ func Test_expandPages(t *testing.T) {
 	})
 }
 
+func Test_expandPagesUpdate(t *testing.T) {
+	t.Parallel()
+
+	t.Run("legacy_without_source", func(t *testing.T) {
+		t.Parallel()
+
+		input := []any{map[string]any{
+			"build_type": "legacy",
+			"cname":      "example.com",
+			"source":     []any{},
+		}}
+
+		update := expandPagesUpdate(input)
+		if update == nil {
+			t.Fatal("update is nil")
+		}
+		if update.GetBuildType() != "legacy" {
+			t.Errorf("got %q; want %q", update.GetBuildType(), "legacy")
+		}
+		if update.GetCNAME() != "example.com" {
+			t.Errorf("got %q; want %q", update.GetCNAME(), "example.com")
+		}
+		if update.Source != nil {
+			t.Errorf("expected nil Source when source is omitted, got %#v", update.Source)
+		}
+	})
+
+	t.Run("legacy_with_source", func(t *testing.T) {
+		t.Parallel()
+
+		input := []any{map[string]any{
+			"build_type": "legacy",
+			"source": []any{map[string]any{
+				"branch": "gh-pages",
+				"path":   "/docs",
+			}},
+		}}
+
+		update := expandPagesUpdate(input)
+		if update == nil {
+			t.Fatal("update is nil")
+		}
+		if update.GetBuildType() != "legacy" {
+			t.Errorf("got %q; want %q", update.GetBuildType(), "legacy")
+		}
+		if update.GetSource().GetBranch() != "gh-pages" {
+			t.Errorf("got %q; want %q", update.GetSource().GetBranch(), "gh-pages")
+		}
+		if update.GetSource().GetPath() != "/docs" {
+			t.Errorf("got %q; want %q", update.GetSource().GetPath(), "/docs")
+		}
+	})
+}
+
 func TestGithubRepositoryTopicPassesValidation(t *testing.T) {
 	t.Parallel()
 
