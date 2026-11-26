@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-github/v92/github"
+	"github.com/google/go-github/v93/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
@@ -23,8 +23,8 @@ func TestAccGithubBranchProtectionV3_required_pull_request_reviews(t *testing.T)
 
 		repo := mustCreateTestRepository(t)
 		team := mustCreateTestTeam(t)
-		mustAddRepositoryToTeam(t, team, repo, func(opts *github.TeamAddTeamRepoOptions) {
-			opts.Permission = "push"
+		mustAddRepositoryToTeam(t, team, repo, func(opts *github.AddTeamRepoRequest) {
+			opts.Permission = new("push")
 		})
 		user := mustGetUser(t, testAccConf.testOrgUser1)
 		mustAddRepositoryCollaborator(t, repo, user.GetLogin())
@@ -132,8 +132,8 @@ func TestAccGithubBranchProtectionV3_branch_push_restrictions(t *testing.T) {
 
 		repo := mustCreateTestRepository(t)
 		team := mustCreateTestTeam(t)
-		mustAddRepositoryToTeam(t, team, repo, func(opts *github.TeamAddTeamRepoOptions) {
-			opts.Permission = "push"
+		mustAddRepositoryToTeam(t, team, repo, func(opts *github.AddTeamRepoRequest) {
+			opts.Permission = new("push")
 		})
 
 		config := fmt.Sprintf(`
@@ -502,8 +502,8 @@ resource "github_branch_protection_v3" "test" {
 
 		repo := mustCreateTestRepository(t)
 		team := mustCreateTestTeam(t)
-		mustAddRepositoryToTeam(t, team, repo, func(opts *github.TeamAddTeamRepoOptions) {
-			opts.Permission = "push"
+		mustAddRepositoryToTeam(t, team, repo, func(opts *github.AddTeamRepoRequest) {
+			opts.Permission = new("push")
 		})
 		user := mustGetUser(t, testAccConf.testOrgUser1)
 		mustAddRepositoryCollaborator(t, repo, user.GetLogin())
@@ -599,8 +599,8 @@ resource "github_branch_protection_v3" "test" {
 
 		repo := mustCreateTestRepository(t)
 		team := mustCreateTestTeam(t)
-		mustAddRepositoryToTeam(t, team, repo, func(opts *github.TeamAddTeamRepoOptions) {
-			opts.Permission = "push"
+		mustAddRepositoryToTeam(t, team, repo, func(opts *github.AddTeamRepoRequest) {
+			opts.Permission = new("push")
 		})
 
 		config := fmt.Sprintf(`
