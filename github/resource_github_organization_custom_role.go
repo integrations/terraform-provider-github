@@ -52,9 +52,10 @@ func resourceGithubOrganizationCustomRole() *schema.Resource {
 	}
 }
 
-func resourceGithubOrganizationCustomRoleCreate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+func resourceGithubOrganizationCustomRoleCreate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
 	ctx := context.Background()
 
 	err := checkOrganization(meta)
@@ -74,17 +75,18 @@ func resourceGithubOrganizationCustomRoleCreate(d *schema.ResourceData, meta any
 		Permissions: permissions,
 	})
 	if err != nil {
-		return fmt.Errorf("error creating GitHub custom repository role %s (%s): %w", orgName, d.Get("name").(string), err)
+		return fmt.Errorf("error creating GitHub custom repository role %s (%s): %w", orgName, name, err)
 	}
 
 	d.SetId(fmt.Sprint(*role.ID))
 	return resourceGithubOrganizationCustomRoleRead(d, meta)
 }
 
-func resourceGithubOrganizationCustomRoleRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubOrganizationCustomRoleRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	ctx := context.Background()
-	orgName := meta.(*Owner).name
+	orgName := meta.name
 
 	err := checkOrganization(meta)
 	if err != nil {
@@ -131,10 +133,11 @@ func resourceGithubOrganizationCustomRoleRead(d *schema.ResourceData, meta any) 
 	return nil
 }
 
-func resourceGithubOrganizationCustomRoleUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubOrganizationCustomRoleUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	ctx := context.Background()
-	orgName := meta.(*Owner).name
+	orgName := meta.name
 
 	err := checkOrganization(meta)
 	if err != nil {
@@ -166,10 +169,11 @@ func resourceGithubOrganizationCustomRoleUpdate(d *schema.ResourceData, meta any
 	return resourceGithubOrganizationCustomRoleRead(d, meta)
 }
 
-func resourceGithubOrganizationCustomRoleDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubOrganizationCustomRoleDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	ctx := context.Background()
-	orgName := meta.(*Owner).name
+	orgName := meta.name
 
 	err := checkOrganization(meta)
 	if err != nil {

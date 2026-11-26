@@ -46,8 +46,8 @@ func dataSourceGithubBranchRead(ctx context.Context, d *schema.ResourceData, m a
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	orgName := meta.name
-	repoName := d.Get("repository").(string)
-	branchName := d.Get("branch").(string)
+	repoName, _ := d.Get("repository").(string)
+	branchName, _ := d.Get("branch").(string)
 	branchRefName := "refs/heads/" + branchName
 
 	ref, resp, err := client.Git.GetRef(ctx, orgName, repoName, branchRefName)

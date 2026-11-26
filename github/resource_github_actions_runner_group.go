@@ -108,16 +108,18 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, m any) error
 	client := meta.v3client
 	orgName := meta.name
 
-	name := d.Get("name").(string)
-	restrictedToWorkflows := d.Get("restricted_to_workflows").(bool)
-	visibility := d.Get("visibility").(string)
+	name, _ := d.Get("name").(string)
+	restrictedToWorkflows, _ := d.Get("restricted_to_workflows").(bool)
+	visibility, _ := d.Get("visibility").(string)
 	selectedRepositories, hasSelectedRepositories := d.GetOk("selected_repository_ids")
-	allowsPublicRepositories := d.Get("allows_public_repositories").(bool)
+	allowsPublicRepositories, _ := d.Get("allows_public_repositories").(bool)
 
 	selectedWorkflows := []string{}
 	if workflows, ok := d.GetOk("selected_workflows"); ok {
-		for _, workflow := range workflows.([]any) {
-			selectedWorkflows = append(selectedWorkflows, workflow.(string))
+		workflowList, _ := workflows.([]any)
+		for _, workflow := range workflowList {
+			w, _ := workflow.(string)
+			selectedWorkflows = append(selectedWorkflows, w)
 		}
 	}
 
@@ -128,10 +130,11 @@ func resourceGithubActionsRunnerGroupCreate(d *schema.ResourceData, m any) error
 	selectedRepositoryIDs := []int64{}
 
 	if hasSelectedRepositories {
-		ids := selectedRepositories.(*schema.Set).List()
-
-		for _, id := range ids {
-			selectedRepositoryIDs = append(selectedRepositoryIDs, int64(id.(int)))
+		if s, ok := selectedRepositories.(*schema.Set); ok {
+			for _, id := range s.List() {
+				idInt, _ := id.(int)
+				selectedRepositoryIDs = append(selectedRepositoryIDs, int64(idInt))
+			}
 		}
 	}
 
@@ -223,7 +226,8 @@ func resourceGithubActionsRunnerGroupRead(d *schema.ResourceData, m any) error {
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+		etag, _ := d.Get("etag").(string)
+		ctx = context.WithValue(ctx, ctxEtag, etag)
 	}
 
 	runnerGroup, resp, err := getOrganizationRunnerGroup(client, ctx, orgName, runnerGroupID)
@@ -323,14 +327,16 @@ func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, m any) error
 		return err
 	}
 
-	name := d.Get("name").(string)
-	visibility := d.Get("visibility").(string)
-	restrictedToWorkflows := d.Get("restricted_to_workflows").(bool)
+	name, _ := d.Get("name").(string)
+	visibility, _ := d.Get("visibility").(string)
+	restrictedToWorkflows, _ := d.Get("restricted_to_workflows").(bool)
 	selectedWorkflows := []string{}
-	allowsPublicRepositories := d.Get("allows_public_repositories").(bool)
+	allowsPublicRepositories, _ := d.Get("allows_public_repositories").(bool)
 	if workflows, ok := d.GetOk("selected_workflows"); ok {
-		for _, workflow := range workflows.([]any) {
-			selectedWorkflows = append(selectedWorkflows, workflow.(string))
+		workflowList, _ := workflows.([]any)
+		for _, workflow := range workflowList {
+			w, _ := workflow.(string)
+			selectedWorkflows = append(selectedWorkflows, w)
 		}
 	}
 
@@ -356,10 +362,11 @@ func resourceGithubActionsRunnerGroupUpdate(d *schema.ResourceData, m any) error
 	selectedRepositoryIDs := []int64{}
 
 	if hasSelectedRepositories {
-		ids := selectedRepositories.(*schema.Set).List()
-
-		for _, id := range ids {
-			selectedRepositoryIDs = append(selectedRepositoryIDs, int64(id.(int)))
+		if s, ok := selectedRepositories.(*schema.Set); ok {
+			for _, id := range s.List() {
+				idInt, _ := id.(int)
+				selectedRepositoryIDs = append(selectedRepositoryIDs, int64(idInt))
+			}
 		}
 	}
 

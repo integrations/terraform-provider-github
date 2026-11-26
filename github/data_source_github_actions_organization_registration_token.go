@@ -25,9 +25,10 @@ func dataSourceGithubActionsOrganizationRegistrationToken() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsOrganizationRegistrationTokenRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func dataSourceGithubActionsOrganizationRegistrationTokenRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
 	log.Printf("[DEBUG] Creating a GitHub Actions organization registration token for %s", owner)
 	token, _, err := client.Actions.CreateOrganizationRegistrationToken(ctx, owner)

@@ -13,9 +13,11 @@ import (
 )
 
 func buildProtectionRequest(d *schema.ResourceData) (*github.ProtectionRequest, error) {
+	enforceAdmins, _ := d.Get("enforce_admins").(bool)
+	requireConversationResolution, _ := d.Get("require_conversation_resolution").(bool)
 	req := &github.ProtectionRequest{
-		EnforceAdmins:                  d.Get("enforce_admins").(bool),
-		RequiredConversationResolution: new(d.Get("require_conversation_resolution").(bool)),
+		EnforceAdmins:                  enforceAdmins,
+		RequiredConversationResolution: new(requireConversationResolution),
 	}
 
 	rsc, err := expandRequiredStatusChecks(d)
@@ -78,18 +80,20 @@ func flattenAndSetRequiredStatusChecks(d *schema.ResourceData, protection *githu
 	return d.Set("required_status_checks", []any{})
 }
 
-func requireSignedCommitsRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func requireSignedCommitsRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
 	repoName, branch, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
-	orgName := meta.(*Owner).name
+	orgName := meta.name
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+		etag, _ := d.Get("etag").(string)
+		ctx = context.WithValue(ctx, ctxEtag, etag)
 	}
 
 	signedCommitStatus, _, err := client.Repositories.GetSignaturesProtectedBranch(ctx,
@@ -103,19 +107,21 @@ func requireSignedCommitsRead(d *schema.ResourceData, meta any) error {
 	return d.Set("require_signed_commits", signedCommitStatus.Enabled)
 }
 
-func requireSignedCommitsUpdate(d *schema.ResourceData, meta any) (err error) {
-	requiredSignedCommit := d.Get("require_signed_commits").(bool)
-	client := meta.(*Owner).v3client
+func requireSignedCommitsUpdate(d *schema.ResourceData, m any) (err error) {
+	meta, _ := m.(*Owner)
+	requiredSignedCommit, _ := d.Get("require_signed_commits").(bool)
+	client := meta.v3client
 
 	repoName, branch, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
-	orgName := meta.(*Owner).name
+	orgName := meta.name
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+		etag, _ := d.Get("etag").(string)
+		ctx = context.WithValue(ctx, ctxEtag, etag)
 	}
 
 	if requiredSignedCommit {
@@ -244,7 +250,7 @@ func flattenAndSetRestrictions(d *schema.ResourceData, protection *github.Protec
 
 func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusChecks, error) {
 	if v, ok := d.GetOk("required_status_checks"); ok {
-		vL := v.([]any)
+		vL, _ := v.([]any)
 		if len(vL) > 1 {
 			return nil, errors.New("cannot specify required_status_checks more than one time")
 		}
@@ -252,11 +258,12 @@ func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusC
 
 		for _, v := range vL {
 			// List can only have one item, safe to early return here
-			if v == nil {
+			m, ok := v.(map[string]any)
+			if !ok {
 				return nil, nil
 			}
-			m := v.(map[string]any)
-			rsc.Strict = m["strict"].(bool)
+			strict, _ := m["strict"].(bool)
+			rsc.Strict = strict
 
 			// Initialise empty literal to ensure an empty array is passed mitigating schema errors like so:
 			// For 'anyOf/1', {"strict"=>true, "checks"=>nil} is not a null. []
@@ -328,7 +335,7 @@ func expandRequiredStatusChecks(d *schema.ResourceData) (*github.RequiredStatusC
 
 func expandRequiredPullRequestReviews(d *schema.ResourceData) (*github.PullRequestReviewsEnforcementRequest, error) {
 	if v, ok := d.GetOk("required_pull_request_reviews"); ok {
-		vL := v.([]any)
+		vL, _ := v.([]any)
 		if len(vL) > 1 {
 			return nil, errors.New("cannot specify required_pull_request_reviews more than one time")
 		}
@@ -338,10 +345,10 @@ func expandRequiredPullRequestReviews(d *schema.ResourceData) (*github.PullReque
 
 		for _, v := range vL {
 			// List can only have one item, safe to early return here
-			if v == nil {
+			m, ok := v.(map[string]any)
+			if !ok {
 				return nil, nil
 			}
-			m := v.(map[string]any)
 
 			users := expandNestedSet(m, "dismissal_users")
 			if len(users) > 0 {
@@ -363,10 +370,10 @@ func expandRequiredPullRequestReviews(d *schema.ResourceData) (*github.PullReque
 			}
 
 			rprr.DismissalRestrictionsRequest = drr
-			rprr.DismissStaleReviews = m["dismiss_stale_reviews"].(bool)
-			rprr.RequireCodeOwnerReviews = m["require_code_owner_reviews"].(bool)
-			rprr.RequiredApprovingReviewCount = m["required_approving_review_count"].(int)
-			requireLastPushApproval := m["require_last_push_approval"].(bool)
+			rprr.DismissStaleReviews, _ = m["dismiss_stale_reviews"].(bool)
+			rprr.RequireCodeOwnerReviews, _ = m["require_code_owner_reviews"].(bool)
+			rprr.RequiredApprovingReviewCount, _ = m["required_approving_review_count"].(int)
+			requireLastPushApproval, _ := m["require_last_push_approval"].(bool)
 			rprr.RequireLastPushApproval = &requireLastPushApproval
 			rprr.BypassPullRequestAllowancesRequest = bpra
 		}
@@ -379,7 +386,7 @@ func expandRequiredPullRequestReviews(d *schema.ResourceData) (*github.PullReque
 
 func expandRestrictions(d *schema.ResourceData) (*github.BranchRestrictionsRequest, error) {
 	if v, ok := d.GetOk("restrictions"); ok {
-		vL := v.([]any)
+		vL, _ := v.([]any)
 		if len(vL) > 1 {
 			return nil, errors.New("cannot specify restrictions more than one time")
 		}
@@ -388,13 +395,13 @@ func expandRestrictions(d *schema.ResourceData) (*github.BranchRestrictionsReque
 		for _, v := range vL {
 			// Restrictions only have set attributes nested, need to return nil values for these.
 			// The API won't initialize these as nil
-			if v == nil {
+			m, ok := v.(map[string]any)
+			if !ok {
 				restrictions.Users = []string{}
 				restrictions.Teams = []string{}
 				restrictions.Apps = []string{}
 				return restrictions, nil
 			}
-			m := v.(map[string]any)
 
 			users := expandNestedSet(m, "users")
 			restrictions.Users = users
@@ -410,11 +417,10 @@ func expandRestrictions(d *schema.ResourceData) (*github.BranchRestrictionsReque
 }
 
 func expandBypassPullRequestAllowances(m map[string]any) (*github.BypassPullRequestAllowancesRequest, error) {
-	if m["bypass_pull_request_allowances"] == nil {
+	vL, ok := m["bypass_pull_request_allowances"].([]any)
+	if !ok {
 		return nil, nil
 	}
-
-	vL := m["bypass_pull_request_allowances"].([]any)
 	if len(vL) > 1 {
 		return nil, errors.New("cannot specify bypass_pull_request_allowances more than one time")
 	}
@@ -422,11 +428,11 @@ func expandBypassPullRequestAllowances(m map[string]any) (*github.BypassPullRequ
 	var bpra *github.BypassPullRequestAllowancesRequest
 
 	for _, v := range vL {
-		if v == nil {
+		m, ok := v.(map[string]any)
+		if !ok {
 			return nil, errors.New("invalid bypass_pull_request_allowances")
 		}
 		bpra = new(github.BypassPullRequestAllowancesRequest)
-		m := v.(map[string]any)
 
 		users := expandNestedSet(m, "users")
 		bpra.Users = users

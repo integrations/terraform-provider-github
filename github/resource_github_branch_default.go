@@ -186,7 +186,8 @@ func resourceGithubBranchDefaultRead(ctx context.Context, d *schema.ResourceData
 	tflog.Trace(ctx, "Reading default branch resource", map[string]any{"owner": owner, "repository": repoName, "resource_id": d.Id()})
 
 	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+		etag, _ := d.Get("etag").(string)
+		ctx = context.WithValue(ctx, ctxEtag, etag)
 	}
 
 	repository, resp, err := client.Repositories.Get(ctx, owner, repoName)

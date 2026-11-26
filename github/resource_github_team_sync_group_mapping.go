@@ -69,16 +69,17 @@ func resourceGithubTeamSyncGroupMapping() *schema.Resource {
 	}
 }
 
-func resourceGithubTeamSyncGroupMappingCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubTeamSyncGroupMappingCreate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 	ctx := context.Background()
-	orgName := meta.(*Owner).name
-	slug := d.Get("team_slug").(string)
+	orgName := meta.name
+	slug, _ := d.Get("team_slug").(string)
 
 	idpGroupList := expandTeamSyncGroups(d)
 	_, _, err = client.Teams.CreateOrUpdateIDPGroupConnectionsBySlug(ctx, orgName, slug, *idpGroupList)
@@ -100,11 +101,12 @@ func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, m any) error
 
 	client := meta.v3client
 	orgName := meta.name
-	slug := d.Get("team_slug").(string)
+	slug, _ := d.Get("team_slug").(string)
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+		etag, _ := d.Get("etag").(string)
+		ctx = context.WithValue(ctx, ctxEtag, etag)
 	}
 
 	idpGroupList, resp, err := client.Teams.ListIDPGroupsForTeamBySlug(ctx, orgName, slug)
@@ -137,21 +139,22 @@ func resourceGithubTeamSyncGroupMappingRead(d *schema.ResourceData, m any) error
 	return nil
 }
 
-func resourceGithubTeamSyncGroupMappingUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubTeamSyncGroupMappingUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 
 	if err := d.Set("etag", nil); err != nil {
 		return err
 	}
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	slug := d.Get("team_slug").(string)
+	slug, _ := d.Get("team_slug").(string)
 
 	idpGroupList := expandTeamSyncGroups(d)
 	_, _, err = client.Teams.CreateOrUpdateIDPGroupConnectionsBySlug(ctx, orgName, slug, *idpGroupList)
@@ -162,16 +165,17 @@ func resourceGithubTeamSyncGroupMappingUpdate(d *schema.ResourceData, meta any) 
 	return resourceGithubTeamSyncGroupMappingRead(d, meta)
 }
 
-func resourceGithubTeamSyncGroupMappingDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubTeamSyncGroupMappingDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	slug := d.Get("team_slug").(string)
+	slug, _ := d.Get("team_slug").(string)
 
 	groups := make([]*github.IDPGroup, 0)
 	emptyGroupList := github.IDPGroupList{Groups: groups}
@@ -204,18 +208,19 @@ func flattenGithubIDPGroupList(idpGroupList *github.IDPGroupList) []any {
 func expandTeamSyncGroups(d *schema.ResourceData) *github.IDPGroupList {
 	groups := make([]*github.IDPGroup, 0)
 	if v, ok := d.GetOk("group"); ok {
-		vL := v.(*schema.Set).List()
-		for _, v := range vL {
-			m := v.(map[string]any)
-			groupID := m["group_id"].(string)
-			groupName := m["group_name"].(string)
-			groupDescription := m["group_description"].(string)
-			group := &github.IDPGroup{
-				GroupID:          new(groupID),
-				GroupName:        new(groupName),
-				GroupDescription: new(groupDescription),
+		if s, ok := v.(*schema.Set); ok {
+			for _, v := range s.List() {
+				m, _ := v.(map[string]any)
+				groupID, _ := m["group_id"].(string)
+				groupName, _ := m["group_name"].(string)
+				groupDescription, _ := m["group_description"].(string)
+				group := &github.IDPGroup{
+					GroupID:          new(groupID),
+					GroupName:        new(groupName),
+					GroupDescription: new(groupDescription),
+				}
+				groups = append(groups, group)
 			}
-			groups = append(groups, group)
 		}
 	}
 	return &github.IDPGroupList{Groups: groups}

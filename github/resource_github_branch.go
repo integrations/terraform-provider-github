@@ -69,18 +69,19 @@ func resourceGithubBranch() *schema.Resource {
 	}
 }
 
-func resourceGithubBranchCreate(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchCreate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	ctx := context.Background()
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxId, d.Id())
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
-	branchName := d.Get("branch").(string)
+	client := meta.v3client
+	orgName := meta.name
+	repoName, _ := d.Get("repository").(string)
+	branchName, _ := d.Get("branch").(string)
 	branchRefName := "refs/heads/" + branchName
-	sourceBranchName := d.Get("source_branch").(string)
+	sourceBranchName, _ := d.Get("source_branch").(string)
 	sourceBranchRefName := "refs/heads/" + sourceBranchName
 
 	if _, hasSourceSHA := d.GetOk("source_sha"); !hasSourceSHA {
@@ -93,7 +94,7 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta any) error {
 			return err
 		}
 	}
-	sourceBranchSHA := d.Get("source_sha").(string)
+	sourceBranchSHA, _ := d.Get("source_sha").(string)
 
 	_, _, err := client.Git.CreateRef(ctx, orgName, repoName, github.CreateRef{
 		Ref: branchRefName,
@@ -115,7 +116,8 @@ func resourceGithubBranchRead(d *schema.ResourceData, m any) error {
 	meta, _ := m.(*Owner)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+		etag, _ := d.Get("etag").(string)
+		ctx = context.WithValue(ctx, ctxEtag, etag)
 	}
 
 	client := meta.v3client
@@ -165,11 +167,12 @@ func resourceGithubBranchRead(d *schema.ResourceData, m any) error {
 	return nil
 }
 
-func resourceGithubBranchDelete(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 	repoName, branchName, err := parseID2(d.Id())
 	if err != nil {
 		return err
@@ -185,14 +188,15 @@ func resourceGithubBranchDelete(d *schema.ResourceData, meta any) error {
 	return nil
 }
 
-func resourceGithubBranchUpdate(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	if !d.HasChange("branch") {
 		return resourceGithubBranchRead(d, meta)
 	}
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 
 	if err := d.Set("etag", nil); err != nil {
 		return err
@@ -202,7 +206,7 @@ func resourceGithubBranchUpdate(d *schema.ResourceData, meta any) error {
 	if err != nil {
 		return err
 	}
-	newBranchName := d.Get("branch").(string)
+	newBranchName, _ := d.Get("branch").(string)
 
 	if _, _, err := client.Repositories.RenameBranch(ctx, orgName, repoName, oldBranchName, newBranchName); err != nil {
 		return fmt.Errorf("error renaming GitHub branch %s/%s (%s -> %s): %w", orgName, repoName, oldBranchName, newBranchName, err)

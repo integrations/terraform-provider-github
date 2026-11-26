@@ -29,12 +29,13 @@ func dataSourceGithubDependabotPublicKey() *schema.Resource {
 	}
 }
 
-func dataSourceGithubDependabotPublicKeyRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	repository := d.Get("repository").(string)
-	owner := meta.(*Owner).name
+func dataSourceGithubDependabotPublicKeyRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	repository, _ := d.Get("repository").(string)
+	owner := meta.name
 	log.Printf("[INFO] Refreshing GitHub Dependabot Public Key from: %s/%s", owner, repository)
 
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 
 	publicKey, _, err := client.Dependabot.GetRepoPublicKey(ctx, owner, repository)
 	if err != nil {

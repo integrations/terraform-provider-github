@@ -101,9 +101,10 @@ func checkOrganizationOK(meta *Owner) (bool, diag.Diagnostics) {
 	return true, nil
 }
 
-func checkOrganization(meta any) error {
-	if !meta.(*Owner).IsOrganization {
-		return fmt.Errorf("this resource can only be used in the context of an organization, %q is a user", meta.(*Owner).name)
+func checkOrganization(m any) error {
+	meta, _ := m.(*Owner)
+	if !meta.IsOrganization {
+		return fmt.Errorf("this resource can only be used in the context of an organization, %q is a user", meta.name)
 	}
 
 	return nil
@@ -117,7 +118,10 @@ func caseInsensitive() schema.SchemaDiffSuppressFunc {
 
 func validateValueFunc(values []string) schema.SchemaValidateDiagFunc {
 	return func(v any, k cty.Path) diag.Diagnostics {
-		value := v.(string)
+		value, ok := v.(string)
+		if !ok {
+			return diag.Errorf("expected type of %s to be string", k)
+		}
 		valid := slices.Contains(values, value)
 
 		if !valid {

@@ -509,8 +509,8 @@ func resourceGithubRepository() *schema.Resource {
 // valueChangedButNotEmpty is a customdiff function that triggers recreation of the resource
 // if the field's value changes from a non-empty state to a different non-empty value.
 func valueChangedButNotEmpty(ctx context.Context, oldVal, newVal, meta any) bool {
-	oldValStr := oldVal.(string)
-	newValStr := newVal.(string)
+	oldValStr, _ := oldVal.(string)
+	newValStr, _ := newVal.(string)
 	return oldValStr != "" && oldValStr != newValStr
 }
 
@@ -525,11 +525,12 @@ func customDiffFunction(_ context.Context, diff *schema.ResourceDiff, v any) err
 
 func calculateVisibility(d *schema.ResourceData) string {
 	if value, ok := d.GetOk("visibility"); ok {
-		return value.(string)
+		v, _ := value.(string)
+		return v
 	}
 
 	if value, ok := d.GetOk("private"); ok {
-		if value.(bool) {
+		if isPrivate, _ := value.(bool); isPrivate {
 			return "private"
 		} else {
 			return "public"
@@ -545,12 +546,14 @@ func tryGetSecurityAndAnalysisSettingStatus(securityAndAnalysis map[string]any, 
 		return false, ""
 	}
 
-	asList := value.([]any)
-	if len(asList) == 0 || asList[0] == nil {
+	asList, ok := value.([]any)
+	if !ok || len(asList) == 0 || asList[0] == nil {
 		return false, ""
 	}
 
-	return true, asList[0].(map[string]any)["status"].(string)
+	settingMap, _ := asList[0].(map[string]any)
+	status, _ := settingMap["status"].(string)
+	return true, status
 }
 
 func calculateSecurityAndAnalysis(d *schema.ResourceData) *github.SecurityAndAnalysis {
@@ -559,12 +562,12 @@ func calculateSecurityAndAnalysis(d *schema.ResourceData) *github.SecurityAndAna
 		return nil
 	}
 
-	asList := value.([]any)
-	if len(asList) == 0 || asList[0] == nil {
+	asList, ok := value.([]any)
+	if !ok || len(asList) == 0 || asList[0] == nil {
 		return nil
 	}
 
-	lookup := asList[0].(map[string]any)
+	lookup, _ := asList[0].(map[string]any)
 
 	var securityAndAnalysis github.SecurityAndAnalysis
 
@@ -590,47 +593,70 @@ func calculateSecurityAndAnalysis(d *schema.ResourceData) *github.SecurityAndAna
 func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 	visibility := calculateVisibility(d)
 
+	name, _ := d.Get("name").(string)
+	description, _ := d.Get("description").(string)
+	homepageURL, _ := d.Get("homepage_url").(string)
+	hasDownloads, _ := d.Get("has_downloads").(bool)
+	hasIssues, _ := d.Get("has_issues").(bool)
+	hasDiscussions, _ := d.Get("has_discussions").(bool)
+	hasProjects, _ := d.Get("has_projects").(bool)
+	hasWiki, _ := d.Get("has_wiki").(bool)
+	isTemplate, _ := d.Get("is_template").(bool)
+	allowMergeCommit, _ := d.Get("allow_merge_commit").(bool)
+	allowSquashMerge, _ := d.Get("allow_squash_merge").(bool)
+	allowRebaseMerge, _ := d.Get("allow_rebase_merge").(bool)
+	allowAutoMerge, _ := d.Get("allow_auto_merge").(bool)
+	deleteBranchOnMerge, _ := d.Get("delete_branch_on_merge").(bool)
+	autoInit, _ := d.Get("auto_init").(bool)
+	licenseTemplate, _ := d.Get("license_template").(string)
+	gitignoreTemplate, _ := d.Get("gitignore_template").(string)
+	archived, _ := d.Get("archived").(bool)
+	allowUpdateBranch, _ := d.Get("allow_update_branch").(bool)
+
+	var topics []string
+	if s, ok := d.Get("topics").(*schema.Set); ok {
+		topics = expandStringList(s.List())
+	}
+
 	repository := &github.Repository{
-		Name:                new(d.Get("name").(string)),
-		Description:         new(d.Get("description").(string)),
-		Homepage:            new(d.Get("homepage_url").(string)),
+		Name:                new(name),
+		Description:         new(description),
+		Homepage:            new(homepageURL),
 		Visibility:          new(visibility),
-		HasDownloads:        new(d.Get("has_downloads").(bool)),
-		HasIssues:           new(d.Get("has_issues").(bool)),
-		HasDiscussions:      new(d.Get("has_discussions").(bool)),
-		HasProjects:         new(d.Get("has_projects").(bool)),
-		HasWiki:             new(d.Get("has_wiki").(bool)),
-		IsTemplate:          new(d.Get("is_template").(bool)),
-		AllowMergeCommit:    new(d.Get("allow_merge_commit").(bool)),
-		AllowSquashMerge:    new(d.Get("allow_squash_merge").(bool)),
-		AllowRebaseMerge:    new(d.Get("allow_rebase_merge").(bool)),
-		AllowAutoMerge:      new(d.Get("allow_auto_merge").(bool)),
-		DeleteBranchOnMerge: new(d.Get("delete_branch_on_merge").(bool)),
-		AutoInit:            new(d.Get("auto_init").(bool)),
-		LicenseTemplate:     new(d.Get("license_template").(string)),
-		GitignoreTemplate:   new(d.Get("gitignore_template").(string)),
-		Archived:            new(d.Get("archived").(bool)),
-		Topics:              expandStringList(d.Get("topics").(*schema.Set).List()),
-		AllowUpdateBranch:   new(d.Get("allow_update_branch").(bool)),
+		HasDownloads:        new(hasDownloads),
+		HasIssues:           new(hasIssues),
+		HasDiscussions:      new(hasDiscussions),
+		HasProjects:         new(hasProjects),
+		HasWiki:             new(hasWiki),
+		IsTemplate:          new(isTemplate),
+		AllowMergeCommit:    new(allowMergeCommit),
+		AllowSquashMerge:    new(allowSquashMerge),
+		AllowRebaseMerge:    new(allowRebaseMerge),
+		AllowAutoMerge:      new(allowAutoMerge),
+		DeleteBranchOnMerge: new(deleteBranchOnMerge),
+		AutoInit:            new(autoInit),
+		LicenseTemplate:     new(licenseTemplate),
+		GitignoreTemplate:   new(gitignoreTemplate),
+		Archived:            new(archived),
+		Topics:              topics,
+		AllowUpdateBranch:   new(allowUpdateBranch),
 		SecurityAndAnalysis: calculateSecurityAndAnalysis(d),
 	}
 
 	// only configure merge commit if we are in commit merge strategy
-	allowMergeCommit, ok := d.Get("allow_merge_commit").(bool)
-	if ok {
-		if allowMergeCommit {
-			repository.MergeCommitTitle = new(d.Get("merge_commit_title").(string))
-			repository.MergeCommitMessage = new(d.Get("merge_commit_message").(string))
-		}
+	if allowMergeCommit {
+		mergeCommitTitle, _ := d.Get("merge_commit_title").(string)
+		mergeCommitMessage, _ := d.Get("merge_commit_message").(string)
+		repository.MergeCommitTitle = new(mergeCommitTitle)
+		repository.MergeCommitMessage = new(mergeCommitMessage)
 	}
 
 	// only configure squash commit if we are in squash merge strategy
-	allowSquashMerge, ok := d.Get("allow_squash_merge").(bool)
-	if ok {
-		if allowSquashMerge {
-			repository.SquashMergeCommitTitle = new(d.Get("squash_merge_commit_title").(string))
-			repository.SquashMergeCommitMessage = new(d.Get("squash_merge_commit_message").(string))
-		}
+	if allowSquashMerge {
+		squashMergeCommitTitle, _ := d.Get("squash_merge_commit_title").(string)
+		squashMergeCommitMessage, _ := d.Get("squash_merge_commit_message").(string)
+		repository.SquashMergeCommitTitle = new(squashMergeCommitTitle)
+		repository.SquashMergeCommitMessage = new(squashMergeCommitMessage)
 	}
 
 	// only configure allow forking if repository is not public
@@ -654,19 +680,20 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 	return repository
 }
 
-func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
 	if branchName, hasDefaultBranch := d.GetOk("default_branch"); hasDefaultBranch && (branchName != "main") {
 		return diag.Errorf("cannot set the default branch on a new repository to something other than 'main'")
 	}
 
 	repoReq := resourceGithubRepositoryObject(d)
-	owner := meta.(*Owner).name
+	owner := meta.name
 	repoName := repoReq.GetName()
 
 	if template, ok := d.GetOk("template"); ok {
-		templateConfigBlocks := template.([]any)
+		templateConfigBlocks, _ := template.([]any)
 
 		for _, templateConfigBlock := range templateConfigBlocks {
 			templateConfigMap, ok := templateConfigBlock.(map[string]any)
@@ -674,17 +701,18 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 				return diag.FromErr(errors.New("failed to unpack template configuration block"))
 			}
 
-			templateRepo := templateConfigMap["repository"].(string)
-			templateRepoOwner := templateConfigMap["owner"].(string)
-			includeAllBranches := templateConfigMap["include_all_branches"].(bool)
+			templateRepo, _ := templateConfigMap["repository"].(string)
+			templateRepoOwner, _ := templateConfigMap["owner"].(string)
+			includeAllBranches, _ := templateConfigMap["include_all_branches"].(bool)
 
 			// Template API only supports Private boolean, so treat "internal" as private, then update via PATCH.
 			private := repoReq.GetVisibility() != "public"
 
+			description, _ := d.Get("description").(string)
 			templateRepoReq := github.TemplateRepoRequest{
 				Name:               repoName,
 				Owner:              &owner,
-				Description:        new(d.Get("description").(string)),
+				Description:        new(description),
 				Private:            new(private),
 				IncludeAllBranches: new(includeAllBranches),
 			}
@@ -700,11 +728,11 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 
 			d.SetId(repo.GetName())
 		}
-	} else if d.Get("fork").(string) == "true" {
+	} else if forkVal, _ := d.Get("fork").(string); forkVal == "true" {
 		// Handle repository forking
-		sourceOwner := d.Get("source_owner").(string)
-		sourceRepo := d.Get("source_repo").(string)
-		requestedName := d.Get("name").(string)
+		sourceOwner, _ := d.Get("source_owner").(string)
+		sourceRepo, _ := d.Get("source_repo").(string)
+		requestedName, _ := d.Get("name").(string)
 		log.Printf("[INFO] Creating fork of %s/%s in %s", sourceOwner, sourceRepo, owner)
 
 		if sourceOwner == "" || sourceRepo == "" {
@@ -716,7 +744,7 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 			Name: requestedName,
 		}
 
-		if meta.(*Owner).IsOrganization {
+		if meta.IsOrganization {
 			opts.Organization = owner
 		}
 
@@ -757,7 +785,7 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 		// Create without a repository template
 		var repo *github.Repository
 		var err error
-		if meta.(*Owner).IsOrganization {
+		if meta.IsOrganization {
 			repo, _, err = client.Repositories.Create(ctx, owner, repoReq)
 		} else {
 			// Create repository within authenticated user's account
@@ -777,7 +805,8 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 		}
 	}
 
-	pages := expandPages(d.Get("pages").([]any))
+	pagesRaw, _ := d.Get("pages").([]any)
+	pages := expandPages(pagesRaw)
 	if pages != nil {
 		_, _, err := client.Repositories.EnablePages(ctx, owner, repoName, pages)
 		if err != nil {
@@ -803,7 +832,8 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 
 	ctx = context.WithValue(ctx, ctxId, d.Id())
 	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+		etag, _ := d.Get("etag").(string)
+		ctx = context.WithValue(ctx, ctxEtag, etag)
 	}
 
 	repo, resp, err := client.Repositories.Get(ctx, owner, repoName)
@@ -852,7 +882,7 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 
 	// TODO: Validate this behavior as I can see these fields being returned even when archived
 	// GitHub API doesn't respond following parameters when repository is archived
-	if !d.Get("archived").(bool) {
+	if archived, _ := d.Get("archived").(bool); !archived {
 		_ = d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
 		_ = d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
 		_ = d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
@@ -926,15 +956,16 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 	return nil
 }
 
-func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 	// Can only update a repository if it is not archived or the update is to
 	// archive the repository (unarchiving is not supported by the GitHub API)
-	if d.Get("archived").(bool) && !d.HasChange("archived") {
+	if archived, _ := d.Get("archived").(bool); archived && !d.HasChange("archived") {
 		log.Printf("[INFO] Skipping update of archived repository")
 		return nil
 	}
 
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 
 	if err := d.Set("etag", nil); err != nil {
 		return diag.FromErr(err)
@@ -962,11 +993,12 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 	// compatibility we need to allow terraform configurations that set
 	// `default_branch` to "main" when a repository is created.
 	if d.HasChange("default_branch") && !d.IsNewResource() {
-		repoReq.DefaultBranch = new(d.Get("default_branch").(string))
+		defaultBranch, _ := d.Get("default_branch").(string)
+		repoReq.DefaultBranch = new(defaultBranch)
 	}
 
 	repoName := d.Id()
-	owner := meta.(*Owner).name
+	owner := meta.name
 	ctx = context.WithValue(ctx, ctxId, d.Id())
 
 	repo, _, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
@@ -976,7 +1008,8 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 	d.SetId(repo.GetName()) // It's possible that `repo.GetName()` is different from `repoName` if the repository is renamed
 
 	if d.HasChange("pages") && !d.IsNewResource() {
-		opts := expandPagesUpdate(d.Get("pages").([]any))
+		pagesRaw, _ := d.Get("pages").([]any)
+		opts := expandPagesUpdate(pagesRaw)
 		if opts != nil {
 			pages, res, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)
 			if res.StatusCode != http.StatusNotFound && err != nil {
@@ -1048,15 +1081,16 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 	return resourceGithubRepositoryRead(ctx, d, meta)
 }
 
-func resourceGithubRepositoryDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	repoName := d.Id()
-	owner := meta.(*Owner).name
+	owner := meta.name
 	ctx = context.WithValue(ctx, ctxId, d.Id())
 
-	archiveOnDestroy := d.Get("archive_on_destroy").(bool)
+	archiveOnDestroy, _ := d.Get("archive_on_destroy").(bool)
 	if archiveOnDestroy {
-		if d.Get("archived").(bool) {
+		if archived, _ := d.Get("archived").(bool); archived {
 			log.Printf("[DEBUG] Repository already archived, nothing to do on delete: %s/%s", owner, repoName)
 			return nil
 		} else {
@@ -1086,12 +1120,15 @@ func expandPages(input []any) *github.Pages {
 	if len(input) == 0 || input[0] == nil {
 		return nil
 	}
-	pages := input[0].(map[string]any)
+	pages, ok := input[0].(map[string]any)
+	if !ok {
+		return nil
+	}
 	source := &github.PagesSource{
 		Branch: new("main"),
 	}
-	if len(pages["source"].([]any)) == 1 {
-		if pagesSource, ok := pages["source"].([]any)[0].(map[string]any); ok {
+	if sourceList, ok := pages["source"].([]any); ok && len(sourceList) == 1 {
+		if pagesSource, ok := sourceList[0].(map[string]any); ok {
 			if v, ok := pagesSource["branch"].(string); ok {
 				source.Branch = new(v)
 			}
@@ -1117,7 +1154,10 @@ func expandPagesUpdate(input []any) *github.PagesUpdate {
 		return nil
 	}
 
-	pages := input[0].(map[string]any)
+	pages, ok := input[0].(map[string]any)
+	if !ok {
+		return nil
+	}
 	update := &github.PagesUpdate{}
 
 	// Only set the github.PagesUpdate CNAME field if the value is a non-empty string.
@@ -1136,13 +1176,15 @@ func expandPagesUpdate(input []any) *github.PagesUpdate {
 	// e.g. "master" or "master /docs"
 	// This is only necessary if the BuildType is "legacy".
 	if update.BuildType == nil || *update.BuildType == "legacy" {
-		pagesSource := pages["source"].([]any)[0].(map[string]any)
-		sourceBranch := pagesSource["branch"].(string)
-		sourcePath := ""
-		if v, ok := pagesSource["path"].(string); ok && v != "" {
-			sourcePath = v
+		if sourceList, ok := pages["source"].([]any); ok && len(sourceList) > 0 {
+			pagesSource, _ := sourceList[0].(map[string]any)
+			sourceBranch, _ := pagesSource["branch"].(string)
+			sourcePath := ""
+			if v, ok := pagesSource["path"].(string); ok && v != "" {
+				sourcePath = v
+			}
+			update.Source = &github.PagesSource{Branch: &sourceBranch, Path: &sourcePath}
 		}
-		update.Source = &github.PagesSource{Branch: &sourceBranch, Path: &sourcePath}
 	}
 
 	return update

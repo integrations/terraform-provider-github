@@ -40,11 +40,12 @@ func dataSourceGithubUserExternalIdentity() *schema.Resource {
 	}
 }
 
-func dataSourceGithubUserExternalIdentityRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	username := d.Get("username").(string)
+func dataSourceGithubUserExternalIdentityRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	username, _ := d.Get("username").(string)
 
-	client := meta.(*Owner).v4client
-	orgName := meta.(*Owner).name
+	client := meta.v4client
+	orgName := meta.name
 
 	var query struct {
 		Organization struct {

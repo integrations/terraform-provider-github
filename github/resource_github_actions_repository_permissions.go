@@ -78,9 +78,12 @@ func resourceGithubActionsRepositoryPermissions() *schema.Resource {
 func resourceGithubActionsRepositoryAllowedObject(d *schema.ResourceData) *github.ActionsAllowed {
 	allowed := &github.ActionsAllowed{}
 
-	config := d.Get("allowed_actions_config").([]any)
+	config, _ := d.Get("allowed_actions_config").([]any)
 	if len(config) > 0 {
-		data := config[0].(map[string]any)
+		data, ok := config[0].(map[string]any)
+		if !ok {
+			return nil
+		}
 		switch x := data["github_owned_allowed"].(type) {
 		case bool:
 			allowed.GithubOwnedAllowed = &x
@@ -96,7 +99,8 @@ func resourceGithubActionsRepositoryAllowedObject(d *schema.ResourceData) *githu
 		switch t := data["patterns_allowed"].(type) {
 		case *schema.Set:
 			for _, value := range t.List() {
-				patternsAllowed = append(patternsAllowed, value.(string))
+				s, _ := value.(string)
+				patternsAllowed = append(patternsAllowed, s)
 			}
 		}
 
@@ -108,18 +112,19 @@ func resourceGithubActionsRepositoryAllowedObject(d *schema.ResourceData) *githu
 	return allowed
 }
 
-func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	owner := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
+	owner := meta.name
+	repoName, _ := d.Get("repository").(string)
 	ctx := context.Background()
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxId, d.Id())
 	}
 
-	allowedActions := d.Get("allowed_actions").(string)
-	enabled := d.Get("enabled").(bool)
+	allowedActions, _ := d.Get("allowed_actions").(string)
+	enabled, _ := d.Get("enabled").(bool)
 	log.Printf("[DEBUG] Actions enabled: %t", enabled)
 
 	repoActionPermissions := github.ActionsPermissionsRepository{
@@ -132,7 +137,8 @@ func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.Resource
 	}
 
 	if v, ok := d.GetOk("sha_pinning_required"); ok {
-		repoActionPermissions.SHAPinningRequired = new(v.(bool))
+		shaPinningRequired, _ := v.(bool)
+		repoActionPermissions.SHAPinningRequired = new(shaPinningRequired)
 	}
 
 	_, _, err := client.Repositories.UpdateActionsPermissions(ctx,
@@ -161,13 +167,14 @@ func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.Resource
 	}
 
 	d.SetId(repoName)
-	return resourceGithubActionsRepositoryPermissionsRead(d, meta)
+	return resourceGithubActionsRepositoryPermissionsRead(d, m)
 }
 
-func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	owner := meta.(*Owner).name
+	owner := meta.name
 	repoName := d.Id()
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
@@ -180,8 +187,8 @@ func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta
 	// in the TF code. (see #2105)
 	// on initial import there might not be any value in the state, then we have to import the data
 	// -> but we can only load an existing state if the current config is set to "selected" (see #2182)
-	allowedActions := d.Get("allowed_actions").(string)
-	allowedActionsConfig := d.Get("allowed_actions_config").([]any)
+	allowedActions, _ := d.Get("allowed_actions").(string)
+	allowedActionsConfig, _ := d.Get("allowed_actions_config").([]any)
 
 	serverHasAllowedActionsConfig := actionsPermissions.GetAllowedActions() == "selected" && actionsPermissions.GetEnabled()
 	userWantsAllowedActionsConfig := (allowedActions == "selected" && len(allowedActionsConfig) > 0) || allowedActions == ""
@@ -227,9 +234,10 @@ func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta
 	return nil
 }
 
-func resourceGithubActionsRepositoryPermissionsDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubActionsRepositoryPermissionsDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 	repoName := d.Id()
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())

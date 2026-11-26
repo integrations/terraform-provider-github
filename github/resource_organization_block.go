@@ -38,16 +38,17 @@ func resourceOrganizationBlock() *schema.Resource {
 	}
 }
 
-func resourceOrganizationBlockCreate(d *schema.ResourceData, meta any) error {
+func resourceOrganizationBlockCreate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 	ctx := context.Background()
-	username := d.Get("username").(string)
+	username, _ := d.Get("username").(string)
 
 	_, err = client.Organizations.BlockUser(ctx, orgName, username)
 	if err != nil {
@@ -67,7 +68,8 @@ func resourceOrganizationBlockRead(d *schema.ResourceData, m any) error {
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+		etag, _ := d.Get("etag").(string)
+		ctx = context.WithValue(ctx, ctxEtag, etag)
 	}
 
 	blocked, resp, err := client.Organizations.IsBlocked(ctx, orgName, username)
@@ -104,10 +106,11 @@ func resourceOrganizationBlockRead(d *schema.ResourceData, m any) error {
 	return nil
 }
 
-func resourceOrganizationBlockDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceOrganizationBlockDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	orgName := meta.(*Owner).name
+	orgName := meta.name
 	username := d.Id()
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 

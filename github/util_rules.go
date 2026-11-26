@@ -34,27 +34,36 @@ func expandRequiredReviewers(input []any) []*github.RulesetRequiredReviewer {
 
 	reviewers := make([]*github.RulesetRequiredReviewer, 0, len(input))
 	for _, item := range input {
-		reviewerMap := item.(map[string]any)
+		reviewerMap, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
 
 		var reviewer *github.RulesetReviewer
 		if rv, ok := reviewerMap["reviewer"].([]any); ok && len(rv) != 0 {
-			reviewerData := rv[0].(map[string]any)
-			reviewerType := github.RulesetReviewerType(reviewerData["type"].(string))
-			reviewer = &github.RulesetReviewer{
-				ID:   new(int64(reviewerData["id"].(int))),
-				Type: &reviewerType,
+			if reviewerData, ok := rv[0].(map[string]any); ok {
+				reviewerTypeStr, _ := reviewerData["type"].(string)
+				reviewerType := github.RulesetReviewerType(reviewerTypeStr)
+				reviewerID, _ := reviewerData["id"].(int)
+				reviewer = &github.RulesetReviewer{
+					ID:   new(int64(reviewerID)),
+					Type: &reviewerType,
+				}
 			}
 		}
 
 		filePatterns := make([]string, 0)
 		if fp, ok := reviewerMap["file_patterns"].([]any); ok {
 			for _, p := range fp {
-				filePatterns = append(filePatterns, p.(string))
+				if s, ok := p.(string); ok {
+					filePatterns = append(filePatterns, s)
+				}
 			}
 		}
 
+		minApprovals, _ := reviewerMap["minimum_approvals"].(int)
 		reviewers = append(reviewers, &github.RulesetRequiredReviewer{
-			MinimumApprovals: new(reviewerMap["minimum_approvals"].(int)),
+			MinimumApprovals: new(minApprovals),
 			FilePatterns:     filePatterns,
 			Reviewer:         reviewer,
 		})
@@ -100,23 +109,30 @@ func resourceGithubRulesetObject(d *schema.ResourceData, org string) github.Repo
 		source = org
 		sourceType = "Organization"
 	} else {
-		source = d.Get("repository").(string)
+		source, _ = d.Get("repository").(string)
 		sourceType = "Repository"
 	}
 
-	target := github.RulesetTarget(d.Get("target").(string))
-	enforcement := github.RulesetEnforcement(d.Get("enforcement").(string))
+	targetStr, _ := d.Get("target").(string)
+	enforcementStr, _ := d.Get("enforcement").(string)
+	name, _ := d.Get("name").(string)
+	bypassActorsRaw, _ := d.Get("bypass_actors").([]any)
+	conditionsRaw, _ := d.Get("conditions").([]any)
+	rulesRaw, _ := d.Get("rules").([]any)
+
+	target := github.RulesetTarget(targetStr)
+	enforcement := github.RulesetEnforcement(enforcementStr)
 	sourceTypeEnum := github.RulesetSourceType(sourceType)
 
 	return github.RepositoryRuleset{
-		Name:         d.Get("name").(string),
+		Name:         name,
 		Target:       &target,
 		Source:       source,
 		SourceType:   &sourceTypeEnum,
 		Enforcement:  enforcement,
-		BypassActors: expandBypassActors(d.Get("bypass_actors").([]any)),
-		Conditions:   expandConditions(d.Get("conditions").([]any), isOrgLevel),
-		Rules:        expandRules(d.Get("rules").([]any), isOrgLevel),
+		BypassActors: expandBypassActors(bypassActorsRaw),
+		Conditions:   expandConditions(conditionsRaw, isOrgLevel),
+		Rules:        expandRules(rulesRaw, isOrgLevel),
 	}
 }
 
@@ -138,7 +154,10 @@ func expandBypassActors(input []any) []*github.BypassActor {
 	bypassActors := make([]*github.BypassActor, 0)
 
 	for _, v := range input {
-		inputMap := v.(map[string]any)
+		inputMap, ok := v.(map[string]any)
+		if !ok {
+			continue
+		}
 		actor := &github.BypassActor{}
 		if actorIDVal, ok := inputMap["actor_id"]; ok {
 			actorID := toInt(actorIDVal)
@@ -188,64 +207,77 @@ func flattenBypassActors(ctx context.Context, bypassActors []*github.BypassActor
 }
 
 func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions {
-	if len(input) == 0 || input[0] == nil {
+	if len(input) == 0 {
+		return nil
+	}
+	inputConditions, ok := input[0].(map[string]any)
+	if !ok {
 		return nil
 	}
 	rulesetConditions := &github.RepositoryRulesetConditions{}
-	inputConditions := input[0].(map[string]any)
 
 	// ref_name is available for both repo and org rulesets
-	if v, ok := inputConditions["ref_name"].([]any); ok && v != nil && len(v) != 0 {
-		inputRefName := v[0].(map[string]any)
-		include := make([]string, 0)
-		exclude := make([]string, 0)
+	if v, ok := inputConditions["ref_name"].([]any); ok && len(v) != 0 {
+		if inputRefName, ok := v[0].(map[string]any); ok {
+			include := make([]string, 0)
+			exclude := make([]string, 0)
 
-		for _, v := range inputRefName["include"].([]any) {
-			if v != nil {
-				include = append(include, v.(string))
+			if inc, ok := inputRefName["include"].([]any); ok {
+				for _, v := range inc {
+					if s, ok := v.(string); ok {
+						include = append(include, s)
+					}
+				}
 			}
-		}
 
-		for _, v := range inputRefName["exclude"].([]any) {
-			if v != nil {
-				exclude = append(exclude, v.(string))
+			if exc, ok := inputRefName["exclude"].([]any); ok {
+				for _, v := range exc {
+					if s, ok := v.(string); ok {
+						exclude = append(exclude, s)
+					}
+				}
 			}
-		}
 
-		rulesetConditions.RefName = &github.RepositoryRulesetRefConditionParameters{
-			Include: include,
-			Exclude: exclude,
+			rulesetConditions.RefName = &github.RepositoryRulesetRefConditionParameters{
+				Include: include,
+				Exclude: exclude,
+			}
 		}
 	}
 
 	// org-only fields
 	if org {
 		// repository_name and repository_id
-		if v, ok := inputConditions["repository_name"].([]any); ok && v != nil && len(v) != 0 {
-			inputRepositoryName := v[0].(map[string]any)
-			include := make([]string, 0)
-			exclude := make([]string, 0)
+		if v, ok := inputConditions["repository_name"].([]any); ok && len(v) != 0 {
+			if inputRepositoryName, ok := v[0].(map[string]any); ok {
+				include := make([]string, 0)
+				exclude := make([]string, 0)
 
-			for _, v := range inputRepositoryName["include"].([]any) {
-				if v != nil {
-					include = append(include, v.(string))
+				if inc, ok := inputRepositoryName["include"].([]any); ok {
+					for _, v := range inc {
+						if s, ok := v.(string); ok {
+							include = append(include, s)
+						}
+					}
+				}
+
+				if exc, ok := inputRepositoryName["exclude"].([]any); ok {
+					for _, v := range exc {
+						if s, ok := v.(string); ok {
+							exclude = append(exclude, s)
+						}
+					}
+				}
+
+				protected, _ := inputRepositoryName["protected"].(bool)
+
+				rulesetConditions.RepositoryName = &github.RepositoryRulesetRepositoryNamesConditionParameters{
+					Include:   include,
+					Exclude:   exclude,
+					Protected: &protected,
 				}
 			}
-
-			for _, v := range inputRepositoryName["exclude"].([]any) {
-				if v != nil {
-					exclude = append(exclude, v.(string))
-				}
-			}
-
-			protected := inputRepositoryName["protected"].(bool)
-
-			rulesetConditions.RepositoryName = &github.RepositoryRulesetRepositoryNamesConditionParameters{
-				Include:   include,
-				Exclude:   exclude,
-				Protected: &protected,
-			}
-		} else if v, ok := inputConditions["repository_id"].([]any); ok && v != nil && len(v) != 0 {
+		} else if v, ok := inputConditions["repository_id"].([]any); ok && len(v) != 0 {
 			repositoryIDs := make([]int64, 0)
 
 			for _, v := range v {
@@ -255,7 +287,7 @@ func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions
 			}
 
 			rulesetConditions.RepositoryID = &github.RepositoryRulesetRepositoryIDsConditionParameters{RepositoryIDs: repositoryIDs}
-		} else if v, ok := inputConditions["repository_property"].([]any); ok && v != nil && len(v) != 0 {
+		} else if v, ok := inputConditions["repository_property"].([]any); ok && len(v) != 0 {
 			rulesetConditions.RepositoryProperty = expandRepositoryPropertyConditions(v)
 		}
 	}
@@ -264,40 +296,60 @@ func expandConditions(input []any, org bool) *github.RepositoryRulesetConditions
 }
 
 func expandRepositoryPropertyConditions(v []any) *github.RepositoryRulesetRepositoryPropertyConditionParameters {
-	repositoryProperties := v[0].(map[string]any)
+	if len(v) == 0 {
+		return nil
+	}
+	repositoryProperties, ok := v[0].(map[string]any)
+	if !ok {
+		return nil
+	}
 	include := make([]*github.RepositoryRulesetRepositoryPropertyTargetParameters, 0)
 	exclude := make([]*github.RepositoryRulesetRepositoryPropertyTargetParameters, 0)
 
-	for _, v := range repositoryProperties["include"].([]any) {
-		if v != nil {
-			propertyMap := v.(map[string]any)
+	if inc, ok := repositoryProperties["include"].([]any); ok {
+		for _, v := range inc {
+			propertyMap, ok := v.(map[string]any)
+			if !ok {
+				continue
+			}
 			propertyValues := make([]string, 0)
-			for _, pv := range propertyMap["property_values"].([]any) {
-				if pv != nil {
-					propertyValues = append(propertyValues, pv.(string))
+			if pvs, ok := propertyMap["property_values"].([]any); ok {
+				for _, pv := range pvs {
+					if s, ok := pv.(string); ok {
+						propertyValues = append(propertyValues, s)
+					}
 				}
 			}
+			name, _ := propertyMap["name"].(string)
+			source, _ := propertyMap["source"].(string)
 			property := &github.RepositoryRulesetRepositoryPropertyTargetParameters{
-				Name:           propertyMap["name"].(string),
-				Source:         new(propertyMap["source"].(string)),
+				Name:           name,
+				Source:         new(source),
 				PropertyValues: propertyValues,
 			}
 			include = append(include, property)
 		}
 	}
 
-	for _, v := range repositoryProperties["exclude"].([]any) {
-		if v != nil {
-			propertyMap := v.(map[string]any)
+	if exc, ok := repositoryProperties["exclude"].([]any); ok {
+		for _, v := range exc {
+			propertyMap, ok := v.(map[string]any)
+			if !ok {
+				continue
+			}
 			propertyValues := make([]string, 0)
-			for _, pv := range propertyMap["property_values"].([]any) {
-				if pv != nil {
-					propertyValues = append(propertyValues, pv.(string))
+			if pvs, ok := propertyMap["property_values"].([]any); ok {
+				for _, pv := range pvs {
+					if s, ok := pv.(string); ok {
+						propertyValues = append(propertyValues, s)
+					}
 				}
 			}
+			name, _ := propertyMap["name"].(string)
+			source, _ := propertyMap["source"].(string)
 			property := &github.RepositoryRulesetRepositoryPropertyTargetParameters{
-				Name:           propertyMap["name"].(string),
-				Source:         new(propertyMap["source"].(string)),
+				Name:           name,
+				Source:         new(source),
 				PropertyValues: propertyValues,
 			}
 			exclude = append(exclude, property)
@@ -384,11 +436,14 @@ func flattenRulesetRepositoryPropertyTargetParameters(input []*github.Repository
 }
 
 func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
-	if len(input) == 0 || input[0] == nil {
+	if len(input) == 0 {
 		return &github.RepositoryRulesetRules{}
 	}
 
-	rulesMap := input[0].(map[string]any)
+	rulesMap, ok := input[0].(map[string]any)
+	if !ok {
+		return &github.RepositoryRulesetRules{}
+	}
 	rulesetRules := &github.RepositoryRulesetRules{}
 
 	// Simple rules without parameters
@@ -423,83 +478,101 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 
 	// Required deployments rule
 	if v, ok := rulesMap["required_deployments"].([]any); ok && len(v) != 0 {
-		requiredDeploymentsMap := v[0].(map[string]any)
-		envs := make([]string, 0)
-		for _, env := range requiredDeploymentsMap["required_deployment_environments"].([]any) {
-			envs = append(envs, env.(string))
-		}
-		rulesetRules.RequiredDeployments = &github.RequiredDeploymentsRuleParameters{
-			RequiredDeploymentEnvironments: envs,
+		if requiredDeploymentsMap, ok := v[0].(map[string]any); ok {
+			envs := make([]string, 0)
+			if envList, ok := requiredDeploymentsMap["required_deployment_environments"].([]any); ok {
+				for _, env := range envList {
+					if envStr, ok := env.(string); ok {
+						envs = append(envs, envStr)
+					}
+				}
+			}
+			rulesetRules.RequiredDeployments = &github.RequiredDeploymentsRuleParameters{
+				RequiredDeploymentEnvironments: envs,
+			}
 		}
 	}
 
 	// Pull request rule
 	if v, ok := rulesMap["pull_request"].([]any); ok && len(v) != 0 {
-		pullRequestMap := v[0].(map[string]any)
-		allowedMergeMethods := pullRequestMap["allowed_merge_methods"]
+		if pullRequestMap, ok := v[0].(map[string]any); ok {
+			allowedMergeMethods := pullRequestMap["allowed_merge_methods"]
+			dismissStale, _ := pullRequestMap["dismiss_stale_reviews_on_push"].(bool)
+			requireCodeOwner, _ := pullRequestMap["require_code_owner_review"].(bool)
+			requireLastPush, _ := pullRequestMap["require_last_push_approval"].(bool)
+			requireThreadResolution, _ := pullRequestMap["required_review_thread_resolution"].(bool)
 
-		params := &github.PullRequestRuleParameters{
-			DismissStaleReviewsOnPush:      pullRequestMap["dismiss_stale_reviews_on_push"].(bool),
-			RequireCodeOwnerReview:         pullRequestMap["require_code_owner_review"].(bool),
-			RequireLastPushApproval:        pullRequestMap["require_last_push_approval"].(bool),
-			RequiredApprovingReviewCount:   toInt(pullRequestMap["required_approving_review_count"]),
-			RequiredReviewThreadResolution: pullRequestMap["required_review_thread_resolution"].(bool),
-			AllowedMergeMethods:            toPullRequestMergeMethods(allowedMergeMethods),
+			params := &github.PullRequestRuleParameters{
+				DismissStaleReviewsOnPush:      dismissStale,
+				RequireCodeOwnerReview:         requireCodeOwner,
+				RequireLastPushApproval:        requireLastPush,
+				RequiredApprovingReviewCount:   toInt(pullRequestMap["required_approving_review_count"]),
+				RequiredReviewThreadResolution: requireThreadResolution,
+				AllowedMergeMethods:            toPullRequestMergeMethods(allowedMergeMethods),
+			}
+
+			// Add required reviewers if provided
+			if reqReviewers, ok := pullRequestMap["required_reviewers"].([]any); ok && len(reqReviewers) != 0 {
+				params.RequiredReviewers = expandRequiredReviewers(reqReviewers)
+			}
+
+			rulesetRules.PullRequest = params
 		}
-
-		// Add required reviewers if provided
-		if reqReviewers, ok := pullRequestMap["required_reviewers"].([]any); ok && len(reqReviewers) != 0 {
-			params.RequiredReviewers = expandRequiredReviewers(reqReviewers)
-		}
-
-		rulesetRules.PullRequest = params
 	}
 
 	// Merge queue rule
 	if v, ok := rulesMap["merge_queue"].([]any); ok && len(v) != 0 {
-		mergeQueueMap := v[0].(map[string]any)
-		params := &github.MergeQueueRuleParameters{
-			CheckResponseTimeoutMinutes:  toInt(mergeQueueMap["check_response_timeout_minutes"]),
-			GroupingStrategy:             github.MergeGroupingStrategy(mergeQueueMap["grouping_strategy"].(string)),
-			MaxEntriesToBuild:            toInt(mergeQueueMap["max_entries_to_build"]),
-			MaxEntriesToMerge:            toInt(mergeQueueMap["max_entries_to_merge"]),
-			MergeMethod:                  github.MergeQueueMergeMethod(mergeQueueMap["merge_method"].(string)),
-			MinEntriesToMerge:            toInt(mergeQueueMap["min_entries_to_merge"]),
-			MinEntriesToMergeWaitMinutes: toInt(mergeQueueMap["min_entries_to_merge_wait_minutes"]),
+		if mergeQueueMap, ok := v[0].(map[string]any); ok {
+			groupingStrategy, _ := mergeQueueMap["grouping_strategy"].(string)
+			mergeMethod, _ := mergeQueueMap["merge_method"].(string)
+			params := &github.MergeQueueRuleParameters{
+				CheckResponseTimeoutMinutes:  toInt(mergeQueueMap["check_response_timeout_minutes"]),
+				GroupingStrategy:             github.MergeGroupingStrategy(groupingStrategy),
+				MaxEntriesToBuild:            toInt(mergeQueueMap["max_entries_to_build"]),
+				MaxEntriesToMerge:            toInt(mergeQueueMap["max_entries_to_merge"]),
+				MergeMethod:                  github.MergeQueueMergeMethod(mergeMethod),
+				MinEntriesToMerge:            toInt(mergeQueueMap["min_entries_to_merge"]),
+				MinEntriesToMergeWaitMinutes: toInt(mergeQueueMap["min_entries_to_merge_wait_minutes"]),
+			}
+			rulesetRules.MergeQueue = params
 		}
-		rulesetRules.MergeQueue = params
 	}
 
 	// Required status checks rule
 	if v, ok := rulesMap["required_status_checks"].([]any); ok && len(v) != 0 {
-		requiredStatusMap := v[0].(map[string]any)
-		requiredStatusChecks := make([]*github.RuleStatusCheck, 0)
+		if requiredStatusMap, ok := v[0].(map[string]any); ok {
+			requiredStatusChecks := make([]*github.RuleStatusCheck, 0)
 
-		if requiredStatusChecksInput, ok := requiredStatusMap["required_check"]; ok {
-			requiredStatusChecksSet := requiredStatusChecksInput.(*schema.Set)
-			for _, checkMap := range requiredStatusChecksSet.List() {
-				check := checkMap.(map[string]any)
-				integrationID := toInt64(check["integration_id"])
+			if requiredStatusChecksSet, ok := requiredStatusMap["required_check"].(*schema.Set); ok {
+				for _, checkMap := range requiredStatusChecksSet.List() {
+					check, ok := checkMap.(map[string]any)
+					if !ok {
+						continue
+					}
+					integrationID := toInt64(check["integration_id"])
+					contextStr, _ := check["context"].(string)
 
-				params := &github.RuleStatusCheck{
-					Context: check["context"].(string),
+					params := &github.RuleStatusCheck{
+						Context: contextStr,
+					}
+
+					if integrationID != 0 {
+						params.IntegrationID = new(integrationID)
+					}
+
+					requiredStatusChecks = append(requiredStatusChecks, params)
 				}
-
-				if integrationID != 0 {
-					params.IntegrationID = new(integrationID)
-				}
-
-				requiredStatusChecks = append(requiredStatusChecks, params)
 			}
-		}
 
-		doNotEnforceOnCreate := requiredStatusMap["do_not_enforce_on_create"].(bool)
-		params := &github.RequiredStatusChecksRuleParameters{
-			RequiredStatusChecks:             requiredStatusChecks,
-			StrictRequiredStatusChecksPolicy: requiredStatusMap["strict_required_status_checks_policy"].(bool),
-			DoNotEnforceOnCreate:             &doNotEnforceOnCreate,
+			doNotEnforceOnCreate, _ := requiredStatusMap["do_not_enforce_on_create"].(bool)
+			strictPolicy, _ := requiredStatusMap["strict_required_status_checks_policy"].(bool)
+			params := &github.RequiredStatusChecksRuleParameters{
+				RequiredStatusChecks:             requiredStatusChecks,
+				StrictRequiredStatusChecksPolicy: strictPolicy,
+				DoNotEnforceOnCreate:             &doNotEnforceOnCreate,
+			}
+			rulesetRules.RequiredStatusChecks = params
 		}
-		rulesetRules.RequiredStatusChecks = params
 	}
 
 	// Pattern parameter rules
@@ -513,16 +586,21 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 
 	for k := range patternRules {
 		if v, ok := rulesMap[k].([]any); ok && len(v) != 0 {
-			patternParametersMap := v[0].(map[string]any)
+			patternParametersMap, ok := v[0].(map[string]any)
+			if !ok {
+				continue
+			}
 
-			name := patternParametersMap["name"].(string)
-			negate := patternParametersMap["negate"].(bool)
+			name, _ := patternParametersMap["name"].(string)
+			negate, _ := patternParametersMap["negate"].(bool)
+			operator, _ := patternParametersMap["operator"].(string)
+			pattern, _ := patternParametersMap["pattern"].(string)
 
 			params := &github.PatternRuleParameters{
 				Name:     &name,
 				Negate:   &negate,
-				Operator: github.PatternRuleOperator(patternParametersMap["operator"].(string)),
-				Pattern:  patternParametersMap["pattern"].(string),
+				Operator: github.PatternRuleOperator(operator),
+				Pattern:  pattern,
 			}
 
 			switch k {
@@ -543,116 +621,141 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 	// Required workflows rule (org-only)
 	if org {
 		if v, ok := rulesMap["required_workflows"].([]any); ok && len(v) != 0 {
-			requiredWorkflowsMap := v[0].(map[string]any)
-			requiredWorkflows := make([]*github.RuleWorkflow, 0)
+			if requiredWorkflowsMap, ok := v[0].(map[string]any); ok {
+				requiredWorkflows := make([]*github.RuleWorkflow, 0)
 
-			if requiredWorkflowsInput, ok := requiredWorkflowsMap["required_workflow"]; ok {
-				requiredWorkflowsSet := requiredWorkflowsInput.(*schema.Set)
-				for _, workflowMap := range requiredWorkflowsSet.List() {
-					workflow := workflowMap.(map[string]any)
+				if requiredWorkflowsSet, ok := requiredWorkflowsMap["required_workflow"].(*schema.Set); ok {
+					for _, workflowMap := range requiredWorkflowsSet.List() {
+						workflow, ok := workflowMap.(map[string]any)
+						if !ok {
+							continue
+						}
+						path, _ := workflow["path"].(string)
+						ref, _ := workflow["ref"].(string)
 
-					params := &github.RuleWorkflow{
-						RepositoryID: new(toInt64(workflow["repository_id"])),
-						Path:         workflow["path"].(string),
-						Ref:          new(workflow["ref"].(string)),
+						params := &github.RuleWorkflow{
+							RepositoryID: new(toInt64(workflow["repository_id"])),
+							Path:         path,
+							Ref:          new(ref),
+						}
+
+						requiredWorkflows = append(requiredWorkflows, params)
 					}
-
-					requiredWorkflows = append(requiredWorkflows, params)
 				}
-			}
 
-			doNotEnforceOnCreate := requiredWorkflowsMap["do_not_enforce_on_create"].(bool)
-			params := &github.WorkflowsRuleParameters{
-				DoNotEnforceOnCreate: &doNotEnforceOnCreate,
-				Workflows:            requiredWorkflows,
+				doNotEnforceOnCreate, _ := requiredWorkflowsMap["do_not_enforce_on_create"].(bool)
+				params := &github.WorkflowsRuleParameters{
+					DoNotEnforceOnCreate: &doNotEnforceOnCreate,
+					Workflows:            requiredWorkflows,
+				}
+				rulesetRules.Workflows = params
 			}
-			rulesetRules.Workflows = params
 		}
 	}
 
 	// Required code scanning rule
 	if v, ok := rulesMap["required_code_scanning"].([]any); ok && len(v) != 0 {
-		requiredCodeScanningMap := v[0].(map[string]any)
-		requiredCodeScanningTools := make([]*github.RuleCodeScanningTool, 0)
+		if requiredCodeScanningMap, ok := v[0].(map[string]any); ok {
+			requiredCodeScanningTools := make([]*github.RuleCodeScanningTool, 0)
 
-		if requiredCodeScanningInput, ok := requiredCodeScanningMap["required_code_scanning_tool"]; ok {
-			requiredCodeScanningSet := requiredCodeScanningInput.(*schema.Set)
-			for _, codeScanningMap := range requiredCodeScanningSet.List() {
-				codeScanningTool := codeScanningMap.(map[string]any)
+			if requiredCodeScanningSet, ok := requiredCodeScanningMap["required_code_scanning_tool"].(*schema.Set); ok {
+				for _, codeScanningMap := range requiredCodeScanningSet.List() {
+					codeScanningTool, ok := codeScanningMap.(map[string]any)
+					if !ok {
+						continue
+					}
+					alertsThreshold, _ := codeScanningTool["alerts_threshold"].(string)
+					securityAlertsThreshold, _ := codeScanningTool["security_alerts_threshold"].(string)
+					tool, _ := codeScanningTool["tool"].(string)
 
-				params := &github.RuleCodeScanningTool{
-					AlertsThreshold:         github.CodeScanningAlertsThreshold(codeScanningTool["alerts_threshold"].(string)),
-					SecurityAlertsThreshold: github.CodeScanningSecurityAlertsThreshold(codeScanningTool["security_alerts_threshold"].(string)),
-					Tool:                    codeScanningTool["tool"].(string),
+					params := &github.RuleCodeScanningTool{
+						AlertsThreshold:         github.CodeScanningAlertsThreshold(alertsThreshold),
+						SecurityAlertsThreshold: github.CodeScanningSecurityAlertsThreshold(securityAlertsThreshold),
+						Tool:                    tool,
+					}
+
+					requiredCodeScanningTools = append(requiredCodeScanningTools, params)
 				}
-
-				requiredCodeScanningTools = append(requiredCodeScanningTools, params)
 			}
-		}
 
-		params := &github.CodeScanningRuleParameters{
-			CodeScanningTools: requiredCodeScanningTools,
+			params := &github.CodeScanningRuleParameters{
+				CodeScanningTools: requiredCodeScanningTools,
+			}
+			rulesetRules.CodeScanning = params
 		}
-		rulesetRules.CodeScanning = params
 	}
 
 	// File path restriction rule
 	if v, ok := rulesMap["file_path_restriction"].([]any); ok && len(v) != 0 {
-		filePathRestrictionMap := v[0].(map[string]any)
-		restrictedFilePaths := make([]string, 0)
-		for _, path := range filePathRestrictionMap["restricted_file_paths"].([]any) {
-			restrictedFilePaths = append(restrictedFilePaths, path.(string))
+		if filePathRestrictionMap, ok := v[0].(map[string]any); ok {
+			restrictedFilePaths := make([]string, 0)
+			if paths, ok := filePathRestrictionMap["restricted_file_paths"].([]any); ok {
+				for _, path := range paths {
+					if pathStr, ok := path.(string); ok {
+						restrictedFilePaths = append(restrictedFilePaths, pathStr)
+					}
+				}
+			}
+			params := &github.FilePathRestrictionRuleParameters{
+				RestrictedFilePaths: restrictedFilePaths,
+			}
+			rulesetRules.FilePathRestriction = params
 		}
-		params := &github.FilePathRestrictionRuleParameters{
-			RestrictedFilePaths: restrictedFilePaths,
-		}
-		rulesetRules.FilePathRestriction = params
 	}
 
 	// Max file size rule
 	if v, ok := rulesMap["max_file_size"].([]any); ok && len(v) != 0 {
-		maxFileSizeMap := v[0].(map[string]any)
-		maxFileSize := toInt64(maxFileSizeMap["max_file_size"])
-		params := &github.MaxFileSizeRuleParameters{
-			MaxFileSize: maxFileSize,
+		if maxFileSizeMap, ok := v[0].(map[string]any); ok {
+			maxFileSize := toInt64(maxFileSizeMap["max_file_size"])
+			params := &github.MaxFileSizeRuleParameters{
+				MaxFileSize: maxFileSize,
+			}
+			rulesetRules.MaxFileSize = params
 		}
-		rulesetRules.MaxFileSize = params
 	}
 
 	// Max file path length rule
 	if v, ok := rulesMap["max_file_path_length"].([]any); ok && len(v) != 0 {
-		maxFilePathLengthMap := v[0].(map[string]any)
-		maxFilePathLength := toInt(maxFilePathLengthMap["max_file_path_length"])
-		params := &github.MaxFilePathLengthRuleParameters{
-			MaxFilePathLength: maxFilePathLength,
+		if maxFilePathLengthMap, ok := v[0].(map[string]any); ok {
+			maxFilePathLength := toInt(maxFilePathLengthMap["max_file_path_length"])
+			params := &github.MaxFilePathLengthRuleParameters{
+				MaxFilePathLength: maxFilePathLength,
+			}
+			rulesetRules.MaxFilePathLength = params
 		}
-		rulesetRules.MaxFilePathLength = params
 	}
 
 	// File extension restriction rule
 	if v, ok := rulesMap["file_extension_restriction"].([]any); ok && len(v) != 0 {
-		fileExtensionRestrictionMap := v[0].(map[string]any)
-		restrictedFileExtensions := make([]string, 0)
+		if fileExtensionRestrictionMap, ok := v[0].(map[string]any); ok {
+			restrictedFileExtensions := make([]string, 0)
 
-		// Handle schema.TypeSet
-		extensionSet := fileExtensionRestrictionMap["restricted_file_extensions"].(*schema.Set)
-		for _, extension := range extensionSet.List() {
-			restrictedFileExtensions = append(restrictedFileExtensions, extension.(string))
+			// Handle schema.TypeSet
+			if extensionSet, ok := fileExtensionRestrictionMap["restricted_file_extensions"].(*schema.Set); ok {
+				for _, extension := range extensionSet.List() {
+					if extStr, ok := extension.(string); ok {
+						restrictedFileExtensions = append(restrictedFileExtensions, extStr)
+					}
+				}
+			}
+			params := &github.FileExtensionRestrictionRuleParameters{
+				RestrictedFileExtensions: restrictedFileExtensions,
+			}
+			rulesetRules.FileExtensionRestriction = params
 		}
-		params := &github.FileExtensionRestrictionRuleParameters{
-			RestrictedFileExtensions: restrictedFileExtensions,
-		}
-		rulesetRules.FileExtensionRestriction = params
 	}
 
 	// Copilot code review rule
 	if v, ok := rulesMap["copilot_code_review"].([]any); ok && len(v) != 0 {
-		copilotCodeReviewMap := v[0].(map[string]any)
-		params := &github.CopilotCodeReviewRuleParameters{
-			ReviewOnPush:            copilotCodeReviewMap["review_on_push"].(bool),
-			ReviewDraftPullRequests: copilotCodeReviewMap["review_draft_pull_requests"].(bool),
+		if copilotCodeReviewMap, ok := v[0].(map[string]any); ok {
+			reviewOnPush, _ := copilotCodeReviewMap["review_on_push"].(bool)
+			reviewDraftPullRequests, _ := copilotCodeReviewMap["review_draft_pull_requests"].(bool)
+			params := &github.CopilotCodeReviewRuleParameters{
+				ReviewOnPush:            reviewOnPush,
+				ReviewDraftPullRequests: reviewDraftPullRequests,
+			}
+			rulesetRules.CopilotCodeReview = params
 		}
-		rulesetRules.CopilotCodeReview = params
 	}
 
 	return rulesetRules

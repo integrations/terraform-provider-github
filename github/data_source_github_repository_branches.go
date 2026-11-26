@@ -65,13 +65,14 @@ func flattenBranches(branches []*github.Branch) []map[string]any {
 	return results
 }
 
-func dataSourceGithubRepositoryBranchesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
+func dataSourceGithubRepositoryBranchesRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
+	repoName, _ := d.Get("repository").(string)
 
-	onlyProtectedBranches := d.Get("only_protected_branches").(bool)
-	onlyNonProtectedBranches := d.Get("only_non_protected_branches").(bool)
+	onlyProtectedBranches, _ := d.Get("only_protected_branches").(bool)
+	onlyNonProtectedBranches, _ := d.Get("only_non_protected_branches").(bool)
 	var listBranchOptions *github.BranchListOptions
 	if onlyProtectedBranches {
 		listBranchOptions = &github.BranchListOptions{

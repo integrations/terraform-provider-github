@@ -47,9 +47,10 @@ func dataSourceGithubOrganizationSecurityManagers() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationSecurityManagersRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+func dataSourceGithubOrganizationSecurityManagersRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
 
 	allTeams := make([]any, 0)
 

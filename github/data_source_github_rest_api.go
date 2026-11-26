@@ -39,10 +39,11 @@ func dataSourceGithubRestApi() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRestApiRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	u := d.Get("endpoint").(string)
+func dataSourceGithubRestApiRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	u, _ := d.Get("endpoint").(string)
 
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 
 	req, err := client.NewRequest(ctx, "GET", u, nil)
 	if err != nil {

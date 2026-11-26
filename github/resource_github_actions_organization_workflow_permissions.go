@@ -49,9 +49,9 @@ func resourceGithubActionsOrganizationWorkflowPermissionsCreate(ctx context.Cont
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 
-	organizationSlug := d.Get("organization_slug").(string)
-	defaultPermissions := d.Get("default_workflow_permissions").(string)
-	canApprovePRReviews := d.Get("can_approve_pull_request_reviews").(bool)
+	organizationSlug, _ := d.Get("organization_slug").(string)
+	defaultPermissions, _ := d.Get("default_workflow_permissions").(string)
+	canApprovePRReviews, _ := d.Get("can_approve_pull_request_reviews").(bool)
 
 	ctx = tflog.SetField(ctx, "organization_slug", organizationSlug)
 	tflog.Info(ctx, "Creating workflow permissions")
@@ -81,7 +81,7 @@ func resourceGithubActionsOrganizationWorkflowPermissionsRead(ctx context.Contex
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 
-	organizationSlug := d.Get("organization_slug").(string)
+	organizationSlug, _ := d.Get("organization_slug").(string)
 
 	ctx = tflog.SetField(ctx, "id", d.Id())
 	ctx = tflog.SetField(ctx, "organization_slug", organizationSlug)
@@ -113,9 +113,9 @@ func resourceGithubActionsOrganizationWorkflowPermissionsUpdate(ctx context.Cont
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 
-	organizationSlug := d.Get("organization_slug").(string)
-	defaultPermissions := d.Get("default_workflow_permissions").(string)
-	canApprovePRReviews := d.Get("can_approve_pull_request_reviews").(bool)
+	organizationSlug, _ := d.Get("organization_slug").(string)
+	defaultPermissions, _ := d.Get("default_workflow_permissions").(string)
+	canApprovePRReviews, _ := d.Get("can_approve_pull_request_reviews").(bool)
 
 	ctx = tflog.SetField(ctx, "id", d.Id())
 	ctx = tflog.SetField(ctx, "organization_slug", organizationSlug)
@@ -146,7 +146,7 @@ func resourceGithubActionsOrganizationWorkflowPermissionsDelete(ctx context.Cont
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 
-	organizationSlug := d.Get("organization_slug").(string)
+	organizationSlug, _ := d.Get("organization_slug").(string)
 
 	ctx = tflog.SetField(ctx, "id", d.Id())
 	ctx = tflog.SetField(ctx, "organization_slug", organizationSlug)

@@ -174,8 +174,8 @@ func resourceGithubRepositoryEnvironmentCreate(ctx context.Context, d *schema.Re
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	envName := d.Get("environment").(string)
+	repoName, _ := d.Get("repository").(string)
+	envName, _ := d.Get("environment").(string)
 	updateData := createUpdateEnvironmentData(d)
 
 	_, _, err := client.Repositories.CreateUpdateEnvironment(ctx, owner, repoName, envName, &updateData)
@@ -208,8 +208,8 @@ func resourceGithubRepositoryEnvironmentRead(ctx context.Context, d *schema.Reso
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	envName := d.Get("environment").(string)
+	repoName, _ := d.Get("repository").(string)
+	envName, _ := d.Get("environment").(string)
 
 	env, _, err := client.Repositories.GetEnvironment(ctx, owner, repoName, envName)
 	if err != nil {
@@ -244,12 +244,12 @@ func resourceGithubRepositoryEnvironmentRead(ctx context.Context, d *schema.Reso
 			for _, r := range pr.Reviewers {
 				switch *r.Type {
 				case "Team":
-					if r.Reviewer.(*github.Team).ID != nil {
-						teams = append(teams, *r.Reviewer.(*github.Team).ID)
+					if team, ok := r.Reviewer.(*github.Team); ok && team != nil && team.ID != nil {
+						teams = append(teams, *team.ID)
 					}
 				case "User":
-					if r.Reviewer.(*github.User).ID != nil {
-						users = append(users, *r.Reviewer.(*github.User).ID)
+					if user, ok := r.Reviewer.(*github.User); ok && user != nil && user.ID != nil {
+						users = append(users, *user.ID)
 					}
 				}
 			}
@@ -291,8 +291,8 @@ func resourceGithubRepositoryEnvironmentUpdate(ctx context.Context, d *schema.Re
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	envName := d.Get("environment").(string)
+	repoName, _ := d.Get("repository").(string)
+	envName, _ := d.Get("environment").(string)
 	updateData := createUpdateEnvironmentData(d)
 
 	_, _, err := client.Repositories.CreateUpdateEnvironment(ctx, owner, repoName, envName, &updateData)
@@ -314,8 +314,8 @@ func resourceGithubRepositoryEnvironmentDelete(ctx context.Context, d *schema.Re
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	envName := d.Get("environment").(string)
+	repoName, _ := d.Get("repository").(string)
+	envName, _ := d.Get("environment").(string)
 
 	_, err := client.Repositories.DeleteEnvironment(ctx, owner, repoName, envName)
 	if err != nil {
@@ -357,12 +357,15 @@ func createUpdateEnvironmentData(d *schema.ResourceData) github.CreateUpdateEnvi
 	data := github.CreateUpdateEnvironment{}
 
 	if v, ok := d.GetOk("wait_timer"); ok {
-		data.WaitTimer = new(v.(int))
+		waitTimer, _ := v.(int)
+		data.WaitTimer = new(waitTimer)
 	}
 
-	data.CanAdminsBypass = new(d.Get("can_admins_bypass").(bool))
+	canAdminsBypass, _ := d.Get("can_admins_bypass").(bool)
+	data.CanAdminsBypass = new(canAdminsBypass)
 
-	data.PreventSelfReview = new(d.Get("prevent_self_review").(bool))
+	preventSelfReview, _ := d.Get("prevent_self_review").(bool)
+	data.PreventSelfReview = new(preventSelfReview)
 
 	if v, ok := d.GetOk("reviewers"); ok {
 		envReviewers := make([]*github.EnvReviewers, 0)
@@ -385,10 +388,14 @@ func createUpdateEnvironmentData(d *schema.ResourceData) github.CreateUpdateEnvi
 	}
 
 	if v, ok := d.GetOk("deployment_branch_policy"); ok {
-		policy := v.([]any)[0].(map[string]any)
-		data.DeploymentBranchPolicy = &github.BranchPolicy{
-			ProtectedBranches:    new(policy["protected_branches"].(bool)),
-			CustomBranchPolicies: new(policy["custom_branch_policies"].(bool)),
+		if policies, ok := v.([]any); ok && len(policies) > 0 {
+			policy, _ := policies[0].(map[string]any)
+			protectedBranches, _ := policy["protected_branches"].(bool)
+			customBranchPolicies, _ := policy["custom_branch_policies"].(bool)
+			data.DeploymentBranchPolicy = &github.BranchPolicy{
+				ProtectedBranches:    new(protectedBranches),
+				CustomBranchPolicies: new(customBranchPolicies),
+			}
 		}
 	}
 
@@ -397,12 +404,17 @@ func createUpdateEnvironmentData(d *schema.ResourceData) github.CreateUpdateEnvi
 
 func expandReviewers(v any, target string) []int64 {
 	res := make([]int64, 0)
-	m := v.([]any)[0]
-	if m != nil {
-		if v, ok := m.(map[string]any)[target]; ok {
-			vL := v.(*schema.Set).List()
-			for _, v := range vL {
-				res = append(res, int64(v.(int)))
+	list, ok := v.([]any)
+	if !ok || len(list) == 0 || list[0] == nil {
+		return res
+	}
+	if m, ok := list[0].(map[string]any); ok {
+		if raw, ok := m[target]; ok {
+			if s, ok := raw.(*schema.Set); ok {
+				for _, item := range s.List() {
+					id, _ := item.(int)
+					res = append(res, int64(id))
+				}
 			}
 		}
 	}

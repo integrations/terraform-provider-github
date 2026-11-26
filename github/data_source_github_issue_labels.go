@@ -47,7 +47,7 @@ func dataSourceGithubIssueLabels() *schema.Resource {
 func dataSourceGithubIssueLabelsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
 	owner := meta.name
-	repository := d.Get("repository").(string)
+	repository, _ := d.Get("repository").(string)
 
 	d.SetId(repository)
 

@@ -80,10 +80,11 @@ func resourceGithubActionsOrganizationVariableCreate(ctx context.Context, d *sch
 	var repoIDs []int64
 
 	if v, ok := d.GetOk("selected_repository_ids"); ok {
-		ids := v.(*schema.Set).List()
-
-		for _, id := range ids {
-			repoIDs = append(repoIDs, int64(id.(int)))
+		if s, ok := v.(*schema.Set); ok {
+			for _, id := range s.List() {
+				idInt, _ := id.(int)
+				repoIDs = append(repoIDs, int64(idInt))
+			}
 		}
 	}
 
@@ -177,10 +178,11 @@ func resourceGithubActionsOrganizationVariableUpdate(ctx context.Context, d *sch
 
 	var repoIDs []int64
 	if v, ok := d.GetOk("selected_repository_ids"); ok {
-		ids := v.(*schema.Set).List()
-
-		for _, id := range ids {
-			repoIDs = append(repoIDs, int64(id.(int)))
+		if s, ok := v.(*schema.Set); ok {
+			for _, id := range s.List() {
+				idInt, _ := id.(int)
+				repoIDs = append(repoIDs, int64(idInt))
+			}
 		}
 	}
 

@@ -45,13 +45,14 @@ func dataSourceGithubRepositoryMilestone() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryMilestoneRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	conn := meta.(*Owner).v3client
+func dataSourceGithubRepositoryMilestoneRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	conn := meta.v3client
 
-	owner := d.Get("owner").(string)
-	repoName := d.Get("repository").(string)
+	owner, _ := d.Get("owner").(string)
+	repoName, _ := d.Get("repository").(string)
 
-	number := d.Get("number").(int)
+	number, _ := d.Get("number").(int)
 	milestone, _, err := conn.Issues.GetMilestone(ctx, owner, repoName, number)
 	if err != nil {
 		return diag.FromErr(err)

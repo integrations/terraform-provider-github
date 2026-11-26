@@ -88,9 +88,9 @@ func resourceGithubActionsEnterprisePermissions() *schema.Resource {
 func resourceGithubActionsEnterpriseAllowedObject(d *schema.ResourceData) (*github.ActionsAllowed, error) {
 	allowed := &github.ActionsAllowed{}
 
-	config := d.Get("allowed_actions_config").([]any)
+	config, _ := d.Get("allowed_actions_config").([]any)
 	if len(config) > 0 {
-		data := config[0].(map[string]any)
+		data, _ := config[0].(map[string]any)
 		switch x := data["github_owned_allowed"].(type) {
 		case bool:
 			allowed.GithubOwnedAllowed = &x
@@ -106,7 +106,8 @@ func resourceGithubActionsEnterpriseAllowedObject(d *schema.ResourceData) (*gith
 		switch t := data["patterns_allowed"].(type) {
 		case *schema.Set:
 			for _, value := range t.List() {
-				patternsAllowed = append(patternsAllowed, value.(string))
+				valueStr, _ := value.(string)
+				patternsAllowed = append(patternsAllowed, valueStr)
 			}
 		}
 
@@ -122,13 +123,14 @@ func resourceGithubActionsEnterpriseAllowedObject(d *schema.ResourceData) (*gith
 func resourceGithubActionsEnabledOrganizationsObject(d *schema.ResourceData) ([]int64, error) {
 	var enabled []int64
 
-	config := d.Get("enabled_organizations_config").([]any)
+	config, _ := d.Get("enabled_organizations_config").([]any)
 	if len(config) > 0 {
-		data := config[0].(map[string]any)
+		data, _ := config[0].(map[string]any)
 		switch x := data["organization_ids"].(type) {
 		case *schema.Set:
 			for _, value := range x.List() {
-				enabled = append(enabled, int64(value.(int)))
+				valueInt, _ := value.(int)
+				enabled = append(enabled, int64(valueInt))
 			}
 		}
 	} else {
@@ -137,17 +139,18 @@ func resourceGithubActionsEnabledOrganizationsObject(d *schema.ResourceData) ([]
 	return enabled, nil
 }
 
-func resourceGithubActionsEnterprisePermissionsCreateOrUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubActionsEnterprisePermissionsCreateOrUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
 	ctx := context.Background()
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxId, d.Id())
 	}
 
-	enterpriseId := d.Get("enterprise_slug").(string)
-	allowedActions := d.Get("allowed_actions").(string)
-	enabledOrganizations := d.Get("enabled_organizations").(string)
+	enterpriseId, _ := d.Get("enterprise_slug").(string)
+	allowedActions, _ := d.Get("allowed_actions").(string)
+	enabledOrganizations, _ := d.Get("enabled_organizations").(string)
 
 	_, _, err := client.Actions.UpdateActionsPermissionsInEnterprise(ctx,
 		enterpriseId,
@@ -189,8 +192,9 @@ func resourceGithubActionsEnterprisePermissionsCreateOrUpdate(d *schema.Resource
 	return resourceGithubActionsEnterprisePermissionsRead(d, meta)
 }
 
-func resourceGithubActionsEnterprisePermissionsRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubActionsEnterprisePermissionsRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 	ctx := context.Background()
 
 	actionsPermissions, _, err := client.Actions.GetActionsPermissionsInEnterprise(ctx, d.Id())
@@ -271,14 +275,16 @@ func resourceGithubActionsEnterprisePermissionsRead(d *schema.ResourceData, meta
 	return nil
 }
 
-func resourceGithubActionsEnterprisePermissionsDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubActionsEnterprisePermissionsDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
+	enterpriseSlug, _ := d.Get("enterprise_slug").(string)
 	// This will nullify any allowedActions elements
 	_, _, err := client.Actions.UpdateActionsPermissionsInEnterprise(ctx,
-		d.Get("enterprise_slug").(string),
+		enterpriseSlug,
 		github.ActionsPermissionsEnterprise{
 			AllowedActions:       new("all"),
 			EnabledOrganizations: new("all"),

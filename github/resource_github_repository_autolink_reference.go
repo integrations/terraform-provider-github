@@ -24,7 +24,8 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 		CustomizeDiff: diffETag,
 
 		Importer: &schema.ResourceImporter{
-			StateContext: func(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+			StateContext: func(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+				meta, _ := m.(*Owner)
 				parts := strings.Split(d.Id(), "/")
 				if len(parts) != 2 {
 					return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository>/<autolink_reference_id>")
@@ -39,8 +40,8 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 
 				_, err := strconv.Atoi(id)
 				if err != nil {
-					client := meta.(*Owner).v3client
-					owner := meta.(*Owner).name
+					client := meta.v3client
+					owner := meta.name
 
 					autolink, err := getAutolinkByKeyPrefix(ctx, client, owner, repository, id)
 					if err != nil {
@@ -99,14 +100,15 @@ func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryAutolinkReferenceCreate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryAutolinkReferenceCreate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	owner := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
-	keyPrefix := d.Get("key_prefix").(string)
-	targetURLTemplate := d.Get("target_url_template").(string)
-	isAlphanumeric := d.Get("is_alphanumeric").(bool)
+	owner := meta.name
+	repoName, _ := d.Get("repository").(string)
+	keyPrefix, _ := d.Get("key_prefix").(string)
+	targetURLTemplate, _ := d.Get("target_url_template").(string)
+	isAlphanumeric, _ := d.Get("is_alphanumeric").(bool)
 	ctx := context.Background()
 
 	opts := github.CreateAutolinkRequest{
@@ -124,18 +126,20 @@ func resourceGithubRepositoryAutolinkReferenceCreate(d *schema.ResourceData, met
 	return resourceGithubRepositoryAutolinkReferenceRead(d, meta)
 }
 
-func resourceGithubRepositoryAutolinkReferenceRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryAutolinkReferenceRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	owner := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
+	owner := meta.name
+	repoName, _ := d.Get("repository").(string)
 	autolinkRefID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+		etag, _ := d.Get("etag").(string)
+		ctx = context.WithValue(ctx, ctxEtag, etag)
 	}
 
 	autolinkRef, _, err := client.Repositories.GetAutolink(ctx, owner, repoName, autolinkRefID)
@@ -169,11 +173,12 @@ func resourceGithubRepositoryAutolinkReferenceRead(d *schema.ResourceData, meta 
 	return nil
 }
 
-func resourceGithubRepositoryAutolinkReferenceDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryAutolinkReferenceDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	owner := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
+	owner := meta.name
+	repoName, _ := d.Get("repository").(string)
 	autolinkRefID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return unconvertibleIdErr(d.Id(), err)

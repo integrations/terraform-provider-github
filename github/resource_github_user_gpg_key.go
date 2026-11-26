@@ -40,10 +40,11 @@ func resourceGithubUserGpgKey() *schema.Resource {
 	}
 }
 
-func resourceGithubUserGpgKeyCreate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubUserGpgKeyCreate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	pubKey := d.Get("armored_public_key").(string)
+	pubKey, _ := d.Get("armored_public_key").(string)
 	ctx := context.Background()
 
 	key, _, err := client.Users.CreateGPGKey(ctx, pubKey)
@@ -56,8 +57,9 @@ func resourceGithubUserGpgKeyCreate(d *schema.ResourceData, meta any) error {
 	return resourceGithubUserGpgKeyRead(d, meta)
 }
 
-func resourceGithubUserGpgKeyRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubUserGpgKeyRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -65,7 +67,8 @@ func resourceGithubUserGpgKeyRead(d *schema.ResourceData, meta any) error {
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+		etag, _ := d.Get("etag").(string)
+		ctx = context.WithValue(ctx, ctxEtag, etag)
 	}
 
 	key, _, err := client.Users.GetGPGKey(ctx, id)
@@ -91,8 +94,9 @@ func resourceGithubUserGpgKeyRead(d *schema.ResourceData, meta any) error {
 	return nil
 }
 
-func resourceGithubUserGpgKeyDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubUserGpgKeyDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {

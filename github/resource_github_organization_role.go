@@ -58,35 +58,41 @@ func resourceGithubOrganizationRole() *schema.Resource {
 	}
 }
 
-func resourceGithubOrganizationRoleCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubOrganizationRoleCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 
-	permissions := d.Get("permissions").(*schema.Set).List()
+	var permissions []any
+	if s, ok := d.Get("permissions").(*schema.Set); ok {
+		permissions = s.List()
+	}
 	permissionsStr := make([]string, len(permissions))
 	for i, v := range permissions {
-		permissionsStr[i] = v.(string)
+		permissionsStr[i], _ = v.(string)
 	}
 
+	name, _ := d.Get("name").(string)
+	description, _ := d.Get("description").(string)
 	create := github.CreateCustomOrgRoleRequest{
-		Name:        d.Get("name").(string),
-		Description: new(d.Get("description").(string)),
+		Name:        name,
+		Description: new(description),
 		Permissions: permissionsStr,
 	}
 
-	baseRole := d.Get("base_role").(string)
+	baseRole, _ := d.Get("base_role").(string)
 	if baseRole != "none" {
 		create.BaseRole = new(baseRole)
 	}
 
 	role, _, err := client.Organizations.CreateCustomOrgRole(ctx, orgName, create)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("error creating organization role (%s/%s): %w", orgName, d.Get("name").(string), err))
+		return diag.FromErr(fmt.Errorf("error creating organization role (%s/%s): %w", orgName, name, err))
 	}
 
 	d.SetId(fmt.Sprint(role.GetID()))
@@ -96,14 +102,15 @@ func resourceGithubOrganizationRoleCreate(ctx context.Context, d *schema.Resourc
 	return nil
 }
 
-func resourceGithubOrganizationRoleRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubOrganizationRoleRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 
 	roleId, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -147,49 +154,57 @@ func resourceGithubOrganizationRoleRead(ctx context.Context, d *schema.ResourceD
 	return nil
 }
 
-func resourceGithubOrganizationRoleUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubOrganizationRoleUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 
 	roleId, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	permissions := d.Get("permissions").(*schema.Set).List()
+	var permissions []any
+	if s, ok := d.Get("permissions").(*schema.Set); ok {
+		permissions = s.List()
+	}
 	permissionsStr := make([]string, len(permissions))
 	for i, v := range permissions {
-		permissionsStr[i] = v.(string)
+		permissionsStr[i], _ = v.(string)
 	}
 
+	name, _ := d.Get("name").(string)
+	description, _ := d.Get("description").(string)
+	baseRole, _ := d.Get("base_role").(string)
 	update := github.UpdateCustomOrgRoleRequest{
-		Name:        new(d.Get("name").(string)),
-		Description: new(d.Get("description").(string)),
-		BaseRole:    new(d.Get("base_role").(string)),
+		Name:        new(name),
+		Description: new(description),
+		BaseRole:    new(baseRole),
 		Permissions: permissionsStr,
 	}
 
 	_, _, err = client.Organizations.UpdateCustomOrgRole(ctx, orgName, roleId, update)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("error updating organization role (%s/%s): %w", orgName, d.Get("name").(string), err))
+		return diag.FromErr(fmt.Errorf("error updating organization role (%s/%s): %w", orgName, name, err))
 	}
 
 	return nil
 }
 
-func resourceGithubOrganizationRoleDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubOrganizationRoleDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 
 	roleId, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {

@@ -8,7 +8,9 @@ import (
 	"github.com/shurcooL/githubv4"
 )
 
-func getRepositoryID(name string, meta any) (githubv4.ID, error) {
+func getRepositoryID(name string, m any) (githubv4.ID, error) {
+	meta, _ := m.(*Owner)
+
 	// Interpret `name` as a node ID
 	exists, nodeIDerr := repositoryNodeIDExists(name, meta)
 	if exists {
@@ -28,11 +30,11 @@ func getRepositoryID(name string, meta any) (githubv4.ID, error) {
 		} `graphql:"repository(owner:$owner, name:$name)"`
 	}
 	variables := map[string]any{
-		"owner": githubv4.String(meta.(*Owner).name),
+		"owner": githubv4.String(meta.name),
 		"name":  githubv4.String(name),
 	}
 	ctx := context.Background()
-	client := meta.(*Owner).v4client
+	client := meta.v4client
 	nameErr := client.Query(ctx, &query, variables)
 	if nameErr != nil {
 		if nodeIDerr != nil {
@@ -45,7 +47,9 @@ func getRepositoryID(name string, meta any) (githubv4.ID, error) {
 	return query.Repository.ID, nil
 }
 
-func repositoryNodeIDExists(name string, meta any) (bool, error) {
+func repositoryNodeIDExists(name string, m any) (bool, error) {
+	meta, _ := m.(*Owner)
+
 	// API check if node ID exists
 	var query struct {
 		Node struct {
@@ -56,18 +60,21 @@ func repositoryNodeIDExists(name string, meta any) (bool, error) {
 		"id": githubv4.ID(name),
 	}
 	ctx := context.Background()
-	client := meta.(*Owner).v4client
+	client := meta.v4client
 	err := client.Query(ctx, &query, variables)
 	if err != nil {
 		return false, err
 	}
 
-	return query.Node.ID.(string) == name, nil
+	id, ok := query.Node.ID.(string)
+	return ok && id == name, nil
 }
 
 // Maintain compatibility with deprecated Global ID format
 // https://github.blog/2021-02-10-new-global-id-format-coming-to-graphql/
-func repositoryLegacyNodeIDExists(name string, meta any) (bool, error) {
+func repositoryLegacyNodeIDExists(name string, m any) (bool, error) {
+	meta, _ := m.(*Owner)
+
 	// Check if the name is a base 64 encoded node ID
 	if _, err := base64.StdEncoding.DecodeString(name); err != nil {
 		var corrErr base64.CorruptInputError
@@ -90,10 +97,11 @@ func repositoryLegacyNodeIDExists(name string, meta any) (bool, error) {
 	}
 
 	ctx := context.Background()
-	client := meta.(*Owner).v4client
+	client := meta.v4client
 	if err := client.Query(ctx, &query, variables); err != nil {
 		return false, err
 	}
 
-	return query.Node.ID.(string) == name, nil
+	id, ok := query.Node.ID.(string)
+	return ok && id == name, nil
 }

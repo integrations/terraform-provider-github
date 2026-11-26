@@ -64,34 +64,40 @@ func resourceGithubOrganizationWebhook() *schema.Resource {
 
 func resourceGithubOrganizationWebhookObject(d *schema.ResourceData) *github.Hook {
 	events := []string{}
-	eventSet := d.Get("events").(*schema.Set)
-	for _, v := range eventSet.List() {
-		events = append(events, v.(string))
+	if eventSet, ok := d.Get("events").(*schema.Set); ok {
+		for _, v := range eventSet.List() {
+			vStr, _ := v.(string)
+			events = append(events, vStr)
+		}
 	}
 
+	url, _ := d.Get("url").(string)
+	active, _ := d.Get("active").(bool)
 	hook := &github.Hook{
-		URL:    new(d.Get("url").(string)),
+		URL:    new(url),
 		Events: events,
-		Active: new(d.Get("active").(bool)),
+		Active: new(active),
 	}
 
-	config := d.Get("configuration").([]any)
+	config, _ := d.Get("configuration").([]any)
 	if len(config) > 0 {
-		hook.Config = webhookConfigFromInterface(config[0].(map[string]any))
+		cfgMap, _ := config[0].(map[string]any)
+		hook.Config = webhookConfigFromInterface(cfgMap)
 	}
 
 	return hook
 }
 
-func resourceGithubOrganizationWebhookCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubOrganizationWebhookCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 
-	orgName := meta.(*Owner).name
+	orgName := meta.name
 	webhookObj := resourceGithubOrganizationWebhookObject(d)
 
 	hook, _, err := client.Organizations.CreateHook(ctx, orgName, webhookObj)
@@ -130,7 +136,8 @@ func resourceGithubOrganizationWebhookRead(ctx context.Context, d *schema.Resour
 	}
 	ctx = context.WithValue(ctx, ctxId, d.Id())
 	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+		etag, _ := d.Get("etag").(string)
+		ctx = context.WithValue(ctx, ctxEtag, etag)
 	}
 
 	hook, resp, err := client.Organizations.GetHook(ctx, orgName, hookID)
@@ -168,11 +175,13 @@ func resourceGithubOrganizationWebhookRead(ctx context.Context, d *schema.Resour
 	// We would prefer to store the real secret in state, so we'll
 	// write the configuration secret in state from what we get from
 	// ResourceData
-	if len(d.Get("configuration").([]any)) > 0 {
-		currentSecret := d.Get("configuration").([]any)[0].(map[string]any)["secret"]
+	if cfg, ok := d.Get("configuration").([]any); ok && len(cfg) > 0 {
+		cfgMap, _ := cfg[0].(map[string]any)
+		currentSecret := cfgMap["secret"]
 
 		if hook.Config.Secret != nil {
-			hook.Config.Secret = new(currentSecret.(string))
+			secretStr, _ := currentSecret.(string)
+			hook.Config.Secret = new(secretStr)
 		}
 	}
 
@@ -183,14 +192,15 @@ func resourceGithubOrganizationWebhookRead(ctx context.Context, d *schema.Resour
 	return nil
 }
 
-func resourceGithubOrganizationWebhookUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubOrganizationWebhookUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 
 	if err := d.Set("etag", nil); err != nil {
 		return diag.FromErr(err)
@@ -212,15 +222,16 @@ func resourceGithubOrganizationWebhookUpdate(ctx context.Context, d *schema.Reso
 	return resourceGithubOrganizationWebhookRead(ctx, d, meta)
 }
 
-func resourceGithubOrganizationWebhookDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubOrganizationWebhookDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 
-	orgName := meta.(*Owner).name
+	orgName := meta.name
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(unconvertibleIdErr(d.Id(), err))
@@ -234,10 +245,12 @@ func resourceGithubOrganizationWebhookDelete(ctx context.Context, d *schema.Reso
 func webhookConfigFromInterface(config map[string]any) *github.HookConfig {
 	hookConfig := &github.HookConfig{}
 	if config["url"] != nil {
-		hookConfig.URL = new(config["url"].(string))
+		urlStr, _ := config["url"].(string)
+		hookConfig.URL = new(urlStr)
 	}
 	if config["content_type"] != nil {
-		hookConfig.ContentType = new(config["content_type"].(string))
+		contentTypeStr, _ := config["content_type"].(string)
+		hookConfig.ContentType = new(contentTypeStr)
 	}
 	if config["insecure_ssl"] != nil {
 		if insecureSsl, ok := config["insecure_ssl"].(bool); ok {
@@ -255,7 +268,8 @@ func webhookConfigFromInterface(config map[string]any) *github.HookConfig {
 		}
 	}
 	if config["secret"] != nil {
-		hookConfig.Secret = new(config["secret"].(string))
+		secretStr, _ := config["secret"].(string)
+		hookConfig.Secret = new(secretStr)
 	}
 	return hookConfig
 }

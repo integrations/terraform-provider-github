@@ -59,11 +59,12 @@ func resourceGithubEnterpriseIpAllowListEntry() *schema.Resource {
 	}
 }
 
-func resourceGithubEnterpriseIpAllowListEntryCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v4client
+func resourceGithubEnterpriseIpAllowListEntryCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v4client
 
 	// First, get the enterprise ID as we need it for the mutation
-	enterpriseSlug := d.Get("enterprise_slug").(string)
+	enterpriseSlug, _ := d.Get("enterprise_slug").(string)
 	enterpriseID, err := getEnterpriseID(ctx, client, enterpriseSlug)
 	if err != nil {
 		return diag.FromErr(err)
@@ -83,11 +84,13 @@ func resourceGithubEnterpriseIpAllowListEntryCreate(ctx context.Context, d *sche
 		} `graphql:"createIpAllowListEntry(input: $input)"`
 	}
 
-	name := d.Get("name").(string)
+	name, _ := d.Get("name").(string)
+	ip, _ := d.Get("ip").(string)
+	isActive, _ := d.Get("is_active").(bool)
 	input := githubv4.CreateIpAllowListEntryInput{
 		OwnerID:        githubv4.ID(enterpriseID),
-		AllowListValue: githubv4.String(d.Get("ip").(string)),
-		IsActive:       githubv4.Boolean(d.Get("is_active").(bool)),
+		AllowListValue: githubv4.String(ip),
+		IsActive:       githubv4.Boolean(isActive),
 	}
 
 	if name != "" {
@@ -112,8 +115,9 @@ func resourceGithubEnterpriseIpAllowListEntryCreate(ctx context.Context, d *sche
 	return nil
 }
 
-func resourceGithubEnterpriseIpAllowListEntryRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v4client
+func resourceGithubEnterpriseIpAllowListEntryRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v4client
 
 	var query struct {
 		Node struct {
@@ -169,8 +173,9 @@ func resourceGithubEnterpriseIpAllowListEntryRead(ctx context.Context, d *schema
 	return nil
 }
 
-func resourceGithubEnterpriseIpAllowListEntryUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v4client
+func resourceGithubEnterpriseIpAllowListEntryUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v4client
 
 	var mutation struct {
 		UpdateIpAllowListEntry struct {
@@ -184,11 +189,13 @@ func resourceGithubEnterpriseIpAllowListEntryUpdate(ctx context.Context, d *sche
 		} `graphql:"updateIpAllowListEntry(input: $input)"`
 	}
 
-	name := d.Get("name").(string)
+	name, _ := d.Get("name").(string)
+	ip, _ := d.Get("ip").(string)
+	isActive, _ := d.Get("is_active").(bool)
 	input := githubv4.UpdateIpAllowListEntryInput{
 		IPAllowListEntryID: githubv4.ID(d.Id()),
-		AllowListValue:     githubv4.String(d.Get("ip").(string)),
-		IsActive:           githubv4.Boolean(d.Get("is_active").(bool)),
+		AllowListValue:     githubv4.String(ip),
+		IsActive:           githubv4.Boolean(isActive),
 	}
 
 	if name != "" {
@@ -208,8 +215,9 @@ func resourceGithubEnterpriseIpAllowListEntryUpdate(ctx context.Context, d *sche
 	return nil
 }
 
-func resourceGithubEnterpriseIpAllowListEntryDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v4client
+func resourceGithubEnterpriseIpAllowListEntryDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v4client
 
 	var mutation struct {
 		DeleteIpAllowListEntry struct {
@@ -230,8 +238,9 @@ func resourceGithubEnterpriseIpAllowListEntryDelete(ctx context.Context, d *sche
 	return nil
 }
 
-func resourceGithubEnterpriseIpAllowListEntryImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	client := meta.(*Owner).v4client
+func resourceGithubEnterpriseIpAllowListEntryImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+	meta, _ := m.(*Owner)
+	client := meta.v4client
 
 	var query struct {
 		Node struct {

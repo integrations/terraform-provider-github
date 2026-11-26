@@ -102,7 +102,7 @@ func resourceGithubOrganizationRepositoryRoleCreate(ctx context.Context, d *sche
 
 	role, _, err := client.Organizations.CreateCustomRepoRole(ctx, orgName, req)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("error creating GitHub organization repository role (%s/%s): %w", orgName, d.Get("name").(string), err))
+		return diag.FromErr(fmt.Errorf("error creating GitHub organization repository role (%s/%s): %w", orgName, name, err))
 	}
 
 	if err = d.Set("role_id", role.GetID()); err != nil {

@@ -48,8 +48,8 @@ func resourceGithubOrganizationRoleTeamAssignmentCreate(d *schema.ResourceData, 
 	orgName := meta.name
 	ctx := context.Background()
 
-	teamSlug := d.Get("team_slug").(string)
-	roleIDString := d.Get("role_id").(string)
+	teamSlug, _ := d.Get("team_slug").(string)
+	roleIDString, _ := d.Get("role_id").(string)
 
 	roleID, err := strconv.ParseInt(roleIDString, 10, 64)
 	if err != nil {

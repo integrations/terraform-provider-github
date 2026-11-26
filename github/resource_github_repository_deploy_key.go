@@ -61,14 +61,15 @@ func resourceGithubRepositoryDeployKey() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	repoName := d.Get("repository").(string)
-	key := d.Get("key").(string)
-	title := d.Get("title").(string)
-	readOnly := d.Get("read_only").(bool)
-	owner := meta.(*Owner).name
+	repoName, _ := d.Get("repository").(string)
+	key, _ := d.Get("key").(string)
+	title, _ := d.Get("title").(string)
+	readOnly, _ := d.Get("read_only").(bool)
+	owner := meta.name
 	ctx := context.Background()
 
 	resultKey, _, err := client.Repositories.CreateKey(ctx, owner, repoName, github.CreateDeployKeyRequest{
@@ -103,7 +104,8 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, m any) error 
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+		etag, _ := d.Get("etag").(string)
+		ctx = context.WithValue(ctx, ctxEtag, etag)
 	}
 
 	key, resp, err := client.Repositories.GetKey(ctx, owner, repoName, id)
@@ -143,10 +145,11 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, m any) error 
 	return nil
 }
 
-func resourceGithubRepositoryDeployKeyDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryDeployKeyDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	owner := meta.(*Owner).name
+	owner := meta.name
 	repoName, idString, err := parseID2(d.Id())
 	if err != nil {
 		return err

@@ -103,10 +103,11 @@ func dataSourceGithubUser() *schema.Resource {
 	}
 }
 
-func dataSourceGithubUserRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	username := d.Get("username").(string)
+func dataSourceGithubUserRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	username, _ := d.Get("username").(string)
 
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 
 	user, _, err := client.Users.Get(ctx, username)
 	if err != nil {

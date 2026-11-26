@@ -122,19 +122,19 @@ func resourceGithubRepositoryPagesCreate(ctx context.Context, d *schema.Resource
 	client := meta.v3client
 
 	owner := meta.name // TODO: Add owner support // d.Get("owner").(string)
-	repoName := d.Get("repository").(string)
+	repoName, _ := d.Get("repository").(string)
 
 	pagesReq := &github.Pages{}
 
-	buildType := d.Get("build_type").(string)
+	buildType, _ := d.Get("build_type").(string)
 	pagesReq.BuildType = new(buildType)
 
 	if buildType == "legacy" {
 		if source, ok := d.GetOk("source"); ok {
-			sourceList := source.([]any)
+			sourceList, _ := source.([]any)
 			if len(sourceList) > 0 {
-				sourceMap := sourceList[0].(map[string]any)
-				branch := sourceMap["branch"].(string)
+				sourceMap, _ := sourceList[0].(map[string]any)
+				branch, _ := sourceMap["branch"].(string)
 				pagesSource := &github.PagesSource{
 					Branch: new(branch),
 				}
@@ -206,15 +206,18 @@ func resourceGithubRepositoryPagesCreate(ctx context.Context, d *schema.Resource
 		update := &github.PagesUpdate{}
 
 		if cnameOK {
-			update.CNAME = new(cname.(string))
+			cnameStr, _ := cname.(string)
+			update.CNAME = new(cnameStr)
 		}
 
 		if publicOKExists {
-			update.Public = new(public.(bool))
+			publicBool, _ := public.(bool)
+			update.Public = new(publicBool)
 		}
 
 		if httpsEnforcedExists {
-			update.HTTPSEnforced = new(httpsEnforced.(bool))
+			httpsEnforcedBool, _ := httpsEnforced.(bool)
+			update.HTTPSEnforced = new(httpsEnforcedBool)
 		}
 
 		_, err = client.Repositories.UpdatePages(ctx, owner, repoName, update)
@@ -241,7 +244,7 @@ func resourceGithubRepositoryPagesRead(ctx context.Context, d *schema.ResourceDa
 	client := meta.v3client
 
 	owner := meta.name // TODO: Add owner support // d.Get("owner").(string)
-	repoName := d.Get("repository").(string)
+	repoName, _ := d.Get("repository").(string)
 
 	pages, resp, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)
 	if err != nil {
@@ -312,13 +315,13 @@ func resourceGithubRepositoryPagesUpdate(ctx context.Context, d *schema.Resource
 	client := meta.v3client
 
 	owner := meta.name // TODO: Add owner support // d.Get("owner").(string)
-	repoName := d.Get("repository").(string)
+	repoName, _ := d.Get("repository").(string)
 
 	update := &github.PagesUpdate{}
 
 	// Sending a null value for `cname` will remove the custom domain in the API, so we make sure to only send the value if it's changed.
 	if d.HasChange("cname") {
-		cname := d.Get("cname").(string)
+		cname, _ := d.Get("cname").(string)
 		update.CNAME = new(cname)
 	}
 
@@ -326,26 +329,26 @@ func resourceGithubRepositoryPagesUpdate(ctx context.Context, d *schema.Resource
 	// Hence we make sure to only send the value if it's changed.
 	// Error: "400 Private pages is not enabled for this repository. All Pages will be public."
 	if d.HasChange("public") {
-		public := d.Get("public").(bool)
+		public, _ := d.Get("public").(bool)
 		update.Public = new(public)
 	}
 
 	// `https_enforced` can't be sent to the API unless `cname` is set. Otherwise the API will return "404 The certificate does not exist yet".
 	if d.HasChange("https_enforced") {
-		httpsEnforced := d.Get("https_enforced").(bool)
+		httpsEnforced, _ := d.Get("https_enforced").(bool)
 		update.HTTPSEnforced = new(httpsEnforced)
 	}
 
-	buildType := d.Get("build_type").(string)
+	buildType, _ := d.Get("build_type").(string)
 	update.BuildType = new(buildType)
 
 	if buildType == "legacy" {
 		if source, ok := d.GetOk("source"); ok {
-			sourceList := source.([]any)
+			sourceList, _ := source.([]any)
 			if len(sourceList) > 0 {
-				sourceMap := sourceList[0].(map[string]any)
-				branch := sourceMap["branch"].(string)
-				path := sourceMap["path"].(string)
+				sourceMap, _ := sourceList[0].(map[string]any)
+				branch, _ := sourceMap["branch"].(string)
+				path, _ := sourceMap["path"].(string)
 				update.Source = &github.PagesSource{
 					Branch: &branch,
 					Path:   &path,
@@ -368,7 +371,7 @@ func resourceGithubRepositoryPagesDelete(ctx context.Context, d *schema.Resource
 	client := meta.v3client
 
 	owner := meta.name // TODO: Add owner support // d.Get("owner").(string)
-	repoName := d.Get("repository").(string)
+	repoName, _ := d.Get("repository").(string)
 
 	_, err := client.Repositories.DisablePages(ctx, owner, repoName)
 	if err != nil {
@@ -410,7 +413,7 @@ func resourceGithubRepositoryPagesImport(ctx context.Context, d *schema.Resource
 func resourceGithubRepositoryPagesDiff(ctx context.Context, d *schema.ResourceDiff, _ any) error {
 	tflog.Debug(ctx, "Diffing GitHub Pages")
 
-	buildType := d.Get("build_type").(string)
+	buildType, _ := d.Get("build_type").(string)
 	_, ok := d.GetOk("source")
 
 	if buildType == "workflow" && ok {

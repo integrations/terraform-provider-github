@@ -31,12 +31,19 @@ func resourceGithubEMUGroupMappingV0() *schema.Resource {
 	}
 }
 
-func resourceGithubEMUGroupMappingStateUpgradeV0(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+func resourceGithubEMUGroupMappingStateUpgradeV0(ctx context.Context, rawState map[string]any, m any) (map[string]any, error) {
+	meta, ok := m.(*Owner)
+	if !ok || meta == nil || meta.v3client == nil {
+		return nil, fmt.Errorf("provider meta is not configured")
+	}
+	client := meta.v3client
+	orgName := meta.name
 	tflog.Trace(ctx, "GitHub EMU Group Mapping State before migration", map[string]any{"state": rawState, "owner": orgName})
 
-	teamSlug := rawState["team_slug"].(string)
+	teamSlug, ok := rawState["team_slug"].(string)
+	if !ok {
+		return nil, fmt.Errorf("team_slug not found or is not a string")
+	}
 	// We need to bypass the etag because we need to get the latest group
 	ctx = context.WithValue(ctx, ctxEtag, nil)
 	groupsList, resp, err := client.Teams.ListExternalGroupsForTeamBySlug(ctx, orgName, teamSlug)

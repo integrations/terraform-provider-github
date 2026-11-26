@@ -31,10 +31,11 @@ func dataSourceGithubActionsRegistrationToken() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsRegistrationTokenRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
+func dataSourceGithubActionsRegistrationTokenRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+	repoName, _ := d.Get("repository").(string)
 
 	log.Printf("[DEBUG] Creating a GitHub Actions repository registration token for %s/%s", owner, repoName)
 	token, _, err := client.Actions.CreateRegistrationToken(ctx, owner, repoName)

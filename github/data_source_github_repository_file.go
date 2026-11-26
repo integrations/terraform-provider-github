@@ -72,11 +72,12 @@ func dataSourceGithubRepositoryFile() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func dataSourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	owner := meta.(*Owner).name
-	repo := d.Get("repository").(string)
+	owner := meta.name
+	repo, _ := d.Get("repository").(string)
 	diags := make(diag.Diagnostics, 0)
 
 	// checking if repo has a slash in it, which means that full_name was passed
@@ -90,11 +91,11 @@ func dataSourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceD
 		tflog.Debug(ctx, "owner and repo", map[string]any{"owner": owner, "repo": repo})
 	}
 
-	file := d.Get("file").(string)
+	file, _ := d.Get("file").(string)
 
 	opts := &github.RepositoryContentGetOptions{}
 	if branch, ok := d.GetOk("branch"); ok {
-		opts.Ref = branch.(string)
+		opts.Ref, _ = branch.(string)
 	}
 
 	fc, dc, _, err := client.Repositories.GetContents(ctx, owner, repo, file, opts)

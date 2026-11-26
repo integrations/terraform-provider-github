@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/shurcooL/githubv4"
@@ -17,9 +18,12 @@ type PageInfo struct {
 func expandNestedSet(m map[string]any, target string) []string {
 	res := make([]string, 0)
 	if v, ok := m[target]; ok {
-		vL := v.(*schema.Set).List()
-		for _, v := range vL {
-			res = append(res, v.(string))
+		if vS, ok := v.(*schema.Set); ok {
+			for _, item := range vS.List() {
+				if s, ok := item.(string); ok {
+					res = append(res, s)
+				}
+			}
 		}
 	}
 	return res
@@ -65,5 +69,10 @@ func getEnterpriseID(ctx context.Context, client *githubv4.Client, enterpriseSlu
 		return "", err
 	}
 
-	return query.Enterprise.ID.(string), nil
+	id, ok := query.Enterprise.ID.(string)
+	if !ok {
+		return "", fmt.Errorf("unexpected enterprise ID type %T", query.Enterprise.ID)
+	}
+
+	return id, nil
 }

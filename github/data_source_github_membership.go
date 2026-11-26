@@ -38,12 +38,12 @@ func dataSourceGithubMembership() *schema.Resource {
 
 func dataSourceGithubMembershipRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	meta, _ := m.(*Owner)
-	username := d.Get("username").(string)
+	username, _ := d.Get("username").(string)
 
 	client := meta.v3client
 	orgName := meta.name
 
-	if configuredOrg := d.Get("organization").(string); configuredOrg != "" {
+	if configuredOrg, _ := d.Get("organization").(string); configuredOrg != "" {
 		orgName = configuredOrg
 	}
 

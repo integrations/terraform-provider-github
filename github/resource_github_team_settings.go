@@ -88,7 +88,7 @@ func resourceGithubTeamSettingsCreate(ctx context.Context, d *schema.ResourceDat
 	}
 	graphql := meta.v4client
 
-	teamIDString := d.Get("team_id").(string)
+	teamIDString, _ := d.Get("team_id").(string)
 
 	tflog.Debug(ctx, "Resolving team_id to Team node_id and slug", map[string]any{
 		"team_id": teamIDString,
@@ -111,7 +111,7 @@ func resourceGithubTeamSettingsCreate(ctx context.Context, d *schema.ResourceDat
 		return diag.FromErr(err)
 	}
 
-	reviewRequestDelegation := d.Get("review_request_delegation").([]any)
+	reviewRequestDelegation, _ := d.Get("review_request_delegation").([]any)
 
 	var mutation struct {
 		UpdateTeamReviewAssignment struct {
@@ -149,14 +149,16 @@ func resourceGithubTeamSettingsCreate(ctx context.Context, d *schema.ResourceDat
 			"review_request_delegation": reviewRequestDelegation,
 			"notify":                    notify,
 		})
-		settings := reviewRequestDelegation[0].(map[string]any)
+		settings, _ := reviewRequestDelegation[0].(map[string]any)
 
-		teamReviewAlgorithm := githubv4.TeamReviewAssignmentAlgorithm(settings["algorithm"].(string))
+		algorithm, _ := settings["algorithm"].(string)
+		memberCount, _ := settings["member_count"].(int)
+		teamReviewAlgorithm := githubv4.TeamReviewAssignmentAlgorithm(algorithm)
 		updateTeamReviewAssignmentInput := githubv4.UpdateTeamReviewAssignmentInput{
 			ID:              d.Id(),
 			Enabled:         githubv4.Boolean(true),
 			Algorithm:       &teamReviewAlgorithm,
-			TeamMemberCount: new(githubv4.Int(settings["member_count"].(int))),
+			TeamMemberCount: new(githubv4.Int(memberCount)),
 			NotifyTeam:      new(githubv4.Boolean(notify)),
 		}
 
@@ -168,15 +170,16 @@ func resourceGithubTeamSettingsCreate(ctx context.Context, d *schema.ResourceDat
 	return nil
 }
 
-func resourceGithubTeamSettingsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubTeamSettingsRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 	if err := checkOrganization(meta); err != nil {
 		return diag.FromErr(err)
 	}
 
-	graphql := meta.(*Owner).v4client
-	orgName := meta.(*Owner).name
+	graphql := meta.v4client
+	orgName := meta.name
 
-	teamSlug := d.Get("team_slug").(string)
+	teamSlug, _ := d.Get("team_slug").(string)
 
 	query := queryTeamSettings{}
 	variables := map[string]any{
@@ -228,7 +231,7 @@ func resourceGithubTeamSettingsUpdate(ctx context.Context, d *schema.ResourceDat
 	if d.HasChange("review_request_delegation") || d.HasChange("notify") {
 		meta, _ := m.(*Owner)
 		graphql := meta.v4client
-		reviewRequestDelegation := d.Get("review_request_delegation").([]any)
+		reviewRequestDelegation, _ := d.Get("review_request_delegation").([]any)
 		notify := resolveNotify(ctx, d)
 
 		var mutation struct {
@@ -238,9 +241,10 @@ func resourceGithubTeamSettingsUpdate(ctx context.Context, d *schema.ResourceDat
 		}
 
 		if len(reviewRequestDelegation) == 0 {
+			teamSlug, _ := d.Get("team_slug").(string)
 			tflog.Debug(ctx, "No review request delegation settings provided, disabling review request delegation", map[string]any{
 				"team_id":   d.Id(),
-				"team_slug": d.Get("team_slug").(string),
+				"team_slug": teamSlug,
 				"notify":    notify,
 			})
 
@@ -252,14 +256,16 @@ func resourceGithubTeamSettingsUpdate(ctx context.Context, d *schema.ResourceDat
 				return diag.FromErr(err)
 			}
 		} else {
-			settings := reviewRequestDelegation[0].(map[string]any)
+			settings, _ := reviewRequestDelegation[0].(map[string]any)
 
-			teamReviewAlgorithm := githubv4.TeamReviewAssignmentAlgorithm(settings["algorithm"].(string))
+			algorithm, _ := settings["algorithm"].(string)
+			memberCount, _ := settings["member_count"].(int)
+			teamReviewAlgorithm := githubv4.TeamReviewAssignmentAlgorithm(algorithm)
 			updateTeamReviewAssignmentInput := githubv4.UpdateTeamReviewAssignmentInput{
 				ID:              d.Id(),
 				Enabled:         githubv4.Boolean(true),
 				Algorithm:       &teamReviewAlgorithm,
-				TeamMemberCount: new(githubv4.Int(settings["member_count"].(int))),
+				TeamMemberCount: new(githubv4.Int(memberCount)),
 				NotifyTeam:      new(githubv4.Boolean(notify)),
 			}
 			err := graphql.Mutate(ctx, &mutation, updateTeamReviewAssignmentInput, nil)
@@ -272,8 +278,9 @@ func resourceGithubTeamSettingsUpdate(ctx context.Context, d *schema.ResourceDat
 	return nil
 }
 
-func resourceGithubTeamSettingsDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	graphql := meta.(*Owner).v4client
+func resourceGithubTeamSettingsDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	graphql := meta.v4client
 
 	var mutation struct {
 		UpdateTeamReviewAssignment struct {
@@ -288,8 +295,9 @@ func resourceGithubTeamSettingsDelete(ctx context.Context, d *schema.ResourceDat
 	return nil
 }
 
-func resourceGithubTeamSettingsImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	nodeId, slug, err := resolveTeamIDs(ctx, meta.(*Owner), d.Id())
+func resourceGithubTeamSettingsImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+	meta, _ := m.(*Owner)
+	nodeId, slug, err := resolveTeamIDs(ctx, meta, d.Id())
 	if err != nil {
 		return nil, err
 	}
@@ -320,7 +328,7 @@ func resolveTeamIDs(ctx context.Context, meta *Owner, idOrSlug string) (string, 
 // only one source can be active at a time.
 func resolveNotify(ctx context.Context, d *schema.ResourceData) bool {
 	// Check if top-level notify is explicitly configured.
-	if v := d.Get("notify").(bool); v {
+	if v, _ := d.Get("notify").(bool); v {
 		tflog.Debug(ctx, "Top-level notify is explicitly configured", map[string]any{
 			"notify": v,
 		})
@@ -328,7 +336,7 @@ func resolveNotify(ctx context.Context, d *schema.ResourceData) bool {
 	}
 
 	// Fall back to deprecated nested field
-	if v := d.Get("review_request_delegation.0.notify").(bool); v {
+	if v, _ := d.Get("review_request_delegation.0.notify").(bool); v {
 		tflog.Debug(ctx, "Deprecated nested notify is explicitly configured", map[string]any{
 			"notify": v,
 		})

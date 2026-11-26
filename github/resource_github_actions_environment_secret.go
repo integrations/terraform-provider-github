@@ -231,12 +231,14 @@ func resourceGithubActionsEnvironmentSecretRead(ctx context.Context, d *schema.R
 
 	// Due to the eventually consistent behavior of this API we may not get created_at/updated_at
 	// values on the first read after creation, so we only set them here if they are not already set.
-	if len(d.Get("created_at").(string)) == 0 {
+	createdAt, _ := d.Get("created_at").(string)
+	if len(createdAt) == 0 {
 		if err = d.Set("created_at", secret.CreatedAt.String()); err != nil {
 			return diag.FromErr(err)
 		}
 	}
-	if len(d.Get("updated_at").(string)) == 0 {
+	updatedAt, _ := d.Get("updated_at").(string)
+	if len(updatedAt) == 0 {
 		if err = d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
 			return diag.FromErr(err)
 		}

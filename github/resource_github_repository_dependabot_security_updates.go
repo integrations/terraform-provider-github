@@ -32,11 +32,12 @@ func resourceGithubRepositoryDependabotSecurityUpdates() *schema.Resource {
 	}
 }
 
-func resourceGithubRepositoryDependabotSecurityUpdatesCreateOrUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
-	enabled := d.Get("enabled").(bool)
+func resourceGithubRepositoryDependabotSecurityUpdatesCreateOrUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+	repoName, _ := d.Get("repository").(string)
+	enabled, _ := d.Get("enabled").(bool)
 
 	ctx := context.Background()
 	var err error
@@ -53,10 +54,11 @@ func resourceGithubRepositoryDependabotSecurityUpdatesCreateOrUpdate(d *schema.R
 	return resourceGithubRepositoryDependabotSecurityUpdatesRead(d, meta)
 }
 
-func resourceGithubRepositoryDependabotSecurityUpdatesRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
+func resourceGithubRepositoryDependabotSecurityUpdatesRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
+	repoName, _ := d.Get("repository").(string)
 
 	ctx := context.Background()
 
@@ -69,10 +71,11 @@ func resourceGithubRepositoryDependabotSecurityUpdatesRead(d *schema.ResourceDat
 	return nil
 }
 
-func resourceGithubRepositoryDependabotSecurityUpdatesDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
+func resourceGithubRepositoryDependabotSecurityUpdatesDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
+	repoName, _ := d.Get("repository").(string)
 
 	ctx := context.Background()
 

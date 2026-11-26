@@ -760,7 +760,7 @@ func resourceGithubOrganizationRulesetCreate(ctx context.Context, d *schema.Reso
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
-	name := d.Get("name").(string)
+	name, _ := d.Get("name").(string)
 
 	tflog.Debug(ctx, fmt.Sprintf("Creating organization ruleset: %s/%s", owner, name), map[string]any{
 		"owner": owner,
@@ -825,7 +825,8 @@ func resourceGithubOrganizationRulesetRead(ctx context.Context, d *schema.Resour
 	}
 
 	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+		etag, _ := d.Get("etag").(string)
+		ctx = context.WithValue(ctx, ctxEtag, etag)
 	}
 
 	ruleset, resp, err := client.Organizations.GetRepositoryRuleset(ctx, owner, rulesetID)
@@ -898,7 +899,7 @@ func resourceGithubOrganizationRulesetUpdate(ctx context.Context, d *schema.Reso
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
-	name := d.Get("name").(string)
+	name, _ := d.Get("name").(string)
 
 	if err := d.Set("etag", nil); err != nil {
 		return diag.FromErr(err)
@@ -954,9 +955,10 @@ func resourceGithubOrganizationRulesetUpdate(ctx context.Context, d *schema.Reso
 	return nil
 }
 
-func resourceGithubOrganizationRulesetDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubOrganizationRulesetDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -991,9 +993,10 @@ func resourceGithubOrganizationRulesetDelete(ctx context.Context, d *schema.Reso
 	return nil
 }
 
-func resourceGithubOrganizationRulesetImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubOrganizationRulesetImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
 	rulesetID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {

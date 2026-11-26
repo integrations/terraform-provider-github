@@ -91,16 +91,17 @@ func dataSourceGithubRepositoryPullRequest() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryPullRequestRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func dataSourceGithubRepositoryPullRequestRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	owner := meta.(*Owner).name
+	owner := meta.name
 	if expliclitOwner, ok := d.GetOk("owner"); ok {
-		owner = expliclitOwner.(string)
+		owner, _ = expliclitOwner.(string)
 	}
 
-	repository := d.Get("base_repository").(string)
-	number := d.Get("number").(int)
+	repository, _ := d.Get("base_repository").(string)
+	number, _ := d.Get("number").(int)
 
 	pullRequest, _, err := client.PullRequests.Get(ctx, owner, repository, number)
 	if err != nil {

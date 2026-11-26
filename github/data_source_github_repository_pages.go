@@ -94,7 +94,7 @@ func dataSourceGithubRepositoryPagesRead(ctx context.Context, d *schema.Resource
 	client := meta.v3client
 
 	owner := meta.name // TODO: Add owner support // d.Get("owner").(string)
-	repoName := d.Get("repository").(string)
+	repoName, _ := d.Get("repository").(string)
 
 	pages, resp, err := client.Repositories.GetPagesInfo(ctx, owner, repoName)
 	if err != nil {

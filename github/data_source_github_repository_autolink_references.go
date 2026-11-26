@@ -46,7 +46,7 @@ func dataSourceGithubRepositoryAutolinkReferencesRead(ctx context.Context, d *sc
 	client := meta.v3client
 	owner := meta.name
 
-	repoName := d.Get("repository").(string)
+	repoName, _ := d.Get("repository").(string)
 
 	autoLinks, _, err := client.Repositories.ListAutolinks(ctx, owner, repoName)
 	if err != nil {

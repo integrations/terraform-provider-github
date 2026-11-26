@@ -67,27 +67,30 @@ func TestFlattenRulesBasicRules(t *testing.T) {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
 	}
 
-	rulesMap := result[0].(map[string]any)
+	rulesMap, ok := result[0].(map[string]any)
+	if !ok {
+		t.Fatalf("Expected map[string]any, got %T", result[0])
+	}
 
 	// Should contain the rules
-	if !rulesMap["creation"].(bool) {
-		t.Error("Expected creation rule to be true")
+	if creation, ok := rulesMap["creation"].(bool); !ok || !creation {
+		t.Errorf("Expected creation rule to be true, got %v (%T)", rulesMap["creation"], rulesMap["creation"])
 	}
 
-	if !rulesMap["deletion"].(bool) {
-		t.Error("Expected deletion rule to be true")
+	if deletion, ok := rulesMap["deletion"].(bool); !ok || !deletion {
+		t.Errorf("Expected deletion rule to be true, got %v (%T)", rulesMap["deletion"], rulesMap["deletion"])
 	}
 
-	if !rulesMap["required_linear_history"].(bool) {
-		t.Error("Expected required_linear_history rule to be true")
+	if requiredLinearHistory, ok := rulesMap["required_linear_history"].(bool); !ok || !requiredLinearHistory {
+		t.Errorf("Expected required_linear_history rule to be true, got %v (%T)", rulesMap["required_linear_history"], rulesMap["required_linear_history"])
 	}
 
-	if rulesMap["required_signatures"].(bool) {
-		t.Error("Expected required_signatures rule to be false")
+	if requiredSignatures, ok := rulesMap["required_signatures"].(bool); !ok || requiredSignatures {
+		t.Errorf("Expected required_signatures rule to be false, got %v (%T)", rulesMap["required_signatures"], rulesMap["required_signatures"])
 	}
 
-	if !rulesMap["non_fast_forward"].(bool) {
-		t.Error("Expected non_fast_forward rule to be true")
+	if nonFastForward, ok := rulesMap["non_fast_forward"].(bool); !ok || !nonFastForward {
+		t.Errorf("Expected non_fast_forward rule to be true, got %v (%T)", rulesMap["non_fast_forward"], rulesMap["non_fast_forward"])
 	}
 }
 
@@ -140,8 +143,14 @@ func TestFlattenRulesMaxFilePathLength(t *testing.T) {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
 	}
 
-	rulesMap := result[0].(map[string]any)
-	maxFilePathLengthRules := rulesMap["max_file_path_length"].([]map[string]any)
+	rulesMap, ok := result[0].(map[string]any)
+	if !ok {
+		t.Fatalf("Expected map[string]any, got %T", result[0])
+	}
+	maxFilePathLengthRules, ok := rulesMap["max_file_path_length"].([]map[string]any)
+	if !ok {
+		t.Fatalf("Expected []map[string]any, got %T", rulesMap["max_file_path_length"])
+	}
 
 	if len(maxFilePathLengthRules) != 1 {
 		t.Fatalf("Expected 1 max_file_path_length rule, got %d", len(maxFilePathLengthRules))
@@ -183,8 +192,14 @@ func TestRoundTripMaxFilePathLength(t *testing.T) {
 		t.Fatalf("Expected 1 flattened result, got %d", len(flattenedResult))
 	}
 
-	flattenedRulesMap := flattenedResult[0].(map[string]any)
-	maxFilePathLengthRules := flattenedRulesMap["max_file_path_length"].([]map[string]any)
+	flattenedRulesMap, ok := flattenedResult[0].(map[string]any)
+	if !ok {
+		t.Fatalf("Expected map[string]any, got %T", flattenedResult[0])
+	}
+	maxFilePathLengthRules, ok := flattenedRulesMap["max_file_path_length"].([]map[string]any)
+	if !ok {
+		t.Fatalf("Expected []map[string]any, got %T", flattenedRulesMap["max_file_path_length"])
+	}
 
 	if len(maxFilePathLengthRules) != 1 {
 		t.Fatalf("Expected 1 max_file_path_length rule after round trip, got %d", len(maxFilePathLengthRules))
@@ -244,8 +259,14 @@ func TestFlattenRulesMaxFileSize(t *testing.T) {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
 	}
 
-	rulesMap := result[0].(map[string]any)
-	maxFileSizeRules := rulesMap["max_file_size"].([]map[string]any)
+	rulesMap, ok := result[0].(map[string]any)
+	if !ok {
+		t.Fatalf("Expected map[string]any, got %T", result[0])
+	}
+	maxFileSizeRules, ok := rulesMap["max_file_size"].([]map[string]any)
+	if !ok {
+		t.Fatalf("Expected []map[string]any, got %T", rulesMap["max_file_size"])
+	}
 
 	if len(maxFileSizeRules) != 1 {
 		t.Fatalf("Expected 1 max_file_size rule, got %d", len(maxFileSizeRules))
@@ -316,14 +337,23 @@ func TestFlattenRulesFileExtensionRestriction(t *testing.T) {
 		t.Fatalf("Expected 1 element in result, got %d", len(result))
 	}
 
-	rulesMap := result[0].(map[string]any)
-	fileExtensionRules := rulesMap["file_extension_restriction"].([]map[string]any)
+	rulesMap, ok := result[0].(map[string]any)
+	if !ok {
+		t.Fatalf("Expected map[string]any, got %T", result[0])
+	}
+	fileExtensionRules, ok := rulesMap["file_extension_restriction"].([]map[string]any)
+	if !ok {
+		t.Fatalf("Expected []map[string]any, got %T", rulesMap["file_extension_restriction"])
+	}
 
 	if len(fileExtensionRules) != 1 {
 		t.Fatalf("Expected 1 file_extension_restriction rule, got %d", len(fileExtensionRules))
 	}
 
-	actualExtensions := fileExtensionRules[0]["restricted_file_extensions"].([]string)
+	actualExtensions, ok := fileExtensionRules[0]["restricted_file_extensions"].([]string)
+	if !ok {
+		t.Fatalf("Expected []string, got %T", fileExtensionRules[0]["restricted_file_extensions"])
+	}
 	if len(actualExtensions) != len(restrictedExtensions) {
 		t.Errorf("Expected %d restricted extensions, got %d", len(restrictedExtensions), len(actualExtensions))
 	}
@@ -398,20 +428,32 @@ func TestCompletePushRulesetSupport(t *testing.T) {
 		t.Fatalf("Expected 1 flattened result, got %d", len(flattenedResult))
 	}
 
-	flattenedRulesMap := flattenedResult[0].(map[string]any)
+	flattenedRulesMap, ok := flattenedResult[0].(map[string]any)
+	if !ok {
+		t.Fatalf("Expected map[string]any, got %T", flattenedResult[0])
+	}
 
 	// Verify file_path_restriction
-	filePathRules := flattenedRulesMap["file_path_restriction"].([]map[string]any)
+	filePathRules, ok := flattenedRulesMap["file_path_restriction"].([]map[string]any)
+	if !ok {
+		t.Fatalf("Expected []map[string]any, got %T", flattenedRulesMap["file_path_restriction"])
+	}
 	if len(filePathRules) != 1 {
 		t.Fatalf("Expected 1 file_path_restriction rule, got %d", len(filePathRules))
 	}
-	restrictedPaths := filePathRules[0]["restricted_file_paths"].([]string)
+	restrictedPaths, ok := filePathRules[0]["restricted_file_paths"].([]string)
+	if !ok {
+		t.Fatalf("Expected []string, got %T", filePathRules[0]["restricted_file_paths"])
+	}
 	if len(restrictedPaths) != 3 {
 		t.Errorf("Expected 3 restricted file paths, got %d", len(restrictedPaths))
 	}
 
 	// Verify max_file_size
-	maxFileSizeRules := flattenedRulesMap["max_file_size"].([]map[string]any)
+	maxFileSizeRules, ok := flattenedRulesMap["max_file_size"].([]map[string]any)
+	if !ok {
+		t.Fatalf("Expected []map[string]any, got %T", flattenedRulesMap["max_file_size"])
+	}
 	if len(maxFileSizeRules) != 1 {
 		t.Fatalf("Expected 1 max_file_size rule, got %d", len(maxFileSizeRules))
 	}
@@ -420,7 +462,10 @@ func TestCompletePushRulesetSupport(t *testing.T) {
 	}
 
 	// Verify max_file_path_length
-	maxFilePathLengthRules := flattenedRulesMap["max_file_path_length"].([]map[string]any)
+	maxFilePathLengthRules, ok := flattenedRulesMap["max_file_path_length"].([]map[string]any)
+	if !ok {
+		t.Fatalf("Expected []map[string]any, got %T", flattenedRulesMap["max_file_path_length"])
+	}
 	if len(maxFilePathLengthRules) != 1 {
 		t.Fatalf("Expected 1 max_file_path_length rule, got %d", len(maxFilePathLengthRules))
 	}
@@ -429,11 +474,17 @@ func TestCompletePushRulesetSupport(t *testing.T) {
 	}
 
 	// Verify file_extension_restriction
-	fileExtRules := flattenedRulesMap["file_extension_restriction"].([]map[string]any)
+	fileExtRules, ok := flattenedRulesMap["file_extension_restriction"].([]map[string]any)
+	if !ok {
+		t.Fatalf("Expected []map[string]any, got %T", flattenedRulesMap["file_extension_restriction"])
+	}
 	if len(fileExtRules) != 1 {
 		t.Fatalf("Expected 1 file_extension_restriction rule, got %d", len(fileExtRules))
 	}
-	restrictedExts := fileExtRules[0]["restricted_file_extensions"].([]string)
+	restrictedExts, ok := fileExtRules[0]["restricted_file_extensions"].([]string)
+	if !ok {
+		t.Fatalf("Expected []string, got %T", fileExtRules[0]["restricted_file_extensions"])
+	}
 	if len(restrictedExts) != 3 {
 		t.Errorf("Expected 3 restricted file extensions, got %d", len(restrictedExts))
 	}
@@ -480,8 +531,14 @@ func TestCopilotCodeReviewRoundTrip(t *testing.T) {
 		t.Fatalf("Expected 1 flattened result, got %d", len(flattenedResult))
 	}
 
-	flattenedRulesMap := flattenedResult[0].(map[string]any)
-	copilotRules := flattenedRulesMap["copilot_code_review"].([]map[string]any)
+	flattenedRulesMap, ok := flattenedResult[0].(map[string]any)
+	if !ok {
+		t.Fatalf("Expected map[string]any, got %T", flattenedResult[0])
+	}
+	copilotRules, ok := flattenedRulesMap["copilot_code_review"].([]map[string]any)
+	if !ok {
+		t.Fatalf("Expected []map[string]any, got %T", flattenedRulesMap["copilot_code_review"])
+	}
 
 	if len(copilotRules) != 1 {
 		t.Fatalf("Expected 1 copilot_code_review rule after round trip, got %d", len(copilotRules))
@@ -515,7 +572,10 @@ func TestFlattenConditions_PushRuleset_WithRepositoryNameOnly(t *testing.T) {
 		t.Fatalf("Expected 1 conditions block, got %d", len(result))
 	}
 
-	conditionsMap := result[0].(map[string]any)
+	conditionsMap, ok := result[0].(map[string]any)
+	if !ok {
+		t.Fatalf("Expected map[string]any, got %T", result[0])
+	}
 
 	// ref_name should be empty for push rulesets
 	refNameSlice := conditionsMap["ref_name"]
@@ -563,7 +623,10 @@ func TestFlattenConditions_BranchRuleset_WithRefNameAndRepositoryName(t *testing
 		t.Fatalf("Expected 1 conditions block, got %d", len(result))
 	}
 
-	conditionsMap := result[0].(map[string]any)
+	conditionsMap, ok := result[0].(map[string]any)
+	if !ok {
+		t.Fatalf("Expected map[string]any, got %T", result[0])
+	}
 
 	// ref_name should be present for branch/tag rulesets
 	refNameSlice, ok := conditionsMap["ref_name"].([]map[string]any)
@@ -633,7 +696,10 @@ func TestFlattenConditions_PushRuleset_WithRepositoryIdOnly(t *testing.T) {
 		t.Fatalf("Expected 1 conditions block, got %d", len(result))
 	}
 
-	conditionsMap := result[0].(map[string]any)
+	conditionsMap, ok := result[0].(map[string]any)
+	if !ok {
+		t.Fatalf("Expected map[string]any, got %T", result[0])
+	}
 
 	// ref_name should be nil for push rulesets
 	refNameSlice := conditionsMap["ref_name"]
@@ -765,7 +831,10 @@ func TestFlattenRequiredReviewers(t *testing.T) {
 	if result[0]["minimum_approvals"] != 2 {
 		t.Errorf("Expected first reviewer minimum approvals to be 2, got %v", result[0]["minimum_approvals"])
 	}
-	filePatterns := result[0]["file_patterns"].([]string)
+	filePatterns, ok := result[0]["file_patterns"].([]string)
+	if !ok {
+		t.Fatalf("Expected []string, got %T", result[0]["file_patterns"])
+	}
 	if len(filePatterns) != 2 {
 		t.Fatalf("Expected first reviewer to have 2 file patterns, got %d", len(filePatterns))
 	}
@@ -773,7 +842,10 @@ func TestFlattenRequiredReviewers(t *testing.T) {
 		t.Errorf("Unexpected file patterns for first reviewer: %v", filePatterns)
 	}
 
-	reviewerBlock := result[0]["reviewer"].([]map[string]any)
+	reviewerBlock, ok := result[0]["reviewer"].([]map[string]any)
+	if !ok {
+		t.Fatalf("Expected []map[string]any, got %T", result[0]["reviewer"])
+	}
 	if len(reviewerBlock) != 1 {
 		t.Fatalf("Expected 1 reviewer block, got %d", len(reviewerBlock))
 	}
@@ -836,12 +908,18 @@ func TestRoundTripRequiredReviewers(t *testing.T) {
 		t.Errorf("Expected minimum_approvals to be 2 after round trip, got %v", flattened[0]["minimum_approvals"])
 	}
 
-	filePatterns := flattened[0]["file_patterns"].([]string)
+	filePatterns, ok := flattened[0]["file_patterns"].([]string)
+	if !ok {
+		t.Fatalf("Expected []string, got %T", flattened[0]["file_patterns"])
+	}
 	if len(filePatterns) != 2 {
 		t.Fatalf("Expected 2 file patterns after round trip, got %d", len(filePatterns))
 	}
 
-	reviewerBlock := flattened[0]["reviewer"].([]map[string]any)
+	reviewerBlock, ok := flattened[0]["reviewer"].([]map[string]any)
+	if !ok {
+		t.Fatalf("Expected []map[string]any, got %T", flattened[0]["reviewer"])
+	}
 	if len(reviewerBlock) != 1 {
 		t.Fatalf("Expected 1 reviewer block after round trip, got %d", len(reviewerBlock))
 	}
@@ -1145,7 +1223,10 @@ func TestFlattenRulesetRepositoryPropertyTargetParameters(t *testing.T) {
 	if result[0]["source"] != "custom" {
 		t.Errorf("Expected first property source to be 'custom', got %v", result[0]["source"])
 	}
-	values := result[0]["property_values"].([]string)
+	values, ok := result[0]["property_values"].([]string)
+	if !ok {
+		t.Fatalf("Expected []string, got %T", result[0]["property_values"])
+	}
 	if len(values) != 2 || values[0] != "prod" || values[1] != "staging" {
 		t.Errorf("Expected first property values to be ['prod', 'staging'], got %v", values)
 	}
@@ -1224,7 +1305,10 @@ func TestRoundTripRepositoryPropertyConditions(t *testing.T) {
 	if flattenedInclude[0]["source"] != "custom" {
 		t.Errorf("Expected first include source to be 'custom', got %v", flattenedInclude[0]["source"])
 	}
-	includeValues := flattenedInclude[0]["property_values"].([]string)
+	includeValues, ok := flattenedInclude[0]["property_values"].([]string)
+	if !ok {
+		t.Fatalf("Expected []string, got %T", flattenedInclude[0]["property_values"])
+	}
 	if len(includeValues) != 2 || includeValues[0] != "prod" || includeValues[1] != "staging" {
 		t.Errorf("Expected first include values to be ['prod', 'staging'], got %v", includeValues)
 	}
@@ -1241,7 +1325,10 @@ func TestRoundTripRepositoryPropertyConditions(t *testing.T) {
 	if flattenedExclude[0]["name"] != "region" {
 		t.Errorf("Expected exclude name to be 'region', got %v", flattenedExclude[0]["name"])
 	}
-	excludeValues := flattenedExclude[0]["property_values"].([]string)
+	excludeValues, ok := flattenedExclude[0]["property_values"].([]string)
+	if !ok {
+		t.Fatalf("Expected []string, got %T", flattenedExclude[0]["property_values"])
+	}
 	if len(excludeValues) != 1 || excludeValues[0] != "us-west" {
 		t.Errorf("Expected exclude values to be ['us-west'], got %v", excludeValues)
 	}
@@ -1288,7 +1375,10 @@ func TestFlattenRulesetRepositoryPropertyTargetParameters_SingleProperty(t *test
 		t.Errorf("Expected source to be 'system', got %v", result[0]["source"])
 	}
 
-	values := result[0]["property_values"].([]string)
+	values, ok := result[0]["property_values"].([]string)
+	if !ok {
+		t.Fatalf("Expected []string, got %T", result[0]["property_values"])
+	}
 	if len(values) != 2 || values[0] != "prod" || values[1] != "staging" {
 		t.Errorf("Expected property_values to be ['prod', 'staging'], got %v", values)
 	}
@@ -1334,7 +1424,10 @@ func TestFlattenRulesetRepositoryPropertyTargetParameters_EmptyPropertyValues(t 
 		t.Fatalf("Expected 1 property, got %d", len(result))
 	}
 
-	values := result[0]["property_values"].([]string)
+	values, ok := result[0]["property_values"].([]string)
+	if !ok {
+		t.Fatalf("Expected []string, got %T", result[0]["property_values"])
+	}
 	if len(values) != 0 {
 		t.Errorf("Expected property_values to be empty array, got %v", values)
 	}

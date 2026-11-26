@@ -54,11 +54,12 @@ func resourceGithubUserSshKey() *schema.Resource {
 	}
 }
 
-func resourceGithubUserSshKeyCreate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubUserSshKeyCreate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	title := d.Get("title").(string)
-	key := d.Get("key").(string)
+	title, _ := d.Get("title").(string)
+	key, _ := d.Get("key").(string)
 	ctx := context.Background()
 
 	userKey, _, err := client.Users.CreateKey(ctx, github.CreateUserKeyRequest{
@@ -84,7 +85,8 @@ func resourceGithubUserSshKeyRead(d *schema.ResourceData, m any) error {
 	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+		etag, _ := d.Get("etag").(string)
+		ctx = context.WithValue(ctx, ctxEtag, etag)
 	}
 
 	key, resp, err := client.Users.GetKey(ctx, id)
@@ -121,8 +123,9 @@ func resourceGithubUserSshKeyRead(d *schema.ResourceData, m any) error {
 	return nil
 }
 
-func resourceGithubUserSshKeyDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubUserSshKeyDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {

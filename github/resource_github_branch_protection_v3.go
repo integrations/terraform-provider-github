@@ -222,17 +222,18 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 	}
 }
 
-func resourceGithubBranchProtectionV3Create(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchProtectionV3Create(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 
-	orgName := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
-	branch := d.Get("branch").(string)
+	orgName := meta.name
+	repoName, _ := d.Get("repository").(string)
+	branch, _ := d.Get("branch").(string)
 
 	protectionRequest, err := buildProtectionRequest(d)
 	if err != nil {
@@ -280,7 +281,8 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, m any) error {
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+		etag, _ := d.Get("etag").(string)
+		ctx = context.WithValue(ctx, ctxEtag, etag)
 	}
 
 	githubProtection, resp, err := client.Repositories.GetBranchProtection(ctx,
@@ -343,13 +345,14 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, m any) error {
 	return nil
 }
 
-func resourceGithubBranchProtectionV3Update(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchProtectionV3Update(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 
 	if err := d.Set("etag", nil); err != nil {
 		return err
@@ -365,7 +368,7 @@ func resourceGithubBranchProtectionV3Update(d *schema.ResourceData, meta any) er
 		return err
 	}
 
-	orgName := meta.(*Owner).name
+	orgName := meta.name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	protection, _, err := client.Repositories.UpdateBranchProtection(ctx,
@@ -402,19 +405,20 @@ func resourceGithubBranchProtectionV3Update(d *schema.ResourceData, meta any) er
 	return resourceGithubBranchProtectionV3Read(d, meta)
 }
 
-func resourceGithubBranchProtectionV3Delete(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchProtectionV3Delete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 	repoName, branch, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
 
-	orgName := meta.(*Owner).name
+	orgName := meta.name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	_, err = client.Repositories.RemoveBranchProtection(ctx,

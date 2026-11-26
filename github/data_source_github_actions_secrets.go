@@ -58,14 +58,15 @@ func dataSourceGithubActionsSecretsRead(ctx context.Context, d *schema.ResourceD
 
 	if fullName, ok := d.GetOk("full_name"); ok {
 		var err error
-		owner, repoName, err = splitRepoFullName(fullName.(string))
+		fullNameStr, _ := fullName.(string)
+		owner, repoName, err = splitRepoFullName(fullNameStr)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 	}
 
 	if name, ok := d.GetOk("name"); ok {
-		repoName = name.(string)
+		repoName, _ = name.(string)
 	}
 
 	if repoName == "" {

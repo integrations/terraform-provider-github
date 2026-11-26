@@ -77,14 +77,14 @@ func resourceGithubTeamMembershipCreateOrUpdate(ctx context.Context, d *schema.R
 		return diag.FromErr(err)
 	}
 
-	teamIdString := d.Get("team_id").(string)
+	teamIdString, _ := d.Get("team_id").(string)
 	teamId, err := getTeamID(ctx, meta, teamIdString)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	username := d.Get("username").(string)
-	role := d.Get("role").(string)
+	username, _ := d.Get("username").(string)
+	role, _ := d.Get("role").(string)
 
 	_, _, err = client.Teams.AddTeamMembershipByID(ctx,
 		orgId,
@@ -129,7 +129,8 @@ func resourceGithubTeamMembershipRead(ctx context.Context, d *schema.ResourceDat
 	}
 
 	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+		etag, _ := d.Get("etag").(string)
+		ctx = context.WithValue(ctx, ctxEtag, etag)
 	}
 
 	membership, resp, err := client.Teams.GetTeamMembershipByID(ctx,
@@ -166,12 +167,12 @@ func resourceGithubTeamMembershipDelete(ctx context.Context, d *schema.ResourceD
 	client := meta.v3client
 	orgId := meta.id
 
-	teamIdString := d.Get("team_id").(string)
+	teamIdString, _ := d.Get("team_id").(string)
 	teamId, err := getTeamID(ctx, meta, teamIdString)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	username := d.Get("username").(string)
+	username, _ := d.Get("username").(string)
 
 	_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgId, teamId, username)
 	if err != nil {

@@ -68,8 +68,8 @@ func resourceGithubMembershipCreateOrUpdate(ctx context.Context, d *schema.Resou
 		return diag.FromErr(err)
 	}
 
-	username := d.Get("username").(string)
-	roleName := d.Get("role").(string)
+	username, _ := d.Get("username").(string)
+	roleName, _ := d.Get("role").(string)
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxId, d.Id())
 	}
@@ -112,7 +112,8 @@ func resourceGithubMembershipRead(ctx context.Context, d *schema.ResourceData, m
 	}
 	ctx = context.WithValue(ctx, ctxId, d.Id())
 	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+		etag, _ := d.Get("etag").(string)
+		ctx = context.WithValue(ctx, ctxEtag, etag)
 	}
 
 	membership, resp, err := client.Organizations.GetOrgMembership(ctx,
@@ -148,18 +149,19 @@ func resourceGithubMembershipRead(ctx context.Context, d *schema.ResourceData, m
 	return nil
 }
 
-func resourceGithubMembershipDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubMembershipDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 	ctx = context.WithValue(ctx, ctxId, d.Id())
 
-	username := d.Get("username").(string)
-	downgradeOnDestroy := d.Get("downgrade_on_destroy").(bool)
+	username, _ := d.Get("username").(string)
+	downgradeOnDestroy, _ := d.Get("downgrade_on_destroy").(bool)
 	downgradeTo := "member"
 
 	if downgradeOnDestroy {

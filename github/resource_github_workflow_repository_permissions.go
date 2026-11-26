@@ -41,18 +41,19 @@ func resourceGithubWorkflowRepositoryPermissions() *schema.Resource {
 	}
 }
 
-func resourceGithubWorkflowRepositoryPermissionsCreateOrUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubWorkflowRepositoryPermissionsCreateOrUpdate(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	owner := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
+	owner := meta.name
+	repoName, _ := d.Get("repository").(string)
 	ctx := context.Background()
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxId, d.Id())
 	}
 
-	defaultWorkflowPermissions := d.Get("default_workflow_permissions").(string)
-	canApprovePullRequestReviews := d.Get("can_approve_pull_request_reviews").(bool)
+	defaultWorkflowPermissions, _ := d.Get("default_workflow_permissions").(string)
+	canApprovePullRequestReviews, _ := d.Get("can_approve_pull_request_reviews").(bool)
 
 	repoWorkflowPermissions := github.DefaultWorkflowPermissionRepository{
 		DefaultWorkflowPermissions:   &defaultWorkflowPermissions,
@@ -69,13 +70,14 @@ func resourceGithubWorkflowRepositoryPermissionsCreateOrUpdate(d *schema.Resourc
 	}
 
 	d.SetId(repoName)
-	return resourceGithubWorkflowRepositoryPermissionsRead(d, meta)
+	return resourceGithubWorkflowRepositoryPermissionsRead(d, m)
 }
 
-func resourceGithubWorkflowRepositoryPermissionsRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubWorkflowRepositoryPermissionsRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	owner := meta.(*Owner).name
+	owner := meta.name
 	repoName := d.Id()
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
@@ -97,9 +99,10 @@ func resourceGithubWorkflowRepositoryPermissionsRead(d *schema.ResourceData, met
 	return nil
 }
 
-func resourceGithubWorkflowRepositoryPermissionsDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubWorkflowRepositoryPermissionsDelete(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 	repoName := d.Id()
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())

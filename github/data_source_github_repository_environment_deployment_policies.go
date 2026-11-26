@@ -49,8 +49,8 @@ func dataSourceGithubRepositoryEnvironmentDeploymentPoliciesRead(ctx context.Con
 	meta, _ := m.(*Owner)
 	client := meta.v3client
 	owner := meta.name
-	repoName := d.Get("repository").(string)
-	envName := d.Get("environment").(string)
+	repoName, _ := d.Get("repository").(string)
+	envName, _ := d.Get("environment").(string)
 
 	results := make([]map[string]any, 0)
 	listOptions := &github.ListOptions{PerPage: meta.maxPerPage}

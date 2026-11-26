@@ -49,14 +49,16 @@ func resourceGithubCodespaceOrganizationSecretRepositoriesCreateOrUpdate(d *sche
 		return err
 	}
 
-	secretName := d.Get("secret_name").(string)
+	secretName, _ := d.Get("secret_name").(string)
 	selectedRepositories := d.Get("selected_repository_ids")
 
 	selectedRepositoryIDs := []int64{}
 
-	ids := selectedRepositories.(*schema.Set).List()
-	for _, id := range ids {
-		selectedRepositoryIDs = append(selectedRepositoryIDs, int64(id.(int)))
+	if s, ok := selectedRepositories.(*schema.Set); ok {
+		for _, id := range s.List() {
+			idInt, _ := id.(int)
+			selectedRepositoryIDs = append(selectedRepositoryIDs, int64(idInt))
+		}
 	}
 
 	_, err = client.Codespaces.SetSelectedReposForOrgSecret(ctx, owner, secretName, selectedRepositoryIDs)

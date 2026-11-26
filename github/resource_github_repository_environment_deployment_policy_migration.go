@@ -47,13 +47,20 @@ func resourceGithubRepositoryEnvironmentDeploymentPolicyV0() *schema.Resource {
 }
 
 func resourceGithubRepositoryEnvironmentDeploymentPolicyStateUpgradeV0(ctx context.Context, rawState map[string]any, m any) (map[string]any, error) {
-	meta, _ := m.(*Owner)
+	meta, ok := m.(*Owner)
+	if !ok || meta == nil || meta.v3client == nil {
+		return nil, fmt.Errorf("provider meta is not configured")
+	}
 	client := meta.v3client
 	owner := meta.name
 
 	tflog.Debug(ctx, "Starting state upgrade for GitHub Repository Environment Deployment Policy.", map[string]any{"raw_state": rawState})
 
-	_, _, policyIDStr, err := parseID3(rawState["id"].(string))
+	id, ok := rawState["id"].(string)
+	if !ok {
+		return nil, fmt.Errorf("id not found or is not a string")
+	}
+	_, _, policyIDStr, err := parseID3(id)
 	if err != nil {
 		return nil, err
 	}

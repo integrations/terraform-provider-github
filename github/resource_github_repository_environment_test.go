@@ -2,11 +2,14 @@ package github
 
 import (
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"regexp"
 	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
@@ -322,4 +325,75 @@ resource "github_repository_environment" "test" {
 			},
 		})
 	})
+}
+
+func TestGithubRepositoryEnvironmentReadMissingReviewerPayload(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/repos/test-org/my-repo/environments/prod" {
+			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"can_admins_bypass": false,
+			"protection_rules": [
+				{
+					"type": "required_reviewers",
+					"prevent_self_review": true,
+					"reviewers": [
+						{"type": "Team", "reviewer": null},
+						{"type": "Team", "reviewer": {"id": 101}},
+						{"type": "User", "reviewer": null},
+						{"type": "User", "reviewer": {"id": 202}}
+					]
+				}
+			]
+		}`))
+	}))
+	t.Cleanup(srv.Close)
+
+	d := resourceGithubRepositoryEnvironment().TestResourceData()
+	d.SetId("my-repo:prod")
+	if err := d.Set("repository", "my-repo"); err != nil {
+		t.Fatalf("failed setting repository: %v", err)
+	}
+	if err := d.Set("environment", "prod"); err != nil {
+		t.Fatalf("failed setting environment: %v", err)
+	}
+
+	meta := &Owner{
+		name:     "test-org",
+		v3client: mustCreateTestGitHubClient(t, srv.URL),
+	}
+
+	diags := resourceGithubRepositoryEnvironmentRead(t.Context(), d, meta)
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+
+	reviewersRaw, ok := d.Get("reviewers").([]any)
+	if !ok || len(reviewersRaw) != 1 {
+		t.Fatalf("expected 1 reviewers block, got %#v", d.Get("reviewers"))
+	}
+	reviewerBlock, ok := reviewersRaw[0].(map[string]any)
+	if !ok {
+		t.Fatalf("expected reviewers[0] to be map[string]any, got %T", reviewersRaw[0])
+	}
+	teamsSet, ok := reviewerBlock["teams"].(*schema.Set)
+	if !ok {
+		t.Fatalf("expected teams *schema.Set, got %T", reviewerBlock["teams"])
+	}
+	usersSet, ok := reviewerBlock["users"].(*schema.Set)
+	if !ok {
+		t.Fatalf("expected users *schema.Set, got %T", reviewerBlock["users"])
+	}
+	if teamsSet.Len() != 1 || !teamsSet.Contains(101) {
+		t.Fatalf("got teams %v, want [101]", teamsSet.List())
+	}
+	if usersSet.Len() != 1 || !usersSet.Contains(202) {
+		t.Fatalf("got users %v, want [202]", usersSet.List())
+	}
 }

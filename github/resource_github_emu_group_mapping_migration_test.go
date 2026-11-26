@@ -2,7 +2,12 @@ package github
 
 import (
 	"fmt"
+	"maps"
+	"net/http"
+	"net/http/httptest"
 	"regexp"
+	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -132,6 +137,97 @@ func Test_resourceGithubEMUGroupMappingStateUpgradeV0(t *testing.T) {
 
 			if diff := cmp.Diff(got, tt.want); diff != "" {
 				t.Fatalf("got %+v, want %+v, diff %s", got, tt.want, diff)
+			}
+		})
+	}
+}
+
+func Test_resourceGithubEMUGroupMappingStateUpgradeV0_malformedTeamSlug(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name     string
+		rawState map[string]any
+	}{
+		{
+			name:     "missing team_slug",
+			rawState: map[string]any{"group_id": 123},
+		},
+		{
+			name:     "nil team_slug",
+			rawState: map[string]any{"team_slug": nil, "group_id": 123},
+		},
+		{
+			name:     "non-string team_slug",
+			rawState: map[string]any{"team_slug": 123, "group_id": 123},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var apiCalls atomic.Int32
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				apiCalls.Add(1)
+				w.WriteHeader(http.StatusInternalServerError)
+			}))
+			t.Cleanup(srv.Close)
+
+			meta := &Owner{
+				name:     "test-org",
+				v3client: mustCreateTestGitHubClient(t, srv.URL),
+			}
+			before := maps.Clone(tt.rawState)
+
+			got, err := resourceGithubEMUGroupMappingStateUpgradeV0(t.Context(), tt.rawState, meta)
+			if err == nil {
+				t.Fatal("expected error, got nil")
+			}
+			if !strings.Contains(err.Error(), "team_slug not found or is not a string") {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != nil {
+				t.Fatalf("expected nil state, got %#v", got)
+			}
+			if diff := cmp.Diff(before, tt.rawState); diff != "" {
+				t.Fatalf("expected input state unchanged (-want +got):\n%s", diff)
+			}
+			if gotCalls := apiCalls.Load(); gotCalls != 0 {
+				t.Fatalf("expected no GitHub API calls, got %d", gotCalls)
+			}
+		})
+	}
+}
+
+func Test_resourceGithubEMUGroupMappingStateUpgradeV0_unconfiguredMeta(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name string
+		meta any
+	}{
+		{name: "nil meta", meta: nil},
+		{name: "wrong meta type", meta: "not-an-owner"},
+		{name: "nil owner pointer", meta: (*Owner)(nil)},
+		{name: "owner without v3client", meta: &Owner{name: "test-org"}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			rawState := map[string]any{
+				"team_slug": "test-team",
+				"group_id":  123,
+			}
+			before := maps.Clone(rawState)
+
+			got, err := resourceGithubEMUGroupMappingStateUpgradeV0(t.Context(), rawState, tt.meta)
+			if err == nil {
+				t.Fatal("expected error for unconfigured provider meta, got nil")
+			}
+			if got != nil {
+				t.Fatalf("expected nil state, got %#v", got)
+			}
+			if diff := cmp.Diff(before, rawState); diff != "" {
+				t.Fatalf("expected input state unchanged (-want +got):\n%s", diff)
 			}
 		})
 	}

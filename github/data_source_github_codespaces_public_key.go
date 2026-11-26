@@ -29,12 +29,13 @@ func dataSourceGithubCodespacesPublicKey() *schema.Resource {
 	}
 }
 
-func dataSourceGithubCodespacesPublicKeyRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	repository := d.Get("repository").(string)
-	owner := meta.(*Owner).name
+func dataSourceGithubCodespacesPublicKeyRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	repository, _ := d.Get("repository").(string)
+	owner := meta.name
 	log.Printf("[INFO] Refreshing GitHub Codespaces Public Key from: %s/%s", owner, repository)
 
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 
 	publicKey, _, err := client.Codespaces.GetRepoPublicKey(ctx, owner, repository)
 	if err != nil {

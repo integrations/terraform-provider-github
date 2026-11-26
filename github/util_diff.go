@@ -110,7 +110,7 @@ func diffSecretVariableVisibility(ctx context.Context, d *schema.ResourceDiff, _
 		return nil
 	}
 
-	visibility := d.Get("visibility").(string)
+	visibility, _ := d.Get("visibility").(string)
 	if visibility != "selected" {
 		if _, ok := d.GetOk("selected_repository_ids"); ok {
 			return fmt.Errorf("cannot use selected_repository_ids without visibility being set to selected")
