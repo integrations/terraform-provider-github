@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-github/v92/github"
+	"github.com/google/go-github/v93/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 )
 
@@ -75,7 +75,7 @@ func mustDeleteTeam(t *testing.T, team *github.Team) {
 func mustAddTeamMember(t *testing.T, team *github.Team, username string) {
 	t.Helper()
 
-	membership, _, err := testAccConf.meta.v3client.Teams.AddTeamMembershipBySlug(t.Context(), testAccConf.meta.name, team.GetSlug(), username, &github.TeamAddTeamMembershipOptions{Role: "member"})
+	membership, _, err := testAccConf.meta.v3client.Teams.AddTeamMembershipBySlug(t.Context(), testAccConf.meta.name, team.GetSlug(), username, github.AddTeamMembershipRequest{Role: new("member")})
 	if err != nil {
 		t.Fatalf("failed to add member %s to test team %s: %v", username, team.GetName(), err)
 	}
@@ -88,7 +88,7 @@ func mustAddTeamMember(t *testing.T, team *github.Team, username string) {
 func mustAddTeamMaintainer(t *testing.T, team *github.Team, username string) {
 	t.Helper()
 
-	membership, _, err := testAccConf.meta.v3client.Teams.AddTeamMembershipBySlug(t.Context(), testAccConf.meta.name, team.GetSlug(), username, &github.TeamAddTeamMembershipOptions{Role: "maintainer"})
+	membership, _, err := testAccConf.meta.v3client.Teams.AddTeamMembershipBySlug(t.Context(), testAccConf.meta.name, team.GetSlug(), username, github.AddTeamMembershipRequest{Role: new("maintainer")})
 	if err != nil {
 		t.Fatalf("failed to add member %s to test team %s: %v", username, team.GetName(), err)
 	}
@@ -116,16 +116,16 @@ func mustAssignOrganizationRoleToTeam(t *testing.T, team *github.Team, roleID in
 	})
 }
 
-type addTeamRepositoryOptionsFunc func(*github.TeamAddTeamRepoOptions)
+type addTeamRepositoryOptionsFunc func(*github.AddTeamRepoRequest)
 
 func mustAddRepositoryToTeam(t *testing.T, team *github.Team, repo *github.Repository, f ...addTeamRepositoryOptionsFunc) {
 	t.Helper()
 
-	opts := &github.TeamAddTeamRepoOptions{Permission: "pull"}
+	opts := github.AddTeamRepoRequest{Permission: new("pull")}
 
 	for _, fn := range f {
 		if fn != nil {
-			fn(opts)
+			fn(&opts)
 		}
 	}
 

@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/go-github/v92/github"
+	"github.com/google/go-github/v93/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -654,6 +654,39 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 	return repository
 }
 
+// repositoryCreateRequest maps a repository onto the body the create endpoint
+// accepts. The request has no field for five of the settings on the
+// repository: topics are sent by ReplaceAllTopics, and archived,
+// has_downloads, security_and_analysis and web_commit_signoff_required by the
+// update that create delegates to once the repository exists.
+func repositoryCreateRequest(repo *github.Repository) github.CreateRepositoryRequest {
+	return github.CreateRepositoryRequest{
+		Name:                     repo.GetName(),
+		Description:              repo.Description,
+		Homepage:                 repo.Homepage,
+		Visibility:               repo.Visibility,
+		HasIssues:                repo.HasIssues,
+		HasProjects:              repo.HasProjects,
+		HasWiki:                  repo.HasWiki,
+		HasDiscussions:           repo.HasDiscussions,
+		IsTemplate:               repo.IsTemplate,
+		AutoInit:                 repo.AutoInit,
+		GitignoreTemplate:        repo.GitignoreTemplate,
+		LicenseTemplate:          repo.LicenseTemplate,
+		AllowSquashMerge:         repo.AllowSquashMerge,
+		AllowMergeCommit:         repo.AllowMergeCommit,
+		AllowRebaseMerge:         repo.AllowRebaseMerge,
+		AllowUpdateBranch:        repo.AllowUpdateBranch,
+		AllowAutoMerge:           repo.AllowAutoMerge,
+		AllowForking:             repo.AllowForking,
+		DeleteBranchOnMerge:      repo.DeleteBranchOnMerge,
+		SquashMergeCommitTitle:   repo.SquashMergeCommitTitle,
+		SquashMergeCommitMessage: repo.SquashMergeCommitMessage,
+		MergeCommitTitle:         repo.MergeCommitTitle,
+		MergeCommitMessage:       repo.MergeCommitMessage,
+	}
+}
+
 func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*Owner).v3client
 
@@ -712,12 +745,12 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 		}
 
 		// Create the fork using the GitHub client library
-		opts := &github.RepositoryCreateForkOptions{
-			Name: requestedName,
+		opts := github.CreateForkRequest{
+			Name: new(requestedName),
 		}
 
 		if meta.(*Owner).IsOrganization {
-			opts.Organization = owner
+			opts.Organization = new(owner)
 		}
 
 		fork, resp, err := client.Repositories.CreateFork(ctx, sourceOwner, sourceRepo, opts)
@@ -757,11 +790,12 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 		// Create without a repository template
 		var repo *github.Repository
 		var err error
+		createReq := repositoryCreateRequest(repoReq)
 		if meta.(*Owner).IsOrganization {
-			repo, _, err = client.Repositories.Create(ctx, owner, repoReq)
+			repo, _, err = client.Repositories.Create(ctx, owner, createReq)
 		} else {
 			// Create repository within authenticated user's account
-			repo, _, err = client.Repositories.Create(ctx, "", repoReq)
+			repo, _, err = client.Repositories.Create(ctx, "", createReq)
 		}
 		if err != nil {
 			return diag.FromErr(err)

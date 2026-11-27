@@ -9,7 +9,7 @@ import (
 	"time"
 
 	ghct "github.com/bored-engineer/github-conditional-http-transport"
-	"github.com/google/go-github/v92/github"
+	"github.com/google/go-github/v93/github"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
 

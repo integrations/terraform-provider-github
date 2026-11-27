@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v92/github"
+	"github.com/google/go-github/v93/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -46,7 +46,7 @@ func resourceGithubActionsRepositoryAccessLevelCreateOrUpdate(d *schema.Resource
 
 	accessLevel := d.Get("access_level").(string)
 	actionAccessLevel := github.RepositoryActionsAccessLevel{
-		AccessLevel: new(accessLevel),
+		AccessLevel: accessLevel,
 	}
 
 	_, err := client.Repositories.EditActionsAccessLevel(ctx, owner, repoName, actionAccessLevel)
@@ -81,7 +81,7 @@ func resourceGithubActionsRepositoryAccessLevelDelete(d *schema.ResourceData, me
 	ctx := context.WithValue(context.Background(), ctxId, repoName)
 
 	actionAccessLevel := github.RepositoryActionsAccessLevel{
-		AccessLevel: new("none"),
+		AccessLevel: "none",
 	}
 	_, err := client.Repositories.EditActionsAccessLevel(ctx, owner, repoName, actionAccessLevel)
 

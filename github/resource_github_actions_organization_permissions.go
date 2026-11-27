@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/go-github/v92/github"
+	"github.com/google/go-github/v93/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -140,7 +140,7 @@ func resourceGithubActionsOrganizationPermissionsCreate(ctx context.Context, d *
 	enabledRepositories, _ := d.Get("enabled_repositories").(string)
 
 	req := github.ActionsPermissions{
-		EnabledRepositories: &enabledRepositories,
+		EnabledRepositories: enabledRepositories,
 	}
 
 	if v, ok := d.GetOk("allowed_actions"); ok {
@@ -168,7 +168,7 @@ func resourceGithubActionsOrganizationPermissionsCreate(ctx context.Context, d *
 		}
 	}
 
-	if *req.EnabledRepositories == "selected" {
+	if req.EnabledRepositories == "selected" {
 		if v, ok := d.GetOk("enabled_repositories_config"); ok {
 			if p, ok := v.([]any); ok && len(p) > 0 {
 				repoIDs := []int64{}
@@ -319,7 +319,7 @@ func resourceGithubActionsOrganizationPermissionsUpdate(ctx context.Context, d *
 	shaPinningRequired, _ := d.Get("sha_pinning_required").(bool) // TODO: Update for v7 when no longer computed
 
 	req := github.ActionsPermissions{
-		EnabledRepositories: &enabledRepositories,
+		EnabledRepositories: enabledRepositories,
 		SHAPinningRequired:  &shaPinningRequired,
 	}
 
@@ -332,7 +332,7 @@ func resourceGithubActionsOrganizationPermissionsUpdate(ctx context.Context, d *
 		return diag.FromErr(err)
 	}
 
-	if *req.EnabledRepositories == "selected" {
+	if req.EnabledRepositories == "selected" {
 		if v, ok := d.GetOk("enabled_repositories_config"); ok {
 			if p, ok := v.([]any); ok && len(p) > 0 {
 				repoIDs := []int64{}
@@ -401,7 +401,7 @@ func resourceGithubActionsOrganizationPermissionsDelete(ctx context.Context, d *
 
 	req := github.ActionsPermissions{
 		AllowedActions:      new("all"),
-		EnabledRepositories: new("all"),
+		EnabledRepositories: "all",
 	}
 
 	if _, _, err := meta.v3client.Actions.UpdateActionsPermissions(ctx, meta.name, req); err != nil {
