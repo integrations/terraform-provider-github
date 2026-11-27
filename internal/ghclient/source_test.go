@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -1037,13 +1036,11 @@ func TestNewSource(t *testing.T) {
 
 			dir := t.TempDir()
 
-			first, err := NewSource(WithSourceToken("token"), WithSourceCache(dir))
-			if err != nil {
+			if _, err := NewSource(WithSourceToken("token"), WithSourceCache(dir)); err != nil {
 				t.Fatalf("unexpected error creating first source: %s", err)
 			}
 
 			got, err := NewSource(WithSourceToken("token"), WithSourceCache(dir))
-			runtime.KeepAlive(first)
 			if err == nil {
 				t.Fatal("got nil, want error")
 			}

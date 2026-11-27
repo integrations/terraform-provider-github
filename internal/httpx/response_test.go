@@ -261,7 +261,7 @@ func TestParseRetryAfter(t *testing.T) {
 			synctest.Test(t, func(t *testing.T) {
 				in := tt.raw
 				if tt.timeOffset != nil {
-					in = time.Now().Add(*tt.timeOffset).UTC().Format(http.TimeFormat)
+					in = time.Now().Add(*tt.timeOffset).Format(http.TimeFormat)
 				}
 
 				got, gotOk := ParseRetryAfter(in)
