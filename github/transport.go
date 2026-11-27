@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -241,52 +242,76 @@ func NewRetryTransport(rt http.RoundTripper, options ...RetryTransportOption) *R
 func (t *RetryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	var err error
 	var resp *http.Response
-	var dataBuffer *bytes.Reader
+	var data []byte
 
 	for retry := 0; retry <= t.maxRetries; retry++ {
-		// Reset the body
-		// Code from httpretry (https://github.com/ybbus/httpretry/blob/master/roundtripper.go#L60)
-		// if request provides GetBody() we use it as Body,
-		// because GetBody can be retrieved arbitrary times for retry
-		if req.GetBody != nil {
-			bodyReadCloser, _ := req.GetBody()
-			req.Body = bodyReadCloser
-		} else if req.Body != nil {
+		if err := req.Context().Err(); err != nil {
+			// Before the first attempt we still own the request body. Once
+			// sent, the underlying transport is responsible for closing it.
+			if retry == 0 && req.Body != nil {
+				_ = req.Body.Close()
+			}
+			return nil, err
+		}
 
-			// we need to store the complete body, since we need to reset it if a retry happens
-			// but: not very efficient because:
-			// a) huge stream data size will all be buffered completely in the memory
-			//    imagine: 1GB stream data would work efficiently with io.Copy, but has to be buffered completely in memory
-			// b) unnecessary if first attempt succeeds
-			// a solution would be to at least support more types for GetBody()
+		// Shallow copy so we never mutate the caller's Request.
+		reqCopy := new(*req)
 
-			// store it for the first time
-			if dataBuffer == nil {
-				data, err := io.ReadAll(req.Body)
-				req.Body.Close()
-				if err != nil {
-					return nil, err
+		if reqCopy.Body != nil && reqCopy.Body != http.NoBody {
+			if req.GetBody != nil {
+				// The first attempt uses the original body. Later attempts need a
+				// fresh body so the request can be sent again.
+				if retry > 0 {
+					reqCopy.Body, err = req.GetBody()
+					if err != nil {
+						return nil, fmt.Errorf("failed to rewind request body: %w", err)
+					}
 				}
-				dataBuffer = bytes.NewReader(data)
-				req.ContentLength = int64(dataBuffer.Len())
-				req.Body = io.NopCloser(dataBuffer)
-			}
-
-			// reset the request body
-			if _, err = dataBuffer.Seek(0, io.SeekStart); err != nil {
-				return nil, err
+			} else {
+				// Without GetBody, buffer the body once and use a fresh reader for
+				// every attempt. This preserves the legacy transport's fallback for
+				// streaming bodies without modifying the caller's Request.
+				if retry == 0 {
+					data, err = io.ReadAll(req.Body)
+					_ = req.Body.Close()
+					if err != nil {
+						return nil, err
+					}
+				}
+				reqCopy.ContentLength = int64(len(data))
+				reqCopy.Body = io.NopCloser(bytes.NewReader(data))
 			}
 		}
 
-		resp, err = t.transport.RoundTrip(req)
-		if resp != nil && !t.retryableErrors[resp.StatusCode] {
-			return resp, err
+		resp, err = t.transport.RoundTrip(reqCopy)
+		if err != nil {
+			// A RoundTripper must not return a response alongside an error,
+			// but discard it if one is returned so it cannot leak.
+			closeResponseBody(resp)
+			resp = nil
+		} else if !t.retryableErrors[resp.StatusCode] {
+			return resp, nil
 		}
 
-		time.Sleep(t.retryDelay)
+		if retry < t.maxRetries {
+			// Close the intermediate response body before retrying, otherwise its
+			// connection and resources are leaked. Draining is unnecessary with
+			// Go 1.27 and could block indefinitely on a stalled response body.
+			closeResponseBody(resp)
+			resp = nil
+			sleep(req.Context(), t.retryDelay)
+		}
 	}
 
 	return resp, err
+}
+
+// closeResponseBody closes a discarded response body without reading it.
+func closeResponseBody(resp *http.Response) {
+	if resp == nil || resp.Body == nil {
+		return
+	}
+	_ = resp.Body.Close()
 }
 
 // WithMaxRetries is used to set the max number of retries when encountering an error.
