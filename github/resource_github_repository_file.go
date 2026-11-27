@@ -2,9 +2,9 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 
 	"github.com/google/go-github/v92/github"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -22,6 +22,8 @@ func resourceGithubRepositoryFile() *schema.Resource {
 			StateContext: resourceGithubRepositoryFileImport,
 		},
 
+		CustomizeDiff: resourceGithubRepositoryFileDiff,
+
 		SchemaVersion: 1,
 		StateUpgraders: []schema.StateUpgrader{
 			{
@@ -31,201 +33,189 @@ func resourceGithubRepositoryFile() *schema.Resource {
 			},
 		},
 
-		Description: "This resource allows you to create and manage files within a GitHub repository.",
+		Description: "Resource to manage a file within a GitHub repository.",
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The repository name",
+				Description: "Name of the repository.",
 			},
 			"repository_id": {
 				Type:        schema.TypeInt,
 				Computed:    true,
-				Description: "The repository ID",
-			},
-			"file": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The file path to manage",
-			},
-			"content": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The file's content",
+				Description: "ID of the repository.",
 			},
 			"branch": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    true,
 				Computed:    true,
-				Description: "The branch name, defaults to the repository's default branch",
+				Description: "Name of the branch; this defaults to the repository's default branch. The branch must already exist, unless `autocreate_branch` is set.",
 			},
-			"ref": {
+			"file": {
 				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The name of the commit/branch/tag",
+				Required:    true,
 				ForceNew:    true,
+				Description: "Path of the file to manage.",
 			},
-			"commit_sha": {
+			"content": {
 				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The SHA of the commit that modified the file",
+				Required:    true,
+				Description: "Content of the file.",
 			},
 			"commit_message": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
-				Description: "The commit message when creating, updating or deleting the file",
+				Computed:    true, // TODO: Remove Computed in next major version.
+				Description: "Commit message used when creating, updating or deleting the file; this defaults to `Add <file>`, `Update <file>` or `Delete <file>` respectively. It is only used when the file is written and is not read back from GitHub, so changing it on its own will not update the file.",
 			},
 			"commit_author": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Computed:     false,
-				Description:  "The commit author name, defaults to the authenticated user's name. GitHub app users may omit author and email information so GitHub can verify commits as the GitHub App. ",
+				Description:  "Name of the commit author; this defaults to the authenticated user's name and must be set together with `commit_email`. It is only used when the file is written and is not read back from GitHub. GitHub app users may omit author and email information so GitHub can verify commits as the GitHub App, which may be useful when a branch protection rule requires signed commits.",
 				RequiredWith: []string{"commit_email"},
 			},
 			"commit_email": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Computed:     false,
-				Description:  "The commit author email address, defaults to the authenticated user's email address. GitHub app users may omit author and email information so GitHub can verify commits as the GitHub App.",
+				Description:  "Email address of the commit author; this defaults to the authenticated user's email address and must be set together with `commit_author`. It is only used when the file is written and is not read back from GitHub. GitHub app users may omit author and email information so GitHub can verify commits as the GitHub App, which may be useful when a branch protection rule requires signed commits.",
 				RequiredWith: []string{"commit_author"},
-			},
-			"sha": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The blob SHA of the file",
 			},
 			"overwrite_on_create": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "Enable overwriting existing files, defaults to \"false\"",
 				Default:     false,
+				Description: "Enable overwriting existing files; this defaults to `false`.",
 			},
 			"autocreate_branch": {
 				Type:             schema.TypeBool,
 				Optional:         true,
-				Description:      "Automatically create the branch if it could not be found. Subsequent reads if the branch is deleted will occur from 'autocreate_branch_source_branch'",
 				Default:          false,
 				DiffSuppressFunc: autoBranchDiffSuppressFunc,
 				Deprecated:       "Use `github_branch` resource instead",
+				Description:      "Automatically create the branch if it could not be found. Subsequent reads if the branch is deleted will occur from `autocreate_branch_source_branch`.",
 			},
 			"autocreate_branch_source_branch": {
 				Type:             schema.TypeString,
-				Default:          "main",
 				Optional:         true,
-				Description:      "The branch name to start from, if 'autocreate_branch' is set. Defaults to 'main'.",
+				Default:          "main",
 				RequiredWith:     []string{"autocreate_branch"},
 				DiffSuppressFunc: autoBranchDiffSuppressFunc,
 				Deprecated:       "Use `github_branch` resource instead",
+				Description:      "The branch name to start from, if `autocreate_branch` is set; this defaults to `main`.",
 			},
 			"autocreate_branch_source_sha": {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Computed:         true,
-				Description:      "The commit hash to start from, if 'autocreate_branch' is set. Defaults to the tip of 'autocreate_branch_source_branch'. If provided, 'autocreate_branch_source_branch' is ignored.",
 				RequiredWith:     []string{"autocreate_branch"},
 				DiffSuppressFunc: autoBranchDiffSuppressFunc,
 				Deprecated:       "Use `github_branch` resource instead",
+				Description:      "The commit hash to start from, if `autocreate_branch` is set; this defaults to the tip of `autocreate_branch_source_branch`. If provided, `autocreate_branch_source_branch` is ignored.",
+			},
+			"ref": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Name of the commit, branch or tag.",
+			},
+			"sha": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Blob SHA of the file.",
+			},
+			"commit_sha": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "SHA of the latest commit that modified the file; this is set when the file is written and refreshed if the file is changed outside of Terraform.",
 			},
 		},
-		CustomizeDiff: diffRepository,
 	}
 }
 
-func resourceGithubRepositoryFileOptions(d *schema.ResourceData) *github.RepositoryContentFileOptions {
-	opts := &github.RepositoryContentFileOptions{
-		Content: []byte(d.Get("content").(string)),
+// resourceGithubRepositoryFileDiff customises the diff for the resource. It first checks the repository, then suppresses
+// the diff when the commit message is the only change as it's only used when writing the file, so changing it alone must
+// not trigger an update with identical content.
+func resourceGithubRepositoryFileDiff(ctx context.Context, diff *schema.ResourceDiff, m any) error {
+	if err := diffRepository(ctx, diff, m); err != nil {
+		return err
 	}
 
-	if branch, ok := d.GetOk("branch"); ok {
-		opts.Branch = new(branch.(string))
+	if diff.Id() == "" || !diff.HasChange("commit_message") {
+		return nil
 	}
 
-	if commitMessage, hasCommitMessage := d.GetOk("commit_message"); hasCommitMessage {
-		opts.Message = new(commitMessage.(string))
+	if len(diff.GetChangedKeysPrefix("")) != 1 {
+		return nil
 	}
 
-	if SHA, hasSHA := d.GetOk("sha"); hasSHA {
-		opts.SHA = new(SHA.(string))
-	}
-
-	commitAuthor, hasCommitAuthor := d.GetOk("commit_author")
-	commitEmail, hasCommitEmail := d.GetOk("commit_email")
-
-	if hasCommitAuthor && hasCommitEmail {
-		name := new(commitAuthor.(string))
-		mail := new(commitEmail.(string))
-		opts.Author = &github.CommitAuthor{Name: name, Email: mail}
-		opts.Committer = &github.CommitAuthor{Name: name, Email: mail}
-	}
-
-	return opts
+	return diff.Clear("commit_message")
 }
 
-func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
-	repo := d.Get("repository").(string)
-	file := d.Get("file").(string)
+	repo, _ := d.Get("repository").(string)
+	file, _ := d.Get("file").(string)
 
+	ctx = tflog.SetField(ctx, "owner", owner)
 	ctx = tflog.SetField(ctx, "repository", repo)
 	ctx = tflog.SetField(ctx, "file", file)
-	ctx = tflog.SetField(ctx, "owner", owner)
-
-	checkOpt := github.RepositoryContentGetOptions{}
 
 	repoInfo, _, err := client.Repositories.Get(ctx, owner, repo)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	var branch string
 
-	if branchFieldVal, ok := d.GetOk("branch"); ok {
-		branch = branchFieldVal.(string)
-		tflog.Debug(ctx, "Using explicitly set branch", map[string]any{
-			"branch": branch,
-		})
+	branch, _ := d.Get("branch").(string)
+	if branch != "" {
+		tflog.Debug(ctx, "Using explicitly set branch", map[string]any{"branch": branch})
 		if err := checkRepositoryBranchExists(ctx, client, owner, repo, branch); err != nil {
-			if d.Get("autocreate_branch").(bool) {
-				if err := resourceGithubRepositoryFileCreateBranch(ctx, d, meta); err != nil {
+			if autocreate, _ := d.Get("autocreate_branch").(bool); !autocreate {
+				return diag.FromErr(err)
+			}
+
+			branchRefName := "refs/heads/" + branch
+			sourceBranchName, _ := d.Get("autocreate_branch_source_branch").(string)
+			sourceBranchRefName := "refs/heads/" + sourceBranchName
+
+			if _, hasSourceSHA := d.GetOk("autocreate_branch_source_sha"); !hasSourceSHA {
+				ref, _, err := client.Git.GetRef(ctx, owner, repo, sourceBranchRefName)
+				if err != nil {
+					return diag.FromErr(fmt.Errorf("error querying GitHub branch reference %s/%s (%s): %w", owner, repo, sourceBranchRefName, err))
+				}
+				if err := d.Set("autocreate_branch_source_sha", ref.Object.GetSHA()); err != nil {
 					return diag.FromErr(err)
 				}
-			} else {
-				return diag.FromErr(err)
+			}
+
+			sourceBranchSHA, _ := d.Get("autocreate_branch_source_sha").(string)
+			tflog.Debug(ctx, "Creating branch", map[string]any{"source_branch": sourceBranchName, "source_sha": sourceBranchSHA})
+			if _, _, err := client.Git.CreateRef(ctx, owner, repo, github.CreateRef{Ref: branchRefName, SHA: sourceBranchSHA}); err != nil {
+				return diag.FromErr(fmt.Errorf("error creating GitHub branch reference %s/%s (%s): %w", owner, repo, branchRefName, err))
 			}
 		}
 	} else {
 		branch = repoInfo.GetDefaultBranch()
 	}
 
-	checkOpt.Ref = branch
-
-	opts := resourceGithubRepositoryFileOptions(d)
-
-	if opts.Message == nil {
-		opts.Message = new(fmt.Sprintf("Add %s", file))
-	}
+	ctx = tflog.SetField(ctx, "branch", branch)
 
 	tflog.Debug(ctx, "Checking if overwriting a repository file")
-	fileContent, _, resp, err := client.Repositories.GetContents(ctx, owner, repo, file, &checkOpt)
+	fileContent, _, _, err := client.Repositories.GetContents(ctx, owner, repo, file, &github.RepositoryContentGetOptions{Ref: branch})
 	if err != nil {
-		if resp != nil {
-			if resp.StatusCode != http.StatusNotFound {
-				// 404 is a valid response if the file does not exist
-				return diag.FromErr(err)
-			}
-		} else {
-			// Response should be non-nil
+		// 404 is a valid response if the file does not exist
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); !ok || ghErr.Response == nil || ghErr.Response.StatusCode != http.StatusNotFound {
 			return diag.FromErr(err)
 		}
 	}
 
+	opts := resourceGithubRepositoryFileOptions(d, "Add")
+
 	if fileContent != nil {
-		if d.Get("overwrite_on_create").(bool) {
+		if overwrite, _ := d.Get("overwrite_on_create").(bool); overwrite {
 			// Overwrite existing file if requested by configuring the options for
 			// `client.Repositories.CreateFile` to match the existing file's SHA
 			opts.SHA = fileContent.SHA
@@ -246,48 +236,49 @@ func resourceGithubRepositoryFileCreate(ctx context.Context, d *schema.ResourceD
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	tflog.Debug(ctx, "Setting ID", map[string]any{
-		"id": newResourceID,
-	})
+	tflog.Debug(ctx, "Setting ID", map[string]any{"id": newResourceID})
 	d.SetId(newResourceID)
 
-	// Set computed values after the resource is created and in state
-	if err = d.Set("commit_sha", create.GetSHA()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("branch", branch); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("repository_id", int(repoInfo.GetID())); err != nil {
-		return diag.FromErr(err)
+	// Set the computed values from the create response as the file is not read back after being written.
+	// The commit message is not stored when it is not configured as it's only used when writing.
+	for k, v := range map[string]any{
+		"repository_id": int(repoInfo.GetID()),
+		"branch":        branch,
+		"ref":           branch,
+		"sha":           create.Content.GetSHA(),
+		"commit_sha":    create.GetSHA(),
+	} {
+		if err := d.Set(k, v); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
-	return resourceGithubRepositoryFileRead(ctx, d, meta)
+	return nil
 }
 
-func resourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
-	repoName := d.Get("repository").(string)
-	file := d.Get("file").(string)
-	branch := d.Get("branch").(string)
+	repo, _ := d.Get("repository").(string)
+	branch, _ := d.Get("branch").(string)
+	file, _ := d.Get("file").(string)
 
-	ctx = tflog.SetField(ctx, "repository", repoName)
+	ctx = tflog.SetField(ctx, "owner", owner)
+	ctx = tflog.SetField(ctx, "repository", repo)
+	ctx = tflog.SetField(ctx, "branch", branch)
+
 	ctx = tflog.SetField(ctx, "file", file)
-	ctx = tflog.SetField(ctx, "owner", owner)
-	ctx = tflog.SetField(ctx, "owner", owner)
-
-	opts := &github.RepositoryContentGetOptions{}
-
-	opts.Ref = branch
-
-	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repoName, file, opts)
+	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repo, file, &github.RepositoryContentGetOptions{Ref: branch})
 	if err != nil {
-		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "repository file %s/%s:%s:%s", owner, repoName, file, branch))
+		// A 404 leaves fc nil, which removes the file from state below
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); !ok || ghErr.Response.StatusCode != http.StatusNotFound {
+			return diag.FromErr(err)
+		}
 	}
 	if fc == nil {
-		tflog.Info(ctx, "Removing repository path from state because it no longer exists in GitHub")
+		tflog.Info(ctx, "Removing repository file from state because it no longer exists in GitHub")
 		d.SetId("")
 		return nil
 	}
@@ -297,6 +288,8 @@ func resourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceDat
 		return diag.FromErr(err)
 	}
 
+	oldSHA, _ := d.Get("sha").(string)
+
 	if err = d.Set("content", content); err != nil {
 		return diag.FromErr(err)
 	}
@@ -305,134 +298,86 @@ func resourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceDat
 		return diag.FromErr(err)
 	}
 
-	var commit *github.RepositoryCommit
-
-	parsedUrl, err := url.Parse(fc.GetURL())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	parsedQuery, err := url.ParseQuery(parsedUrl.RawQuery)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	ref := parsedQuery["ref"][0]
-	if err = d.Set("ref", ref); err != nil {
-		return diag.FromErr(err)
+	if oldSHA == fc.GetSHA() {
+		return nil
 	}
 
-	// Use the SHA to lookup the commit info if we know it, otherwise loop through commits
-	if sha, ok := d.GetOk("commit_sha"); ok {
-		tflog.Debug(ctx, "Using known commit SHA", map[string]any{
-			"commit_sha": sha.(string),
-		})
-		commit, _, err = client.Repositories.GetCommit(ctx, owner, repoName, sha.(string), nil)
-	} else {
-		tflog.Debug(ctx, "Commit SHA unknown for file, looking for commit")
-		commit, err = getFileCommit(ctx, client, owner, repoName, file, ref)
-	}
+	tflog.Debug(ctx, "File SHA changed, looking for commit that modified the file", map[string]any{"sha": fc.GetSHA()})
+	commit, err := fileCommit(ctx, client, owner, repo, branch, file)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	tflog.Debug(ctx, "Found file in commit", map[string]any{
-		"commit_sha": commit.GetSHA(),
-	})
 
 	if err = d.Set("commit_sha", commit.GetSHA()); err != nil {
-		return diag.FromErr(err)
-	}
-
-	commit_author := commit.Commit.GetCommitter().GetName()
-	commit_email := commit.Commit.GetCommitter().GetEmail()
-
-	_, hasCommitAuthor := d.GetOk("commit_author")
-	_, hasCommitEmail := d.GetOk("commit_email")
-
-	// read from state if author+email is set explicitly, and if it was not github signing it for you previously
-	if commit_author != "GitHub" && commit_email != "noreply@github.com" && hasCommitAuthor && hasCommitEmail {
-		if err = d.Set("commit_author", commit_author); err != nil {
-			return diag.FromErr(err)
-		}
-		if err = d.Set("commit_email", commit_email); err != nil {
-			return diag.FromErr(err)
-		}
-	}
-	if err = d.Set("commit_message", commit.GetCommit().GetMessage()); err != nil {
 		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubRepositoryFileUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func resourceGithubRepositoryFileUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
-	repo := d.Get("repository").(string)
-	file := d.Get("file").(string)
-	branch := d.Get("branch").(string)
+	repo, _ := d.Get("repository").(string)
+	branch, _ := d.Get("branch").(string)
+	file, _ := d.Get("file").(string)
 
-	ctx = tflog.SetField(ctx, "repository", repo)
-	ctx = tflog.SetField(ctx, "file", file)
 	ctx = tflog.SetField(ctx, "owner", owner)
+	ctx = tflog.SetField(ctx, "repository", repo)
 	ctx = tflog.SetField(ctx, "branch", branch)
+	ctx = tflog.SetField(ctx, "file", file)
 
-	opts := resourceGithubRepositoryFileOptions(d)
-
-	if *opts.Message == fmt.Sprintf("Add %s", file) {
-		opts.Message = new(fmt.Sprintf("Update %s", file))
-	}
+	opts := resourceGithubRepositoryFileOptions(d, "Update")
 
 	update, _, err := client.Repositories.UpdateFile(ctx, owner, repo, file, opts)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	if err = d.Set("commit_sha", update.GetSHA()); err != nil {
+	// Set the computed values from the update response as the file is not read back after being written.
+	// The commit message is not stored when it is not configured as it's only used when writing.
+	for k, v := range map[string]any{
+		"sha":        update.Content.GetSHA(),
+		"commit_sha": update.GetSHA(),
+	} {
+		if err := d.Set(k, v); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	return nil
+}
+
+func resourceGithubRepositoryFileDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
+
+	repo, _ := d.Get("repository").(string)
+	branch, _ := d.Get("branch").(string)
+	file, _ := d.Get("file").(string)
+
+	ctx = tflog.SetField(ctx, "owner", owner)
+	ctx = tflog.SetField(ctx, "repository", repo)
+	ctx = tflog.SetField(ctx, "branch", branch)
+	ctx = tflog.SetField(ctx, "file", file)
+
+	opts := resourceGithubRepositoryFileOptions(d, "Delete")
+
+	if _, _, err := client.Repositories.DeleteFile(ctx, owner, repo, file, opts); err != nil {
+		if isArchivedRepositoryError(err) {
+			tflog.Info(ctx, "Skipping deletion of repository file from archived repository")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
-	if d.HasChanges("repository", "file", "branch") {
-		newResourceID, err := buildID(repo, escapeIDPart(file), branch)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		d.SetId(newResourceID)
-	}
-
-	return resourceGithubRepositoryFileRead(ctx, d, meta)
+	return nil
 }
 
-func resourceGithubRepositoryFileDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-
-	repo := d.Get("repository").(string)
-	file := d.Get("file").(string)
-
-	opts := resourceGithubRepositoryFileOptions(d)
-
-	if *opts.Message == fmt.Sprintf("Add %s", file) {
-		opts.Message = new(fmt.Sprintf("Delete %s", file))
-	}
-
-	branch := d.Get("branch").(string)
-	opts.Branch = new(branch)
-
-	_, _, err := client.Repositories.DeleteFile(ctx, owner, repo, file, opts)
-	return diag.FromErr(handleArchivedRepoDelete(err, "repository file", file, owner, repo))
-}
-
-func autoBranchDiffSuppressFunc(k, _, _ string, d *schema.ResourceData) bool {
-	if !d.Get("autocreate_branch").(bool) {
-		switch k {
-		case "autocreate_branch", "autocreate_branch_source_branch", "autocreate_branch_source_sha":
-			return true
-		}
-	}
-	return false
-}
-
-func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
 	repo, filePathPart, branch, err := parseID3(d.Id())
 	if err != nil {
 		return nil, fmt.Errorf("invalid ID specified. Supplied ID must be written as <repository>:<file path>: (when branch is default) or <repository>:<file path>:<branch>. %w", err)
@@ -440,10 +385,9 @@ func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceD
 
 	filePath := unescapeIDPart(filePathPart)
 
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-
-	opts := &github.RepositoryContentGetOptions{}
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	owner := meta.name
 
 	repoInfo, _, err := client.Repositories.Get(ctx, owner, repo)
 	if err != nil {
@@ -453,9 +397,7 @@ func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceD
 		branch = repoInfo.GetDefaultBranch()
 	}
 
-	opts.Ref = branch
-
-	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repo, filePath, opts)
+	fc, _, _, err := client.Repositories.GetContents(ctx, owner, repo, filePath, &github.RepositoryContentGetOptions{Ref: branch})
 	if err != nil {
 		return nil, err
 	}
@@ -463,10 +405,8 @@ func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceD
 		return nil, fmt.Errorf("filePath %s is not a file in repository %s/%s or repository is not readable", filePath, owner, repo)
 	}
 
-	if err := d.Set("repository", repo); err != nil {
-		return nil, err
-	}
-	if err := d.Set("file", filePath); err != nil {
+	commit, err := fileCommit(ctx, client, owner, repo, branch, filePath)
+	if err != nil {
 		return nil, err
 	}
 
@@ -474,53 +414,88 @@ func resourceGithubRepositoryFileImport(ctx context.Context, d *schema.ResourceD
 	if err != nil {
 		return nil, err
 	}
-	tflog.Debug(ctx, "Setting ID", map[string]any{
-		"id": newResourceID,
-	})
 	d.SetId(newResourceID)
+
+	if err := d.Set("repository", repo); err != nil {
+		return nil, err
+	}
+
+	if err := d.Set("repository_id", int(repoInfo.GetID())); err != nil {
+		return nil, err
+	}
 
 	if err := d.Set("branch", branch); err != nil {
 		return nil, err
 	}
-	if err := d.Set("repository_id", int(repoInfo.GetID())); err != nil {
+
+	if err := d.Set("file", filePath); err != nil {
 		return nil, err
 	}
+
 	if err = d.Set("overwrite_on_create", false); err != nil {
+		return nil, err
+	}
+
+	if err := d.Set("ref", branch); err != nil {
+		return nil, err
+	}
+
+	if err := d.Set("sha", fc.GetSHA()); err != nil {
+		return nil, err
+	}
+
+	if err = d.Set("commit_sha", commit.GetSHA()); err != nil {
 		return nil, err
 	}
 
 	return []*schema.ResourceData{d}, nil
 }
 
-func resourceGithubRepositoryFileCreateBranch(ctx context.Context, d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	branch := d.Get("branch").(string)
-	repo := d.Get("repository").(string)
-
-	branchRefName := "refs/heads/" + branch
-	sourceBranchName := d.Get("autocreate_branch_source_branch").(string)
-	sourceBranchRefName := "refs/heads/" + sourceBranchName
-
-	if _, hasSourceSHA := d.GetOk("autocreate_branch_source_sha"); !hasSourceSHA {
-		ref, _, err := client.Git.GetRef(ctx, owner, repo, sourceBranchRefName)
-		if err != nil {
-			return fmt.Errorf("error querying GitHub branch reference %s/%s (%s): %s",
-				owner, repo, sourceBranchRefName, err.Error())
-		}
-		err = d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
-		if err != nil {
-			return fmt.Errorf("error setting autocreate_branch_source_sha: %w", err)
+func autoBranchDiffSuppressFunc(k, _, _ string, d *schema.ResourceData) bool {
+	if autocreate, _ := d.Get("autocreate_branch").(bool); !autocreate {
+		switch k {
+		case "autocreate_branch", "autocreate_branch_source_branch", "autocreate_branch_source_sha":
+			return true
 		}
 	}
-	sourceBranchSHA := d.Get("autocreate_branch_source_sha").(string)
-	branchRef := github.CreateRef{
-		Ref: branchRefName,
-		SHA: sourceBranchSHA,
+	return false
+}
+
+// resourceGithubRepositoryFileOptions builds the content options for a write. The commit message is
+// defaulted to "<action> <file>" when it is unset or is still the default message from creation.
+func resourceGithubRepositoryFileOptions(d *schema.ResourceData, action string) *github.RepositoryContentFileOptions {
+	content, _ := d.Get("content").(string)
+	file, _ := d.Get("file").(string)
+	commitMessage, _ := d.Get("commit_message").(string)
+
+	opts := &github.RepositoryContentFileOptions{
+		Content: []byte(content),
+		Message: new(commitMessage),
 	}
-	if _, _, err := client.Git.CreateRef(ctx, owner, repo, branchRef); err != nil {
-		return fmt.Errorf("error creating GitHub branch reference %s/%s (%s): %w",
-			owner, repo, branchRefName, err)
+
+	if commitMessage == "" || commitMessage == fmt.Sprintf("Add %s", file) {
+		opts.Message = new(fmt.Sprintf("%s %s", action, file))
 	}
-	return nil
+
+	if v, ok := d.GetOk("branch"); ok {
+		s, _ := v.(string)
+		opts.Branch = new(s)
+	}
+
+	if v, ok := d.GetOk("sha"); ok {
+		s, _ := v.(string)
+		opts.SHA = new(s)
+	}
+
+	commitAuthor, hasCommitAuthor := d.GetOk("commit_author")
+	commitEmail, hasCommitEmail := d.GetOk("commit_email")
+
+	if hasCommitAuthor && hasCommitEmail {
+		name, _ := commitAuthor.(string)
+		mail, _ := commitEmail.(string)
+		opts.Author = &github.CommitAuthor{Name: new(name), Email: new(mail)}
+		opts.Committer = &github.CommitAuthor{Name: new(name), Email: new(mail)}
+	}
+
+	return opts
 }

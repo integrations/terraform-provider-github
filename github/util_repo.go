@@ -12,6 +12,20 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
+// fileCommit retrieves the commit for a given file in a repository for a specific SHA. If the file is not found, it returns an error.
+func fileCommit(ctx context.Context, client *github.Client, owner, repo, sha, file string) (*github.RepositoryCommit, error) {
+	c, _, err := client.Repositories.ListCommits(ctx, owner, repo, &github.CommitsListOptions{SHA: sha, Path: file, PerPage: 1})
+	if err != nil {
+		return nil, fmt.Errorf("error retrieving commits for file %s in repo %s/%s at sha %s: %w", file, owner, repo, sha, err)
+	}
+
+	if len(c) == 0 {
+		return nil, fmt.Errorf("cannot find file %s in repo %s/%s at sha %s", file, owner, repo, sha)
+	}
+
+	return c[0], nil
+}
+
 // checkRepositoryBranchExists tests if a branch exists in a repository.
 func checkRepositoryBranchExists(ctx context.Context, client *github.Client, owner, repo, branch string) error {
 	tflog.Debug(ctx, "Checking if branch exists", map[string]any{
