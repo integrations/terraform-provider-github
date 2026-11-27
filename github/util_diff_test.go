@@ -1,12 +1,107 @@
 package github
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
+
+func TestTeamMembersCaseDiff(t *testing.T) {
+	for _, role := range []string{"member", "maintainer"} {
+		t.Run(role, func(t *testing.T) {
+			resource := resourceGithubTeamMembers()
+			data := schema.TestResourceDataRaw(t, resource.Schema, map[string]any{
+				"team_slug": "test-team",
+				"team_id":   "42",
+				"members":   []any{map[string]any{"username": "Alice", "role": "member"}},
+			})
+			data.SetId("42")
+
+			rawConfig, err := resource.CoreConfigSchema().CoerceValue(cty.ObjectVal(map[string]cty.Value{
+				"team_slug": cty.StringVal("test-team"),
+				"members": cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"username": cty.StringVal("ALICE"),
+					"role":     cty.StringVal(role),
+				})}),
+			}))
+			if err != nil {
+				t.Fatal(err)
+			}
+			state := data.State()
+			state.RawConfig = rawConfig
+			diff, err := resource.Diff(t.Context(), state, terraform.NewResourceConfigShimmed(rawConfig, resource.CoreConfigSchema()), &Owner{IsOrganization: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			membersChanged := false
+			if diff != nil {
+				if diff.RequiresNew() {
+					t.Fatal("case or role changes must not replace team membership")
+				}
+				for key := range diff.Attributes {
+					membersChanged = membersChanged || strings.HasPrefix(key, "members.")
+				}
+			}
+			if wantChange := role != "member"; membersChanged != wantChange {
+				t.Errorf("members changed = %t, want %t for role %q", membersChanged, wantChange, role)
+			}
+		})
+	}
+}
+
+func TestNestedUsernameDiff(t *testing.T) {
+	for _, scope := range []struct {
+		name       string
+		resource   *schema.Resource
+		field      string
+		roleField  string
+		roles      [2]string
+		configName string
+	}{
+		{"team members", resourceGithubTeamMembers(), "members", "role", [2]string{"member", "maintainer"}, "team_slug"},
+		{"collaborators", resourceGithubRepositoryCollaborators(), "user", "permission", [2]string{"pull", "push"}, "repository"},
+	} {
+		t.Run(scope.name, func(t *testing.T) {
+			for _, change := range []struct {
+				name      string
+				username  cty.Value
+				duplicate bool
+			}{
+				{"distinct", cty.StringVal("bob"), false},
+				{"duplicate", cty.StringVal("alice"), true},
+				{"case duplicate", cty.StringVal("ALICE"), true},
+				{"unknown", cty.UnknownVal(cty.String), false},
+			} {
+				t.Run(change.name, func(t *testing.T) {
+					rawConfig, err := scope.resource.CoreConfigSchema().CoerceValue(cty.ObjectVal(map[string]cty.Value{
+						scope.configName: cty.StringVal("test-resource"),
+						scope.field: cty.SetVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{"username": cty.StringVal("alice"), scope.roleField: cty.StringVal(scope.roles[0])}),
+							cty.ObjectVal(map[string]cty.Value{"username": change.username, scope.roleField: cty.StringVal(scope.roles[1])}),
+						}),
+					}))
+					if err != nil {
+						t.Fatal(err)
+					}
+					_, err = scope.resource.Diff(t.Context(), &terraform.InstanceState{RawConfig: rawConfig}, terraform.NewResourceConfigShimmed(rawConfig, scope.resource.CoreConfigSchema()), &Owner{IsOrganization: true})
+					if change.duplicate {
+						want := fmt.Sprintf("duplicate user 'alice' found in '%s' collection", scope.field)
+						if err == nil || !strings.Contains(err.Error(), want) {
+							t.Errorf("duplicate validation error = %v, want %q", err, want)
+						}
+					} else if err != nil {
+						t.Fatal(err)
+					}
+				})
+			}
+		})
+	}
+}
 
 func TestRunnerGroupNetworkingDiff(t *testing.T) {
 	for _, tc := range []struct {
