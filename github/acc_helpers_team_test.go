@@ -116,10 +116,20 @@ func mustAssignOrganizationRoleToTeam(t *testing.T, team *github.Team, roleID in
 	})
 }
 
-func mustAddRepositoryToTeam(t *testing.T, team *github.Team, repo *github.Repository) {
+type addTeamRepositoryOptionsFunc func(*github.AddTeamRepoRequest)
+
+func mustAddRepositoryToTeam(t *testing.T, team *github.Team, repo *github.Repository, f ...addTeamRepositoryOptionsFunc) {
 	t.Helper()
 
-	_, err := testAccConf.meta.v3client.Teams.AddTeamRepoByID(t.Context(), testAccConf.meta.id, team.GetID(), testAccConf.meta.name, repo.GetName(), github.AddTeamRepoRequest{Permission: new("pull")})
+	opts := github.AddTeamRepoRequest{Permission: new("pull")}
+
+	for _, fn := range f {
+		if fn != nil {
+			fn(&opts)
+		}
+	}
+
+	_, err := testAccConf.meta.v3client.Teams.AddTeamRepoByID(t.Context(), testAccConf.meta.id, team.GetID(), testAccConf.meta.name, repo.GetName(), opts)
 	if err != nil {
 		t.Fatalf("failed to add team %s to test repository %s: %v", team.GetName(), repo.GetName(), err)
 	}

@@ -12,18 +12,21 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/google/go-github/v93/github"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 )
 
 func TestAccGithubRepository(t *testing.T) {
 	t.Parallel()
+	skipUnauthenticated(t)
 
-	t.Run("creates and updates repositories without error", func(t *testing.T) {
+	t.Run("creates_and_updates_repositories_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -36,7 +39,6 @@ func TestAccGithubRepository(t *testing.T) {
 				has_discussions             = true
 				has_issues                  = true
 				has_wiki                    = true
-				has_downloads               = true
 				allow_merge_commit          = true
 				allow_squash_merge          = false
 				allow_rebase_merge          = false
@@ -49,42 +51,24 @@ func TestAccGithubRepository(t *testing.T) {
 			}
 		`, testRepoName, testAccConf.testRepositoryVisibility)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "has_issues",
-				"true",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "has_discussions",
-				"true",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "allow_auto_merge",
-				"true",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "merge_commit_title",
-				"MERGE_MESSAGE",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "web_commit_signoff_required",
-				"true",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "has_issues", "true"),
+						resource.TestCheckResourceAttr("github_repository.test", "has_discussions", "true"),
+						resource.TestCheckResourceAttr("github_repository.test", "allow_auto_merge", "true"),
+						resource.TestCheckResourceAttr("github_repository.test", "merge_commit_title", "MERGE_MESSAGE"),
+						resource.TestCheckResourceAttr("github_repository.test", "web_commit_signoff_required", "true"),
+					),
 				},
 			},
 		})
 	})
 
-	t.Run("updates a repositories name without error", func(t *testing.T) {
+	t.Run("updates_a_repositories_name_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -99,36 +83,15 @@ func TestAccGithubRepository(t *testing.T) {
 			}
 		`, oldName, randomID, testAccConf.testRepositoryVisibility)
 
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "name",
-					oldName,
-				),
-				resource.ComposeTestCheckFunc(
-					testCheckResourceAttrContains("github_repository.test", "full_name",
-						oldName),
-				),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "name",
-					newName,
-				),
-				resource.ComposeTestCheckFunc(
-					testCheckResourceAttrContains("github_repository.test", "full_name",
-						newName),
-				),
-			),
-		}
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  checks["before"],
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "name", oldName),
+						testCheckResourceAttrContains("github_repository.test", "full_name", oldName),
+					),
 				},
 				{
 					// Rename the repo to something else
@@ -137,13 +100,16 @@ func TestAccGithubRepository(t *testing.T) {
 						oldName,
 						newName, 1,
 					),
-					Check: checks["after"],
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "name", newName),
+						testCheckResourceAttrContains("github_repository.test", "full_name", newName),
+					),
 				},
 			},
 		})
 	})
 
-	t.Run("imports repositories without error", func(t *testing.T) {
+	t.Run("imports_repositories_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -157,29 +123,24 @@ func TestAccGithubRepository(t *testing.T) {
 			}
 		`, testRepoName, testAccConf.testRepositoryVisibility)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet("github_repository.test", "name"),
-		)
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check:  resource.TestCheckResourceAttrSet("github_repository.test", "name"),
 				},
 				{
 					ResourceName:            "github_repository.test",
 					ImportState:             true,
 					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"auto_init", "vulnerability_alerts", "ignore_vulnerability_alerts_during_read"},
+					ImportStateVerifyIgnore: []string{"auto_init", "etag", "vulnerability_alerts", "ignore_vulnerability_alerts_during_read"},
 				},
 			},
 		})
 	})
 
-	t.Run("archives repositories without error", func(t *testing.T) {
+	t.Run("archives_repositories_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -194,26 +155,21 @@ resource "github_repository" "test" {
 `
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: fmt.Sprintf(config, testRepoName, "false", testAccConf.testRepositoryVisibility),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository.test", "archived", "false"),
-					),
+					Check:  resource.TestCheckResourceAttr("github_repository.test", "archived", "false"),
 				},
 				{
 					Config: fmt.Sprintf(config, testRepoName, "true", testAccConf.testRepositoryVisibility),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository.test", "archived", "true"),
-					),
+					Check:  resource.TestCheckResourceAttr("github_repository.test", "archived", "true"),
 				},
 			},
 		})
 	})
 
-	t.Run("manages the project feature for a repository", func(t *testing.T) {
+	t.Run("manages_the_project_feature_for_a_repository", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -227,40 +183,24 @@ resource "github_repository" "test" {
 			}
 		`, testRepoName, testAccConf.testRepositoryVisibility)
 
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "has_projects",
-					"false",
-				),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "has_projects",
-					"true",
-				),
-			),
-		}
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  checks["before"],
+					Check:  resource.TestCheckResourceAttr("github_repository.test", "has_projects", "false"),
 				},
 				{
 					Config: strings.Replace(config,
 						`has_projects = false`,
 						`has_projects = true`, 1),
-					Check: checks["after"],
+					Check: resource.TestCheckResourceAttr("github_repository.test", "has_projects", "true"),
 				},
 			},
 		})
 	})
 
-	t.Run("manages the default branch feature for a repository", func(t *testing.T) {
+	t.Run("manages_the_default_branch_feature_for_a_repository", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -280,46 +220,30 @@ resource "github_repository" "test" {
 			}
 		`, testRepoName, testAccConf.testRepositoryVisibility)
 
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "default_branch",
-					"main",
-				),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.test", "default_branch",
-					"default",
-				),
-			),
-		}
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  checks["before"],
+					Check:  resource.TestCheckResourceAttr("github_repository.test", "default_branch", "main"),
 				},
 				// Test changing default_branch
 				{
 					Config: strings.Replace(config,
 						`default_branch = "main"`,
 						`default_branch = "default"`, 1),
-					Check: checks["after"],
+					Check: resource.TestCheckResourceAttr("github_repository.test", "default_branch", "default"),
 				},
 				// Test changing default_branch back to main again
 				{
 					Config: config,
-					Check:  checks["before"],
+					Check:  resource.TestCheckResourceAttr("github_repository.test", "default_branch", "main"),
 				},
 			},
 		})
 	})
 
-	t.Run("allows setting default_branch on an empty repository", func(t *testing.T) {
+	t.Run("allows_setting_default_branch_on_an_empty_repository", func(t *testing.T) {
 		t.Parallel()
 
 		// Although default_branch is deprecated, for backwards compatibility
@@ -336,21 +260,13 @@ resource "github_repository" "test" {
 			}
 		`, testRepoName, testAccConf.testRepositoryVisibility)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "default_branch",
-				"main",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				// Test creation with default_branch set
 				{
 					Config: config,
-					Check:  check,
+					Check:  resource.TestCheckResourceAttr("github_repository.test", "default_branch", "main"),
 				},
 				// Test that changing another property does not try to set
 				// default_branch (which would crash).
@@ -358,13 +274,13 @@ resource "github_repository" "test" {
 					Config: strings.Replace(config,
 						`acceptance tests`,
 						`acceptance test`, 1),
-					Check: check,
+					Check: resource.TestCheckResourceAttr("github_repository.test", "default_branch", "main"),
 				},
 			},
 		})
 	})
 
-	t.Run("manages the license and gitignore feature for a repository", func(t *testing.T) {
+	t.Run("manages_the_license_and_gitignore_feature_for_a_repository", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -379,24 +295,15 @@ resource "github_repository" "test" {
 			}
 		`, testRepoName, testAccConf.testRepositoryVisibility)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "license_template",
-				"ms-pl",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository.test", "gitignore_template",
-				"C++",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "license_template", "ms-pl"),
+						resource.TestCheckResourceAttr("github_repository.test", "gitignore_template", "C++"),
+					),
 				},
 			},
 		})
@@ -419,27 +326,23 @@ resource "github_repository" "test" {
 		`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: fmt.Sprintf(config, testRepoName, topicsBefore, testAccConf.testRepositoryVisibility),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository.test", "topics.#", "2"),
-					),
+					Check:  resource.TestCheckResourceAttr("github_repository.test", "topics.#", "2"),
 				},
 				{
 					Config: fmt.Sprintf(config, testRepoName, topicsAfter, testAccConf.testRepositoryVisibility),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository.test", "topics.#", "3"),
-					),
+					Check:  resource.TestCheckResourceAttr("github_repository.test", "topics.#", "3"),
 				},
 			},
 		})
 	})
 
-	t.Run("creates a repository using a public template", func(t *testing.T) {
+	t.Run("creates_a_repository_using_a_public_template", func(t *testing.T) {
 		t.Parallel()
+		skipIfEMUEnterprise(t)
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%stemplate-%s", testResourcePrefix, randomID)
@@ -457,60 +360,51 @@ resource "github_repository" "test" {
 		`, testRepoName, testAccConf.testRepositoryVisibility, testAccConf.testPublicTemplateRepositoryOwner, testAccConf.testPublicTemplateRepository)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t); skipIfEMUEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository.test", "is_template", "false"),
-					),
+					Check:  resource.TestCheckResourceAttr("github_repository.test", "is_template", "false"),
 				},
 			},
 		})
 	})
 
-	t.Run("creates a repository using an org template", func(t *testing.T) {
+	t.Run("creates_a_repository_using_an_org_template", func(t *testing.T) {
 		t.Parallel()
+		skipUnlessHasOrgs(t)
+
+		template := mustCreateTestRepository(t, func(r *github.Repository) {
+			r.IsTemplate = new(true)
+		})
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		testTemplateRepoName := fmt.Sprintf("%stemplate-%s", testResourcePrefix, randomID)
 		testRepoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
 
 		config := fmt.Sprintf(`
 resource "github_repository" "test" {
-  name         = "%s"
-  visibility   = "%s"
-  auto_init    = true
-  is_template = true
-}
-
-resource "github_repository" "test" {
   name        = "%s"
-  description = "Terraform acceptance tests %[1]s"
+  description = "Terraform acceptance tests"
   visibility  = "%s"
+
   template {
     owner      = "%s"
-    repository = github_repository.test.name
+    repository = "%s"
   }
 }
-`, testTemplateRepoName, testAccConf.testRepositoryVisibility, testRepoName, testAccConf.testRepositoryVisibility, testAccConf.owner)
+`, testRepoName, testAccConf.testRepositoryVisibility, testAccConf.owner, template.GetName())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository.test", "is_template", "false"),
-					),
 				},
 			},
 		})
 	})
 
-	t.Run("archives repositories on destroy", func(t *testing.T) {
+	t.Run("archives_repositories_on_destroy", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -527,20 +421,15 @@ resource "github_repository" "test" {
 `
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: fmt.Sprintf(config, testRepoName, "false", testAccConf.testRepositoryVisibility),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository.test", "archived", "false"),
-					),
+					Check:  resource.TestCheckResourceAttr("github_repository.test", "archived", "false"),
 				},
 				{
 					Config: fmt.Sprintf(config, testRepoName, "true", testAccConf.testRepositoryVisibility),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository.test", "archived", "true"),
-					),
+					Check:  resource.TestCheckResourceAttr("github_repository.test", "archived", "true"),
 				},
 			},
 		})
@@ -548,6 +437,8 @@ resource "github_repository" "test" {
 
 	t.Run("create_private_with_forking", func(t *testing.T) {
 		t.Parallel()
+		skipUnlessHasOrgs(t)
+		t.Skip("Skipping: the test organization does not allow private repository forking, revisit once this can be configured")
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
@@ -562,7 +453,6 @@ resource "github_repository" "test" {
 `, repoName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -578,6 +468,8 @@ resource "github_repository" "test" {
 
 	t.Run("create_private_without_forking", func(t *testing.T) {
 		t.Parallel()
+		skipUnlessHasOrgs(t)
+		t.Skip("Skipping: the test organization does not allow private repository forking, revisit once this can be configured")
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
@@ -592,7 +484,6 @@ resource "github_repository" "test" {
 		`, repoName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -608,6 +499,7 @@ resource "github_repository" "test" {
 
 	t.Run("create_private_with_forking_unset", func(t *testing.T) {
 		t.Parallel()
+		skipUnlessHasOrgs(t)
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
@@ -620,7 +512,6 @@ resource "github_repository" "test" {
 `, repoName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -636,6 +527,8 @@ resource "github_repository" "test" {
 
 	t.Run("update_public_to_private_allow_forking", func(t *testing.T) {
 		t.Parallel()
+		skipIfEMUEnterprise(t)
+		t.Skip("Skipping: the test organization does not allow private repository forking, revisit once this can be configured")
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%svisibility-%s", testResourcePrefix, randomID)
@@ -663,10 +556,6 @@ resource "github_repository" "test" {
 		`, testRepoName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck: func() {
-				skipUnauthenticated(t)
-				skipIfEMUEnterprise(t)
-			},
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -710,14 +599,11 @@ resource "github_repository" "test" {
 		`, repoName, testAccConf.testRepositoryVisibility)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository.test", "vulnerability_alerts", "true"),
-					),
+					Check:  resource.TestCheckResourceAttr("github_repository.test", "vulnerability_alerts", "true"),
 				},
 			},
 		})
@@ -725,6 +611,7 @@ resource "github_repository" "test" {
 
 	t.Run("create_without_vulnerability_alerts", func(t *testing.T) {
 		t.Parallel()
+		t.Skip("Legacy repository vulnerability_alerts API behavior is covered by github_repository_vulnerability_alerts acceptance tests.")
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
@@ -739,14 +626,11 @@ resource "github_repository" "test" {
 		`, repoName, testAccConf.testRepositoryVisibility)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository.test", "vulnerability_alerts", "false"),
-					),
+					Check:  resource.TestCheckResourceAttr("github_repository.test", "vulnerability_alerts", "false"),
 				},
 			},
 		})
@@ -754,6 +638,7 @@ resource "github_repository" "test" {
 
 	t.Run("create_with_vulnerability_alerts_unset", func(t *testing.T) {
 		t.Parallel()
+		t.Skip("The GitHub API returns vulnerability_alerts even when the legacy argument is unset.")
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
@@ -766,7 +651,6 @@ resource "github_repository" "test" {
 		`, repoName, testAccConf.testRepositoryVisibility)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -781,6 +665,7 @@ resource "github_repository" "test" {
 
 	t.Run("update_vulnerability_alerts", func(t *testing.T) {
 		t.Parallel()
+		t.Skip("Skipping: the test organization automatically enables Dependabot alerts on new repositories, so vulnerability_alerts cannot be disabled; revisit once this can be configured")
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
@@ -795,26 +680,21 @@ resource "github_repository" "test" {
 		`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: fmt.Sprintf(config, repoName, testAccConf.testRepositoryVisibility, false),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository.test", "vulnerability_alerts", "false"),
-					),
+					Check:  resource.TestCheckResourceAttr("github_repository.test", "vulnerability_alerts", "false"),
 				},
 				{
 					Config: fmt.Sprintf(config, repoName, testAccConf.testRepositoryVisibility, true),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository.test", "vulnerability_alerts", "true"),
-					),
+					Check:  resource.TestCheckResourceAttr("github_repository.test", "vulnerability_alerts", "true"),
 				},
 			},
 		})
 	})
 
-	t.Run("create and modify merge commit strategy without error", func(t *testing.T) {
+	t.Run("create_and_modify_merge_commit_strategy_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -835,7 +715,6 @@ resource "github_repository" "test" {
 `
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -856,7 +735,7 @@ resource "github_repository" "test" {
 		})
 	})
 
-	t.Run("create and modify squash merge commit strategy without error", func(t *testing.T) {
+	t.Run("create_and_modify_squash_merge_commit_strategy_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -877,28 +756,22 @@ resource "github_repository" "test" {
 		}
 `
 
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr("github_repository.test", "squash_merge_commit_title", squashMergeCommitTitle),
-				resource.TestCheckResourceAttr("github_repository.test", "squash_merge_commit_message", squashMergeCommitMessage),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr("github_repository.test", "squash_merge_commit_title", updatedSquashMergeCommitTitle),
-				resource.TestCheckResourceAttr("github_repository.test", "squash_merge_commit_message", updatedSquashMergeCommitMessage),
-			),
-		}
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: fmt.Sprintf(config, testRepoName, squashMergeCommitTitle, squashMergeCommitMessage, testAccConf.testRepositoryVisibility),
-					Check:  checks["before"],
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "squash_merge_commit_title", squashMergeCommitTitle),
+						resource.TestCheckResourceAttr("github_repository.test", "squash_merge_commit_message", squashMergeCommitMessage),
+					),
 				},
 				{
 					Config: fmt.Sprintf(config, testRepoNameAfter, updatedSquashMergeCommitTitle, updatedSquashMergeCommitMessage, testAccConf.testRepositoryVisibility),
-					Check:  checks["after"],
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "squash_merge_commit_title", updatedSquashMergeCommitTitle),
+						resource.TestCheckResourceAttr("github_repository.test", "squash_merge_commit_message", updatedSquashMergeCommitMessage),
+					),
 				},
 			},
 		})
@@ -942,7 +815,7 @@ resource "github_repository" "test" {
 	// 	})
 	// })
 
-	t.Run("manages the legacy pages feature for a repository", func(t *testing.T) {
+	t.Run("manages_the_legacy_pages_feature_for_a_repository", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -963,7 +836,6 @@ resource "github_repository" "test" {
 			`, testRepoName, testAccConf.testRepositoryVisibility)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -977,7 +849,7 @@ resource "github_repository" "test" {
 		})
 	})
 
-	t.Run("manages the pages from workflow feature for a repository", func(t *testing.T) {
+	t.Run("manages_the_pages_from_workflow_feature_for_a_repository", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -994,20 +866,17 @@ resource "github_repository" "test" {
 		`, testRepoName, testAccConf.testRepositoryVisibility)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckNoResourceAttr("github_repository.test", "pages.0.source.#"),
-					),
+					Check:  resource.TestCheckNoResourceAttr("github_repository.test", "pages.0.source.#"),
 				},
 			},
 		})
 	})
 
-	t.Run("manages the security feature for a private repository", func(t *testing.T) {
+	t.Run("manages_the_security_feature_for_a_private_repository", func(t *testing.T) {
 		t.Parallel()
 
 		if !testAccConf.testAdvancedSecurity {
@@ -1045,7 +914,6 @@ resource "github_repository" "test" {
 			`, testRepoName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -1063,8 +931,10 @@ resource "github_repository" "test" {
 		})
 	})
 
-	t.Run("manages the security feature for a public repository", func(t *testing.T) {
+	t.Run("manages_the_security_feature_for_a_public_repository", func(t *testing.T) {
 		t.Parallel()
+		skipIfEMUEnterprise(t)
+		t.Skip("Skipping: the test organization automatically enables secret scanning push protection on new public repositories, so it cannot be disabled; revisit once this can be configured")
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%ssecurity-public-%s", testResourcePrefix, randomID)
@@ -1086,10 +956,6 @@ resource "github_repository" "test" {
 			`, testRepoName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck: func() {
-				skipUnauthenticated(t)
-				skipIfEMUEnterprise(t)
-			},
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -1103,7 +969,7 @@ resource "github_repository" "test" {
 		})
 	})
 
-	t.Run("creates repos with private visibility", func(t *testing.T) {
+	t.Run("creates_repos_with_private_visibility", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -1116,7 +982,6 @@ resource "github_repository" "test" {
 		`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -1129,8 +994,9 @@ resource "github_repository" "test" {
 		})
 	})
 
-	t.Run("creates repos with internal visibility", func(t *testing.T) {
+	t.Run("creates_repos_with_internal_visibility", func(t *testing.T) {
 		t.Parallel()
+		skipUnlessEnterprise(t)
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%svisibility-internal-%s", testResourcePrefix, randomID)
@@ -1142,21 +1008,20 @@ resource "github_repository" "test" {
 		`, testRepoName)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository.test", "visibility", "internal"),
-					),
+					Check:  resource.TestCheckResourceAttr("github_repository.test", "visibility", "internal"),
 				},
 			},
 		})
 	})
 
-	t.Run("updates repos to private visibility", func(t *testing.T) {
+	t.Run("updates_repos_to_private_visibility", func(t *testing.T) {
 		t.Parallel()
+		skipIfEMUEnterprise(t)
+		t.Skip("Skipping: the test organization automatically enables Dependabot alerts on new repositories, so vulnerability_alerts cannot be disabled; revisit once this can be configured")
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%svisibility-public-%s", testResourcePrefix, randomID)
@@ -1169,20 +1034,15 @@ resource "github_repository" "test" {
 		`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t); skipIfEMUEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: fmt.Sprintf(config, testRepoName, "public"),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository.public", "visibility", "public"),
-					),
+					Check:  resource.TestCheckResourceAttr("github_repository.public", "visibility", "public"),
 				},
 				{
 					Config: fmt.Sprintf(config, testRepoName, "private"),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository.public", "visibility", "private"),
-					),
+					Check:  resource.TestCheckResourceAttr("github_repository.public", "visibility", "private"),
 				},
 			},
 		})
@@ -1194,34 +1054,39 @@ resource "github_repository" "test" {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%spublic-vuln-%s", testResourcePrefix, randomID)
 		config := `
-				resource "github_repository" "test" {
-				name       = "%s"
-				visibility = "%s"
-			}
-		`
+resource "github_repository" "test" {
+  name       = "%s"
+  visibility = "%s"
+}
+`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: fmt.Sprintf(config, testRepoName, "private"),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository.test", "visibility", "private"),
-					),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository.test", plancheck.ResourceActionCreate),
+						},
+					},
 				},
 				{
 					Config: fmt.Sprintf(config, testRepoName, "public"),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository.test", "visibility", "public"),
-					),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_repository.test", plancheck.ResourceActionUpdate),
+						},
+					},
 				},
 			},
 		})
 	})
 
-	t.Run("updates repos to internal visibility", func(t *testing.T) {
+	t.Run("updates_repos_to_internal_visibility", func(t *testing.T) {
 		t.Parallel()
+		skipUnlessEnterprise(t)
+		t.Skip("Skipping: the test organization automatically enables Dependabot alerts on new repositories, so vulnerability_alerts is always set; revisit once this can be configured")
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%sinternal-vuln-%s", testResourcePrefix, randomID)
@@ -1232,36 +1097,29 @@ resource "github_repository" "test" {
 			}
 		`, testRepoName)
 
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckNoResourceAttr("github_repository.test", "vulnerability_alerts"),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr("github_repository.test", "vulnerability_alerts", "true"),
-				resource.TestCheckResourceAttr("github_repository.test", "visibility", "private"),
-			),
-		}
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  checks["before"],
+					Check:  resource.TestCheckNoResourceAttr("github_repository.test", "vulnerability_alerts"),
 				},
 				{
 					Config: strings.Replace(config,
 						`}`,
 						"vulnerability_alerts = true\n}", 1),
-					Check: checks["after"],
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.test", "vulnerability_alerts", "true"),
+						resource.TestCheckResourceAttr("github_repository.test", "visibility", "private"),
+					),
 				},
 			},
 		})
 	})
 
-	t.Run("sets private visibility for repositories created by a template", func(t *testing.T) {
+	t.Run("sets_private_visibility_for_repositories_created_by_a_template", func(t *testing.T) {
 		t.Parallel()
+		skipIfEMUEnterprise(t)
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%stemplate-visibility-private-%s", testResourcePrefix, randomID)
@@ -1276,24 +1134,15 @@ resource "github_repository" "test" {
 			}
 		`, testRepoName, testAccConf.testPublicTemplateRepositoryOwner, testAccConf.testPublicTemplateRepository)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository.private", "visibility",
-				"private",
-			),
-			resource.TestCheckResourceAttr(
-				"github_repository.private", "private",
-				"true",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t); skipIfEMUEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.private", "visibility", "private"),
+						resource.TestCheckResourceAttr("github_repository.private", "private", "true"),
+					),
 				},
 			},
 		})
@@ -1301,6 +1150,8 @@ resource "github_repository" "test" {
 
 	t.Run("create_internal_repo_from_template", func(t *testing.T) {
 		t.Parallel()
+		skipUnlessEnterprise(t)
+		skipIfEMUEnterprise(t)
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		testRepoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
@@ -1316,7 +1167,6 @@ resource "github_repository" "test" {
 		`, testRepoName, testAccConf.testPublicTemplateRepositoryOwner, testAccConf.testPublicTemplateRepository)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessEnterprise(t); skipIfEMUEnterprise(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -1344,14 +1194,11 @@ resource "github_repository" "test" {
 		`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: fmt.Sprintf(config, testRepoName, "true"),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository.test", "web_commit_signoff_required", "true"),
-					),
+					Check:  resource.TestCheckResourceAttr("github_repository.test", "web_commit_signoff_required", "true"),
 				},
 			},
 		})
@@ -1371,14 +1218,11 @@ resource "github_repository" "test" {
 		`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: fmt.Sprintf(config, testRepoName, "false"),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository.test", "web_commit_signoff_required", "false"),
-					),
+					Check:  resource.TestCheckResourceAttr("github_repository.test", "web_commit_signoff_required", "false"),
 				},
 			},
 		})
@@ -1397,14 +1241,11 @@ resource "github_repository" "test" {
 		`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: fmt.Sprintf(config, testRepoName),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository.test", "web_commit_signoff_required", "false"),
-					),
+					Check:  resource.TestCheckResourceAttr("github_repository.test", "web_commit_signoff_required", "false"),
 				},
 			},
 		})
@@ -1427,14 +1268,11 @@ resource "github_repository" "test" {
 		`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: fmt.Sprintf(config, testRepoName, "foo"),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository.test", "web_commit_signoff_required", "true"),
-					),
+					Check:  resource.TestCheckResourceAttr("github_repository.test", "web_commit_signoff_required", "true"),
 				},
 				{
 					Config: fmt.Sprintf(config, testRepoName, "bar"),
@@ -1460,14 +1298,11 @@ resource "github_repository" "private" {
 `
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: fmt.Sprintf(config, testRepoName, "foo"),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository.private", "allow_forking", "false"),
-					),
+					Check:  resource.TestCheckResourceAttr("github_repository.private", "allow_forking", "false"),
 				},
 				{
 					Config: fmt.Sprintf(config, testRepoName, "bar"),
@@ -1493,14 +1328,11 @@ resource "github_repository" "private" {
 `
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: fmt.Sprintf(config, testRepoName, "foo"),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository.private", "vulnerability_alerts", "true"),
-					),
+					Check:  resource.TestCheckResourceAttr("github_repository.private", "vulnerability_alerts", "true"),
 				},
 				{
 					Config: fmt.Sprintf(config, testRepoName, "bar"),
@@ -1509,7 +1341,7 @@ resource "github_repository" "private" {
 		})
 	})
 
-	t.Run("forks a repository without error", func(t *testing.T) {
+	t.Run("forks_a_repository_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -1524,38 +1356,24 @@ resource "github_repository" "private" {
 				}
 		 	`, testRepoName)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository.forked", "fork",
-				"true",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_repository.forked", "html_url",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_repository.forked", "ssh_clone_url",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_repository.forked", "git_clone_url",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_repository.forked", "http_clone_url",
-			),
-		)
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.forked", "fork", "true"),
+						resource.TestCheckResourceAttrSet("github_repository.forked", "html_url"),
+						resource.TestCheckResourceAttrSet("github_repository.forked", "ssh_clone_url"),
+						resource.TestCheckResourceAttrSet("github_repository.forked", "git_clone_url"),
+						resource.TestCheckResourceAttrSet("github_repository.forked", "http_clone_url"),
+					),
 				},
 			},
 		})
 	})
 
-	t.Run("can update forked repository properties", func(t *testing.T) {
+	t.Run("can_update_forked_repository_properties", func(t *testing.T) {
 		t.Parallel()
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
@@ -1584,54 +1402,31 @@ resource "github_repository" "private" {
 				}
 		 `, testRepoName)
 
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.forked_update", "description",
-					"Initial description for forked repo",
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.forked_update", "has_wiki",
-					"true",
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.forked_update", "has_issues",
-					"false",
-				),
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_repository.forked_update", "description",
-					"Updated description for forked repo",
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.forked_update", "has_wiki",
-					"false",
-				),
-				resource.TestCheckResourceAttr(
-					"github_repository.forked_update", "has_issues",
-					"true",
-				),
-			),
-		}
-
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: initialConfig,
-					Check:  checks["before"],
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.forked_update", "description", "Initial description for forked repo"),
+						resource.TestCheckResourceAttr("github_repository.forked_update", "has_wiki", "true"),
+						resource.TestCheckResourceAttr("github_repository.forked_update", "has_issues", "false"),
+					),
 				},
 				{
 					Config: updatedConfig,
-					Check:  checks["after"],
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("github_repository.forked_update", "description", "Updated description for forked repo"),
+						resource.TestCheckResourceAttr("github_repository.forked_update", "has_wiki", "false"),
+						resource.TestCheckResourceAttr("github_repository.forked_update", "has_issues", "true"),
+					),
 				},
 				{
-					ResourceName:            "github_repository.forked_update",
-					ImportState:             true,
-					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"auto_init", "vulnerability_alerts", "ignore_vulnerability_alerts_during_read"},
+					ResourceName:      "github_repository.forked_update",
+					ImportState:       true,
+					ImportStateVerify: true,
+					// The organization enables secret scanning on new repositories asynchronously, so the imported value can differ from the value read straight after creation.
+					ImportStateVerifyIgnore: []string{"auto_init", "etag", "vulnerability_alerts", "ignore_vulnerability_alerts_during_read", "security_and_analysis"},
 				},
 			},
 		})
@@ -1641,7 +1436,7 @@ resource "github_repository" "private" {
 func Test_expandPages(t *testing.T) {
 	t.Parallel()
 
-	t.Run("expand Pages configuration with workflow", func(t *testing.T) {
+	t.Run("expand_pages_configuration_with_workflow", func(t *testing.T) {
 		t.Parallel()
 
 		input := []any{map[string]any{
@@ -1661,7 +1456,7 @@ func Test_expandPages(t *testing.T) {
 		}
 	})
 
-	t.Run("expand Pages configuration with source", func(t *testing.T) {
+	t.Run("expand_pages_configuration_with_source", func(t *testing.T) {
 		t.Parallel()
 
 		input := []any{map[string]any{
@@ -1726,7 +1521,7 @@ func (d resourceDataLike) GetOk(key string) (any, bool) {
 func TestResourceGithubParseFullName(t *testing.T) {
 	t.Parallel()
 
-	t.Run("parses valid full name", func(t *testing.T) {
+	t.Run("parses_valid_full_name", func(t *testing.T) {
 		t.Parallel()
 
 		o := "moyorg"
@@ -1744,7 +1539,7 @@ func TestResourceGithubParseFullName(t *testing.T) {
 		}
 	})
 
-	t.Run("handles missing full name", func(t *testing.T) {
+	t.Run("handles_missing_full_name", func(t *testing.T) {
 		t.Parallel()
 
 		_, _, ok := resourceGithubParseFullName(resourceDataLike(map[string]any{}))
@@ -1753,7 +1548,7 @@ func TestResourceGithubParseFullName(t *testing.T) {
 		}
 	})
 
-	t.Run("handles malformed full name", func(t *testing.T) {
+	t.Run("handles_malformed_full_name", func(t *testing.T) {
 		t.Parallel()
 
 		_, _, ok := resourceGithubParseFullName(resourceDataLike(map[string]any{"full_name": "malformed"}))

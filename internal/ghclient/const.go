@@ -1,30 +1,30 @@
 package ghclient
 
-import "time"
-
-const (
-	// DotComAPIURL is the base API URL for github.com.
-	DotComAPIURL = "https://api.github.com/"
+import (
+	"net/url"
+	"time"
 )
 
 const (
-	// RESTAPIPath is the rest api path for api.github.com & ghe.com.
-	RESTAPIPath = "/"
-	// GraphQLAPIPath is the graphql api path for api.github.com & ghe.com.
-	GraphQLAPIPath = "/graphql"
-	// GHESRESTAPISuffix is the rest api suffix for GitHub Enterprise Server.
-	GHESRESTAPIPath = "api/v3/"
-	// GHESGraphQLAPISuffix is the GraphQL api suffix for GitHub Enterprise Server.
-	GHESGraphQLAPIPath = "api/graphql"
+	// DotComAPIURLStr is the base API URL for github.com.
+	DotComAPIURLStr = "https://api.github.com/"
+)
+
+// dotComAPIURL is [DotComAPIURLStr] as a [url.URL]. It's never modified, as [url.URL.JoinPath] returns a copy.
+var dotComAPIURL = url.URL{Scheme: "https", Host: "api.github.com", Path: "/"}
+
+const (
+	// restAPIPath is the rest api path for api.github.com & ghe.com.
+	restAPIPath = "/"
+	// graphQLAPIPath is the graphql api path for api.github.com & ghe.com.
+	graphQLAPIPath = "/graphql"
+	// ghesRESTAPIPath is the rest api path for GitHub Enterprise Server.
+	ghesRESTAPIPath = "api/v3/"
+	// ghesGraphQLAPIPath is the GraphQL api path for GitHub Enterprise Server.
+	ghesGraphQLAPIPath = "api/graphql"
 )
 
 const (
-	// githubSecondaryRateLimitMaxConcurrency defines the maximum number of concurrent requests allowed to the GitHub API under secondary rate limits.
-	githubSecondaryRateLimitMaxConcurrency int64 = 100
-
-	// maxConcurrentRequests defines the maximum number of concurrent requests allowed to the GitHub API.
-	maxConcurrentRequests int64 = githubSecondaryRateLimitMaxConcurrency
-
 	// maxIdleConnsREST defines the maximum number of idle connections for REST API requests.
 	maxIdleConnsREST int = 100
 
@@ -36,6 +36,9 @@ const (
 
 	// idleConnTimeoutGraphQL defines the timeout duration for idle GraphQL API connections.
 	idleConnTimeoutGraphQL = 120 * time.Second
+
+	// responseHeaderTimeout defines how long to wait for a response's headers once the request has been written. GitHub stops processing a request after about 10 seconds, so this only trips on connections that have stalled.
+	responseHeaderTimeout = 60 * time.Second
 
 	// clientTimeout defines the timeout duration for GitHub API requests, this is set to be below the default 20 minutes Terraform context timeout but still long enough for secondary ratelimit retrys.
 	clientTimeout = 10 * time.Minute

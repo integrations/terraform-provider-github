@@ -1,54 +1,42 @@
 package github
 
 import (
-	"fmt"
-	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubDependabotOrganizationSecretsDataSource(t *testing.T) {
 	t.Parallel()
+	skipUnlessHasOrgs(t)
 
-	t.Run("queries organization dependabot secrets from a repository", func(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		_ = mustCreateTestDependabotOrganizationSecret(t)
 
-		config := fmt.Sprintf(`
-			resource "github_dependabot_organization_secret" "test" {
-				secret_name = "org_dep_secret_1_%s"
-				value       = "foo"
-				visibility  = "private"
-			}
-		`, randomID)
-
-		config2 := config + `
-			data "github_dependabot_organization_secrets" "test" {
-			}
-		`
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("data.github_dependabot_organization_secrets.test", "secrets.#", "1"),
-			resource.TestCheckResourceAttr("data.github_dependabot_organization_secrets.test", "secrets.0.name", strings.ToUpper(fmt.Sprintf("ORG_DEP_SECRET_1_%s", randomID))),
-			resource.TestCheckResourceAttr("data.github_dependabot_organization_secrets.test", "secrets.0.visibility", "private"),
-			resource.TestCheckResourceAttrSet("data.github_dependabot_organization_secrets.test", "secrets.0.created_at"),
-			resource.TestCheckResourceAttrSet("data.github_dependabot_organization_secrets.test", "secrets.0.updated_at"),
-		)
+		config := `
+data "github_dependabot_organization_secrets" "test" {}
+`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  resource.ComposeTestCheckFunc(),
-				},
-				{
-					Config: config2,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_dependabot_organization_secrets.test", tfjsonpath.New("secrets"), knownvalue.ListPartial(map[int]knownvalue.Check{
+							0: knownvalue.MapPartial(map[string]knownvalue.Check{
+								"name":       knownvalue.NotNull(),
+								"visibility": knownvalue.NotNull(),
+								"created_at": knownvalue.NotNull(),
+								"updated_at": knownvalue.NotNull(),
+							}),
+						})),
+					},
 				},
 			},
 		})

@@ -68,10 +68,8 @@ func dataSourceGithubRepositoriesRead(ctx context.Context, d *schema.ResourceDat
 
 	query := d.Get("query").(string)
 	opt := &github.SearchOptions{
-		Sort: d.Get("sort").(string),
-		ListOptions: github.ListOptions{
-			PerPage: resultsPerPage,
-		},
+		Sort:    d.Get("sort").(string),
+		PerPage: resultsPerPage,
 	}
 
 	fullNames, names, repoIDs, err := searchGithubRepositories(ctx, client, query, opt)

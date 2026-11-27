@@ -108,8 +108,9 @@ func resourceGithubActionsEnterpriseRunnerGroup() *schema.Resource {
 	}
 }
 
-func resourceGithubActionsEnterpriseRunnerGroupCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func resourceGithubActionsEnterpriseRunnerGroupCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
 	name := d.Get("name").(string)
 	enterpriseSlug := d.Get("enterprise_slug").(string)
@@ -157,8 +158,10 @@ func resourceGithubActionsEnterpriseRunnerGroupCreate(ctx context.Context, d *sc
 		return diag.FromErr(err)
 	}
 	d.SetId(strconv.FormatInt(enterpriseRunnerGroup.GetID(), 10))
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if err = d.Set("allows_public_repositories", enterpriseRunnerGroup.GetAllowsPublicRepositories()); err != nil {
 		return diag.FromErr(err)
@@ -240,8 +243,10 @@ func resourceGithubActionsEnterpriseRunnerGroupRead(ctx context.Context, d *sche
 		return nil
 	}
 
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if err = d.Set("allows_public_repositories", enterpriseRunnerGroup.GetAllowsPublicRepositories()); err != nil {
 		return diag.FromErr(err)

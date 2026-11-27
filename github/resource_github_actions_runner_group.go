@@ -166,8 +166,10 @@ func resourceGithubActionsRunnerGroupCreate(ctx context.Context, d *schema.Resou
 		return diag.FromErr(err)
 	}
 	d.SetId(strconv.FormatInt(runnerGroup.GetID(), 10))
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if err = d.Set("allows_public_repositories", runnerGroup.GetAllowsPublicRepositories()); err != nil {
 		return diag.FromErr(err)
@@ -258,8 +260,10 @@ func resourceGithubActionsRunnerGroupRead(ctx context.Context, d *schema.Resourc
 		return nil
 	}
 
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if err = d.Set("allows_public_repositories", runnerGroup.GetAllowsPublicRepositories()); err != nil {
 		return diag.FromErr(err)

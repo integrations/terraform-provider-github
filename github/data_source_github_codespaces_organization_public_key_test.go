@@ -8,8 +8,9 @@ import (
 
 func TestAccGithubCodespacesOrganizationPublicKeyDataSource(t *testing.T) {
 	t.Parallel()
+	skipUnlessHasPaidOrgs(t)
 
-	t.Run("queries an organization public key without error", func(t *testing.T) {
+	t.Run("queries_an_organization_public_key_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		config := `
@@ -17,7 +18,6 @@ func TestAccGithubCodespacesOrganizationPublicKeyDataSource(t *testing.T) {
 		`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasPaidOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

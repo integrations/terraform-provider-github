@@ -642,9 +642,7 @@ func getUserCollaborators(col []any) (userCollaborators, error) {
 		}
 
 		uc := userCollaborator{
-			userIdentity: userIdentity{
-				login: username,
-			},
+			login:      username,
 			permission: permission,
 		}
 
@@ -723,7 +721,7 @@ func listUserCollaborators(ctx context.Context, meta *Owner, owner, repoName str
 
 	collaborators := make([]userCollaborator, 0)
 	for _, affiliation := range []string{"direct", "outside"} {
-		for user, err := range meta.v3client.Repositories.ListCollaboratorsIter(ctx, owner, repoName, &github.ListCollaboratorsOptions{Affiliation: affiliation, ListOptions: github.ListOptions{PerPage: meta.maxPerPage}}) {
+		for user, err := range meta.v3client.Repositories.ListCollaboratorsIter(ctx, owner, repoName, &github.ListCollaboratorsOptions{Affiliation: affiliation, PerPage: meta.maxPerPage}) {
 			if err != nil {
 				return nil, err
 			}
@@ -733,9 +731,7 @@ func listUserCollaborators(ctx context.Context, meta *Owner, owner, repoName str
 			}
 
 			collaborators = append(collaborators, userCollaborator{
-				userIdentity: userIdentity{
-					login: user.GetLogin(),
-				},
+				login:      user.GetLogin(),
 				permission: getPermission(user.GetRoleName()),
 			})
 		}
@@ -754,9 +750,7 @@ func listInvitations(ctx context.Context, meta *Owner, owner, repoName string) (
 		}
 
 		collaborators = append(collaborators, userCollaborator{
-			userIdentity: userIdentity{
-				login: user.GetInvitee().GetLogin(),
-			},
+			login:        user.GetInvitee().GetLogin(),
 			permission:   getPermission(user.GetPermissions()),
 			invitationID: new(user.GetID()),
 		})
@@ -810,11 +804,9 @@ func listTeamCollaborators(ctx context.Context, meta *Owner, orgName, repoName s
 		}
 
 		collaborators = append(collaborators, teamCollaborator{
-			teamIdentity: teamIdentity{
-				id:     &id,
-				slug:   &slug,
-				teamID: teamID,
-			},
+			id:         &id,
+			slug:       &slug,
+			teamID:     teamID,
 			permission: getPermission(team.GetPermission()),
 		})
 	}

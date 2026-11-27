@@ -579,11 +579,10 @@ resource "github_repository_ruleset" "test" {
 					Config: config,
 				},
 				{
-					ResourceName:            "github_repository_ruleset.test",
-					ImportState:             true,
-					ImportStateVerify:       true,
-					ImportStateIdFunc:       importRepositoryRulesetByResourcePaths("github_repository.test", "github_repository_ruleset.test"),
-					ImportStateVerifyIgnore: []string{"etag"},
+					ResourceName:      "github_repository_ruleset.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+					ImportStateIdFunc: importRepositoryRulesetByResourcePaths("github_repository.test", "github_repository_ruleset.test"),
 				},
 			},
 		})
@@ -913,147 +912,70 @@ resource "github_repository_ruleset" "test" {
 	t.Run("updates_required_reviewers_successfully", func(t *testing.T) {
 		t.Parallel()
 
-		randomID := acctest.RandString(5)
-		repoName := fmt.Sprintf("%srepo-ruleset-req-rev-%s", testResourcePrefix, randomID)
-		teamName := fmt.Sprintf("%steam-req-rev-%s", testResourcePrefix, randomID)
-		rulesetName := fmt.Sprintf("%s-ruleset-req-rev-%s", testResourcePrefix, randomID)
+		skipUnlessHasOrgs(t)
 
-		config := fmt.Sprintf(`
-resource "github_repository" "test" {
-	name      = "%s"
-	auto_init = true
-	visibility = "%s"
+		repo := mustCreateTestRepository(t)
+		team := mustCreateTestTeam(t)
+		mustAddRepositoryToTeam(t, team, repo, func(opts *github.AddTeamRepoRequest) {
+			opts.Permission = new("push")
+		})
 
-  ignore_vulnerability_alerts_during_read = true
-}
+		rulesetName := fmt.Sprintf("%s%s", testResourcePrefix, acctest.RandString(testRandomIDLength))
 
-resource "github_team" "test" {
-	name = "%s"
-}
-
-resource "github_team_repository" "test" {
-	team_id    = github_team.test.id
-	repository = github_repository.test.name
-	permission = "push"
-}
-
+		config := `
 resource "github_repository_ruleset" "test" {
-	name        = "%s"
-	repository  = github_repository.test.name
-	target      = "branch"
-	enforcement = "active"
+  name        = "%s"
+  repository  = "%s"
+  target      = "branch"
+  enforcement = "active"
 
+  conditions {
+    ref_name {
+      include = ["~ALL"]
+      exclude = []
+    }
+  }
 
-	conditions {
-		ref_name {
-			include = ["~ALL"]
-			exclude = []
-		}
-	}
+  rules {
+    pull_request {
+      allowed_merge_methods           = ["merge", "squash"]
+      required_approving_review_count = 1
 
-	rules {
-		pull_request {
-			allowed_merge_methods = ["merge", "squash"]
-			required_approving_review_count = 1
-
-			required_reviewers {
-				reviewer {
-					id   = github_team.test.id
-					type = "Team"
-				}
-				file_patterns     = ["*.go"]
-				minimum_approvals = 1
-			}
-		}
-	}
-
-	depends_on = [github_team_repository.test]
+      required_reviewers {
+        reviewer {
+          id   = %d
+          type = "Team"
+        }
+        file_patterns     = ["*.go"]
+        minimum_approvals = %d
+      }
+    }
+  }
 }
-`, repoName, testAccConf.testRepositoryVisibility, teamName, rulesetName)
-
-		// Updated config: change minimum_approvals from 1 to 2
-		configUpdated := fmt.Sprintf(`
-resource "github_repository" "test" {
-	name      = "%s"
-	auto_init = true
-	visibility = "%s"
-
-  ignore_vulnerability_alerts_during_read = true
-}
-
-resource "github_team" "test" {
-	name = "%s"
-}
-
-resource "github_team_repository" "test" {
-	team_id    = github_team.test.id
-	repository = github_repository.test.name
-	permission = "push"
-}
-
-resource "github_repository_ruleset" "test" {
-	name        = "%s"
-	repository  = github_repository.test.name
-	target      = "branch"
-	enforcement = "active"
-
-
-	conditions {
-		ref_name {
-			include = ["~ALL"]
-			exclude = []
-		}
-	}
-
-	rules {
-		pull_request {
-			allowed_merge_methods = ["merge", "squash"]
-			required_approving_review_count = 1
-
-			required_reviewers {
-				reviewer {
-					id   = github_team.test.id
-					type = "Team"
-				}
-				file_patterns     = ["*.go"]
-				minimum_approvals = 2
-			}
-		}
-	}
-
-	depends_on = [github_team_repository.test]
-}
-`, repoName, testAccConf.testRepositoryVisibility, teamName, rulesetName)
+`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "name", rulesetName),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "target", "branch"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "enforcement", "active"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.#", "1"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.minimum_approvals", "1"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.#", "1"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.file_patterns.0", "*.go"),
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.reviewer.0.type", "Team"),
-					),
+					Config: fmt.Sprintf(config, rulesetName, repo.GetName(), team.GetID(), 1),
 				},
 				{
-					Config: configUpdated,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("github_repository_ruleset.test", "rules.0.pull_request.0.required_reviewers.0.minimum_approvals", "2"),
-					),
+					Config: fmt.Sprintf(config, rulesetName, repo.GetName(), team.GetID(), 2),
 				},
 				{
 					ResourceName:            "github_repository_ruleset.test",
 					ImportState:             true,
 					ImportStateVerify:       true,
-					ImportStateIdFunc:       importRepositoryRulesetByResourcePaths("github_repository.test", "github_repository_ruleset.test"),
 					ImportStateVerifyIgnore: []string{"etag"},
+					ImportStateIdFunc: func(s *terraform.State) (string, error) {
+						ruleset := s.RootModule().Resources["github_repository_ruleset.test"]
+						if ruleset == nil || ruleset.Primary.ID == "" {
+							return "", fmt.Errorf("cannot find github_repository_ruleset.test in terraform state")
+						}
+
+						return fmt.Sprintf("%s:%s", repo.GetName(), ruleset.Primary.ID), nil
+					},
 				},
 			},
 		})

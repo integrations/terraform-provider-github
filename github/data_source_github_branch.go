@@ -42,9 +42,10 @@ func dataSourceGithubBranch() *schema.Resource {
 	}
 }
 
-func dataSourceGithubBranchRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+func dataSourceGithubBranchRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+	orgName := meta.name
 	repoName := d.Get("repository").(string)
 	branchName := d.Get("branch").(string)
 	branchRefName := "refs/heads/" + branchName
@@ -62,9 +63,10 @@ func dataSourceGithubBranchRead(ctx context.Context, d *schema.ResourceData, met
 	}
 
 	d.SetId(buildTwoPartID(repoName, branchName))
-	err = d.Set("etag", resp.Header.Get("ETag"))
-	if err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	err = d.Set("ref", *ref.Ref)
 	if err != nil {

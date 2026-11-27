@@ -73,7 +73,6 @@ resource "github_team" "test" {
 						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("parent_team_read_id"), knownvalue.StringExact("")),
 						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("parent_team_read_slug"), knownvalue.StringExact("")),
 						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("node_id"), knownvalue.NotNull()),
-						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("etag"), knownvalue.NotNull()),
 					},
 				},
 				{
@@ -90,7 +89,6 @@ resource "github_team" "test" {
 						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("parent_team_read_id"), knownvalue.StringExact("")),
 						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("parent_team_read_slug"), knownvalue.StringExact("")),
 						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("node_id"), knownvalue.NotNull()),
-						statecheck.ExpectKnownValue("github_team.test", tfjsonpath.New("etag"), knownvalue.NotNull()),
 					},
 				},
 				{

@@ -17,12 +17,16 @@ import (
 )
 
 func TestGithubActionsEnterpriseRunnerGroupNetworking(t *testing.T) {
-	testRunnerGroupNetworking(t, resourceGithubActionsEnterpriseRunnerGroup(), "/enterprises/test-enterprise", map[string]any{
-		"enterprise_slug":          "test-enterprise",
-		"name":                     "test-group",
-		"visibility":               "all",
-		"network_configuration_id": "network-1",
-	})
+	for _, storeEtag := range []bool{false, true} {
+		t.Run(fmt.Sprintf("storeEtag=%t", storeEtag), func(t *testing.T) {
+			testRunnerGroupNetworking(t, resourceGithubActionsEnterpriseRunnerGroup(), "/enterprises/test-enterprise", map[string]any{
+				"enterprise_slug":          "test-enterprise",
+				"name":                     "test-group",
+				"visibility":               "all",
+				"network_configuration_id": "network-1",
+			}, storeEtag)
+		})
+	}
 }
 
 func TestGithubActionsEnterpriseRunnerGroupContextCancellation(t *testing.T) {

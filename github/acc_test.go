@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-github/v93/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -243,6 +244,8 @@ func getTestMeta(conf *testAccConfig) (*Owner, error) {
 		BaseURL:      conf.baseURL,
 		IsGHES:       conf.isGHES,
 		Owner:        conf.owner,
+		MaxRetries:   3,
+		RetryDelay:   time.Second,
 	}
 
 	if conf.authMode != anonymous {

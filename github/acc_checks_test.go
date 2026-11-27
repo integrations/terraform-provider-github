@@ -1,10 +1,30 @@
 package github
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 )
+
+var _ statecheck.StateCheck = expectFunc{}
+
+// expectFunc is a statecheck.StateCheck implementation that delegates to a closure. It's for assertions that
+// can't be expressed against state alone, e.g. unmanaged attributes that must be verified via the API.
+type expectFunc struct {
+	fn func(ctx context.Context, req statecheck.CheckStateRequest) error
+}
+
+// CheckState runs the wrapped closure and reports any error it returns.
+func (c expectFunc) CheckState(ctx context.Context, req statecheck.CheckStateRequest, resp *statecheck.CheckStateResponse) {
+	resp.Error = c.fn(ctx, req)
+}
+
+// ExpectFunc returns a statecheck.StateCheck that fails if fn returns an error.
+func ExpectFunc(fn func(ctx context.Context, req statecheck.CheckStateRequest) error) statecheck.StateCheck {
+	return expectFunc{fn: fn}
+}
 
 var _ knownvalue.Check = setAbsent{}
 

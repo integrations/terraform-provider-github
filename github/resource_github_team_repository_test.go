@@ -3,12 +3,15 @@ package github
 import (
 	"context"
 	"fmt"
-	"strings"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 // Test_resourceGithubTeamRepositoryDelete_nilResponseDoesNotPanic is a
@@ -47,228 +50,141 @@ func Test_resourceGithubTeamRepositoryDelete_nilResponseDoesNotPanic(t *testing.
 func TestAccGithubTeamRepository(t *testing.T) {
 	t.Parallel()
 
-	t.Run("manages team permissions to a repository", func(t *testing.T) {
+	skipUnlessHasOrgs(t)
+
+	t.Run("manages_team_permissions_to_a_repository", func(t *testing.T) {
 		t.Parallel()
 
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		teamName := fmt.Sprintf("%steam-repo-%s", testResourcePrefix, randomID)
-		repoName := fmt.Sprintf("%srepo-team-repo-%s", testResourcePrefix, randomID)
+		team := mustCreateTestTeam(t)
+		repo := mustCreateTestRepository(t)
 
 		config := fmt.Sprintf(`
-			resource "github_team" "test" {
-				name        = "%s"
-				description = "test"
-			}
-
-			resource "github_repository" "test" {
-				name = "%s"
-			}
-
-			resource "github_team_repository" "test" {
-				team_id    = "${github_team.test.id}"
-				repository = "${github_repository.test.name}"
-				permission = "pull"
-			}
-		`, teamName, repoName)
-
-		checks := map[string]resource.TestCheckFunc{
-			"pull": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_team_repository.test", "permission",
-					"pull",
-				),
-			),
-			"triage": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_team_repository.test", "permission",
-					"triage",
-				),
-			),
-			"push": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_team_repository.test", "permission",
-					"push",
-				),
-			),
-			"maintain": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_team_repository.test", "permission",
-					"maintain",
-				),
-			),
-			"admin": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_team_repository.test", "permission",
-					"admin",
-				),
-			),
-		}
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-					Check:  checks["pull"],
-				},
-				{
-					Config: strings.Replace(config,
-						`permission = "pull"`,
-						`permission = "triage"`, 1),
-					Check: checks["triage"],
-				},
-				{
-					Config: strings.Replace(config,
-						`permission = "pull"`,
-						`permission = "push"`, 1),
-					Check: checks["push"],
-				},
-				{
-					Config: strings.Replace(config,
-						`permission = "pull"`,
-						`permission = "maintain"`, 1),
-					Check: checks["maintain"],
-				},
-				{
-					Config: strings.Replace(config,
-						`permission = "pull"`,
-						`permission = "admin"`, 1),
-					Check: checks["admin"],
-				},
-			},
-		})
-	})
-
-	t.Run("accepts both team slug and team ID for `team_id`", func(t *testing.T) {
-		t.Parallel()
-
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		teamName := fmt.Sprintf("%steam-repo-slug-%s", testResourcePrefix, randomID)
-		repoName := fmt.Sprintf("%srepo-team-repo-slug-%s", testResourcePrefix, randomID)
-
-		config := fmt.Sprintf(`
-			resource "github_team" "test" {
-				name        = "%s"
-				description = "test"
-			}
-
-			resource "github_repository" "test" {
-				name = "%s"
-			}
-
-			resource "github_team_repository" "test" {
-				team_id    = "${github_team.test.slug}"
-				repository = "${github_repository.test.name}"
-				permission = "pull"
-			}
-		`, teamName, repoName)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet("github_team_repository.test", "team_id"),
-		)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: config,
-					Check:  check,
-				},
-				{
-					Config: strings.Replace(config,
-						`github_team.test.id`,
-						`github_team.test.slug`, 1),
-					Check: check,
-				},
-			},
-		})
-	})
+resource "github_team_repository" "test" {
+  team_id    = "%d"
+  repository = "%s"
+  permission = "%%s"
 }
-
-func TestAccGithubTeamRepositoryArchivedRepo(t *testing.T) {
-	t.Parallel()
-
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-	teamName := fmt.Sprintf("%steam-archive-%s", testResourcePrefix, randomID)
-	repoName := fmt.Sprintf("%srepo-team-archive-%s", testResourcePrefix, randomID)
-
-	t.Run("can delete team repository access from archived repositories without error", func(t *testing.T) {
-		t.Parallel()
-
-		config := fmt.Sprintf(`
-			resource "github_team" "test" {
-				name        = "%s"
-				description = "test team for archived repo"
-			}
-
-			resource "github_repository" "test" {
-				name = "%s"
-				auto_init = true
-			}
-
-			resource "github_team_repository" "test" {
-				team_id    = github_team.test.id
-				repository = github_repository.test.name
-				permission = "pull"
-			}
-		`, teamName, repoName)
-
-		archivedConfig := fmt.Sprintf(`
-			resource "github_team" "test" {
-				name        = "%s"
-				description = "test team for archived repo"
-			}
-
-			resource "github_repository" "test" {
-				name = "%s"
-				auto_init = true
-				archived = true
-			}
-
-			resource "github_team_repository" "test" {
-				team_id    = github_team.test.id
-				repository = github_repository.test.name
-				permission = "pull"
-			}
-		`, teamName, repoName)
+`, team.GetID(), repo.GetName())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, "pull"),
+				},
+				{
+					Config: fmt.Sprintf(config, "triage"),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_team_repository.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+				{
+					Config: fmt.Sprintf(config, "push"),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_team_repository.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+				{
+					Config: fmt.Sprintf(config, "maintain"),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_team_repository.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+				{
+					Config: fmt.Sprintf(config, "admin"),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_team_repository.test", plancheck.ResourceActionUpdate),
+						},
+					},
+				},
+				{
+					ResourceName:            "github_team_repository.test",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"etag"},
+				},
+			},
+		})
+	})
+
+	t.Run("accepts_both_team_slug_and_team_id_for_team_id", func(t *testing.T) {
+		t.Parallel()
+
+		team := mustCreateTestTeam(t)
+		repo := mustCreateTestRepository(t)
+
+		config := fmt.Sprintf(`
+resource "github_team_repository" "test" {
+  team_id    = "%%s"
+  repository = "%s"
+  permission = "pull"
+}
+`, repo.GetName())
+
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: fmt.Sprintf(config, team.GetSlug()),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_repository.test", tfjsonpath.New("id"), knownvalue.StringExact(fmt.Sprintf("%d:%s", team.GetID(), repo.GetName()))),
+					},
+				},
+				{
+					Config: fmt.Sprintf(config, strconv.FormatInt(team.GetID(), 10)),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("github_team_repository.test", tfjsonpath.New("id"), knownvalue.StringExact(fmt.Sprintf("%d:%s", team.GetID(), repo.GetName()))),
+					},
+				},
+			},
+		})
+	})
+
+	t.Run("can_delete_team_repository_access_from_archived_repositories_without_error", func(t *testing.T) {
+		t.Parallel()
+
+		team := mustCreateTestTeam(t)
+		repo := mustCreateTestRepository(t)
+
+		config := fmt.Sprintf(`
+resource "github_team_repository" "test" {
+  team_id    = "%d"
+  repository = "%s"
+  permission = "pull"
+}
+`, team.GetID(), repo.GetName())
+
+		resource.Test(t, resource.TestCase{
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr(
-							"github_team_repository.test", "permission",
-							"pull",
-						),
-					),
 				},
 				{
-					Config: archivedConfig,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr(
-							"github_repository.test", "archived",
-							"true",
-						),
-					),
+					PreConfig: func() {
+						mustArchiveTestRepository(t, repo)
+					},
+					Config: config,
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectEmptyPlan(),
+						},
+					},
 				},
 				{
-					Config: fmt.Sprintf(`
-							resource "github_team" "test" {
-								name        = "%s"
-								description = "test team for archived repo"
-							}
-
-							resource "github_repository" "test" {
-								name = "%s"
-								auto_init = true
-								archived = true
-							}
-						`, teamName, repoName),
+					Config: "# no resources",
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_team_repository.test", plancheck.ResourceActionDestroy),
+						},
+					},
 				},
 			},
 		})

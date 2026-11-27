@@ -11,7 +11,7 @@ import (
 func TestAccGithubRepositoryBranchesDataSource(t *testing.T) {
 	t.Parallel()
 
-	t.Run("manages branches of a new repository", func(t *testing.T) {
+	t.Run("manages_branches_of_a_new_repository", func(t *testing.T) {
 		t.Parallel()
 
 		repoName := fmt.Sprintf("%srepo-branches-%s", testResourcePrefix, acctest.RandString(5))
@@ -45,8 +45,9 @@ func TestAccGithubRepositoryBranchesDataSource(t *testing.T) {
 		})
 	})
 
-	t.Run("manages branches of a new repository with filtering", func(t *testing.T) {
+	t.Run("manages_branches_of_a_new_repository_with_filtering", func(t *testing.T) {
 		t.Parallel()
+		skipUnlessHasOrgs(t)
 
 		repoName := fmt.Sprintf("%srepo-branches-%s", testResourcePrefix, acctest.RandString(5))
 		config := fmt.Sprintf(`
@@ -97,12 +98,10 @@ func TestAccGithubRepositoryBranchesDataSource(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  resource.ComposeTestCheckFunc(),
 				},
 				{
 					Config: config2,

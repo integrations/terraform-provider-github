@@ -51,7 +51,7 @@ func dataSourceGithubOrganizationMembersRead(ctx context.Context, d *schema.Reso
 	}
 
 	members := make([]map[string]any, 0)
-	for member, err := range meta.v3client.Organizations.ListMembersIter(ctx, meta.name, &github.ListMembersOptions{ListOptions: github.ListOptions{PerPage: meta.maxPerPage}}) {
+	for member, err := range meta.v3client.Organizations.ListMembersIter(ctx, meta.name, &github.ListMembersOptions{PerPage: meta.maxPerPage}) {
 		if err != nil {
 			return diag.FromErr(err)
 		}

@@ -54,14 +54,15 @@ func resourceGithubMembership() *schema.Resource {
 	}
 }
 
-func resourceGithubMembershipCreateOrUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubMembershipCreateOrUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 
 	if err := d.Set("etag", nil); err != nil {
 		return diag.FromErr(err)
@@ -86,22 +87,25 @@ func resourceGithubMembershipCreateOrUpdate(ctx context.Context, d *schema.Resou
 
 	d.SetId(buildTwoPartID(orgName, username))
 
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	return nil
 }
 
-func resourceGithubMembershipRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+func resourceGithubMembershipRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 
-	orgName := meta.(*Owner).name
+	orgName := meta.name
 	_, username, err := parseID2(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
@@ -129,8 +133,10 @@ func resourceGithubMembershipRead(ctx context.Context, d *schema.ResourceData, m
 		return diag.FromErr(err)
 	}
 
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return diag.FromErr(err)
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if err = d.Set("username", username); err != nil {
 		return diag.FromErr(err)

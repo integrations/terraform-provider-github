@@ -1,46 +1,13 @@
-name: Issue/PR Response
+name: Issue Response
 
 on:
   issues:
     types:
       - opened
-  pull_request_target:
-    types:
-      - opened
 
-permissions: read-all
+permissions: {}
 
 jobs:
-  # ──────────────────────────────────────────────
-  # PR Response
-  # ──────────────────────────────────────────────
-  respond-to-pr:
-    name: Respond to PR
-    if: >
-      github.event_name == 'pull_request_target' &&
-      github.actor != 'dependabot[bot]' &&
-      github.actor != 'renovate[bot]' &&
-      github.actor != 'github-actions[bot]' &&
-      github.actor != 'octokitbot' &&
-      github.repository == 'integrations/terraform-provider-github'
-    runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
-    steps:
-      - name: Comment on PR
-        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
-        with:
-          issue-number: ${{ github.event.pull_request.number }}
-          body: |
-            👋 Hi, and thank you for this contribution!
-
-            This repo is maintained by GitHub and community members on a best-effort basis. We'll get to this as soon as we can.
-
-            You can help us prioritize by joining the discussion on open issues and PRs, sharing details on the changes you need, and reviewing other contributions.
-
-            ---
-            <sub>🤖 This is an automated message.</sub>
-
   # ──────────────────────────────────────────────
   # Issue Response
   # ──────────────────────────────────────────────
@@ -66,7 +33,7 @@ jobs:
 
             This repo is maintained by GitHub and community members on a best-effort basis. We'll get to this as soon as we can.
 
-            You can help us prioritize by adding details, reproduction steps, or a 👍 to issues that matter to you, and by joining the discussion on open issues and PRs.
+            You can help us prioritize by adding details, reproduction steps, or a 👍 to issues that matter to you, and by joining the discussion on open issues.
 
             ---
             <sub>🤖 This is an automated message.</sub>

@@ -25,7 +25,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
-func testRunnerGroupNetworking(t *testing.T, runnerGroup *schema.Resource, scope string, attributes map[string]any) {
+func testRunnerGroupNetworking(t *testing.T, runnerGroup *schema.Resource, scope string, attributes map[string]any, storeEtag bool) {
 	t.Helper()
 
 	path := scope + "/actions/runner-groups"
@@ -34,6 +34,7 @@ func testRunnerGroupNetworking(t *testing.T, runnerGroup *schema.Resource, scope
 	reads := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("ETag", `"runner-group"`)
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == path,
 			r.Method == http.MethodPatch && r.URL.Path == path+"/42":
@@ -80,6 +81,7 @@ func testRunnerGroupNetworking(t *testing.T, runnerGroup *schema.Resource, scope
 		name:           "test-org",
 		IsOrganization: true,
 		maxPerPage:     100,
+		storeEtag:      storeEtag,
 		v3client:       mustCreateTestGitHubClient(t, server.URL),
 	}
 	d := schema.TestResourceDataRaw(t, runnerGroup.Schema, attributes)
@@ -91,6 +93,13 @@ func testRunnerGroupNetworking(t *testing.T, runnerGroup *schema.Resource, scope
 	}
 	if reads != 0 {
 		t.Fatalf("create issued %d read-after-write requests", reads)
+	}
+	wantEtag := ""
+	if storeEtag {
+		wantEtag = `"runner-group"`
+	}
+	if got := d.Get("etag"); got != wantEtag {
+		t.Errorf("created etag = %q, want %q", got, wantEtag)
 	}
 
 	if err := d.Set("network_configuration_id", "network-2"); err != nil {
@@ -108,6 +117,9 @@ func testRunnerGroupNetworking(t *testing.T, runnerGroup *schema.Resource, scope
 	if reads != 0 {
 		t.Fatalf("update issued %d read-after-write requests", reads)
 	}
+	if got := d.Get("etag"); got != "" {
+		t.Errorf("updated etag = %q, want empty", got)
+	}
 
 	importAttributes := maps.Clone(attributes)
 	delete(importAttributes, "network_configuration_id")
@@ -118,6 +130,9 @@ func testRunnerGroupNetworking(t *testing.T, runnerGroup *schema.Resource, scope
 	}
 	if got := imported.Get("network_configuration_id"); got != "network-2" {
 		t.Errorf("imported network_configuration_id = %v, want network-2", got)
+	}
+	if got := imported.Get("etag"); got != wantEtag {
+		t.Errorf("imported etag = %q, want %q", got, wantEtag)
 	}
 }
 
@@ -302,10 +317,11 @@ func testRunnerGroupNetworkingLifecycle(t *testing.T, runnerGroup func() *schema
 				ConfigStateChecks: checkState("network-1"),
 			},
 			{
-				ResourceName:        resourceName,
-				ImportState:         true,
-				ImportStateVerify:   true,
-				ImportStateIdPrefix: importPrefix,
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"etag"},
+				ImportStateIdPrefix:     importPrefix,
 			},
 			{
 				Config: fmt.Sprintf(`
@@ -362,10 +378,11 @@ func testRunnerGroupNetworkingLifecycle(t *testing.T, runnerGroup func() *schema
 				ConfigStateChecks: checkState(""),
 			},
 			{
-				ResourceName:        resourceName,
-				ImportState:         true,
-				ImportStateVerify:   true,
-				ImportStateIdPrefix: importPrefix,
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"etag"},
+				ImportStateIdPrefix:     importPrefix,
 			},
 		},
 	})

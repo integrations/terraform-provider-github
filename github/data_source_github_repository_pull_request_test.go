@@ -4,82 +4,57 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/google/go-github/v93/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubRepositoryPullRequestDataSource(t *testing.T) {
 	t.Parallel()
 
-	t.Run("manages the pull request lifecycle", func(t *testing.T) {
+	skipUnauthenticated(t)
+
+	t.Run("manages_the_pull_request_lifecycle", func(t *testing.T) {
 		t.Parallel()
 
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%srepo-pr-%s", testResourcePrefix, randomID)
+		repo := mustCreateTestRepository(t)
+		branch := mustCreateTestRepositoryBranch(t, repo)
+		mustCreateTestRepositoryFile(t, repo, "test", "bar", func(opts *github.RepositoryContentFileOptions) {
+			opts.Branch = &branch
+		})
+		pr := mustCreateTestRepositoryPullRequest(t, repo, branch)
 
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name      = "%s"
-				auto_init = true
-			}
-
-			resource "github_branch" "test" {
-				repository    = github_repository.test.name
-				branch        = "test"
-				source_branch = github_repository.test.default_branch
-			}
-
-			resource "github_repository_file" "test" {
-				repository     = github_repository.test.name
-				branch         = github_branch.test.branch
-				file           = "test"
-				content        = "bar"
-			}
-
-			resource "github_repository_pull_request" "test" {
-				base_repository = github_repository_file.test.repository
-				base_ref        = github_repository.test.default_branch
-				head_ref        = github_branch.test.branch
-				title           = "test title"
-				body            = "test body"
-			}
-
-			data "github_repository_pull_request" "test" {
-				base_repository = github_repository_pull_request.test.base_repository
-				number = github_repository_pull_request.test.number
-			}
-		`, repoName)
-
-		const resourceName = "data.github_repository_pull_request.test"
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				resourceName, "base_repository",
-				repoName,
-			),
-			resource.TestCheckResourceAttr(resourceName, "base_ref", "main"),
-			resource.TestCheckResourceAttr(resourceName, "head_ref", "test"),
-			resource.TestCheckResourceAttr(resourceName, "title", "test title"),
-			resource.TestCheckResourceAttr(resourceName, "body", "test body"),
-			resource.TestCheckResourceAttr(resourceName, "maintainer_can_modify", "false"),
-			resource.TestCheckResourceAttrSet(resourceName, "base_sha"),
-			resource.TestCheckResourceAttr(resourceName, "draft", "false"),
-			resource.TestCheckResourceAttrSet(resourceName, "head_sha"),
-			resource.TestCheckResourceAttr(resourceName, "labels.#", "0"),
-			resource.TestCheckResourceAttrSet(resourceName, "number"),
-			resource.TestCheckResourceAttrSet(resourceName, "opened_at"),
-			resource.TestCheckResourceAttrSet(resourceName, "opened_by"),
-			resource.TestCheckResourceAttr(resourceName, "state", "open"),
-			resource.TestCheckResourceAttrSet(resourceName, "updated_at"),
-		)
+data "github_repository_pull_request" "test" {
+  base_repository = "%s"
+  number          = %d
+}
+`, repo.GetName(), pr.GetNumber())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_repository_pull_request.test", tfjsonpath.New("base_ref"), knownvalue.StringExact(repo.GetDefaultBranch())),
+						statecheck.ExpectKnownValue("data.github_repository_pull_request.test", tfjsonpath.New("base_sha"), knownvalue.StringExact(pr.GetBase().GetSHA())),
+						statecheck.ExpectKnownValue("data.github_repository_pull_request.test", tfjsonpath.New("head_ref"), knownvalue.StringExact(branch)),
+						statecheck.ExpectKnownValue("data.github_repository_pull_request.test", tfjsonpath.New("head_sha"), knownvalue.StringExact(pr.GetHead().GetSHA())),
+						statecheck.ExpectKnownValue("data.github_repository_pull_request.test", tfjsonpath.New("head_repository"), knownvalue.StringExact(repo.GetName())),
+						statecheck.ExpectKnownValue("data.github_repository_pull_request.test", tfjsonpath.New("head_owner"), knownvalue.StringExact(testAccConf.meta.name)),
+						statecheck.ExpectKnownValue("data.github_repository_pull_request.test", tfjsonpath.New("title"), knownvalue.StringExact(pr.GetTitle())),
+						statecheck.ExpectKnownValue("data.github_repository_pull_request.test", tfjsonpath.New("body"), knownvalue.StringExact(pr.GetBody())),
+						statecheck.ExpectKnownValue("data.github_repository_pull_request.test", tfjsonpath.New("state"), knownvalue.StringExact("open")),
+						statecheck.ExpectKnownValue("data.github_repository_pull_request.test", tfjsonpath.New("draft"), knownvalue.Bool(false)),
+						statecheck.ExpectKnownValue("data.github_repository_pull_request.test", tfjsonpath.New("maintainer_can_modify"), knownvalue.Bool(false)),
+						statecheck.ExpectKnownValue("data.github_repository_pull_request.test", tfjsonpath.New("labels"), knownvalue.ListSizeExact(0)),
+						statecheck.ExpectKnownValue("data.github_repository_pull_request.test", tfjsonpath.New("opened_by"), knownvalue.StringExact(pr.GetUser().GetLogin())),
+						statecheck.ExpectKnownValue("data.github_repository_pull_request.test", tfjsonpath.New("opened_at"), knownvalue.Int64Exact(pr.GetCreatedAt().Unix())),
+						statecheck.ExpectKnownValue("data.github_repository_pull_request.test", tfjsonpath.New("updated_at"), knownvalue.NotNull()),
+					},
 				},
 			},
 		})

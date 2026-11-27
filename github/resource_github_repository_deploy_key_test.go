@@ -56,8 +56,12 @@ func TestSuppressDeployKeyDiff(t *testing.T) {
 func TestAccGithubRepositoryDeployKey_basic(t *testing.T) {
 	t.Parallel()
 
+	skipUnlessHasOrgs(t)
+
 	t.Run("creates repository deploy key without error", func(t *testing.T) {
 		t.Parallel()
+		skipUnauthenticated(t)
+		t.Skip("Skipping: deploy keys are disabled in the test organization (422 Deploy keys are disabled for this repository), revisit once this can be configured")
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		keyName := fmt.Sprintf("%s_rsa", randomID)
@@ -72,7 +76,6 @@ func TestAccGithubRepositoryDeployKey_basic(t *testing.T) {
 		keyPath := strings.ReplaceAll(filepath.Join("test-fixtures", fmt.Sprintf("%s.pub", keyName)), "\\", "/")
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			CheckDestroy:      testAccCheckGithubRepositoryDeployKeyDestroy,
 			Steps: []resource.TestStep{
@@ -171,8 +174,12 @@ resource "github_repository_deploy_key" "test_repo_deploy_key" {
 func TestAccGithubRepositoryDeployKeyArchivedRepo(t *testing.T) {
 	t.Parallel()
 
-	t.Run("can delete deploy keys from archived repositories without error", func(t *testing.T) {
+	skipUnlessHasOrgs(t)
+
+	t.Run("can_delete_deploy_keys_from_archived_repositories_without_error", func(t *testing.T) {
 		t.Parallel()
+		skipUnauthenticated(t)
+		t.Skip("Skipping: deploy keys are disabled in the test organization (422 Deploy keys are disabled for this repository), revisit once this can be configured")
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		keyName := fmt.Sprintf("%s_rsa", randomID)
@@ -214,7 +221,6 @@ func TestAccGithubRepositoryDeployKeyArchivedRepo(t *testing.T) {
 		`, repoName, keyPath)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

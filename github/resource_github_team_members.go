@@ -364,10 +364,8 @@ func getTeamMembers(ctx context.Context, meta *Owner, slug string) (userMembers,
 
 		for _, edge := range query.Organization.Team.Members.Edges {
 			teamMembers = append(teamMembers, userMember{
-				userIdentity: userIdentity{
-					login: strings.ToLower(edge.Node.Login),
-				},
-				role: strings.ToLower(edge.Role),
+				login: strings.ToLower(edge.Node.Login),
+				role:  strings.ToLower(edge.Role),
 			})
 		}
 

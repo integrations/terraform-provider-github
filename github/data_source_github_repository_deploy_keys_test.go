@@ -2,64 +2,42 @@ package github
 
 import (
 	"fmt"
-	"os/exec"
-	"path/filepath"
-	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubRepositoryDeployKeysDataSource(t *testing.T) {
 	t.Parallel()
 
-	t.Run("manages deploy keys", func(t *testing.T) {
+	skipUnlessHasOrgs(t)
+
+	t.Skip("Deploy keys aren't enabled in the testing enterprise.")
+
+	t.Run("lists_deploy_keys", func(t *testing.T) {
 		t.Parallel()
 
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		keyName := fmt.Sprintf("%s_rsa", randomID)
-		cmd := exec.Command("bash", "-c", fmt.Sprintf("ssh-keygen -t rsa -b 4096 -C test@example.com -N '' -f test-fixtures/%s>/dev/null <<< y >/dev/null", keyName))
-		if err := cmd.Run(); err != nil {
-			t.Fatal(err)
-		}
+		repo := mustCreateTestRepository(t)
+		_ = mustCreateTestRepositoryDeployKey(t, repo)
+		_ = mustCreateTestRepositoryDeployKey(t, repo)
 
-		keyPath := strings.ReplaceAll(filepath.Join("test-fixtures", fmt.Sprintf("%s.pub", keyName)), "\\", "/")
-
-		repoName := fmt.Sprintf("%srepo-deploy-keys-%s", testResourcePrefix, acctest.RandString(5))
 		config := fmt.Sprintf(`
-		resource "github_repository" "test" {
-			name      = "%s"
-			auto_init = true
-		}
-
-		resource "github_repository_deploy_key" "test" {
-			repository = github_repository.test.name
-			key        = file("%s")
-			title      = "title1"
-			read_only  = true
-		}
-
-		data "github_repository_deploy_keys" "test" {
-			repository = github_repository.test.name
-
-			depends_on = [github_repository_deploy_key.test]
-		}
-		`, repoName, keyPath)
+data "github_repository_deploy_keys" "test" {
+  repository = "%s"
+}
+`, repo.GetName())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttrSet("data.github_repository_deploy_keys.test", "keys.#"),
-						resource.TestCheckResourceAttr("data.github_repository_deploy_keys.test", "keys.#", "1"),
-						resource.TestCheckResourceAttr("data.github_repository_deploy_keys.test", "keys.0.title", "title1"),
-						resource.TestCheckResourceAttrSet("data.github_repository_deploy_keys.test", "keys.0.id"),
-						resource.TestCheckResourceAttr("data.github_repository_deploy_keys.test", "keys.0.verified", "true"),
-					),
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_repository_deploy_keys.test", tfjsonpath.New("keys"), knownvalue.ListSizeExact(2)),
+					},
 				},
 			},
 		})

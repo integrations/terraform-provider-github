@@ -1,22 +1,62 @@
 package ghclient
 
 import (
-	"fmt"
+	"context"
+	"crypto"
+	"crypto/x509"
+	"encoding/pem"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"sync"
 	"sync/atomic"
 	"testing"
-	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"golang.org/x/oauth2"
 )
 
-type fakeHTTPResponse struct {
-	statusCode int
-	headers    map[string]string
-	body       []byte
+var tokenSourceComparer = cmp.Comparer(func(a, b oauth2.TokenSource) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+
+	ta, errA := a.Token()
+	tb, errB := b.Token()
+	if errA != nil || errB != nil {
+		return false
+	}
+
+	return ta.AccessToken == tb.AccessToken
+})
+
+func mustReadAppSigner(t *testing.T) crypto.Signer {
+	t.Helper()
+
+	block, _ := pem.Decode(mustReadAppPrivateKey(t))
+	if block == nil {
+		t.Fatal("no decodeable PEM data found in app private key fixture")
+	}
+
+	key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		t.Fatalf("failed to parse app private key fixture: %v", err)
+	}
+
+	return key
+}
+
+func mustParseURL(t *testing.T, raw string) *url.URL {
+	t.Helper()
+
+	u, err := url.Parse(raw)
+	if err != nil {
+		t.Fatalf("failed to parse url %q: %v", raw, err)
+	}
+
+	return u
 }
 
 // sequentialTokenSource is an oauth2.TokenSource that returns a different token on each call,
@@ -34,42 +74,6 @@ func (s *sequentialTokenSource) Token() (*oauth2.Token, error) {
 	}
 
 	return &oauth2.Token{AccessToken: s.tokens[i]}, nil
-}
-
-type testRoundTripper struct {
-	delay  time.Duration
-	called atomic.Int32
-	resp   *http.Response
-	err    error
-}
-
-func (tr *testRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	if tr.delay > 0 {
-		ctx := req.Context()
-		select {
-		case <-time.After(tr.delay):
-		case <-ctx.Done():
-		}
-	}
-
-	tr.called.Add(1)
-
-	if tr.err != nil {
-		return nil, tr.err
-	}
-
-	return tr.resp, nil
-}
-
-func mustMkdirTemp(t *testing.T, dir, pattern string) string {
-	t.Helper()
-
-	dir, err := os.MkdirTemp(dir, pattern) //nolint:usetesting
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
-	}
-
-	return dir
 }
 
 func mustReadAppPrivateKey(t *testing.T) []byte {
@@ -102,14 +106,41 @@ func (n *nonSeekableReader) Read(p []byte) (int, error) {
 	return n.r.Read(p)
 }
 
-type errorReadSeeker struct {
-	io.Closer
+type closeRecorder struct {
+	io.Reader
+	closed atomic.Bool
 }
 
-func (rs *errorReadSeeker) Read(p []byte) (n int, err error) {
-	return 0, fmt.Errorf("error reading")
+func (c *closeRecorder) Close() error {
+	c.closed.Store(true)
+	return nil
 }
 
-func (rs *errorReadSeeker) Seek(offset int64, whence int) (int64, error) {
-	return 0, fmt.Errorf("error seeking")
+// testStorage is a ghct.Storage that returns the configured results and, like a real storage, consumes the body passed to Put without restoring it.
+type testStorage struct {
+	getResp *http.Response
+	getErr  error
+	putErr  error
+
+	mu        sync.Mutex
+	putBodies []string
+}
+
+func (s *testStorage) Get(_ context.Context, _ *http.Request) (*http.Response, error) {
+	return s.getResp, s.getErr
+}
+
+func (s *testStorage) Put(_ context.Context, resp *http.Response) error {
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	resp.Body = http.NoBody
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.putBodies = append(s.putBodies, string(b))
+
+	return s.putErr
 }

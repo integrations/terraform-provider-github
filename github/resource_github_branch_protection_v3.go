@@ -263,19 +263,20 @@ func resourceGithubBranchProtectionV3Create(d *schema.ResourceData, meta any) er
 	return resourceGithubBranchProtectionV3Read(d, meta)
 }
 
-func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	err := checkOrganization(meta)
 	if err != nil {
 		return err
 	}
 
-	client := meta.(*Owner).v3client
+	client := meta.v3client
 
 	repoName, branch, err := parseID2(d.Id())
 	if err != nil {
 		return err
 	}
-	orgName := meta.(*Owner).name
+	orgName := meta.name
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
@@ -303,8 +304,10 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta any) erro
 		return err
 	}
 
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return err
+		}
 	}
 	if err = d.Set("repository", repoName); err != nil {
 		return err

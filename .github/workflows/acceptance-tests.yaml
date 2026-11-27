@@ -181,7 +181,7 @@ jobs:
           } >> "${GITHUB_OUTPUT}"
 
       - name: Set-up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version-file: go.mod
           cache: true
@@ -235,7 +235,7 @@ jobs:
           fi
 
           # go test -run "^TestAcc*" ./github -v -race -coverprofile=coverage.txt -covermode=atomic -timeout 120m -count=1
-          go run gotest.tools/gotestsum@latest --format testname -- -run "^TestAcc*" ./github -v -timeout 120m -count=1
+          go run gotest.tools/gotestsum@latest --format testname --rerun-fails=2 --rerun-fails-max-failures=10 --packages ./github -- -run "^TestAcc*" -v -timeout 120m -count=1
 
   check:
     name: Check Acceptance Tests

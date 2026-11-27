@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> This repository is temporarily using an **issue-first contribution model**. Pull requests are currently limited to collaborators with write access. Please [open an issue](https://github.com/integrations/terraform-provider-github/issues/new/choose) instead.
+
 <!-- Please refer to our contributing docs for any questions on submitting a pull request -->
 <!-- Issues are required for both bug fixes and features. -->
 Resolves #ISSUE_NUMBER

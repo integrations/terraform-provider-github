@@ -9,7 +9,7 @@ import (
 func TestAccGithubCodespacesUserPublicKeyDataSource(t *testing.T) {
 	t.Parallel()
 
-	t.Run("queries an user public key without error", func(t *testing.T) {
+	t.Run("queries_an_user_public_key_without_error", func(t *testing.T) {
 		t.Parallel()
 
 		config := `

@@ -109,10 +109,9 @@ func TestAccGithubOrganizationWebhook(t *testing.T) {
 					Check:  check,
 				},
 				{
-					ResourceName:            "github_organization_webhook.test",
-					ImportState:             true,
-					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"etag"},
+					ResourceName:      "github_organization_webhook.test",
+					ImportState:       true,
+					ImportStateVerify: true,
 				},
 			},
 		})

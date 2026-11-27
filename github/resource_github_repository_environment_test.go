@@ -3,6 +3,8 @@ package github
 import (
 	"fmt"
 	"regexp"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -284,62 +286,33 @@ resource "github_repository_environment" "test" {
 	t.Run("errors_with_more_than_six_reviewers", func(t *testing.T) {
 		t.Parallel()
 
-		if len(testAccConf.testOrgUser1) == 0 {
-			t.Skip("skipping test that requires GH_TEST_ORG_USER1 env var to be set")
+		skipUnlessHasOrgs(t)
+		skipUnlessHasOrgUser1(t)
+
+		repo := mustCreateTestRepository(t)
+		user := mustGetUser(t, testAccConf.testOrgUser1)
+		mustAddRepositoryCollaborator(t, repo, user.GetLogin())
+
+		teamIDs := make([]string, 0, 6)
+		for range 6 {
+			team := mustCreateTestTeam(t)
+			mustAddRepositoryToTeam(t, team, repo)
+			teamIDs = append(teamIDs, strconv.FormatInt(team.GetID(), 10))
 		}
 
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%s%s", testResourcePrefix, randomID)
-
 		config := fmt.Sprintf(`
-locals {
-	team_count = 6
-}
-
-data "github_user" "org" {
-	username = "%s"
-}
-
-resource "github_team" "test" {
-	count = local.team_count
-
-	name        = "%[1]s-${count.index}"
-	description = "test"
-	privacy     = "closed"
-}
-
-resource "github_repository" "test" {
-	name      = "%[1]s"
-	visibility = "public"
-}
-
-resource "github_team_repository" "test" {
-	count = local.team_count
-
-	team_id    = github_team.test[count.index].id
-	repository = github_repository.test.name
-	permission = "pull"
-}
-
-resource "github_repository_collaborator" "test_repo_collaborator" {
-	repository = github_repository.test.name
-	username   = data.github_user.org.login
-	permission = "push"
-}
-
 resource "github_repository_environment" "test" {
-	repository  = github_repository.test.name
-	environment = "test"
+  repository  = "%s"
+  environment = "test"
 
-	reviewers {
-		teams = github_team_repository.test[*].team_id
-		users = [data.github_user.org.id]
-	}
+  reviewers {
+    teams = [%s]
+    users = [%d]
+  }
 }
-`, testAccConf.testOrgUser1, repoName)
+`, repo.GetName(), strings.Join(teamIDs, ", "), user.GetID())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

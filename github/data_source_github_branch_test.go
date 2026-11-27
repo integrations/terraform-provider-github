@@ -2,86 +2,62 @@ package github
 
 import (
 	"fmt"
-	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccGithubBranchDataSource(t *testing.T) {
 	t.Parallel()
+	skipUnauthenticated(t)
 
-	t.Run("queries an existing branch without error", func(t *testing.T) {
+	t.Run("queries_an_existing_branch_without_error", func(t *testing.T) {
 		t.Parallel()
 
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		repoName := fmt.Sprintf("%srepo-branch-%s", testResourcePrefix, randomID)
+		repo := mustCreateTestRepository(t)
 
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-			  name = "%[1]s"
-				auto_init = true
-			}
-
-			data "github_branch" "test" {
-				repository = github_repository.test.name
-				branch = "main"
-			}
-		`, repoName)
-
-		check := resource.ComposeTestCheckFunc(
-			resource.TestMatchResourceAttr(
-				"data.github_branch.test", "ref", regexp.MustCompile("^refs/heads/main$"),
-			),
-		)
+data "github_branch" "test" {
+  repository = "%s"
+  branch     = "main"
+}
+`, repo.GetName())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					Check:  check,
+					ConfigStateChecks: []statecheck.StateCheck{
+						statecheck.ExpectKnownValue("data.github_branch.test", tfjsonpath.New("ref"), knownvalue.StringExact("refs/heads/main")),
+					},
 				},
 			},
 		})
 	})
 
-	// Can't test due to SDK and test framework limitations
-	// t.Run("queries an invalid branch without error", func(t *testing.T) {
-	// 	t.Parallel()
+	t.Run("queries_an_invalid_branch_without_error", func(t *testing.T) {
+		t.Parallel()
 
-	// 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-	// 	repoName := fmt.Sprintf("%sinvalid-branch-%s", testResourcePrefix, randomID)
+		repo := mustCreateTestRepository(t)
 
-	// 	config := fmt.Sprintf(`
-	// 		resource "github_repository" "test" {
-	// 		  name = "%s"
-	// 			auto_init = true
-	// 		}
+		config := fmt.Sprintf(`
+data "github_branch" "test" {
+  repository = "%s"
+  branch     = "xxxxxx"
+}
+`, repo.GetName())
 
-	// 		data "github_branch" "test" {
-	// 			repository = github_repository.test.name
-	// 			branch = "xxxxxx"
-	// 		}
-	// 	`, repoName)
-
-	// 	check := resource.ComposeTestCheckFunc(
-	// 		resource.TestCheckResourceAttr(
-	// 			"data.github_branch.test", "ref", "",
-	// 		),
-	// 	)
-
-	// 	resource.Test(t, resource.TestCase{
-	// 		PreCheck:          func() { skipUnauthenticated(t) },
-	// 		ProviderFactories: providerFactories,
-	// 		Steps: []resource.TestStep{
-	// 			{
-	// 				Config: config,
-	// 				Check:  check,
-	// 			},
-	// 		},
-	// 	})
-	// })
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+				},
+			},
+		})
+	})
 }

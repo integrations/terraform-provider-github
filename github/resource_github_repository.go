@@ -124,7 +124,7 @@ func resourceGithubRepository() *schema.Resource {
 										Type:             schema.TypeString,
 										Required:         true,
 										ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false)),
-										Description:      "Set to 'enabled' to enable GitHub Code Security on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.",
+										Description:      "Set to `enabled` to enable GitHub Code Security on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.",
 									},
 								},
 							},
@@ -140,7 +140,7 @@ func resourceGithubRepository() *schema.Resource {
 										Type:             schema.TypeString,
 										Required:         true,
 										ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false)),
-										Description:      "Set to 'enabled' to enable secret scanning on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.",
+										Description:      "Set to `enabled` to enable secret scanning on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.",
 									},
 								},
 							},
@@ -156,7 +156,7 @@ func resourceGithubRepository() *schema.Resource {
 										Type:             schema.TypeString,
 										Required:         true,
 										ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false)),
-										Description:      "Set to 'enabled' to enable secret scanning push protection on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.",
+										Description:      "Set to `enabled` to enable secret scanning push protection on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.",
 									},
 								},
 							},
@@ -172,7 +172,7 @@ func resourceGithubRepository() *schema.Resource {
 										Type:             schema.TypeString,
 										Required:         true,
 										ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false)),
-										Description:      "Set to 'enabled' to enable secret scanning AI detection on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.",
+										Description:      "Set to `enabled` to enable secret scanning AI detection on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.",
 									},
 								},
 							},
@@ -188,7 +188,7 @@ func resourceGithubRepository() *schema.Resource {
 										Type:             schema.TypeString,
 										Required:         true,
 										ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"enabled", "disabled"}, false)),
-										Description:      "Set to 'enabled' to enable secret scanning non-provider patterns on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public', 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled', or your Organization must have split licensing for Advanced security.",
+										Description:      "Set to `enabled` to enable secret scanning non-provider patterns on the repository. Can be `enabled` or `disabled`. If set to `enabled`, the repository's visibility must be `public`, `security_and_analysis[0].advanced_security[0].status` must also be set to `enabled`, or your Organization must have split licensing for Advanced security.",
 									},
 								},
 							},
@@ -822,10 +822,11 @@ func resourceGithubRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 	return resourceGithubRepositoryUpdate(ctx, d, meta)
 }
 
-func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	owner := meta.(*Owner).name
+	owner := meta.name
 	repoName := d.Id()
 
 	// When the user has not authenticated the provider, AnonymousHTTPClient is used, therefore owner == "". In this
@@ -855,7 +856,11 @@ func resourceGithubRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 		return diag.FromErr(err)
 	}
 
-	_ = d.Set("etag", resp.Header.Get("ETag"))
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return diag.FromErr(err)
+		}
+	}
 	_ = d.Set("name", repoName)
 	_ = d.Set("description", repo.GetDescription())
 	_ = d.Set("primary_language", repo.GetLanguage())
@@ -1053,11 +1058,24 @@ func resourceGithubRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 		repoReq.AllowForking = allowForking
 
 		log.Printf("[DEBUG] Updating repository visibility from %s to %s", repo.GetVisibility(), visibility)
-		_, resp, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
-		if err != nil {
-			if resp.StatusCode != 422 || !strings.Contains(err.Error(), fmt.Sprintf("Visibility is already %s", visibility)) {
-				return diag.FromErr(err)
+		_, err := retryUntilOK(ctx, func() (struct{}, bool, error) {
+			_, _, err := client.Repositories.Edit(ctx, owner, repoName, repoReq)
+			if err != nil {
+				if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusUnprocessableEntity {
+					// A template generation or other repository operation may still be running.
+					if strings.Contains(ghErr.Error(), "A previous repository operation is still in progress") {
+						return struct{}{}, false, nil
+					}
+					if strings.Contains(ghErr.Error(), fmt.Sprintf("Visibility is already %s", visibility)) {
+						return struct{}{}, true, nil
+					}
+				}
+				return struct{}{}, false, err
 			}
+			return struct{}{}, true, nil
+		}, nil)
+		if err != nil {
+			return diag.FromErr(err)
 		}
 	}
 

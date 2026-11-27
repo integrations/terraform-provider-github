@@ -15,6 +15,8 @@ import (
 func TestAccGithubRepositoryCustomProperty(t *testing.T) {
 	t.Parallel()
 
+	skipUnlessHasOrgs(t)
+
 	t.Run("single_select", func(t *testing.T) {
 		t.Parallel()
 
@@ -32,7 +34,6 @@ resource "github_repository_custom_property" "test" {
 `, repo.GetName(), prop.GetPropertyName(), prop.GetValueType())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -84,7 +85,6 @@ resource "github_repository_custom_property" "test" {
 `, repo.GetName(), prop.GetPropertyName(), prop.GetValueType())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -135,7 +135,6 @@ resource "github_repository_custom_property" "test" {
 `, repo.GetName(), prop.GetPropertyName(), prop.GetValueType())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -186,7 +185,6 @@ resource "github_repository_custom_property" "test" {
 `, repo.GetName(), prop.GetPropertyName(), prop.GetValueType())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -237,7 +235,6 @@ resource "github_repository_custom_property" "test" {
 `, repo.GetName(), prop.GetPropertyName(), prop.GetValueType())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

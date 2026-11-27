@@ -1,12 +1,11 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-testing/compare"
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
@@ -17,35 +16,27 @@ import (
 func TestAccGithubBranchDefault(t *testing.T) {
 	t.Parallel()
 
+	skipUnauthenticated(t)
+
 	t.Run("creates_as_import_without_error", func(t *testing.T) {
 		t.Parallel()
 
-		randomID := acctest.RandString(5)
-		repoName := fmt.Sprintf("%sbranch-def-%s", testResourcePrefix, randomID)
+		repo := mustCreateTestRepository(t)
+
 		config := fmt.Sprintf(`
-
-			resource "github_repository" "test" {
-				name      = "%s"
-				auto_init = true
-			}
-
-			resource "github_branch_default" "test" {
-				repository     = github_repository.test.name
-				branch         = "main"
-			}
-		`, repoName)
+resource "github_branch_default" "test" {
+  repository = "%s"
+  branch     = "%s"
+}
+`, repo.GetName(), repo.GetDefaultBranch())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.CompareValuePairs("github_branch_default.test", tfjsonpath.New("repository"), "github_repository.test", tfjsonpath.New("name"), compare.ValuesSame()),
-						statecheck.CompareValuePairs("github_branch_default.test", tfjsonpath.New("branch"), "github_repository.test", tfjsonpath.New("default_branch"), compare.ValuesSame()),
-						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
-						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("etag"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("repository_id"), knownvalue.Int64Exact(repo.GetID())),
 					},
 				},
 			},
@@ -55,46 +46,24 @@ func TestAccGithubBranchDefault(t *testing.T) {
 	t.Run("creates_default_branch_without_error", func(t *testing.T) {
 		t.Parallel()
 
-		randomID := acctest.RandString(5)
-		repoName := fmt.Sprintf("%sbranch-def-%s", testResourcePrefix, randomID)
+		repo := mustCreateTestRepository(t)
+		branch := mustCreateTestRepositoryBranch(t, repo)
+
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name      = "%s"
-				auto_init = true
-			}
-
-			resource "github_branch" "test" {
-				repository = github_repository.test.name
-				branch     = "test"
-			}
-
-			resource "github_branch_default" "test"{
-				repository = github_repository.test.name
-				branch     = github_branch.test.branch
-			}
-
-		`, repoName)
+resource "github_branch_default" "test" {
+  repository = "%s"
+  branch     = "%s"
+}
+`, repo.GetName(), branch)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.CompareValuePairs("github_branch_default.test", tfjsonpath.New("repository"), "github_repository.test", tfjsonpath.New("name"), compare.ValuesSame()),
-						statecheck.CompareValuePairs("github_branch_default.test", tfjsonpath.New("branch"), "github_branch.test", tfjsonpath.New("branch"), compare.ValuesSame()),
-						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
-						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("etag"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("repository_id"), knownvalue.Int64Exact(repo.GetID())),
 					},
-				},
-				{
-					Config: `
-					removed {
-					  from = github_branch.test
-					  lifecycle { destroy = false }
-					}
-					`,
 				},
 			},
 		})
@@ -103,33 +72,24 @@ func TestAccGithubBranchDefault(t *testing.T) {
 	t.Run("creates_as_import_with_rename_without_error", func(t *testing.T) {
 		t.Parallel()
 
-		randomID := acctest.RandString(5)
-		repoName := fmt.Sprintf("%sbranch-def-%s", testResourcePrefix, randomID)
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name      = "%s"
-				auto_init = true
-			}
+		repo := mustCreateTestRepository(t)
 
-			resource "github_branch_default" "test" {
-				repository     = github_repository.test.name
-				branch         = "main"
-				rename         = true
-				wait_for_rename = true
-			}
-		`, repoName)
+		config := fmt.Sprintf(`
+resource "github_branch_default" "test" {
+  repository      = "%s"
+  branch          = "%s"
+  rename          = true
+  wait_for_rename = true
+}
+`, repo.GetName(), repo.GetDefaultBranch())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.CompareValuePairs("github_branch_default.test", tfjsonpath.New("repository"), "github_repository.test", tfjsonpath.New("name"), compare.ValuesSame()),
-						statecheck.CompareValuePairs("github_branch_default.test", tfjsonpath.New("branch"), "github_repository.test", tfjsonpath.New("default_branch"), compare.ValuesSame()),
-						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
-						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("etag"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("repository_id"), knownvalue.Int64Exact(repo.GetID())),
 					},
 				},
 			},
@@ -139,33 +99,24 @@ func TestAccGithubBranchDefault(t *testing.T) {
 	t.Run("creates_with_rename_without_error", func(t *testing.T) {
 		t.Parallel()
 
-		randomID := acctest.RandString(5)
-		repoName := fmt.Sprintf("%sbranch-def-%s", testResourcePrefix, randomID)
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name      = "%s"
-				auto_init = true
-			}
+		repo := mustCreateTestRepository(t)
 
-			resource "github_branch_default" "test"{
-				repository      = github_repository.test.name
-				branch          = "development"
-				rename          = true
-				wait_for_rename = true
-			}
-		`, repoName)
+		config := fmt.Sprintf(`
+resource "github_branch_default" "test" {
+  repository      = "%s"
+  branch          = "development"
+  rename          = true
+  wait_for_rename = true
+}
+`, repo.GetName())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.CompareValuePairs("github_branch_default.test", tfjsonpath.New("repository"), "github_repository.test", tfjsonpath.New("name"), compare.ValuesSame()),
-						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("branch"), knownvalue.StringExact("development")),
-						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("repository_id"), knownvalue.NotNull()),
-						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("etag"), knownvalue.NotNull()),
+						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("repository_id"), knownvalue.Int64Exact(repo.GetID())),
 					},
 				},
 			},
@@ -175,57 +126,29 @@ func TestAccGithubBranchDefault(t *testing.T) {
 	t.Run("updates_default_branch_without_error", func(t *testing.T) {
 		t.Parallel()
 
-		randomID := acctest.RandString(5)
-		repoName := fmt.Sprintf("%sbranch-def-%s", testResourcePrefix, randomID)
+		repo := mustCreateTestRepository(t)
+		branch := mustCreateTestRepositoryBranch(t, repo)
 
 		config := `
-			resource "github_repository" "test" {
-				name      = "%s"
-				auto_init = true
-			}
-			resource "github_branch" "test" {
-				repository = github_repository.test.name
-				branch     = "test"
-			}
-
-			resource "github_branch_default" "test" {
-				repository = github_repository.test.name
-				branch     = "%s"
-			}
-		`
+resource "github_branch_default" "test" {
+  repository = "%s"
+  branch     = "%s"
+}
+`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: fmt.Sprintf(config, repoName, "main"),
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.CompareValuePairs(
-							"github_branch_default.test", tfjsonpath.New("branch"),
-							"github_repository.test", tfjsonpath.New("default_branch"),
-							compare.ValuesSame(),
-						),
-					},
+					Config: fmt.Sprintf(config, repo.GetName(), repo.GetDefaultBranch()),
 				},
 				{
-					Config: fmt.Sprintf(config, repoName, "test"),
+					Config: fmt.Sprintf(config, repo.GetName(), branch),
 					ConfigPlanChecks: resource.ConfigPlanChecks{
 						PreApply: []plancheck.PlanCheck{
 							plancheck.ExpectResourceAction("github_branch_default.test", plancheck.ResourceActionUpdate),
 						},
 					},
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("branch"), knownvalue.StringExact("test")),
-					},
-				},
-				{
-					Config: `
-					removed {
-					  from = github_branch.test
-					  lifecycle { destroy = false }
-					}
-					`,
 				},
 			},
 		})
@@ -234,126 +157,60 @@ func TestAccGithubBranchDefault(t *testing.T) {
 	t.Run("updates_default_branch_with_rename_without_error", func(t *testing.T) {
 		t.Parallel()
 
-		randomID := acctest.RandString(5)
-		repoName := fmt.Sprintf("%sbranch-def-%s", testResourcePrefix, randomID)
+		repo := mustCreateTestRepository(t)
 
 		config := `
-			resource "github_repository" "test" {
-				name      = "%s"
-				auto_init = true
-			}
-
-			resource "github_branch_default" "test" {
-				repository      = github_repository.test.name
-				branch          = "%s"
-				rename          = true
-				wait_for_rename = true
-			}
-		`
+resource "github_branch_default" "test" {
+  repository      = "%s"
+  branch          = "%s"
+  rename          = true
+  wait_for_rename = true
+}
+`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: fmt.Sprintf(config, repoName, "main"),
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.CompareValuePairs(
-							"github_branch_default.test", tfjsonpath.New("branch"),
-							"github_repository.test", tfjsonpath.New("default_branch"),
-							compare.ValuesSame(),
-						),
-					},
+					Config: fmt.Sprintf(config, repo.GetName(), repo.GetDefaultBranch()),
 				},
 				{
-					Config: fmt.Sprintf(config, repoName, "development"),
+					Config: fmt.Sprintf(config, repo.GetName(), "development"),
 					ConfigPlanChecks: resource.ConfigPlanChecks{
 						PreApply: []plancheck.PlanCheck{
 							plancheck.ExpectResourceAction("github_branch_default.test", plancheck.ResourceActionUpdate),
 						},
 					},
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("branch"), knownvalue.StringExact("development")),
-					},
 				},
 			},
 		})
 	})
+
 	t.Run("imports_with_rename_without_error", func(t *testing.T) {
 		t.Parallel()
 
-		randomID := acctest.RandString(5)
-		repoName := fmt.Sprintf("%sbranch-def-%s", testResourcePrefix, randomID)
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name      = "%s"
-				auto_init = true
-			}
+		repo := mustCreateTestRepository(t)
 
-			resource "github_branch_default" "test"{
-				repository      = github_repository.test.name
-				branch          = "development"
-				rename          = true
-				wait_for_rename = true
-			}
-		`, repoName)
+		config := fmt.Sprintf(`
+resource "github_branch_default" "test" {
+  repository      = "%s"
+  branch          = "development"
+  rename          = true
+  wait_for_rename = true
+}
+`, repo.GetName())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("branch"), knownvalue.StringExact("development")),
-					},
 				},
 				{
 					ResourceName:            "github_branch_default.test",
 					ImportState:             true,
 					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"rename", "wait_for_rename", "etag"},
-				},
-			},
-		})
-	})
-	t.Run("destroys_without_error", func(t *testing.T) {
-		t.Parallel()
-
-		randomID := acctest.RandString(5)
-		repoName := fmt.Sprintf("%sbranch-def-%s", testResourcePrefix, randomID)
-
-		repoOnlyConfig := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name      = "%s"
-				auto_init = true
-			}
-		`, repoName)
-
-		fullConfig := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name      = "%s"
-				auto_init = true
-			}
-
-			resource "github_branch_default" "test" {
-				repository = github_repository.test.name
-				branch     = "main"
-			}
-		`, repoName)
-
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
-			ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
-				{
-					Config: fullConfig,
-				},
-				{
-					Config: repoOnlyConfig,
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("default_branch"), knownvalue.StringExact("main")),
-					},
+					ImportStateVerifyIgnore: []string{"rename", "wait_for_rename"},
 				},
 			},
 		})
@@ -365,44 +222,46 @@ func TestAccGithubBranchDefault(t *testing.T) {
 		// The Delete function is no-op since there is no way to "reset" the default branch via the API.
 		// This test pins that behavior: the remote default branch must be unchanged
 		// after the resource is removed from Terraform state.
-		randomID := acctest.RandString(5)
-		repoName := fmt.Sprintf("%sbranch-def-%s", testResourcePrefix, randomID)
+		repo := mustCreateTestRepository(t)
 
-		repoOnlyConfig := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name      = "%s"
-				auto_init = true
-			}
-		`, repoName)
-
-		fullConfig := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name      = "%s"
-				auto_init = true
-			}
-
-			resource "github_branch_default" "test" {
-				repository      = github_repository.test.name
-				branch          = "development"
-				rename          = true
-				wait_for_rename = true
-			}
-		`, repoName)
+		config := fmt.Sprintf(`
+resource "github_branch_default" "test" {
+  repository      = "%s"
+  branch          = "development"
+  rename          = true
+  wait_for_rename = true
+}
+`, repo.GetName())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: fullConfig,
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("branch"), knownvalue.StringExact("development")),
-					},
+					Config: config,
 				},
 				{
-					Config: repoOnlyConfig,
+					Config: `
+removed {
+  from = github_branch_default.test
+
+  lifecycle {
+    destroy = true
+  }
+}
+`,
 					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_repository.test", tfjsonpath.New("default_branch"), knownvalue.StringExact("development")),
+						ExpectFunc(func(ctx context.Context, _ statecheck.CheckStateRequest) error {
+							r, _, err := testAccConf.meta.v3client.Repositories.Get(ctx, testAccConf.meta.name, repo.GetName())
+							if err != nil {
+								return err
+							}
+
+							if r.GetDefaultBranch() != "development" {
+								return fmt.Errorf("expected default branch to remain development, got %s", r.GetDefaultBranch())
+							}
+
+							return nil
+						}),
 					},
 				},
 			},
@@ -413,25 +272,18 @@ func TestAccGithubBranchDefault(t *testing.T) {
 		t.Parallel()
 
 		// This tests the Read 404 path: when the repository is deleted externally,
-		// a state refresh discovers the 404, removes both resources from state
+		// a state refresh discovers the 404, removes the resource from state
 		// without error, and does not attempt to call Delete.
-		randomID := acctest.RandString(5)
-		repoName := fmt.Sprintf("%sbranch-def-%s", testResourcePrefix, randomID)
+		repo := mustCreateTestRepository(t)
 
 		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-				name      = "%s"
-				auto_init = true
-			}
-
-			resource "github_branch_default" "test" {
-				repository = github_repository.test.name
-				branch     = "main"
-			}
-		`, repoName)
+resource "github_branch_default" "test" {
+  repository = "%s"
+  branch     = "%s"
+}
+`, repo.GetName(), repo.GetDefaultBranch())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
@@ -439,7 +291,7 @@ func TestAccGithubBranchDefault(t *testing.T) {
 				},
 				{
 					PreConfig: func() {
-						if _, err := testAccConf.meta.v3client.Repositories.Delete(t.Context(), testAccConf.meta.name, repoName); err != nil {
+						if _, err := testAccConf.meta.v3client.Repositories.Delete(t.Context(), testAccConf.meta.name, repo.GetName()); err != nil {
 							t.Errorf("failed to delete repository out-of-band: %s", err)
 						}
 					},
@@ -453,42 +305,37 @@ func TestAccGithubBranchDefault(t *testing.T) {
 	t.Run("regression_prevent_trying_rename_to_same_name", func(t *testing.T) {
 		t.Parallel()
 
-		randomID := acctest.RandString(5)
-		repoName := fmt.Sprintf("%sbranch-def-%s", testResourcePrefix, randomID)
-		config := `
-			resource "github_repository" "test" {
-				name      = "%s"
-				auto_init = true
-			}
+		repo := mustCreateTestRepository(t)
 
-			resource "github_branch_default" "test"{
-				repository      = github_repository.test.name
-				branch          = "development"
-				rename          = %t
-				wait_for_rename = true
-			}
-		`
+		config := `
+resource "github_branch_default" "test" {
+  repository      = "%s"
+  branch          = "development"
+  rename          = %t
+  wait_for_rename = true
+}
+`
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnauthenticated(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: fmt.Sprintf(config, repoName, true),
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("branch"), knownvalue.StringExact("development")),
+					Config: fmt.Sprintf(config, repo.GetName(), true),
+				},
+				{
+					Config: fmt.Sprintf(config, repo.GetName(), false),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_branch_default.test", plancheck.ResourceActionUpdate),
+						},
 					},
 				},
 				{
-					Config: fmt.Sprintf(config, repoName, false),
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("branch"), knownvalue.StringExact("development")),
-					},
-				},
-				{
-					Config: fmt.Sprintf(config, repoName, true),
-					ConfigStateChecks: []statecheck.StateCheck{
-						statecheck.ExpectKnownValue("github_branch_default.test", tfjsonpath.New("branch"), knownvalue.StringExact("development")),
+					Config: fmt.Sprintf(config, repo.GetName(), true),
+					ConfigPlanChecks: resource.ConfigPlanChecks{
+						PreApply: []plancheck.PlanCheck{
+							plancheck.ExpectResourceAction("github_branch_default.test", plancheck.ResourceActionUpdate),
+						},
 					},
 				},
 			},

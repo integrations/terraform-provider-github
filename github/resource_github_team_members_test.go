@@ -583,7 +583,6 @@ resource "github_team_members" "test" {
 `, team.GetSlug())
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

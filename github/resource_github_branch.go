@@ -111,14 +111,15 @@ func resourceGithubBranchCreate(d *schema.ResourceData, meta any) error {
 	return resourceGithubBranchRead(d, meta)
 }
 
-func resourceGithubBranchRead(d *schema.ResourceData, meta any) error {
+func resourceGithubBranchRead(d *schema.ResourceData, m any) error {
+	meta, _ := m.(*Owner)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	client := meta.v3client
+	orgName := meta.name
 	repoName, branchName, err := parseID2(d.Id())
 	if err != nil {
 		return err
@@ -143,8 +144,10 @@ func resourceGithubBranchRead(d *schema.ResourceData, meta any) error {
 	}
 
 	d.SetId(buildTwoPartID(repoName, branchName))
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
+	if meta.storeEtag {
+		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
+			return err
+		}
 	}
 	if err = d.Set("repository", repoName); err != nil {
 		return err
