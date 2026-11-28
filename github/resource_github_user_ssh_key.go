@@ -3,23 +3,27 @@ package github
 import (
 	"context"
 	"errors"
-	"log"
+	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/google/go-github/v92/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGithubUserSshKey() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubUserSshKeyCreate,
-		Read:   resourceGithubUserSshKeyRead,
-		Delete: resourceGithubUserSshKeyDelete,
+		CreateContext: resourceGithubUserSshKeyCreate,
+		ReadContext:   resourceGithubUserSshKeyRead,
+		DeleteContext: resourceGithubUserSshKeyDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: resourceGithubUserSshKeyImport,
 		},
+
+		Description: "Resource to manage a SSH key for the authenticated user.",
+
+		SchemaVersion: 1,
 
 		CustomizeDiff: diffETag,
 
@@ -35,15 +39,16 @@ func resourceGithubUserSshKey() *schema.Resource {
 				Required:    true,
 				ForceNew:    true,
 				Description: "The public SSH key to add to your GitHub account.",
-				DiffSuppressFunc: func(k, oldV, newV string, d *schema.ResourceData) bool {
-					newTrimmed := strings.TrimSpace(newV)
-					return oldV == newTrimmed
-				},
 			},
 			"url": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The URL of the SSH key.",
+			},
+			"key_id": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The unique identifier of the SSH key.",
 			},
 			"etag": {
 				Type:        schema.TypeString,
@@ -51,85 +56,116 @@ func resourceGithubUserSshKey() *schema.Resource {
 				Description: "An etag representing the SSH key.",
 			},
 		},
+
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Version: 0,
+				Type:    resourceGithubUserSshKeyV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceGithubUserSshKeyStateUpgradeV0,
+			},
+		},
 	}
 }
 
-func resourceGithubUserSshKeyCreate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubUserSshKeyCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	title := d.Get("title").(string)
-	key := d.Get("key").(string)
-	ctx := context.Background()
+	title, _ := d.Get("title").(string)
+	key, _ := d.Get("key").(string)
 
-	userKey, _, err := client.Users.CreateKey(ctx, github.CreateUserKeyRequest{
+	userKey, resp, err := client.Users.CreateKey(ctx, github.CreateUserKeyRequest{
 		Title: new(title),
 		Key:   key,
 	})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(*userKey.ID, 10))
+	d.SetId(strconv.FormatInt(userKey.GetID(), 10))
 
-	return resourceGithubUserSshKeyRead(d, meta)
-}
-
-func resourceGithubUserSshKeyRead(d *schema.ResourceData, m any) error {
-	meta, _ := m.(*Owner)
-	client := meta.v3client
-
-	id, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
+	if err = d.Set("key_id", userKey.GetID()); err != nil {
+		return diag.FromErr(err)
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+	if err = d.Set("url", userKey.GetURL()); err != nil {
+		return diag.FromErr(err)
 	}
-
-	key, resp, err := client.Users.GetKey(ctx, id)
-	if err != nil {
-		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok {
-			if ghErr.Response.StatusCode == http.StatusNotModified {
-				return nil
-			}
-			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing user SSH key %s from state because it no longer exists in GitHub",
-					d.Id())
-				d.SetId("")
-				return nil
-			}
-		}
-		return err
+	if err = d.Set("title", userKey.GetTitle()); err != nil {
+		return diag.FromErr(err)
 	}
-
-	if meta.storeEtag {
-		if err := d.Set("etag", resp.Header.Get("ETag")); err != nil {
-			return err
-		}
-	}
-	if err = d.Set("title", key.GetTitle()); err != nil {
-		return err
-	}
-	if err = d.Set("key", key.GetKey()); err != nil {
-		return err
-	}
-	if err = d.Set("url", key.GetURL()); err != nil {
-		return err
+	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGithubUserSshKeyDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func resourceGithubUserSshKeyRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
 
-	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	keyIDInt, _ := d.Get("key_id").(int)
+	keyID := int64(keyIDInt)
+
+	userKey, resp, err := client.Users.GetKey(ctx, keyID)
 	if err != nil {
-		return unconvertibleIdErr(d.Id(), err)
+		return diag.FromErr(deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "user SSH key (%d)", keyID))
 	}
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	_, err = client.Users.DeleteKey(ctx, id)
-	return err
+	// set computed fields
+	if err = d.Set("url", userKey.GetURL()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
+}
+
+func resourceGithubUserSshKeyDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+
+	keyIDInt, _ := d.Get("key_id").(int)
+	keyID := int64(keyIDInt)
+
+	_, err := client.Users.DeleteKey(ctx, keyID)
+	if err != nil {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			return nil
+		}
+		return diag.FromErr(err)
+	}
+	return nil
+}
+
+func resourceGithubUserSshKeyImport(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
+	meta, _ := m.(*Owner)
+	client := meta.v3client
+
+	keyID, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid SSH key ID format: %w", err)
+	}
+
+	key, _, err := client.Users.GetKey(ctx, keyID)
+	if err != nil {
+		if ghErr, ok := errors.AsType[*github.ErrorResponse](err); ok && ghErr.Response.StatusCode == http.StatusNotFound {
+			return nil, fmt.Errorf("SSH key with ID %d not found", keyID)
+		}
+		return nil, err
+	}
+
+	if err = d.Set("key_id", key.GetID()); err != nil {
+		return nil, err
+	}
+	if err = d.Set("title", key.GetTitle()); err != nil {
+		return nil, err
+	}
+	if err = d.Set("key", key.GetKey()); err != nil {
+		return nil, err
+	}
+
+	return []*schema.ResourceData{d}, nil
 }
